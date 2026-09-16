@@ -26,19 +26,23 @@ Optimized safe champion      ──▶  ROC 0.9455   (exp 53 soft-vote ET+LGBM+X
 
 ## Master report & playbook (start here)
 
-### Full written report
-Complete narrative of all **83** runs: leakage forensics, FE taxonomy, optimization lift matrix, algorithm scorecard, and production scenarios.
+### Full written reports
+Complete empirical evaluations across all experiments:
 
-| Format | Path |
-|---|---|
-| Markdown | [`MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md`](MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md) |
-| PDF | [`MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf`](MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf) |
-| Copy in suite | [`optimized_safe_model/MASTER_REPORT.md`](optimized_safe_model/MASTER_REPORT.md) · [`optimized_safe_model/MASTER_REPORT.pdf`](optimized_safe_model/MASTER_REPORT.pdf) |
+| Report | Markdown | PDF | Focus |
+|---|---|---|---|
+| **Master 4-Way Quadrant Benchmark** | [`MASTER_4WAY_BENCHMARK_REPORT.md`](MASTER_4WAY_BENCHMARK_REPORT.md) | [`MASTER_4WAY_BENCHMARK_REPORT.pdf`](MASTER_4WAY_BENCHMARK_REPORT.pdf) | 4-quadrant benchmark, Tabular Transformer (FT-Transformer), General Pipeline |
+| **Comprehensive R&D Lifecycle** | [`MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md`](MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md) | [`MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf`](MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf) | Leakage forensics, 25 vs 46 FE dilution, 83-experiment optimization ladder |
 
-Regenerate PDF after editing the markdown:
+### General Tabular Pipeline (`general_pipeline/`)
+A unified, modular pipeline supporting 11 model architectures across Safe vs Unsafe regimes, with baseline and optimized hyperparameter factories:
 
 ```bash
-.venv/bin/python generate_pdf.py
+# Run any single experiment
+.venv/bin/python general_pipeline/run_experiments.py --mode safe --optimization optimized --model tabular_transformer
+
+# Run full 44-model benchmark & regenerate all 4-way plots
+.venv/bin/python general_pipeline/run_experiments.py --mode all --optimization all --model all
 ```
 
 ### Cursor / agent playbook rule

@@ -55,6 +55,7 @@ Add features strictly by families, measuring incremental validation lift:
 | **CatBoost** | Handles categorical splits without prep, very smooth probability outputs | Slower training, sklearn cloning quirks in StackingClassifier | `iterations`: 500–1200, `depth`: 5–7, `learning_rate`: 0.02–0.05, `l2_leaf_reg`: 2.0–8.0 |
 | **HistGradientBoosting** | Native sklearn GBDT, zero external deps, fast binning | Slightly lower ROC peak than tuned LightGBM | `learning_rate`: 0.03–0.08, `max_iter`: 300–700, `max_leaf_nodes`: 25–45, `l2_regularization`: 0.5–3.0 |
 | **RandomForest** | Solid baseline, no feature scaling required | Lower ceiling than ExtraTrees or GBDTs | `n_estimators`: 400–1000, `max_depth`: 8–18, `min_samples_leaf`: 3–12 |
+| **Tabular Transformer (FT-Transformer)** | High optimization response (**+0.0135 ROC lift**), captures non-linear feature interactions via self-attention | Slower training (~30× compute of GBDT), trails tuned tree ensembles on $\sim 10^4$ rows | `learning_rate`: 5e-4–1.5e-3, `num_heads`: 4–8, `num_attn_blocks`: 2–4, `input_embed_dim`: 32–64, `batch_size`: 128–256, `dropout`: 0.05–0.15 |
 | **Logistic / LinearSVC** | Ultra-fast baseline, interpretable weights | Fails on complex non-linear spatial/pricing curves (~0.88 ROC vs ~0.94 GBDT) | Standardized scaler mandatory, `C`: loguniform(0.001, 10.0), `penalty`: 'l1' or 'l2' |
 
 ---
@@ -107,3 +108,20 @@ When product requirements demand high recall (e.g. catching fraud, high-risk chu
 - [ ] Is there an unweighted baseline GBDT to benchmark pure discriminative power?
 - [ ] Did you test at least two distinct algorithm families (e.g., GBDT + ExtraTrees/RandomForest) in a soft-blend?
 - [ ] Are decision thresholds calibrated explicitly for the operational cost function?
+
+---
+
+## 7. The 4-Quadrant Benchmark Framework & General Pipeline
+
+When benchmarking models, organize runs into the 4 strict quadrants using `general_pipeline/`:
+
+1. **Safe Baseline:** Pre-decision features (25 feats) + default hyperparameters.
+2. **Safe Optimized:** Pre-decision features + tuned hyperparameters & ensembles (Champion: **0.9455 ROC**).
+3. **Unsafe Baseline:** Leaked final-fare features (34 feats) + default hyperparameters.
+4. **Unsafe Optimized:** Leaked final-fare features + tuned hyperparameters & ensembles (Ceiling: **0.9789 ROC**).
+
+**CLI Usage:**
+```bash
+.venv/bin/python general_pipeline/run_experiments.py --mode [safe|unsafe|all] --optimization [baseline|optimized|all] --model [model_name|all]
+```
+Outputs and plots are automatically aggregated into `benchmark_outputs/` and documented in `MASTER_4WAY_BENCHMARK_REPORT.md`.
