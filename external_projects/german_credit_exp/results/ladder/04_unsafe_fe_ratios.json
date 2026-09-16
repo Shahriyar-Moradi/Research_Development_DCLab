@@ -1,0 +1,77 @@
+{
+  "exp_id": 4,
+  "exp_name": "fe_ratios",
+  "dataset": "german_credit",
+  "mode": "unsafe",
+  "fe_stage": "ratios",
+  "optimization_method": "none",
+  "notes": "Add pairwise intensity ratios among high-variance features.",
+  "feature_count": 48,
+  "train_rows": 800,
+  "test_rows": 200,
+  "pos_rate": 0.3,
+  "fe_meta": {
+    "stage": "ratios",
+    "top_mi": [
+      "Attribute1",
+      "ratio_Attribute4_div_Attribute12",
+      "log1p_Attribute3",
+      "Attribute8",
+      "ratio_Attribute5_div_Attribute4",
+      "Attribute12",
+      "log1p_Attribute2",
+      "ratio_Attribute2_div_Attribute7",
+      "ratio_Attribute13_div_Attribute4",
+      "log1p_Attribute14",
+      "Attribute4",
+      "Attribute2",
+      "Attribute3",
+      "ratio_Attribute2_div_Attribute4",
+      "log1p_Attribute5"
+    ],
+    "log_cols": [
+      "Attribute2",
+      "Attribute3",
+      "Attribute5",
+      "Attribute6",
+      "Attribute9",
+      "Attribute10",
+      "Attribute13",
+      "Attribute14",
+      "Attribute15",
+      "Attribute16",
+      "Attribute17",
+      "Attribute18",
+      "Attribute20"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 48
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8,
+    "roc_auc": 0.8051190476190476,
+    "avg_precision": 0.7139140707780821,
+    "f1": 0.6296296296296297,
+    "recall": 0.5666666666666667,
+    "precision": 0.7083333333333334,
+    "threshold": 0.5,
+    "fit_seconds": 0.569,
+    "predict_seconds": 0.004,
+    "confusion_matrix": [
+      [
+        126,
+        14
+      ],
+      [
+        26,
+        34
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.579,
+  "timestamp": "2026-09-16 13:59:09"
+}

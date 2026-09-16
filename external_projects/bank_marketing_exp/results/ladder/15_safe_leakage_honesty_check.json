@@ -1,0 +1,74 @@
+{
+  "exp_id": 15,
+  "exp_name": "leakage_honesty_check",
+  "dataset": "bank_marketing",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "none",
+  "notes": "Honesty marker: LightGBM on full FE under this mode. Compare safe vs unsafe of this id to measure leakage cost.",
+  "feature_count": 51,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "inter_ratio_day_of_week_div_month_x_ratio_pdays_div_month",
+      "ratio_pdays_div_month",
+      "inter_ratio_day_of_week_div_month_x_log1p_month",
+      "ratio_day_of_week_div_month",
+      "inter_ratio_day_of_week_div_month_x_ratio_pdays_div_day_of_week",
+      "inter_ratio_day_of_week_div_month_x_poutcome",
+      "inter_ratio_day_of_week_div_month_x_ratio_age_div_month",
+      "poutcome",
+      "inter_ratio_day_of_week_div_month_x_log1p_poutcome",
+      "log1p_poutcome",
+      "month",
+      "inter_ratio_pdays_div_month_x_log1p_poutcome",
+      "pdays",
+      "ratio_pdays_div_day_of_week",
+      "log1p_month"
+    ],
+    "log_cols": [
+      "marital",
+      "education",
+      "default",
+      "loan",
+      "month",
+      "campaign",
+      "previous",
+      "poutcome"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 51
+  },
+  "dropped_leakage": [
+    "duration"
+  ],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.895,
+    "roc_auc": 0.7919231737181908,
+    "avg_precision": 0.43100611558305557,
+    "f1": 0.33121019108280253,
+    "recall": 0.2222222222222222,
+    "precision": 0.65,
+    "threshold": 0.5,
+    "fit_seconds": 2.399,
+    "predict_seconds": 0.027,
+    "confusion_matrix": [
+      [
+        3476,
+        56
+      ],
+      [
+        364,
+        104
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 2.435,
+  "timestamp": "2026-09-16 13:40:49"
+}

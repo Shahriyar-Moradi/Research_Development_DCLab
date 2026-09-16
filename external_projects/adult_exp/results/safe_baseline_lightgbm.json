@@ -1,0 +1,36 @@
+{
+  "dataset": "adult",
+  "dataset_name": "Adult (Census Income)",
+  "model_name": "lightgbm",
+  "mode": "safe",
+  "optimization": "baseline",
+  "feature_count": 14,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2393125,
+  "metrics": {
+    "accuracy": 0.87025,
+    "roc_auc": 0.9260747468108625,
+    "avg_precision": 0.821939099142155,
+    "f1": 0.7072758037225042,
+    "recall": 0.6551724137931034,
+    "precision": 0.7683823529411765,
+    "threshold": 0.5,
+    "fit_seconds": 0.507,
+    "predict_seconds": 0.009,
+    "confusion_matrix": [
+      [
+        2854,
+        189
+      ],
+      [
+        330,
+        627
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.527,
+  "timestamp": "2026-09-16 12:52:51",
+  "source_url": "https://archive.ics.uci.edu/dataset/2/adult",
+  "dropped_leakage": []
+}

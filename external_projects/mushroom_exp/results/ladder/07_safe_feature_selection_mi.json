@@ -1,0 +1,73 @@
+{
+  "exp_id": 7,
+  "exp_name": "feature_selection_mi",
+  "dataset": "mushroom",
+  "mode": "safe",
+  "fe_stage": "selected",
+  "optimization_method": "mutual_info_selection",
+  "notes": "Keep top-MI subset of full FE matrix (HyperAck exp 07).",
+  "feature_count": 25,
+  "train_rows": 6499,
+  "test_rows": 1625,
+  "pos_rate": 0.4820741652561933,
+  "fe_meta": {
+    "stage": "selected",
+    "top_mi": [
+      "odor",
+      "inter_odor_x_gill-color",
+      "inter_odor_x_ring-type",
+      "inter_odor_x_ratio_spore-print-color_div_habitat",
+      "inter_odor_x_log1p_ring-type",
+      "inter_odor_x_spore-print-color",
+      "ratio_gill-color_div_spore-print-color",
+      "ratio_spore-print-color_div_habitat",
+      "spore-print-color",
+      "inter_odor_x_ratio_gill-color_div_spore-print-color",
+      "gill-color",
+      "inter_odor_x_ratio_spore-print-color_div_stalk-color-below-ring",
+      "ratio_spore-print-color_div_stalk-color-below-ring",
+      "log1p_ring-type",
+      "ring-type"
+    ],
+    "log_cols": [
+      "gill-attachment",
+      "gill-spacing",
+      "gill-size",
+      "stalk-color-above-ring",
+      "stalk-color-below-ring",
+      "veil-color",
+      "ring-number",
+      "ring-type",
+      "population"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": 20,
+    "output_cols": 25
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 1.0,
+    "roc_auc": 1.0,
+    "avg_precision": 1.0,
+    "f1": 1.0,
+    "recall": 1.0,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 0.396,
+    "predict_seconds": 0.003,
+    "confusion_matrix": [
+      [
+        842,
+        0
+      ],
+      [
+        0,
+        783
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.402,
+  "timestamp": "2026-09-16 14:00:04"
+}

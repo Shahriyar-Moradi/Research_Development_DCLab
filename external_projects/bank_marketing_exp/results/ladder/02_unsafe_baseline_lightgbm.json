@@ -1,0 +1,63 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "bank_marketing",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 16,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "duration",
+      "poutcome",
+      "pdays",
+      "month",
+      "contact",
+      "balance",
+      "job",
+      "previous",
+      "housing",
+      "age",
+      "loan",
+      "education",
+      "campaign",
+      "day_of_week",
+      "marital"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 16
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.90825,
+    "roc_auc": 0.9318151019736522,
+    "avg_precision": 0.6104402598147889,
+    "f1": 0.5562273276904474,
+    "recall": 0.49145299145299143,
+    "precision": 0.6406685236768802,
+    "threshold": 0.5,
+    "fit_seconds": 0.855,
+    "predict_seconds": 0.009,
+    "confusion_matrix": [
+      [
+        3403,
+        129
+      ],
+      [
+        238,
+        230
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.87,
+  "timestamp": "2026-09-16 13:40:51"
+}

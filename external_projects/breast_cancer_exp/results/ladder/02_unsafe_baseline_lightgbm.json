@@ -1,0 +1,63 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "breast_cancer",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 30,
+  "train_rows": 455,
+  "test_rows": 114,
+  "pos_rate": 0.37362637362637363,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "radius3",
+      "perimeter3",
+      "area3",
+      "concave_points1",
+      "concave_points3",
+      "perimeter1",
+      "area1",
+      "radius1",
+      "concavity1",
+      "area2",
+      "concavity3",
+      "perimeter2",
+      "radius2",
+      "compactness3",
+      "compactness1"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 30
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.9649122807017544,
+    "roc_auc": 0.9966931216931217,
+    "avg_precision": 0.9954212454212454,
+    "f1": 0.95,
+    "recall": 0.9047619047619048,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 0.341,
+    "predict_seconds": 0.002,
+    "confusion_matrix": [
+      [
+        72,
+        0
+      ],
+      [
+        4,
+        38
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.348,
+  "timestamp": "2026-09-16 13:45:47"
+}

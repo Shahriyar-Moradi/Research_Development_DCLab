@@ -1,0 +1,35 @@
+{
+  "dataset": "german_credit",
+  "dataset_name": "Statlog German Credit",
+  "model_name": "xgboost",
+  "mode": "external",
+  "optimization": "baseline",
+  "feature_count": 20,
+  "train_rows": 800,
+  "test_rows": 200,
+  "pos_rate": 0.3,
+  "metrics": {
+    "accuracy": 0.77,
+    "roc_auc": 0.7761904761904762,
+    "avg_precision": 0.6430850168405913,
+    "f1": 0.5818181818181818,
+    "recall": 0.5333333333333333,
+    "precision": 0.64,
+    "threshold": 0.5,
+    "fit_seconds": 0.021,
+    "predict_seconds": 0.001,
+    "confusion_matrix": [
+      [
+        122,
+        18
+      ],
+      [
+        28,
+        32
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.025,
+  "timestamp": "2026-09-16 12:41:36",
+  "source_url": "https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data"
+}

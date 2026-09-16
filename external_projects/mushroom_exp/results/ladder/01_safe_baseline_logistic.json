@@ -1,0 +1,63 @@
+{
+  "exp_id": 1,
+  "exp_name": "baseline_logistic",
+  "dataset": "mushroom",
+  "mode": "safe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Floor: logistic regression on raw features.",
+  "feature_count": 22,
+  "train_rows": 6499,
+  "test_rows": 1625,
+  "pos_rate": 0.4820741652561933,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "odor",
+      "spore-print-color",
+      "gill-color",
+      "ring-type",
+      "stalk-surface-below-ring",
+      "stalk-surface-above-ring",
+      "stalk-color-above-ring",
+      "stalk-color-below-ring",
+      "gill-size",
+      "population",
+      "bruises",
+      "habitat",
+      "stalk-root",
+      "gill-spacing",
+      "cap-shape"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 22
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.9876923076923076,
+    "roc_auc": 0.9995919828420443,
+    "avg_precision": 0.9995662599762437,
+    "f1": 0.987146529562982,
+    "recall": 0.9808429118773946,
+    "precision": 0.9935316946959897,
+    "threshold": 0.5,
+    "fit_seconds": 0.023,
+    "predict_seconds": 0.001,
+    "confusion_matrix": [
+      [
+        837,
+        5
+      ],
+      [
+        15,
+        768
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.03,
+  "timestamp": "2026-09-16 13:59:56"
+}

@@ -1,0 +1,73 @@
+{
+  "exp_id": 4,
+  "exp_name": "fe_ratios",
+  "dataset": "mushroom",
+  "mode": "unsafe",
+  "fe_stage": "ratios",
+  "optimization_method": "none",
+  "notes": "Add pairwise intensity ratios among high-variance features.",
+  "feature_count": 46,
+  "train_rows": 6499,
+  "test_rows": 1625,
+  "pos_rate": 0.4820741652561933,
+  "fe_meta": {
+    "stage": "ratios",
+    "top_mi": [
+      "odor",
+      "ratio_gill-color_div_spore-print-color",
+      "ratio_spore-print-color_div_habitat",
+      "spore-print-color",
+      "gill-color",
+      "ratio_spore-print-color_div_stalk-color-below-ring",
+      "log1p_ring-type",
+      "ring-type",
+      "ratio_gill-color_div_stalk-color-below-ring",
+      "ratio_stalk-color-below-ring_div_habitat",
+      "stalk-surface-above-ring",
+      "stalk-surface-below-ring",
+      "ratio_gill-color_div_habitat",
+      "log1p_stalk-color-above-ring",
+      "stalk-color-below-ring"
+    ],
+    "log_cols": [
+      "gill-attachment",
+      "gill-spacing",
+      "gill-size",
+      "stalk-color-above-ring",
+      "stalk-color-below-ring",
+      "veil-color",
+      "ring-number",
+      "ring-type",
+      "population"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 46
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 1.0,
+    "roc_auc": 1.0,
+    "avg_precision": 1.0,
+    "f1": 1.0,
+    "recall": 1.0,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 0.482,
+    "predict_seconds": 0.004,
+    "confusion_matrix": [
+      [
+        842,
+        0
+      ],
+      [
+        0,
+        783
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.49,
+  "timestamp": "2026-09-16 14:00:57"
+}

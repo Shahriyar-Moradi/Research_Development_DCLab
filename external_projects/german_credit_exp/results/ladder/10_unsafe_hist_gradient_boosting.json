@@ -1,0 +1,77 @@
+{
+  "exp_id": 10,
+  "exp_name": "hist_gradient_boosting",
+  "dataset": "german_credit",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "none",
+  "notes": "Sklearn HistGB on full FE (HyperAck exp 10).",
+  "feature_count": 61,
+  "train_rows": 800,
+  "test_rows": 200,
+  "pos_rate": 0.3,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "inter_Attribute1_x_log1p_Attribute2",
+      "Attribute12",
+      "log1p_Attribute3",
+      "Attribute1",
+      "Attribute6",
+      "inter_Attribute1_x_Attribute8",
+      "inter_Attribute1_x_ratio_Attribute4_div_Attribute12",
+      "inter_Attribute1_x_Attribute12",
+      "Attribute3",
+      "log1p_Attribute6",
+      "inter_Attribute1_x_log1p_Attribute3",
+      "Attribute19",
+      "Attribute14",
+      "Attribute4",
+      "inter_Attribute1_x_ratio_Attribute2_div_Attribute7"
+    ],
+    "log_cols": [
+      "Attribute2",
+      "Attribute3",
+      "Attribute5",
+      "Attribute6",
+      "Attribute9",
+      "Attribute10",
+      "Attribute13",
+      "Attribute14",
+      "Attribute15",
+      "Attribute16",
+      "Attribute17",
+      "Attribute18",
+      "Attribute20"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 61
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.765,
+    "roc_auc": 0.7926190476190477,
+    "avg_precision": 0.6768451380281431,
+    "f1": 0.5688073394495413,
+    "recall": 0.5166666666666667,
+    "precision": 0.6326530612244898,
+    "threshold": 0.5,
+    "fit_seconds": 0.191,
+    "predict_seconds": 0.005,
+    "confusion_matrix": [
+      [
+        122,
+        18
+      ],
+      [
+        29,
+        31
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.198,
+  "timestamp": "2026-09-16 13:59:42"
+}

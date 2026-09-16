@@ -1,0 +1,61 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "heart_disease",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 13,
+  "train_rows": 242,
+  "test_rows": 61,
+  "pos_rate": 0.45867768595041325,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "thal",
+      "ca",
+      "cp",
+      "slope",
+      "thalach",
+      "oldpeak",
+      "exang",
+      "chol",
+      "sex",
+      "fbs",
+      "restecg",
+      "age",
+      "trestbps"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 13
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8852459016393442,
+    "roc_auc": 0.9523809523809524,
+    "avg_precision": 0.9535657086422774,
+    "f1": 0.8813559322033898,
+    "recall": 0.9285714285714286,
+    "precision": 0.8387096774193549,
+    "threshold": 0.5,
+    "fit_seconds": 0.891,
+    "predict_seconds": 0.002,
+    "confusion_matrix": [
+      [
+        28,
+        5
+      ],
+      [
+        2,
+        26
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.896,
+  "timestamp": "2026-09-16 13:47:09"
+}

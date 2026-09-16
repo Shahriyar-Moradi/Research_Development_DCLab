@@ -1,0 +1,70 @@
+{
+  "exp_id": 13,
+  "exp_name": "stacking_ensemble",
+  "dataset": "wine_quality",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "oof_stacking",
+  "notes": "ET+LGBM+XGB stacked with logistic meta-learner (HyperAck exp 13).",
+  "feature_count": 45,
+  "train_rows": 5197,
+  "test_rows": 1300,
+  "pos_rate": 0.6330575331922262,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "inter_ratio_fixed_acidity_div_alcohol_x_density",
+      "ratio_fixed_acidity_div_alcohol",
+      "ratio_residual_sugar_div_alcohol",
+      "ratio_alcohol_div_log1p_residual_sugar",
+      "ratio_free_sulfur_dioxide_div_alcohol",
+      "alcohol",
+      "inter_ratio_fixed_acidity_div_alcohol_x_ratio_total_sulfur_dioxide_div_alcohol",
+      "inter_ratio_fixed_acidity_div_alcohol_x_ratio_total_sulfur_dioxide_div_fixed_acidity",
+      "ratio_total_sulfur_dioxide_div_fixed_acidity",
+      "ratio_total_sulfur_dioxide_div_alcohol",
+      "inter_ratio_fixed_acidity_div_alcohol_x_ratio_residual_sugar_div_alcohol",
+      "ratio_free_sulfur_dioxide_div_log1p_residual_sugar",
+      "density",
+      "ratio_total_sulfur_dioxide_div_residual_sugar",
+      "inter_ratio_fixed_acidity_div_alcohol_x_ratio_free_sulfur_dioxide_div_alcohol"
+    ],
+    "log_cols": [
+      "fixed_acidity",
+      "volatile_acidity",
+      "residual_sugar",
+      "chlorides",
+      "free_sulfur_dioxide",
+      "sulphates"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 45
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8346153846153846,
+    "roc_auc": 0.8968084754095439,
+    "avg_precision": 0.9330650424395437,
+    "f1": 0.872856298048492,
+    "recall": 0.8967193195625759,
+    "precision": 0.8502304147465438,
+    "threshold": 0.5,
+    "fit_seconds": 10.587,
+    "predict_seconds": 0.129,
+    "confusion_matrix": [
+      [
+        347,
+        130
+      ],
+      [
+        85,
+        738
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 10.72,
+  "timestamp": "2026-09-16 14:11:52"
+}

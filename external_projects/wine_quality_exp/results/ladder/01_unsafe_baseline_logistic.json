@@ -1,0 +1,59 @@
+{
+  "exp_id": 1,
+  "exp_name": "baseline_logistic",
+  "dataset": "wine_quality",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Floor: logistic regression on raw features.",
+  "feature_count": 11,
+  "train_rows": 5197,
+  "test_rows": 1300,
+  "pos_rate": 0.6330575331922262,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "alcohol",
+      "density",
+      "chlorides",
+      "volatile_acidity",
+      "citric_acid",
+      "total_sulfur_dioxide",
+      "free_sulfur_dioxide",
+      "residual_sugar",
+      "sulphates",
+      "fixed_acidity",
+      "pH"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 11
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.7338461538461538,
+    "roc_auc": 0.804450659880633,
+    "avg_precision": 0.8815793251778415,
+    "f1": 0.8002309468822171,
+    "recall": 0.8420413122721749,
+    "precision": 0.7623762376237624,
+    "threshold": 0.5,
+    "fit_seconds": 0.011,
+    "predict_seconds": 0.001,
+    "confusion_matrix": [
+      [
+        261,
+        216
+      ],
+      [
+        130,
+        693
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.016,
+  "timestamp": "2026-09-16 14:11:59"
+}

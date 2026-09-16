@@ -1,0 +1,80 @@
+{
+  "exp_id": 3,
+  "exp_name": "fe_log_transforms",
+  "dataset": "online_shoppers",
+  "mode": "unsafe",
+  "fe_stage": "logs",
+  "optimization_method": "none",
+  "notes": "Add log1p transforms for skewed non-negative columns.",
+  "feature_count": 33,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "logs",
+    "top_mi": [
+      "PageValues",
+      "log1p_PageValues",
+      "ExitRates",
+      "log1p_ExitRates",
+      "log1p_ProductRelated_Duration",
+      "ProductRelated_Duration",
+      "ProductRelated",
+      "BounceRates",
+      "log1p_ProductRelated",
+      "log1p_BounceRates",
+      "log1p_TrafficType",
+      "log1p_Administrative",
+      "TrafficType",
+      "Administrative_Duration",
+      "log1p_Administrative_Duration"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "PageValues",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 33
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.8965936739659367,
+    "roc_auc": 0.926445317603079,
+    "avg_precision": 0.7347117255306435,
+    "f1": 0.6330935251798561,
+    "recall": 0.5759162303664922,
+    "precision": 0.7028753993610224,
+    "threshold": 0.5,
+    "fit_seconds": 0.542,
+    "predict_seconds": 0.005,
+    "confusion_matrix": [
+      [
+        1991,
+        93
+      ],
+      [
+        162,
+        220
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.551,
+  "timestamp": "2026-09-16 14:08:13"
+}

@@ -1,0 +1,69 @@
+{
+  "exp_id": 3,
+  "exp_name": "fe_log_transforms",
+  "dataset": "heart_disease",
+  "mode": "safe",
+  "fe_stage": "logs",
+  "optimization_method": "none",
+  "notes": "Add log1p transforms for skewed non-negative columns.",
+  "feature_count": 18,
+  "train_rows": 242,
+  "test_rows": 61,
+  "pos_rate": 0.45867768595041325,
+  "fe_meta": {
+    "stage": "logs",
+    "top_mi": [
+      "thal",
+      "log1p_cp",
+      "cp",
+      "ca",
+      "thalach",
+      "log1p_ca",
+      "chol",
+      "exang",
+      "slope",
+      "log1p_oldpeak",
+      "oldpeak",
+      "log1p_chol",
+      "sex",
+      "restecg",
+      "trestbps"
+    ],
+    "log_cols": [
+      "cp",
+      "chol",
+      "fbs",
+      "oldpeak",
+      "ca"
+    ],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 18
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8852459016393442,
+    "roc_auc": 0.9523809523809524,
+    "avg_precision": 0.9535657086422774,
+    "f1": 0.8813559322033898,
+    "recall": 0.9285714285714286,
+    "precision": 0.8387096774193549,
+    "threshold": 0.5,
+    "fit_seconds": 0.512,
+    "predict_seconds": 0.002,
+    "confusion_matrix": [
+      [
+        28,
+        5
+      ],
+      [
+        2,
+        26
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.52,
+  "timestamp": "2026-09-16 13:46:29"
+}

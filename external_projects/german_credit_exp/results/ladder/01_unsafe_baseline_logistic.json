@@ -1,0 +1,63 @@
+{
+  "exp_id": 1,
+  "exp_name": "baseline_logistic",
+  "dataset": "german_credit",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Floor: logistic regression on raw features.",
+  "feature_count": 20,
+  "train_rows": 800,
+  "test_rows": 200,
+  "pos_rate": 0.3,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "Attribute1",
+      "Attribute15",
+      "Attribute11",
+      "Attribute3",
+      "Attribute6",
+      "Attribute5",
+      "Attribute10",
+      "Attribute20",
+      "Attribute9",
+      "Attribute19",
+      "Attribute2",
+      "Attribute8",
+      "Attribute17",
+      "Attribute13",
+      "Attribute4"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 20
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.745,
+    "roc_auc": 0.7747619047619048,
+    "avg_precision": 0.612373075413072,
+    "f1": 0.48484848484848486,
+    "recall": 0.4,
+    "precision": 0.6153846153846154,
+    "threshold": 0.5,
+    "fit_seconds": 0.005,
+    "predict_seconds": 0.001,
+    "confusion_matrix": [
+      [
+        125,
+        15
+      ],
+      [
+        36,
+        24
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.009,
+  "timestamp": "2026-09-16 13:59:07"
+}

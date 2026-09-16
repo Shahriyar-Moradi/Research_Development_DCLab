@@ -1,0 +1,63 @@
+{
+  "exp_id": 1,
+  "exp_name": "baseline_logistic",
+  "dataset": "bank_marketing",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Floor: logistic regression on raw features.",
+  "feature_count": 16,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "duration",
+      "poutcome",
+      "pdays",
+      "month",
+      "contact",
+      "balance",
+      "job",
+      "previous",
+      "housing",
+      "age",
+      "loan",
+      "education",
+      "campaign",
+      "day_of_week",
+      "marital"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 16
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.9,
+    "roc_auc": 0.8910068869723456,
+    "avg_precision": 0.5215244195656802,
+    "f1": 0.4117647058823529,
+    "recall": 0.29914529914529914,
+    "precision": 0.660377358490566,
+    "threshold": 0.5,
+    "fit_seconds": 0.03,
+    "predict_seconds": 0.002,
+    "confusion_matrix": [
+      [
+        3460,
+        72
+      ],
+      [
+        328,
+        140
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.037,
+  "timestamp": "2026-09-16 13:40:50"
+}

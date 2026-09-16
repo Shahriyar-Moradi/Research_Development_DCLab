@@ -1,0 +1,72 @@
+{
+  "exp_id": 15,
+  "exp_name": "leakage_honesty_check",
+  "dataset": "adult",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "none",
+  "notes": "Honesty marker: LightGBM on full FE under this mode. Compare safe vs unsafe of this id to measure leakage cost.",
+  "feature_count": 50,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2393125,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "relationship",
+      "inter_relationship_x_log1p_marital-status",
+      "log1p_marital-status",
+      "marital-status",
+      "inter_relationship_x_marital-status",
+      "inter_log1p_marital-status_x_marital-status",
+      "inter_relationship_x_age",
+      "capital-gain",
+      "inter_relationship_x_log1p_education",
+      "log1p_capital-gain",
+      "education-num",
+      "ratio_capital-gain_div_hours-per-week",
+      "age",
+      "inter_relationship_x_log1p_capital-gain",
+      "ratio_capital-gain_div_age"
+    ],
+    "log_cols": [
+      "workclass",
+      "fnlwgt",
+      "education",
+      "marital-status",
+      "race",
+      "capital-gain",
+      "capital-loss",
+      "native-country"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 50
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.871,
+    "roc_auc": 0.9239884882342984,
+    "avg_precision": 0.8179242500982445,
+    "f1": 0.7041284403669725,
+    "recall": 0.6415882967607106,
+    "precision": 0.7801778907242694,
+    "threshold": 0.5,
+    "fit_seconds": 6.506,
+    "predict_seconds": 0.087,
+    "confusion_matrix": [
+      [
+        2870,
+        173
+      ],
+      [
+        343,
+        614
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 6.625,
+  "timestamp": "2026-09-16 13:31:48"
+}

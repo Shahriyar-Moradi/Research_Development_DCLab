@@ -1,0 +1,74 @@
+{
+  "exp_id": 11,
+  "exp_name": "extra_trees_strong",
+  "dataset": "bank_marketing",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "hand_tuned",
+  "notes": "Strong ExtraTrees (n=600, depth=14) on full FE.",
+  "feature_count": 51,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "inter_ratio_day_of_week_div_month_x_ratio_pdays_div_month",
+      "ratio_pdays_div_month",
+      "inter_ratio_day_of_week_div_month_x_log1p_month",
+      "ratio_day_of_week_div_month",
+      "inter_ratio_day_of_week_div_month_x_ratio_pdays_div_day_of_week",
+      "inter_ratio_day_of_week_div_month_x_poutcome",
+      "inter_ratio_day_of_week_div_month_x_ratio_age_div_month",
+      "poutcome",
+      "inter_ratio_day_of_week_div_month_x_log1p_poutcome",
+      "log1p_poutcome",
+      "month",
+      "inter_ratio_pdays_div_month_x_log1p_poutcome",
+      "pdays",
+      "ratio_pdays_div_day_of_week",
+      "log1p_month"
+    ],
+    "log_cols": [
+      "marital",
+      "education",
+      "default",
+      "loan",
+      "month",
+      "campaign",
+      "previous",
+      "poutcome"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 51
+  },
+  "dropped_leakage": [
+    "duration"
+  ],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.89225,
+    "roc_auc": 0.7923502821577567,
+    "avg_precision": 0.4254134845512579,
+    "f1": 0.28760330578512394,
+    "recall": 0.1858974358974359,
+    "precision": 0.635036496350365,
+    "threshold": 0.5,
+    "fit_seconds": 2.752,
+    "predict_seconds": 0.203,
+    "confusion_matrix": [
+      [
+        3482,
+        50
+      ],
+      [
+        381,
+        87
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 2.971,
+  "timestamp": "2026-09-16 13:39:01"
+}

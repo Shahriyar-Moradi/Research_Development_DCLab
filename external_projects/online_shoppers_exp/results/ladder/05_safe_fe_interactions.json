@@ -1,0 +1,81 @@
+{
+  "exp_id": 5,
+  "exp_name": "fe_interactions",
+  "dataset": "online_shoppers",
+  "mode": "safe",
+  "fe_stage": "interactions",
+  "optimization_method": "none",
+  "notes": "Multiplicative interactions among top-MI features.",
+  "feature_count": 54,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "interactions",
+    "top_mi": [
+      "ExitRates",
+      "log1p_ExitRates",
+      "ProductRelated_Duration",
+      "log1p_ProductRelated_Duration",
+      "BounceRates",
+      "log1p_BounceRates",
+      "ratio_ProductRelated_Duration_div_ProductRelated",
+      "ratio_ProductRelated_Duration_div_Administrative",
+      "ProductRelated",
+      "log1p_ProductRelated",
+      "ratio_TrafficType_div_Administrative",
+      "ratio_ProductRelated_div_TrafficType",
+      "ratio_ProductRelated_div_Administrative",
+      "ratio_ProductRelated_Duration_div_TrafficType",
+      "Administrative_Duration"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 54
+  },
+  "dropped_leakage": [
+    "PageValues"
+  ],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.8418491484184915,
+    "roc_auc": 0.7687378782245178,
+    "avg_precision": 0.3537060968542774,
+    "f1": 0.19421487603305784,
+    "recall": 0.12303664921465969,
+    "precision": 0.46078431372549017,
+    "threshold": 0.5,
+    "fit_seconds": 0.6,
+    "predict_seconds": 0.006,
+    "confusion_matrix": [
+      [
+        2029,
+        55
+      ],
+      [
+        335,
+        47
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.611,
+  "timestamp": "2026-09-16 14:06:04"
+}

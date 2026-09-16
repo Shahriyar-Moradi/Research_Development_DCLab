@@ -1,0 +1,73 @@
+{
+  "exp_id": 13,
+  "exp_name": "stacking_ensemble",
+  "dataset": "mushroom",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "oof_stacking",
+  "notes": "ET+LGBM+XGB stacked with logistic meta-learner (HyperAck exp 13).",
+  "feature_count": 59,
+  "train_rows": 6499,
+  "test_rows": 1625,
+  "pos_rate": 0.4820741652561933,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "odor",
+      "inter_odor_x_gill-color",
+      "inter_odor_x_ring-type",
+      "inter_odor_x_ratio_spore-print-color_div_habitat",
+      "inter_odor_x_log1p_ring-type",
+      "inter_odor_x_spore-print-color",
+      "ratio_gill-color_div_spore-print-color",
+      "ratio_spore-print-color_div_habitat",
+      "spore-print-color",
+      "inter_odor_x_ratio_gill-color_div_spore-print-color",
+      "gill-color",
+      "inter_odor_x_ratio_spore-print-color_div_stalk-color-below-ring",
+      "ratio_spore-print-color_div_stalk-color-below-ring",
+      "log1p_ring-type",
+      "ring-type"
+    ],
+    "log_cols": [
+      "gill-attachment",
+      "gill-spacing",
+      "gill-size",
+      "stalk-color-above-ring",
+      "stalk-color-below-ring",
+      "veil-color",
+      "ring-number",
+      "ring-type",
+      "population"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 59
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 1.0,
+    "roc_auc": 1.0,
+    "avg_precision": 1.0,
+    "f1": 1.0,
+    "recall": 1.0,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 5.285,
+    "predict_seconds": 0.095,
+    "confusion_matrix": [
+      [
+        842,
+        0
+      ],
+      [
+        0,
+        783
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 5.384,
+  "timestamp": "2026-09-16 14:00:49"
+}

@@ -1,0 +1,81 @@
+{
+  "exp_id": 12,
+  "exp_name": "calibrated_lgbm_threshold",
+  "dataset": "online_shoppers",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "isotonic_calibration",
+  "notes": "Isotonic-calibrated LightGBM; threshold kept at 0.5 for ranking metrics.",
+  "feature_count": 59,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "log1p_ExitRates",
+      "ExitRates",
+      "inter_ExitRates_x_log1p_ExitRates",
+      "ProductRelated_Duration",
+      "log1p_ProductRelated_Duration",
+      "BounceRates",
+      "inter_ExitRates_x_BounceRates",
+      "ratio_ProductRelated_Duration_div_ProductRelated",
+      "inter_ExitRates_x_log1p_BounceRates",
+      "inter_ExitRates_x_log1p_ProductRelated_Duration",
+      "ratio_ProductRelated_Duration_div_Administrative",
+      "log1p_Administrative",
+      "ProductRelated",
+      "ratio_ProductRelated_div_TrafficType",
+      "log1p_ProductRelated"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 59
+  },
+  "dropped_leakage": [
+    "PageValues"
+  ],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.8438767234387672,
+    "roc_auc": 0.76475967480982,
+    "avg_precision": 0.35305048939840555,
+    "f1": 0.010282776349614395,
+    "recall": 0.005235602094240838,
+    "precision": 0.2857142857142857,
+    "threshold": 0.5,
+    "fit_seconds": 5.05,
+    "predict_seconds": 0.043,
+    "confusion_matrix": [
+      [
+        2079,
+        5
+      ],
+      [
+        380,
+        2
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 5.098,
+  "timestamp": "2026-09-16 14:07:44"
+}

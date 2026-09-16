@@ -1,0 +1,62 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "adult",
+  "mode": "safe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 14,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2393125,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "relationship",
+      "marital-status",
+      "capital-gain",
+      "education",
+      "education-num",
+      "occupation",
+      "age",
+      "hours-per-week",
+      "capital-loss",
+      "sex",
+      "workclass",
+      "fnlwgt",
+      "race",
+      "native-country"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 14
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.87025,
+    "roc_auc": 0.9260747468108625,
+    "avg_precision": 0.821939099142155,
+    "f1": 0.7072758037225042,
+    "recall": 0.6551724137931034,
+    "precision": 0.7683823529411765,
+    "threshold": 0.5,
+    "fit_seconds": 0.832,
+    "predict_seconds": 0.009,
+    "confusion_matrix": [
+      [
+        2854,
+        189
+      ],
+      [
+        330,
+        627
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.848,
+  "timestamp": "2026-09-16 13:26:00"
+}

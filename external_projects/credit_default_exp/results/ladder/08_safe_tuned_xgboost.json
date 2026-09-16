@@ -1,0 +1,72 @@
+{
+  "exp_id": 8,
+  "exp_name": "tuned_xgboost",
+  "dataset": "credit_default",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "RandomizedSearchCV_roc_auc",
+  "notes": "RandomizedSearchCV on XGBoost over full FE (HyperAck exp 08).",
+  "feature_count": 59,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2211875,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "X6",
+      "inter_X6_x_ratio_X12_div_X15",
+      "X7",
+      "inter_X6_x_X18",
+      "X8",
+      "inter_X6_x_X7",
+      "X9",
+      "X10",
+      "X11",
+      "X18",
+      "inter_X6_x_X9",
+      "inter_X7_x_X8",
+      "ratio_X13_div_X15",
+      "inter_X6_x_X8",
+      "ratio_X14_div_X15"
+    ],
+    "log_cols": [
+      "X1",
+      "X3",
+      "X18",
+      "X19",
+      "X20",
+      "X21",
+      "X22",
+      "X23"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 59
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.82625,
+    "roc_auc": 0.7987659493429824,
+    "avg_precision": 0.5732154041293395,
+    "f1": 0.4825018615040953,
+    "recall": 0.36610169491525424,
+    "precision": 0.7074235807860262,
+    "threshold": 0.5,
+    "fit_seconds": 40.026,
+    "predict_seconds": 0.015,
+    "confusion_matrix": [
+      [
+        2981,
+        134
+      ],
+      [
+        561,
+        324
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 40.049,
+  "timestamp": "2026-09-16 13:49:07"
+}

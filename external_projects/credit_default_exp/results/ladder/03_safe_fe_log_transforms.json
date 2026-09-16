@@ -1,0 +1,72 @@
+{
+  "exp_id": 3,
+  "exp_name": "fe_log_transforms",
+  "dataset": "credit_default",
+  "mode": "safe",
+  "fe_stage": "logs",
+  "optimization_method": "none",
+  "notes": "Add log1p transforms for skewed non-negative columns.",
+  "feature_count": 31,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2211875,
+  "fe_meta": {
+    "stage": "logs",
+    "top_mi": [
+      "X6",
+      "X7",
+      "X8",
+      "X9",
+      "X10",
+      "X11",
+      "log1p_X18",
+      "X18",
+      "log1p_X20",
+      "X19",
+      "X1",
+      "X20",
+      "X22",
+      "log1p_X1",
+      "log1p_X22"
+    ],
+    "log_cols": [
+      "X1",
+      "X3",
+      "X18",
+      "X19",
+      "X20",
+      "X21",
+      "X22",
+      "X23"
+    ],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 31
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.82425,
+    "roc_auc": 0.7866548775289968,
+    "avg_precision": 0.5711654847955383,
+    "f1": 0.4879825200291333,
+    "recall": 0.3785310734463277,
+    "precision": 0.6864754098360656,
+    "threshold": 0.5,
+    "fit_seconds": 0.71,
+    "predict_seconds": 0.013,
+    "confusion_matrix": [
+      [
+        2962,
+        153
+      ],
+      [
+        550,
+        335
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.729,
+  "timestamp": "2026-09-16 13:48:04"
+}

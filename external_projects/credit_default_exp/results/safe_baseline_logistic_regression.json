@@ -1,0 +1,36 @@
+{
+  "dataset": "credit_default",
+  "dataset_name": "Default of Credit Card Clients",
+  "model_name": "logistic_regression",
+  "mode": "safe",
+  "optimization": "baseline",
+  "feature_count": 23,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2211875,
+  "metrics": {
+    "accuracy": 0.81375,
+    "roc_auc": 0.7209315232472727,
+    "avg_precision": 0.5094117215095113,
+    "f1": 0.3755238893545683,
+    "recall": 0.25310734463276835,
+    "precision": 0.7272727272727273,
+    "threshold": 0.5,
+    "fit_seconds": 0.04,
+    "predict_seconds": 0.001,
+    "confusion_matrix": [
+      [
+        3031,
+        84
+      ],
+      [
+        661,
+        224
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.046,
+  "timestamp": "2026-09-16 12:55:05",
+  "source_url": "https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients",
+  "dropped_leakage": []
+}

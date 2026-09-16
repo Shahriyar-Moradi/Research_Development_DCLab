@@ -1,0 +1,63 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "spambase",
+  "mode": "unsafe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 57,
+  "train_rows": 3680,
+  "test_rows": 921,
+  "pos_rate": 0.39402173913043476,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "char_freq_$",
+      "char_freq_!",
+      "capital_run_length_longest",
+      "word_freq_your",
+      "capital_run_length_average",
+      "word_freq_free",
+      "word_freq_remove",
+      "capital_run_length_total",
+      "word_freq_hp",
+      "word_freq_money",
+      "word_freq_you",
+      "word_freq_000",
+      "word_freq_our",
+      "word_freq_george",
+      "word_freq_business"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 57
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.9489685124864278,
+    "roc_auc": 0.9877662253028822,
+    "avg_precision": 0.9805840374709937,
+    "f1": 0.9349930843706777,
+    "recall": 0.931129476584022,
+    "precision": 0.9388888888888889,
+    "threshold": 0.5,
+    "fit_seconds": 0.544,
+    "predict_seconds": 0.004,
+    "confusion_matrix": [
+      [
+        536,
+        22
+      ],
+      [
+        25,
+        338
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.551,
+  "timestamp": "2026-09-16 14:03:52"
+}

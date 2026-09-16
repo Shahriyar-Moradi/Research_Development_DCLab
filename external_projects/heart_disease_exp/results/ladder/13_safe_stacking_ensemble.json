@@ -1,0 +1,69 @@
+{
+  "exp_id": 13,
+  "exp_name": "stacking_ensemble",
+  "dataset": "heart_disease",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "oof_stacking",
+  "notes": "ET+LGBM+XGB stacked with logistic meta-learner (HyperAck exp 13).",
+  "feature_count": 46,
+  "train_rows": 242,
+  "test_rows": 61,
+  "pos_rate": 0.45867768595041325,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "ratio_thalach_div_thal",
+      "inter_ratio_thalach_div_thal_x_ratio_trestbps_div_thal",
+      "inter_ratio_thalach_div_thal_x_thalach",
+      "exang",
+      "inter_ratio_thalach_div_thal_x_ratio_age_div_thal",
+      "inter_ratio_thalach_div_thal_x_ratio_chol_div_thal",
+      "ratio_age_div_thal",
+      "cp",
+      "thal",
+      "inter_ratio_thalach_div_thal_x_ratio_thalach_div_oldpeak",
+      "ratio_trestbps_div_thal",
+      "log1p_cp",
+      "ratio_thalach_div_oldpeak",
+      "inter_ratio_thalach_div_thal_x_log1p_ca",
+      "ratio_trestbps_div_oldpeak"
+    ],
+    "log_cols": [
+      "cp",
+      "chol",
+      "fbs",
+      "oldpeak",
+      "ca"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 46
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8688524590163934,
+    "roc_auc": 0.9469696969696969,
+    "avg_precision": 0.9392157182421309,
+    "f1": 0.8620689655172413,
+    "recall": 0.8928571428571429,
+    "precision": 0.8333333333333334,
+    "threshold": 0.5,
+    "fit_seconds": 6.761,
+    "predict_seconds": 0.12,
+    "confusion_matrix": [
+      [
+        28,
+        5
+      ],
+      [
+        3,
+        25
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 6.887,
+  "timestamp": "2026-09-16 13:47:03"
+}

@@ -1,0 +1,72 @@
+{
+  "exp_id": 6,
+  "exp_name": "fe_full_clusters_bins",
+  "dataset": "credit_default",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "none",
+  "notes": "Full FE: logs+ratios+interactions+KMeans clusters+quantile bins (train-fit).",
+  "feature_count": 59,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2211875,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "X6",
+      "inter_X6_x_ratio_X12_div_X15",
+      "X7",
+      "inter_X6_x_X18",
+      "X8",
+      "inter_X6_x_X7",
+      "X9",
+      "X10",
+      "X11",
+      "X18",
+      "inter_X6_x_X9",
+      "inter_X7_x_X8",
+      "ratio_X13_div_X15",
+      "inter_X6_x_X8",
+      "ratio_X14_div_X15"
+    ],
+    "log_cols": [
+      "X1",
+      "X3",
+      "X18",
+      "X19",
+      "X20",
+      "X21",
+      "X22",
+      "X23"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 59
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.82275,
+    "roc_auc": 0.7929560809278957,
+    "avg_precision": 0.575652207658246,
+    "f1": 0.47752394988946206,
+    "recall": 0.36610169491525424,
+    "precision": 0.6864406779661016,
+    "threshold": 0.5,
+    "fit_seconds": 0.965,
+    "predict_seconds": 0.016,
+    "confusion_matrix": [
+      [
+        2967,
+        148
+      ],
+      [
+        561,
+        324
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.989,
+  "timestamp": "2026-09-16 13:53:01"
+}

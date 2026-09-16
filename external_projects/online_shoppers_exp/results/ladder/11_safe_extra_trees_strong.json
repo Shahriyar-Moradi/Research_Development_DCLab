@@ -1,0 +1,81 @@
+{
+  "exp_id": 11,
+  "exp_name": "extra_trees_strong",
+  "dataset": "online_shoppers",
+  "mode": "safe",
+  "fe_stage": "full_fe",
+  "optimization_method": "hand_tuned",
+  "notes": "Strong ExtraTrees (n=600, depth=14) on full FE.",
+  "feature_count": 59,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "log1p_ExitRates",
+      "ExitRates",
+      "inter_ExitRates_x_log1p_ExitRates",
+      "ProductRelated_Duration",
+      "log1p_ProductRelated_Duration",
+      "BounceRates",
+      "inter_ExitRates_x_BounceRates",
+      "ratio_ProductRelated_Duration_div_ProductRelated",
+      "inter_ExitRates_x_log1p_BounceRates",
+      "inter_ExitRates_x_log1p_ProductRelated_Duration",
+      "ratio_ProductRelated_Duration_div_Administrative",
+      "log1p_Administrative",
+      "ProductRelated",
+      "ratio_ProductRelated_div_TrafficType",
+      "log1p_ProductRelated"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 59
+  },
+  "dropped_leakage": [
+    "PageValues"
+  ],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.8434712084347121,
+    "roc_auc": 0.7532044196119022,
+    "avg_precision": 0.32928408197827824,
+    "f1": 0.02030456852791878,
+    "recall": 0.010471204188481676,
+    "precision": 0.3333333333333333,
+    "threshold": 0.5,
+    "fit_seconds": 0.918,
+    "predict_seconds": 0.075,
+    "confusion_matrix": [
+      [
+        2076,
+        8
+      ],
+      [
+        378,
+        4
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.999,
+  "timestamp": "2026-09-16 14:07:37"
+}

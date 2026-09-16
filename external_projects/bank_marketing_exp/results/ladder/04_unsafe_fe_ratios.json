@@ -1,0 +1,73 @@
+{
+  "exp_id": 4,
+  "exp_name": "fe_ratios",
+  "dataset": "bank_marketing",
+  "mode": "unsafe",
+  "fe_stage": "ratios",
+  "optimization_method": "none",
+  "notes": "Add pairwise intensity ratios among high-variance features.",
+  "feature_count": 40,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "fe_meta": {
+    "stage": "ratios",
+    "top_mi": [
+      "ratio_duration_div_pdays",
+      "duration",
+      "log1p_duration",
+      "ratio_duration_div_age",
+      "ratio_duration_div_day_of_week",
+      "ratio_day_of_week_div_month",
+      "ratio_pdays_div_month",
+      "ratio_duration_div_month",
+      "log1p_poutcome",
+      "ratio_pdays_div_age",
+      "poutcome",
+      "ratio_pdays_div_day_of_week",
+      "month",
+      "pdays",
+      "log1p_month"
+    ],
+    "log_cols": [
+      "marital",
+      "education",
+      "default",
+      "loan",
+      "month",
+      "duration",
+      "campaign",
+      "previous",
+      "poutcome"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 40
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.90975,
+    "roc_auc": 0.9336808277918132,
+    "avg_precision": 0.6140438299088234,
+    "f1": 0.5602923264311814,
+    "recall": 0.49145299145299143,
+    "precision": 0.6515580736543909,
+    "threshold": 0.5,
+    "fit_seconds": 0.947,
+    "predict_seconds": 0.014,
+    "confusion_matrix": [
+      [
+        3409,
+        123
+      ],
+      [
+        238,
+        230
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.967,
+  "timestamp": "2026-09-16 13:40:56"
+}

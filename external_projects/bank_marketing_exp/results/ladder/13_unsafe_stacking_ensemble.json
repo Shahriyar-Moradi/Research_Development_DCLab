@@ -1,0 +1,73 @@
+{
+  "exp_id": 13,
+  "exp_name": "stacking_ensemble",
+  "dataset": "bank_marketing",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "oof_stacking",
+  "notes": "ET+LGBM+XGB stacked with logistic meta-learner (HyperAck exp 13).",
+  "feature_count": 53,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "ratio_duration_div_pdays",
+      "inter_ratio_duration_div_pdays_x_duration",
+      "inter_ratio_duration_div_pdays_x_log1p_duration",
+      "inter_ratio_duration_div_pdays_x_ratio_duration_div_age",
+      "inter_ratio_duration_div_pdays_x_ratio_duration_div_day_of_week",
+      "duration",
+      "inter_duration_x_log1p_duration",
+      "log1p_duration",
+      "inter_ratio_duration_div_pdays_x_ratio_duration_div_month",
+      "ratio_duration_div_age",
+      "ratio_duration_div_day_of_week",
+      "ratio_pdays_div_month",
+      "inter_ratio_duration_div_pdays_x_ratio_pdays_div_month",
+      "inter_ratio_duration_div_pdays_x_ratio_day_of_week_div_month",
+      "ratio_day_of_week_div_month"
+    ],
+    "log_cols": [
+      "marital",
+      "education",
+      "default",
+      "loan",
+      "month",
+      "duration",
+      "campaign",
+      "previous",
+      "poutcome"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 53
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.9105,
+    "roc_auc": 0.9345925167697534,
+    "avg_precision": 0.6378243888517467,
+    "f1": 0.556930693069307,
+    "recall": 0.4807692307692308,
+    "precision": 0.6617647058823529,
+    "threshold": 0.5,
+    "fit_seconds": 31.622,
+    "predict_seconds": 0.245,
+    "confusion_matrix": [
+      [
+        3417,
+        115
+      ],
+      [
+        243,
+        225
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 31.873,
+  "timestamp": "2026-09-16 13:44:52"
+}

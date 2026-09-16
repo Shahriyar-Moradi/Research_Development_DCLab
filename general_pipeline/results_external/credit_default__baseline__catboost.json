@@ -1,0 +1,35 @@
+{
+  "dataset": "credit_default",
+  "dataset_name": "Default of Credit Card Clients",
+  "model_name": "catboost",
+  "mode": "external",
+  "optimization": "baseline",
+  "feature_count": 23,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2211875,
+  "metrics": {
+    "accuracy": 0.82675,
+    "roc_auc": 0.7896828721966791,
+    "avg_precision": 0.5675476178416484,
+    "f1": 0.5017972681524083,
+    "recall": 0.3943502824858757,
+    "precision": 0.6897233201581028,
+    "threshold": 0.5,
+    "fit_seconds": 1.675,
+    "predict_seconds": 0.011,
+    "confusion_matrix": [
+      [
+        2958,
+        157
+      ],
+      [
+        536,
+        349
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 1.693,
+  "timestamp": "2026-09-16 12:41:19",
+  "source_url": "https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients"
+}

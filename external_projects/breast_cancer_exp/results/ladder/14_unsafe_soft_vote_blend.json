@@ -1,0 +1,88 @@
+{
+  "exp_id": 14,
+  "exp_name": "soft_vote_blend",
+  "dataset": "breast_cancer",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "soft_probability_blend",
+  "notes": "Soft-vote blend ET+LGBM+XGB (HyperAck exp 15 / optimized safe champion style).",
+  "feature_count": 82,
+  "train_rows": 455,
+  "test_rows": 114,
+  "pos_rate": 0.37362637362637363,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "inter_ratio_area3_div_perimeter1_x_concave_points1",
+      "inter_ratio_area3_div_perimeter1_x_perimeter3",
+      "inter_ratio_area3_div_perimeter1_x_log1p_perimeter3",
+      "inter_ratio_area3_div_perimeter1_x_log1p_area3",
+      "inter_ratio_area3_div_perimeter1_x_radius3",
+      "ratio_area3_div_perimeter1",
+      "log1p_radius3",
+      "inter_ratio_area3_div_perimeter1_x_log1p_radius3",
+      "inter_radius3_x_log1p_radius3",
+      "radius3",
+      "log1p_perimeter3",
+      "perimeter3",
+      "area3",
+      "log1p_area3",
+      "inter_ratio_area3_div_perimeter1_x_area3"
+    ],
+    "log_cols": [
+      "radius1",
+      "perimeter1",
+      "area1",
+      "compactness1",
+      "concavity1",
+      "concave_points1",
+      "fractal_dimension1",
+      "radius2",
+      "texture2",
+      "perimeter2",
+      "area2",
+      "smoothness2",
+      "compactness2",
+      "concavity2",
+      "concave_points2",
+      "symmetry2",
+      "fractal_dimension2",
+      "radius3",
+      "perimeter3",
+      "area3",
+      "compactness3",
+      "concavity3",
+      "symmetry3",
+      "fractal_dimension3"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 82
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.9824561403508771,
+    "roc_auc": 0.9993386243386244,
+    "avg_precision": 0.9988793967199283,
+    "f1": 0.975609756097561,
+    "recall": 0.9523809523809523,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 2.227,
+    "predict_seconds": 0.162,
+    "confusion_matrix": [
+      [
+        72,
+        0
+      ],
+      [
+        2,
+        40
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 2.4,
+  "timestamp": "2026-09-16 13:46:23"
+}

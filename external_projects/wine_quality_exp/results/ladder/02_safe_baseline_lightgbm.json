@@ -1,0 +1,59 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "wine_quality",
+  "mode": "safe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 11,
+  "train_rows": 5197,
+  "test_rows": 1300,
+  "pos_rate": 0.6330575331922262,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "alcohol",
+      "density",
+      "chlorides",
+      "volatile_acidity",
+      "citric_acid",
+      "total_sulfur_dioxide",
+      "free_sulfur_dioxide",
+      "residual_sugar",
+      "sulphates",
+      "fixed_acidity",
+      "pH"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 11
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8115384615384615,
+    "roc_auc": 0.8777520499476528,
+    "avg_precision": 0.923079974567757,
+    "f1": 0.855457227138643,
+    "recall": 0.8809234507897934,
+    "precision": 0.8314220183486238,
+    "threshold": 0.5,
+    "fit_seconds": 0.348,
+    "predict_seconds": 0.003,
+    "confusion_matrix": [
+      [
+        330,
+        147
+      ],
+      [
+        98,
+        725
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.354,
+  "timestamp": "2026-09-16 14:10:22"
+}

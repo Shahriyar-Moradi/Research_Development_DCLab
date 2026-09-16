@@ -1,0 +1,80 @@
+{
+  "exp_id": 10,
+  "exp_name": "hist_gradient_boosting",
+  "dataset": "online_shoppers",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "none",
+  "notes": "Sklearn HistGB on full FE (HyperAck exp 10).",
+  "feature_count": 61,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "ratio_ProductRelated_Duration_div_PageValues",
+      "log1p_PageValues",
+      "PageValues",
+      "inter_log1p_PageValues_x_ratio_ProductRelated_div_PageValues",
+      "inter_log1p_PageValues_x_PageValues",
+      "inter_ratio_ProductRelated_Duration_div_PageValues_x_PageValues",
+      "inter_log1p_PageValues_x_ratio_ProductRelated_Duration_div_PageValues",
+      "ratio_PageValues_div_TrafficType",
+      "ratio_Administrative_Duration_div_PageValues",
+      "ratio_ProductRelated_div_PageValues",
+      "inter_log1p_PageValues_x_ratio_Administrative_Duration_div_PageValues",
+      "inter_log1p_PageValues_x_ratio_PageValues_div_TrafficType",
+      "inter_log1p_PageValues_x_log1p_ExitRates",
+      "inter_log1p_PageValues_x_ExitRates",
+      "log1p_ExitRates"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "PageValues",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 61
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.8921330089213301,
+    "roc_auc": 0.9258863341741115,
+    "avg_precision": 0.7154035073033761,
+    "f1": 0.6088235294117647,
+    "recall": 0.5418848167539267,
+    "precision": 0.6946308724832215,
+    "threshold": 0.5,
+    "fit_seconds": 0.646,
+    "predict_seconds": 0.013,
+    "confusion_matrix": [
+      [
+        1993,
+        91
+      ],
+      [
+        175,
+        207
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.662,
+  "timestamp": "2026-09-16 14:09:47"
+}

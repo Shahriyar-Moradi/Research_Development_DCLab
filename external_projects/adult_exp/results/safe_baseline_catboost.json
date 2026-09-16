@@ -1,0 +1,36 @@
+{
+  "dataset": "adult",
+  "dataset_name": "Adult (Census Income)",
+  "model_name": "catboost",
+  "mode": "safe",
+  "optimization": "baseline",
+  "feature_count": 14,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2393125,
+  "metrics": {
+    "accuracy": 0.87075,
+    "roc_auc": 0.9268095988154461,
+    "avg_precision": 0.8243308075912387,
+    "f1": 0.7037249283667621,
+    "recall": 0.6415882967607106,
+    "precision": 0.7791878172588832,
+    "threshold": 0.5,
+    "fit_seconds": 1.258,
+    "predict_seconds": 0.004,
+    "confusion_matrix": [
+      [
+        2869,
+        174
+      ],
+      [
+        343,
+        614
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 1.268,
+  "timestamp": "2026-09-16 12:52:52",
+  "source_url": "https://archive.ics.uci.edu/dataset/2/adult",
+  "dropped_leakage": []
+}

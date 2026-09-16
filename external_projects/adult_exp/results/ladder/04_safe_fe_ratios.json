@@ -1,0 +1,72 @@
+{
+  "exp_id": 4,
+  "exp_name": "fe_ratios",
+  "dataset": "adult",
+  "mode": "safe",
+  "fe_stage": "ratios",
+  "optimization_method": "none",
+  "notes": "Add pairwise intensity ratios among high-variance features.",
+  "feature_count": 37,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2393125,
+  "fe_meta": {
+    "stage": "ratios",
+    "top_mi": [
+      "relationship",
+      "log1p_marital-status",
+      "marital-status",
+      "log1p_capital-gain",
+      "capital-gain",
+      "log1p_education",
+      "ratio_capital-gain_div_age",
+      "age",
+      "education-num",
+      "ratio_capital-gain_div_hours-per-week",
+      "occupation",
+      "education",
+      "ratio_age_div_hours-per-week",
+      "ratio_fnlwgt_div_capital-gain",
+      "hours-per-week"
+    ],
+    "log_cols": [
+      "workclass",
+      "fnlwgt",
+      "education",
+      "marital-status",
+      "race",
+      "capital-gain",
+      "capital-loss",
+      "native-country"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 37
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.86825,
+    "roc_auc": 0.9237601346908179,
+    "avg_precision": 0.8170527254389015,
+    "f1": 0.7000569151963574,
+    "recall": 0.6426332288401254,
+    "precision": 0.76875,
+    "threshold": 0.5,
+    "fit_seconds": 0.923,
+    "predict_seconds": 0.014,
+    "confusion_matrix": [
+      [
+        2858,
+        185
+      ],
+      [
+        342,
+        615
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.945,
+  "timestamp": "2026-09-16 13:26:05"
+}

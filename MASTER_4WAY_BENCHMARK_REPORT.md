@@ -87,6 +87,30 @@ Scatter plot mapping the trade-off between discrimination ranking (ROC-AUC) and 
 
 ![Pareto ROC vs Recall](benchmark_outputs/pareto_roc_vs_recall.png)
 
+### 2.5 Complete 2x2 Metric Grid: Accuracy, Precision, Recall, and F1
+Side-by-side comparison of all four standard classification metrics across all 11 models and 4 quadrants (horizontal and vertical bar layouts):
+
+![Classification Metrics 2x2 Grid — Horizontal](benchmark_outputs/classification_metrics_2x2_grid_horizontal.png)
+
+![Classification Metrics 2x2 Grid — Vertical](benchmark_outputs/classification_metrics_2x2_grid_vertical.png)
+
+### 2.6 Safe Regime 4-Metric Profile (Accuracy, Precision, Recall, F1)
+Multi-metric comparison for all models in the production-honest Safe Optimized regime (both orientations):
+
+![Safe Optimized 4 Metrics Profile — Horizontal](benchmark_outputs/safe_optimized_4metrics_profile_horizontal.png)
+
+![Safe Optimized 4 Metrics Profile — Vertical](benchmark_outputs/safe_optimized_4metrics_profile_vertical.png)
+
+### 2.7 Precision vs. Recall Frontier with F1 Iso-Curves
+Scatter plot visualizing the precision-recall trade-offs with constant F1 contour lines ($F_1 = 0.80$ to $0.94$):
+
+![Precision vs Recall F1 Frontier](benchmark_outputs/precision_vs_recall_f1_frontier.png)
+
+### 2.8 Comprehensive Scorecard Heatmap: Safe vs. Unsafe
+Full multi-metric heatmap comparing Accuracy, Precision, Recall, F1, and ROC-AUC side-by-side:
+
+![Classification Metrics Heatmap](benchmark_outputs/classification_metrics_heatmap.png)
+
 ---
 
 ## 3. Deep-Dive: The Tabular Transformer (FT-Transformer)

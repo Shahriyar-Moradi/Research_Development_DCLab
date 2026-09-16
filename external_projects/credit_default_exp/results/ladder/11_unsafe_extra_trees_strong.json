@@ -1,0 +1,72 @@
+{
+  "exp_id": 11,
+  "exp_name": "extra_trees_strong",
+  "dataset": "credit_default",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "hand_tuned",
+  "notes": "Strong ExtraTrees (n=600, depth=14) on full FE.",
+  "feature_count": 59,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2211875,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "X6",
+      "inter_X6_x_ratio_X12_div_X15",
+      "X7",
+      "inter_X6_x_X18",
+      "X8",
+      "inter_X6_x_X7",
+      "X9",
+      "X10",
+      "X11",
+      "X18",
+      "inter_X6_x_X9",
+      "inter_X7_x_X8",
+      "ratio_X13_div_X15",
+      "inter_X6_x_X8",
+      "ratio_X14_div_X15"
+    ],
+    "log_cols": [
+      "X1",
+      "X3",
+      "X18",
+      "X19",
+      "X20",
+      "X21",
+      "X22",
+      "X23"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 59
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.82425,
+    "roc_auc": 0.7956942441802469,
+    "avg_precision": 0.5679586738388452,
+    "f1": 0.4788732394366197,
+    "recall": 0.3649717514124294,
+    "precision": 0.6961206896551724,
+    "threshold": 0.5,
+    "fit_seconds": 1.908,
+    "predict_seconds": 0.136,
+    "confusion_matrix": [
+      [
+        2974,
+        141
+      ],
+      [
+        562,
+        323
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 2.053,
+  "timestamp": "2026-09-16 13:56:19"
+}

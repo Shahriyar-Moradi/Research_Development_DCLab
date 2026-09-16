@@ -1,0 +1,72 @@
+{
+  "exp_id": 9,
+  "exp_name": "tuned_lightgbm",
+  "dataset": "adult",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "RandomizedSearchCV_roc_auc",
+  "notes": "RandomizedSearchCV on LightGBM over full FE (HyperAck exp 09).",
+  "feature_count": 50,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.2393125,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "relationship",
+      "inter_relationship_x_log1p_marital-status",
+      "log1p_marital-status",
+      "marital-status",
+      "inter_relationship_x_marital-status",
+      "inter_log1p_marital-status_x_marital-status",
+      "inter_relationship_x_age",
+      "capital-gain",
+      "inter_relationship_x_log1p_education",
+      "log1p_capital-gain",
+      "education-num",
+      "ratio_capital-gain_div_hours-per-week",
+      "age",
+      "inter_relationship_x_log1p_capital-gain",
+      "ratio_capital-gain_div_age"
+    ],
+    "log_cols": [
+      "workclass",
+      "fnlwgt",
+      "education",
+      "marital-status",
+      "race",
+      "capital-gain",
+      "capital-loss",
+      "native-country"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 50
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.871,
+    "roc_auc": 0.9250840701598233,
+    "avg_precision": 0.8206240615326835,
+    "f1": 0.7058152793614595,
+    "recall": 0.6468129571577848,
+    "precision": 0.7766624843161857,
+    "threshold": 0.5,
+    "fit_seconds": 103.228,
+    "predict_seconds": 0.059,
+    "confusion_matrix": [
+      [
+        2865,
+        178
+      ],
+      [
+        338,
+        619
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 103.309,
+  "timestamp": "2026-09-16 13:35:18"
+}

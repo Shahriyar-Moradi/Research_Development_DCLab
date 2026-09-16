@@ -1,0 +1,80 @@
+{
+  "exp_id": 14,
+  "exp_name": "soft_vote_blend",
+  "dataset": "online_shoppers",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "soft_probability_blend",
+  "notes": "Soft-vote blend ET+LGBM+XGB (HyperAck exp 15 / optimized safe champion style).",
+  "feature_count": 61,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "ratio_ProductRelated_Duration_div_PageValues",
+      "log1p_PageValues",
+      "PageValues",
+      "inter_log1p_PageValues_x_ratio_ProductRelated_div_PageValues",
+      "inter_log1p_PageValues_x_PageValues",
+      "inter_ratio_ProductRelated_Duration_div_PageValues_x_PageValues",
+      "inter_log1p_PageValues_x_ratio_ProductRelated_Duration_div_PageValues",
+      "ratio_PageValues_div_TrafficType",
+      "ratio_Administrative_Duration_div_PageValues",
+      "ratio_ProductRelated_div_PageValues",
+      "inter_log1p_PageValues_x_ratio_Administrative_Duration_div_PageValues",
+      "inter_log1p_PageValues_x_ratio_PageValues_div_TrafficType",
+      "inter_log1p_PageValues_x_log1p_ExitRates",
+      "inter_log1p_PageValues_x_ExitRates",
+      "log1p_ExitRates"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "PageValues",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 61
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.8949716139497161,
+    "roc_auc": 0.9292565646008983,
+    "avg_precision": 0.7412690971103237,
+    "f1": 0.621897810218978,
+    "recall": 0.5575916230366492,
+    "precision": 0.7029702970297029,
+    "threshold": 0.5,
+    "fit_seconds": 3.949,
+    "predict_seconds": 0.106,
+    "confusion_matrix": [
+      [
+        1994,
+        90
+      ],
+      [
+        169,
+        213
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 4.059,
+  "timestamp": "2026-09-16 14:10:17"
+}

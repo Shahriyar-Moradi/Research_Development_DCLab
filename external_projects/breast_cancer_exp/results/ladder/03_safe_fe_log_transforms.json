@@ -1,0 +1,88 @@
+{
+  "exp_id": 3,
+  "exp_name": "fe_log_transforms",
+  "dataset": "breast_cancer",
+  "mode": "safe",
+  "fe_stage": "logs",
+  "optimization_method": "none",
+  "notes": "Add log1p transforms for skewed non-negative columns.",
+  "feature_count": 54,
+  "train_rows": 455,
+  "test_rows": 114,
+  "pos_rate": 0.37362637362637363,
+  "fe_meta": {
+    "stage": "logs",
+    "top_mi": [
+      "log1p_radius3",
+      "radius3",
+      "log1p_perimeter3",
+      "perimeter3",
+      "area3",
+      "log1p_area3",
+      "log1p_concave_points1",
+      "concave_points1",
+      "concave_points3",
+      "perimeter1",
+      "log1p_perimeter1",
+      "log1p_radius1",
+      "area1",
+      "log1p_area1",
+      "radius1"
+    ],
+    "log_cols": [
+      "radius1",
+      "perimeter1",
+      "area1",
+      "compactness1",
+      "concavity1",
+      "concave_points1",
+      "fractal_dimension1",
+      "radius2",
+      "texture2",
+      "perimeter2",
+      "area2",
+      "smoothness2",
+      "compactness2",
+      "concavity2",
+      "concave_points2",
+      "symmetry2",
+      "fractal_dimension2",
+      "radius3",
+      "perimeter3",
+      "area3",
+      "compactness3",
+      "concavity3",
+      "symmetry3",
+      "fractal_dimension3"
+    ],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 54
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.9649122807017544,
+    "roc_auc": 0.9966931216931217,
+    "avg_precision": 0.9954212454212454,
+    "f1": 0.95,
+    "recall": 0.9047619047619048,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 1.149,
+    "predict_seconds": 0.004,
+    "confusion_matrix": [
+      [
+        72,
+        0
+      ],
+      [
+        4,
+        38
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 1.158,
+  "timestamp": "2026-09-16 13:45:16"
+}

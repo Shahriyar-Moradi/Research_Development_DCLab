@@ -1,0 +1,70 @@
+{
+  "exp_id": 5,
+  "exp_name": "fe_interactions",
+  "dataset": "wine_quality",
+  "mode": "safe",
+  "fe_stage": "interactions",
+  "optimization_method": "none",
+  "notes": "Multiplicative interactions among top-MI features.",
+  "feature_count": 40,
+  "train_rows": 5197,
+  "test_rows": 1300,
+  "pos_rate": 0.6330575331922262,
+  "fe_meta": {
+    "stage": "interactions",
+    "top_mi": [
+      "ratio_fixed_acidity_div_alcohol",
+      "ratio_residual_sugar_div_alcohol",
+      "ratio_alcohol_div_log1p_residual_sugar",
+      "ratio_free_sulfur_dioxide_div_alcohol",
+      "alcohol",
+      "density",
+      "ratio_total_sulfur_dioxide_div_alcohol",
+      "ratio_total_sulfur_dioxide_div_fixed_acidity",
+      "ratio_free_sulfur_dioxide_div_log1p_residual_sugar",
+      "ratio_total_sulfur_dioxide_div_residual_sugar",
+      "ratio_total_sulfur_dioxide_div_log1p_residual_sugar",
+      "ratio_free_sulfur_dioxide_div_residual_sugar",
+      "ratio_free_sulfur_dioxide_div_fixed_acidity",
+      "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+      "ratio_fixed_acidity_div_log1p_residual_sugar"
+    ],
+    "log_cols": [
+      "fixed_acidity",
+      "volatile_acidity",
+      "residual_sugar",
+      "chlorides",
+      "free_sulfur_dioxide",
+      "sulphates"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 40
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8176923076923077,
+    "roc_auc": 0.887727315568394,
+    "avg_precision": 0.9315452913040748,
+    "f1": 0.8593471810089021,
+    "recall": 0.8797083839611178,
+    "precision": 0.839907192575406,
+    "threshold": 0.5,
+    "fit_seconds": 0.435,
+    "predict_seconds": 0.004,
+    "confusion_matrix": [
+      [
+        339,
+        138
+      ],
+      [
+        99,
+        724
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.443,
+  "timestamp": "2026-09-16 14:10:24"
+}

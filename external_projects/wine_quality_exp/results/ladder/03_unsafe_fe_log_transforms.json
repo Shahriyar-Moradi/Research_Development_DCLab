@@ -1,0 +1,70 @@
+{
+  "exp_id": 3,
+  "exp_name": "fe_log_transforms",
+  "dataset": "wine_quality",
+  "mode": "unsafe",
+  "fe_stage": "logs",
+  "optimization_method": "none",
+  "notes": "Add log1p transforms for skewed non-negative columns.",
+  "feature_count": 17,
+  "train_rows": 5197,
+  "test_rows": 1300,
+  "pos_rate": 0.6330575331922262,
+  "fe_meta": {
+    "stage": "logs",
+    "top_mi": [
+      "alcohol",
+      "density",
+      "log1p_volatile_acidity",
+      "chlorides",
+      "volatile_acidity",
+      "log1p_chlorides",
+      "citric_acid",
+      "residual_sugar",
+      "total_sulfur_dioxide",
+      "fixed_acidity",
+      "log1p_residual_sugar",
+      "sulphates",
+      "free_sulfur_dioxide",
+      "log1p_free_sulfur_dioxide",
+      "log1p_fixed_acidity"
+    ],
+    "log_cols": [
+      "fixed_acidity",
+      "volatile_acidity",
+      "residual_sugar",
+      "chlorides",
+      "free_sulfur_dioxide",
+      "sulphates"
+    ],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 17
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.8115384615384615,
+    "roc_auc": 0.8777520499476528,
+    "avg_precision": 0.923079974567757,
+    "f1": 0.855457227138643,
+    "recall": 0.8809234507897934,
+    "precision": 0.8314220183486238,
+    "threshold": 0.5,
+    "fit_seconds": 0.466,
+    "predict_seconds": 0.005,
+    "confusion_matrix": [
+      [
+        330,
+        147
+      ],
+      [
+        98,
+        725
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.475,
+  "timestamp": "2026-09-16 14:12:00"
+}

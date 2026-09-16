@@ -1,0 +1,69 @@
+{
+  "exp_id": 11,
+  "exp_name": "extra_trees_strong",
+  "dataset": "heart_disease",
+  "mode": "unsafe",
+  "fe_stage": "full_fe",
+  "optimization_method": "hand_tuned",
+  "notes": "Strong ExtraTrees (n=600, depth=14) on full FE.",
+  "feature_count": 46,
+  "train_rows": 242,
+  "test_rows": 61,
+  "pos_rate": 0.45867768595041325,
+  "fe_meta": {
+    "stage": "full_fe",
+    "top_mi": [
+      "ratio_thalach_div_thal",
+      "inter_ratio_thalach_div_thal_x_ratio_trestbps_div_thal",
+      "inter_ratio_thalach_div_thal_x_thalach",
+      "exang",
+      "inter_ratio_thalach_div_thal_x_ratio_age_div_thal",
+      "inter_ratio_thalach_div_thal_x_ratio_chol_div_thal",
+      "ratio_age_div_thal",
+      "cp",
+      "thal",
+      "inter_ratio_thalach_div_thal_x_ratio_thalach_div_oldpeak",
+      "ratio_trestbps_div_thal",
+      "log1p_cp",
+      "ratio_thalach_div_oldpeak",
+      "inter_ratio_thalach_div_thal_x_log1p_ca",
+      "ratio_trestbps_div_oldpeak"
+    ],
+    "log_cols": [
+      "cp",
+      "chol",
+      "fbs",
+      "oldpeak",
+      "ca"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 46
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 0.819672131147541,
+    "roc_auc": 0.9339826839826839,
+    "avg_precision": 0.9284919790687011,
+    "f1": 0.8070175438596491,
+    "recall": 0.8214285714285714,
+    "precision": 0.7931034482758621,
+    "threshold": 0.5,
+    "fit_seconds": 0.509,
+    "predict_seconds": 0.071,
+    "confusion_matrix": [
+      [
+        27,
+        6
+      ],
+      [
+        5,
+        23
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.584,
+  "timestamp": "2026-09-16 13:47:40"
+}

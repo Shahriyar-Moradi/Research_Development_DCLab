@@ -1,0 +1,80 @@
+{
+  "exp_id": 5,
+  "exp_name": "fe_interactions",
+  "dataset": "online_shoppers",
+  "mode": "unsafe",
+  "fe_stage": "interactions",
+  "optimization_method": "none",
+  "notes": "Multiplicative interactions among top-MI features.",
+  "feature_count": 56,
+  "train_rows": 9864,
+  "test_rows": 2466,
+  "pos_rate": 0.15470397404703973,
+  "fe_meta": {
+    "stage": "interactions",
+    "top_mi": [
+      "log1p_PageValues",
+      "ratio_ProductRelated_Duration_div_PageValues",
+      "PageValues",
+      "ratio_Administrative_Duration_div_PageValues",
+      "ratio_ProductRelated_div_PageValues",
+      "ratio_PageValues_div_TrafficType",
+      "ExitRates",
+      "log1p_ExitRates",
+      "log1p_ProductRelated_Duration",
+      "ProductRelated_Duration",
+      "ratio_ProductRelated_Duration_div_ProductRelated",
+      "log1p_ProductRelated",
+      "log1p_BounceRates",
+      "ProductRelated",
+      "ratio_Informational_Duration_div_PageValues"
+    ],
+    "log_cols": [
+      "Administrative",
+      "Administrative_Duration",
+      "Informational",
+      "Informational_Duration",
+      "ProductRelated",
+      "ProductRelated_Duration",
+      "BounceRates",
+      "ExitRates",
+      "PageValues",
+      "SpecialDay",
+      "OperatingSystems",
+      "Browser",
+      "Region",
+      "TrafficType",
+      "VisitorType",
+      "Weekend"
+    ],
+    "n_ratio_pairs": 15,
+    "n_interaction_pairs": 8,
+    "selected_k": null,
+    "output_cols": 56
+  },
+  "dropped_leakage": [],
+  "has_leakage": 1,
+  "metrics": {
+    "accuracy": 0.894566098945661,
+    "roc_auc": 0.9257142426465415,
+    "avg_precision": 0.7142826437963347,
+    "f1": 0.6285714285714286,
+    "recall": 0.5759162303664922,
+    "precision": 0.6918238993710691,
+    "threshold": 0.5,
+    "fit_seconds": 0.59,
+    "predict_seconds": 0.006,
+    "confusion_matrix": [
+      [
+        1986,
+        98
+      ],
+      [
+        162,
+        220
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.6,
+  "timestamp": "2026-09-16 14:08:17"
+}

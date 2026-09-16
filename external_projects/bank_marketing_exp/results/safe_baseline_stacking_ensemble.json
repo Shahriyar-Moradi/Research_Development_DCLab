@@ -1,0 +1,38 @@
+{
+  "dataset": "bank_marketing",
+  "dataset_name": "Bank Marketing",
+  "model_name": "stacking_ensemble",
+  "mode": "safe",
+  "optimization": "baseline",
+  "feature_count": 15,
+  "train_rows": 16000,
+  "test_rows": 4000,
+  "pos_rate": 0.117,
+  "metrics": {
+    "accuracy": 0.88925,
+    "roc_auc": 0.7984417196619914,
+    "avg_precision": 0.4378974877897685,
+    "f1": 0.2957074721780604,
+    "recall": 0.1987179487179487,
+    "precision": 0.577639751552795,
+    "threshold": 0.5,
+    "fit_seconds": 7.917,
+    "predict_seconds": 0.156,
+    "confusion_matrix": [
+      [
+        3464,
+        68
+      ],
+      [
+        375,
+        93
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 8.078,
+  "timestamp": "2026-09-16 12:53:38",
+  "source_url": "https://archive.ics.uci.edu/dataset/222/bank+marketing",
+  "dropped_leakage": [
+    "duration"
+  ]
+}

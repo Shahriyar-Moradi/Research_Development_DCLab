@@ -1,0 +1,63 @@
+{
+  "exp_id": 2,
+  "exp_name": "baseline_lightgbm",
+  "dataset": "mushroom",
+  "mode": "safe",
+  "fe_stage": "raw",
+  "optimization_method": "none",
+  "notes": "Strong GBDT baseline on raw features (HyperAck exp 02).",
+  "feature_count": 22,
+  "train_rows": 6499,
+  "test_rows": 1625,
+  "pos_rate": 0.4820741652561933,
+  "fe_meta": {
+    "stage": "raw",
+    "top_mi": [
+      "odor",
+      "spore-print-color",
+      "gill-color",
+      "ring-type",
+      "stalk-surface-below-ring",
+      "stalk-surface-above-ring",
+      "stalk-color-above-ring",
+      "stalk-color-below-ring",
+      "gill-size",
+      "population",
+      "bruises",
+      "habitat",
+      "stalk-root",
+      "gill-spacing",
+      "cap-shape"
+    ],
+    "log_cols": [],
+    "n_ratio_pairs": 0,
+    "n_interaction_pairs": 0,
+    "selected_k": null,
+    "output_cols": 22
+  },
+  "dropped_leakage": [],
+  "has_leakage": 0,
+  "metrics": {
+    "accuracy": 1.0,
+    "roc_auc": 1.0,
+    "avg_precision": 1.0,
+    "f1": 1.0,
+    "recall": 1.0,
+    "precision": 1.0,
+    "threshold": 0.5,
+    "fit_seconds": 0.383,
+    "predict_seconds": 0.003,
+    "confusion_matrix": [
+      [
+        842,
+        0
+      ],
+      [
+        0,
+        783
+      ]
+    ]
+  },
+  "total_elapsed_seconds": 0.391,
+  "timestamp": "2026-09-16 13:59:57"
+}
