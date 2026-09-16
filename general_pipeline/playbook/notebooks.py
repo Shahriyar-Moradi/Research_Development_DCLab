@@ -18,6 +18,36 @@ def _code(text: str):
     return nbf.v4.new_code_cell(text)
 
 
+# Robust when cwd is notebooks/, <key>_exp/, external_projects/, or repo root.
+_FIND_ROOT = '''
+from pathlib import Path
+import sys
+
+def _find_repo_root() -> Path:
+    starts = [Path.cwd().resolve()]
+    # Jupyter may set cwd to the notebook folder; also walk from this file if present
+    try:
+        starts.append(Path(__file__).resolve().parent)  # type: ignore[name-defined]
+    except NameError:
+        pass
+    for start in starts:
+        for p in [start, *start.parents]:
+            if (p / "general_pipeline").is_dir() and (p / "hyperack_exp").is_dir():
+                return p
+    raise RuntimeError(
+        "Could not find repo root containing general_pipeline/. "
+        "Open the notebook from the R&D repo or set the kernel cwd to the repo root."
+    )
+
+ROOT = _find_repo_root()
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "hyperack_exp") not in sys.path:
+    sys.path.insert(0, str(ROOT / "hyperack_exp"))
+print("REPO ROOT:", ROOT)
+'''.strip()
+
+
 def build_notebook(key: str) -> Path:
     spec = next(s for s in DATASET_CATALOG if s.key == key)
     policy = get_policy(key)
@@ -38,15 +68,7 @@ This notebook mirrors the HyperAck ladder: baseline → FE families → selectio
 
     cells.append(_md("## 0. Setup"))
     cells.append(_code(f"""
-from pathlib import Path
-import sys
-ROOT = Path.cwd()
-if ROOT.name.endswith('_exp'):
-    ROOT = ROOT.parents[1]
-elif (ROOT / 'general_pipeline').exists() is False:
-    ROOT = ROOT.parent
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / 'hyperack_exp'))
+{_FIND_ROOT}
 
 from general_pipeline.playbook.ladder import run_project_ladder, results_frame, load_raw_xy
 from general_pipeline.playbook.features import build_feature_matrix
@@ -123,18 +145,11 @@ print('Reports written to external_projects/%s_exp/' % KEY)
     path = ndir / f"01_{key}_full_ladder.ipynb"
     path.write_text(nbf.writes(nb))
 
-    # Second notebook: FE deep dive only
     nb2 = nbf.v4.new_notebook()
     nb2["cells"] = [
         _md(f"# {spec.name} — Feature Engineering Deep Dive"),
         _code(f"""
-from pathlib import Path
-import sys
-ROOT = Path.cwd()
-if ROOT.name.endswith('_exp'):
-    ROOT = ROOT.parents[1]
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / 'hyperack_exp'))
+{_FIND_ROOT}
 from general_pipeline.playbook.ladder import load_raw_xy
 from general_pipeline.playbook.features import build_feature_matrix
 from shared.protocol import evaluate
@@ -159,20 +174,13 @@ pd.DataFrame(rows).sort_values(['mode', 'roc_auc'], ascending=[True, False])
 """),
     ]
     nb2["metadata"] = nb["metadata"]
-    path2 = ndir / f"02_{key}_feature_engineering.ipynb"
-    path2.write_text(nbf.writes(nb2))
+    (ndir / f"02_{key}_feature_engineering.ipynb").write_text(nbf.writes(nb2))
 
-    # Third: optimization deep dive
     nb3 = nbf.v4.new_notebook()
     nb3["cells"] = [
         _md(f"# {spec.name} — Optimization Methods Deep Dive"),
         _code(f"""
-from pathlib import Path
-import sys
-ROOT = Path.cwd()
-if ROOT.name.endswith('_exp'):
-    ROOT = ROOT.parents[1]
-sys.path.insert(0, str(ROOT))
+{_FIND_ROOT}
 from general_pipeline.playbook.ladder import results_frame
 KEY = '{key}'
 df = results_frame(KEY)
@@ -182,8 +190,7 @@ print('\\nBest method:', safe.iloc[0]['optimization_method'], safe.iloc[0]['exp_
 """),
     ]
     nb3["metadata"] = nb["metadata"]
-    path3 = ndir / f"03_{key}_optimization_methods.ipynb"
-    path3.write_text(nbf.writes(nb3))
+    (ndir / f"03_{key}_optimization_methods.ipynb").write_text(nbf.writes(nb3))
 
     return path
 

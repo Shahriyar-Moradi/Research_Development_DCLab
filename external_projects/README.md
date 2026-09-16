@@ -10,6 +10,7 @@ external_projects/<dataset>_exp/
   run_all.py
   data/                          → external_data/<dataset>
   notebooks/
+    part1_<key>_classification.ipynb   ← main walkthrough (like part1_hyper_ack)
     01_<key>_full_ladder.ipynb
     02_<key>_feature_engineering.ipynb
     03_<key>_optimization_methods.ipynb
@@ -20,6 +21,25 @@ external_projects/<dataset>_exp/
   OPTIMIZATION_REPORT.md
   COMPLETE_MASTER_REPORT.md
   MASTER_BENCHMARK_REPORT.md
+```
+
+### Main walkthrough notebook (`part1_*`)
+
+Same teaching style as `part1_hyper_ack_classification.ipynb`:
+
+1. Import → Load → EDA → Cleaning → Visualization  
+2. Safe vs Unsafe feature policy  
+3. Feature engineering ladder  
+4. Safe baselines (LR / LGBM / XGB)  
+5. Unsafe baselines  
+6. Optimized Safe (RandomizedSearch + soft blend)  
+7. Optimized Unsafe  
+8. Final leaderboard + playbook ladder results  
+
+Regenerate all walkthroughs:
+
+```bash
+.venv/bin/python -c "import sys; sys.path.insert(0,'.'); from general_pipeline.playbook.walkthrough_notebooks import generate_all_walkthroughs; generate_all_walkthroughs()"
 ```
 
 ## Experiment ladder (mirrors HyperAck 01–15)
