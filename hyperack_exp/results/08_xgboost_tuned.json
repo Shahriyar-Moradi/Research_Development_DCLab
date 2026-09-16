@@ -1,0 +1,29 @@
+{
+  "best_model": "RandomizedSearchCV(XGBClassifier)",
+  "exp_id": "08",
+  "feature_count": 34,
+  "metrics": {
+    "accuracy": 0.9338433843384338,
+    "avg_precision": 0.9777144177940837,
+    "confusion_matrix": [
+      [
+        1130,
+        54
+      ],
+      [
+        93,
+        945
+      ]
+    ],
+    "f1": 0.9278350515463918,
+    "fit_seconds": 19.771,
+    "predict_seconds": 0.003,
+    "recall": 0.9104046242774566,
+    "roc_auc": 0.9788086496901525,
+    "threshold": 0.5
+  },
+  "name": "xgboost_tuned",
+  "notes": "Best params: {'model__colsample_bytree': np.float64(0.7300793579220679), 'model__learning_rate': np.float64(0.025392287826887055), 'model__max_depth': 5, 'model__min_child_weight': 3, 'model__n_estimators': 385, 'model__reg_lambda': np.float64(7.143742712122061), 'model__subsample': np.float64(0.8685239168468276)}",
+  "primary_metric": "roc_auc",
+  "strategy": "20-trial randomized-search XGBoost on full engineered features"
+}

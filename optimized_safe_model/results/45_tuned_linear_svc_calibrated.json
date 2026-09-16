@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(CalibratedClassifierCV(LinearSVC))",
+  "exp_id": "45",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8505850585058505,
+    "avg_precision": 0.861424939304104,
+    "confusion_matrix": [
+      [
+        1144,
+        40
+      ],
+      [
+        292,
+        746
+      ]
+    ],
+    "f1": 0.8179824561403509,
+    "fit_seconds": 3.065,
+    "precision": 0.9491094147582697,
+    "predict_seconds": 0.003,
+    "recall": 0.7186897880539499,
+    "roc_auc": 0.8828991563818154,
+    "threshold": 0.5
+  },
+  "name": "tuned_linear_svc_calibrated",
+  "notes": "Best: {'model__estimator__C': np.float64(0.26467902195089754), 'model__estimator__class_weight': 'balanced'} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 25-trial RandomizedSearchCV Calibrated LinearSVC"
+}

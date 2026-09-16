@@ -1,0 +1,143 @@
+{
+  "device": "mps",
+  "torch": "2.12.1",
+  "version": "v2",
+  "n_estimators": null,
+  "max_train_rows": 1024,
+  "telco_churn": {
+    "n_rows": 7043,
+    "n_features": 19,
+    "positive_rate": 0.2653698707936959,
+    "n_train_tabpfn": 1024,
+    "n_train_full": 5634,
+    "n_test": 1409,
+    "device": "mps",
+    "version": "v2",
+    "n_estimators": null,
+    "tabpfn": {
+      "accuracy": 0.8005677785663591,
+      "roc_auc": 0.8407140458291353,
+      "avg_precision": 0.6475213238649562,
+      "f1": 0.5629860031104199,
+      "confusion_matrix": [
+        [
+          947,
+          88
+        ],
+        [
+          193,
+          181
+        ]
+      ],
+      "report": "              precision    recall  f1-score   support\n\n           0     0.8307    0.9150    0.8708      1035\n           1     0.6729    0.4840    0.5630       374\n\n    accuracy                         0.8006      1409\n   macro avg     0.7518    0.6995    0.7169      1409\nweighted avg     0.7888    0.8006    0.7891      1409\n",
+      "fit_seconds": 10.54,
+      "predict_seconds": 12.53
+    },
+    "random_forest_same_context": {
+      "accuracy": 0.7714691270404542,
+      "roc_auc": 0.8167880854581622,
+      "avg_precision": 0.5939042796984833,
+      "f1": 0.48562300319488816,
+      "confusion_matrix": [
+        [
+          935,
+          100
+        ],
+        [
+          222,
+          152
+        ]
+      ],
+      "report": "              precision    recall  f1-score   support\n\n           0     0.8081    0.9034    0.8531      1035\n           1     0.6032    0.4064    0.4856       374\n\n    accuracy                         0.7715      1409\n   macro avg     0.7056    0.6549    0.6694      1409\nweighted avg     0.7537    0.7715    0.7556      1409\n",
+      "fit_seconds": 0.63,
+      "predict_seconds": 0.12
+    },
+    "random_forest_full_train": {
+      "accuracy": 0.7863733144073811,
+      "roc_auc": 0.8246312227130641,
+      "avg_precision": 0.6146874031233456,
+      "f1": 0.5390505359877489,
+      "confusion_matrix": [
+        [
+          932,
+          103
+        ],
+        [
+          198,
+          176
+        ]
+      ],
+      "report": "              precision    recall  f1-score   support\n\n           0     0.8248    0.9005    0.8610      1035\n           1     0.6308    0.4706    0.5391       374\n\n    accuracy                         0.7864      1409\n   macro avg     0.7278    0.6855    0.7000      1409\nweighted avg     0.7733    0.7864    0.7755      1409\n",
+      "fit_seconds": 0.76,
+      "predict_seconds": 0.11
+    }
+  },
+  "delivery_hyper_ack": {
+    "n_rows": 11118,
+    "n_features": 13,
+    "positive_rate": 0.4667206332074114,
+    "n_train_tabpfn": 1024,
+    "n_train_full": 8894,
+    "n_test": 2224,
+    "device": "mps",
+    "version": "v2",
+    "n_estimators": null,
+    "tabpfn": {
+      "accuracy": 0.9190647482014388,
+      "roc_auc": 0.9659718228400056,
+      "avg_precision": 0.963248938405537,
+      "f1": 0.9106256206554121,
+      "confusion_matrix": [
+        [
+          1127,
+          59
+        ],
+        [
+          121,
+          917
+        ]
+      ],
+      "report": "              precision    recall  f1-score   support\n\n           0     0.9030    0.9503    0.9260      1186\n           1     0.9395    0.8834    0.9106      1038\n\n    accuracy                         0.9191      2224\n   macro avg     0.9213    0.9168    0.9183      2224\nweighted avg     0.9201    0.9191    0.9188      2224\n",
+      "fit_seconds": 21.0,
+      "predict_seconds": 20.34
+    },
+    "random_forest_same_context": {
+      "accuracy": 0.8983812949640287,
+      "roc_auc": 0.9562847056377064,
+      "avg_precision": 0.9526803744189272,
+      "f1": 0.8862034239677744,
+      "confusion_matrix": [
+        [
+          1118,
+          68
+        ],
+        [
+          158,
+          880
+        ]
+      ],
+      "report": "              precision    recall  f1-score   support\n\n           0     0.8762    0.9427    0.9082      1186\n           1     0.9283    0.8478    0.8862      1038\n\n    accuracy                         0.8984      2224\n   macro avg     0.9022    0.8952    0.8972      2224\nweighted avg     0.9005    0.8984    0.8979      2224\n",
+      "fit_seconds": 1.22,
+      "predict_seconds": 0.19
+    },
+    "random_forest_full_train": {
+      "accuracy": 0.9253597122302158,
+      "roc_auc": 0.973086783183382,
+      "avg_precision": 0.9676542184203811,
+      "f1": 0.9185475956820413,
+      "confusion_matrix": [
+        [
+          1122,
+          64
+        ],
+        [
+          102,
+          936
+        ]
+      ],
+      "report": "              precision    recall  f1-score   support\n\n           0     0.9167    0.9460    0.9311      1186\n           1     0.9360    0.9017    0.9185      1038\n\n    accuracy                         0.9254      2224\n   macro avg     0.9263    0.9239    0.9248      2224\nweighted avg     0.9257    0.9254    0.9253      2224\n",
+      "fit_seconds": 1.55,
+      "predict_seconds": 0.12
+    }
+  }
+}

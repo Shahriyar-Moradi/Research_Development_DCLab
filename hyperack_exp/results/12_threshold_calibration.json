@@ -1,0 +1,29 @@
+{
+  "best_model": "CalibratedClassifierCV(LGBMClassifier)",
+  "exp_id": "12",
+  "feature_count": 34,
+  "metrics": {
+    "accuracy": 0.9288928892889289,
+    "avg_precision": 0.9776138932567321,
+    "confusion_matrix": [
+      [
+        1149,
+        35
+      ],
+      [
+        123,
+        915
+      ]
+    ],
+    "f1": 0.920523138832998,
+    "fit_seconds": 13.266,
+    "predict_seconds": 0.115,
+    "recall": 0.8815028901734104,
+    "roc_auc": 0.9779502226214654,
+    "threshold": 0.6200000000000001
+  },
+  "name": "threshold_calibration",
+  "notes": "Primary ranking remains ROC-AUC; threshold targets F1.",
+  "primary_metric": "roc_auc",
+  "strategy": "Isotonic-calibrated LightGBM with threshold selected on an inner validation split"
+}

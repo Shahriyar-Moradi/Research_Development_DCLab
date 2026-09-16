@@ -1,0 +1,29 @@
+{
+  "best_model": "SelectKBest + LGBMClassifier",
+  "exp_id": "07",
+  "feature_count": 34,
+  "metrics": {
+    "accuracy": 0.9144914491449145,
+    "avg_precision": 0.9668687606043606,
+    "confusion_matrix": [
+      [
+        1120,
+        64
+      ],
+      [
+        126,
+        912
+      ]
+    ],
+    "f1": 0.9056603773584906,
+    "fit_seconds": 3.69,
+    "predict_seconds": 0.032,
+    "recall": 0.8786127167630058,
+    "roc_auc": 0.9688631008175805,
+    "threshold": 0.5
+  },
+  "name": "feature_selection",
+  "notes": "Selection is fit exclusively on training data inside the pipeline.",
+  "primary_metric": "roc_auc",
+  "strategy": "Mutual-information selection followed by LightGBM"
+}

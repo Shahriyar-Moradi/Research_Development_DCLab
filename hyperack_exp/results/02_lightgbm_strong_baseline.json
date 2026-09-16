@@ -1,0 +1,29 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "02",
+  "feature_count": 12,
+  "metrics": {
+    "accuracy": 0.9135913591359136,
+    "avg_precision": 0.9722710409699898,
+    "confusion_matrix": [
+      [
+        1116,
+        68
+      ],
+      [
+        124,
+        914
+      ]
+    ],
+    "f1": 0.904950495049505,
+    "fit_seconds": 3.04,
+    "predict_seconds": 0.023,
+    "recall": 0.8805394990366089,
+    "roc_auc": 0.9720380604593032,
+    "threshold": 0.5
+  },
+  "name": "lightgbm_strong_baseline",
+  "notes": "Strong tree baseline before feature engineering.",
+  "primary_metric": "roc_auc",
+  "strategy": "LightGBM on raw baseline features"
+}

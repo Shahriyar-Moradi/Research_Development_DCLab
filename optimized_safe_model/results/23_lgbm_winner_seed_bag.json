@@ -1,0 +1,30 @@
+{
+  "best_model": "SeedBagLGBM",
+  "exp_id": "23",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8681368136813682,
+    "avg_precision": 0.9478362519154401,
+    "confusion_matrix": [
+      [
+        1135,
+        49
+      ],
+      [
+        244,
+        794
+      ]
+    ],
+    "f1": 0.8442317916002127,
+    "fit_seconds": 6.957,
+    "precision": 0.9418742586002372,
+    "predict_seconds": 0.073,
+    "recall": 0.7649325626204239,
+    "roc_auc": 0.9443543977503515,
+    "threshold": 0.5
+  },
+  "name": "lgbm_winner_seed_bag",
+  "notes": "Average probabilities across seeds 7..67. | Leakage-safe recovery pass 2.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 7-seed bag of prior safe winner params"
+}

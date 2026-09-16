@@ -1,0 +1,30 @@
+{
+  "best_model": "SoftVoteTuned",
+  "exp_id": "50",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8721872187218722,
+    "avg_precision": 0.9476560374190363,
+    "confusion_matrix": [
+      [
+        1121,
+        63
+      ],
+      [
+        221,
+        817
+      ]
+    ],
+    "f1": 0.8519290928050052,
+    "fit_seconds": 9.182,
+    "precision": 0.928409090909091,
+    "predict_seconds": 0.332,
+    "recall": 0.7870905587668593,
+    "roc_auc": 0.9444528524188929,
+    "threshold": 0.5
+  },
+  "name": "softvote_top_tuned_models",
+  "notes": "models=['et', 'lgbm', 'xgb', 'cat'] weights=[0.2505, 0.25, 0.2498, 0.2498] | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Soft-vote of top-4 RandomizedSearch winners"
+}

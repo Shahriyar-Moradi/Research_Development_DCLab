@@ -1,0 +1,30 @@
+{
+  "best_model": "SelectKBest + LGBMClassifier",
+  "exp_id": "07",
+  "feature_count": 46,
+  "metrics": {
+    "accuracy": 0.86003600360036,
+    "avg_precision": 0.9379914412661748,
+    "confusion_matrix": [
+      [
+        1079,
+        105
+      ],
+      [
+        206,
+        832
+      ]
+    ],
+    "f1": 0.8425316455696202,
+    "fit_seconds": 8.389,
+    "precision": 0.887940234791889,
+    "predict_seconds": 0.052,
+    "recall": 0.8015414258188824,
+    "roc_auc": 0.9332843501015465,
+    "threshold": 0.5
+  },
+  "name": "safe_feature_selection",
+  "notes": "Selection fit on train only. | Optimized safe: no final fares.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Mutual-info top-28 on optimized safe FE + LightGBM"
+}

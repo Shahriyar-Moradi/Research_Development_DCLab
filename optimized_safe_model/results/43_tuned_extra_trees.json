@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(ExtraTreesClassifier)",
+  "exp_id": "43",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.873987398739874,
+    "avg_precision": 0.9481515041907373,
+    "confusion_matrix": [
+      [
+        1133,
+        51
+      ],
+      [
+        229,
+        809
+      ]
+    ],
+    "f1": 0.8524762908324552,
+    "fit_seconds": 129.134,
+    "precision": 0.9406976744186046,
+    "predict_seconds": 0.077,
+    "recall": 0.779383429672447,
+    "roc_auc": 0.9443796216736968,
+    "threshold": 0.5
+  },
+  "name": "tuned_extra_trees",
+  "notes": "Best: {'model__class_weight': None, 'model__max_depth': 11, 'model__max_features': None, 'model__min_samples_leaf': 3, 'model__n_estimators': 688} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 30-trial RandomizedSearchCV ExtraTrees"
+}

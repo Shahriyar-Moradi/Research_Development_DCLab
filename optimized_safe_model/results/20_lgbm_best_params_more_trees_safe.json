@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "20",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8636363636363636,
+    "avg_precision": 0.9449475752317359,
+    "confusion_matrix": [
+      [
+        1102,
+        82
+      ],
+      [
+        221,
+        817
+      ]
+    ],
+    "f1": 0.8435725348477027,
+    "fit_seconds": 4.301,
+    "precision": 0.9087875417130145,
+    "predict_seconds": 0.055,
+    "recall": 0.7870905587668593,
+    "roc_auc": 0.9424593487996668,
+    "threshold": 0.5
+  },
+  "name": "lgbm_best_params_more_trees_safe",
+  "notes": "Params: {'colsample_bytree': np.float64(0.7063547816860237), 'learning_rate': 0.013164299917148485, 'max_depth': 9, 'min_child_samples': 56, 'n_estimators': 1488, 'num_leaves': 18, 'reg_alpha': np.float64(1.815132947852186), 'reg_lambda': np.float64(1.346461145744375), 'subsample': np.float64(0.8025957307589073)} | Leakage-safe recovery pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Best safe LGBM params with more trees / lower LR"
+}

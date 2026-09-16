@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(LGBMClassifier)",
+  "exp_id": "22",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8721872187218722,
+    "avg_precision": 0.946303086576884,
+    "confusion_matrix": [
+      [
+        1121,
+        63
+      ],
+      [
+        221,
+        817
+      ]
+    ],
+    "f1": 0.8519290928050052,
+    "fit_seconds": 244.489,
+    "precision": 0.928409090909091,
+    "predict_seconds": 0.02,
+    "recall": 0.7870905587668593,
+    "roc_auc": 0.9432738374212362,
+    "threshold": 0.5
+  },
+  "name": "lgbm_local_around_winner",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.7128696878124973), 'model__learning_rate': np.float64(0.01557292928473223), 'model__max_depth': 8, 'model__min_child_samples': 50, 'model__min_split_gain': np.float64(0.07186856720009173), 'model__n_estimators': 379, 'model__num_leaves': 32, 'model__reg_alpha': np.float64(0.39156220822205046), 'model__reg_lambda': np.float64(1.528475681165901), 'model__subsample': np.float64(0.6984110543023001)} | Leakage-safe recovery pass 2.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 60-trial local search around prior safe winner (4-fold)"
+}

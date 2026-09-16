@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(LogisticRegression)",
+  "exp_id": "41",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8496849684968497,
+    "avg_precision": 0.8587471571784155,
+    "confusion_matrix": [
+      [
+        1142,
+        42
+      ],
+      [
+        292,
+        746
+      ]
+    ],
+    "f1": 0.8170865279299014,
+    "fit_seconds": 24.171,
+    "precision": 0.9467005076142132,
+    "predict_seconds": 0.002,
+    "recall": 0.7186897880539499,
+    "roc_auc": 0.8823198198198199,
+    "threshold": 0.5
+  },
+  "name": "tuned_logistic_regression",
+  "notes": "Best: {'model__C': np.float64(0.06704755197530224), 'model__class_weight': 'balanced', 'model__penalty': 'l1'} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 40-trial RandomizedSearchCV LogisticRegression"
+}

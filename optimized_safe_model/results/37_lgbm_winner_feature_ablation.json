@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "37",
+  "feature_count": 18,
+  "metrics": {
+    "accuracy": 0.8685868586858686,
+    "avg_precision": 0.947114256132729,
+    "confusion_matrix": [
+      [
+        1137,
+        47
+      ],
+      [
+        245,
+        793
+      ]
+    ],
+    "f1": 0.8445154419595314,
+    "fit_seconds": 1.031,
+    "precision": 0.944047619047619,
+    "predict_seconds": 0.009,
+    "recall": 0.7639691714836223,
+    "roc_auc": 0.9438442235588189,
+    "threshold": 0.5
+  },
+  "name": "lgbm_winner_feature_ablation",
+  "notes": "kept=18 dropped=[('weekday', 0.0003100307465818686), ('sum_product', 6.02045917933447e-05), ('destination_longitude', 0.0005891194882517992), ('hour_sin', 2.6183653827449582e-05), ('first_fare_per_km', 0.0004430864568474302), ('haversine_km', 0.0002514546813623397), ('latitude_delta', 8.0001367962379e-05)] oof=0.932451 | Leakage-safe recovery pass 4.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Greedy OOF feature ablation on winner LGBM"
+}

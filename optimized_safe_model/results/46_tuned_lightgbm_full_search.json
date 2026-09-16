@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(LGBMClassifier)",
+  "exp_id": "46",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8694869486948695,
+    "avg_precision": 0.9447698454163914,
+    "confusion_matrix": [
+      [
+        1117,
+        67
+      ],
+      [
+        223,
+        815
+      ]
+    ],
+    "f1": 0.8489583333333334,
+    "fit_seconds": 585.517,
+    "precision": 0.9240362811791383,
+    "predict_seconds": 0.022,
+    "recall": 0.7851637764932563,
+    "roc_auc": 0.9426700906108422,
+    "threshold": 0.5
+  },
+  "name": "tuned_lightgbm_full_search",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.7027775758032037), 'model__learning_rate': np.float64(0.014169043633862503), 'model__max_depth': 7, 'model__min_child_samples': 57, 'model__n_estimators': 650, 'model__num_leaves': 44, 'model__reg_alpha': np.float64(1.0850804611097986), 'model__reg_lambda': np.float64(4.12051261471008), 'model__subsample': np.float64(0.8408997854557686)} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 60-trial RandomizedSearchCV LightGBM (full safe space)"
+}

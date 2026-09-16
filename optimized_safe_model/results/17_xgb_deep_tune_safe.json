@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(XGBClassifier)",
+  "exp_id": "17",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.869036903690369,
+    "avg_precision": 0.9447463354511105,
+    "confusion_matrix": [
+      [
+        1112,
+        72
+      ],
+      [
+        219,
+        819
+      ]
+    ],
+    "f1": 0.8491446345256609,
+    "fit_seconds": 68.824,
+    "precision": 0.9191919191919192,
+    "predict_seconds": 0.026,
+    "recall": 0.7890173410404624,
+    "roc_auc": 0.9414174380305161,
+    "threshold": 0.5
+  },
+  "name": "xgb_deep_tune_safe",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.725367885716508), 'model__gamma': np.float64(1.3270035382161116), 'model__learning_rate': np.float64(0.010404926707697494), 'model__max_depth': 8, 'model__min_child_weight': 2, 'model__n_estimators': 1321, 'model__reg_lambda': np.float64(2.890544857917484), 'model__subsample': np.float64(0.9486143656527051)} | Leakage-safe recovery pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 45-trial 5-fold XGBoost on proven safe FE"
+}

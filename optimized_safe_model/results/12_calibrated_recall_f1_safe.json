@@ -1,0 +1,30 @@
+{
+  "best_model": "CalibratedClassifierCV(LGBMClassifier)",
+  "exp_id": "12",
+  "feature_count": 46,
+  "metrics": {
+    "accuracy": 0.7956795679567957,
+    "avg_precision": 0.941419738709299,
+    "confusion_matrix": [
+      [
+        795,
+        389
+      ],
+      [
+        65,
+        973
+      ]
+    ],
+    "f1": 0.8108333333333333,
+    "fit_seconds": 26.479,
+    "precision": 0.7143906020558003,
+    "predict_seconds": 0.168,
+    "recall": 0.9373795761078998,
+    "roc_auc": 0.937507729911993,
+    "threshold": 0.25
+  },
+  "name": "calibrated_recall_f1_safe",
+  "notes": "Inner-validation threshold=0.250 | Optimized safe: no final fares.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Isotonic-calibrated LightGBM; threshold maximizes 0.5*F1+0.5*recall"
+}

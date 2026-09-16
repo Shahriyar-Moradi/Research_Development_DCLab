@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(LGBMClassifier)",
+  "exp_id": "25",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8613861386138614,
+    "avg_precision": 0.9427434406006917,
+    "confusion_matrix": [
+      [
+        1110,
+        74
+      ],
+      [
+        234,
+        804
+      ]
+    ],
+    "f1": 0.8392484342379958,
+    "fit_seconds": 865.931,
+    "precision": 0.9157175398633257,
+    "predict_seconds": 0.01,
+    "recall": 0.7745664739884393,
+    "roc_auc": 0.9403999375097641,
+    "threshold": 0.5
+  },
+  "name": "lgbm_broad_80_original_space",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.8937642149592515), 'model__learning_rate': np.float64(0.04933672019404554), 'model__max_depth': 5, 'model__min_child_samples': 27, 'model__n_estimators': 406, 'model__num_leaves': 69, 'model__reg_lambda': np.float64(7.9461135870769235), 'model__subsample': np.float64(0.8896904085047022)} | Leakage-safe recovery pass 2.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 80-trial LGBM in original safe search space (4-fold, new seed)"
+}

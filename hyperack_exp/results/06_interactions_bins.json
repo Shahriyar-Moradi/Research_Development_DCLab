@@ -1,0 +1,29 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "06",
+  "feature_count": 38,
+  "metrics": {
+    "accuracy": 0.9342934293429342,
+    "avg_precision": 0.977185223011366,
+    "confusion_matrix": [
+      [
+        1133,
+        51
+      ],
+      [
+        95,
+        943
+      ]
+    ],
+    "f1": 0.9281496062992126,
+    "fit_seconds": 4.385,
+    "predict_seconds": 0.036,
+    "recall": 0.9084778420038536,
+    "roc_auc": 0.9777826055824612,
+    "threshold": 0.5
+  },
+  "name": "interactions_bins",
+  "notes": "Bins are fitted on training rows only.",
+  "primary_metric": "roc_auc",
+  "strategy": "LightGBM with engineered interactions and train-fitted quantile bins"
+}

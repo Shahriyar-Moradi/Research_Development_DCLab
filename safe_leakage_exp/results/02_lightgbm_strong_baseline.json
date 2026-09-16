@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "02",
+  "feature_count": 10,
+  "metrics": {
+    "accuracy": 0.8663366336633663,
+    "avg_precision": 0.9401044130075771,
+    "confusion_matrix": [
+      [
+        1091,
+        93
+      ],
+      [
+        204,
+        834
+      ]
+    ],
+    "f1": 0.8488549618320611,
+    "fit_seconds": 2.892,
+    "precision": 0.8996763754045307,
+    "predict_seconds": 0.021,
+    "recall": 0.8034682080924855,
+    "roc_auc": 0.9364869746914544,
+    "threshold": 0.5
+  },
+  "name": "lightgbm_strong_baseline",
+  "notes": "Strong tree baseline before feature engineering. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] LightGBM on raw baseline features"
+}

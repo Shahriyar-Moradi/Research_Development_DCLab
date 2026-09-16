@@ -1,0 +1,123 @@
+{
+  "device": "mps",
+  "version": "v3",
+  "context_rows": 1024,
+  "test_size": 0.2,
+  "seed": 42,
+  "torch": "2.12.1",
+  "sklearn": "1.7.2",
+  "xgboost": "3.2.0",
+  "lightgbm": "4.7.0",
+  "protocol": "https://docs.priorlabs.ai/benchmarking",
+  "datasets": [
+    {
+      "task_id": "telco",
+      "name": "Telco customer churn",
+      "n_rows": 7043,
+      "n_features": 19,
+      "positive_rate": 0.2653698707936959,
+      "n_test": 1409,
+      "n_train_full": 5634,
+      "n_train_context": 1024,
+      "context": [
+        {
+          "model": "TabTransformer",
+          "roc_auc": 0.8084037303986152,
+          "avg_precision": 0.565851809383118,
+          "accuracy": 0.6557842441447835,
+          "f1": 0.5734388742304309,
+          "fit_seconds": 10.494,
+          "predict_seconds": 0.203,
+          "notes": "lucidrains/TabTransformer standard dim=32 depth=6 heads=8 lr=0.001 wd=0.0001 warmup=5 patience=16 valAUC=0.878 device=mps"
+        },
+        {
+          "model": "FTTransformer",
+          "roc_auc": 0.8228241494226148,
+          "avg_precision": 0.6183021038750394,
+          "accuracy": 0.7480482611781405,
+          "f1": 0.6085997794928335,
+          "fit_seconds": 7.788,
+          "predict_seconds": 0.188,
+          "notes": "lucidrains/FTTransformer quantile dim=192 depth=3 heads=8 lr=0.0001 wd=1e-05 warmup=0 patience=16 valAUC=0.871 device=mps"
+        }
+      ],
+      "full": [
+        {
+          "model": "TabTransformer",
+          "roc_auc": 0.8241003384225891,
+          "avg_precision": 0.5770096216734201,
+          "accuracy": 0.7281760113555713,
+          "f1": 0.599791013584117,
+          "fit_seconds": 42.526,
+          "predict_seconds": 0.186,
+          "notes": "lucidrains/TabTransformer standard dim=32 depth=6 heads=8 lr=0.001 wd=0.0001 warmup=5 patience=16 valAUC=0.837 device=mps"
+        },
+        {
+          "model": "FTTransformer",
+          "roc_auc": 0.8325092355782893,
+          "avg_precision": 0.6151257172520441,
+          "accuracy": 0.7416607523066004,
+          "f1": 0.6192468619246861,
+          "fit_seconds": 43.117,
+          "predict_seconds": 0.182,
+          "notes": "lucidrains/FTTransformer quantile dim=192 depth=3 heads=8 lr=0.0001 wd=1e-05 warmup=0 patience=16 valAUC=0.844 device=mps"
+        }
+      ]
+    },
+    {
+      "task_id": "part1",
+      "name": "Delivery hyper_ack",
+      "n_rows": 11118,
+      "n_features": 13,
+      "positive_rate": 0.4667206332074114,
+      "n_test": 2224,
+      "n_train_full": 8894,
+      "n_train_context": 1024,
+      "context": [
+        {
+          "model": "TabTransformer",
+          "roc_auc": 0.9354990950946658,
+          "avg_precision": 0.9412405595568061,
+          "accuracy": 0.8669064748201439,
+          "f1": 0.8590476190476191,
+          "fit_seconds": 11.306,
+          "predict_seconds": 0.079,
+          "notes": "lucidrains/TabTransformer standard dim=32 depth=6 heads=8 lr=0.001 wd=0.0001 warmup=5 patience=16 valAUC=0.931 device=mps"
+        },
+        {
+          "model": "FTTransformer",
+          "roc_auc": 0.924831122245075,
+          "avg_precision": 0.9229902403972922,
+          "accuracy": 0.8430755395683454,
+          "f1": 0.8338886244645407,
+          "fit_seconds": 10.051,
+          "predict_seconds": 0.285,
+          "notes": "lucidrains/FTTransformer quantile dim=192 depth=3 heads=8 lr=0.0001 wd=1e-05 warmup=0 patience=16 valAUC=0.901 device=mps"
+        }
+      ],
+      "full": [
+        {
+          "model": "TabTransformer",
+          "roc_auc": 0.9642643623260453,
+          "avg_precision": 0.9621378000246273,
+          "accuracy": 0.9105215827338129,
+          "f1": 0.9023073146784487,
+          "fit_seconds": 51.441,
+          "predict_seconds": 0.085,
+          "notes": "lucidrains/TabTransformer standard dim=32 depth=6 heads=8 lr=0.001 wd=0.0001 warmup=5 patience=16 valAUC=0.957 device=mps"
+        },
+        {
+          "model": "FTTransformer",
+          "roc_auc": 0.9600671936887322,
+          "avg_precision": 0.9532671538823916,
+          "accuracy": 0.8898381294964028,
+          "f1": 0.8816996619990343,
+          "fit_seconds": 74.099,
+          "predict_seconds": 0.24,
+          "notes": "lucidrains/FTTransformer quantile dim=192 depth=3 heads=8 lr=0.0001 wd=1e-05 warmup=0 patience=16 valAUC=0.952 device=mps"
+        }
+      ]
+    }
+  ],
+  "merged_into_existing_csv": true
+}

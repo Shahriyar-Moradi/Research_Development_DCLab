@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(XGBClassifier)",
+  "exp_id": "47",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8685868586858686,
+    "avg_precision": 0.944806807834665,
+    "confusion_matrix": [
+      [
+        1110,
+        74
+      ],
+      [
+        218,
+        820
+      ]
+    ],
+    "f1": 0.8488612836438924,
+    "fit_seconds": 38.097,
+    "precision": 0.9172259507829977,
+    "predict_seconds": 0.009,
+    "recall": 0.789980732177264,
+    "roc_auc": 0.9417001900744674,
+    "threshold": 0.5
+  },
+  "name": "tuned_xgboost_full_search",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.6804414628598097), 'model__gamma': np.float64(1.3270035382161116), 'model__learning_rate': np.float64(0.012607390061546243), 'model__max_depth': 8, 'model__min_child_weight': 2, 'model__n_estimators': 1121, 'model__reg_lambda': np.float64(3.6873931438899787), 'model__subsample': np.float64(0.9483372387832463)} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 50-trial RandomizedSearchCV XGBoost"
+}

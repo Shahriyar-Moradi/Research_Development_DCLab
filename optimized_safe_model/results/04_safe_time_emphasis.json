@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "04",
+  "feature_count": 46,
+  "metrics": {
+    "accuracy": 0.8568856885688569,
+    "avg_precision": 0.940275900396328,
+    "confusion_matrix": [
+      [
+        1075,
+        109
+      ],
+      [
+        209,
+        829
+      ]
+    ],
+    "f1": 0.8390688259109311,
+    "fit_seconds": 10.171,
+    "precision": 0.8837953091684435,
+    "predict_seconds": 0.056,
+    "recall": 0.7986512524084779,
+    "roc_auc": 0.9362217166588556,
+    "threshold": 0.5
+  },
+  "name": "safe_time_emphasis",
+  "notes": "Morning/night/rush + cyclical time interactions. | Optimized safe: no final fares.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Optimized safe FE with enriched time flags/interactions"
+}

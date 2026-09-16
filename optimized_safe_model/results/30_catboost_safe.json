@@ -1,0 +1,30 @@
+{
+  "best_model": "CatBoostClassifier",
+  "exp_id": "30",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.878037803780378,
+    "avg_precision": 0.9460290633142627,
+    "confusion_matrix": [
+      [
+        1118,
+        66
+      ],
+      [
+        205,
+        833
+      ]
+    ],
+    "f1": 0.8600929272070211,
+    "fit_seconds": 2.574,
+    "precision": 0.9265850945494994,
+    "predict_seconds": 0.005,
+    "recall": 0.802504816955684,
+    "roc_auc": 0.9427807504035828,
+    "threshold": 0.5
+  },
+  "name": "catboost_safe",
+  "notes": "iterations=1200 depth=6 lr=0.03 | Leakage-safe recovery pass 3.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] CatBoost on proven safe 25-feature matrix"
+}

@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(LGBMClassifier)",
+  "exp_id": "16",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.869036903690369,
+    "avg_precision": 0.9460177067280032,
+    "confusion_matrix": [
+      [
+        1112,
+        72
+      ],
+      [
+        219,
+        819
+      ]
+    ],
+    "f1": 0.8491446345256609,
+    "fit_seconds": 873.509,
+    "precision": 0.9191919191919192,
+    "predict_seconds": 0.037,
+    "recall": 0.7890173410404624,
+    "roc_auc": 0.9429882375149716,
+    "threshold": 0.5
+  },
+  "name": "lgbm_deep_tune_safe",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.7063547816860237), 'model__learning_rate': np.float64(0.017552399889531313), 'model__max_depth': 9, 'model__min_child_samples': 56, 'model__n_estimators': 1063, 'model__num_leaves': 18, 'model__reg_alpha': np.float64(1.815132947852186), 'model__reg_lambda': np.float64(1.346461145744375), 'model__subsample': np.float64(0.8025957307589073)} | Leakage-safe recovery pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 50-trial 5-fold LGBM on proven safe FE (no class weight)"
+}

@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "06",
+  "feature_count": 29,
+  "metrics": {
+    "accuracy": 0.8636363636363636,
+    "avg_precision": 0.9433224907241387,
+    "confusion_matrix": [
+      [
+        1090,
+        94
+      ],
+      [
+        209,
+        829
+      ]
+    ],
+    "f1": 0.8454869964303927,
+    "fit_seconds": 3.761,
+    "precision": 0.8981581798483207,
+    "predict_seconds": 0.024,
+    "recall": 0.7986512524084779,
+    "roc_auc": 0.9388686012602196,
+    "threshold": 0.5
+  },
+  "name": "interactions_bins",
+  "notes": "Bins are fitted on training rows only. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] LightGBM with engineered interactions and train-fitted quantile bins"
+}

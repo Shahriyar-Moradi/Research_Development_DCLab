@@ -1,0 +1,30 @@
+{
+  "best_model": "SoftVote3",
+  "exp_id": "15",
+  "feature_count": 46,
+  "metrics": {
+    "accuracy": 0.8613861386138614,
+    "avg_precision": 0.9407353068087239,
+    "confusion_matrix": [
+      [
+        1081,
+        103
+      ],
+      [
+        205,
+        833
+      ]
+    ],
+    "f1": 0.8439716312056738,
+    "fit_seconds": 21.846,
+    "precision": 0.8899572649572649,
+    "predict_seconds": 0.124,
+    "recall": 0.802504816955684,
+    "roc_auc": 0.9368205814195698,
+    "threshold": 0.5
+  },
+  "name": "softvote_lgbm_xgb_hgb_safe",
+  "notes": "Three-model safe blend for stability. | Optimized safe: no final fares.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Soft-vote 0.45 LGBM + 0.35 XGB + 0.20 HGB on optimized safe FE"
+}

@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(CatBoostClassifier)",
+  "exp_id": "48",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8735373537353736,
+    "avg_precision": 0.9430445838550766,
+    "confusion_matrix": [
+      [
+        1127,
+        57
+      ],
+      [
+        224,
+        814
+      ]
+    ],
+    "f1": 0.8528025144054479,
+    "fit_seconds": 136.87,
+    "precision": 0.9345579793340988,
+    "predict_seconds": 0.004,
+    "recall": 0.7842003853564548,
+    "roc_auc": 0.941664388376816,
+    "threshold": 0.5
+  },
+  "name": "tuned_catboost_full_search",
+  "notes": "Best: {'model__bagging_temperature': np.float64(0.03087674144370367), 'model__depth': 5, 'model__iterations': 743, 'model__l2_leaf_reg': np.float64(9.324426408004218), 'model__learning_rate': np.float64(0.040480693281393136), 'model__random_strength': np.float64(0.36364993441420124)} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 30-trial RandomizedSearchCV CatBoost"
+}

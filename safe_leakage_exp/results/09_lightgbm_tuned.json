@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(LGBMClassifier)",
+  "exp_id": "09",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.869036903690369,
+    "avg_precision": 0.9487270589112673,
+    "confusion_matrix": [
+      [
+        1131,
+        53
+      ],
+      [
+        238,
+        800
+      ]
+    ],
+    "f1": 0.8461131676361714,
+    "fit_seconds": 175.598,
+    "precision": 0.9378663540445487,
+    "predict_seconds": 0.009,
+    "recall": 0.7707129094412332,
+    "roc_auc": 0.9450037103577568,
+    "threshold": 0.5
+  },
+  "name": "lightgbm_tuned",
+  "notes": "Best params: {'model__colsample_bytree': np.float64(0.8076747381893401), 'model__learning_rate': np.float64(0.016591795339183982), 'model__max_depth': 11, 'model__min_child_samples': 69, 'model__n_estimators': 313, 'model__num_leaves': 20, 'model__reg_lambda': np.float64(0.22773001776171356), 'model__subsample': np.float64(0.7308128389677522)} | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] 20-trial randomized-search LightGBM on full engineered features"
+}

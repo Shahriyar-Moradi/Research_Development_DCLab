@@ -1,0 +1,30 @@
+{
+  "best_model": "WeightedBlend",
+  "exp_id": "38",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.873087308730873,
+    "avg_precision": 0.9472894336144687,
+    "confusion_matrix": [
+      [
+        1123,
+        61
+      ],
+      [
+        221,
+        817
+      ]
+    ],
+    "f1": 0.8528183716075156,
+    "fit_seconds": 9.424,
+    "precision": 0.9305239179954442,
+    "predict_seconds": 0.115,
+    "recall": 0.7870905587668593,
+    "roc_auc": 0.9437693654637298,
+    "threshold": 0.5
+  },
+  "name": "oof_auc_weighted_blend",
+  "notes": "weights={'lgbm': 0.3962291438158643, 'xgb': 0.1417024083548209, 'hgb': 0.2588243579291153, 'cat': 0.20324408990019954} | Leakage-safe recovery pass 4.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Soft blend with weights maximizing train OOF AUC"
+}

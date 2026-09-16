@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "14",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8658865886588659,
+    "avg_precision": 0.9417720835326946,
+    "confusion_matrix": [
+      [
+        1091,
+        93
+      ],
+      [
+        205,
+        833
+      ]
+    ],
+    "f1": 0.8482688391038696,
+    "fit_seconds": 4.046,
+    "precision": 0.8995680345572354,
+    "predict_seconds": 0.027,
+    "recall": 0.802504816955684,
+    "roc_auc": 0.9386554184242045,
+    "threshold": 0.5
+  },
+  "name": "leakage_safe_features",
+  "notes": "Use this result for realistic pre-decision performance. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] LightGBM with full safe FE but without final customer/biker fares"
+}

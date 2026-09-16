@@ -1,0 +1,109 @@
+---
+description: Comprehensive tabular classification, feature engineering, and optimization playbook based on 83+ empirical benchmarks across GBDTs, Trees, Linear, Ensembles, and Leakage-Safe Pipelines.
+alwaysApply: true
+---
+
+# Tabular Classification & Prediction Playbook: The Empirical Standard
+
+This rule provides the standard operating procedure for tabular classification and prediction tasks. It is derived from 83+ controlled experiments comparing unsafe (leaked), baseline-safe, and multi-stage optimized models across GBDTs (LightGBM, XGBoost, CatBoost, HistGB), Random Forests, ExtraTrees, Linear Models, and Stacking/Blending ensembles.
+
+---
+
+## 1. Non-Negotiable Foundations
+
+1. **Strict Decision-Time Feature Gate:**
+   - Define exact **decision time** $T_0$. Only features available at or before $T_0$ are valid.
+   - Any feature determined after customer order placement (e.g. final negotiated fares, completion times, biker assignment duration) is strictly **target leakage**.
+   - Dropping leakage causes an expected drop in metrics (e.g. ROC-AUC ~0.979 → ~0.945; recall ~0.91 → ~0.77), but unsafe models fail in production. Never deploy leakage.
+
+2. **Locked Split & Train-Only Transformations:**
+   - Lock one split upfront: stratified 80/20 (or strict time-based cutoff if temporal order matters).
+   - Every stateful transformation (imputation medians, StandardScaler, KMeans spatial clusters, KBins discretizers, Target Encoding, mutual information) MUST be fitted on `train` only and transformed on `test`.
+
+3. **Primary Metric Alignment:**
+   - Ranking / Probability Discrimination: **ROC-AUC** or **PR-AUC** (use PR-AUC for high class imbalance < 15% positive).
+   - Cost-Sensitive Decisions: **Recall** or **Cost-Weighted Utility** (tune decision thresholds post-hoc; do NOT force distortion during tree building unless necessary).
+
+---
+
+## 2. Feature Engineering Ladder
+
+Add features strictly by families, measuring incremental validation lift:
+
+| Family | Formula / Design Pattern | Empirical Impact |
+|---|---|---|
+| **Ratios / Intensity** | `first_fare / total_distance`, `product_sum / total_distance` | **High Lift (+0.015-0.025 ROC)**. Normalizes scale. |
+| **Log Transforms** | `log1p(total_distance)`, `log1p(first_customer_fare)` | **Moderate Lift**. Tames heavy tails for linear & tree splits. |
+| **Cyclical & Time** | `sin`/`cos` of `hour/24`, `weekday/7`, `is_rush_hour`, `is_weekend` | **High Lift (+0.005-0.012 ROC)**. Essential for operational tasks. |
+| **Geo-Spatial Spatial** | Great-circle Haversine distance, latitude/longitude delta, bearing `sin`/`cos` | **High Lift (+0.008-0.015 ROC)**. Direction + straight-line efficiency. |
+| **Spatial Clusters** | Train-fitted KMeans ($k=5$) on source/destination coords | **Moderate Lift**. Captures coarse regional traffic pricing hubs. |
+| **Interactions** | Multiplicative pairs (`fare * distance`, `fare * hour`, `category * hour`) | **Context-dependent**. Good for simple trees; can dilute large GBDTs if overdone. |
+| **Out-of-Fold Target Encoding** | $K$-fold smoothed mean target encoding on high-cardinality categoricals | **Stable Lift (+0.002-0.005 ROC)**. Must be OOF on train to prevent overfitting. |
+
+**The Feature Dilution Warning:**
+- More features $\neq$ better model. In our benchmarks, expanding from 25 proven features to 46 interactive features dropped test ROC from **0.9450** down to **0.9371**. High-dimensional correlated interactions dilute tree split statistics. Keep the feature matrix lean and high-signal.
+
+---
+
+## 3. Algorithm Archetypes & Empirical Behavior
+
+| Algorithm | Strengths | Weaknesses | Best Hyperparameter Search Region |
+|---|---|---|---|
+| **LightGBM** | Fast, highest single-model ROC ceiling, handles missing values natively | Sensitive to leaf regularization and small child counts | `n_estimators`: 250–800, `learning_rate`: 0.012–0.04, `num_leaves`: 16–48, `min_child_samples`: 40–90, `subsample`: 0.7–0.9, `colsample_bytree`: 0.7–0.9, `reg_lambda`: 0.1–5.0 |
+| **XGBoost** | Robust regularization, excellent calibration | Slower on large datasets, requires explicit tuning of `min_child_weight` | `n_estimators`: 300–1000, `max_depth`: 4–8, `learning_rate`: 0.015–0.05, `min_child_weight`: 2–8, `subsample`: 0.75–0.9, `colsample_bytree`: 0.7–0.85, `reg_lambda`: 1.0–6.0 |
+| **ExtraTrees** | Top non-GBDT performer (**0.9444 ROC**), exceptional ensemble diversity, fast | Memory-intensive for very large depths | `n_estimators`: 500–1200, `max_depth`: 10–22, `min_samples_leaf`: 2–8, `max_features`: `sqrt` or `log2` |
+| **CatBoost** | Handles categorical splits without prep, very smooth probability outputs | Slower training, sklearn cloning quirks in StackingClassifier | `iterations`: 500–1200, `depth`: 5–7, `learning_rate`: 0.02–0.05, `l2_leaf_reg`: 2.0–8.0 |
+| **HistGradientBoosting** | Native sklearn GBDT, zero external deps, fast binning | Slightly lower ROC peak than tuned LightGBM | `learning_rate`: 0.03–0.08, `max_iter`: 300–700, `max_leaf_nodes`: 25–45, `l2_regularization`: 0.5–3.0 |
+| **RandomForest** | Solid baseline, no feature scaling required | Lower ceiling than ExtraTrees or GBDTs | `n_estimators`: 400–1000, `max_depth`: 8–18, `min_samples_leaf`: 3–12 |
+| **Logistic / LinearSVC** | Ultra-fast baseline, interpretable weights | Fails on complex non-linear spatial/pricing curves (~0.88 ROC vs ~0.94 GBDT) | Standardized scaler mandatory, `C`: loguniform(0.001, 10.0), `penalty`: 'l1' or 'l2' |
+
+---
+
+## 4. Optimization Ladder: How to Hunt Peak Performance
+
+Execute optimizations in this exact hierarchy:
+
+```
+Step 1: Baseline GBDT (Raw + First-Order FE)  -->  ROC ~0.938
+  ↓
+Step 2: Domain Feature Engineering (Time, Pricing, Geo)  -->  ROC ~0.941 (+0.003)
+  ↓
+Step 3: Systematic RandomizedSearchCV (40-60 trials, 4-5 fold CV)  -->  ROC ~0.944 (+0.003)
+  ↓
+Step 4: Seed Bagging / Variance Reduction (5-10 seeds)  -->  ROC ~0.9445 (+0.0005)
+  ↓
+Step 5: Multi-Algorithm Stacking & Soft Voting (ET + LGBM + XGB)  -->  ROC ~0.9455 (+0.0010)
+  ↓
+Step 6: Threshold Calibration (Post-hoc Platt / Isotonic)  -->  Recall ~0.77 → ~0.937
+```
+
+### Empirical Lift Breakdown from 53 Controlled Runs:
+1. **RandomizedSearchCV over Defaults:** **+0.004 to +0.008 ROC-AUC** across all tree models.
+2. **Multi-Model Diversity:** Combining an **ExtraTrees seed bag** with **LightGBM** and **XGBoost** yielded the highest safe score (**0.9455 ROC**), outperforming any single model.
+3. **Seed Bagging (5–10 seeds):** Consistently shaved 0.0003–0.0006 variance and lifted ROC by +0.0004 without adding model complexity.
+4. **Out-of-Fold (OOF) Stacking:** LogisticRegression meta-learner on out-of-fold predictions reached **0.9450 ROC** with **0.8006 recall** (higher balanced accuracy than raw LightGBM).
+5. **Class Weighting (`scale_pos_weight`):**
+   - **Crucial Rule:** Forcing heavy class weights directly into GBDT training boosts recall (+0.03) but slightly degrades ROC-AUC (-0.004).
+   - **Best Practice:** Train GBDTs on raw natural distribution to preserve pure ranking quality (ROC-AUC), then calibrate probabilities and sweep decision thresholds for recall/F1.
+
+---
+
+## 5. Decision Threshold Calibration Rule
+
+When product requirements demand high recall (e.g. catching fraud, high-risk churn, or order acceptance):
+1. Fit `CalibratedClassifierCV(base_estimator, method='isotonic', cv=3)` on training data.
+2. Generate validation probabilities $p = P(y=1)$.
+3. Sweep thresholds $\tau \in [0.10, 0.90]$ with step $0.01$.
+4. Select $\tau^*$ maximizing target objective (e.g., $F_1$, $F_2$, or $\text{Recall} \ge R_{\text{target}}$ with maximum Precision).
+5. **Observed benchmark result:** Threshold shift boosted recall from **0.7707** to **0.9374** with only a minor F1 trade-off, while maintaining **0.9375 ROC-AUC** safely.
+
+---
+
+## 6. Summary Checklist Before Finalizing Models
+
+- [ ] Are all features strictly pre-outcome? (Zero future leakage).
+- [ ] Were all scalers, encoders, imputers, and clusterers fitted exclusively on `train`?
+- [ ] Did you evaluate on a locked test set that was never used for hyperparameter searches?
+- [ ] Is there an unweighted baseline GBDT to benchmark pure discriminative power?
+- [ ] Did you test at least two distinct algorithm families (e.g., GBDT + ExtraTrees/RandomForest) in a soft-blend?
+- [ ] Are decision thresholds calibrated explicitly for the operational cost function?

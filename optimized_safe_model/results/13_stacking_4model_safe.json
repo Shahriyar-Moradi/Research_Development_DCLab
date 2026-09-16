@@ -1,0 +1,30 @@
+{
+  "best_model": "StackingClassifier",
+  "exp_id": "13",
+  "feature_count": 46,
+  "metrics": {
+    "accuracy": 0.8636363636363636,
+    "avg_precision": 0.9403489758262665,
+    "confusion_matrix": [
+      [
+        1074,
+        110
+      ],
+      [
+        193,
+        845
+      ]
+    ],
+    "f1": 0.8479678876066232,
+    "fit_seconds": 32.042,
+    "precision": 0.8848167539267016,
+    "predict_seconds": 0.109,
+    "recall": 0.8140655105973025,
+    "roc_auc": 0.936377942248607,
+    "threshold": 0.5
+  },
+  "name": "stacking_4model_safe",
+  "notes": "Balanced meta-learner for recall recovery. | Optimized safe: no final fares.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Stacking LR+LGBM+XGB+HGB on optimized safe FE"
+}

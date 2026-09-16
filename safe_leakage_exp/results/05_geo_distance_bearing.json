@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "05",
+  "feature_count": 15,
+  "metrics": {
+    "accuracy": 0.8568856885688569,
+    "avg_precision": 0.9387731207598095,
+    "confusion_matrix": [
+      [
+        1082,
+        102
+      ],
+      [
+        216,
+        822
+      ]
+    ],
+    "f1": 0.8379204892966361,
+    "fit_seconds": 2.596,
+    "precision": 0.8896103896103896,
+    "predict_seconds": 0.028,
+    "recall": 0.791907514450867,
+    "roc_auc": 0.9352778537207728,
+    "threshold": 0.5
+  },
+  "name": "geo_distance_bearing",
+  "notes": "Geographic transforms retain route structure more faithfully than raw deltas alone. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] LightGBM with Haversine route distance and direction features"
+}

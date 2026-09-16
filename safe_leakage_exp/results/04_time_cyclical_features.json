@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "04",
+  "feature_count": 18,
+  "metrics": {
+    "accuracy": 0.8771377137713772,
+    "avg_precision": 0.9445413741943116,
+    "confusion_matrix": [
+      [
+        1103,
+        81
+      ],
+      [
+        192,
+        846
+      ]
+    ],
+    "f1": 0.8610687022900764,
+    "fit_seconds": 3.044,
+    "precision": 0.912621359223301,
+    "predict_seconds": 0.022,
+    "recall": 0.815028901734104,
+    "roc_auc": 0.9418865216372441,
+    "threshold": 0.5
+  },
+  "name": "time_cyclical_features",
+  "notes": "Time features are available early and are generally deployment-safe. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] LightGBM with hour, rush-hour, weekend, and cyclical time features"
+}

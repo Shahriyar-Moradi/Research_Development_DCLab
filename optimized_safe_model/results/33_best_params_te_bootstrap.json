@@ -1,0 +1,30 @@
+{
+  "best_model": "BootstrapBag",
+  "exp_id": "33",
+  "feature_count": 30,
+  "metrics": {
+    "accuracy": 0.8681368136813682,
+    "avg_precision": 0.9459444841946978,
+    "confusion_matrix": [
+      [
+        1143,
+        41
+      ],
+      [
+        252,
+        786
+      ]
+    ],
+    "f1": 0.8428954423592493,
+    "fit_seconds": 19.547,
+    "precision": 0.9504232164449818,
+    "predict_seconds": 0.218,
+    "recall": 0.7572254335260116,
+    "roc_auc": 0.9426424256626568,
+    "threshold": 0.5
+  },
+  "name": "best_params_te_bootstrap",
+  "notes": "use_te=True params={'n_estimators': 313, 'learning_rate': 0.016591795339183982, 'num_leaves': 20, 'max_depth': 11, 'min_child_samples': 69, 'subsample': 0.7308128389677522, 'colsample_bytree': 0.8076747381893401, 'reg_lambda': 0.22773001776171356} | Leakage-safe recovery pass 3.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Bootstrap bag of best params on TE or base safe matrix"
+}

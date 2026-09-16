@@ -1,0 +1,30 @@
+{
+  "best_model": "SoftVote",
+  "exp_id": "24",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8726372637263726,
+    "avg_precision": 0.9476162059250729,
+    "confusion_matrix": [
+      [
+        1129,
+        55
+      ],
+      [
+        228,
+        810
+      ]
+    ],
+    "f1": 0.8512874408828166,
+    "fit_seconds": 5.791,
+    "precision": 0.9364161849710982,
+    "predict_seconds": 0.06,
+    "recall": 0.7803468208092486,
+    "roc_auc": 0.9443161550278601,
+    "threshold": 0.5
+  },
+  "name": "softvote_winner_xgb_hgb",
+  "notes": "Weights 0.55/0.30/0.15 | xgb={'model__colsample_bytree': np.float64(0.7300793579220679), 'model__learning_rate': np.float64(0.025392287826887055), 'model__max_depth': 5, 'model__min_child_weight': 3, 'model__n_estimators': 385, 'model__reg_lambda': np.float64(7.143742712122061), 'model__subsample': np.float64(0.8685239168468276)} | Leakage-safe recovery pass 2.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Soft-vote best local/winner LGBM + tuned XGB + HGB"
+}

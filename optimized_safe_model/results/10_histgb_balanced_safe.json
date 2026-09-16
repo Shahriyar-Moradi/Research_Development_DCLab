@@ -1,0 +1,30 @@
+{
+  "best_model": "HistGradientBoostingClassifier",
+  "exp_id": "10",
+  "feature_count": 46,
+  "metrics": {
+    "accuracy": 0.8618361836183618,
+    "avg_precision": 0.94119936853761,
+    "confusion_matrix": [
+      [
+        1076,
+        108
+      ],
+      [
+        199,
+        839
+      ]
+    ],
+    "f1": 0.8453400503778338,
+    "fit_seconds": 13.341,
+    "precision": 0.8859556494192186,
+    "predict_seconds": 0.084,
+    "recall": 0.8082851637764933,
+    "roc_auc": 0.9366122806332343,
+    "threshold": 0.5
+  },
+  "name": "histgb_balanced_safe",
+  "notes": "class_weight=balanced to recover recall. | Optimized safe: no final fares.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Balanced HistGradientBoosting on optimized safe FE"
+}

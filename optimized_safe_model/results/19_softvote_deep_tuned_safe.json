@@ -1,0 +1,30 @@
+{
+  "best_model": "SoftVoteBest",
+  "exp_id": "19",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8681368136813682,
+    "avg_precision": 0.9455861242022063,
+    "confusion_matrix": [
+      [
+        1107,
+        77
+      ],
+      [
+        216,
+        822
+      ]
+    ],
+    "f1": 0.8487351574599896,
+    "fit_seconds": 11.535,
+    "precision": 0.914349276974416,
+    "predict_seconds": 0.113,
+    "recall": 0.791907514450867,
+    "roc_auc": 0.9425919778159663,
+    "threshold": 0.5
+  },
+  "name": "softvote_deep_tuned_safe",
+  "notes": "Weights 0.50/0.35/0.15 | Leakage-safe recovery pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Soft-vote best LGBM + best XGB + HGB on proven safe FE"
+}

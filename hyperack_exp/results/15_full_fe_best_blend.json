@@ -1,0 +1,29 @@
+{
+  "best_model": "ProbabilityBlend(LGBMClassifier, XGBClassifier)",
+  "exp_id": "15",
+  "feature_count": 34,
+  "metrics": {
+    "accuracy": 0.9347434743474348,
+    "avg_precision": 0.9774571604428918,
+    "confusion_matrix": [
+      [
+        1131,
+        53
+      ],
+      [
+        92,
+        946
+      ]
+    ],
+    "f1": 0.9288168875797742,
+    "fit_seconds": 9.017,
+    "predict_seconds": 0.055,
+    "recall": 0.9113680154142582,
+    "roc_auc": 0.9780983114617507,
+    "threshold": 0.5
+  },
+  "name": "full_fe_best_blend",
+  "notes": "Fixed blend is a robust final candidate; compare against stack and standalone tuned models.",
+  "primary_metric": "roc_auc",
+  "strategy": "0.60 LightGBM + 0.40 XGBoost blend on pricing/time/geographic features"
+}

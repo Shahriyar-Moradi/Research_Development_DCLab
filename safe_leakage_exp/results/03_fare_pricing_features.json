@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "03",
+  "feature_count": 12,
+  "metrics": {
+    "accuracy": 0.8591359135913591,
+    "avg_precision": 0.9397138079841691,
+    "confusion_matrix": [
+      [
+        1084,
+        100
+      ],
+      [
+        213,
+        825
+      ]
+    ],
+    "f1": 0.8405501782985226,
+    "fit_seconds": 2.444,
+    "precision": 0.8918918918918919,
+    "predict_seconds": 0.02,
+    "recall": 0.7947976878612717,
+    "roc_auc": 0.9358254569598501,
+    "threshold": 0.5
+  },
+  "name": "fare_pricing_features",
+  "notes": "Pricing features may be highly predictive but can be post-decision leakage. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] LightGBM with fare, fare-delta, and fare-per-km features"
+}

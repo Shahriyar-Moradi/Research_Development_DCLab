@@ -1,0 +1,30 @@
+{
+  "best_model": "BootstrapBag",
+  "exp_id": "29",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8699369936993699,
+    "avg_precision": 0.947020513594033,
+    "confusion_matrix": [
+      [
+        1147,
+        37
+      ],
+      [
+        252,
+        786
+      ]
+    ],
+    "f1": 0.8447071466953251,
+    "fit_seconds": 15.778,
+    "precision": 0.9550425273390036,
+    "predict_seconds": 0.119,
+    "recall": 0.7572254335260116,
+    "roc_auc": 0.943013461438317,
+    "threshold": 0.5
+  },
+  "name": "lgbm_winner_bootstrap_bag",
+  "notes": "Row bootstrap + seed diversity. | Leakage-safe recovery pass 3.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 15-bag bootstrap of prior safe winner LGBM"
+}

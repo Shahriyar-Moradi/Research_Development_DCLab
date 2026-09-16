@@ -1,0 +1,30 @@
+{
+  "best_model": "LGBMClassifier",
+  "exp_id": "21",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.869036903690369,
+    "avg_precision": 0.9487270589112673,
+    "confusion_matrix": [
+      [
+        1131,
+        53
+      ],
+      [
+        238,
+        800
+      ]
+    ],
+    "f1": 0.8461131676361714,
+    "fit_seconds": 1.214,
+    "precision": 0.9378663540445487,
+    "predict_seconds": 0.026,
+    "recall": 0.7707129094412332,
+    "roc_auc": 0.9450037103577568,
+    "threshold": 0.5
+  },
+  "name": "lgbm_prior_winner_replay",
+  "notes": "Params: {'n_estimators': 313, 'learning_rate': 0.016591795339183982, 'num_leaves': 20, 'max_depth': 11, 'min_child_samples': 69, 'subsample': 0.7308128389677522, 'colsample_bytree': 0.8076747381893401, 'reg_lambda': 0.22773001776171356} | Leakage-safe recovery pass 2.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Replay exact safe_leakage_exp/09 best LGBM params"
+}

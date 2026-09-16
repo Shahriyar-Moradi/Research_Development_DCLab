@@ -1,0 +1,30 @@
+{
+  "best_model": "TopSeedBag",
+  "exp_id": "36",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8681368136813682,
+    "avg_precision": 0.9480773366870248,
+    "confusion_matrix": [
+      [
+        1135,
+        49
+      ],
+      [
+        244,
+        794
+      ]
+    ],
+    "f1": 0.8442317916002127,
+    "fit_seconds": 7.165,
+    "precision": 0.9418742586002372,
+    "predict_seconds": 0.055,
+    "recall": 0.7649325626204239,
+    "roc_auc": 0.9446180284330573,
+    "threshold": 0.5
+  },
+  "name": "lgbm_top7_oof_seeds_bag",
+  "notes": "seeds=[196, 98, 0, 7, 133, 84, 161] | Leakage-safe recovery pass 4.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Bag average of 7 seeds with highest OOF AUC"
+}

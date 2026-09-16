@@ -1,0 +1,30 @@
+{
+  "best_model": "Optuna+LGBMClassifier",
+  "exp_id": "31",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8694869486948695,
+    "avg_precision": 0.9454518670151862,
+    "confusion_matrix": [
+      [
+        1125,
+        59
+      ],
+      [
+        231,
+        807
+      ]
+    ],
+    "f1": 0.8476890756302521,
+    "fit_seconds": 1.797,
+    "precision": 0.9318706697459584,
+    "predict_seconds": 0.012,
+    "recall": 0.7774566473988439,
+    "roc_auc": 0.942497591522158,
+    "threshold": 0.5
+  },
+  "name": "lgbm_optuna_around_winner",
+  "notes": "Best: {'n_estimators': 354, 'learning_rate': 0.013007054352515143, 'num_leaves': 32, 'max_depth': 9, 'min_child_samples': 58, 'subsample': 0.7453797995987532, 'colsample_bytree': 0.7140439196275704, 'reg_lambda': 0.36616270408876156, 'reg_alpha': 0.08734636317575088} cv=0.932453 | Leakage-safe recovery pass 3.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 40-trial Optuna TPE local LGBM around prior winner"
+}

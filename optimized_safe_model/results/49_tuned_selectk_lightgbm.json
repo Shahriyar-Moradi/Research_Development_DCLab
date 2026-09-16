@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(SelectKBest+LGBM)",
+  "exp_id": "49",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8712871287128713,
+    "avg_precision": 0.9460621906280415,
+    "confusion_matrix": [
+      [
+        1113,
+        71
+      ],
+      [
+        215,
+        823
+      ]
+    ],
+    "f1": 0.8519668737060041,
+    "fit_seconds": 299.578,
+    "precision": 0.9205816554809844,
+    "predict_seconds": 0.014,
+    "recall": 0.7928709055876686,
+    "roc_auc": 0.942514678696037,
+    "threshold": 0.5
+  },
+  "name": "tuned_selectk_lightgbm",
+  "notes": "Best: {'model__colsample_bytree': np.float64(0.7454562418017752), 'model__learning_rate': np.float64(0.033340450985343384), 'model__max_depth': 7, 'model__min_child_samples': 72, 'model__n_estimators': 321, 'model__num_leaves': 59, 'model__reg_lambda': np.float64(0.2153121252070788), 'model__subsample': np.float64(0.8311936650645972), 'select__k': 21} | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 35-trial joint SelectKBest + LightGBM RandomizedSearchCV"
+}

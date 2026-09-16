@@ -1,0 +1,30 @@
+{
+  "best_model": "SeedBagLGBM",
+  "exp_id": "27",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8685868586858686,
+    "avg_precision": 0.9476101647326373,
+    "confusion_matrix": [
+      [
+        1136,
+        48
+      ],
+      [
+        244,
+        794
+      ]
+    ],
+    "f1": 0.8446808510638298,
+    "fit_seconds": 16.586,
+    "precision": 0.9429928741092637,
+    "predict_seconds": 0.172,
+    "recall": 0.7649325626204239,
+    "roc_auc": 0.944456920793626,
+    "threshold": 0.5
+  },
+  "name": "lgbm_best_of_pass2_seed_bag",
+  "notes": "Source=winner base_roc=0.945004 params={'n_estimators': 313, 'learning_rate': 0.016591795339183982, 'num_leaves': 20, 'max_depth': 11, 'min_child_samples': 69, 'subsample': 0.7308128389677522, 'colsample_bytree': 0.8076747381893401, 'reg_lambda': 0.22773001776171356} | Leakage-safe recovery pass 2.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] 10-seed bag of best pass-2 single model (winner)"
+}

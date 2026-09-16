@@ -1,0 +1,30 @@
+{
+  "best_model": "Soft3",
+  "exp_id": "53",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8721872187218722,
+    "avg_precision": 0.9490744433461478,
+    "confusion_matrix": [
+      [
+        1130,
+        54
+      ],
+      [
+        230,
+        808
+      ]
+    ],
+    "f1": 0.8505263157894737,
+    "fit_seconds": 15.715,
+    "precision": 0.9373549883990719,
+    "predict_seconds": 0.559,
+    "recall": 0.7784200385356455,
+    "roc_auc": 0.9454609956777585,
+    "threshold": 0.5
+  },
+  "name": "softvote_etbag_lgbmwinner_xgb",
+  "notes": "weights 0.40/0.40/0.20 | Full RandomizedSearchCV tune-all pass.",
+  "primary_metric": "roc_auc",
+  "strategy": "[OPT-SAFE] Soft-vote ET seed-bag + prior LGBM winner + tuned XGB"
+}

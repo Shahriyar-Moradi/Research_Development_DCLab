@@ -1,0 +1,30 @@
+{
+  "best_model": "StackingClassifier",
+  "exp_id": "13",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8663366336633663,
+    "avg_precision": 0.9384745939216415,
+    "confusion_matrix": [
+      [
+        1089,
+        95
+      ],
+      [
+        202,
+        836
+      ]
+    ],
+    "f1": 0.8491620111731844,
+    "fit_seconds": 16.028,
+    "precision": 0.8979591836734694,
+    "predict_seconds": 0.042,
+    "recall": 0.8053949903660886,
+    "roc_auc": 0.9367497916992136,
+    "threshold": 0.5
+  },
+  "name": "stacking_ensemble",
+  "notes": "Meta-learner receives only cross-validated base probabilities. | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] Out-of-fold stacking of logistic regression, LightGBM, and XGBoost"
+}

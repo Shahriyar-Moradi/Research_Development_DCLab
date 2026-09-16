@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomizedSearchCV(XGBClassifier)",
+  "exp_id": "08",
+  "feature_count": 25,
+  "metrics": {
+    "accuracy": 0.8658865886588659,
+    "avg_precision": 0.9436047863821014,
+    "confusion_matrix": [
+      [
+        1119,
+        65
+      ],
+      [
+        233,
+        805
+      ]
+    ],
+    "f1": 0.8438155136268344,
+    "fit_seconds": 15.198,
+    "precision": 0.9252873563218391,
+    "predict_seconds": 0.003,
+    "recall": 0.7755298651252408,
+    "roc_auc": 0.9418889626620841,
+    "threshold": 0.5
+  },
+  "name": "xgboost_tuned",
+  "notes": "Best params: {'model__colsample_bytree': np.float64(0.7300793579220679), 'model__learning_rate': np.float64(0.025392287826887055), 'model__max_depth': 5, 'model__min_child_weight': 3, 'model__n_estimators': 385, 'model__reg_lambda': np.float64(7.143742712122061), 'model__subsample': np.float64(0.8685239168468276)} | Leakage-safe: final fares dropped.",
+  "primary_metric": "roc_auc",
+  "strategy": "[SAFE] 20-trial randomized-search XGBoost on full engineered features"
+}
