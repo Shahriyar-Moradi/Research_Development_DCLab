@@ -154,7 +154,7 @@ async def run(model):
     return payload
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument("--model",default=os.environ.get("OPENAI_MODEL","gpt-6-astra"));args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument("--model",default=os.environ.get("OPENAI_MODEL","gpt-5.6-terra"));args=parser.parse_args()
     try:
         payload=asyncio.run(run(args.model))
     except Exception as exc:

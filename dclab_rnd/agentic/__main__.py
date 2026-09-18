@@ -20,7 +20,7 @@ def main():
     run.add_argument("--project", choices=["general", "hyperack", "telco_churn"], default="general")
     run.add_argument("--datasets", nargs="+", default=["bank_marketing"])
     run.add_argument("--goal", default=DEFAULT_GOAL)
-    run.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-6-astra"))
+    run.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"))
     run.add_argument("--experiments", type=int, default=4)
     run.add_argument("--rows", type=int, default=4000)
     run.add_argument("--repeats", type=int, default=2)

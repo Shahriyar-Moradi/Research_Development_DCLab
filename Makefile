@@ -40,7 +40,7 @@ rd-campaign-quick:
 	$(PYTHON) -m dclab_rnd campaign run --quick
 
 rd-campaign-review:
-	$(PYTHON) -m dclab_rnd campaign review --model gpt-5.4-mini
+	$(PYTHON) -m dclab_rnd campaign review --model gpt-5.6-terra
 
 agent-serve:
 	$(AGENT_PYTHON) -m dclab_rnd.agentic serve

@@ -83,7 +83,7 @@ def test_local_api_security_and_missing_key(monkeypatch):
         assert client.get("/api/config").json()["api_key_configured"] is False
         cfg=client.get("/api/config").json()
         assert {p["key"] for p in cfg["projects"]}=={"general","hyperack","telco_churn"}
-        assert cfg["default_model"]=="gpt-6-astra"
+        assert cfg["default_model"]=="gpt-5.6-terra"
         assert client.post("/api/runs",json={}).status_code==403
         token=client.get("/api/config").json()["csrf"]
         assert client.post("/api/runs",json={},headers={"X-DCLab-Token":token}).status_code==409

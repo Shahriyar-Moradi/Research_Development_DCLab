@@ -83,7 +83,7 @@ def _badge(text: str, color: str) -> str:
 def build_html(reviews: list[dict]) -> str:
     conf_counts = Counter((r.get("overall_confidence") or "unknown").lower() for r in reviews)
     datasets = sorted({r.get("dataset") for r in reviews})
-    model = reviews[0].get("model", "gpt-4o-mini") if reviews else "n/a"
+    model = reviews[0].get("model", "gpt-5.6-terra") if reviews else "n/a"
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     # Summary table rows
@@ -389,7 +389,7 @@ def build_markdown(reviews: list[dict]) -> str:
         "",
         f"Campaign: `model_building_50_v1`  ",
         f"Reviews: **{len(reviews)}**  ",
-        f"Model: `{reviews[0].get('model', 'gpt-4o-mini') if reviews else 'n/a'}`",
+        f"Model: `{reviews[0].get('model', 'gpt-5.6-terra') if reviews else 'n/a'}`",
         "",
         "> LLM is critic/proposer only. Metrics in result JSON remain authoritative.",
         "",
@@ -448,7 +448,7 @@ def main() -> None:
         "--model",
         default=None,
         help="Filter to reviews from this model and name outputs accordingly "
-        "(e.g. gpt-5.4-mini)",
+        "(e.g. gpt-5.6-terra)",
     )
     args = parser.parse_args()
     model_filter = args.model

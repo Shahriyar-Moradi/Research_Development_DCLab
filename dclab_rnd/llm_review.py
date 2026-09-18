@@ -17,12 +17,12 @@ from openai import OpenAI
 
 from .campaign import CAMPAIGN_DIR, CAMPAIGN_ID, sync_campaign_outputs
 
-DEFAULT_MODEL = "gpt-5.4-mini"
+DEFAULT_MODEL = "gpt-5.6-terra"
 MEMORY_NAME = "llm_review_memory.jsonl"
 
 
 def memory_name_for_model(model: str) -> str:
-    """Stable filename for a model-specific review memory (e. and. gpt-5.4-mini)."""
+    """Stable filename for a model-specific review memory (e.g. gpt-5.6-terra)."""
     safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in model.strip())
     return f"llm_review_memory__{safe}.jsonl"
 SYSTEM_PROMPT = """You are the DCLab evidence critic for tabular ML research.

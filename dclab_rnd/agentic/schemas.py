@@ -89,7 +89,7 @@ class RunRequest(Strict):
     project: Literal["general", "hyperack", "telco_churn"] = "general"
     goal: str = Field(default=DEFAULT_GOAL, min_length=20, max_length=6000)
     datasets: list[str] = Field(default_factory=lambda: ["bank_marketing"], min_length=1, max_length=10)
-    model: str = Field(default="gpt-6-astra", pattern=r"^gpt-[a-zA-Z0-9.\-]+$")
+    model: str = Field(default="gpt-5.6-terra", pattern=r"^gpt-[a-zA-Z0-9.\-]+$")
     max_experiments: int = Field(default=4, ge=1, le=50)
     max_rows: int = Field(default=4000, ge=200, le=50000)
     repeats: int = Field(default=2, ge=1, le=3)

@@ -86,12 +86,12 @@ The campaign writes to `campaigns/model_building_50_v1/`:
 # Run pending LLM critic reviews (requires OPENAI_API_KEY in .env)
 make rd-campaign-review
 # or:
-.venv/bin/python -m dclab_rnd campaign review --model gpt-4o-mini
-.venv/bin/python -m dclab_rnd campaign review --model gpt-4o --limit 5
+.venv/bin/python -m dclab_rnd campaign review --model gpt-5.6-terra
+.venv/bin/python -m dclab_rnd campaign review --model gpt-5.6-terra --limit 5
 .venv/bin/python -m dclab_rnd campaign review --experiment EXP-001,EXP-002
 ```
 
-Default model is **gpt-4o-mini** (mid-tier). Use `--model gpt-4o` for stronger critiques.
+Default model is **gpt-5.6-terra**. Override with `--model` or `OPENAI_MODEL` in `.env`.
 
 The LLM is deliberately a critic and hypothesis generator. Deterministic code owns metrics, split discipline, provenance, and evidence; a human owns ambiguous decision-time semantics and promotion.
 
@@ -254,7 +254,7 @@ Remote: `git@github.com:Shahriyar-Moradi/Research_Development_DCLab.git`
 The local Research Studio now keeps three evidence contexts separate: the open
 tabular lab, HyperAck, and Telco Churn. It uses typed NVIDIA Object-Oriented
 Agents (NOOA), a durable LangGraph loop, and the OpenAI Responses API. The
-default LLM is `gpt-6-astra`; raw dataset rows and API keys are not sent to the
+default LLM is `gpt-5.6-terra`; raw dataset rows and API keys are not sent to the
 LLM, and provider storage is disabled with `store=false`.
 
 ### Run locally

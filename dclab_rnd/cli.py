@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     campaign_review.add_argument(
         "--model",
         default=DEFAULT_MODEL,
-        help=f"OpenAI model (default: {DEFAULT_MODEL}; try gpt-4o for stronger critiques)",
+        help=f"OpenAI model (default: {DEFAULT_MODEL})",
     )
     campaign_review.add_argument(
         "--limit",
