@@ -28,12 +28,41 @@ from .catalog import ROOT, DATASETS, catalog
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+def source_paths(key, root=ROOT):
+    if key == "hyperack": return [root / "hyper_ackt-dataset.csv"]
+    if key == "telco_churn": return [root / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
+    directory = root / "external_data" / key
+    return [directory / "X.parquet", directory / "y.parquet", directory / "meta.json"]
+
+def _load_custom(key, root):
+    if key == "hyperack":
+        path = source_paths(key, root)[0]
+        frame = pd.read_csv(path)
+        y = frame.pop("hyper_ack").astype(int)
+        created = pd.to_datetime(frame.pop("created_date"), errors="coerce", utc=True)
+        first = pd.to_datetime(frame.pop("first_created_at"), errors="coerce", utc=True)
+        frame["created_month"] = created.dt.month
+        frame["created_day_of_month"] = created.dt.day
+        frame["created_hour"] = first.dt.hour
+        frame["created_minute"] = first.dt.minute
+        return frame, y
+    path = source_paths(key, root)[0]
+    frame = pd.read_csv(path, dtype={"SeniorCitizen": "string"})
+    y = frame.pop("Churn").map({"No": 0, "Yes": 1}).astype(int)
+    frame = frame.drop(columns=["customerID"])
+    total = pd.to_numeric(frame["TotalCharges"].astype(str).str.strip(), errors="coerce")
+    frame["TotalCharges"] = total.mask(total.isna() & frame["tenure"].eq(0), 0.0)
+    return frame, y
+
 def load(key, max_rows, root=ROOT):
     if key not in DATASETS:
         raise ValueError("Unknown dataset")
     directory = root / "external_data" / key
-    X = pd.read_parquet(directory / "X.parquet")
-    y = pd.read_parquet(directory / "y.parquet")["target"].astype(int)
+    if key in ("hyperack", "telco_churn"):
+        X, y = _load_custom(key, root)
+    else:
+        X = pd.read_parquet(directory / "X.parquet")
+        y = pd.read_parquet(directory / "y.parquet")["target"].astype(int)
     if len(X) != len(y) or set(y.unique()) != {0, 1}:
         raise ValueError("Expected aligned binary target")
     # Fixed label-independent sampling. Never tune the sample from outcomes.
@@ -47,7 +76,8 @@ def load(key, max_rows, root=ROOT):
     # Factorized category codes must not acquire an ordinal numeric interpretation.
     for col in cats:
         X[col] = X[col].map(lambda value: str(value) if pd.notna(value) and value != -1 else np.nan)
-    return X, y, cats, row_ids, {p.name: sha(p) for p in (directory / "X.parquet", directory / "y.parquet", directory / "meta.json")}
+    paths = source_paths(key, root)
+    return X, y, cats, row_ids, {p.name: sha(p) for p in paths}
 
 def profile(key, max_rows):
     X, y, cats, _, hashes = load(key, max_rows)
@@ -59,8 +89,10 @@ def profile(key, max_rows):
             item["quantiles"] = {str(k): float(v) if pd.notna(v) else None for k, v in series.quantile([0, .25, .5, .75, 1]).items()}
             item["target_abs_correlation"] = float(abs(series.corr(y))) if series.nunique() > 1 else None
         columns.append(item)
-    return {"dataset": key, "rows": len(X), "positive_fraction": float(y.mean()), "exact_duplicate_fraction": float(X.duplicated().mean()), "columns": columns, "policy": next(c for c in catalog() if c["key"] == key), "hashes": hashes,
-            "warnings": ["Target associations are exploratory signals, not proof of leakage.", "Availability must be confirmed from event lineage and prediction timestamps.", "Only aggregate public-dataset profiles are sent to the LLM; no source rows."]}
+    warnings = ["Target associations are exploratory signals, not proof of leakage.", "Availability must be confirmed from event lineage and prediction timestamps.", "Only aggregate profiles are sent to the LLM; no source rows."]
+    if key == "hyperack": warnings.append("The 0.9793 historical ceiling used post-outcome final fares; those columns are policy-blocked here.")
+    if key == "telco_churn": warnings.append("customerID is removed before profiling/modeling; the dataset lacks entity history and a verified outcome-window timestamp.")
+    return {"dataset": key, "rows": len(X), "positive_fraction": float(y.mean()), "exact_duplicate_fraction": float(X.duplicated().mean()), "columns": columns, "policy": next(c for c in catalog() if c["key"] == key), "hashes": hashes, "warnings": warnings}
 
 class DerivedFeatures(BaseEstimator, TransformerMixin):
     """Row-local transforms preserve lineage; no statistics are fitted on test rows."""

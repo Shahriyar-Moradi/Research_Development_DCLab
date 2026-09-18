@@ -248,3 +248,37 @@ R&D/
 ## License / remote
 
 Remote: `git@github.com:Shahriyar-Moradi/Research_Development_DCLab.git`
+
+## First-class agentic research projects
+
+The local Research Studio now keeps three evidence contexts separate: the open
+tabular lab, HyperAck, and Telco Churn. It uses typed NVIDIA Object-Oriented
+Agents (NOOA), a durable LangGraph loop, and the OpenAI Responses API. The
+default LLM is `gpt-6-astra`; raw dataset rows and API keys are not sent to the
+LLM, and provider storage is disabled with `store=false`.
+
+### Run locally
+
+```bash
+# One-time environments must already be installed; load OPENAI_API_KEY from .env.
+.venv-agent/bin/python -m dclab_rnd.agentic serve
+# Open http://127.0.0.1:8765
+
+# Re-run/read the fixed 15-experiment churn campaign (no LLM required).
+.venv/bin/python -m dclab_rnd.churn_suite run
+.venv/bin/python -m dclab_rnd.churn_suite status
+
+# Launch live agentic follow-up research (uses OpenAI API calls).
+.venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4 --rows 11118
+.venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4 --rows 7043
+```
+
+HyperAck contains 83 historical experiments: 15 original, 15 leakage-safe and
+53 optimized-safe. Its reported optimized-safe leader has ROC-AUC 0.9455. The
+0.9793 historical ceiling is explicitly unsafe because it uses post-outcome
+final-fare features. New agentic HyperAck experiments block those fields.
+
+Telco Churn now has a fixed, fully executed 15-experiment 2×3-fold development
+campaign under `churn_exp/results/`. Its leaderboard and protocol are in
+`churn_exp/CHURN_BENCHMARK.md`. These are adaptive development comparisons—not
+independent confirmation, production approval, or a universal model ranking.

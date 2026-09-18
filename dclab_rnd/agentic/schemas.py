@@ -2,6 +2,7 @@
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .catalog import DATASETS
+from .projects import PROJECTS
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -85,6 +86,7 @@ class Synthesis(Strict):
 DEFAULT_GOAL = "Learn which feature engineering, model families and tuning choices improve robust tabular prediction. Audit leakage and prediction-time availability, compare paired CV evidence, stress missing production features, and capture reusable workflows and negative results."
 
 class RunRequest(Strict):
+    project: Literal["general", "hyperack", "telco_churn"] = "general"
     goal: str = Field(default=DEFAULT_GOAL, min_length=20, max_length=6000)
     datasets: list[str] = Field(default_factory=lambda: ["bank_marketing"], min_length=1, max_length=10)
     model: str = Field(default="gpt-6-astra", pattern=r"^gpt-[a-zA-Z0-9.\-]+$")
@@ -96,4 +98,6 @@ class RunRequest(Strict):
     def check_datasets(self):
         if len(set(self.datasets)) != len(self.datasets) or any(d not in DATASETS for d in self.datasets):
             raise ValueError("Use distinct allowlisted datasets")
+        if any(DATASETS[d]["project"] != self.project for d in self.datasets):
+            raise ValueError("Every dataset must belong to the selected project")
         return self

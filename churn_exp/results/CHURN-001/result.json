@@ -1,0 +1,295 @@
+{
+  "dataset": "telco_churn",
+  "plan": {
+    "dataset": "telco_churn",
+    "title": "Prior-only floor",
+    "hypothesis": "Prior-only floor provides a discriminating, reproducible comparison on the same grouped development folds.",
+    "model": "dummy",
+    "parameters": {},
+    "features": [],
+    "drop_columns": [],
+    "stress_columns": [],
+    "evidence_ids": [],
+    "reference_evidence_id": null,
+    "expected_learning": "Measure ranking, probability quality, robustness and the cost of this modeling choice."
+  },
+  "rows": 7043,
+  "feature_count": 19,
+  "retained_columns": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "tenure",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "pipeline_source_columns": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "tenure",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "derived_feature_lineage": [],
+  "excluded_by_policy": [
+    "customerID"
+  ],
+  "folds": [
+    {
+      "repeat": 0,
+      "fold": 0,
+      "roc_auc": 0.5,
+      "average_precision": 0.2664963814389102,
+      "log_loss": 0.5797501639871437,
+      "brier": 0.19547891705023773,
+      "fit_predict_seconds": 0.05435604200101807
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "roc_auc": 0.5,
+      "average_precision": 0.2657580919931857,
+      "log_loss": 0.5789948141139754,
+      "brier": 0.1951310676918052,
+      "fit_predict_seconds": 0.05232283300028939
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "roc_auc": 0.5,
+      "average_precision": 0.2638533674339301,
+      "log_loss": 0.5770622155546741,
+      "brier": 0.19423993876663795,
+      "fit_predict_seconds": 0.05328479200034053
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "roc_auc": 0.5,
+      "average_precision": 0.2733843537414966,
+      "log_loss": 0.5869674053214636,
+      "brier": 0.19879013785772948,
+      "fit_predict_seconds": 0.05409675000009884
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "roc_auc": 0.5,
+      "average_precision": 0.2558735583084152,
+      "log_loss": 0.5692153974592592,
+      "brier": 0.1906046103923693,
+      "fit_predict_seconds": 0.06910837500072375
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "roc_auc": 0.5,
+      "average_precision": 0.26680851063829786,
+      "log_loss": 0.5800705650364445,
+      "brier": 0.19562639071143811,
+      "fit_predict_seconds": 0.058313000001362525
+    }
+  ],
+  "repeat_summary": [
+    {
+      "repeat": 0,
+      "roc_auc": 0.49849387903422115,
+      "average_precision": 0.2646794018756221,
+      "log_loss": 0.5786029982161978,
+      "brier": 0.194950251233551
+    },
+    {
+      "repeat": 1,
+      "roc_auc": 0.4900251349350779,
+      "average_precision": 0.260978327457207,
+      "log_loss": 0.5787656411477854,
+      "brier": 0.19501374632142496
+    }
+  ],
+  "metrics": {
+    "roc_auc": 0.5,
+    "average_precision": 0.2653623772590393,
+    "log_loss": 0.5786767602454934,
+    "brier": 0.19497851041170297
+  },
+  "fold_standard_deviation": {
+    "roc_auc": 0.0,
+    "average_precision": 0.005660402102262497,
+    "log_loss": 0.005728088368002422,
+    "brier": 0.0026419092585367246
+  },
+  "split_hash": "a72462976c466b1bcba1d65be5aca6425e1687f46d43d36776786948933234da",
+  "data_hashes": {
+    "WA_Fn-UseC_-Telco-Customer-Churn.csv": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a"
+  },
+  "worker_hash": "f239ffc1c6ab120bda64010deb921b85b89716c6b3fa8ffcea9c540f0cfc52aa",
+  "catalog_hash": "bed46002fff6d81a3c8bce85912ef998488ae2513bd232ad87ae5f60e272d23b",
+  "python": "3.10.19",
+  "packages": {
+    "scikit-learn": "1.7.2",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "wall_seconds": 1.3048573750002106,
+  "stress_tests": [],
+  "input_sensitivity": [
+    {
+      "column": "gender",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "SeniorCitizen",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "Partner",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "Dependents",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "tenure",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "PhoneService",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "MultipleLines",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "InternetService",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "OnlineSecurity",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "OnlineBackup",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "DeviceProtection",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "TechSupport",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "StreamingTV",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "StreamingMovies",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "Contract",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "PaperlessBilling",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "PaymentMethod",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "MonthlyCharges",
+      "auc_drop": 0.0
+    },
+    {
+      "column": "TotalCharges",
+      "auc_drop": 0.0
+    }
+  ],
+  "output_calibration": [
+    {
+      "repeat": 0,
+      "lower": 0.2,
+      "upper": 0.4,
+      "count": 7043,
+      "predicted": 0.2653694280622093,
+      "observed": 0.2653698707936959
+    },
+    {
+      "repeat": 1,
+      "lower": 0.2,
+      "upper": 0.4,
+      "count": 7043,
+      "predicted": 0.2653590912640887,
+      "observed": 0.2653698707936959
+    }
+  ],
+  "confusion_matrix_at_0_5_by_repeat": [
+    {
+      "repeat": 0,
+      "matrix": [
+        [
+          5174,
+          0
+        ],
+        [
+          1869,
+          0
+        ]
+      ]
+    },
+    {
+      "repeat": 1,
+      "matrix": [
+        [
+          5174,
+          0
+        ],
+        [
+          1869,
+          0
+        ]
+      ]
+    }
+  ],
+  "evaluation": "Adaptive repeated stratified GROUP development CV; exact duplicate allowed-input rows share a fold. No unbiased holdout or causal/production claim.",
+  "limitations": [
+    "Repeated folds are correlated; fold spread is not a confidence interval.",
+    "Hyperparameter/feature selection uses the same development CV; requires fresh external confirmation.",
+    "No entity/time IDs: duplicate grouping cannot guarantee entity or temporal separation.",
+    "Permutation sensitivity is a single-fold diagnostic, not causal importance.",
+    "Legacy category mappings and source availability require verification."
+  ],
+  "production_approved": false
+}

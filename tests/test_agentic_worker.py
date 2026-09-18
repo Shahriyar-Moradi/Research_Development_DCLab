@@ -2,12 +2,23 @@
 import unittest
 import numpy as np
 import pandas as pd
-from dclab_rnd.agentic.worker import DerivedFeatures, validate_plan, build_pipeline
+from dclab_rnd.agentic.worker import DerivedFeatures, validate_plan, build_pipeline, load
 
 def plan():
     return dict(dataset="bank_marketing", model="logistic_regression", parameters={}, drop_columns=[], stress_columns=[], features=[])
 
 class WorkerSafety(unittest.TestCase):
+    def test_project_data_loaders_enforce_identifiers_and_types(self):
+        X,y,cats,_,hashes=load("telco_churn",800)
+        self.assertNotIn("customerID",X);self.assertTrue(pd.api.types.is_numeric_dtype(X.TotalCharges))
+        self.assertEqual(set(y.unique()),{0,1});self.assertIn("Contract",cats)
+        self.assertIn("WA_Fn-UseC_-Telco-Customer-Churn.csv",hashes)
+        X,y,cats,_,hashes=load("hyperack",800)
+        self.assertNotIn("created_date",X);self.assertIn("created_hour",X)
+        self.assertIn("final_customer_fare",X);self.assertIn("deliverey_category_id",cats)
+        p={**plan(),"dataset":"hyperack"};columns=validate_plan(p,X,cats)
+        self.assertNotIn("final_customer_fare",columns["model_raw"]);self.assertNotIn("final_biker_fare",columns["model_raw"])
+
     def test_blocked_ancestor_and_categorical_math(self):
         X=pd.DataFrame({"balance":[1.,2.],"duration":[10.,20.],"job":["a","b"]})
         p=plan();p["features"]=[dict(name="fe_duration",inputs=["duration"],operation="signed_log")]

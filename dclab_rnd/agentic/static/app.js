@@ -2,8 +2,8 @@
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number = value => Number.isFinite(value) ? value.toFixed(4) : '—';
-let config, runs = [], selected = null, currentView = 'research';
-const labels = {adult:'Adult income',bank_marketing:'Bank marketing',breast_cancer:'Breast cancer',heart_disease:'Heart disease',credit_default:'Credit default',german_credit:'German credit',mushroom:'Mushroom',spambase:'Spambase',online_shoppers:'Online shoppers',wine_quality:'Wine quality'};
+let config, runs = [], selected = null, currentView = 'research', selectedProject = 'general';
+const labels = {adult:'Adult income',bank_marketing:'Bank marketing',breast_cancer:'Breast cancer',heart_disease:'Heart disease',credit_default:'Credit default',german_credit:'German credit',mushroom:'Mushroom',spambase:'Spambase',online_shoppers:'Online shoppers',wine_quality:'Wine quality',hyperack:'HyperAck delivery acceptance',telco_churn:'Telco customer churn'};
 async function api(path, options = {}) {
   const response = await fetch('/api' + path, {...options, headers: {'Content-Type':'application/json','X-DCLab-Token':config?.csrf || '', ...options.headers}});
   const data = await response.json();
@@ -24,8 +24,24 @@ function updateSettings() {
   $('settings-summary').textContent = `${count} experiments · ${$('repeats').value} × 3-fold CV`;
   $('budget-copy').textContent = `Up to ${5+2*count} API calls · 6,000 output tokens per call. Input tokens also incur API charges. No automatic purchase or unlimited loop.`;
 }
+function inferProject(run) { return run.config.project || config?.datasets.find(d=>run.config.datasets.includes(d.key))?.project || 'general'; }
+function chooseProject(key) {
+  selectedProject=key;
+  document.querySelectorAll('[data-project]').forEach(b=>b.classList.toggle('active',b.dataset.project===key));
+  const project=config.projects.find(p=>p.key===key), allowed=new Set(project.datasets);
+  $('datasets').innerHTML=config.datasets.filter(d=>allowed.has(d.key)).map(d=>`<label class="dataset-option" title="${esc(d.decision)}"><input type="checkbox" value="${esc(d.key)}" ${d.key===project.default_dataset?'checked':''}>${esc(labels[d.key]||d.name)}</label>`).join('');
+  const campaign=project.campaign||{};
+  const evidence=campaign.completed!==undefined?`<strong>${esc(campaign.completed)} / ${esc(campaign.planned)} experiments</strong>`:'';
+  const scores=key==='hyperack'?`<span>Safe champion AUC ${number(campaign.safe_champion_auc)} · unsafe ceiling ${number(campaign.unsafe_ceiling_auc)} (post-outcome leakage)</span>`:key==='telco_churn'&&campaign.best?`<span>Current development leader: ${esc(campaign.best.title)} · AUC ${number(campaign.best.metrics?.roc_auc)}</span>`:'';
+  $('project-summary').innerHTML=`<div><b>${esc(project.status)}</b><p>${esc(project.summary)}</p></div><div>${evidence}${scores}</div>`;
+}
+function renderProjects(){
+  $('projects').innerHTML=config.projects.map(p=>`<button type="button" class="project-option ${p.key===selectedProject?'active':''}" data-project="${esc(p.key)}"><span>${esc(p.name)}</span><small>${esc(p.status)}</small></button>`).join('');
+  document.querySelectorAll('[data-project]').forEach(b=>b.addEventListener('click',()=>chooseProject(b.dataset.project)));
+  chooseProject(selectedProject);
+}
 function renderRuns() {
-  $('run-list').innerHTML = runs.length ? runs.slice(0,10).map(r=>`<button class="run-nav ${selected===r.id?'active':''}" data-run="${esc(r.id)}"><strong>${esc(r.config.goal)}</strong><small>${esc(r.config.datasets.map(d=>labels[d]).join(' · '))} · ${esc(r.status)}</small></button>`).join('') : '<p class="muted small">Your research runs will appear here.</p>';
+  $('run-list').innerHTML = runs.length ? runs.slice(0,10).map(r=>`<button class="run-nav ${selected===r.id?'active':''}" data-run="${esc(r.id)}"><strong>${esc(r.config.goal)}</strong><small>${esc(r.config.datasets.map(d=>labels[d]||d).join(' · '))} · ${esc(r.status)}</small></button>`).join('') : '<p class="muted small">Your research runs will appear here.</p>';
   document.querySelectorAll('[data-run]').forEach(b=>b.addEventListener('click',()=>selectRun(b.dataset.run)));
 }
 async function refresh() {
@@ -52,7 +68,7 @@ function renderDetail(run) {
   const phases=events.filter(e=>e.kind==='phase').slice(-7), running=['running','queued','pausing'].includes(run.status);
   const preserved = new Set([...$('run-detail').querySelectorAll('details[open]')].map(d=>d.dataset.key));
   $('run-detail').innerHTML=`
-    <div class="run-heading"><div><div class="eyebrow">RESEARCH IN MOTION</div><h2>${esc(run.config.datasets.map(d=>labels[d]).join(' + '))}</h2><p>${esc(run.config.model)} · ${esc(run.config.repeats)} × 3-fold group CV · ${run.config.max_rows.toLocaleString()} row cap</p></div><div class="actions"><span class="status ${esc(run.status)}">${esc(run.status)}</span>${running?'<button class="secondary" id="pause">Pause</button>':['paused','interrupted','failed'].includes(run.status)?'<button class="secondary" id="resume">Resume</button>':''}<a class="secondary" href="/api/runs/${esc(run.id)}/export">Export trace ↗</a></div></div>
+    <div class="run-heading"><div><div class="eyebrow">${esc((config.projects.find(p=>p.key===inferProject(run))||{}).name||'RESEARCH')} · RESEARCH IN MOTION</div><h2>${esc(run.config.datasets.map(d=>labels[d]||d).join(' + '))}</h2><p>${esc(run.config.model)} via NOOA + OpenAI Responses · ${esc(run.config.repeats)} × 3-fold group CV · ${run.config.max_rows.toLocaleString()} row cap</p></div><div class="actions"><span class="status ${esc(run.status)}">${esc(run.status)}</span>${running?'<button class="secondary" id="pause">Pause</button>':['paused','interrupted','failed'].includes(run.status)?'<button class="secondary" id="resume">Resume</button>':''}<a class="secondary" href="/api/runs/${esc(run.id)}/export">Export trace ↗</a></div></div>
     <div class="card panel"><p class="small">${esc(run.config.goal)}</p><div class="small muted">${running?'<span class="running-dot"></span>':''}${esc(run.error || run.phase || 'Queued')}</div><div class="progress"><div></div></div></div>
     <div class="stats"><div class="card stat"><small>EXPERIMENTS</small><strong>${completed.length}<span class="inline">of ${run.config.max_experiments} limit</span></strong><span>${trials.length-completed.length} rejected or failed</span></div><div class="card stat"><small>LATEST CV AUC</small><strong>${number(latest?.result.metrics.roc_auc)}</strong><span>${latest?esc(latest.result.dataset):'Waiting for measured evidence'}</span></div><div class="card stat"><small>LEARNED LESSONS</small><strong>${synthesis?.lessons.length || 0}</strong><span>Provisional, evidence-linked</span></div><div class="card stat"><small>LLM CALLS</small><strong>${run.llm_calls}</strong><span>${esc(run.usage.total_tokens?.toLocaleString() || '—')} total tokens</span></div></div>
     <div class="run-grid"><div>
@@ -88,14 +104,14 @@ $('start').addEventListener('click',async()=>{
   try {
     const datasets=[...document.querySelectorAll('#datasets input:checked')].map(i=>i.value);
     if(!datasets.length)throw new Error('Choose at least one dataset.');
-    const result=await api('/runs',{method:'POST',body:JSON.stringify({goal:$('goal').value,datasets,model:$('model').value,max_experiments:Number($('experiment-limit').value),max_rows:Number($('row-limit').value),repeats:Number($('repeats').value),max_minutes:Number($('minutes').value)})});
+    const result=await api('/runs',{method:'POST',body:JSON.stringify({project:selectedProject,goal:$('goal').value,datasets,model:$('model').value,max_experiments:Number($('experiment-limit').value),max_rows:Number($('row-limit').value),repeats:Number($('repeats').value),max_minutes:Number($('minutes').value)})});
     await selectRun(result.id);
   } catch(error){notice(error.message);} finally{$('start').disabled=false;}
 });
 (async()=>{
   try{
-    config=await api('/config');$('goal').value=config.default_goal;$('model').value=config.default_model;
-    $('datasets').innerHTML=config.datasets.map(d=>`<label class="dataset-option" title="${esc(d.decision)}"><input type="checkbox" value="${esc(d.key)}" ${d.key==='bank_marketing'?'checked':''}>${esc(labels[d.key])}</label>`).join('');
+    config=await api('/config');$('goal').value=config.default_goal;$('model').value=config.default_model;selectedProject=config.default_project;renderProjects();
+    $('runtime-copy').innerHTML=`<p><b>Active LLM:</b> ${esc(config.default_model)} · ${esc(config.frameworks.join(' · '))}</p>${Object.entries(config.commands).map(([name,command])=>`<div><span>${esc(name.replaceAll('_',' '))}</span><code>${esc(command)}</code></div>`).join('')}`;
     $('connection').textContent=config.api_key_configured?'● OpenAI connected · key configured':'○ API key needed';
     if(!config.api_key_configured){notice('Set OPENAI_API_KEY in the server environment or .env, then restart. Never paste your key into the goal.');$('start').disabled=true;}
     await refresh();

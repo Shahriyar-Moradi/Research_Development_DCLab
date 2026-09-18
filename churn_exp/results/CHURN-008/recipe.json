@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "plan": {
+    "dataset": "telco_churn",
+    "title": "Regularized Random Forest",
+    "hypothesis": "Regularized Random Forest provides a discriminating, reproducible comparison on the same grouped development folds.",
+    "model": "random_forest",
+    "parameters": {
+      "n_estimators": 220,
+      "max_depth": 10,
+      "min_samples_leaf": 12
+    },
+    "features": [],
+    "drop_columns": [],
+    "stress_columns": [
+      "tenure",
+      "MonthlyCharges",
+      "TotalCharges"
+    ],
+    "evidence_ids": [],
+    "reference_evidence_id": null,
+    "expected_learning": "Measure ranking, probability quality, robustness and the cost of this modeling choice."
+  },
+  "max_rows": 7043,
+  "repeats": 2,
+  "data_hashes": {
+    "WA_Fn-UseC_-Telco-Customer-Churn.csv": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a"
+  },
+  "worker_hash": "f239ffc1c6ab120bda64010deb921b85b89716c6b3fa8ffcea9c540f0cfc52aa",
+  "catalog_hash": "bed46002fff6d81a3c8bce85912ef998488ae2513bd232ad87ae5f60e272d23b",
+  "blocks": [
+    "load fingerprinted public data",
+    "decision-time policy gate",
+    "fixed duplicate-group folds",
+    "fold-local feature/preprocessing pipeline",
+    "fit and predict OOF",
+    "stress and permutation diagnostics",
+    "paired development comparison; external confirmation pending"
+  ]
+}

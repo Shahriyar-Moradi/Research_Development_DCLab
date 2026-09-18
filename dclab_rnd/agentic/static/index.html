@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DCLab · Research Studio</title><link rel="stylesheet" href="/static/style.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DCLab · Research Studio</title><link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/projects.css"></head>
 <body>
 <aside class="sidebar">
   <a class="brand" href="/"><span class="brandmark">D<span>c</span></span><span>DCLab<small>RESEARCH STUDIO</small></span></a>
@@ -16,8 +16,9 @@
     <div class="page-heading"><div class="eyebrow">THE DCLAB LEARNING LOOP</div><h1>Better models start<br>with better questions.</h1><p>Give your research team a goal. Follow the experiments.<br>Build on what the evidence teaches you.</p></div>
     <div id="composer" class="card composer">
       <div class="card-heading"><h2>What should we learn?</h2><span class="pill">Agent-led research</span></div>
+      <div class="field-label project-label">RESEARCH PROJECT <span>Evidence stays separated by context</span></div><div id="projects" class="project-options"></div><div id="project-summary" class="project-summary"></div>
       <label class="sr-only" for="goal">Research goal</label><textarea id="goal" rows="4" placeholder="Describe a question, a hypothesis, or a modeling challenge…"></textarea>
-      <div class="field-label">PUBLIC DATASETS <span>Choose one or more</span></div><div id="datasets" class="dataset-options"></div>
+      <div class="field-label">PROJECT DATASETS <span>Choose one or more</span></div><div id="datasets" class="dataset-options"></div>
       <details class="settings"><summary>Research settings <span id="settings-summary">4 experiments · 2 × 3-fold CV</span></summary><div class="settings-grid">
         <label>OpenAI model<input id="model" value="gpt-6-astra" autocomplete="off"></label>
         <label>Experiment limit<input id="experiment-limit" type="number" min="1" max="50" value="4"></label>
@@ -26,6 +27,7 @@
         <label>Active time limit<select id="minutes"><option value="10">10 minutes</option><option value="30" selected>30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label>
       </div><p class="small muted" id="budget-copy">Up to 13 API calls · 6,000 output tokens per call. Input tokens also incur API charges. No automatic purchase or unlimited loop.</p></details>
       <div class="composer-footer"><p><span class="lock">▣</span> Public aggregates only. Your key stays local.</p><button id="start" class="primary">Start research <span>↗</span></button></div>
+      <details class="runtime"><summary>Local runtime & commands</summary><div id="runtime-copy"></div></details>
     </div>
     <div id="empty-state" class="principles"><article><span>01</span><h3>Understand the data</h3><p>Profiles, timing assumptions, leakage risks and feature lineage.</p></article><article><span>02</span><h3>Test a useful hypothesis</h3><p>Bounded experiments. Paired comparisons. Production-failure stress tests.</p></article><article><span>03</span><h3>Keep the learning</h3><p>Critiqued findings, counterevidence and reproducible workflows.</p></article></div>
     <section id="run-detail" class="hidden"></section>

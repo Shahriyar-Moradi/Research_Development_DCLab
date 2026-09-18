@@ -1,0 +1,314 @@
+{
+  "project": "telco_churn",
+  "planned": 15,
+  "completed": 15,
+  "evaluation": "2x3-fold adaptive stratified duplicate-group development CV",
+  "production_approved": false,
+  "baseline_id": "CHURN-002",
+  "best": {
+    "id": "CHURN-014",
+    "title": "Logistic with charge features",
+    "model": "logistic_regression",
+    "metrics": {
+      "roc_auc": 0.8498569450082513,
+      "average_precision": 0.6708273870969489,
+      "log_loss": 0.41083912520014637,
+      "brier": 0.13319639152130014
+    },
+    "fold_standard_deviation": {
+      "roc_auc": 0.004138525598094455,
+      "average_precision": 0.007169735004663772,
+      "log_loss": 0.007960883578221153,
+      "brier": 0.002256419923099919
+    },
+    "wall_seconds": 1.686670957999013,
+    "paired_auc_delta_vs_logistic": 0.0050178511461930015
+  },
+  "leaderboard": [
+    {
+      "id": "CHURN-014",
+      "title": "Logistic with charge features",
+      "model": "logistic_regression",
+      "metrics": {
+        "roc_auc": 0.8498569450082513,
+        "average_precision": 0.6708273870969489,
+        "log_loss": 0.41083912520014637,
+        "brier": 0.13319639152130014
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.004138525598094455,
+        "average_precision": 0.007169735004663772,
+        "log_loss": 0.007960883578221153,
+        "brier": 0.002256419923099919
+      },
+      "wall_seconds": 1.686670957999013,
+      "paired_auc_delta_vs_logistic": 0.0050178511461930015
+    },
+    {
+      "id": "CHURN-010",
+      "title": "Regularized histogram boosting",
+      "model": "hist_gradient_boosting",
+      "metrics": {
+        "roc_auc": 0.8477953354691561,
+        "average_precision": 0.6670022629651927,
+        "log_loss": 0.41333828081909907,
+        "brier": 0.13403687327807562
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.004511251507689259,
+        "average_precision": 0.006773075015319403,
+        "log_loss": 0.007102115071216033,
+        "brier": 0.002421288924680938
+      },
+      "wall_seconds": 4.399563249999119,
+      "paired_auc_delta_vs_logistic": 0.002956241607097935
+    },
+    {
+      "id": "CHURN-008",
+      "title": "Regularized Random Forest",
+      "model": "random_forest",
+      "metrics": {
+        "roc_auc": 0.8472168850679552,
+        "average_precision": 0.6623237685839604,
+        "log_loss": 0.41531168645880573,
+        "brier": 0.1346071049916346
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.005990656541999303,
+        "average_precision": 0.007917827322869076,
+        "log_loss": 0.008964520126003751,
+        "brier": 0.0029789943565440217
+      },
+      "wall_seconds": 5.600937541999883,
+      "paired_auc_delta_vs_logistic": 0.002377791205897021
+    },
+    {
+      "id": "CHURN-012",
+      "title": "Regularized LightGBM",
+      "model": "lightgbm",
+      "metrics": {
+        "roc_auc": 0.8468030613793834,
+        "average_precision": 0.6665708215988738,
+        "log_loss": 0.41433728580904666,
+        "brier": 0.13438709304675386
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.004627575916552999,
+        "average_precision": 0.005726367144186462,
+        "log_loss": 0.007877884149422601,
+        "brier": 0.0024937761635997788
+      },
+      "wall_seconds": 2.439817792001122,
+      "paired_auc_delta_vs_logistic": 0.001963967517325286
+    },
+    {
+      "id": "CHURN-015",
+      "title": "LightGBM with charge features",
+      "model": "lightgbm",
+      "metrics": {
+        "roc_auc": 0.8466373506002429,
+        "average_precision": 0.6632784812815526,
+        "log_loss": 0.41472620700103296,
+        "brier": 0.13457146764156278
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.00476931382557512,
+        "average_precision": 0.010686489309679052,
+        "log_loss": 0.007995713154920916,
+        "brier": 0.0025705783754487533
+      },
+      "wall_seconds": 2.6641625829997793,
+      "paired_auc_delta_vs_logistic": 0.0017982567381847152
+    },
+    {
+      "id": "CHURN-013",
+      "title": "XGBoost baseline",
+      "model": "xgboost",
+      "metrics": {
+        "roc_auc": 0.8459876175772565,
+        "average_precision": 0.6666324637308306,
+        "log_loss": 0.4152370844125947,
+        "brier": 0.13461951148254836
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.004290616374478133,
+        "average_precision": 0.007002239053845187,
+        "log_loss": 0.007543502957369298,
+        "brier": 0.002334347790556696
+      },
+      "wall_seconds": 2.1638410420000582,
+      "paired_auc_delta_vs_logistic": 0.001148523715198339
+    },
+    {
+      "id": "CHURN-004",
+      "title": "Flexible logistic C=3",
+      "model": "logistic_regression",
+      "metrics": {
+        "roc_auc": 0.8449236266383132,
+        "average_precision": 0.6533878541361312,
+        "log_loss": 0.41809170035741827,
+        "brier": 0.13566500519796845
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.005164792015333393,
+        "average_precision": 0.011514033556504568,
+        "log_loss": 0.009398294872034653,
+        "brier": 0.0024539581183783995
+      },
+      "wall_seconds": 1.5230188749992521,
+      "paired_auc_delta_vs_logistic": 8.453277625499374e-05
+    },
+    {
+      "id": "CHURN-002",
+      "title": "Logistic baseline C=1",
+      "model": "logistic_regression",
+      "metrics": {
+        "roc_auc": 0.8448390938620584,
+        "average_precision": 0.6535073959618461,
+        "log_loss": 0.4180774187684779,
+        "brier": 0.13567875700388032
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.005170048149943732,
+        "average_precision": 0.011197713972873273,
+        "log_loss": 0.009338989837121907,
+        "brier": 0.0024632249409450254
+      },
+      "wall_seconds": 1.5636177090000274,
+      "paired_auc_delta_vs_logistic": 0.0
+    },
+    {
+      "id": "CHURN-003",
+      "title": "Regularized logistic C=0.2",
+      "model": "logistic_regression",
+      "metrics": {
+        "roc_auc": 0.8444836459270326,
+        "average_precision": 0.6528843721655729,
+        "log_loss": 0.418159189879516,
+        "brier": 0.1357923159838574
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.0052461918792184245,
+        "average_precision": 0.010715909138592784,
+        "log_loss": 0.009237020020140835,
+        "brier": 0.0025361739668792135
+      },
+      "wall_seconds": 1.572963291000633,
+      "paired_auc_delta_vs_logistic": -0.0003554479350256212
+    },
+    {
+      "id": "CHURN-011",
+      "title": "LightGBM baseline",
+      "model": "lightgbm",
+      "metrics": {
+        "roc_auc": 0.840197255021241,
+        "average_precision": 0.6578300469435114,
+        "log_loss": 0.4236259580771892,
+        "brier": 0.1373601883710988
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.006179265937972176,
+        "average_precision": 0.009355305066431646,
+        "log_loss": 0.010354855324152661,
+        "brier": 0.003328787566367766
+      },
+      "wall_seconds": 2.5965209160003724,
+      "paired_auc_delta_vs_logistic": -0.00464183884081724
+    },
+    {
+      "id": "CHURN-006",
+      "title": "Regularized Extra Trees",
+      "model": "extra_trees",
+      "metrics": {
+        "roc_auc": 0.8396733704559045,
+        "average_precision": 0.6418370471389293,
+        "log_loss": 0.4238777170365174,
+        "brier": 0.13797525053915635
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.007186346663195813,
+        "average_precision": 0.009092299494060083,
+        "log_loss": 0.009759236024893161,
+        "brier": 0.0033497573685893622
+      },
+      "wall_seconds": 5.564458959001058,
+      "paired_auc_delta_vs_logistic": -0.005165723406153788
+    },
+    {
+      "id": "CHURN-009",
+      "title": "Histogram gradient boosting",
+      "model": "hist_gradient_boosting",
+      "metrics": {
+        "roc_auc": 0.8382283846879096,
+        "average_precision": 0.6540011135920708,
+        "log_loss": 0.42743692162751473,
+        "brier": 0.13805229946186195
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.007409276540100269,
+        "average_precision": 0.008665039895714557,
+        "log_loss": 0.011705250268892206,
+        "brier": 0.003531503000044208
+      },
+      "wall_seconds": 6.367136208000375,
+      "paired_auc_delta_vs_logistic": -0.006610709174148559
+    },
+    {
+      "id": "CHURN-007",
+      "title": "Random Forest baseline",
+      "model": "random_forest",
+      "metrics": {
+        "roc_auc": 0.8363693226170626,
+        "average_precision": 0.6442539965529934,
+        "log_loss": 0.4359942789259987,
+        "brier": 0.13840026103139655
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.00777635891144553,
+        "average_precision": 0.012020335140961992,
+        "log_loss": 0.02603708744898289,
+        "brier": 0.003308991686340422
+      },
+      "wall_seconds": 4.833799874999386,
+      "paired_auc_delta_vs_logistic": -0.008469771244995724
+    },
+    {
+      "id": "CHURN-005",
+      "title": "Extra Trees baseline",
+      "model": "extra_trees",
+      "metrics": {
+        "roc_auc": 0.8246418694591507,
+        "average_precision": 0.613381432951284,
+        "log_loss": 0.44211312904555927,
+        "brier": 0.1438651022006002
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.008364876523246117,
+        "average_precision": 0.012055278973512547,
+        "log_loss": 0.012668206785396796,
+        "brier": 0.003815676917719116
+      },
+      "wall_seconds": 4.887003124998955,
+      "paired_auc_delta_vs_logistic": -0.020197224402907592
+    },
+    {
+      "id": "CHURN-001",
+      "title": "Prior-only floor",
+      "model": "dummy",
+      "metrics": {
+        "roc_auc": 0.5,
+        "average_precision": 0.2653623772590393,
+        "log_loss": 0.5786767602454934,
+        "brier": 0.19497851041170297
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.0,
+        "average_precision": 0.005660402102262497,
+        "log_loss": 0.005728088368002422,
+        "brier": 0.0026419092585367246
+      },
+      "wall_seconds": 1.3048573750002106,
+      "paired_auc_delta_vs_logistic": -0.34483909386205824
+    }
+  ]
+}

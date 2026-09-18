@@ -1,4 +1,4 @@
-.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status
+.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status churn-run churn-status agent-hyperack agent-churn
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -51,3 +51,15 @@ agent-test:
 
 agent-status:
 	$(AGENT_PYTHON) -m dclab_rnd.agentic status
+
+churn-run:
+	$(PYTHON) -m dclab_rnd.churn_suite run
+
+churn-status:
+	$(PYTHON) -m dclab_rnd.churn_suite status
+
+agent-hyperack:
+	$(AGENT_PYTHON) -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4 --rows 11118
+
+agent-churn:
+	$(AGENT_PYTHON) -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4 --rows 7043

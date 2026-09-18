@@ -1,0 +1,638 @@
+{
+  "dataset": "telco_churn",
+  "plan": {
+    "dataset": "telco_churn",
+    "title": "Histogram gradient boosting",
+    "hypothesis": "Histogram gradient boosting provides a discriminating, reproducible comparison on the same grouped development folds.",
+    "model": "hist_gradient_boosting",
+    "parameters": {
+      "learning_rate": 0.08,
+      "min_samples_leaf": 20,
+      "max_depth": 6
+    },
+    "features": [],
+    "drop_columns": [],
+    "stress_columns": [
+      "tenure",
+      "MonthlyCharges",
+      "TotalCharges"
+    ],
+    "evidence_ids": [],
+    "reference_evidence_id": null,
+    "expected_learning": "Measure ranking, probability quality, robustness and the cost of this modeling choice."
+  },
+  "rows": 7043,
+  "feature_count": 19,
+  "retained_columns": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "tenure",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "pipeline_source_columns": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "tenure",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "derived_feature_lineage": [],
+  "excluded_by_policy": [
+    "customerID"
+  ],
+  "folds": [
+    {
+      "repeat": 0,
+      "fold": 0,
+      "roc_auc": 0.8374602956801328,
+      "average_precision": 0.6570100073425835,
+      "log_loss": 0.4301152157535267,
+      "brier": 0.1382946356720438,
+      "fit_predict_seconds": 1.2651611250003043
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "roc_auc": 0.8297247754179308,
+      "average_precision": 0.6487060714274593,
+      "log_loss": 0.4367999287925727,
+      "brier": 0.14106736528713607,
+      "fit_predict_seconds": 0.9240129999998317
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "roc_auc": 0.8470280529797112,
+      "average_precision": 0.6571857449593002,
+      "log_loss": 0.41481020054419737,
+      "brier": 0.13485196817533426,
+      "fit_predict_seconds": 0.7192748329998722
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "roc_auc": 0.8308506698140936,
+      "average_precision": 0.6509796104945126,
+      "log_loss": 0.4445026216439902,
+      "brier": 0.14333419037394152,
+      "fit_predict_seconds": 0.6183767919992533
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "roc_auc": 0.8377423911647618,
+      "average_precision": 0.6424769432364288,
+      "log_loss": 0.4205666786257492,
+      "brier": 0.13602136019915642,
+      "fit_predict_seconds": 0.6146226660002867
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "roc_auc": 0.846564123070828,
+      "average_precision": 0.6676483040921402,
+      "log_loss": 0.417826884405052,
+      "brier": 0.13474427706355968,
+      "fit_predict_seconds": 0.6391145000015968
+    }
+  ],
+  "repeat_summary": [
+    {
+      "repeat": 0,
+      "roc_auc": 0.8379692221654844,
+      "average_precision": 0.6540214915587768,
+      "log_loss": 0.42724571987600196,
+      "brier": 0.13807226895174793
+    },
+    {
+      "repeat": 1,
+      "roc_auc": 0.8380068635559573,
+      "average_precision": 0.6532493154460681,
+      "log_loss": 0.4276458808918665,
+      "brier": 0.13803735213475807
+    }
+  ],
+  "metrics": {
+    "roc_auc": 0.8382283846879096,
+    "average_precision": 0.6540011135920708,
+    "log_loss": 0.42743692162751473,
+    "brier": 0.13805229946186195
+  },
+  "fold_standard_deviation": {
+    "roc_auc": 0.007409276540100269,
+    "average_precision": 0.008665039895714557,
+    "log_loss": 0.011705250268892206,
+    "brier": 0.003531503000044208
+  },
+  "split_hash": "a72462976c466b1bcba1d65be5aca6425e1687f46d43d36776786948933234da",
+  "data_hashes": {
+    "WA_Fn-UseC_-Telco-Customer-Churn.csv": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a"
+  },
+  "worker_hash": "f239ffc1c6ab120bda64010deb921b85b89716c6b3fa8ffcea9c540f0cfc52aa",
+  "catalog_hash": "bed46002fff6d81a3c8bce85912ef998488ae2513bd232ad87ae5f60e272d23b",
+  "python": "3.10.19",
+  "packages": {
+    "scikit-learn": "1.7.2",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "wall_seconds": 6.367136208000375,
+  "stress_tests": [
+    {
+      "repeat": 0,
+      "fold": 0,
+      "column": "tenure",
+      "roc_auc": 0.8112415376256955,
+      "average_precision": 0.5900460813786343,
+      "log_loss": 0.46915089933566057,
+      "brier": 0.15277785074542738,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.026218758054437297,
+        "average_precision": 0.06696392596394918,
+        "log_loss": -0.039035683582133884,
+        "brier": -0.01448321507338357
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 0,
+      "column": "MonthlyCharges",
+      "roc_auc": 0.835763185171862,
+      "average_precision": 0.6537756328727112,
+      "log_loss": 0.4370008620914722,
+      "brier": 0.1415105882234971,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.001697110508270816,
+        "average_precision": 0.003234374469872292,
+        "log_loss": -0.006885646337945528,
+        "brier": -0.003215952551453294
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 0,
+      "column": "TotalCharges",
+      "roc_auc": 0.8200297979414017,
+      "average_precision": 0.5987309512516121,
+      "log_loss": 0.454447713813955,
+      "brier": 0.1485736229789318,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.017430497738731066,
+        "average_precision": 0.05827905609097139,
+        "log_loss": -0.02433249806042831,
+        "brier": -0.010278987306888004
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "column": "tenure",
+      "roc_auc": 0.7735025693081087,
+      "average_precision": 0.507994619420582,
+      "log_loss": 0.5037170308266237,
+      "brier": 0.16585665616791204,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.05622220610982209,
+        "average_precision": 0.1407114520068773,
+        "log_loss": -0.06691710203405099,
+        "brier": -0.02478929088077597
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "column": "MonthlyCharges",
+      "roc_auc": 0.8307217301743113,
+      "average_precision": 0.6355100119330559,
+      "log_loss": 0.4371439562043478,
+      "brier": 0.14204539396943755,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": -0.0009969547563805081,
+        "average_precision": 0.01319605949440339,
+        "log_loss": -0.0003440274117751385,
+        "brier": -0.000978028682301485
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 1,
+      "column": "TotalCharges",
+      "roc_auc": 0.8304410025878994,
+      "average_precision": 0.6385082194990642,
+      "log_loss": 0.4464535471403492,
+      "brier": 0.14355172345815873,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": -0.000716227169968664,
+        "average_precision": 0.010197851928395063,
+        "log_loss": -0.009653618347776505,
+        "brier": -0.0024843581710226603
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "column": "tenure",
+      "roc_auc": 0.8026759262983705,
+      "average_precision": 0.5888846160498371,
+      "log_loss": 0.46990458310653477,
+      "brier": 0.15300354913356057,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.0443521266813407,
+        "average_precision": 0.06830112890946305,
+        "log_loss": -0.055094382562337396,
+        "brier": -0.018151580958226304
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "column": "MonthlyCharges",
+      "roc_auc": 0.835271413911711,
+      "average_precision": 0.6349488561372759,
+      "log_loss": 0.42675104839414224,
+      "brier": 0.13963782423684212,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.011756639068000174,
+        "average_precision": 0.022236888822024237,
+        "log_loss": -0.011940847849944869,
+        "brier": -0.004785856061507859
+      }
+    },
+    {
+      "repeat": 0,
+      "fold": 2,
+      "column": "TotalCharges",
+      "roc_auc": 0.8450982354751533,
+      "average_precision": 0.6459341803678585,
+      "log_loss": 0.4242221026011247,
+      "brier": 0.13790488727744793,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.0019298175045578958,
+        "average_precision": 0.01125156459144161,
+        "log_loss": -0.009411902056927324,
+        "brier": -0.003052919102113666
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "column": "tenure",
+      "roc_auc": 0.7975578926677629,
+      "average_precision": 0.5718047409959673,
+      "log_loss": 0.49583460252631306,
+      "brier": 0.1630555473894559,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.03329277714633072,
+        "average_precision": 0.07917486949854524,
+        "log_loss": -0.05133198088232288,
+        "brier": -0.01972135701551439
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "column": "MonthlyCharges",
+      "roc_auc": 0.8254961611157471,
+      "average_precision": 0.6304755661261785,
+      "log_loss": 0.4514570402665307,
+      "brier": 0.14595983975745205,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.005354508698346527,
+        "average_precision": 0.020504044368334085,
+        "log_loss": -0.006954418622540537,
+        "brier": -0.0026256493835105366
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 0,
+      "column": "TotalCharges",
+      "roc_auc": 0.82206769212849,
+      "average_precision": 0.6162978278747944,
+      "log_loss": 0.45866214607941747,
+      "brier": 0.14732687088573415,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.008782977685603655,
+        "average_precision": 0.034681782619718216,
+        "log_loss": -0.014159524435427284,
+        "brier": -0.0039926805117926345
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "column": "tenure",
+      "roc_auc": 0.8223157999651161,
+      "average_precision": 0.6149526698637711,
+      "log_loss": 0.4410374825454921,
+      "brier": 0.1420707402950178,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.015426591199645734,
+        "average_precision": 0.027524273372657726,
+        "log_loss": -0.020470803919742875,
+        "brier": -0.0060493800958613675
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "column": "MonthlyCharges",
+      "roc_auc": 0.8241898571863937,
+      "average_precision": 0.6173444389812494,
+      "log_loss": 0.4333649649138541,
+      "brier": 0.14137940834813648,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.013552533978368086,
+        "average_precision": 0.025132504255179433,
+        "log_loss": -0.01279828628810492,
+        "brier": -0.005358048148980055
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 1,
+      "column": "TotalCharges",
+      "roc_auc": 0.8305442097334055,
+      "average_precision": 0.6199659313856132,
+      "log_loss": 0.428661857695763,
+      "brier": 0.13833445033117187,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.00719818143135631,
+        "average_precision": 0.02251101185081561,
+        "log_loss": -0.00809517907001378,
+        "brier": -0.002313090132015444
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "column": "tenure",
+      "roc_auc": 0.8159699755905884,
+      "average_precision": 0.5953171068531362,
+      "log_loss": 0.4609235397971121,
+      "brier": 0.15150607044293607,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.030594147480239586,
+        "average_precision": 0.07233119723900394,
+        "log_loss": -0.04309665539206009,
+        "brier": -0.01676179337937639
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "column": "MonthlyCharges",
+      "roc_auc": 0.8409810602589415,
+      "average_precision": 0.6513808203910126,
+      "log_loss": 0.42776647427011966,
+      "brier": 0.13972777802180922,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.0055830628118864745,
+        "average_precision": 0.016267483701127516,
+        "log_loss": -0.009939589865067655,
+        "brier": -0.004983500958249537
+      }
+    },
+    {
+      "repeat": 1,
+      "fold": 2,
+      "column": "TotalCharges",
+      "roc_auc": 0.842207547571509,
+      "average_precision": 0.6403482176247113,
+      "log_loss": 0.4267608281103617,
+      "brier": 0.13842140935272598,
+      "metric_deltas_clean_minus_stressed": {
+        "roc_auc": 0.004356575499319004,
+        "average_precision": 0.027300086467428875,
+        "log_loss": -0.0089339437053097,
+        "brier": -0.0036771322891663016
+      }
+    }
+  ],
+  "input_sensitivity": [
+    {
+      "column": "Contract",
+      "auc_drop": 0.08191930635881006
+    },
+    {
+      "column": "tenure",
+      "auc_drop": 0.04078627996714246
+    },
+    {
+      "column": "MonthlyCharges",
+      "auc_drop": 0.023152740872873778
+    },
+    {
+      "column": "TotalCharges",
+      "auc_drop": 0.014726061053330297
+    },
+    {
+      "column": "InternetService",
+      "auc_drop": 0.01400753570839175
+    },
+    {
+      "column": "OnlineSecurity",
+      "auc_drop": 0.012086523431343088
+    },
+    {
+      "column": "TechSupport",
+      "auc_drop": 0.007083732771616447
+    },
+    {
+      "column": "PaymentMethod",
+      "auc_drop": 0.003915731347545415
+    },
+    {
+      "column": "MultipleLines",
+      "auc_drop": 0.003469318504206287
+    },
+    {
+      "column": "StreamingMovies",
+      "auc_drop": 0.002494441858783225
+    },
+    {
+      "column": "OnlineBackup",
+      "auc_drop": 0.0024800713518843276
+    },
+    {
+      "column": "gender",
+      "auc_drop": 0.0015881727946833735
+    },
+    {
+      "column": "PaperlessBilling",
+      "auc_drop": 0.00026608615999645924
+    },
+    {
+      "column": "SeniorCitizen",
+      "auc_drop": 0.00011403692571276824
+    },
+    {
+      "column": "PhoneService",
+      "auc_drop": -9.271294775237138e-07
+    },
+    {
+      "column": "Dependents",
+      "auc_drop": -0.00017198251804662057
+    },
+    {
+      "column": "DeviceProtection",
+      "auc_drop": -0.00045475700863550905
+    },
+    {
+      "column": "Partner",
+      "auc_drop": -0.0005655489811774439
+    },
+    {
+      "column": "StreamingTV",
+      "auc_drop": -0.0006304480445912253
+    }
+  ],
+  "output_calibration": [
+    {
+      "repeat": 0,
+      "lower": 0.0,
+      "upper": 0.2,
+      "count": 3816,
+      "predicted": 0.06093032981798293,
+      "observed": 0.07835429769392034
+    },
+    {
+      "repeat": 0,
+      "lower": 0.2,
+      "upper": 0.4,
+      "count": 1214,
+      "predicted": 0.2928551440198976,
+      "observed": 0.30642504118616143
+    },
+    {
+      "repeat": 0,
+      "lower": 0.4,
+      "upper": 0.6000000000000001,
+      "count": 952,
+      "predicted": 0.500394201072257,
+      "observed": 0.4737394957983193
+    },
+    {
+      "repeat": 0,
+      "lower": 0.6000000000000001,
+      "upper": 0.8,
+      "count": 707,
+      "predicted": 0.6911174261866818,
+      "observed": 0.6393210749646393
+    },
+    {
+      "repeat": 0,
+      "lower": 0.8,
+      "upper": 1.0,
+      "count": 354,
+      "predicted": 0.8661739407286453,
+      "observed": 0.8333333333333334
+    },
+    {
+      "repeat": 1,
+      "lower": 0.0,
+      "upper": 0.2,
+      "count": 3802,
+      "predicted": 0.05988900017151555,
+      "observed": 0.07916885849552867
+    },
+    {
+      "repeat": 1,
+      "lower": 0.2,
+      "upper": 0.4,
+      "count": 1249,
+      "predicted": 0.2942784572113688,
+      "observed": 0.2986389111289031
+    },
+    {
+      "repeat": 1,
+      "lower": 0.4,
+      "upper": 0.6000000000000001,
+      "count": 871,
+      "predicted": 0.497808968445842,
+      "observed": 0.47876004592422505
+    },
+    {
+      "repeat": 1,
+      "lower": 0.6000000000000001,
+      "upper": 0.8,
+      "count": 798,
+      "predicted": 0.6925356117688238,
+      "observed": 0.6428571428571429
+    },
+    {
+      "repeat": 1,
+      "lower": 0.8,
+      "upper": 1.0,
+      "count": 323,
+      "predicted": 0.8609610727087924,
+      "observed": 0.8204334365325078
+    }
+  ],
+  "confusion_matrix_at_0_5_by_repeat": [
+    {
+      "repeat": 0,
+      "matrix": [
+        [
+          4626,
+          548
+        ],
+        [
+          881,
+          988
+        ]
+      ]
+    },
+    {
+      "repeat": 1,
+      "matrix": [
+        [
+          4638,
+          536
+        ],
+        [
+          873,
+          996
+        ]
+      ]
+    }
+  ],
+  "evaluation": "Adaptive repeated stratified GROUP development CV; exact duplicate allowed-input rows share a fold. No unbiased holdout or causal/production claim.",
+  "limitations": [
+    "Repeated folds are correlated; fold spread is not a confidence interval.",
+    "Hyperparameter/feature selection uses the same development CV; requires fresh external confirmation.",
+    "No entity/time IDs: duplicate grouping cannot guarantee entity or temporal separation.",
+    "Permutation sensitivity is a single-fold diagnostic, not causal importance.",
+    "Legacy category mappings and source availability require verification."
+  ],
+  "production_approved": false
+}

@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .catalog import ROOT, catalog
+from .projects import project_catalog
 from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .engine import run_research
@@ -61,7 +62,7 @@ def create_app(home=None):
         task.add_done_callback(lambda _: tasks.pop(run_id, None))
     @app.get("/api/config")
     async def configuration():
-        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-6-astra"), "datasets": catalog(), "frameworks": [f"NOOA {importlib.metadata.version('nooa')} · Predict specialists", f"LangGraph {importlib.metadata.version('langgraph')} · durable research loop", "OpenAI · Responses API"], "privacy": "Aggregate public-data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
+        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-6-astra"), "default_project": "general", "projects": project_catalog(), "datasets": catalog(), "frameworks": [f"NOOA {importlib.metadata.version('nooa')} · typed Predict specialists", f"LangGraph {importlib.metadata.version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"], "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4", "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"}, "privacy": "Aggregate data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
     @app.get("/api/runs")
     async def runs(): return store.list()
     @app.post("/api/runs", status_code=201)

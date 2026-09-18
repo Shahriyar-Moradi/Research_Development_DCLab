@@ -17,6 +17,7 @@ def main():
     sub.add_parser("serve")
     sub.add_parser("status")
     run = sub.add_parser("run")
+    run.add_argument("--project", choices=["general", "hyperack", "telco_churn"], default="general")
     run.add_argument("--datasets", nargs="+", default=["bank_marketing"])
     run.add_argument("--goal", default=DEFAULT_GOAL)
     run.add_argument("--model", default=os.environ.get("OPENAI_MODEL", "gpt-6-astra"))
@@ -43,9 +44,16 @@ def main():
         from .schemas import Experiment
         Experiment.model_validate(recipe["plan"])
         if args.output.exists(): parser.error("Use a new output directory; evidence cannot be overwritten")
+        dataset = recipe["plan"]["dataset"]
+        if dataset == "hyperack": source_list = [ROOT / "hyper_ackt-dataset.csv"]
+        elif dataset == "telco_churn": source_list = [ROOT / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
+        else:
+            directory = ROOT / "external_data" / dataset
+            source_list = [directory / "X.parquet", directory / "y.parquet", directory / "meta.json"]
+        allowed_sources = {path.name: path for path in source_list}
         for name, expected in recipe["data_hashes"].items():
-            if name not in ("X.parquet", "y.parquet", "meta.json"): parser.error("Invalid source name")
-            actual = hashlib.sha256((ROOT / "external_data" / recipe["plan"]["dataset"] / name).read_bytes()).hexdigest()
+            if name not in allowed_sources: parser.error("Invalid source name")
+            actual = hashlib.sha256(allowed_sources[name].read_bytes()).hexdigest()
             if actual != expected: parser.error("Source fingerprint changed; replay is not equivalent")
         for name, field in [("worker.py", "worker_hash"), ("catalog.py", "catalog_hash")]:
             if hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() != recipe[field]: parser.error("Executor code changed; use the original revision")
@@ -54,7 +62,7 @@ def main():
     else:
         if not os.environ.get("OPENAI_API_KEY"): parser.error("OPENAI_API_KEY must be set; never pass a key as a command-line argument")
         if args.command == "run":
-            request = RunRequest(goal=args.goal, datasets=args.datasets, model=args.model, max_experiments=args.experiments, max_rows=args.rows, repeats=args.repeats, max_minutes=args.minutes)
+            request = RunRequest(project=args.project, goal=args.goal, datasets=args.datasets, model=args.model, max_experiments=args.experiments, max_rows=args.rows, repeats=args.repeats, max_minutes=args.minutes)
             run_id = uuid.uuid4().hex
             store.create(run_id, request.model_dump())
         else:

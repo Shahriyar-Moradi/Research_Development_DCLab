@@ -39,6 +39,7 @@ def test_schema_and_citations():
     with pytest.raises(ValueError): Experiment(**{**experiment(), "shell": "anything"})
     with pytest.raises(ValueError): check_citations(["invented"], [])
     with pytest.raises(ValueError): check_citations([], [], required=True)
+    with pytest.raises(ValueError): RunRequest(project="hyperack", datasets=["telco_churn"])
 
 def test_graph_adapts_after_critique_and_persists():
     with tempfile.TemporaryDirectory() as directory:
@@ -80,6 +81,9 @@ def test_local_api_security_and_missing_key(monkeypatch):
     with tempfile.TemporaryDirectory() as directory, TestClient(create_app(Path(directory))) as client:
         assert client.get("/").status_code==200
         assert client.get("/api/config").json()["api_key_configured"] is False
+        cfg=client.get("/api/config").json()
+        assert {p["key"] for p in cfg["projects"]}=={"general","hyperack","telco_churn"}
+        assert cfg["default_model"]=="gpt-6-astra"
         assert client.post("/api/runs",json={}).status_code==403
         token=client.get("/api/config").json()["csrf"]
         assert client.post("/api/runs",json={},headers={"X-DCLab-Token":token}).status_code==409

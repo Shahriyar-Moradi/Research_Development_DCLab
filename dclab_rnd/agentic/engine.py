@@ -11,6 +11,7 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .catalog import ROOT
+from .projects import historical_context
 from .schemas import Experiment
 from .store import Store
 from .agents import ResearchPlanner, DataScientist, ExperimentDesigner, ResultsCritic, KnowledgeCurator, AuditedClient, ask
@@ -25,6 +26,7 @@ class ResearchState(TypedDict, total=False):
     critiques: list
     synthesis: dict
     memory: list
+    historical_evidence: list
 
 def compact(trial):
     if trial["status"] != "completed": return trial
@@ -186,7 +188,8 @@ async def run_research(store: Store, run_id: str, resume=False):
             graph = build_graph(store, run_id, client, saver)
             config = {"configurable": {"thread_id": run_id}, "recursion_limit": 250}
             snapshot = await graph.aget_state(config)
-            initial = None if resume and snapshot.values else {"config": run["config"], "trials": [], "critiques": [], "memory": store.knowledge(run["config"]["datasets"])[:12]}
+            project = run["config"].get("project", "general")
+            initial = None if resume and snapshot.values else {"config": run["config"], "trials": [], "critiques": [], "memory": store.knowledge(run["config"]["datasets"])[:12], "historical_evidence": historical_context(project)}
             await asyncio.wait_for(graph.ainvoke(initial, config), timeout=remaining)
         store.update(run_id, status="completed", phase="Research complete")
     except asyncio.CancelledError:
