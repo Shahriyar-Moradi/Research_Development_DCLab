@@ -95,6 +95,25 @@ Default model is **gpt-4o-mini** (mid-tier). Use `--model gpt-4o` for stronger c
 
 The LLM is deliberately a critic and hypothesis generator. Deterministic code owns metrics, split discipline, provenance, and evidence; a human owns ambiguous decision-time semantics and promotion.
 
+### Agentic Research Studio
+
+The interactive research system turns the fixed campaign into an adaptive learning loop. LangGraph owns the durable loop; NVIDIA NOOA `PredictStrategy` specialists interpret goals, audit data, choose a bounded experiment, critique measured results, and select the next test. The OpenAI Responses API supplies the configured reasoning model. Generated Python is never executed: agents return a validated experiment language, and an isolated deterministic worker owns data access, preprocessing, training, and metrics.
+
+```bash
+# Python 3.12 or 3.13 is required by NOOA; keep it separate from the ML environment.
+uv venv --python 3.13 .venv-agent
+uv pip install --python .venv-agent/bin/python -r requirements-agent.lock.txt
+
+# OPENAI_API_KEY is read from the process or local .env; never enter it in the UI.
+make agent-test
+make agent-serve
+# Open http://127.0.0.1:8765
+```
+
+The UI supports 1–50-experiment budgets, selected public datasets, pause/resume, run history, input/output diagnostics, evidence-linked knowledge, and trajectory/recipe export. Current results are adaptive development CV. Exact duplicate input rows stay in one fold, preprocessing is fit inside each training fold, decision-time-blocked columns and their descendants are rejected, and source-column masking propagates through derived features. The system records data/code fingerprints, repeat-level metrics, OOF predictions, calibration, input sensitivity, missing-input stress, failures, counterevidence, theory, and reusable workflow blocks.
+
+Agent artifacts live under the ignored `agent_runs/` directory. A trajectory is explicitly marked `training_ready: false`: a human must verify claims, licenses, privacy and source-grouped train/evaluation separation before using it for model training. Promotion still requires fresh external confirmation and the DCLab Product Core lifecycle.
+
 ---
 
 ## Headline results (same test split)

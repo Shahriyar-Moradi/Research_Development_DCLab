@@ -1,8 +1,13 @@
 """Agent runtime tests: .venv-agent/bin/python -m pytest tests/test_agentic.py."""
 import asyncio
+import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import unittest
+
+if importlib.util.find_spec("nooa") is None:
+    raise unittest.SkipTest("NOOA tests run in the isolated .venv-agent environment")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,7 +22,7 @@ from dclab_rnd.agentic.engine import build_graph, check_citations, worker
 from dclab_rnd.agentic.server import create_app
 
 def experiment(model="logistic_regression"):
-    return Experiment(dataset="bank_marketing", title="Transparent baseline", hypothesis="A transparent baseline establishes model-family comparison evidence.", model=model, parameters={}, features=[], drop_columns=[], stress_columns=["balance"], evidence_ids=[], expected_learning="A useful development baseline").model_dump()
+    return Experiment(dataset="bank_marketing", title="Transparent baseline", hypothesis="A transparent baseline establishes model-family comparison evidence.", model=model, parameters={}, features=[], drop_columns=[], stress_columns=["balance"], evidence_ids=[], reference_evidence_id=None, expected_learning="A useful development baseline").model_dump()
 
 def test_nooa_real_typed_strategy():
     value = Agenda(goal_interpretation="Learn with evidence", research_questions=["Which baseline?"], sequence=["profile", "fit"], success_criteria=["paired evidence"], limitations=["development CV"])
@@ -47,9 +52,13 @@ def test_graph_adapts_after_critique_and_persists():
                 if context["attempted"]:
                     assert context["critique"][0]["next_question"] == "Compare trees"
                     assert context["trials"][0]["metrics"]["roc_auc"] == .7
-                return experiment("extra_trees" if context["attempted"] else "logistic_regression")
+                value=experiment("extra_trees" if context["attempted"] else "logistic_regression")
+                if context["attempted"]:
+                    value["evidence_ids"]=["test:trial-001"]
+                    value["reference_evidence_id"]="test:trial-001"
+                return value
             if method=="critique": return {"evidence_ids":[t["id"] for t in context["trials"]], "next_question":"Compare trees", "continue_research":True}
-            return {"summary":"Provisional evidence", "lessons":[{"claim":"A narrow result", "evidence_ids":["test:trial-001"], "scope":"test", "counterevidence":"none measured", "follow_up":"confirm"}]}
+            return {"summary":"Provisional evidence", "lessons":[{"claim":"A narrow result", "evidence_ids":["test:trial-001"], "scope":"test", "counterevidence":"none measured", "follow_up":"confirm"}], "theoretical_principles":["Use paired evidence"], "workflow_blocks":["profile → fit → critique"], "unanswered_questions":[]}
         async def tool(req):
             if req["action"]=="profile": return [{"dataset":"bank_marketing"}]
             score=.8 if req["plan"]["model"]=="extra_trees" else .7
@@ -59,7 +68,7 @@ def test_graph_adapts_after_critique_and_persists():
             cfg={"configurable":{"thread_id":"test"}}
             result=await graph.ainvoke({"config":request,"trials":[],"critiques":[]},cfg)
             assert len(result["trials"])==2
-            assert result["trials"][1]["paired_comparison"]["mean_auc_delta"]==pytest.approx(.1)
+            assert result["trials"][1]["paired_comparison"]["mean_deltas"]["roc_auc"]==pytest.approx(.1)
             assert (await graph.aget_state(cfg)).next==()
         asyncio.run(check())
         assert calls==["plan","review","propose","critique","propose","critique","synthesize"]
@@ -88,4 +97,6 @@ def test_real_worker_profile_and_trial():
         assert result["production_approved"] is False
         assert len(result["stress_tests"])==3
         assert len(result["input_sensitivity"])==15
+        assert len(result["repeat_summary"])==1
+        assert set(result["repeat_summary"][0])=={"repeat","roc_auc","average_precision","log_loss","brier"}
         assert Path(directory,"recipe.json").exists()

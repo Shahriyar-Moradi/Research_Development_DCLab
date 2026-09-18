@@ -1,6 +1,7 @@
-.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review
+.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status
 
 PYTHON ?= .venv/bin/python
+AGENT_PYTHON ?= .venv-agent/bin/python
 
 test:
 	$(PYTHON) -m unittest discover -s tests -v
@@ -40,3 +41,13 @@ rd-campaign-quick:
 
 rd-campaign-review:
 	$(PYTHON) -m dclab_rnd campaign review --model gpt-5.4-mini
+
+agent-serve:
+	$(AGENT_PYTHON) -m dclab_rnd.agentic serve
+
+agent-test:
+	$(AGENT_PYTHON) -m pytest tests/test_agentic.py -q
+	$(PYTHON) -m unittest discover -s tests -p 'test_agentic_worker.py' -v
+
+agent-status:
+	$(AGENT_PYTHON) -m dclab_rnd.agentic status

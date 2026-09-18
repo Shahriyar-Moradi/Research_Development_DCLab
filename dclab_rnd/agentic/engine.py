@@ -29,7 +29,19 @@ class ResearchState(TypedDict, total=False):
 def compact(trial):
     if trial["status"] != "completed": return trial
     r = trial["result"]
-    return {"id": trial["id"], "status": trial["status"], "plan": r["plan"], "metrics": r["metrics"], "fold_standard_deviation": r["fold_standard_deviation"], "paired_comparison": trial.get("paired_comparison"), "input_sensitivity": r["input_sensitivity"][:8], "stress_tests": r["stress_tests"], "output_calibration": r["output_calibration"], "wall_seconds": r["wall_seconds"], "limitations": r["limitations"]}
+    return {"id": trial["id"], "status": trial["status"], "plan": r["plan"],
+            "metrics": r["metrics"], "repeat_summary": r.get("repeat_summary", []),
+            "fold_standard_deviation": r["fold_standard_deviation"],
+            "paired_comparison": trial.get("paired_comparison"),
+            "retained_columns": r.get("retained_columns", []),
+            "pipeline_source_columns": r.get("pipeline_source_columns", []),
+            "derived_feature_lineage": r.get("derived_feature_lineage", []),
+            "split_hash": r.get("split_hash"), "data_hashes": r.get("data_hashes", {}),
+            "input_sensitivity": r["input_sensitivity"][:8], "stress_tests": r["stress_tests"],
+            "output_calibration": r["output_calibration"],
+            "confusion_matrix_at_0_5_by_repeat": r.get("confusion_matrix_at_0_5_by_repeat", []),
+            "evaluation": r.get("evaluation"), "wall_seconds": r["wall_seconds"],
+            "limitations": r["limitations"]}
 
 def signature(plan):
     return hashlib.sha256(json.dumps({k: plan[k] for k in ("dataset", "model", "parameters", "features", "drop_columns", "stress_columns")}, sort_keys=True).encode()).hexdigest()
@@ -104,6 +116,8 @@ def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
             if plan["dataset"] not in state["config"]["datasets"]:
                 raise ValueError("Dataset is outside this run's selected scope")
             check_citations(plan["evidence_ids"], state.get("trials", []))
+            if plan.get("reference_evidence_id") and plan["reference_evidence_id"] not in plan["evidence_ids"]:
+                raise ValueError("Paired reference must also appear in evidence_ids")
             if any(signature(plan) == signature(t["plan"]) for t in state.get("trials", [])):
                 raise ValueError("Duplicate experiment; propose a discriminating change")
             # Durable tool result is idempotent if interruption occurred after
@@ -117,9 +131,21 @@ def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
             trial.update(status="completed", result=result, artifact_directory=str(directory))
             references = [t for t in state.get("trials", []) if t["status"] == "completed" and t["result"]["dataset"] == result["dataset"] and t["result"]["split_hash"] == result["split_hash"] and t["result"]["data_hashes"] == result["data_hashes"]]
             if references:
-                baseline = max(references, key=lambda t: t["result"]["metrics"]["roc_auc"])
-                deltas = [a["roc_auc"] - b["roc_auc"] for a, b in zip(result["folds"], baseline["result"]["folds"])]
-                trial["paired_comparison"] = {"reference_id": baseline["id"], "auc_deltas": deltas, "mean_auc_delta": sum(deltas) / len(deltas), "interpretation": "Descriptive paired development folds, not statistical significance; reference chosen adaptively."}
+                explicit = [t for t in references if t["id"] == plan.get("reference_evidence_id")]
+                cited = [t for t in references if t["id"] in plan["evidence_ids"]]
+                if explicit:
+                    baseline = explicit[0]
+                elif cited:
+                    # Backward-compatible fallback for plans made before the
+                    # explicit reference field: isolate one variable where possible.
+                    baseline = max(cited, key=lambda t: (t["plan"]["model"] == plan["model"], t["plan"]["parameters"] == plan["parameters"]))
+                else:
+                    baseline = max(references, key=lambda t: t["result"]["metrics"]["roc_auc"])
+                metrics = result["metrics"]
+                fold_deltas = {metric: [a[metric] - b[metric] for a, b in zip(result["folds"], baseline["result"]["folds"])] for metric in metrics}
+                trial["paired_comparison"] = {"reference_id": baseline["id"], "fold_deltas": fold_deltas,
+                    "mean_deltas": {metric: sum(values) / len(values) for metric, values in fold_deltas.items()},
+                    "interpretation": "Descriptive paired development folds, not statistical significance; cited compatible reference preferred."}
         except (ValueError, RuntimeError, asyncio.TimeoutError) as exc:
             trial["error"] = str(exc)[:2200]
         store.event(run_id, "trial", trial)

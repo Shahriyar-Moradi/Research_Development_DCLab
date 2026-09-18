@@ -30,4 +30,17 @@ class WorkerSafety(unittest.TestCase):
         p=plan();p["drop_columns"]=["unknown"]
         with self.assertRaises(ValueError):validate_plan(p,pd.DataFrame({"balance":[1]}),[])
 
+    def test_derived_feature_can_replace_raw_source_and_stress_propagates(self):
+        X=pd.DataFrame({"balance":[1.,10.,100.,1000.],"age":[20.,30.,40.,50.]})
+        p=plan();p["drop_columns"]=["balance"];p["stress_columns"]=["balance"]
+        p["features"]=[dict(name="fe_balance",operation="signed_log",inputs=["balance"])]
+        columns=validate_plan(p,X,[])
+        self.assertEqual(columns["model_raw"],["age"])
+        self.assertEqual(columns["pipeline_inputs"],["balance","age"])
+        pipeline=build_pipeline(p,columns,[]).fit(X[columns["pipeline_inputs"]],[0,0,1,1])
+        clean=pipeline.predict_proba(X[columns["pipeline_inputs"]])[:,1]
+        stressed=X[columns["pipeline_inputs"]].copy();stressed["balance"]=np.nan
+        missing=pipeline.predict_proba(stressed)[:,1]
+        self.assertFalse(np.allclose(clean,missing))
+
 if __name__=="__main__":unittest.main()

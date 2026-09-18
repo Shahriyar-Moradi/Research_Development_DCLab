@@ -34,6 +34,7 @@ with sync_playwright() as p:
     elif args.run_id:
         page.locator(f'[data-run="{args.run_id}"]').click()
         page.locator("#run-detail .run-heading").wait_for()
+        page.get_by_text("Signed-log balance replacement",exact=False).wait_for()
     if args.live or args.run_id:
         page.screenshot(path="agent_runs/ui-run.png",full_page=True)
     page.locator('[data-view="knowledge"]').click()

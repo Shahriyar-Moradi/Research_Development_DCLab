@@ -4,11 +4,13 @@ import json
 from nooa import Agent, PredictStrategy, strategy
 from nooa.config import PredictConfig
 from nooa.unifiedllm import ResponsesClient, RetryConfig
-from nooa.tracing import enable_tracing
+import nooa.agent as _nooa_agent
 from .schemas import Agenda, DataReview, Experiment, Critique, Synthesis
 
-# Explicit empty exporters prevent auto-discovery of an external OTLP endpoint.
-enable_tracing(exporters=[])
+# This service has its own evidence ledger. Disable NOOA's local OTLP viewer
+# auto-probe so OpenAI inference is the only configured outbound destination.
+# NOOA is pinned because this is currently an internal framework flag.
+_nooa_agent._auto_tracing_attempted = True
 
 POLICY = """You are a DCLab R&D specialist. Help discover evidence-backed workflows,
 not a universal best model. The product core owns validated deterministic execution;
@@ -61,6 +63,10 @@ class ExperimentDesigner(Agent):
         features may depend on earlier safe derived features. Cite only known IDs.
         Set evidence_ids=[] for a first baseline. Features should test a domain
         hypothesis, not be arbitrary combinations. No external joins are executable.
+        When this is a paired comparison, set reference_evidence_id to the ONE
+        successful prior configuration being changed and include it in evidence_ids.
+        Leave it null for the first baseline. Prefer the same model and parameters
+        when testing a feature change, so the comparison isolates that change.
         """
         ...
 
@@ -83,6 +89,9 @@ class KnowledgeCurator(Agent):
         """Summarize measured learning. Every lesson needs at least one successful
         evidence ID and a narrow scope. Include uncertainty and contrary results.
         If nothing succeeded return no lessons. Explain what is not yet learned.
+        Capture theoretical principles as general methodology, clearly separated
+        from empirical claims. Capture short reusable workflow blocks describing
+        sequencing and checks, not large generated source-code listings.
         """
         ...
 

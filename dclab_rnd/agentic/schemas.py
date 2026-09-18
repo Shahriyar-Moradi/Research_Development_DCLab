@@ -36,6 +36,7 @@ class Experiment(Strict):
     drop_columns: list[str] = Field(default_factory=list, max_length=40)
     stress_columns: list[str] = Field(default_factory=list, max_length=3)
     evidence_ids: list[str] = Field(default_factory=list, max_length=20)
+    reference_evidence_id: str | None = None
     expected_learning: str = Field(max_length=2000)
     @model_validator(mode="after")
     def dataset_known(self):
@@ -77,6 +78,8 @@ class Lesson(Strict):
 class Synthesis(Strict):
     summary: str
     lessons: list[Lesson]
+    theoretical_principles: list[str]
+    workflow_blocks: list[str]
     unanswered_questions: list[str]
 
 DEFAULT_GOAL = "Learn which feature engineering, model families and tuning choices improve robust tabular prediction. Audit leakage and prediction-time availability, compare paired CV evidence, stress missing production features, and capture reusable workflows and negative results."

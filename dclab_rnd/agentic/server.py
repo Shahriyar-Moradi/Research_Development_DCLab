@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 import json
+import importlib.metadata
 import os
 from pathlib import Path
 import secrets
@@ -60,7 +61,7 @@ def create_app(home=None):
         task.add_done_callback(lambda _: tasks.pop(run_id, None))
     @app.get("/api/config")
     async def configuration():
-        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-6-astra"), "datasets": catalog(), "frameworks": ["NOOA 0.0.10 · Predict specialists", "LangGraph · durable research loop", "OpenAI · Responses API"], "privacy": "Aggregate public-data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
+        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-6-astra"), "datasets": catalog(), "frameworks": [f"NOOA {importlib.metadata.version('nooa')} · Predict specialists", f"LangGraph {importlib.metadata.version('langgraph')} · durable research loop", "OpenAI · Responses API"], "privacy": "Aggregate public-data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
     @app.get("/api/runs")
     async def runs(): return store.list()
     @app.post("/api/runs", status_code=201)

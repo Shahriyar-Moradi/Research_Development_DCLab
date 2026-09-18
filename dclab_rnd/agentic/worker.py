@@ -95,21 +95,32 @@ def validate_plan(plan, X, cats):
     drops = set(plan["drop_columns"])
     if drops - set(X) or set(plan["stress_columns"]) - set(X):
         raise ValueError("Unknown dropped/stressed column")
-    safe = set(X) - blocked - drops
-    if not safe:
+    model_raw = set(X) - blocked - drops
+    if not model_raw and not plan["features"]:
         raise ValueError("No usable features")
-    known = set(safe)
+    # A safe raw column may feed a derived feature while being excluded from
+    # the final model matrix. This supports representation-replacement tests.
+    known = set(X) - blocked
+    required_sources = set()
+    derived_names = set()
     for spec in plan["features"]:
-        if spec["name"] in known:
+        if spec["name"] in known or spec["name"] in derived_names:
             raise ValueError("Feature name collision")
-        if not set(spec["inputs"]) <= known:
+        available = known | derived_names
+        if not set(spec["inputs"]) <= available:
             raise ValueError("Derived feature has blocked, unavailable, or unknown inputs")
         if set(spec["inputs"]) & set(cats):
             raise ValueError("Arithmetic on categorical codes is forbidden")
-        known.add(spec["name"])
-    if set(plan["stress_columns"]) - safe:
-        raise ValueError("Stress columns must be retained input features")
-    return [c for c in X if c in safe]
+        required_sources.update(i for i in spec["inputs"] if i in X.columns)
+        derived_names.add(spec["name"])
+    effective_inputs = model_raw | required_sources
+    if set(plan["stress_columns"]) - effective_inputs:
+        raise ValueError("Stress columns must be model inputs or derived-feature sources")
+    return {
+        "model_raw": [c for c in X if c in model_raw],
+        "pipeline_inputs": [c for c in X if c in effective_inputs],
+        "derived": [spec["name"] for spec in plan["features"]],
+    }
 
 def model_for(name, params):
     params = {k: v for k, v in params.items() if v is not None}
@@ -137,8 +148,14 @@ def model_for(name, params):
     return XGBClassifier(random_state=42, n_jobs=1, tree_method="hist", eval_metric="logloss", **{"n_estimators": 100, "max_depth": 4, **params})
 
 def build_pipeline(plan, columns, cats):
-    numeric = [c for c in columns if c not in cats] + [f["name"] for f in plan["features"]]
-    categorical = [c for c in columns if c in cats]
+    # Accept a plain raw-column list for focused unit tests; production passes
+    # the fully validated lineage map from validate_plan().
+    if isinstance(columns, list):
+        model_raw, derived = columns, [f["name"] for f in plan["features"]]
+    else:
+        model_raw, derived = columns["model_raw"], columns["derived"]
+    numeric = [c for c in model_raw if c not in cats] + derived
+    categorical = [c for c in model_raw if c in cats]
     pre = ColumnTransformer([
         ("numeric", Pipeline([("impute", SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True)), ("scale", StandardScaler())]), numeric),
         ("categorical", Pipeline([("impute", SimpleImputer(strategy="constant", fill_value="__missing__", keep_empty_features=True)), ("encode", OneHotEncoder(handle_unknown="ignore", sparse_output=False, min_frequency=3))]), categorical),
@@ -153,6 +170,7 @@ def evaluate(plan, max_rows, repeats, output):
     key = plan["dataset"]
     X, y, cats, row_ids, hashes = load(key, max_rows)
     columns = validate_plan(plan, X, cats)
+    model_raw, pipeline_inputs = columns["model_raw"], columns["pipeline_inputs"]
     # Group on ALL policy-allowed original inputs, independent of each candidate's
     # drops/derived features. This fixes the split across paired ablations.
     group_cols = [c for c in X if c not in DATASETS[key]["blocked"]]
@@ -168,34 +186,44 @@ def evaluate(plan, max_rows, repeats, output):
             split_hasher.update(np.asarray(test, dtype=np.int64).tobytes())
             pipe = build_pipeline(plan, columns, cats)
             before = time.monotonic()
-            pipe.fit(X.iloc[train][columns], y.iloc[train])
-            p = pipe.predict_proba(X.iloc[test][columns])[:, 1]
+            pipe.fit(X.iloc[train][pipeline_inputs], y.iloc[train])
+            p = pipe.predict_proba(X.iloc[test][pipeline_inputs])[:, 1]
             score = metrics(y.iloc[test], p)
             folds.append({"repeat": repeat, "fold": fold, **score, "fit_predict_seconds": time.monotonic() - before})
             predictions.extend({"row_id": int(row_ids[i]), "repeat": repeat, "fold": fold, "target": int(y.iloc[i]), "probability": float(prob)} for i, prob in zip(test, p))
             for column in plan["stress_columns"]:
-                stressed = X.iloc[test][columns].copy()
+                stressed = X.iloc[test][pipeline_inputs].copy()
                 stressed[column] = np.nan
                 sp = pipe.predict_proba(stressed)[:, 1]
-                stresses.append({"repeat": repeat, "fold": fold, "column": column, "roc_auc": float(roc_auc_score(y.iloc[test], sp)), "auc_drop": score["roc_auc"] - float(roc_auc_score(y.iloc[test], sp))})
+                stressed_metrics = metrics(y.iloc[test], sp)
+                stresses.append({"repeat": repeat, "fold": fold, "column": column, **stressed_metrics,
+                    "metric_deltas_clean_minus_stressed": {metric: score[metric] - stressed_metrics[metric] for metric in score}})
             # Explanatory permutation sensitivity, first fold only, all raw inputs.
             # Regenerates derived features when a parent changes. Not causal impact.
             if repeat == fold == 0:
                 rng = np.random.default_rng(867)
-                for col in columns:
-                    permuted = X.iloc[test][columns].copy()
+                for col in pipeline_inputs:
+                    permuted = X.iloc[test][pipeline_inputs].copy()
                     permuted[col] = rng.permutation(permuted[col].to_numpy())
                     changed = pipe.predict_proba(permuted)[:, 1]
                     importance.append({"column": col, "auc_drop": score["roc_auc"] - float(roc_auc_score(y.iloc[test], changed))})
     mean = {m: float(np.mean([f[m] for f in folds])) for m in metrics(y.iloc[test], p)}
     spread = {m: float(np.std([f[m] for f in folds], ddof=1)) for m in mean}
     frame = pd.DataFrame(predictions)
+    repeat_summary = []
+    for repeat in range(repeats):
+        repeat_frame = frame[frame.repeat == repeat]
+        repeat_summary.append({"repeat": repeat, **metrics(repeat_frame.target, repeat_frame.probability)})
     calibration = []
-    for lower in np.arange(0, 1, .1):
-        section = frame[(frame.probability >= lower) & (frame.probability < lower + .1 if lower < .9 else frame.probability <= 1)]
-        if len(section): calibration.append({"lower": float(lower), "count": len(section), "predicted": float(section.probability.mean()), "observed": float(section.target.mean())})
+    # Report each repeat independently; repeated OOF predictions are correlated
+    # and must not be represented as twice as many independent observations.
+    for repeat in range(repeats):
+        repeat_frame = frame[frame.repeat == repeat]
+        for lower in np.arange(0, 1, .2):
+            section = repeat_frame[(repeat_frame.probability >= lower) & (repeat_frame.probability < lower + .2 if lower < .8 else repeat_frame.probability <= 1)]
+            if len(section): calibration.append({"repeat": repeat, "lower": float(lower), "upper": float(lower + .2), "count": len(section), "predicted": float(section.probability.mean()), "observed": float(section.target.mean())})
     import importlib.metadata
-    result = {"dataset": key, "plan": plan, "rows": len(X), "feature_count": len(columns) + len(plan["features"]), "retained_columns": columns, "excluded_by_policy": DATASETS[key]["blocked"], "folds": folds, "metrics": mean, "fold_standard_deviation": spread, "split_hash": split_hasher.hexdigest(), "data_hashes": hashes, "worker_hash": sha(Path(__file__)), "catalog_hash": sha(Path(__file__).with_name("catalog.py")), "python": sys.version.split()[0], "packages": {p: importlib.metadata.version(p) for p in ["scikit-learn", "numpy", "pandas"]}, "wall_seconds": time.monotonic() - start, "stress_tests": stresses, "input_sensitivity": sorted(importance, key=lambda i: -i["auc_drop"]), "output_calibration": calibration, "confusion_matrix_at_0_5": confusion_matrix(frame.target, frame.probability >= .5, labels=[0, 1]).tolist(), "evaluation": "Adaptive repeated stratified GROUP development CV; exact duplicate allowed-input rows share a fold. No unbiased holdout or causal/production claim.", "limitations": ["Repeated folds are correlated; fold spread is not a confidence interval.", "Hyperparameter/feature selection uses the same development CV; requires fresh external confirmation.", "No entity/time IDs: duplicate grouping cannot guarantee entity or temporal separation.", "Permutation sensitivity is a single-fold diagnostic, not causal importance.", "Legacy category mappings and source availability require verification."], "production_approved": False}
+    result = {"dataset": key, "plan": plan, "rows": len(X), "feature_count": len(model_raw) + len(plan["features"]), "retained_columns": model_raw, "pipeline_source_columns": pipeline_inputs, "derived_feature_lineage": plan["features"], "excluded_by_policy": DATASETS[key]["blocked"], "folds": folds, "repeat_summary": repeat_summary, "metrics": mean, "fold_standard_deviation": spread, "split_hash": split_hasher.hexdigest(), "data_hashes": hashes, "worker_hash": sha(Path(__file__)), "catalog_hash": sha(Path(__file__).with_name("catalog.py")), "python": sys.version.split()[0], "packages": {p: importlib.metadata.version(p) for p in ["scikit-learn", "numpy", "pandas"]}, "wall_seconds": time.monotonic() - start, "stress_tests": stresses, "input_sensitivity": sorted(importance, key=lambda i: -i["auc_drop"]), "output_calibration": calibration, "confusion_matrix_at_0_5_by_repeat": [{"repeat": repeat, "matrix": confusion_matrix(section.target, section.probability >= .5, labels=[0, 1]).tolist()} for repeat, section in frame.groupby("repeat")], "evaluation": "Adaptive repeated stratified GROUP development CV; exact duplicate allowed-input rows share a fold. No unbiased holdout or causal/production claim.", "limitations": ["Repeated folds are correlated; fold spread is not a confidence interval.", "Hyperparameter/feature selection uses the same development CV; requires fresh external confirmation.", "No entity/time IDs: duplicate grouping cannot guarantee entity or temporal separation.", "Permutation sensitivity is a single-fold diagnostic, not causal importance.", "Legacy category mappings and source availability require verification."], "production_approved": False}
     output.mkdir(parents=True, exist_ok=True)
     frame.to_json(output / "oof_predictions.jsonl", orient="records", lines=True)
     recipe = {"schema_version": 1, "plan": plan, "max_rows": max_rows, "repeats": repeats, "data_hashes": hashes, "worker_hash": result["worker_hash"], "catalog_hash": result["catalog_hash"], "blocks": ["load fingerprinted public data", "decision-time policy gate", "fixed duplicate-group folds", "fold-local feature/preprocessing pipeline", "fit and predict OOF", "stress and permutation diagnostics", "paired development comparison; external confirmation pending"]}
