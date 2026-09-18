@@ -14,6 +14,7 @@ from .campaign import (
     validate_campaign,
     write_manifest,
 )
+from .llm_review import DEFAULT_MODEL, run_llm_reviews
 from .cycle import build_cycle_command, run_cycle
 from .registry import collect_registry
 from .report import render_outputs, sync_outputs
@@ -101,6 +102,31 @@ def main(argv: list[str] | None = None) -> int:
         "verify",
         help="validate all results, provenance, final evidence, and generated memory",
     )
+    campaign_review = campaign_actions.add_parser(
+        "review",
+        help="run pending LLM critic reviews from llm_review_queue.jsonl via OpenAI",
+    )
+    campaign_review.add_argument(
+        "--model",
+        default=DEFAULT_MODEL,
+        help=f"OpenAI model (default: {DEFAULT_MODEL}; try gpt-4o for stronger critiques)",
+    )
+    campaign_review.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="max number of pending reviews to process",
+    )
+    campaign_review.add_argument(
+        "--experiment",
+        default=None,
+        help="comma-separated experiment IDs (e.g. EXP-001,EXP-002)",
+    )
+    campaign_review.add_argument(
+        "--force",
+        action="store_true",
+        help="re-review all completed experiments (ignore pending queue)",
+    )
     campaign_run = campaign_actions.add_parser(
         "run", help="execute campaign tasks and capture evidence"
     )
@@ -172,6 +198,23 @@ def main(argv: list[str] | None = None) -> int:
                 "provenance and generated memory are current."
             )
             return 0
+        if args.campaign_action == "review":
+            experiment_ids = (
+                None
+                if not args.experiment
+                else [part.strip() for part in args.experiment.split(",") if part.strip()]
+            )
+            try:
+                return run_llm_reviews(
+                    root,
+                    model=args.model,
+                    limit=args.limit,
+                    experiment_ids=experiment_ids,
+                    force=args.force,
+                )
+            except RuntimeError as exc:
+                print(f"ERROR: {exc}")
+                return 1
         datasets = None if args.dataset == "all" else args.dataset.split(",")
         experiments = None if args.experiment == "all" else args.experiment.split(",")
         if args.max_rows < 100:

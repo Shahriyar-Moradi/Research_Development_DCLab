@@ -1,4 +1,4 @@
-.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick
+.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review
 
 PYTHON ?= .venv/bin/python
 
@@ -37,3 +37,6 @@ rd-campaign-verify:
 
 rd-campaign-quick:
 	$(PYTHON) -m dclab_rnd campaign run --quick
+
+rd-campaign-review:
+	$(PYTHON) -m dclab_rnd campaign review --model gpt-5.4-mini

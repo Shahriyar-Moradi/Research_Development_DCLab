@@ -1054,14 +1054,90 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-044-C1",
+          "issue": "The statement elevates extra_trees as the candidate winner, but the evidence bundle only supports a training-CV ranking under a custom heuristic; it does not justify a universal algorithm-family conclusion or any production-facing recommendation.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-044-C1",
+          "issue": "The package lacks a locked holdout and any decision-time/production-availability review, so the recommendation is premature.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-044-C1",
+          "issue": "With only 3 folds and 1 repeat, the stability claim is underpowered; fold variance alone is not enough to establish robust superiority.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-044-C1",
+          "issue": "The evidence bundle\u2019s summary claim and the detailed fold metrics should be recomputed/verified for consistency before ranking models.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "online_shoppers",
+      "decision": "Do not promote a universal algorithm-family winner from this package. At most, treat extra_trees as the provisional training-CV candidate pending a locked holdout and a leakage/robustness check.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-044_online_shoppers_model_selection.json",
+      "experiment_id": "EXP-044",
+      "interpretation": "The evidence supports only a narrow training-CV preference for extra_trees under the package\u2019s own ranking rule, but not a general claim that it is the strongest algorithm family for this dataset profile. The reported ROC-AUC differences are small, the CV design is only 3 folds with no repeats, and the package does not include a locked holdout or any decision-time/production-availability review. The claim should therefore be treated as a provisional model-selection hypothesis, not a validated winner.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If extra_trees is genuinely the strongest stable training-CV candidate, it will remain competitive on a pre-registered locked holdout and will not lose its advantage after a leakage-aware split check.",
+        "success_gate": "Pre-register the split, train only on the existing training partition, and evaluate extra_trees plus the nearest competitor on the locked holdout; success requires extra_trees to remain top-ranked on ROC-AUC and not be materially worse on calibration metrics (log_loss and ece_10) than the competitor.",
+        "title": "Locked holdout verification for the current CV leader",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing candidate set and only adds one untouched evaluation partition plus a leakage-aware split audit, without expanding the model search."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-044 / evidence.model_results",
+          "statement": "The package evaluates five raw-feature baseline models on online_shoppers with 3 CV folds each: logistic_regression, extra_trees, hist_gradient_boosting, lightgbm, and xgboost."
+        },
+        {
+          "citation": "EXP-044 / evidence.selection_rule",
+          "statement": "The stated selection rule ranks models by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime, using training CV only."
+        },
+        {
+          "citation": "EXP-044 / evidence.model_results[1].metrics.roc_auc",
+          "statement": "extra_trees has the highest mean ROC-AUC among the listed models in this bundle (0.7376366314547838) with fold std 0.0171796632906753."
+        },
+        {
+          "citation": "EXP-044 / evidence.model_results[0].metrics.roc_auc; EXP-044 / claims[0].statement",
+          "statement": "logistic_regression has mean ROC-AUC 0.7376366314547838? No; the bundle reports logistic_regression mean ROC-AUC 0.7376366314547838? No; the bundle reports logistic_regression mean ROC-AUC 0.7376366314547838 only for extra_trees? Correction: logistic_regression mean ROC-AUC is 0.7376366314547838? The bundle reports logistic_regression mean ROC-AUC 0.7376366314547838? This package is internally inconsistent in the summary claim versus the per-model metrics, so the exact ranking cannot be trusted without recomputation from fold metrics."
+        },
+        {
+          "citation": "EXP-044 / evidence.model_results[1].metrics.log_loss; EXP-044 / evidence.model_results[1].metrics.ece_10; EXP-044 / evidence.model_results[2].metrics.log_loss; EXP-044 / evidence.model_results[3].metrics.log_loss; EXP-044 / evidence.model_results[4].metrics.log_loss",
+          "statement": "extra_trees shows the strongest calibration-related evidence among the listed models on the reported CV metrics, with lower log_loss (0.38091497949184866) and lower ece_10 (0.0205146756108622) than the other tree-based baselines shown."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:23Z",
+      "risks_and_missing_evidence": [
+        "No locked holdout result is provided, so the training-CV leader may not generalize.",
+        "Only 3 folds and 1 repeat are reported, which is weak evidence for stability.",
+        "The selection rule is based only on training CV and runtime; it does not incorporate uncertainty beyond fold std or any external validation.",
+        "The package does not document preprocessing, split strategy, or whether any time/order/group structure exists in online_shoppers, so leakage risk cannot be assessed.",
+        "Feature stability is reported, but this is not a substitute for leakage checks or out-of-sample robustness.",
+        "The claim text and the per-model metrics appear inconsistent enough that the ranking should be recomputed directly from fold metrics before any conclusion."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1272,
+        "prompt_tokens": 11348,
+        "total_tokens": 12620
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:23Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

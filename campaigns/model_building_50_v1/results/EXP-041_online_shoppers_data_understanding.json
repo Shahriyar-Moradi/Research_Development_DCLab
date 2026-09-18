@@ -221,14 +221,95 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-041-C1",
+          "issue": "The row count, feature count, and positive rate are factual if the cited fields are trusted, but the package does not show provenance for how the cached features were derived or whether the 17 features are production-available at decision time.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-041-C2",
+          "issue": "The statement that 0 features triggered review rules is not fully supported by the excerpt because only 10 feature profiles are visible here, not all 17 features referenced elsewhere in the package.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-041-C2",
+          "issue": "The absence of random-split PSI flags does not rule out temporal drift, seasonality, or leakage; the package itself acknowledges this limitation.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-041-C2",
+          "issue": "The note about factorized categoricals indicates a production-encoding risk, but the package does not show that raw category semantics can be restored or that the production encoder will match training semantics.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "online_shoppers",
+      "decision": "Do not proceed to modeling until decision-time feature availability and encoding semantics are verified, and until a time-aware validation check replaces the random split smoke test.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-041_online_shoppers_data_understanding.json",
+      "experiment_id": "EXP-041",
+      "interpretation": "This evidence package supports only a narrow data-understanding summary: the dataset is small-to-moderate in row count, has 17 cached features, and the shown feature subset has no missingness or obvious random-split shift flags. It does not yet establish production readiness, because the package itself flags unresolved categorical-semantic restoration and explicitly warns that random-split PSI is insufficient for temporal stability. The evidence shown is also incomplete relative to the stated question: only 10 feature profiles are visible, so the claim about all 17 features having no review-rule triggers is not fully substantiated by the excerpt provided.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one feature is either unavailable at decision time, semantically altered by cached factorization, or unstable under a forward-in-time split, which would make the current modeling setup unsafe without remediation.",
+        "success_gate": "For every one of the 17 features: confirm decision-time availability, confirm raw semantic restoration or a production-compatible encoder, and show no leakage/shift flag under a forward-chaining or time-based split; if any feature fails any check, modeling is blocked until resolved.",
+        "title": "Time-aware schema and availability audit for all 17 features",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing feature set and only adds a schema/availability check plus one time-aware validation pass, without requiring model training or feature redesign."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-041 / evidence.source_rows",
+          "statement": "The package reports 12330 source rows for online_shoppers."
+        },
+        {
+          "citation": "EXP-041 / evidence.feature_count",
+          "statement": "The package reports 17 cached features."
+        },
+        {
+          "citation": "EXP-041 / evidence.positive_rate_train",
+          "statement": "The package reports a training positive rate of 0.1546875."
+        },
+        {
+          "citation": "EXP-041 / evidence.feature_profiles",
+          "statement": "The feature profile excerpt shows zero missingness for the listed features and zero recorded production_risks for those listed features."
+        },
+        {
+          "citation": "EXP-041 / claims[1].limitations[0]",
+          "statement": "The package includes a note that cached UCI matrices factorized categoricals before this campaign and that raw category semantics must be restored for production encoders."
+        },
+        {
+          "citation": "EXP-041 / claims[1].limitations[1]",
+          "statement": "The package includes a note that random train/holdout PSI is only a smoke check and does not establish temporal production stability."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:03Z",
+      "risks_and_missing_evidence": [
+        "Only 10 feature profiles are visible in the provided evidence excerpt, so the all-features claim is not fully evidenced from the bundle shown.",
+        "No evidence is provided for the remaining 7 features, including whether they have missingness, identifier-like behavior, near-constant distributions, or shift issues.",
+        "No decision-time availability review is shown for any feature; production availability at scoring time is unresolved.",
+        "The package explicitly notes that categorical values were factorized in cached UCI matrices, but no restoration plan or encoder compatibility check is shown.",
+        "Random train/holdout PSI is reported, but no temporal split, backtesting, or forward-chaining validation is provided.",
+        "No leakage audit is shown for target-derived or post-outcome variables.",
+        "No schema/versioning evidence is shown to confirm that training-time columns match production-time inputs."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1093,
+        "prompt_tokens": 1855,
+        "total_tokens": 2948
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:03Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

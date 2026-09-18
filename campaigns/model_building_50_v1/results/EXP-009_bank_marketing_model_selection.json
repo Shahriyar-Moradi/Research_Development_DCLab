@@ -1150,14 +1150,91 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-009-C1",
+          "issue": "The statement says extra_trees is the training-CV model candidate, but the evidence bundle\u2019s model_results entry for extra_trees is actually model=extra_trees with mean ROC-AUC 0.7288407757459535; the claim is directionally supported, yet the package does not demonstrate that this is the strongest stable evidence under a validated protocol because only 3 folds and 1 repeat are shown.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-009-C1",
+          "issue": "The claim uses a recommendation framing, but the evidence lacks a locked holdout and any production-availability review, so it overreaches if interpreted as a deployable choice.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-009-C1",
+          "issue": "The claim references ratios features, but the package does not provide a leakage check for engineered ratio features or the source timestamps/availability of inputs.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-009-C1",
+          "issue": "The phrase 'strongest stable training-CV evidence' is not fully justified because the stability signal is based on only 3 folds and the reported fold standard deviation remains material relative to the mean.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "bank_marketing",
+      "decision": "Provisional training-CV leader only; do not treat as a validated algorithm winner.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-009_bank_marketing_model_selection.json",
+      "experiment_id": "EXP-009",
+      "interpretation": "Based on the provided training-CV evidence and the stated ranking rule, extra_trees is the leading candidate by the package\u2019s own criterion. However, the evidence is only weakly stable: the ROC-AUC spread across folds is non-trivial, the sample is only 3 folds with 1 repeat, and the package does not show a locked holdout or any decision-time/production-availability review. The question asks for the strongest stable training-CV evidence, but the current package supports only a provisional training-CV preference, not a robust winner claim.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the extra_trees lead is real and not an artifact of fold variance or leakage, then under a repeated stratified CV protocol with the same feature set and a documented leakage audit, extra_trees will retain the best mean ROC-AUC minus 0.25\u00d7std score over hist_gradient_boosting.",
+        "success_gate": "Run 5x repeated stratified CV with the same preprocessing and a documented feature-availability audit; success is met only if extra_trees remains top-ranked by the predeclared score and its mean ROC-AUC exceeds the runner-up by at least one pooled fold standard error, with no leakage findings.",
+        "title": "Repeat stratified CV with leakage audit for extra_trees vs hist_gradient_boosting",
+        "why_smallest": "This changes only the validation protocol and adds a leakage audit while keeping the dataset, feature set, and top candidate comparison fixed, making the result directly falsifiable with minimal extra scope."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-009 / evidence.model_results[*].{model,stage,folds,repeats,optimization}",
+          "statement": "The package evaluates five model families on the bank_marketing dataset under the ratios stage with training CV only, using 3 folds and 1 repeat per model."
+        },
+        {
+          "citation": "EXP-009 / evidence.selection_rule",
+          "statement": "The stated selection rule ranks models by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime, and explicitly uses training CV only."
+        },
+        {
+          "citation": "EXP-009 / evidence.model_results[1].metrics.roc_auc; EXP-009 / evidence.model_results[1].fold_metrics[*].roc_auc",
+          "statement": "extra_trees has the highest reported mean ROC-AUC among the listed models at 0.7288407757459535 with std 0.02954342984875996, and its fold ROC-AUC values are 0.7438938428874735, 0.7478259023354563, and 0.6948025820149306."
+        },
+        {
+          "citation": "EXP-009 / evidence.model_results[2].elapsed_seconds; EXP-009 / evidence.model_results[1].elapsed_seconds",
+          "statement": "hist_gradient_boosting has the lowest reported runtime among the listed models at 0.8132207079997897 seconds, while extra_trees is 2.0212677079998684 seconds."
+        },
+        {
+          "citation": "EXP-009 / evidence.model_results[1].feature_stability[*]; EXP-009 / evidence.model_results[1].stage",
+          "statement": "The reported feature stability for extra_trees includes repeated prominence of poutcome and log1p_poutcome across all 3 folds, but the package does not provide a leakage audit or feature provenance for these engineered features."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:09:07Z",
+      "risks_and_missing_evidence": [
+        "Only 3 CV folds and 1 repeat are shown, which is thin evidence for stability.",
+        "No locked holdout results are provided, so the training-CV leader may not generalize.",
+        "No leakage audit is shown for engineered ratio/log features such as log1p_poutcome and ratio_pdays_div_age.",
+        "No description of the CV splitter is provided; if the data are time-ordered or grouped, standard CV could leak information.",
+        "The selection rule uses runtime as a tie-breaker after a custom stability-adjusted score, but the package does not justify why this rule is appropriate for the decision context.",
+        "No decision-time or production-availability review is included, so feature/model readiness cannot be approved.",
+        "The evidence does not compare calibration or threshold-dependent utility in a decision setting, despite reporting calibration metrics and threshold=0.5 outputs."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1302,
+        "prompt_tokens": 12368,
+        "total_tokens": 13670
+      }
+    },
+    "reviewed_at": "2026-09-18T13:09:07Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

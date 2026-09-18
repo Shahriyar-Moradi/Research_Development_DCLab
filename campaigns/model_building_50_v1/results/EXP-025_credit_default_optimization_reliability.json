@@ -1302,14 +1302,90 @@
   "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
   "kind": "optimization_reliability",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-025-C1",
+          "issue": "The statement reports a holdout ROC-AUC, but the question also asks whether optimization produced a meaningful CV gain. The package does not include the tuned and baseline CV scores needed to verify the stated selection rule or any improvement magnitude.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-025-C1",
+          "issue": "Because the holdout is marked consumed, any further use of this holdout for recipe selection would be a validation risk; the package does not show safeguards preventing that.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-025-C2",
+          "issue": "The recommendation is directionally sound, but it is not supported by explicit evidence of decision-time availability, contractual obtainability, or monitoring readiness for the listed features.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-025-C2",
+          "issue": "Cross-fold stability is based on only 3 folds, which is limited evidence for a strong stability claim.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "credit_default",
+      "decision": "Do not accept the claim that optimization produced a meaningful CV gain on the basis of this package alone. Treat the holdout score as a completed descriptive evaluation, not as evidence of superiority or deployability. Require the missing baseline-vs-tuned CV comparison and a decision-time/production-availability review before any feature or recipe promotion.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-025_credit_default_optimization_reliability.json",
+      "experiment_id": "EXP-025",
+      "interpretation": "The package supports a descriptive statement that the selected recipe achieved a moderate holdout ROC-AUC and that some features appear repeatedly important across the reported CV folds. It does not, by itself, establish that optimization produced a meaningful CV gain because the actual baseline and tuned CV scores are not shown here, only the selection threshold. The holdout result is informative but remains a single once-consumed estimate; the bootstrap interval suggests uncertainty, and no decision-time or production-availability review is evidenced for any feature or recipe.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "The tuned recipe exceeds the baseline mean CV ROC-AUC by at least 0.001 under the same fold protocol, and the top candidate features remain available at decision time and in production.",
+        "success_gate": "Report baseline and tuned mean CV ROC-AUC on the same folds; accept the optimization claim only if tuned - baseline >= 0.001. Separately, for each promoted feature, provide decision-time availability and production-obtainability evidence; otherwise exclude it.",
+        "title": "Baseline-vs-tuned CV audit with decision-time feature check",
+        "why_smallest": "This reuses the existing CV protocol and adds only the missing baseline comparison plus a lightweight feature-availability audit, which is the minimum needed to falsify the optimization and promotion claims without touching the consumed holdout."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-025 / evidence.holdout_metrics; EXP-025 / evidence.holdout_roc_auc_bootstrap_ci; EXP-025 / evidence.holdout_consumed",
+          "statement": "The once-consumed holdout evaluation for the preselected extra_trees/extra_trees_C02 recipe reports ROC-AUC 0.7746098248859629 with bootstrap 95% interval [0.7325987769358417, 0.8150416307620654]."
+        },
+        {
+          "citation": "EXP-025 / evidence.holdout_metrics",
+          "statement": "The holdout metrics also include accuracy 0.81, average precision 0.5298469143747347, Brier score 0.13712771805442664, ECE_10 0.046174388225831545, F1 0.4198473282442748, log loss 0.4362450195279426, precision 0.6470588235294118, recall 0.3107344632768362, and threshold 0.5."
+        },
+        {
+          "citation": "EXP-025 / evidence.selection_rule",
+          "statement": "The optimization rule states that the best tuned candidate is used only when mean ROC-AUC improves by at least 0.001 over baseline; otherwise baseline is preferred."
+        },
+        {
+          "citation": "EXP-025 / evidence.top_final_features; EXP-025 / evidence.cv_feature_stability",
+          "statement": "The feature-importance evidence lists X6, X7, X8, X11, X9, X10, X1, X5, X4, X3, X12, X2, X13, X15, and X18 among the top final features, with CV stability reported over 3 folds."
+        },
+        {
+          "citation": "EXP-025 / evidence.production_feature_rule",
+          "statement": "The production feature rule requires decision-time availability, contractual obtainability, monitoring for missingness/drift, and cross-fold stability; it explicitly warns against using importance alone."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:18Z",
+      "risks_and_missing_evidence": [
+        "No baseline CV metric is provided, so the claimed 'meaningful CV gain' cannot be verified against the stated 0.001 improvement rule.",
+        "Only 3 CV folds are reported for feature stability, which is thin evidence for stability claims.",
+        "The holdout has been consumed, so further tuning against it would risk leakage or implicit overfitting if used again for model selection.",
+        "Feature importance alone is not sufficient for promotion; there is no explicit evidence that the listed features are decision-time available or contractually obtainable.",
+        "No production monitoring plan or missingness/drift evidence is provided for the candidate features.",
+        "The holdout metrics are single-point estimates; no comparison to alternative recipes or calibration baselines is shown."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1262,
+        "prompt_tokens": 2752,
+        "total_tokens": 4014
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:18Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "metrics": {
     "accuracy": 0.81,

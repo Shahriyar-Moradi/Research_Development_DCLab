@@ -39,14 +39,71 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-002-C1",
+          "issue": "The claim only demonstrates detector behavior on a synthetic canary. It does not establish that any real dataset column is a leakage source or proxy.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-002-C2",
+          "issue": "The statement 'Declared decision-time exclusions for adult: none' is unsupported by the provided evidence because no decision-time semantics or production-availability review is included.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "adult",
+      "decision": "Insufficient evidence to conclude which columns are leakage or target proxies. The current package supports only a detector sanity check, not a column-level leakage determination.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-002_adult_leakage_audit.json",
+      "experiment_id": "EXP-002",
+      "interpretation": "The package shows only that the detector can flag an injected exact-target canary, but it does not identify any real columns that violate the prediction-time contract or behave as target proxies. The absence of declared leakage features is not evidence of absence, and the missing safe-vs-unsafe CV result leaves the audit unsupported for ranking or validating suspicious columns.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one candidate column in adult either is unavailable at prediction time or behaves like a suspicious target proxy when evaluated against decision-time semantics and simple leakage heuristics.",
+        "success_gate": "For each column, provide decision-time availability status plus a minimal evidence table with name-based review, uniqueness, and univariate target association; flag any column that fails the contract or is a strong proxy candidate. Success is achieved if the audit produces a reproducible list of flagged columns with explicit rationale, or confirms none after review.",
+        "title": "Column-level decision-time contract audit for adult",
+        "why_smallest": "This is the smallest falsifiable step because it adds only a column-by-column contract review and lightweight heuristics, without requiring model retraining or broader pipeline changes."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-002 / evidence.detector_canary_passed",
+          "statement": "The synthetic exact-target canary was reported as caught by the leakage detector."
+        },
+        {
+          "citation": "EXP-002 / evidence.declared_leakage_features",
+          "statement": "No declared leakage features were provided for the adult dataset."
+        },
+        {
+          "citation": "EXP-002 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "No safe-vs-unsafe training CV result was provided."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:16Z",
+      "risks_and_missing_evidence": [
+        "No column-level evidence is provided for actual suspicious features, so the question remains unanswered.",
+        "The canary result only validates detector sensitivity to a synthetic exact-target leak; it does not validate recall on realistic leakage patterns.",
+        "No decision-time semantics review is shown for any candidate column, so prediction-time contract violations cannot be confirmed.",
+        "No production-availability review is shown, so even a plausible proxy cannot be approved or ruled out for deployment use.",
+        "The missing safe-vs-unsafe training CV result prevents assessment of whether excluding suspected columns changes model behavior in a way consistent with leakage removal."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 696,
+        "prompt_tokens": 872,
+        "total_tokens": 1568
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:16Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

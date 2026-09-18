@@ -251,14 +251,82 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-026-C1",
+          "issue": "The fact claim is plausible from the cited fields, but the package does not show the underlying label definition or whether the 0.300 positive rate is computed on a leakage-free training split. Without split construction details, the rate is descriptive only.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-026-C2",
+          "issue": "The statement that 0 features triggered review rules is not fully supported by the evidence excerpt because only 10 feature profiles are visible, not all 20 cached features. Also, null PSI for one feature means the shift review is incomplete for the shown sample.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-026-C2",
+          "issue": "The limitation about factorized categoricals is a valid risk note, but the evidence bundle does not show the raw source schema or a reversible mapping, so the production-encoder requirement remains unverified.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "german_credit",
+      "decision": "Do not approve modeling yet. The dataset can be described, but the evidence is insufficient to clear production-availability and leakage-risk checks.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-026_german_credit_data_understanding.json",
+      "experiment_id": "EXP-026",
+      "interpretation": "Observed evidence supports a narrow data-understanding summary: the dataset is small, tabular, and appears to have no missing values in the sampled feature profiles. However, the package does not establish that the cached features preserve raw category semantics, nor does it establish production-time availability, decision-time availability, or temporal stability. The claim that no features triggered review rules is only partially supported because the evidence shown is a sample of 10 feature profiles, not the full 20-feature set, and one feature lacks a PSI value. The strongest unresolved issue is potential preprocessing leakage from factorized categorical encodings and the absence of a production-availability review for each feature.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one feature is either not available at decision time, lacks a reversible raw-category mapping, or fails a complete per-feature quality check when all 20 features are audited from raw source columns.",
+        "success_gate": "For all 20 features, provide raw source column names, decision-time availability status, reversible categorical mapping status, missingness, identifier/near-constant flags, and a non-null shift statistic; the experiment passes only if no feature is missing any of these fields and no feature is flagged as unavailable or unrecoverable.",
+        "title": "Raw-schema and availability audit for all 20 features",
+        "why_smallest": "This is the minimal falsifiable step that directly tests the two main unresolved risks: production availability and preprocessing leakage from factorized categoricals, without requiring model training."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-026 / evidence.source_rows; EXP-026 / evidence.feature_count; EXP-026 / evidence.positive_rate_train",
+          "statement": "The package reports 1000 source rows and 20 cached features for german_credit, with a training positive rate of 0.300."
+        },
+        {
+          "citation": "EXP-026 / evidence.feature_profiles[].missing_rate; EXP-026 / evidence.feature_profiles[].production_risks",
+          "statement": "The provided feature profile sample shows zero missingness for the listed attributes and no recorded production_risks entries in the sample."
+        },
+        {
+          "citation": "EXP-026 / evidence.feature_profiles[].random_split_psi",
+          "statement": "The sample includes random_split_psi values for several attributes, but one listed feature has random_split_psi = null."
+        },
+        {
+          "citation": "EXP-026 / claims[1].limitations[0]; EXP-026 / claims[1].limitations[1]",
+          "statement": "The evidence bundle itself states that cached UCI matrices factorized categoricals before this campaign and that random train/holdout PSI is only a smoke check."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:25Z",
+      "risks_and_missing_evidence": [
+        "No explicit evidence that all 20 features were reviewed; only 10 feature profiles are shown in the bundle.",
+        "No raw-column schema or provenance is provided, so the claim about restored category semantics is not verified.",
+        "No decision-time availability review is shown for any feature, so features may not be available when predictions are made.",
+        "No production-time stability evidence is provided; random-split PSI cannot substitute for temporal or deployment-slice validation.",
+        "No target definition, label timing, or leakage audit is provided, so target leakage cannot be ruled out.",
+        "No missingness/identifier/near-constant review thresholds are documented, so the rule-trigger statement is not fully auditable from the excerpt.",
+        "One feature has null random_split_psi, which leaves an incomplete shift check."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1047,
+        "prompt_tokens": 1824,
+        "total_tokens": 2871
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:25Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

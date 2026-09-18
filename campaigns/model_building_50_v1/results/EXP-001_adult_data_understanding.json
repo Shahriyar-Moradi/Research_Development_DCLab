@@ -191,14 +191,75 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-001-C1",
+          "issue": "The statement is factual, but it omits whether the 14 features are raw, encoded, or cached representations; the bundle itself warns that categoricals were factorized before this campaign, which affects downstream production interpretation.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-001-C2",
+          "issue": "The claim that 0 features triggered review rules is not sufficient to establish safety because the review rules shown are limited to missingness, identifier, near-constant, and random-split shift; they do not cover target leakage, decision-time availability, or production schema mismatch.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "adult",
+      "decision": "Do not proceed to modeling yet; first resolve representation and production-availability risks with a targeted validation pass.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-001_adult_data_understanding.json",
+      "experiment_id": "EXP-001",
+      "interpretation": "This is a dataset-understanding package, not modeling evidence. It supports only a narrow factual summary: the dataset size, feature count, and class balance, plus a preliminary profile suggesting no obvious missingness or near-constant issues in the inspected fields. However, the package does not establish production readiness, because the categorical representation appears to have been altered by prior factorization and the shift check is explicitly random-split only. The evidence is insufficient to conclude that the dataset is safe for modeling without restoring raw category semantics and checking decision-time availability and leakage risks.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one feature in the current cached representation is either unavailable at decision time, semantically altered by prior factorization, or otherwise unsuitable for production encoding without restoration of raw categories.",
+        "success_gate": "Pass only if every feature is mapped to a decision-time availability status, every categorical feature is shown in raw semantic form with a production encoder plan, and no feature is flagged as post-outcome, unavailable, or schema-incompatible.",
+        "title": "Decision-time and raw-category audit for adult features",
+        "why_smallest": "This is the minimal falsifiable step that directly tests the main unresolved risks before any modeling work, without requiring model training or additional performance evaluation."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-001 / evidence.source_rows; EXP-001 / evidence.feature_count",
+          "statement": "The package reports 48,842 source rows and 14 cached features for the adult dataset."
+        },
+        {
+          "citation": "EXP-001 / evidence.positive_rate_train",
+          "statement": "The reported training positive rate is 0.239375."
+        },
+        {
+          "citation": "EXP-001 / evidence.feature_profiles",
+          "statement": "The feature profile table shows zero missingness for the listed features and includes random-split PSI, top-value frequency, unique count, and unique ratio fields."
+        },
+        {
+          "citation": "EXP-001 / claims[1].limitations",
+          "statement": "The evidence bundle itself states that the cached UCI matrices factorized categoricals before this campaign and that random train/holdout PSI is only a smoke check."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:11Z",
+      "risks_and_missing_evidence": [
+        "Raw category semantics are not shown; the package notes prior factorization of categoricals, so production encoders may not match the cached matrices.",
+        "No decision-time availability review is provided for any feature, so leakage via post-outcome or unavailable-at-scoring fields is not ruled out.",
+        "Random train/holdout PSI is not a temporal or deployment stability test; production drift risk remains unassessed.",
+        "The feature profile excerpt is incomplete in the provided bundle, so the claim that 0 features triggered review rules is not fully auditable from the visible evidence alone.",
+        "The evidence does not show target definition timing, label collection window, or whether any features are derived from the target period."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 848,
+        "prompt_tokens": 1826,
+        "total_tokens": 2674
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:11Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

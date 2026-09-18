@@ -1001,14 +1001,95 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-004-C1",
+          "issue": "The statement 'lightgbm is the training-CV model candidate' is supported only as a ranking under the stated heuristic, not as a robust winner; hist_gradient_boosting has nearly identical mean ROC-AUC and a different runtime profile.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-004-C1",
+          "issue": "The evidence does not show repeated CV or a locked holdout, so the stability implied by 'strongest stable training-CV evidence' is not well established.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-004-C1",
+          "issue": "No leakage audit is included for raw features, fold construction, or any preprocessing steps, so the validity of the CV comparison cannot be fully verified.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-004-C1",
+          "issue": "The recommendation could be misread as a deployment approval, but there is no decision-time or production-availability review.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "adult",
+      "decision": "Provisional selection only: lightgbm is the current training-CV leader under the provided rule, but the evidence is insufficient to finalize an algorithm family choice for production or to claim stability beyond this single 3-fold run.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-004_adult_model_selection.json",
+      "experiment_id": "EXP-004",
+      "interpretation": "Based on the stated selection rule, lightgbm is the top training-CV candidate, but the margin over hist_gradient_boosting is extremely small and may not be practically meaningful without repeated CV or a locked holdout. The evidence supports a ranking under the chosen heuristic, not a claim that lightgbm is universally best.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the current ranking is stable, lightgbm will remain the top model family across repeated stratified CV runs and its advantage over hist_gradient_boosting will persist within a narrow uncertainty band.",
+        "success_gate": "Run at least 10 repeated stratified CV evaluations with identical preprocessing inside folds; declare lightgbm preferred only if its mean ROC-AUC remains higher than hist_gradient_boosting and the paired fold-wise difference is consistently positive in a majority of repeats, with no leakage findings.",
+        "title": "Repeated stratified CV comparison of lightgbm vs hist_gradient_boosting with leakage audit",
+        "why_smallest": "This changes only the evaluation protocol and compares only the two closest candidates, making it the minimal falsifiable test of whether the current leader is stable rather than a single-split artifact."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-004 / evidence.model_results",
+          "statement": "The package compares five baseline models on the adult dataset using raw features with 3 CV folds each."
+        },
+        {
+          "citation": "EXP-004 / evidence.selection_rule",
+          "statement": "The selection rule is mean ROC-AUC minus 0.25\u00d7fold standard deviation, with runtime used as a tiebreaker, and it is explicitly training-CV only."
+        },
+        {
+          "citation": "EXP-004 / evidence.model_results[*].metrics.roc_auc.mean",
+          "statement": "The reported mean ROC-AUC values are 0.8469670634315208 for logistic_regression, 0.8891408870082996 for extra_trees, 0.8953165275448374 for hist_gradient_boosting, 0.895549250905629 for lightgbm, and 0.8919567435623993 for xgboost."
+        },
+        {
+          "citation": "EXP-004 / evidence.model_results[*].metrics.roc_auc.std",
+          "statement": "The reported ROC-AUC standard deviations are 0.004667970022545528 for logistic_regression, 0.0075755771597569984 for extra_trees, 0.008934548232198785 for hist_gradient_boosting, 0.006452617087274231 for lightgbm, and 0.008328601821275487 for xgboost."
+        },
+        {
+          "citation": "EXP-004 / evidence.model_results[*].elapsed_seconds",
+          "statement": "The reported runtime is lowest for logistic_regression at 0.21762270799990802 seconds and highest for extra_trees at 1.484125375000076 seconds."
+        },
+        {
+          "citation": "EXP-004 / evidence.model_results[3].metrics.roc_auc",
+          "statement": "The lightgbm entry reports mean ROC-AUC 0.895549250905629 with std 0.006452617087274231 over 3 folds."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:31Z",
+      "risks_and_missing_evidence": [
+        "Only 3 folds and 1 repeat are reported; stability is weakly estimated and sensitive to split choice.",
+        "No locked holdout or external test evidence is provided, so generalization is unverified.",
+        "The selection rule uses training CV only; this can overfit model choice to the CV procedure itself.",
+        "No evidence is provided that preprocessing, encoding, or feature engineering were fit strictly inside each fold; leakage risk is unknown.",
+        "No decision-time or production-availability review is shown, so operational suitability cannot be assessed.",
+        "The ranking margin between lightgbm and hist_gradient_boosting is tiny, so the apparent leader may be an artifact of CV noise.",
+        "Calibration and threshold-dependent metrics are reported, but no threshold-selection protocol is documented."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1217,
+        "prompt_tokens": 10858,
+        "total_tokens": 12075
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:31Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

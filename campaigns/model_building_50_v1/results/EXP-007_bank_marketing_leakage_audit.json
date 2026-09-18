@@ -495,14 +495,85 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-007-C1",
+          "issue": "The canary detection only shows the detector can catch a synthetic exact-target canary. It does not validate that the detector correctly identifies real leakage columns in this dataset.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-007-C2",
+          "issue": "Calling duration a decision-time exclusion is plausible but not proven here; the evidence only shows a declared exclusion and a CV lift. The limitation text itself says only decision-time semantics can confirm leakage.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-007-C2",
+          "issue": "The +0.1842 AUC lift is not sufficient to label a feature as leakage or proxy; predictive lift can arise from legitimate signal, correlation structure, or preprocessing artifacts.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "bank_marketing",
+      "decision": "Do not approve duration for use until decision-time semantics and production availability are verified; treat it as a leakage-risk candidate, not a confirmed target proxy.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-007_bank_marketing_leakage_audit.json",
+      "experiment_id": "EXP-007",
+      "interpretation": "The evidence supports that duration is a suspicious feature under the declared prediction-time contract because it is explicitly excluded and it materially changes cross-validated predictive performance when included. However, the package does not establish leakage by itself: the semantics of duration at decision time, its availability in production, and whether the CV protocol matches the intended deployment setting are not demonstrated. The canary result only validates the detector on a synthetic test, not the real column.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If duration is unavailable at prediction time or is only known after the outcome-relevant event, then removing it should not be treated as a model-quality regression but as contract enforcement; if it is available before prediction, the leakage concern weakens and the observed lift needs a non-leakage explanation.",
+        "success_gate": "For duration, produce a signed decision-time data dictionary entry and serving-path check showing whether the value exists before scoring for at least one production-like request trace; if unavailable, mark it contract-violating. If available, rerun a strict ablation with identical preprocessing and a leakage-safe split, and require the AUC delta to persist under the same split before any further suspicion is escalated.",
+        "title": "Decision-time availability audit for duration",
+        "why_smallest": "This is the smallest falsifiable step because it tests the single disputed column directly, without expanding the audit scope or changing the model family."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-007 / evidence.detector_canary_passed",
+          "statement": "A synthetic exact-target canary was reported as detected by the leakage detector."
+        },
+        {
+          "citation": "EXP-007 / evidence.declared_leakage_features",
+          "statement": "The declared decision-time exclusion list contains only duration."
+        },
+        {
+          "citation": "EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.feature_count_mean; EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.feature_count_mean",
+          "statement": "The safe and unsafe 3-fold CV runs differ by one feature on average (15.0 vs 16.0 features)."
+        },
+        {
+          "citation": "EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.feature_stability[0]",
+          "statement": "The unsafe run assigns nontrivial normalized importance to duration across all three folds."
+        },
+        {
+          "citation": "EXP-007 / evidence.safe_vs_unsafe_training_cv.unsafe.metrics.roc_auc.mean; EXP-007 / evidence.safe_vs_unsafe_training_cv.safe.metrics.roc_auc.mean",
+          "statement": "The unsafe run shows higher CV ROC AUC than the safe run."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:51Z",
+      "risks_and_missing_evidence": [
+        "No decision-time semantics review for duration is provided; the package does not show when the value is known relative to prediction.",
+        "No production-availability evidence is provided; a feature can be non-leaky in training yet unavailable at serving time.",
+        "The CV protocol is not described in enough detail to rule out temporal, group, or preprocessing leakage.",
+        "Only one declared exclusion is listed; other columns with target-proxy behavior may be missed because the audit appears anchored to a single canary and univariate lift.",
+        "The reported AUC lift is from training-CV comparison only; this is predictive evidence, not proof of leakage or causal utility.",
+        "No ablation or permutation test is shown for duration specifically, so the marginal contribution may be confounded by correlated features."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1011,
+        "prompt_tokens": 5393,
+        "total_tokens": 6404
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:51Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

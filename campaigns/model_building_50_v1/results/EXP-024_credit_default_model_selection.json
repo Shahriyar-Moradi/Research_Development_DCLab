@@ -1150,14 +1150,95 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-024-C1",
+          "issue": "The statement that extra_trees is the training-CV model candidate is supported only within the stated selection rule and raw-stage CV run; it is not evidence that extra_trees is the best algorithm family overall or on unseen data.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-024-C1",
+          "issue": "The claim implies stability, but only one 3-fold run is shown. That is insufficient to establish ranking stability across resamples.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-024-C1",
+          "issue": "The evidence package does not show fold construction details, so leakage or dependence between folds cannot be ruled out.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-024-C1",
+          "issue": "Runtime is used as a tie-breaker in the selection rule, but the package does not justify that runtime differences are relevant to the modeling objective or deployment constraints.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "credit_default",
+      "decision": "Do not treat extra_trees as the final algorithm choice yet; treat it as the current CV leader only, pending repeat/outer validation and leakage checks.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-024_credit_default_model_selection.json",
+      "experiment_id": "EXP-024",
+      "interpretation": "The evidence supports a narrow training-CV ranking claim: under the stated selection rule, extra_trees is the top candidate on this raw-feature CV run. However, the package does not establish that extra_trees is the strongest stable family in a broader sense, because the comparison is limited to one 3-fold run, one stage, and one metric-weighted rule. Stability is only partially evidenced by modest fold-to-fold ROC-AUC spread, and the gap to other tree-based families is not obviously large enough to rule out ranking instability under different splits or repeats.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If extra_trees is truly the most stable training-CV family for this dataset profile, it should remain the top-ranked model across repeated stratified CV runs under the same selection rule.",
+        "success_gate": "Run at least 10 repeated stratified CV resamples on the same raw-stage model set; success requires extra_trees to rank first in at least 70% of repeats and to retain a positive margin over the next-best family under the same mean ROC-AUC minus 0.25\u00d7std rule.",
+        "title": "Repeat the raw-stage CV comparison with repeated stratified folds",
+        "why_smallest": "This changes only the resampling protocol while keeping the dataset, feature stage, model families, and selection rule fixed, making the ranking-stability question directly falsifiable with minimal added complexity."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-024 / evidence.model_results[*].model, EXP-024 / evidence.model_results[*].folds, EXP-024 / evidence.model_results[*].stage",
+          "statement": "The experiment compares five baseline models on the raw stage with 3 CV folds each: logistic_regression, extra_trees, hist_gradient_boosting, lightgbm, and xgboost."
+        },
+        {
+          "citation": "EXP-024 / evidence.selection_rule",
+          "statement": "The selection rule ranks models by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime, using training CV only."
+        },
+        {
+          "citation": "EXP-024 / evidence.model_results[1].metrics.roc_auc, EXP-024 / evidence.model_results[1].elapsed_seconds",
+          "statement": "extra_trees has the highest reported selection metric among the listed models: mean ROC-AUC 0.7362568489708696 with std 0.01590385515180382 and elapsed_seconds 1.935686209000778."
+        },
+        {
+          "citation": "EXP-024 / evidence.model_results[1].metrics.roc_auc, EXP-024 / evidence.model_results[2].metrics.roc_auc, EXP-024 / evidence.model_results[3].metrics.roc_auc, EXP-024 / evidence.model_results[4].metrics.roc_auc",
+          "statement": "xgboost has the lowest reported ROC-AUC variability among the tree-based models shown: std 0.017522347441607484, compared with extra_trees 0.01590385515180382, lightgbm 0.015166461731225754, and hist_gradient_boosting 0.014843033734126217."
+        },
+        {
+          "citation": "EXP-024 / evidence.model_results[1].fold_metrics[*].roc_auc",
+          "statement": "The reported fold ROC-AUC values for extra_trees are 0.7414463888718922, 0.7184064533235432, and 0.7489177047171737."
+        },
+        {
+          "citation": "EXP-024 / evidence.model_results[1].metrics.brier, EXP-024 / evidence.model_results[1].metrics.ece_10",
+          "statement": "The reported calibration-related metrics for extra_trees are Brier mean 0.14816840294526992 and ECE_10 mean 0.04173111735920745."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:11Z",
+      "risks_and_missing_evidence": [
+        "Only 3 folds and 1 repeat are reported; this is weak evidence for stability of the ranking.",
+        "No locked holdout or outer validation is shown, so the training-CV leader may not generalize.",
+        "The package does not describe how folds were constructed; if the dataset has temporal, grouped, or duplicate structure, leakage risk is unassessed.",
+        "The selection rule uses mean ROC-AUC minus 0.25\u00d7std and then runtime, but no uncertainty test is provided to show the ranking is robust to small metric differences.",
+        "No hyperparameter search details are provided; baseline defaults may understate or distort family-level performance.",
+        "Calibration and threshold-dependent metrics are reported, but the question asks for strongest stable training-CV evidence; no decision-time threshold policy or production-availability review is included.",
+        "Feature stability is reported, but it is not tied to leakage detection or to the algorithm-family ranking."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1359,
+        "prompt_tokens": 12261,
+        "total_tokens": 13620
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:11Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

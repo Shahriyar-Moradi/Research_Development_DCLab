@@ -187,14 +187,83 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-016-C1",
+          "issue": "The row count, feature count, and positive rate are descriptive facts, but the package does not show how the positive rate was computed or whether the training split was stratified; the metric is therefore not fully auditable from the provided evidence paths alone.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-016-C2",
+          "issue": "The statement that 3 features triggered review rules is only partially supported by the visible feature profiles; the bundle excerpt shows at least age, trestbps, and chol flagged for split_distribution_shift, but it does not expose the full rule evaluation for all 13 features or the exact thresholding logic.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-016-C2",
+          "issue": "The limitation about factorized categoricals is an unsupported preprocessing-history assertion unless backed by lineage or raw schema evidence; it should not be treated as established fact.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-016-C2",
+          "issue": "Using random_split_psi as a production-risk indicator is a weak proxy; it does not test temporal drift, decision-time availability, or post-deployment feature generation stability.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "heart_disease",
+      "decision": "Do not proceed to modeling until decision-time availability, production-availability, and leakage checks are completed for the flagged features and target definition.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-016_heart_disease_data_understanding.json",
+      "experiment_id": "EXP-016",
+      "interpretation": "This package supports a basic dataset inventory and a preliminary quality screen, but it does not yet establish production readiness. The strongest evidence is descriptive: small sample size, moderate class balance, and several features flagged for distribution-shift review. The package also hints at a preprocessing-history risk for categorical semantics, but that concern is only stated in the claim limitations and is not directly evidenced in the feature profiles. The random-split PSI values are only a smoke test and should not be treated as evidence of deployment stability.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "The flagged features can be shown to be available at decision time with stable raw semantics and no leakage from preprocessing or label timing.",
+        "success_gate": "For each flagged feature and the target, produce a lineage report showing raw source, extraction timestamp, decision-time availability, preprocessing steps, and split-specific fit/transform boundaries; the experiment succeeds only if no feature is derived from post-outcome information and all flagged features are available with unchanged semantics in the intended production context.",
+        "title": "Decision-time and lineage audit for flagged heart_disease features",
+        "why_smallest": "This is the minimal falsifiable step because it reuses the existing dataset inventory and only adds lineage, timing, and split-boundary verification before any model training."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-016 / evidence.source_rows; evidence.feature_count; evidence.positive_rate_train",
+          "statement": "The dataset bundle reports 303 source rows and 13 cached features for heart_disease, with a training positive rate of 0.45867768595041325."
+        },
+        {
+          "citation": "EXP-016 / evidence.feature_profiles",
+          "statement": "The provided feature profiles include age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, and oldpeak, each with dtype, missing_rate, top_value_frequency, unique_count, unique_ratio, and some with random_split_psi and production_risks."
+        },
+        {
+          "citation": "EXP-016 / evidence.feature_profiles",
+          "statement": "Within the listed profiles, age, trestbps, and chol are marked with production_risks containing split_distribution_shift, while several other listed features have no production_risks and some have random_split_psi values recorded."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:10:16Z",
+      "risks_and_missing_evidence": [
+        "No evidence is provided for the target definition, label timing, or whether the label is available at decision time.",
+        "No production-availability review is shown for any feature, so it is unknown whether the listed fields exist at inference time with the same semantics.",
+        "The claim that cached UCI matrices factorized categoricals before this campaign is not directly supported by the evidence bundle and needs verification from the raw ingestion/preprocessing lineage.",
+        "Random-split PSI values are present, but there is no temporal or operational validation; this leaves open the possibility that apparent stability is an artifact of the random split.",
+        "The package does not show train/validation split methodology, so leakage through preprocessing fit on full data cannot be ruled out.",
+        "Only 10 feature profiles are shown in the bundle excerpt, while the dataset claims 13 features; the remaining 3 features are not visible here and may hide additional risks.",
+        "No missingness pattern analysis, duplicate-row check, or identifier uniqueness audit is provided beyond the limited profile fields."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1082,
+        "prompt_tokens": 1908,
+        "total_tokens": 2990
+      }
+    },
+    "reviewed_at": "2026-09-18T13:10:16Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

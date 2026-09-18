@@ -211,14 +211,89 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-006-C1",
+          "issue": "The row count, feature count, and positive rate are factual dataset descriptors, but the package does not show how the cached factorized features relate to raw production fields; the claim is incomplete as a basis for modeling readiness.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-006-C2",
+          "issue": "The statement that 0 features triggered review rules is too strong without the full feature list and without decision-time/temporal checks; random-split PSI is not sufficient to rule out production shift or leakage.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "bank_marketing",
+      "decision": "Do not approve modeling readiness yet. The dataset description is usable, but production-availability and leakage risks remain unresolved.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-006_bank_marketing_data_understanding.json",
+      "experiment_id": "EXP-006",
+      "interpretation": "This evidence supports a narrow dataset-understanding summary: the dataset is a moderately sized binary classification table with 45,211 rows, 16 cached features, and an imbalanced positive class near 11.7%. The sample feature profiles suggest no obvious missingness in the inspected columns and no strong random-split distribution shift in the reported PSI values. However, the package does not establish that the current feature representation is production-ready, because the categorical variables were already factorized in the cached matrices and the evidence only checks random splits rather than decision-time or temporal availability. Therefore, the main unresolved issues are feature semantics restoration, production-time availability of each field, and leakage/validation design beyond random holdout.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one feature in the current cached table is either unavailable at prediction time or cannot be faithfully reconstructed from raw production inputs, which would make the current feature set unsafe to model without revision.",
+        "success_gate": "For every feature, document (1) whether it is available at decision time, (2) its raw source field, and (3) whether the cached factorized representation can be reproduced from production inputs; the experiment passes only if all 16 features are confirmed available and reproducible with no unresolved temporal or semantic mismatch.",
+        "title": "Decision-time availability and raw-category restoration audit",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing table and metadata, requires no model training, and directly tests the highest-risk unresolved issue: whether the features can exist in production in the same form as in the cached dataset."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-006 / evidence.source_rows",
+          "statement": "The package reports 45,211 source rows for bank_marketing."
+        },
+        {
+          "citation": "EXP-006 / evidence.feature_count",
+          "statement": "The package reports 16 cached features."
+        },
+        {
+          "citation": "EXP-006 / evidence.positive_rate_train",
+          "statement": "The reported training positive rate is 0.116875."
+        },
+        {
+          "citation": "EXP-006 / evidence.feature_profiles[].missing_rate",
+          "statement": "The provided feature profile sample shows zero missingness for the listed features."
+        },
+        {
+          "citation": "EXP-006 / evidence.feature_profiles[].random_split_psi",
+          "statement": "The provided feature profile sample includes random-split PSI values for some features, all shown as small in the sample."
+        },
+        {
+          "citation": "EXP-006 / claims[EXP-006-C2].limitations[0]",
+          "statement": "The package explicitly notes that cached UCI matrices factorized categoricals before this campaign and that raw category semantics must be restored for production encoders."
+        },
+        {
+          "citation": "EXP-006 / claims[EXP-006-C2].limitations[1]",
+          "statement": "The package explicitly notes that random train/holdout PSI is only a smoke check and does not establish temporal production stability."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:45Z",
+      "risks_and_missing_evidence": [
+        "No evidence that the factorized categorical codes can be mapped back to raw category values for a production encoder pipeline.",
+        "No decision-time availability audit: the package does not say whether each feature is known before the prediction timestamp.",
+        "No temporal validation evidence: random-split PSI cannot rule out time-based drift or leakage from post-event fields.",
+        "No confirmation that the target label is defined strictly after feature collection, so label leakage remains possible.",
+        "Only a sample of feature profiles is shown; the package does not provide all 16 features in the visible evidence, so completeness of the '0 features triggered review rules' claim is not fully inspectable here.",
+        "No evidence on duplicate rows, entity overlap, or repeated-campaign leakage across splits.",
+        "No evidence on missing-value handling for the full table beyond the displayed sample."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1044,
+        "prompt_tokens": 1822,
+        "total_tokens": 2866
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:45Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

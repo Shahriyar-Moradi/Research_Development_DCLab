@@ -1150,14 +1150,111 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-039-C1",
+          "issue": "The statement says hist_gradient_boosting is the training-CV candidate, but the evidence bundle's model entry for the top ROC-AUC result is labeled model=hist_gradient_boosting while the package also lacks a holdout check; this supports only a provisional CV leader, not a final algorithm-family winner.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-039-C1",
+          "issue": "The claim highlights 0.9874\u00b10.0021 ROC-AUC, but the evidence does not show the exact computation method for the uncertainty interval beyond fold std/CI fields, so the summary should not be treated as independently validated outside the package.",
+          "severity": "low"
+        },
+        {
+          "claim_id": "EXP-039-C1",
+          "issue": "The claim implies stability from 3-fold CV, but three folds with one repeat is thin evidence for stability and may miss sensitivity to split choice.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-039-C1",
+          "issue": "The selection rule ranks by mean ROC-AUC minus 0.25\u00d7fold std and then runtime, which can favor small differences in mean score; the package does not show whether the ranking is robust to alternative reasonable selection rules.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "spambase",
+      "decision": "Provisional training-CV candidate only; do not treat as final model choice without a locked holdout and repeated validation review.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-039_spambase_model_selection.json",
+      "experiment_id": "EXP-039",
+      "interpretation": "Within this training-CV-only package, hist_gradient_boosting is the top mean ROC-AUC model and is also very stable across the 3 folds. However, the evidence is not strong enough to conclude it is the strongest algorithm family for the dataset in a deployment sense, because the ranking is based on a single 3-fold CV run, the lead over xgboost is small, and no locked holdout or repeated/nested validation is shown. The safest inference is that hist_gradient_boosting is the current training-CV leader under the stated selection rule, not a proven overall winner.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If hist_gradient_boosting is truly the strongest stable family for this dataset profile, it should remain ahead of xgboost under repeated stratified CV and should not lose its advantage on a locked holdout.",
+        "success_gate": "Run at least 10 repeated stratified CV splits with identical preprocessing inside folds, then evaluate the top two families on one untouched locked holdout. Success requires hist_gradient_boosting to retain the best mean ROC-AUC across repeats and to remain within a small predeclared margin of xgboost on the holdout; if the ranking flips or the gap is not robust, the current claim is not supported.",
+        "title": "Repeated stratified CV comparison of hist_gradient_boosting vs xgboost with a locked holdout",
+        "why_smallest": "This changes only the validation design and the comparison set to the current top two families, preserving the raw-feature setup and the existing metric focus while directly testing whether the observed lead is stable."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-039 / evidence.model_results[*].stage; EXP-039 / evidence.model_results[*].folds; EXP-039 / evidence.selection_rule",
+          "statement": "The package compares five raw-feature baseline models on spambase with 3-fold training CV only."
+        },
+        {
+          "citation": "EXP-039 / evidence.selection_rule",
+          "statement": "The selection rule ranks models by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[2].metrics.roc_auc; EXP-039 / evidence.model_results[2].elapsed_seconds; EXP-039 / evidence.model_results[2].model",
+          "statement": "hist_gradient_boosting reports mean ROC-AUC 0.9873896960381686 with std 0.002121988574714392 and elapsed_seconds 1.6992935830003262."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[4].metrics.roc_auc; EXP-039 / evidence.model_results[4].elapsed_seconds; EXP-039 / evidence.model_results[4].model",
+          "statement": "xgboost reports mean ROC-AUC 0.9867833892946667 with std 0.00268486943570291 and elapsed_seconds 1.0544040000004316."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[3].metrics.roc_auc; EXP-039 / evidence.model_results[3].elapsed_seconds; EXP-039 / evidence.model_results[3].model",
+          "statement": "lightgbm reports mean ROC-AUC 0.9842813595919383 with std 0.004333722807116525 and elapsed_seconds 1.0302298339993285."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[1].metrics.roc_auc; EXP-039 / evidence.model_results[1].elapsed_seconds; EXP-039 / evidence.model_results[1].model",
+          "statement": "extra_trees reports mean ROC-AUC 0.973669611888392 with std 0.005282090350802685 and elapsed_seconds 2.307461124999463."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[0].metrics.roc_auc; EXP-039 / evidence.model_results[0].elapsed_seconds; EXP-039 / evidence.model_results[0].model",
+          "statement": "logistic_regression reports mean ROC-AUC 0.9559366122101852 with std 0.010143570954306572 and elapsed_seconds 0.7449518329995044."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[2].metrics.roc_auc; EXP-039 / evidence.model_results[4].metrics.roc_auc",
+          "statement": "hist_gradient_boosting has the highest mean ROC-AUC among the listed models, but the margin over xgboost is small."
+        },
+        {
+          "citation": "EXP-039 / evidence.selection_rule; EXP-039 / evidence.model_results[*].fold_metrics; EXP-039 / evidence.model_results[*].metrics",
+          "statement": "The evidence bundle does not include a locked holdout evaluation."
+        },
+        {
+          "citation": "EXP-039 / evidence.model_results[*].repeats",
+          "statement": "The evidence bundle does not include repeated CV or nested CV; repeats is 1 for all models."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:12:50Z",
+      "risks_and_missing_evidence": [
+        "Only 3 folds and repeats=1 are shown, so fold-to-fold variability may be underestimated.",
+        "No locked holdout result is provided, so generalization remains unverified.",
+        "The selection rule uses training CV only; this can overfit model choice to the CV procedure.",
+        "No nested CV or separate model-selection/assessment split is shown.",
+        "No decision-time or production-availability review is provided, so operational suitability cannot be assessed.",
+        "The package does not show whether preprocessing, feature engineering, or any target-aware steps were confined strictly within each fold.",
+        "The dataset profile is not described in enough detail to assess whether raw features are appropriate across all candidate families."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1639,
+        "prompt_tokens": 12357,
+        "total_tokens": 13996
+      }
+    },
+    "reviewed_at": "2026-09-18T13:12:50Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

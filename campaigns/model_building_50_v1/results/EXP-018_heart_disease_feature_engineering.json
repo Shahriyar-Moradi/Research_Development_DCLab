@@ -1477,14 +1477,99 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-018-C1",
+          "issue": "The statement says 'improves validation evidence,' but the cited evidence only reports mean training-CV ROC-AUC and feature count. No independent validation metric is present.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-018-C1",
+          "issue": "The recommendation to use the raw recipe is based on a size-vs-training-CV tradeoff, but the raw and logs stages have the same mean ROC-AUC, so the evidence supports 'smallest tied-best' rather than 'better'.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-018-C1",
+          "issue": "The package does not show decision-time or production-availability review for the raw features, so the recommendation is incomplete for deployment use.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-018-C1",
+          "issue": "Because multiple engineered stages were compared, the best mean training-CV ROC-AUC may be subject to selection bias; the 0.002 rule is not enough to rule out overfitting without a held-out check.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "heart_disease",
+      "decision": "Do not treat the raw recipe as validated for production or as a proven improvement. At most, it is the current smallest candidate that matches the best reported training-CV ROC-AUC under the stated rule, pending independent validation and feature availability review.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-018_heart_disease_feature_engineering.json",
+      "experiment_id": "EXP-018",
+      "interpretation": "The evidence supports a narrow, non-causal inference: among the reported stages, the raw recipe is the smallest matrix and its mean training-CV ROC-AUC is tied for the best reported value, so it satisfies the stated selection rule better than the larger recipes. However, the package does not establish that this recipe improves validation evidence in a deployment-relevant sense, because only training-CV metrics are shown and no independent validation/test or decision-time availability checks are provided.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the raw recipe is genuinely preferable without feature dilution, then it will match or exceed the logs recipe on a pre-registered held-out validation metric while using fewer features, under identical fold-wise fitting and preprocessing.",
+        "success_gate": "Run one pre-registered evaluation with a fixed train/validation split or nested CV: raw and logs only, same model and seed, fold-wise feature fitting, and report held-out ROC-AUC plus calibration. Success requires raw to be within 0.002 of logs on held-out ROC-AUC and to use fewer features, with no leakage detected in the pipeline audit.",
+        "title": "Single held-out validation of raw vs logs under the same fold-wise pipeline",
+        "why_smallest": "It changes only the comparison set from many stages to the two closest candidates (raw and logs) and adds the minimum necessary independent validation check to test the selection rule."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-018 / evidence.selection_rule",
+          "statement": "The selection rule is to choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-018 / evidence.stage_results[0].metrics.roc_auc.mean; EXP-018 / evidence.stage_results[0].feature_count_mean; EXP-018 / evidence.stage_results[0].folds",
+          "statement": "The raw stage reports mean training-CV ROC-AUC of 0.8700264746776375 with mean feature_count_mean of 13.0 across 3 folds."
+        },
+        {
+          "citation": "EXP-018 / evidence.stage_results[1].metrics.roc_auc.mean; EXP-018 / evidence.stage_results[1].feature_count_mean; EXP-018 / evidence.stage_results[1].folds",
+          "statement": "The logs stage reports the same mean training-CV ROC-AUC as the raw stage and a higher mean feature_count_mean of 18.333333333333332 across 3 folds."
+        },
+        {
+          "citation": "EXP-018 / evidence.stage_results[2].metrics.roc_auc.mean; EXP-018 / evidence.stage_results[2].feature_count_mean; EXP-018 / evidence.stage_results[2].folds",
+          "statement": "The ratios stage reports mean training-CV ROC-AUC of 0.8686598861017466 with mean feature_count_mean of 33.333333333333336 across 3 folds."
+        },
+        {
+          "citation": "EXP-018 / evidence.stage_results[3].metrics.roc_auc.mean; EXP-018 / evidence.stage_results[3].feature_count_mean; EXP-018 / evidence.stage_results[3].folds",
+          "statement": "The interactions stage reports mean training-CV ROC-AUC of 0.8674742395672629 with mean feature_count_mean of 41.333333333333336 across 3 folds."
+        },
+        {
+          "citation": "EXP-018 / evidence.stage_results[4].metrics.roc_auc.mean; EXP-018 / evidence.stage_results[4].feature_count_mean; EXP-018 / evidence.stage_results[4].folds",
+          "statement": "The full_fe stage reports mean training-CV ROC-AUC of 0.8651886558863303 with mean feature_count_mean of 46.333333333333336 across 3 folds."
+        },
+        {
+          "citation": "EXP-018 / evidence.stage_results[5].metrics.roc_auc.mean; EXP-018 / evidence.stage_results[5].feature_count_mean; EXP-018 / evidence.stage_results[5].folds",
+          "statement": "The selected stage reports mean training-CV ROC-AUC of 0.8551892272822506 with mean feature_count_mean of 25.0 across 3 folds."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:10:29Z",
+      "risks_and_missing_evidence": [
+        "No separate holdout, nested CV, or external validation is shown; all evidence is training-CV only.",
+        "The selection rule uses mean training-CV ROC-AUC, which can favor overfit feature recipes when many engineered features are tried.",
+        "The package does not show whether any features are available at decision time in production, especially engineered ratios/interactions that may depend on inputs with missingness or delayed availability.",
+        "The package does not document leakage controls for train-fitted feature generation beyond the phrase 'train-fitted'; fold-wise fitting boundaries are not explicit.",
+        "The claim 'improves validation evidence' is not directly supported because no validation set metric is reported.",
+        "The raw stage and logs stage have identical mean ROC-AUC, so the evidence does not uniquely identify raw as better on score; it is only smaller.",
+        "Feature stability is reported, but stability alone does not establish generalization or production utility."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1493,
+        "prompt_tokens": 15829,
+        "total_tokens": 17322
+      }
+    },
+    "reviewed_at": "2026-09-18T13:10:29Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

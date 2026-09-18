@@ -1495,14 +1495,90 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-043-C1",
+          "issue": "The recommendation says to use the raw recipe for the next model screen, but the stated selection rule would not select the reported 'selected' stage, and the raw stage is only within tolerance relative to the best mean ROC-AUC, not proven superior. The evidence supports at most a candidate for further screening, not a recommendation.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-043-C1",
+          "issue": "The phrase 'improves validation evidence' is not supported because all reported metrics are training-CV summaries; no independent validation evidence is shown.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-043-C1",
+          "issue": "The phrase 'without feature dilution' is not validated as a decision criterion; only feature counts are reported, and no analysis shows that smaller matrices preserve performance under a pre-registered dilution threshold.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "online_shoppers",
+      "decision": "Do not accept the recommendation as stated. The smallest defensible next candidate from this package is the raw recipe, but only as a hypothesis for further validation, not as a production-approved feature set.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-043_online_shoppers_feature_engineering.json",
+      "experiment_id": "EXP-043",
+      "interpretation": "The evidence supports a narrow factual conclusion: among the reported stages, raw is the smallest feature matrix that is within the stated 0.002 mean training-CV ROC-AUC tolerance of the best reported stage. However, the package does not support the recommendation to use the selected stage as written, because the selected stage is not within the stated tolerance and the rule appears inconsistently applied. The evidence is also limited to training-CV summaries, so it cannot establish generalization improvement or production value.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the raw recipe truly preserves validation evidence without feature dilution, then on a single untouched holdout split it will achieve ROC-AUC within 0.002 of full_fe while using fewer features.",
+        "success_gate": "On one pre-specified untouched holdout split, raw must achieve ROC-AUC no more than 0.002 below full_fe, and the split must be fixed before any feature selection or model comparison.",
+        "title": "Single holdout validation of raw vs full_fe under the stated tolerance rule",
+        "why_smallest": "This is the minimal falsifiable test that directly checks the package's own tolerance rule and the smallest-feature claim without adding new feature families or changing the model class."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-043 / evidence.stage_results",
+          "statement": "The package reports six stages with 3-fold LightGBM CV each: raw, logs, ratios, interactions, full_fe, and selected."
+        },
+        {
+          "citation": "EXP-043 / evidence.stage_results[*].metrics.roc_auc.mean",
+          "statement": "The reported mean ROC-AUC values are raw 0.7155577147079568, logs 0.7155577147079568, ratios 0.7058793575708755, interactions 0.7145581484524911, full_fe 0.7163605112353855, and selected 0.7116458431257705."
+        },
+        {
+          "citation": "EXP-043 / evidence.stage_results[*].feature_count_mean",
+          "statement": "The selected stage has a lower mean feature count (25.0) than full_fe (54.0) and interactions (46.0), while raw and logs each have 16.0 features."
+        },
+        {
+          "citation": "EXP-043 / evidence.selection_rule",
+          "statement": "The selection rule is stated as: choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-043 / evidence.stage_results[*].metrics.roc_auc.mean",
+          "statement": "The raw stage is the only stage whose mean ROC-AUC is within 0.002 of the best reported mean ROC-AUC (full_fe), because 0.7163605112353855 - 0.7155577147079568 = 0.0008027965274287."
+        },
+        {
+          "citation": "EXP-043 / evidence.stage_results[*].metrics.roc_auc.mean; EXP-043 / evidence.selection_rule",
+          "statement": "The selected stage does not satisfy the stated selection rule if the rule is applied literally to the reported means, because its mean ROC-AUC (0.7116458431257705) is more than 0.002 below the best reported mean ROC-AUC (0.7163605112353855)."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:16Z",
+      "risks_and_missing_evidence": [
+        "The package uses training-CV evidence only; there is no untouched validation or test set result to check whether the apparent ROC-AUC differences generalize.",
+        "The selection rule appears inconsistent with the reported metrics, so the provenance of the chosen 'selected' stage is unclear.",
+        "No decision-time availability review is provided for any feature recipe, so production feasibility is unverified.",
+        "No leakage audit is shown for the generated ratio and interaction features; train-fitted generation reduces but does not eliminate leakage risk if any feature uses target-adjacent or post-outcome information.",
+        "The package does not report fold assignment details, grouping, or temporal split logic, so validation independence cannot be assessed.",
+        "The evidence does not compare against a simple non-engineered baseline outside the staged feature recipes in a way that isolates feature dilution effects.",
+        "The claim about 'without feature dilution' is not operationally defined beyond feature count, so the criterion is ambiguous."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1246,
+        "prompt_tokens": 16020,
+        "total_tokens": 17266
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:16Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

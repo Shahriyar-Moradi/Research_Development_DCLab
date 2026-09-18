@@ -353,14 +353,82 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-011-C1",
+          "issue": "The claim is a factual inventory, but it does not distinguish cached representation from raw production inputs. The statement may be incomplete for modeling readiness because feature semantics in production are not verified.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-011-C2",
+          "issue": "The claim says 1 feature triggered review rules, but the evidence only displays one flagged feature among ten shown profiles; it is unclear whether this is exactly one of thirty or just one in the excerpt.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-011-C2",
+          "issue": "The cited random-split PSI is not sufficient to support any production-stability inference, and the package itself acknowledges this limitation.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "breast_cancer",
+      "decision": "Do not proceed to modeling until production input representation and split strategy are verified. The current evidence is sufficient for a preliminary inventory, but insufficient to clear leakage, encoding, and production-availability risks.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-011_breast_cancer_data_understanding.json",
+      "experiment_id": "EXP-011",
+      "interpretation": "This is a compact data-understanding snapshot, not a modeling validation result. The evidence supports that the dataset is small, tabular, and numerically encoded in the cached form, with no missingness shown in the displayed feature profiles. However, the package does not establish whether the current feature representation matches production-time inputs, whether any preprocessing was fit without leakage, or whether the observed random-split shift is relevant to the actual deployment distribution. The single flagged feature suggests at least one distribution-shift review item remains unresolved, but the package does not quantify how many total features were reviewed or whether the rule was applied to all 30 features.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one cached feature is either unavailable at prediction time, derived from post-outcome information, or mismatched between training and production representations.",
+        "success_gate": "For every one of the 30 features, document source, availability at decision time, transformation lineage, and production population method; the experiment passes only if all features are confirmed available at prediction time with no post-outcome leakage and no unresolved schema mismatch.",
+        "title": "Production-schema and decision-time availability audit",
+        "why_smallest": "This is the minimal falsifiable step that directly addresses the largest unresolved risk before any modeling: whether the dataset features can be safely and consistently reproduced in production."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-011 / evidence.source_rows, evidence.feature_count",
+          "statement": "The package reports 569 source rows and 30 cached features for the breast_cancer dataset."
+        },
+        {
+          "citation": "EXP-011 / evidence.positive_rate_train",
+          "statement": "The reported training positive rate is 0.37362637362637363."
+        },
+        {
+          "citation": "EXP-011 / evidence.feature_profiles",
+          "statement": "Among the listed feature profiles, all shown features have missing_rate 0.0 and high unique ratios, with one feature explicitly flagged for split_distribution_shift."
+        },
+        {
+          "citation": "EXP-011 / claims[1].limitations",
+          "statement": "The evidence bundle states that cached UCI matrices factorized categoricals before this campaign and that random train/holdout PSI is only a smoke check."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:09:19Z",
+      "risks_and_missing_evidence": [
+        "No evidence that the raw production feature schema matches the cached UCI matrices; the note about factorized categoricals implies a representation mismatch risk.",
+        "No decision-time availability review: it is unclear which features are known at prediction time versus derived after the outcome.",
+        "No production-availability review: the package does not show whether all features can be populated reliably in the serving environment.",
+        "Random train/holdout PSI is not a substitute for temporal or deployment-slice validation.",
+        "The evidence only shows 10 feature profiles, so it is unclear whether the remaining 20 features were checked for missingness, identifier behavior, near-constant values, or shift.",
+        "The single flagged split_distribution_shift feature is not enough to determine whether the shift is material or an artifact of the random split.",
+        "No leakage audit is shown for preprocessing steps such as scaling, imputation, encoding, or feature selection."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 952,
+        "prompt_tokens": 1938,
+        "total_tokens": 2890
+      }
+    },
+    "reviewed_at": "2026-09-18T13:09:19Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

@@ -273,14 +273,81 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-031-C1",
+          "issue": "The claim is numerically supported by the evidence bundle, but it implicitly treats cached features as the final modeling representation. That is unsupported because the package does not show raw categorical values or the production encoder path.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-031-C2",
+          "issue": "The statement that 1 feature triggered review rules is not verifiable from the provided sample because only a subset of feature profiles is shown and the triggering rule thresholds are not included.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-031-C2",
+          "issue": "The limitation about random-split PSI correctly warns against overinterpretation, but the evidence does not show any temporal or production-simulation test to support stability claims.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "mushroom",
+      "decision": "Do not proceed to modeling yet; resolve data representation, leakage, and production-availability questions first.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-031_mushroom_data_understanding.json",
+      "experiment_id": "EXP-031",
+      "interpretation": "This evidence supports a basic dataset inventory and suggests the data are mostly low-cardinality categorical fields with no missingness in the sampled profiles. However, the package does not establish production readiness: the features are described as cached/factorized, so raw category semantics and the intended production encoder path remain unresolved. The random-split PSI values are only a within-sample smoke test and do not address temporal, source, or decision-time stability. The evidence is insufficient to conclude that the dataset is safe for modeling without leakage, schema, and availability checks.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the raw categorical values, target availability time, and production feature availability are documented for all 22 features, then we can identify whether any feature is unusable or leakage-prone before modeling.",
+        "success_gate": "For every feature, provide raw value semantics, missingness, cardinality, and a decision-time availability flag; fail if any feature lacks a production-available source, is derived from post-decision information, or cannot be mapped from the cached encoding back to a stable production encoder.",
+        "title": "Raw-category and decision-time availability audit for all 22 features",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing dataset inventory and only adds schema/availability verification, without requiring model training or new data collection."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-031 / evidence.source_rows; EXP-031 / evidence.feature_count",
+          "statement": "The dataset has 8124 source rows and 22 cached features."
+        },
+        {
+          "citation": "EXP-031 / evidence.positive_rate_train",
+          "statement": "The training positive rate is 0.481875."
+        },
+        {
+          "citation": "EXP-031 / evidence.feature_profiles",
+          "statement": "The provided feature profile sample shows zero missingness for the listed features and very low random-split PSI values where reported."
+        },
+        {
+          "citation": "EXP-031 / evidence.feature_profiles",
+          "statement": "The provided feature profile sample includes low unique ratios and high top-value frequencies for several features, consistent with categorical-like variables encoded as numeric values."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:58Z",
+      "risks_and_missing_evidence": [
+        "Raw category semantics are not shown; the evidence only exposes cached/factorized numeric representations, so production encoding compatibility is unverified.",
+        "Only a subset of feature profiles is shown; the package does not prove that all 22 features were checked for missingness, identifier behavior, near-constant behavior, or shift.",
+        "No target definition, label provenance, or decision-time availability review is provided, so leakage risk cannot be assessed.",
+        "Random train/holdout PSI is not a substitute for temporal or source-shift validation.",
+        "No train/validation split protocol is described, so the risk of split leakage or duplicate entities across splits remains unresolved.",
+        "No production schema, feature freshness, or online/offline availability constraints are documented."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 893,
+        "prompt_tokens": 1812,
+        "total_tokens": 2705
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:58Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

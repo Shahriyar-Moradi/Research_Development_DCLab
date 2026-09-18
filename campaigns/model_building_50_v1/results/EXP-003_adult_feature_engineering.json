@@ -1477,14 +1477,95 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-003-C1",
+          "issue": "The recommendation says to use the raw feature recipe, but the reported selection rule would require the smallest matrix within 0.002 of the best stage; the selected stage is not within that tolerance of the best reported mean ROC-AUC, and the raw stage is not the best stage by mean ROC-AUC.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-003-C1",
+          "issue": "The claim implies the recipe improves validation evidence without feature dilution, but the selected stage has lower mean ROC-AUC than raw and the larger interaction/full_fe stages do not improve over raw either.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-003-C1",
+          "issue": "The evidence does not show fold-local fitting for all engineered features, so leakage from train-fitted transformations or selection cannot be ruled out.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-003-C1",
+          "issue": "The feature stability table shows several engineered features with observed_folds below 3, which weakens the case that the recipe is stable enough to prefer.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "adult",
+      "decision": "Do not accept the claim that the raw/selected recipe should be used next based on this package alone. The smallest defensible action is to rerun the selection logic against the actual best stage and verify the criterion on an untouched validation split, with leakage checks and decision-time availability review before any feature approval.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-003_adult_feature_engineering.json",
+      "experiment_id": "EXP-003",
+      "interpretation": "The evidence does not support the recommendation to use the selected/raw recipe as the next screen under the stated selection rule. Based on the reported means, the best validation evidence is the interactions stage, while the selected stage is materially worse on mean ROC-AUC and also does not satisfy the stated within-0.002 criterion. The package also does not establish that the chosen recipe avoids feature dilution in a decision-safe sense, because the feature-count reduction is paired with lower validation evidence and the stability table shows several engineered features appearing in only 1-2 folds, which raises selection-instability concerns rather than resolving them. This is predictive evidence only; it does not justify causal claims about the recipe itself.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the feature recipe truly improves validation evidence without dilution, then a nested CV protocol with all transforms fit inside each training fold will reproduce the same stage ranking and the selected smallest matrix will remain within the stated ROC-AUC tolerance of the best stage.",
+        "success_gate": "On an untouched outer validation split, the chosen recipe must satisfy the predeclared within-0.002 mean ROC-AUC rule relative to the best stage under the same protocol, and the selected matrix must not lose more than the predeclared tolerance versus the best stage; otherwise the claim fails.",
+        "title": "Nested-CV rerun of the selection rule with fold-local feature fitting",
+        "why_smallest": "This changes only the validation protocol and selection placement, which is the minimal falsifiable test needed to separate genuine fold-local evidence from possible leakage or optimistic selection."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-003 / evidence.stage_results[*].stage, evidence.stage_results[*].model, evidence.stage_results[*].optimization",
+          "statement": "The package reports six stages with LightGBM baseline CV results on adult: raw, logs, ratios, interactions, full_fe, and selected."
+        },
+        {
+          "citation": "EXP-003 / evidence.stage_results[*].metrics.roc_auc.mean",
+          "statement": "The reported mean ROC-AUC values are raw 0.895549250905629, logs 0.895549250905629, ratios 0.8943588869920177, interactions 0.8956653185415995, full_fe 0.8936509629035153, and selected 0.8861543390223239."
+        },
+        {
+          "citation": "EXP-003 / evidence.stage_results[*].feature_count_mean",
+          "statement": "The reported feature_count_mean values are raw 14.0, logs 22.0, ratios 37.0, interactions 45.0, full_fe 50.0, and selected 25.0."
+        },
+        {
+          "citation": "EXP-003 / evidence.selection_rule",
+          "statement": "The selection rule is stated as choosing the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-003 / evidence.stage_results[5].metrics.roc_auc.mean, EXP-003 / evidence.stage_results[0].metrics.roc_auc.mean, EXP-003 / evidence.stage_results[3].metrics.roc_auc.mean",
+          "statement": "The selected stage has lower mean ROC-AUC than the raw stage and is not within 0.002 of the best reported stage mean ROC-AUC."
+        },
+        {
+          "citation": "EXP-003 / evidence.stage_results[5].feature_stability[*].observed_folds",
+          "statement": "The selected stage includes features with observed_folds less than 3 for some engineered terms, including inter_relationship_x_log1p_education (2), ratio_age_div_hours-per-week (1), and inter_relationship_x_occupation (1)."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:24Z",
+      "risks_and_missing_evidence": [
+        "The package reports only 3 CV folds and repeats=1, which is thin evidence for feature-selection stability.",
+        "The phrase 'train-fitted feature recipe' creates leakage risk unless every transformation, selection, and importance computation was fit strictly inside each training fold; the package does not explicitly document fold-local fitting for all engineered features.",
+        "The selection rule references 'mean training-CV ROC-AUC' but the evidence bundle only exposes fold metrics and aggregated means; it is unclear whether the rule was applied to the same metric and same stage set without peeking.",
+        "The selected stage contains features observed in only 1-2 folds, suggesting instability and possible overfitting to fold idiosyncrasies.",
+        "No decision-time or production-availability review is provided for the engineered features, especially for generic mathematical transforms and interaction terms.",
+        "No untouched holdout or nested-CV confirmation is provided, so the apparent ranking among stages may be optimistic.",
+        "No comparison against a simple baseline with identical CV protocol is explicitly summarized in the package, so the practical value of added feature engineering is not established."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1426,
+        "prompt_tokens": 15479,
+        "total_tokens": 16905
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:24Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

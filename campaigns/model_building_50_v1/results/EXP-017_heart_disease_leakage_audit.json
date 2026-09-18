@@ -39,14 +39,71 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-017-C1",
+          "issue": "This only shows the detector caught a synthetic canary; it does not demonstrate detection of any real leakage column in heart_disease.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-017-C2",
+          "issue": "The statement 'Declared decision-time exclusions for heart_disease: none' is unsupported as a decision because the package provides no decision-time semantics review and no column-level evidence.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "heart_disease",
+      "decision": "Insufficient evidence to determine which columns violate the prediction-time contract or are suspicious target proxies. No feature should be approved or excluded solely from this package.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-017_heart_disease_leakage_audit.json",
+      "experiment_id": "EXP-017",
+      "interpretation": "The package only establishes that the detector can recognize an injected exact-target canary and that no leakage features were declared. It does not identify which real columns violate the prediction-time contract or behave as target proxies. Because the key validation artifact comparing safe versus unsafe training is null, the evidence is insufficient to support any decision about feature safety or exclusion beyond a request for further review.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one column in heart_disease is unavailable at prediction time or behaves like a target proxy, and this can be identified by comparing each column\u2019s availability/semantics against the prediction-time contract plus a safe-vs-unsafe ablation.",
+        "success_gate": "For every column, provide a decision-time availability verdict and a rationale; flag any column with post-outcome timing, direct target encoding, or near-deterministic target association. The experiment succeeds only if the audit produces a non-null safe_vs_unsafe comparison and a reproducible list of candidate proxy columns with supporting evidence paths.",
+        "title": "Column-level decision-time contract audit for heart_disease",
+        "why_smallest": "It adds the minimum missing evidence needed to answer the question: a per-column contract review plus one safe-vs-unsafe ablation, without changing the dataset or requiring a larger modeling pipeline."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-017 / evidence.detector_canary_passed",
+          "statement": "The leakage detector\u2019s synthetic exact-target canary passed."
+        },
+        {
+          "citation": "EXP-017 / evidence.declared_leakage_features",
+          "statement": "No declared leakage features were provided for heart_disease."
+        },
+        {
+          "citation": "EXP-017 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "The safe_vs_unsafe_training_cv evidence is missing/null, so there is no reported comparison of model behavior under safe versus unsafe feature sets."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:10:21Z",
+      "risks_and_missing_evidence": [
+        "No column-level evidence is provided for actual candidate proxies, so the question asked by the experiment remains unanswered.",
+        "The null safe_vs_unsafe_training_cv field leaves a validation gap: there is no reported test of whether suspicious columns materially change predictive performance.",
+        "The canary result only validates detector functionality, not real-world leakage detection on the heart_disease dataset.",
+        "No decision-time semantics or production-availability review is included for any column, so contract violations cannot be confirmed.",
+        "No univariate association, uniqueness, timestamp availability, or post-outcome timing evidence is provided for specific columns."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 739,
+        "prompt_tokens": 878,
+        "total_tokens": 1617
+      }
+    },
+    "reviewed_at": "2026-09-18T13:10:21Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

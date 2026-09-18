@@ -39,14 +39,71 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-037-C1",
+          "issue": "A synthetic canary passing only demonstrates detector plumbing, not that the audit found or ruled out real leakage in spambase.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-037-C2",
+          "issue": "The statement that there are no declared decision-time exclusions is unsupported as a substantive leakage conclusion; the evidence bundle contains no column-level semantics and the validation field is null.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "spambase",
+      "decision": "Insufficient evidence to conclude which columns violate the prediction-time contract or are suspicious target proxies.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-037_spambase_leakage_audit.json",
+      "experiment_id": "EXP-037",
+      "interpretation": "The package provides only weak evidence about prediction-time contract violations. A passing synthetic canary supports that the detector is wired correctly, but it does not identify any real columns as leakage or target proxies. The absence of declared leakage features is not evidence that no columns violate the contract; it only shows none were declared. Because the key validation field is null, the package does not substantiate the decision claim that there are no decision-time exclusions for spambase.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If each column is checked against decision-time availability, source provenance, and simple proxy signals, then any true leakage or target-proxy columns will be identifiable without relying on model performance.",
+        "success_gate": "For every column, provide a decision-time availability label, source timestamp/provenance, and a leakage/proxy flag; success is achieved only if all columns are either explicitly justified as available at prediction time or flagged with a concrete reason for exclusion.",
+        "title": "Column-level prediction-time availability audit for spambase",
+        "why_smallest": "This is the smallest falsifiable step because it adds only per-column metadata review and simple rule-based checks, without requiring model retraining or new data collection."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-037 / evidence.detector_canary_passed",
+          "statement": "The leakage detector canary passed with a true result."
+        },
+        {
+          "citation": "EXP-037 / evidence.declared_leakage_features",
+          "statement": "No declared leakage features were provided for the spambase dataset."
+        },
+        {
+          "citation": "EXP-037 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "The safe_vs_unsafe_training_cv evidence is null, so no validation result is available from that field."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:12:35Z",
+      "risks_and_missing_evidence": [
+        "No column-level evidence is provided for actual features, so no specific leakage or proxy candidates can be named.",
+        "The null safe_vs_unsafe_training_cv field leaves validation status unresolved.",
+        "The canary result only tests detector functionality, not dataset-specific leakage.",
+        "No decision-time semantics or production-availability review is shown for any feature.",
+        "No univariate association, uniqueness, or temporal availability evidence is included for real columns."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 668,
+        "prompt_tokens": 878,
+        "total_tokens": 1546
+      }
+    },
+    "reviewed_at": "2026-09-18T13:12:35Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

@@ -621,14 +621,77 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-036-C1",
+          "issue": "The row count, feature count, and positive rate are factual for the cached dataset, but the claim does not specify whether these are from the full raw source, a filtered subset, or a post-processing cache. That distinction matters for reproducibility and production mapping.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-036-C2",
+          "issue": "The statement that 0 features triggered review rules is not fully supported by the excerpt because only 10 feature profiles are visible here, not all 57. Also, random-split PSI is not evidence against temporal or operational shift.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-036-C2",
+          "issue": "The limitation about factorized categoricals indicates a representation risk, but the package does not show which columns were factorized, how they map back to raw semantics, or whether production encoders can reproduce them.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "spambase",
+      "decision": "Do not proceed to modeling until decision-time availability, raw-source reconstruction, and leakage checks are completed.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-036_spambase_data_understanding.json",
+      "experiment_id": "EXP-036",
+      "interpretation": "This is a dataset-understanding package, not a modeling result. The evidence supports a basic description of the cached table shape and class balance, and it suggests no obvious missingness in the sampled feature profiles. However, the package does not establish production readiness: the data source, label timing, feature availability at decision time, and whether the cached representation preserves raw semantics are unresolved. The random-split PSI values are not sufficient to argue stability in any real deployment setting.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one feature or preprocessing step may depend on information unavailable at decision time, or the cached representation may not be reproducible from raw production inputs without semantic loss.",
+        "success_gate": "For all 57 features, document raw source column, transformation, availability timestamp relative to prediction time, and production encoder path; fail if any feature is unavailable at decision time, cannot be reconstructed from raw inputs, or has ambiguous semantics.",
+        "title": "Decision-time feature availability and raw-semantic reconstruction audit",
+        "why_smallest": "This is the minimal falsifiable check that directly addresses the main unresolved production risk without requiring model training or broader validation infrastructure."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-036 / evidence.source_rows; EXP-036 / evidence.feature_count; EXP-036 / evidence.positive_rate_train",
+          "statement": "The package reports 4601 source rows, 57 cached features, and a training positive rate of 0.3940625."
+        },
+        {
+          "citation": "EXP-036 / evidence.feature_profiles",
+          "statement": "The provided feature profiles shown are all float64, have zero missing_rate, and include random_split_psi values for some features."
+        },
+        {
+          "citation": "EXP-036-C2 / limitations",
+          "statement": "The package itself states that cached UCI matrices factorized categoricals before this campaign and that random train/holdout PSI is only a smoke check."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:12:30Z",
+      "risks_and_missing_evidence": [
+        "No evidence that every feature is available at decision time in the intended production workflow.",
+        "No evidence that the cached features preserve raw category semantics after prior factorization.",
+        "No temporal or source-order validation; random split checks cannot rule out distribution shift or leakage.",
+        "Only a subset of feature profiles is shown; the claim about '0 features' triggering review rules is not fully auditable from the excerpt alone.",
+        "No evidence on target definition timing, label leakage, or whether any features are post-outcome artifacts.",
+        "No production-availability review for feature generation, encoding, or upstream dependencies."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 847,
+        "prompt_tokens": 1861,
+        "total_tokens": 2708
+      }
+    },
+    "reviewed_at": "2026-09-18T13:12:30Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

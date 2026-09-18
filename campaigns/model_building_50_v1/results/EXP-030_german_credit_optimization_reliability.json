@@ -1302,14 +1302,84 @@
   "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
   "kind": "optimization_reliability",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-030-C1",
+          "issue": "The holdout performance is stated correctly, but the question also asks whether optimization produced a meaningful CV gain; the package does not include the baseline CV score or the tuned CV score needed to verify the improvement threshold.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-030-C2",
+          "issue": "The recommendation is directionally sound, but it is not supported by explicit evidence of decision-time availability or contractual obtainability for the named features; it should be treated as a governance rule, not a validated conclusion about these features.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "german_credit",
+      "decision": "Do not claim a meaningful optimization gain from this package alone. Treat the holdout score as a finalized retrospective estimate only, and require an explicit baseline-vs-tuned CV comparison plus a fresh untouched evaluation before any stronger conclusion.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-030_german_credit_optimization_reliability.json",
+      "experiment_id": "EXP-030",
+      "interpretation": "The package supports a single held-out performance estimate for the preselected recipe, but it does not establish that optimization produced a meaningful CV gain because the actual baseline-versus-tuned CV comparison is not shown. The holdout result is informative but limited because the holdout has already been consumed, so it should not be used for further model selection. The feature evidence is consistent with a cautious feature-governance stance, but it does not by itself validate any feature for production use without decision-time and availability checks.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the tuned recipe truly improves over baseline, then on a new untouched cross-validation split its mean ROC-AUC will exceed baseline by at least 0.001 while preserving similar calibration and without using the consumed holdout for any selection.",
+        "success_gate": "Pre-register baseline and tuned candidates, evaluate both on the same fresh CV split, and accept optimization only if tuned mean ROC-AUC - baseline mean ROC-AUC >= 0.001; otherwise keep baseline. The holdout must remain untouched for this experiment.",
+        "title": "Baseline-vs-tuned CV comparison on a fresh split with locked recipe",
+        "why_smallest": "This is the minimal falsifiable test because it reuses the existing recipe family and only adds the missing baseline comparison on a fresh validation split, directly addressing the unsupported optimization-gain claim without expanding the modeling scope."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-030 / evidence.holdout_metrics; evidence.holdout_roc_auc_bootstrap_ci; evidence.holdout_consumed",
+          "statement": "The once-consumed holdout ROC-AUC for the preselected extra_trees/extra_trees_C01 recipe is 0.7942857142857144, with bootstrap 95% interval [0.7179534546874278, 0.8620644773123065]."
+        },
+        {
+          "citation": "EXP-030 / evidence.holdout_consumed",
+          "statement": "The holdout evaluation is marked as consumed."
+        },
+        {
+          "citation": "EXP-030 / evidence.selection_rule",
+          "statement": "The selection rule states that the best tuned candidate is used only when mean ROC-AUC improves by at least 0.001 over baseline; otherwise baseline is preferred."
+        },
+        {
+          "citation": "EXP-030 / evidence.top_final_features",
+          "statement": "The top final features list includes Attribute1, inter_Attribute1_x_log1p_Attribute2, inter_Attribute1_x_Attribute8, log1p_Attribute3, and Attribute3 among others."
+        },
+        {
+          "citation": "EXP-030 / evidence.cv_feature_stability",
+          "statement": "The CV feature stability table shows some features observed in 3 folds with top10_frequency values ranging from 1.0 to 0.0, and some features observed in only 1 fold."
+        },
+        {
+          "citation": "EXP-030 / evidence.production_feature_rule",
+          "statement": "The production feature rule requires decision-time availability, cross-fold stability, contractual obtainability, monitoring for missingness/drift, and more than one fit's importance signal."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:52Z",
+      "risks_and_missing_evidence": [
+        "No explicit baseline CV ROC-AUC is provided, so the claimed optimization gain cannot be verified against the stated 0.001 improvement rule.",
+        "The holdout has been consumed, so any further tuning or feature selection risks leakage into the final estimate.",
+        "Only 3 CV folds are reflected in the feature stability table, which is thin evidence for stability claims.",
+        "Feature importance is not the same as production usefulness; decision-time availability and contractual obtainability are not demonstrated for the listed features.",
+        "No evidence is provided on calibration stability, threshold selection rationale, or whether the 0.5 threshold was pre-specified for the holdout report.",
+        "No production-availability review is shown for the preselected recipe or its features."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1081,
+        "prompt_tokens": 2934,
+        "total_tokens": 4015
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:52Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "metrics": {
     "accuracy": 0.745,

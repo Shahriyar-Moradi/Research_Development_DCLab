@@ -39,14 +39,75 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-022-C1",
+          "issue": "The canary passing is a narrow detector sanity check, not evidence about real feature leakage or proxy behavior. It cannot support any conclusion about the dataset columns under audit.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-022-C2",
+          "issue": "The statement 'Declared decision-time exclusions for credit_default: none' is not justified as a decision. The package lacks decision-time semantics and production-availability review for actual columns, so 'none' is unsupported.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "credit_default",
+      "decision": "Insufficient evidence to identify or clear any specific columns as contract-safe. No feature should be approved from this package alone.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-022_credit_default_leakage_audit.json",
+      "experiment_id": "EXP-022",
+      "interpretation": "This package provides only a minimal audit signal: the detector can recognize an injected exact-target canary, but there is no evidence here that any real column was tested, ranked, or validated against decision-time availability. The empty declared leakage list is not sufficient to conclude absence of leakage or absence of target proxies, especially because the comparative safe_vs_unsafe_training_cv result is missing.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one column flagged by simple heuristics (name similarity to target, high univariate AUC, near-uniqueness, or post-outcome timing) will fail a decision-time availability review or show suspicious proxy behavior.",
+        "success_gate": "For every column in the dataset, provide a decision-time availability label and a minimal evidence trace; any column with post-outcome timing, target-derived naming, or unusually strong univariate association must be explicitly reviewed and either justified as available at prediction time or marked excluded.",
+        "title": "Column-level decision-time contract audit for candidate proxies",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing leakage-audit framing and adds only per-column metadata review plus a lightweight heuristic screen, without requiring model retraining or broader experimental redesign."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-022 / evidence.detector_canary_passed",
+          "statement": "The leakage detector synthetic exact-target canary passed: true."
+        },
+        {
+          "citation": "EXP-022 / evidence.declared_leakage_features",
+          "statement": "Declared leakage features are empty: []."
+        },
+        {
+          "citation": "EXP-022 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "safe_vs_unsafe_training_cv is null, so no comparative validation result is available in the package."
+        },
+        {
+          "citation": "EXP-022 / evidence_bundle.question",
+          "statement": "The package states the question is which columns violate the prediction-time contract or behave like suspicious target proxies."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:10:55Z",
+      "risks_and_missing_evidence": [
+        "No column-level evidence is provided, so the package does not answer which columns are suspicious.",
+        "No decision-time semantics review is shown for any candidate column; name-based or proxy-like suspicion cannot be resolved from the current evidence.",
+        "safe_vs_unsafe_training_cv is null, so there is no validation-based contrast to support or refute leakage concerns.",
+        "The canary result only demonstrates detector sensitivity to a synthetic exact-target insertion; it does not establish detector recall on realistic proxy patterns.",
+        "No production-availability or prediction-time contract metadata is included for the actual columns."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 763,
+        "prompt_tokens": 875,
+        "total_tokens": 1638
+      }
+    },
+    "reviewed_at": "2026-09-18T13:10:55Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

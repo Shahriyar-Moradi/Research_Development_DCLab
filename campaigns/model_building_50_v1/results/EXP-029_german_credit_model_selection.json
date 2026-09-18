@@ -1150,14 +1150,86 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-029-C1",
+          "issue": "The statement says extra_trees is the training-CV model candidate, but the stated selection rule is mean ROC-AUC minus 0.25\u00d7fold std, and the package does not report the computed score for each model. Based on the provided mean/std fields, xgboost appears potentially competitive or better under that rule, so the candidate claim is not fully supported as written.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-029-C1",
+          "issue": "The claim presents extra_trees as the candidate using interactions features, but the evidence bundle does not document whether the interaction-generation pipeline was confined to each training fold. This leaves leakage risk unresolved.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-029-C1",
+          "issue": "The claim implies stability from 3-fold CV, but three folds are too few to support a strong stability conclusion without repeated CV or split-sensitivity analysis.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "german_credit",
+      "decision": "Do not treat extra_trees as the final winner from this package alone. The evidence is sufficient only to nominate a provisional training-CV candidate, not to approve a family choice or deployment decision.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-029_german_credit_model_selection.json",
+      "experiment_id": "EXP-029",
+      "interpretation": "The evidence supports only a narrow training-CV conclusion: extra_trees is the strongest mean ROC-AUC performer among the reported models, while xgboost may be the strongest under the stated mean-minus-0.25\u00d7std selection rule. However, the package does not provide enough detail to verify that the selection rule was applied consistently, nor does it establish that any model is the best stable choice beyond this CV setup. The stability signal is weakly informative because it is based on only 3 folds and mixed feature-stability reporting, so the safest interpretation is that the ranking is provisional and should be rechecked with a locked evaluation and a more explicit stability protocol.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the same preprocessing and interaction pipeline is fit strictly within each training fold and the selection score is computed explicitly for each model, the apparent winner will remain stable; otherwise the current ranking is split- or leakage-sensitive.",
+        "success_gate": "Run repeated stratified CV with the exact same pipeline for extra_trees and xgboost, report per-fold mean ROC-AUC, fold std, and the explicit selection score for each run; the success condition is that the same family wins in at least 2 independent repeats and the ranking score margin is positive in every repeat.",
+        "title": "Rule-verification and leakage-check rerun on the top two families",
+        "why_smallest": "This changes only the validation protocol and ranking audit for the two most relevant contenders, without expanding the model search space or introducing new feature engineering."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-029 / evidence_bundle.status; EXP-029 / evidence_bundle.dataset; EXP-029 / evidence.selection_rule",
+          "statement": "The experiment is a completed model-selection run on the german_credit dataset, using training CV only and the selection rule \"Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime.\""
+        },
+        {
+          "citation": "EXP-029 / evidence.model_results[1].metrics.roc_auc",
+          "statement": "Among the listed models, extra_trees has the highest reported mean ROC-AUC (0.7768815407394629) with fold std 0.029815169083194874."
+        },
+        {
+          "citation": "EXP-029 / evidence.selection_rule; EXP-029 / evidence.model_results[4].metrics.roc_auc; EXP-029 / evidence.model_results[1].metrics.roc_auc",
+          "statement": "xgboost has the highest reported mean ROC-AUC-minus-0.25\u00d7std under the stated selection rule if computed from the provided mean and std values, but the package does not explicitly report the ranking score for each model."
+        },
+        {
+          "citation": "EXP-029 / evidence.model_results[1].fold_metrics[0].roc_auc; EXP-029 / evidence.model_results[1].fold_metrics[1].roc_auc; EXP-029 / evidence.model_results[1].fold_metrics[2].roc_auc",
+          "statement": "extra_trees shows relatively tight fold spread in ROC-AUC across 3 folds, with fold values 0.799298128342246, 0.7883021390374332, and 0.7430443548387095."
+        },
+        {
+          "citation": "EXP-029 / evidence.model_results[1].feature_stability; EXP-029 / evidence.model_results[3].feature_stability; EXP-029 / evidence.model_results[4].feature_stability; EXP-029 / evidence.model_results[0].feature_stability; EXP-029 / evidence.model_results[2].feature_stability",
+          "statement": "The package reports feature stability summaries for extra_trees, lightgbm, and xgboost, but not for logistic_regression or hist_gradient_boosting."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:45Z",
+      "risks_and_missing_evidence": [
+        "Only 3 CV folds are reported, which makes the stability estimate noisy and sensitive to split choice.",
+        "The package does not specify whether preprocessing, interaction generation, and any target/feature transforms were fit strictly inside each training fold; leakage risk is unresolved.",
+        "The selection rule is stated, but the per-model ranking score is not shown, so the claimed candidate may not actually be the rule-based winner.",
+        "No locked holdout or nested validation result is provided, so generalization beyond training CV is unverified.",
+        "No split strategy is described (e.g., stratification, grouping, temporal ordering), so validation suitability for the dataset profile cannot be assessed.",
+        "Feature stability summaries are incomplete across models, making cross-family stability comparisons asymmetric.",
+        "No decision-time or production-availability review is included, so even a strong CV model cannot be approved for use."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1321,
+        "prompt_tokens": 12632,
+        "total_tokens": 13953
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:45Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

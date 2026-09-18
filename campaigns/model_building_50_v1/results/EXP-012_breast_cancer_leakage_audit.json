@@ -39,14 +39,71 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-012-C1",
+          "issue": "The canary result only shows the detector can catch a synthetic exact-target feature; it does not support any claim about real columns or the overall absence of leakage.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-012-C2",
+          "issue": "The statement 'Declared decision-time exclusions for breast_cancer: none' is unsupported as a decision because the package provides no decision-time semantics or production-availability review for the actual columns.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "breast_cancer",
+      "decision": "Insufficient evidence to approve or clear any columns. The package does not establish prediction-time availability, production-time availability, or target-proxy status for any real feature.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-012_breast_cancer_leakage_audit.json",
+      "experiment_id": "EXP-012",
+      "interpretation": "The package supports only a very limited conclusion: the synthetic canary was detected, and no features were formally declared as leakage. It does not provide enough evidence to identify which real columns violate the prediction-time contract or act as target proxies. The absence of declared leakage features is not evidence of absence, and the missing safe_vs_unsafe_training_cv result leaves the audit incomplete.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one real column in breast_cancer is either unavailable at prediction time or behaves like a target proxy when evaluated against decision-time semantics and simple leakage heuristics.",
+        "success_gate": "For every column, produce a decision-time availability label and a production-availability label; flag any column with unavailable-at-prediction-time semantics or with strong proxy indicators (e.g., near-deterministic target association, post-outcome timing, or identity-like uniqueness). The experiment succeeds if the audit yields a non-empty, reproducible set of flagged columns or else a documented empty set with explicit decision-time justification for each column.",
+        "title": "Column-level prediction-time contract audit with decision-time availability matrix",
+        "why_smallest": "This is the minimal next step because it reuses the existing dataset and detector framework, adds only the missing column-level semantics, and directly tests the unresolved question without requiring model retraining or broader pipeline changes."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-012 / evidence.detector_canary_passed",
+          "statement": "The leakage detector canary passed: true."
+        },
+        {
+          "citation": "EXP-012 / evidence.declared_leakage_features",
+          "statement": "No declared leakage features were provided for the breast_cancer dataset: empty list."
+        },
+        {
+          "citation": "EXP-012 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "The safe_vs_unsafe_training_cv evidence is null, so no cross-validation comparison is available in the package."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:09:24Z",
+      "risks_and_missing_evidence": [
+        "No column-level evidence is provided for actual feature names, so suspicious proxies cannot be assessed.",
+        "Decision-time semantics are explicitly noted as required, but no decision-time/production-availability review is shown.",
+        "safe_vs_unsafe_training_cv is null, so there is no empirical comparison to help distinguish leakage-like behavior from legitimate signal.",
+        "A passed synthetic canary only validates the detector mechanism, not the absence of leakage in the dataset.",
+        "No univariate association, missingness, uniqueness, or temporal availability evidence is included for real columns."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 747,
+        "prompt_tokens": 879,
+        "total_tokens": 1626
+      }
+    },
+    "reviewed_at": "2026-09-18T13:09:24Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

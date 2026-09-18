@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DCLab · Research Studio</title><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/"><span class="brandmark">D<span>c</span></span><span>DCLab<small>RESEARCH STUDIO</small></span></a>
+  <div class="workspace-label">WORKSPACE <span>R&D</span></div>
+  <nav aria-label="Main"><button class="nav active" data-view="research"><span>◈</span> Research</button><button class="nav" data-view="knowledge"><span>◇</span> Knowledge</button><button class="nav" data-view="recipes"><span>⌘</span> Recipes & traces</button></nav>
+  <div class="sidebar-section"><div class="section-label">RECENT RESEARCH <button id="new-run" aria-label="New research">+</button></div><div id="run-list"><p class="muted small">Your research runs will appear here.</p></div></div>
+  <div class="sidebar-bottom"><span class="live-dot"></span> Local workspace<small>Evidence first. Always learning.</small></div>
+</aside>
+<main>
+  <header><div class="breadcrumb">Workspace <span>/</span> <b id="page-label">Research</b></div><div id="connection" class="connection">Connecting…</div></header>
+  <div id="notice" class="notice hidden" role="alert"></div>
+  <section id="research-view" class="view">
+    <div class="page-heading"><div class="eyebrow">THE DCLAB LEARNING LOOP</div><h1>Better models start<br>with better questions.</h1><p>Give your research team a goal. Follow the experiments.<br>Build on what the evidence teaches you.</p></div>
+    <div id="composer" class="card composer">
+      <div class="card-heading"><h2>What should we learn?</h2><span class="pill">Agent-led research</span></div>
+      <label class="sr-only" for="goal">Research goal</label><textarea id="goal" rows="4" placeholder="Describe a question, a hypothesis, or a modeling challenge…"></textarea>
+      <div class="field-label">PUBLIC DATASETS <span>Choose one or more</span></div><div id="datasets" class="dataset-options"></div>
+      <details class="settings"><summary>Research settings <span id="settings-summary">4 experiments · 2 × 3-fold CV</span></summary><div class="settings-grid">
+        <label>OpenAI model<input id="model" value="gpt-6-astra" autocomplete="off"></label>
+        <label>Experiment limit<input id="experiment-limit" type="number" min="1" max="50" value="4"></label>
+        <label>Rows per dataset<input id="row-limit" type="number" min="200" max="50000" value="4000"></label>
+        <label>CV repeats<select id="repeats"><option value="1">1 × 3 folds · exploratory</option><option value="2" selected>2 × 3 folds</option><option value="3">3 × 3 folds</option></select></label>
+        <label>Active time limit<select id="minutes"><option value="10">10 minutes</option><option value="30" selected>30 minutes</option><option value="60">60 minutes</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label>
+      </div><p class="small muted" id="budget-copy">Up to 13 API calls · 6,000 output tokens per call. Input tokens also incur API charges. No automatic purchase or unlimited loop.</p></details>
+      <div class="composer-footer"><p><span class="lock">▣</span> Public aggregates only. Your key stays local.</p><button id="start" class="primary">Start research <span>↗</span></button></div>
+    </div>
+    <div id="empty-state" class="principles"><article><span>01</span><h3>Understand the data</h3><p>Profiles, timing assumptions, leakage risks and feature lineage.</p></article><article><span>02</span><h3>Test a useful hypothesis</h3><p>Bounded experiments. Paired comparisons. Production-failure stress tests.</p></article><article><span>03</span><h3>Keep the learning</h3><p>Critiqued findings, counterevidence and reproducible workflows.</p></article></div>
+    <section id="run-detail" class="hidden"></section>
+  </section>
+  <section id="knowledge-view" class="view hidden"><div class="page-heading"><div class="eyebrow">COMPOUNDING RESEARCH MEMORY</div><h1>What we’re learning.</h1><p>Scoped findings, linked to experiments. Every claim stays provisional<br>until independent confirmation and human review.</p></div><div id="knowledge-list"></div></section>
+  <section id="recipes-view" class="view hidden"><div class="page-heading"><div class="eyebrow">REUSABLE SCIENTIFIC WORKFLOWS</div><h1>Keep the process,<br>not just the score.</h1><p>Replayable recipes and explicit agent trajectories for future curation.<br>Exports are research records, not approved training data.</p></div><div id="recipe-list"></div></section>
+  <footer>NOOA specialists <span>·</span> LangGraph orchestration <span>·</span> OpenAI reasoning <span class="footer-note">Research evidence ≠ production approval</span></footer>
+</main><script src="/static/app.js" defer></script>
+</body></html>

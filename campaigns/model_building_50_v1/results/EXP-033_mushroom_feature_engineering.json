@@ -1519,14 +1519,103 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-033-C1",
+          "issue": "The recommendation says to use the raw recipe, but the selected stage has the highest reported mean ROC-AUC and a smaller feature count than full_fe; the evidence does not support preferring raw over selected.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-033-C1",
+          "issue": "The phrase \"improves validation evidence\" is unsupported because only training-CV metrics are reported and no external validation or nested selection result is provided.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-033-C1",
+          "issue": "The evidence bundle does not demonstrate that the feature recipe was fitted without leakage inside each fold; the train-fitted requirement is asserted by the question but not verified by the evidence paths shown.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-033-C1",
+          "issue": "The limitation about generic mathematical feature generation lacking domain meaning is acknowledged, but no decision-time or production-availability review is provided, so the recommendation is premature.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "mushroom",
+      "decision": "Do not accept the recommendation to use the raw recipe as stated. The smallest defensible conclusion is that the selected stage is the smallest recipe within the stated ROC-AUC tolerance of the best stage, but the package is insufficient to claim a production-ready improvement or to prefer raw over selected without an external validation check.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-033_mushroom_feature_engineering.json",
+      "experiment_id": "EXP-033",
+      "interpretation": "The evidence supports a narrow ranking claim: under the stated selection rule, the selected feature matrix is the smallest recipe within 0.002 mean training-CV ROC-AUC of the best observed stage. However, the package does not justify the stronger recommendation to use the raw recipe, because the selected stage has the best reported mean ROC-AUC and fewer features than the full_fe stage. The evidence also does not establish that any recipe improves validation evidence in a production-relevant sense, because only training-CV is shown and no decision-time or production-availability review is provided.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the selected recipe truly generalizes better without feature dilution, then it will retain its advantage over the raw recipe on a strictly untouched outer validation split while using only fold-local feature fitting.",
+        "success_gate": "On an outer holdout or outer CV split, the selected recipe must achieve ROC-AUC no worse than raw by at most 0.002, with all feature engineering fitted only on the inner training folds and with no leakage detected in a fold-by-fold audit.",
+        "title": "Nested holdout comparison of raw vs selected feature recipe",
+        "why_smallest": "This changes only the evaluation protocol and leakage audit while keeping the model family, dataset, and candidate recipes fixed, making it the minimal falsifiable test of the current recommendation."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-033 / evidence.stage_results; EXP-033 / evidence.selection_rule",
+          "statement": "The package reports 3-fold LightGBM CV on the mushroom dataset for multiple feature recipes, with the selected stage labeled \"selected\" and the selection rule defined as choosing the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[0].metrics.roc_auc.mean; EXP-033 / evidence.stage_results[0].feature_count_mean; EXP-033 / evidence.stage_results[0].stage",
+          "statement": "The raw stage has mean ROC-AUC 0.9999788529859583 with mean feature_count_mean 22.0 and stage label \"raw\"."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[1].metrics.roc_auc.mean; EXP-033 / evidence.stage_results[1].feature_count_mean; EXP-033 / evidence.stage_results[1].stage",
+          "statement": "The logs stage has mean ROC-AUC 0.9999788529859583 with mean feature_count_mean 30.666666666666668 and stage label \"logs\"."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[2].metrics.roc_auc.mean; EXP-033 / evidence.stage_results[2].feature_count_mean; EXP-033 / evidence.stage_results[2].stage",
+          "statement": "The ratios stage has mean ROC-AUC 0.9999459576307825 with mean feature_count_mean 45.666666666666664 and stage label \"ratios\"."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[3].metrics.roc_auc.mean; EXP-033 / evidence.stage_results[3].feature_count_mean; EXP-033 / evidence.stage_results[3].stage",
+          "statement": "The full_fe stage has mean ROC-AUC 0.9999882516588657 with mean feature_count_mean 53.666666666666664 and stage label \"full_fe\"."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[4].metrics.roc_auc.mean; EXP-033 / evidence.stage_results[4].feature_count_mean; EXP-033 / evidence.stage_results[4].stage",
+          "statement": "The selected stage has mean ROC-AUC 0.9999882516588657 with mean feature_count_mean 25.0 and stage label \"selected\"."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[4].feature_stability[1].feature; EXP-033 / evidence.stage_results[4].feature_stability[2].feature",
+          "statement": "The selected stage includes interaction features such as \"inter_odor_x_ratio_spore-print-color_div_habitat\" and \"inter_odor_x_gill-color\" among its top stability entries."
+        },
+        {
+          "citation": "EXP-033 / evidence.stage_results[4].feature_stability[7].observed_folds; EXP-033 / evidence.stage_results[4].feature_stability[8].observed_folds; EXP-033 / evidence.stage_results[4].feature_stability[9].observed_folds",
+          "statement": "Several selected-stage features were observed in only 1 or 2 folds, indicating limited fold stability for some engineered terms."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:12:12Z",
+      "risks_and_missing_evidence": [
+        "Only training-CV evidence is shown; there is no untouched holdout or nested validation to confirm the recipe ranking.",
+        "The selection rule uses mean training-CV ROC-AUC, which can favor overfit feature search when many engineered candidates are tried.",
+        "The package does not show whether feature generation was fitted strictly inside each training fold for every stage; leakage risk remains unresolved from the evidence provided.",
+        "The claim says \"raw feature recipe\" but the selected stage is the one with the best mean ROC-AUC and fewer features than full_fe; the recommendation appears inconsistent with the reported metrics.",
+        "No decision-time availability review is shown for engineered features, especially interaction and ratio terms that may not be computable or stable in production.",
+        "The mushroom dataset appears highly separable from the reported scores, so near-perfect CV metrics may not discriminate recipes meaningfully.",
+        "Feature stability is mixed: some engineered features appear in only 1-2 folds, suggesting instability that should be checked before relying on them."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1610,
+        "prompt_tokens": 15621,
+        "total_tokens": 17231
+      }
+    },
+    "reviewed_at": "2026-09-18T13:12:12Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

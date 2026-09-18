@@ -1110,14 +1110,81 @@
   "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
   "kind": "optimization_reliability",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-005-C1",
+          "issue": "The holdout ROC-AUC is reported correctly as a factual metric, but the package does not support any inference that optimization was meaningful because no baseline-versus-tuned CV comparison is included.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-005-C2",
+          "issue": "The recommendation is directionally sound, but the evidence does not demonstrate decision-time availability or production monitoring for the listed features; it is a policy statement rather than a validated result.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "adult",
+      "decision": "Insufficient evidence to conclude that optimization produced a meaningful CV gain. The once-consumed holdout performance is reported, but it should not be used to justify feature promotion or deployment without decision-time and production-availability review.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-005_adult_optimization_reliability.json",
+      "experiment_id": "EXP-005",
+      "interpretation": "The holdout score is a factual performance result, but the package does not provide enough evidence to answer whether optimization produced a meaningful CV gain. The only explicit optimization criterion is a 0.001 mean-CV improvement threshold, yet no baseline CV score, tuned CV score, or delta is shown. The feature evidence supports a cautionary recommendation about promotion criteria, but it does not establish that any feature should be promoted or that the listed importances are decision-safe.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "The selected tuned recipe improves mean cross-validated ROC-AUC over the baseline by at least 0.001 under the same fold split and preprocessing pipeline.",
+        "success_gate": "Report baseline mean CV ROC-AUC, tuned mean CV ROC-AUC, and their difference on the same folds; success only if tuned minus baseline >= 0.001 and the fold-wise improvement is not driven by a single outlier fold.",
+        "title": "Minimal CV delta audit against baseline",
+        "why_smallest": "This is the smallest falsifiable experiment because it reuses the existing CV setup and only adds the missing baseline-versus-tuned comparison needed to answer the optimization-gain question."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-005 / evidence.holdout_metrics; EXP-005 / evidence.holdout_roc_auc_bootstrap_ci; EXP-005 / evidence.holdout_consumed",
+          "statement": "The once-consumed holdout result for the preselected lightgbm/lightgbm_C02 recipe is ROC-AUC 0.9096536249451939 with bootstrap 95% interval [0.8854969409371798, 0.929674276420258]."
+        },
+        {
+          "citation": "EXP-005 / evidence.selection_rule",
+          "statement": "The selection rule says to accept a tuned candidate only when mean CV ROC-AUC improves by at least 0.001 over baseline; otherwise prefer baseline."
+        },
+        {
+          "citation": "EXP-005 / evidence.top_final_features",
+          "statement": "The reported feature-importance table includes fnlwgt, age, hours-per-week, education-num, occupation, relationship, capital-gain, workclass, education, capital-loss, marital-status, native-country, sex, and race with normalized importances."
+        },
+        {
+          "citation": "EXP-005 / evidence.cv_feature_stability",
+          "statement": "The CV feature-stability table reports observed_folds = 3 for each listed feature, with top10_frequency ranging from 0.0 to 1.0."
+        },
+        {
+          "citation": "EXP-005 / evidence.production_feature_rule",
+          "statement": "The production feature rule requires decision-time availability, cross-fold stability, contractual obtainability, monitoring for missingness/drift, and more than single-fit importance."
+        }
+      ],
+      "overall_confidence": "high",
+      "reviewed_at": "2026-09-18T13:08:37Z",
+      "risks_and_missing_evidence": [
+        "No baseline CV ROC-AUC, tuned CV ROC-AUC, or CV delta is provided, so the optimization-gain question is unanswered.",
+        "The holdout is marked consumed, so further model selection on this holdout would risk leakage or overfitting to the test set.",
+        "Only 3 CV folds are reported for feature stability, which is thin evidence for ranking feature robustness.",
+        "No decision-time availability check is shown for the listed features, so some may be unavailable at prediction time.",
+        "No production contract or data-pipeline evidence is shown for feature obtainability, missingness, or drift monitoring.",
+        "Feature importance alone is not sufficient evidence for feature promotion, especially without stability thresholds or ablation tests.",
+        "The package does not show calibration or threshold-selection validation beyond a single 0.5 threshold summary."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1012,
+        "prompt_tokens": 2410,
+        "total_tokens": 3422
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:37Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "metrics": {
     "accuracy": 0.8575,

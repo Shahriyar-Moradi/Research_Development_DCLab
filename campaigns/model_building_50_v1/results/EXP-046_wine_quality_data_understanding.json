@@ -161,14 +161,81 @@
   "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
   "kind": "data_understanding",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-046-C1",
+          "issue": "The row count, feature count, and positive rate are supported by the evidence, but the claim implicitly suggests a stable dataset summary without showing raw-source provenance or target construction details.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-046-C2",
+          "issue": "The statement that 0 features triggered missingness, identifier, near-constant, or random-split shift review rules is only a limited screening result. It does not rule out temporal drift, leakage, or production-availability problems, and the package itself notes that random train/holdout PSI is only a smoke check.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "wine_quality",
+      "decision": "Do not approve modeling yet. The dataset description is partially supported, but production-availability and leakage review are incomplete.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-046_wine_quality_data_understanding.json",
+      "experiment_id": "EXP-046",
+      "interpretation": "This evidence supports a narrow dataset summary: a 6497-row, 11-feature table with no observed missingness in the supplied profiles and a moderately imbalanced training target. However, the package does not establish production readiness or rule out leakage/availability issues. In particular, the evidence only shows random-split stability smoke checks and cached float64 profiles; it does not demonstrate that the raw source schema, categorical semantics, target definition, or decision-time feature availability are preserved for production use.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one feature or target construction step may depend on information unavailable at prediction time or on cached preprocessing that cannot be reproduced from raw production inputs.",
+        "success_gate": "For every feature and the target, provide raw-source lineage, timestamp/availability relative to prediction time, and encoder requirements; success is achieved only if all features are available at decision time and no label or post-outcome information is used in feature construction.",
+        "title": "Raw-schema and decision-time availability audit",
+        "why_smallest": "This is the minimal falsifiable check that directly addresses the main unresolved risks without requiring model training: it only needs schema lineage, timestamp metadata, and target-definition review."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-046 / evidence.source_rows; EXP-046 / evidence.feature_count",
+          "statement": "The dataset contains 6497 source rows and 11 cached features."
+        },
+        {
+          "citation": "EXP-046 / evidence.positive_rate_train",
+          "statement": "The reported training positive rate is 0.633125."
+        },
+        {
+          "citation": "EXP-046 / evidence.feature_profiles[*].missing_rate",
+          "statement": "All listed features have missing_rate 0.0 in the provided profiles."
+        },
+        {
+          "citation": "EXP-046 / evidence.feature_profiles[*].dtype; EXP-046 / evidence.feature_profiles[*].random_split_psi; EXP-046 / evidence.feature_profiles[*].top_value_frequency; EXP-046 / evidence.feature_profiles[*].unique_count; EXP-046 / evidence.feature_profiles[*].unique_ratio",
+          "statement": "The provided feature profiles are all float64 and include random_split_psi, top_value_frequency, unique_count, and unique_ratio fields."
+        },
+        {
+          "citation": "EXP-046 / evidence.feature_profiles[*].production_risks",
+          "statement": "No feature in the provided profiles has an explicit production_risks entry."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:37Z",
+      "risks_and_missing_evidence": [
+        "No evidence of raw-source schema inspection; the package references cached UCI matrices and does not show whether any categorical fields were factorized or whether original category semantics can be reconstructed for production encoders.",
+        "No decision-time availability review: the evidence does not show when each feature becomes available relative to the prediction timestamp.",
+        "No production-time stability evidence: random_split_psi is not a substitute for temporal or deployment-window drift analysis.",
+        "No target construction audit: the package does not show how the positive class is defined, whether labels are derived post-outcome, or whether any label leakage exists.",
+        "No duplicate, near-duplicate, or entity-level leakage check is shown.",
+        "No train/validation split protocol is documented beyond a random split smoke check, so validation leakage risk remains unresolved.",
+        "The claim that 0 features triggered review rules is only supported for the listed rule set and provided profiles; it does not imply absence of other quality issues."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 964,
+        "prompt_tokens": 1860,
+        "total_tokens": 2824
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:37Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

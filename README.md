@@ -78,8 +78,20 @@ The campaign writes to `campaigns/model_building_50_v1/`:
 | `CAMPAIGN_REPORT.md` | Human-readable cross-dataset synthesis |
 | `agent_memory.jsonl` | Claim-level retrieval memory with evidence paths |
 | `llm_review_queue.jsonl` | Bounded critic/hypothesis tasks for a capable LLM agent |
+| `llm_review_memory.jsonl` | Durable cited conclusions from completed OpenAI reviews |
 | `AGENT_CONTEXT.md` | Agent operating contract and required answer structure |
 | `MODEL_BUILDING_WORKFLOW.md` | Reusable code/process blocks |
+
+```bash
+# Run pending LLM critic reviews (requires OPENAI_API_KEY in .env)
+make rd-campaign-review
+# or:
+.venv/bin/python -m dclab_rnd campaign review --model gpt-4o-mini
+.venv/bin/python -m dclab_rnd campaign review --model gpt-4o --limit 5
+.venv/bin/python -m dclab_rnd campaign review --experiment EXP-001,EXP-002
+```
+
+Default model is **gpt-4o-mini** (mid-tier). Use `--model gpt-4o` for stronger critiques.
 
 The LLM is deliberately a critic and hypothesis generator. Deterministic code owns metrics, split discipline, provenance, and evidence; a human owns ambiguous decision-time semantics and promotion.
 

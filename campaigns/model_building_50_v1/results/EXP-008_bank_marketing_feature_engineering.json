@@ -1489,14 +1489,94 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-008-C1",
+          "issue": "The recommendation says to use the ratios recipe for the next model screen because it achieved 0.7172 mean training-CV ROC-AUC with about 38 features. The reported mean ROC-AUC and feature_count_mean are present, but the claim is a recommendation that is not justified by a robustness check, and the stated selection rule is not satisfied by the provided means because the selected stage mean ROC-AUC is 0.7028679428349656, not within 0.002 of the best stage mean 0.7171968586626486.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-008-C1",
+          "issue": "The claim implicitly treats higher training-CV ROC-AUC as sufficient evidence to prefer the ratios recipe. This is unsupported because no holdout, repeated CV, or statistical test is provided, so the improvement may be within sampling noise.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-008-C1",
+          "issue": "The claim does not address decision-time and production-availability constraints for generated ratio features, despite the stated limitation that generic mathematical feature generation may lack domain meaning.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "bank_marketing",
+      "decision": "Do not accept the recommendation as supported; request a minimal confirmatory experiment before choosing a recipe.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-008_bank_marketing_feature_engineering.json",
+      "experiment_id": "EXP-008",
+      "interpretation": "The evidence does not support the recommendation to use the ratios recipe as the next model screen under the stated selection rule. Ratios has the highest reported mean ROC-AUC among the shown stages, but the package does not demonstrate that this improvement is robust, statistically meaningful, or free of leakage/validation artifacts. The selected stage is smaller than full_fe, but it is not within 0.002 of the best stage by the reported means, so the stated rule is not satisfied by the provided numbers. The package also mixes feature-count comparisons with model-quality comparisons without showing a decision-time or production-availability review for the generated features.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the ratios recipe truly improves validation evidence without feature dilution, then across repeated folds it will outperform the raw baseline on ROC-AUC while preserving or improving calibration, and the feature construction will pass a train-only leakage audit.",
+        "success_gate": "Run repeated stratified CV with identical splits for raw and ratios, plus a train-only feature-generation audit. Accept only if ratios beats raw by a positive median fold-wise ROC-AUC difference and the lower bound of the paired fold-wise difference is above 0, while no leakage is detected in the audit.",
+        "title": "Paired repeated-CV comparison of raw vs ratios with leakage audit",
+        "why_smallest": "This changes only the validation design and adds a leakage check; it does not introduce new feature families or model classes, so it is the minimal falsifiable test of the current recommendation."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-008 / evidence.stage_results[*].stage; evidence.stage_results[*].model; evidence.stage_results[*].folds; evidence.stage_results[*].repeats",
+          "statement": "The experiment compares five stages on bank_marketing: raw, logs, ratios, interactions, full_fe, and selected, all using LightGBM with 3 folds and 1 repeat."
+        },
+        {
+          "citation": "EXP-008 / evidence.stage_results[2].metrics.roc_auc.mean; evidence.stage_results[2].feature_count_mean",
+          "statement": "The ratios stage reports mean ROC-AUC 0.7171968586626486 with feature_count_mean 38.0."
+        },
+        {
+          "citation": "EXP-008 / evidence.stage_results[5].metrics.roc_auc.mean; evidence.stage_results[5].feature_count_mean",
+          "statement": "The selected stage reports mean ROC-AUC 0.7028679428349656 with feature_count_mean 25.0."
+        },
+        {
+          "citation": "EXP-008 / evidence.stage_results[4].metrics.roc_auc.mean; evidence.stage_results[4].feature_count_mean",
+          "statement": "The full_fe stage reports mean ROC-AUC 0.7135749834486221 with feature_count_mean 51.0."
+        },
+        {
+          "citation": "EXP-008 / evidence.selection_rule",
+          "statement": "The selection rule is to choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-008 / evidence.stage_results[2].feature_stability[*].feature; evidence.stage_results[2].feature_stability[*].mean_normalized_importance; evidence.stage_results[2].feature_stability[*].top10_frequency",
+          "statement": "The ratios stage has 20 listed features in feature_stability, including multiple ratio features with nonzero mean_normalized_importance and top10_frequency values up to 1.0."
+        },
+        {
+          "citation": "EXP-008 / evidence.stage_results[5].feature_stability[*].feature; evidence.stage_results[5].feature_stability[*].observed_folds",
+          "statement": "The selected stage includes interaction features and reports some features with observed_folds less than 3, including one feature with observed_folds 1."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:08:59Z",
+      "risks_and_missing_evidence": [
+        "No explicit train-fitted vs validation-fitted feature construction audit is shown for the ratio/interactions recipes; leakage risk remains unresolved.",
+        "Only 3 folds and 1 repeat are reported; there is no repeated CV or nested validation to assess stability of the apparent ROC-AUC differences.",
+        "The package reports mean ROC-AUC but does not provide a paired significance test or fold-wise comparison between stages.",
+        "The selection rule references the best stage, but the evidence does not show that the selected stage is within 0.002 mean ROC-AUC of the best stage.",
+        "Feature semantics are not reviewed for production availability or decision-time computability, especially for generated ratios and interactions.",
+        "The evidence emphasizes training-CV metrics; there is no untouched holdout or temporal split evidence to reduce optimism bias.",
+        "Some selected-stage features appear in fewer than all folds, suggesting instability in feature selection or generation."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1378,
+        "prompt_tokens": 15670,
+        "total_tokens": 17048
+      }
+    },
+    "reviewed_at": "2026-09-18T13:08:59Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

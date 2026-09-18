@@ -1150,14 +1150,93 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-049-C1",
+          "issue": "The statement that extra_trees is the training-CV model candidate is not directly verified by the package because the composite selection score is not reported. The mean ROC-AUC shown for extra_trees matches lightgbm exactly, so the ranking depends on unreported variability/runtime tie-breaking.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-049-C1",
+          "issue": "Calling extra_trees the strongest stable evidence overstates certainty: stability is based on only 3 folds and 1 repeat, which is too little to support a robust family-level conclusion.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-049-C1",
+          "issue": "The claim is limited to training CV, but the wording can be misread as a general recommendation. There is no locked holdout or production review, so the evidence does not justify broader approval.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "wine_quality",
+      "decision": "Provisional only: extra_trees can be treated as the current training-CV candidate, but not as a validated winner. Do not finalize algorithm-family choice until a leakage-safe repeated CV comparison and locked holdout check are completed.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-049_wine_quality_model_selection.json",
+      "experiment_id": "EXP-049",
+      "interpretation": "On the provided training-CV evidence, extra_trees is a plausible top candidate by the stated ranking rule, but the package does not establish that it is the strongest stable family in a decision-grade sense. The evidence is limited to 3-fold training CV on one feature stage, with no locked holdout, no repeated CV, and no explicit leakage audit. The apparent tie between extra_trees and lightgbm in mean ROC-AUC is especially important because the selection rule also uses fold variability and runtime, but the package does not provide the computed composite scores needed to verify the ranking outcome directly.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the apparent extra_trees/lightgbm tie is real and not an artifact of fold variance or preprocessing leakage, then under repeated fold-resampled CV with all feature engineering fit inside each training fold, extra_trees will retain a non-trivial advantage or at least remain within a pre-specified tolerance of lightgbm on mean ROC-AUC and composite selection score.",
+        "success_gate": "Run 5x repeated stratified CV with identical fold splits for extra_trees and lightgbm, compute the stated composite score for each fold, and require that the winner is unchanged in at least 4 of 5 repeats with no fold showing evidence of preprocessing leakage; otherwise the current ranking is not stable.",
+        "title": "Repeated leakage-safe CV comparison of extra_trees vs lightgbm",
+        "why_smallest": "This changes only the resampling protocol and adds a leakage check while keeping the same dataset, feature stage, and two closest contenders, making it the minimal falsifiable test of the current ranking claim."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-049 / evidence.selection_rule",
+          "statement": "The selection rule ranks models by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime, using training CV only."
+        },
+        {
+          "citation": "EXP-049 / evidence.model_results[1].fold_metrics; EXP-049 / evidence.model_results[1].metrics.roc_auc",
+          "statement": "The extra_trees model reports fold ROC-AUC values of 0.8644690446283994, 0.8572354497354499, and 0.8611291086482902, with mean ROC-AUC 0.8609445343373799 and std 0.003620327958350225."
+        },
+        {
+          "citation": "EXP-049 / evidence.model_results[0].metrics.roc_auc",
+          "statement": "The logistic_regression model reports mean ROC-AUC 0.8054556736414563 with std 0.006622157211670003."
+        },
+        {
+          "citation": "EXP-049 / evidence.model_results[2].metrics.roc_auc",
+          "statement": "The hist_gradient_boosting model reports mean ROC-AUC 0.8385181993978357 with std 0.0022978705105822."
+        },
+        {
+          "citation": "EXP-049 / evidence.model_results[3].metrics.roc_auc",
+          "statement": "The lightgbm model reports mean ROC-AUC 0.8609445343373799 with std 0.003620327958350225."
+        },
+        {
+          "citation": "EXP-049 / evidence.model_results[4].metrics.roc_auc",
+          "statement": "The xgboost model reports mean ROC-AUC 0.8319355269573551 with std 0.0058569808718739805."
+        },
+        {
+          "citation": "EXP-049 / evidence.model_results[1].elapsed_seconds; EXP-049 / evidence.model_results[3].elapsed_seconds; EXP-049 / evidence.model_results[4].elapsed_seconds",
+          "statement": "The extra_trees model has elapsed_seconds 2.3429809589997603, while lightgbm has 0.7769285829999717 and xgboost has 0.912700249999034."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:14:01Z",
+      "risks_and_missing_evidence": [
+        "No locked holdout results are provided, so the training-CV leader may not generalize.",
+        "Only 3 folds and 1 repeat are shown; stability claims are weak with such limited resampling.",
+        "The selection rule is stated, but the actual composite scores are not shown, so the ranking cannot be independently verified from the package.",
+        "Feature engineering includes ratios and log transforms; there is no explicit evidence that these were fit strictly within each training fold, so leakage risk remains.",
+        "No decision-time or production-availability review is included, so even a strong CV result would not be deployment-ready.",
+        "The evidence bundle does not include a baseline with raw features or a leakage sentinel test, making it hard to separate genuine signal from preprocessing artifacts."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1337,
+        "prompt_tokens": 12727,
+        "total_tokens": 14064
+      }
+    },
+    "reviewed_at": "2026-09-18T13:14:01Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

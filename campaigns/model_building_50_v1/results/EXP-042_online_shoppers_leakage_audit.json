@@ -507,14 +507,85 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-042-C1",
+          "issue": "The canary passing only shows the detector can catch a synthetic exact-target canary; it does not demonstrate that the detector would catch realistic leakage or that the real dataset is free of leakage.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-042-C2",
+          "issue": "Declaring PageValues as a decision-time exclusion is not the same as proving a prediction-time contract violation. The evidence lacks explicit decision-time semantics and production-availability review.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-042-C2",
+          "issue": "The +0.1968 apparent AUC lift is a predictive comparison, not proof of leakage or proxying. It may reflect legitimate signal, leakage, or confounding; the evidence does not distinguish these.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "online_shoppers",
+      "decision": "Do not approve PageValues for use until decision-time semantics and production-availability are verified; treat it as a high-priority leakage/proxy review candidate, not a confirmed violation.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-042_online_shoppers_leakage_audit.json",
+      "experiment_id": "EXP-042",
+      "interpretation": "The evidence supports that PageValues is a strong suspicious proxy candidate because it was explicitly declared a decision-time exclusion and it materially changes cross-validated training performance when included. However, the package does not establish that PageValues violates the prediction-time contract in production; that requires decision-time semantics and availability review, which are only partially referenced in the limitations text. The canary result only validates the detector on a synthetic exact-target case, not on real leakage patterns.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "PageValues is unavailable or undefined at the moment the prediction must be made, which would make it a prediction-time contract violation rather than merely a predictive feature.",
+        "success_gate": "For PageValues, document a concrete decision-time data lineage showing whether the value exists before the prediction timestamp for every row in a held-out audit sample; if any row lacks a valid pre-decision value, classify it as a contract violation.",
+        "title": "Decision-time availability check for PageValues",
+        "why_smallest": "This is the minimal falsifiable test that directly addresses the unresolved question of prediction-time availability without changing the model, retraining, or adding broader feature searches."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-042 / evidence.detector_canary_passed",
+          "statement": "The leakage detector passed its synthetic exact-target canary."
+        },
+        {
+          "citation": "EXP-042 / evidence.declared_leakage_features",
+          "statement": "The declared decision-time exclusion list contains PageValues."
+        },
+        {
+          "citation": "EXP-042 / evidence.safe_vs_unsafe_training_cv.apparent_auc_lift",
+          "statement": "The reported apparent training-CV AUC lift for the unsafe feature set versus the safe set is 0.19680638838657394."
+        },
+        {
+          "citation": "EXP-042 / evidence.safe_vs_unsafe_training_cv.unsafe.feature_stability[3]",
+          "statement": "In the unsafe feature set, PageValues appears among the top features by mean normalized importance."
+        },
+        {
+          "citation": "EXP-042 / evidence.safe_vs_unsafe_training_cv.safe.folds; EXP-042 / evidence.safe_vs_unsafe_training_cv.unsafe.folds; EXP-042 / evidence.safe_vs_unsafe_training_cv.safe.model; EXP-042 / evidence.safe_vs_unsafe_training_cv.unsafe.model; EXP-042 / evidence.safe_vs_unsafe_training_cv.safe.stage; EXP-042 / evidence.safe_vs_unsafe_training_cv.unsafe.stage",
+          "statement": "The safe and unsafe evaluations each used 3 folds with LightGBM baseline raw-stage training."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:08Z",
+      "risks_and_missing_evidence": [
+        "No explicit decision-time semantics are provided for PageValues, so the contract violation is not confirmed.",
+        "No production-availability evidence is provided for PageValues; a feature can be available offline yet unavailable at prediction time.",
+        "The reported AUC lift is from training-CV only; this can be inflated by leakage, proxying, or distribution artifacts and is not sufficient to infer real-world utility.",
+        "Only one suspicious feature is declared; the package does not show a systematic scan of all columns for other proxies or contract violations.",
+        "The canary test is synthetic and exact-target only; it does not measure detector sensitivity to partial leakage, delayed leakage, or target-derived aggregates.",
+        "Three-fold CV is a limited validation basis for a leakage audit, especially without fold construction details and time/order constraints."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1019,
+        "prompt_tokens": 5533,
+        "total_tokens": 6552
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:08Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

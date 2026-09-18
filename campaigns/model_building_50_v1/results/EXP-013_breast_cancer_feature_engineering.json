@@ -1519,14 +1519,98 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-013-C1",
+          "issue": "The recommendation says to use the raw recipe, but the stated selection rule would require the smallest matrix within 0.002 of the best mean training-CV ROC-AUC. The reported selected stage is smaller than raw yet has lower mean ROC-AUC, so the recommendation is not supported by the rule as written.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-013-C1",
+          "issue": "The claim frames 0.9907 mean training-CV ROC-AUC as evidence that raw should be used next, but the package does not show a direct comparison against a held-out validation or test set, so the recommendation is not decision-grade.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-013-C1",
+          "issue": "The claim mentions 'about 30 features,' but the selected stage reports 25 features and the raw stage reports 30 features; the wording is ambiguous and may obscure the actual feature dilution tradeoff.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-013-C1",
+          "issue": "The limitation about domain semantics is acknowledged, but there is no evidence of decision-time availability or production freshness review for the engineered features.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "breast_cancer",
+      "decision": "Do not accept the recommendation as supported. Require a rule-consistency check and a leakage/validation audit before any feature recipe is selected for the next screen.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-013_breast_cancer_feature_engineering.json",
+      "experiment_id": "EXP-013",
+      "interpretation": "The package does not support the recommendation to use the raw recipe as the next screen if the stated goal is to improve validation evidence without feature dilution. By the package's own selection rule, the selected stage should be the smallest matrix within 0.002 of the best mean training-CV ROC-AUC, but the reported selected stage is both smaller and materially worse on mean ROC-AUC than raw. The evidence instead suggests a mismatch between the selection rule and the reported chosen stage, or a missing comparison stage / missing evaluation detail. The package also does not establish that any feature recipe improves validation evidence without dilution in a decision-ready sense, because only 3-fold CV is shown and no decision-time or production-availability review is provided.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the selection rule is implemented correctly and transformations are strictly train-fitted, then the smallest feature matrix within the allowed ROC-AUC tolerance will be identifiable and its validation ranking will be reproducible on a single untouched hold-out split.",
+        "success_gate": "Pre-register the exact selection rule, rerun the stage comparison with one untouched hold-out split, and accept only if the chosen stage is the smallest matrix within 0.002 of the best mean CV ROC-AUC and its hold-out ROC-AUC is not worse than raw by more than a predeclared tolerance.",
+        "title": "Rule-consistency and leakage audit with one held-out evaluation",
+        "why_smallest": "This is the minimal falsifiable check because it tests the two core uncertainties already exposed by the package: whether the selection rule was applied consistently and whether the apparent gain survives one independent evaluation, without changing the feature-generation family."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-013 / evidence.stage_results[*].stage; EXP-013 / evidence.stage_results[*].model; EXP-013 / evidence.stage_results[*].folds",
+          "statement": "The experiment compares six stages: raw, logs, ratios, interactions, full_fe, and selected, all evaluated with LightGBM over 3 folds."
+        },
+        {
+          "citation": "EXP-013 / evidence.stage_results[0].metrics.roc_auc.mean; EXP-013 / evidence.stage_results[0].feature_count_mean",
+          "statement": "The raw stage reports mean ROC-AUC 0.9907334124785648 with mean feature_count_mean 30.0."
+        },
+        {
+          "citation": "EXP-013 / evidence.stage_results[5].metrics.roc_auc.mean; EXP-013 / evidence.stage_results[5].feature_count_mean",
+          "statement": "The selected stage reports mean ROC-AUC 0.9813118322121092 with mean feature_count_mean 25.0."
+        },
+        {
+          "citation": "EXP-013 / evidence.selection_rule",
+          "statement": "The selection rule is stated as choosing the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-013 / evidence.stage_results[1].feature_count_mean; EXP-013 / evidence.stage_results[2].feature_count_mean; EXP-013 / evidence.stage_results[3].feature_count_mean; EXP-013 / evidence.stage_results[4].feature_count_mean",
+          "statement": "Several later stages increase feature_count_mean relative to raw: logs 54.333333333333336, ratios 69.33333333333333, interactions 77.33333333333333, and full_fe 82.33333333333333."
+        },
+        {
+          "citation": "EXP-013 / evidence.stage_results[0].metrics.roc_auc.mean; EXP-013 / evidence.stage_results[5].metrics.roc_auc.mean; EXP-013 / evidence.selection_rule",
+          "statement": "The selected stage has lower mean ROC-AUC than raw and does not satisfy the stated 0.002-within-best selection rule if raw is the best stage by mean ROC-AUC."
+        },
+        {
+          "citation": "EXP-013 / evidence.stage_results[0].metrics.brier.mean; EXP-013 / evidence.stage_results[0].metrics.ece_10.mean; EXP-013 / evidence.stage_results[5].metrics.brier.mean; EXP-013 / evidence.stage_results[5].metrics.ece_10.mean",
+          "statement": "The selected stage shows lower mean Brier score and lower mean ECE_10 than raw, but these are still cross-validated predictive metrics rather than evidence of causal improvement."
+        }
+      ],
+      "overall_confidence": "high",
+      "reviewed_at": "2026-09-18T13:09:33Z",
+      "risks_and_missing_evidence": [
+        "The reported selected stage appears inconsistent with the stated selection rule; the package does not show how a 25-feature matrix with lower mean ROC-AUC than raw was selected as within 0.002 of the best stage.",
+        "Only 3 folds are reported; there is no repeated CV, nested CV, or held-out test set evidence to assess stability of the feature recipe choice.",
+        "No decision-time availability review is shown for the engineered features, so production feasibility and feature freshness are unverified.",
+        "No leakage audit is shown for train-fitted transformations, especially for ratio and interaction features that may encode fold-specific artifacts if any preprocessing was not strictly nested.",
+        "The package reports predictive metrics only; it does not justify causal language or operational benefit claims.",
+        "The evidence bundle does not show the exact feature matrices for each stage, so the meaning of 'feature dilution' is not fully auditable from the provided paths."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1528,
+        "prompt_tokens": 16288,
+        "total_tokens": 17816
+      }
+    },
+    "reviewed_at": "2026-09-18T13:09:33Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

@@ -1298,14 +1298,93 @@
   "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
   "kind": "optimization_reliability",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-035-C1",
+          "issue": "The claim about holdout performance is supported by the reported metrics, but it should not be generalized beyond this consumed holdout. The package does not provide evidence that the result is robust to a fresh unseen test set or that no leakage occurred.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-035-C1",
+          "issue": "The question asks whether optimization produces a meaningful CV gain, but no baseline CV score, tuned CV score, or delta is shown. The evidence is insufficient to support any claim about optimization gain.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-035-C2",
+          "issue": "The recommendation is directionally sound, but the package does not actually provide decision-time availability or production availability evidence for the listed features, so the recommendation cannot be operationally validated here.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "mushroom",
+      "decision": "Do not conclude that optimization produced a meaningful CV gain from this package. Treat the holdout result as a completed evaluation of the preselected recipe only, and require a direct baseline-vs-tuned CV comparison plus decision-time/production-availability review before any feature or recipe promotion.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-035_mushroom_optimization_reliability.json",
+      "experiment_id": "EXP-035",
+      "interpretation": "The evidence supports that the chosen recipe performs perfectly on the consumed holdout, but this does not by itself establish that optimization produced a meaningful generalization gain. The selection rule is conservative, yet the package does not show the baseline CV score, the tuned CV score, or their difference, so the central optimization question remains unresolved. The feature evidence is directionally consistent with stability, but it is not sufficient to approve feature promotion without decision-time and production-availability checks.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If optimization truly improves generalization, then the tuned recipe will exceed the baseline by at least 0.001 mean ROC-AUC under a leakage-resistant nested CV protocol; otherwise the baseline should remain preferred.",
+        "success_gate": "Run nested CV on the training data only, report baseline mean ROC-AUC, tuned mean ROC-AUC, and their difference with identical folds and preprocessing. Success requires tuned minus baseline >= 0.001 and no evidence of target leakage or fold contamination.",
+        "title": "Baseline-vs-tuned nested CV comparison with leakage check",
+        "why_smallest": "This is the minimal falsifiable test because it directly measures the missing quantity behind the optimization question without changing the model family, dataset, or holdout protocol."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-035 / evidence.holdout_consumed",
+          "statement": "The once-consumed holdout was evaluated and marked consumed."
+        },
+        {
+          "citation": "EXP-035 / evidence.holdout_metrics; EXP-035 / evidence.holdout_roc_auc_bootstrap_ci",
+          "statement": "The preselected extra_trees/baseline recipe achieved ROC-AUC 1.0 on the holdout, with bootstrap CI reported as 1.0 to 1.0."
+        },
+        {
+          "citation": "EXP-035 / evidence.holdout_metrics",
+          "statement": "The holdout metrics also report perfect accuracy, precision, recall, F1, and average precision, with very small log loss, Brier score, and ECE."
+        },
+        {
+          "citation": "EXP-035 / evidence.selection_rule",
+          "statement": "The optimization selection rule only accepts a tuned candidate when mean CV ROC-AUC improves by at least 0.001 over baseline; otherwise baseline is preferred."
+        },
+        {
+          "citation": "EXP-035 / evidence.top_final_features",
+          "statement": "The top final features listed include gill-size, odor, spore-print-color, stalk-surface-below-ring, stalk-surface-above-ring, bruises, ring-type, stalk-root, gill-spacing, and stalk-shape."
+        },
+        {
+          "citation": "EXP-035 / evidence.cv_feature_stability",
+          "statement": "The CV feature stability table reports 3 observed folds for each listed feature, with top10_frequency equal to 1.0 for the first ten features and 0.0 for several lower-ranked features."
+        },
+        {
+          "citation": "EXP-035 / evidence.production_feature_rule",
+          "statement": "The production feature rule requires decision-time availability, cross-fold stability, contractual obtainability, monitoring for missingness/drift, and more than single-fit importance."
+        }
+      ],
+      "overall_confidence": "high",
+      "reviewed_at": "2026-09-18T13:12:25Z",
+      "risks_and_missing_evidence": [
+        "Missing baseline CV ROC-AUC and tuned CV ROC-AUC, so the claimed optimization gain cannot be verified from the package.",
+        "Only 3 CV folds are reported for feature stability, which is thin evidence for stability claims.",
+        "The holdout is already consumed; repeated use risks implicit overfitting to the holdout if further tuning is guided by these results.",
+        "Perfect holdout metrics on a single dataset can reflect dataset simplicity or leakage; the package does not rule out leakage pathways.",
+        "No decision-time availability evidence is provided for the listed features, so feature promotion would be premature.",
+        "No production availability, contract, or monitoring evidence is provided for the listed features."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1152,
+        "prompt_tokens": 2749,
+        "total_tokens": 3901
+      }
+    },
+    "reviewed_at": "2026-09-18T13:12:25Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "metrics": {
     "accuracy": 1.0,

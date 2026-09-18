@@ -1453,14 +1453,99 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-048-C1",
+          "issue": "The recommendation says to use the ratios recipe for the next model screen because it achieved 0.8429 mean training-CV ROC-AUC with about 32 features, but the evidence package also contains a selected stage with 25 features and much lower mean ROC-AUC, which conflicts with the stated selection rule and weakens the recommendation logic.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-048-C1",
+          "issue": "The phrase 'improves validation evidence without feature dilution' is not supported by an independent validation set; the evidence is only training-CV and cannot establish validation improvement beyond the reported CV summary.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-048-C1",
+          "issue": "The recommendation implicitly treats a 0.002 ROC-AUC margin as meaningful, but no uncertainty-aware comparison or paired fold-level test is provided to show that the ratios stage is reliably better than nearby alternatives.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-048-C1",
+          "issue": "The generic limitation about domain semantics is acknowledged, but there is no decision-time or production-availability review for the ratio features, so the feature recipe should not be approved for use.",
+          "severity": "medium"
+        }
+      ],
+      "dataset": "wine_quality",
+      "decision": "Do not accept the recommendation as written. The ratios recipe is the best reported candidate for the next falsifiable screen, but the current selection claim is unsupported because the selected stage is not within 0.002 mean ROC-AUC of the best stage and is materially worse than the ratios stage.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-048_wine_quality_feature_engineering.json",
+      "experiment_id": "EXP-048",
+      "interpretation": "The evidence supports only a narrow inference: among the reported stages, the ratios recipe has the highest mean training-CV ROC-AUC and a moderate feature count, so it is the strongest candidate for further screening. However, the stated selection rule and the reported selected stage are internally inconsistent with the best-stage criterion, and the package does not demonstrate that the chosen recipe improves validation evidence without feature dilution. The evidence is also limited to training-CV summaries from 3 folds, so it cannot establish robustness, leakage resistance, or production suitability.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the ratios recipe truly improves evidence without feature dilution, then under a nested, fold-aligned evaluation it will beat the raw recipe on mean ROC-AUC by at least 0.002 while keeping feature count materially below the full feature recipes, and the result will remain stable across folds.",
+        "success_gate": "Run a nested CV comparison using the same outer folds for raw and ratios, with all feature construction fit strictly inside each training fold. Accept the ratios recipe only if its outer-fold mean ROC-AUC exceeds raw by at least 0.002 and the fold-wise improvement is consistent in at least 2 of 3 folds; otherwise reject the claim.",
+        "title": "Nested fold-wise comparison of raw vs ratios with leakage checks",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing two most relevant recipes, keeps the same model family, and adds only fold-aligned nesting plus a leakage check to test the exact claim."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-048 / evidence.stage_results[*].model, evidence.stage_results[*].folds, evidence.stage_results[*].repeats",
+          "statement": "The experiment compares multiple train-fitted feature recipes on wine_quality using LightGBM with 3 folds and 1 repeat per stage."
+        },
+        {
+          "citation": "EXP-048 / evidence.stage_results[*].metrics.roc_auc.mean",
+          "statement": "The reported mean ROC-AUC values are raw: 0.8397573768475842, logs: 0.8397573768475842, ratios: 0.8428791965766287, interactions: 0.8406096200593263, full_fe: 0.8419892460314314, selected: 0.8263640594066476."
+        },
+        {
+          "citation": "EXP-048 / evidence.stage_results[*].feature_count_mean",
+          "statement": "The reported mean feature counts are raw: 11.0, logs: 17.333333333333332, ratios: 32.333333333333336, interactions: 40.333333333333336, full_fe: 45.333333333333336, selected: 25.0."
+        },
+        {
+          "citation": "EXP-048 / evidence.selection_rule",
+          "statement": "The selection rule is to choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-048 / evidence.stage_results[*].stage, evidence.stage_results[*].metrics.roc_auc.mean",
+          "statement": "The selected stage is not the highest-ROC-AUC stage; the selected stage mean ROC-AUC is 0.8263640594066476, while the best reported mean ROC-AUC is 0.8428791965766287 at the ratios stage."
+        },
+        {
+          "citation": "EXP-048 / evidence.stage_results[2].feature_stability[*].feature, evidence.stage_results[2].feature_stability[*].top10_frequency",
+          "statement": "The ratios stage includes ratio features such as ratio_total_sulfur_dioxide_div_free_sulfur_dioxide and ratio_fixed_acidity_div_alcohol, and these features appear among the top-10 stable features across all folds."
+        },
+        {
+          "citation": "EXP-048 / evidence.stage_results[5].metrics.roc_auc.mean, evidence.stage_results[0].metrics.roc_auc.mean, evidence.stage_results[2].metrics.roc_auc.mean",
+          "statement": "The selected stage includes interaction and ratio features, but its mean ROC-AUC is lower than the raw stage and lower than the ratios stage."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:52Z",
+      "risks_and_missing_evidence": [
+        "Internal inconsistency: the selection rule says choose the smallest matrix within 0.002 mean training-CV ROC-AUC of the best stage, but the selected stage mean ROC-AUC is far below the best stage.",
+        "No evidence of an independent validation or test set; all conclusions are based on training-CV summaries.",
+        "Only 3 folds and 1 repeat are reported, which is thin evidence for ranking close feature recipes.",
+        "No decision-time or production-availability review is shown for generated ratio features, so deployment suitability is unassessed.",
+        "Potential leakage risk is not ruled out for train-fitted feature generation, especially for ratio and interaction construction if any preprocessing used global statistics outside fold boundaries.",
+        "The package does not report whether the feature recipes were compared under identical hyperparameter tuning budgets or whether model selection was nested.",
+        "The claim 'without feature dilution' is not operationalized; there is no explicit metric tying feature count to generalization tradeoff beyond the selection rule."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1537,
+        "prompt_tokens": 15809,
+        "total_tokens": 17346
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:52Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

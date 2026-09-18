@@ -39,14 +39,71 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-032-C1",
+          "issue": "The canary pass is a detector sanity check, not evidence about any real dataset column. It cannot support conclusions about actual leakage or proxy columns.",
+          "severity": "low"
+        },
+        {
+          "claim_id": "EXP-032-C2",
+          "issue": "The statement 'Declared decision-time exclusions for mushroom: none' is unsupported as a decision about feature safety; the evidence only shows an empty declared_leakage_features list and a null safe_vs_unsafe_training_cv field. That does not establish prediction-time compliance.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "mushroom",
+      "decision": "Insufficient evidence to identify or approve any real columns as safe or unsafe. The current package supports only that the detector is not completely broken on a synthetic canary, not that the mushroom features satisfy prediction-time availability or are free of target proxies.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-032_mushroom_leakage_audit.json",
+      "experiment_id": "EXP-032",
+      "interpretation": "The package provides only a minimal sanity check that the detector can flag an injected exact-target canary. It does not provide column-level evidence for which real columns violate the prediction-time contract or act as target proxies. The absence of declared leakage features is not evidence of absence, and the null safe_vs_unsafe_training_cv field leaves the main leakage-risk question unresolved.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If any mushroom columns violate the prediction-time contract or behave as target proxies, then removing them from the feature set will materially change validation behavior relative to the full feature set, and the offending columns will be identifiable by decision-time availability review.",
+        "success_gate": "For each column, provide a decision-time availability verdict and a reason; then run a pre-registered safe-vs-unsafe ablation. Success is achieved only if at least one column is flagged by decision-time review and the ablation shows a reproducible validation difference between the full and contract-compliant feature sets under the same split protocol.",
+        "title": "Column-level prediction-time contract audit with safe/unsafe ablation",
+        "why_smallest": "This is the smallest falsifiable step because it adds only two missing pieces: a column-level decision-time review and one ablation comparison. It directly tests the unresolved leakage question without changing the dataset, model family, or evaluation protocol."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-032 / evidence.detector_canary_passed",
+          "statement": "The leakage detector\u2019s synthetic exact-target canary passed."
+        },
+        {
+          "citation": "EXP-032 / evidence.declared_leakage_features",
+          "statement": "No declared decision-time exclusions were provided for the mushroom dataset."
+        },
+        {
+          "citation": "EXP-032 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "The safe_vs_unsafe_training_cv evidence is null, so there is no reported cross-validation comparison between safe and unsafe feature sets."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:12:04Z",
+      "risks_and_missing_evidence": [
+        "No column-level audit is shown, so suspicious proxies cannot be named from the provided evidence.",
+        "No decision-time semantics review is included; feature availability at prediction time is unverified.",
+        "No production-availability review is included; even non-leaky columns may be unavailable or unstable in deployment.",
+        "No safe-vs-unsafe model comparison is reported, so there is no falsifiable evidence that excluding suspected columns changes performance as expected.",
+        "The canary result only validates detector sensitivity to an injected exact-target feature, not detection of subtler leakage patterns."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 779,
+        "prompt_tokens": 874,
+        "total_tokens": 1653
+      }
+    },
+    "reviewed_at": "2026-09-18T13:12:04Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

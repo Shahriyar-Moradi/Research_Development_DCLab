@@ -1519,14 +1519,99 @@
   "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
   "kind": "feature_engineering",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-028-C1",
+          "issue": "The recommendation says to use the interactions recipe, but the stated selection rule would instead choose the smallest matrix within 0.002 of the best stage; the selected stage is not within that tolerance of the best reported mean ROC-AUC.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-028-C1",
+          "issue": "The claim implies validation improvement, but the evidence only reports training-CV metrics and does not include an independent holdout or outer CV estimate.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-028-C1",
+          "issue": "The claim suggests the interactions recipe is preferable, but the evidence does not quantify the tradeoff against feature dilution using a defined metric beyond raw feature count.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-028-C1",
+          "issue": "The package does not show fold-wise generation details for the derived features, so leakage from global fitting of feature engineering cannot be ruled out.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "german_credit",
+      "decision": "Do not accept the recommendation as written; the evidence is insufficient and internally inconsistent with the selection rule.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-028_german_credit_feature_engineering.json",
+      "experiment_id": "EXP-028",
+      "interpretation": "The evidence supports only a narrow descriptive conclusion: among the tested recipes, the interactions stage has the highest reported mean training-CV ROC-AUC. However, the package does not support the recommendation to use it as the next screen under the stated selection rule, because the selected stage is not within the 0.002 ROC-AUC tolerance of the best stage. The evidence also does not establish that the interactions recipe improves validation evidence without feature dilution in a decision-ready sense, because the reported metrics are training-CV only, the fold count is small, and the selected stage is actually lower-scoring than the best stage while being smaller. The package therefore contains an internal inconsistency between the selection rule and the stated recommendation.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If the interactions recipe truly improves validation evidence without unacceptable dilution, then a fold-local, leakage-safe nested-CV evaluation will preserve its ROC-AUC advantage over the selected smaller matrix within a predeclared tolerance.",
+        "success_gate": "Run nested CV with feature engineering fit only on each training fold. Declare success only if interactions exceeds the selected recipe by at least 0.002 mean outer-CV ROC-AUC and does not increase feature_count_mean by more than a predeclared dilution budget.",
+        "title": "Fold-local ablation of interactions vs selected under nested validation",
+        "why_smallest": "This changes only the validation protocol and compares only the two most relevant candidates, which is the minimal falsifiable test of the recommendation and leakage risk."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-028 / evidence.stage_results",
+          "statement": "The experiment compares five stages on german_credit: raw, logs, ratios, interactions, and selected, all using lightgbm with 3 folds and 1 repeat."
+        },
+        {
+          "citation": "EXP-028 / evidence.stage_results[*].metrics.roc_auc.mean",
+          "statement": "The reported mean training-CV ROC-AUC values are 0.7527162037835663 (raw), 0.7527162037835663 (logs), 0.7521825225691451 (ratios), 0.7600576447587833 (interactions), and 0.7421301487359363 (selected)."
+        },
+        {
+          "citation": "EXP-028 / evidence.stage_results[*].feature_count_mean",
+          "statement": "The reported feature_count_mean values are 20.0 (raw), 33.0 (logs), 48.0 (ratios), 56.0 (interactions), and 25.0 (selected)."
+        },
+        {
+          "citation": "EXP-028 / evidence.selection_rule",
+          "statement": "The selection rule is to choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+        },
+        {
+          "citation": "EXP-028 / evidence.stage_results[*].metrics.roc_auc.mean; EXP-028 / evidence.selection_rule",
+          "statement": "The selected stage has mean training-CV ROC-AUC 0.7421301487359363, which is not within 0.002 of the best reported mean training-CV ROC-AUC 0.7600576447587833."
+        },
+        {
+          "citation": "EXP-028 / evidence.stage_results[*].metrics.roc_auc.mean; EXP-028 / evidence.stage_results[*].feature_count_mean",
+          "statement": "The interactions stage has the highest reported mean training-CV ROC-AUC among the listed stages, but it also has the largest reported feature_count_mean among the stages shown."
+        },
+        {
+          "citation": "EXP-028 / evidence.stage_results[3].feature_stability",
+          "statement": "The interactions stage includes many derived ratio and interaction features, and several of the top-stability features are not observed in all folds (for example, some have observed_folds = 1)."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:11:38Z",
+      "risks_and_missing_evidence": [
+        "No separate holdout or outer validation result is shown; all conclusions are based on training-CV evidence only.",
+        "The package does not report whether feature generation was fit strictly inside each training fold for every stage, so leakage risk remains unresolved.",
+        "The selection rule is not satisfied by the selected stage, but the package does not explain why the recommendation overrides the rule.",
+        "Only 3 folds and 1 repeat are reported, which makes the ranking unstable and sensitive to split variance.",
+        "The evidence does not show decision-time availability or production-time computability of the derived features.",
+        "The feature stability table includes features with observed_folds = 1, which suggests instability in the derived feature set.",
+        "The phrase 'without feature dilution' is not operationalized; no explicit dilution metric or threshold is provided."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1329,
+        "prompt_tokens": 16117,
+        "total_tokens": 17446
+      }
+    },
+    "reviewed_at": "2026-09-18T13:11:38Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

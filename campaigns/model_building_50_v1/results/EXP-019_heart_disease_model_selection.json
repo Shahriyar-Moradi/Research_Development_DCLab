@@ -982,14 +982,97 @@
   "hypothesis": "Algorithm winners vary by dataset; stability-aware multi-family screening is safer than a universal default.",
   "kind": "model_selection",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-019-C1",
+          "issue": "The statement that extra_trees is the training-CV model candidate is supported only as a provisional ranking outcome, not as a robust winner. The ROC-AUC advantage over logistic_regression is small, and logistic_regression has lower variance and much lower runtime under the same raw-stage setting.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-019-C1",
+          "issue": "The evidence does not include a locked holdout, so the claim cannot be extended beyond training-CV selection.",
+          "severity": "high"
+        },
+        {
+          "claim_id": "EXP-019-C1",
+          "issue": "The package does not show nested CV or an untouched validation layer, so the ranking may be biased by model selection on the same folds used for evaluation.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "heart_disease",
+      "decision": "Do not treat extra_trees as a confirmed winner. Use it only as a provisional CV leader pending a locked-holdout check and a repeated/nested validation comparison against logistic_regression.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-019_heart_disease_model_selection.json",
+      "experiment_id": "EXP-019",
+      "interpretation": "Within this training-CV-only package, extra_trees is the top raw-stage candidate by the stated ranking criterion, but the evidence is not strong enough to claim it is the strongest stable family overall. The margin over logistic_regression is small, the sample of folds is only 3, and the package does not include a locked holdout or repeated/nested validation. The most defensible conclusion is that extra_trees is the current CV leader under the specified rule, while logistic_regression remains a plausible near-tie on stability/runtime grounds.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "If extra_trees is genuinely the strongest stable family for this dataset profile, it will retain a higher mean outer-fold ROC-AUC than logistic_regression across repeated nested CV splits, with the advantage exceeding a pre-specified small margin and not reversing across repeats.",
+        "success_gate": "Run repeated nested CV with identical preprocessing inside folds for extra_trees and logistic_regression. Declare extra_trees the provisional winner only if its mean outer-fold ROC-AUC exceeds logistic_regression by at least 0.01 and the result is directionally consistent in a majority of repeats; otherwise, treat the two as tied and defer to simpler/faster model choice criteria.",
+        "title": "Repeated nested CV comparison: extra_trees vs logistic_regression",
+        "why_smallest": "This changes only the validation design and compares the two closest contenders already present in the evidence, making it the minimal falsifiable test of whether the current CV leader is stable rather than a split-specific artifact."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-019 / evidence.selection_rule",
+          "statement": "The selection rule ranks models by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime, using training CV only."
+        },
+        {
+          "citation": "EXP-019 / evidence.model_results[1].metrics.roc_auc; EXP-019 / evidence.model_results[1].elapsed_seconds; EXP-019 / evidence.model_results[1].folds",
+          "statement": "The raw-stage extra_trees model reports mean ROC-AUC 0.8977867931356304 with std 0.024360745414873528 across 3 folds, and elapsed_seconds 0.4227246250011376."
+        },
+        {
+          "citation": "EXP-019 / evidence.model_results[0].metrics.roc_auc; EXP-019 / evidence.model_results[0].elapsed_seconds; EXP-019 / evidence.model_results[0].folds",
+          "statement": "The raw-stage logistic_regression model reports mean ROC-AUC 0.8941250976134697 with std 0.019780866908858354 across 3 folds, and elapsed_seconds 0.06454533400028595."
+        },
+        {
+          "citation": "EXP-019 / evidence.model_results[3].metrics.roc_auc; EXP-019 / evidence.model_results[3].folds",
+          "statement": "The raw-stage lightgbm model reports mean ROC-AUC 0.8700264746776375 with std 0.033786505757582165 across 3 folds."
+        },
+        {
+          "citation": "EXP-019 / evidence.model_results[4].metrics.roc_auc; EXP-019 / evidence.model_results[4].folds",
+          "statement": "The raw-stage xgboost model reports mean ROC-AUC 0.8573510085137993 with std 0.020881994982021816 across 3 folds."
+        },
+        {
+          "citation": "EXP-019 / evidence.model_results[2].metrics.roc_auc; EXP-019 / evidence.model_results[2].folds",
+          "statement": "The raw-stage hist_gradient_boosting model reports mean ROC-AUC 0.8620316934270423 with std 0.042044001232304604 across 3 folds."
+        },
+        {
+          "citation": "EXP-019 / evidence.model_results[1].metrics.roc_auc; EXP-019 / evidence.model_results[0].metrics.roc_auc; EXP-019 / evidence.model_results[1].elapsed_seconds; EXP-019 / evidence.model_results[0].elapsed_seconds",
+          "statement": "The extra_trees model has the highest mean ROC-AUC among the listed raw-stage models, but logistic_regression is close and has lower fold standard deviation and much lower runtime."
+        },
+        {
+          "citation": "EXP-019 / evidence_bundle.claims[0].limitations",
+          "statement": "No locked holdout results are present in the evidence bundle."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:10:37Z",
+      "risks_and_missing_evidence": [
+        "Only 3 folds are reported, so the stability estimate is noisy and sensitive to split choice.",
+        "The package is training-CV only; there is no locked holdout or external test evidence.",
+        "The selection rule uses the same CV results for ranking and model choice, so the reported leader may be optimistic without nested validation.",
+        "No evidence is provided on whether preprocessing, feature engineering, or target encoding were fit strictly inside each fold; leakage risk cannot be ruled out.",
+        "The evidence bundle does not show class balance, split strategy, grouping, or temporal structure, so validation design adequacy cannot be assessed.",
+        "The claim is about a 'training-CV model candidate,' which is weaker than a deployable model decision; decision-time and production-availability review are absent."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 1431,
+        "prompt_tokens": 10643,
+        "total_tokens": 12074
+      }
+    },
+    "reviewed_at": "2026-09-18T13:10:37Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {

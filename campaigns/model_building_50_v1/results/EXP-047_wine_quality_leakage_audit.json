@@ -39,14 +39,71 @@
   "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
   "kind": "leakage_audit",
   "llm_review": {
+    "model": "gpt-5.4-mini",
     "required_outputs": [
       "challenge unsupported claims",
       "identify missed leakage or validation risks",
       "propose the smallest next experiment with a falsifiable success gate",
       "cite experiment_id and evidence paths for every conclusion"
     ],
+    "review": {
+      "challenges_to_claims": [
+        {
+          "claim_id": "EXP-047-C1",
+          "issue": "The canary pass only shows the detector can catch an injected exact-target proxy; it does not imply the detector will catch real-world leakage patterns or that the audit is complete.",
+          "severity": "medium"
+        },
+        {
+          "claim_id": "EXP-047-C2",
+          "issue": "The statement 'Declared decision-time exclusions for wine_quality: none' is unsupported as a decision because the evidence bundle provides no column-level decision-time availability review and the safe_vs_unsafe_training_cv field is null.",
+          "severity": "high"
+        }
+      ],
+      "dataset": "wine_quality",
+      "decision": "Insufficient evidence to identify or approve any column as safe or unsafe. A decision-time and production-availability review is still required before any feature can be treated as non-leaky.",
+      "evidence_path": "campaigns/model_building_50_v1/results/EXP-047_wine_quality_leakage_audit.json",
+      "experiment_id": "EXP-047",
+      "interpretation": "The package only establishes that the detector can recognize an injected exact-target canary and that no leakage features were declared. It does not establish which real columns violate the prediction-time contract, because the key evidence needed to compare safe versus unsafe training behavior is missing. The absence of declared leakage features is not evidence of absence of leakage; it is only an absence of declaration.",
+      "model": "gpt-5.4-mini",
+      "next_experiment": {
+        "hypothesis": "At least one candidate column will show a mismatch between training-time availability and prediction-time availability, or will behave like a suspicious target proxy under a simple univariate screen.",
+        "success_gate": "For every column, provide a decision-time availability label and a production-availability label; flag any column that is unavailable at scoring time or whose univariate association materially exceeds the rest under the same validation split. If no columns are flagged, the audit must still include the full column-by-column evidence table and the validation protocol.",
+        "title": "Column-level decision-time availability audit with safe-vs-unsafe comparison",
+        "why_smallest": "This is the smallest falsifiable step because it reuses the existing audit framing, adds only the missing column-level semantics and validation comparison, and directly tests the contract question without requiring model redesign."
+      },
+      "observed_evidence": [
+        {
+          "citation": "EXP-047 / evidence.detector_canary_passed",
+          "statement": "The leakage detector synthetic exact-target canary passed."
+        },
+        {
+          "citation": "EXP-047 / evidence.declared_leakage_features",
+          "statement": "No declared leakage features were provided for wine_quality."
+        },
+        {
+          "citation": "EXP-047 / evidence.safe_vs_unsafe_training_cv",
+          "statement": "The safe_vs_unsafe_training_cv evidence is null / missing."
+        }
+      ],
+      "overall_confidence": "medium",
+      "reviewed_at": "2026-09-18T13:13:43Z",
+      "risks_and_missing_evidence": [
+        "No column-level evidence is provided for actual predictors, so no real leakage/proxy diagnosis can be made.",
+        "safe_vs_unsafe_training_cv is null, so there is no validation signal to compare declared safe features against suspicious features.",
+        "The canary result only validates detector sensitivity to a synthetic exact-target feature; it does not validate detection of subtler proxies or contract violations.",
+        "No decision-time semantics are documented for the dataset columns, so prediction-time availability cannot be verified.",
+        "No production-availability review is included, so even seemingly innocuous columns could still be unavailable at scoring time."
+      ],
+      "role": "critic_and_hypothesis_generator_only",
+      "usage": {
+        "completion_tokens": 730,
+        "prompt_tokens": 875,
+        "total_tokens": 1605
+      }
+    },
+    "reviewed_at": "2026-09-18T13:13:43Z",
     "role": "critic_and_hypothesis_generator_only",
-    "status": "pending"
+    "status": "completed"
   },
   "provenance": {
     "data_sha256": {
