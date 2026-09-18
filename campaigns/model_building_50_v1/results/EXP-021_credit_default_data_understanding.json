@@ -1,0 +1,322 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-021-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "credit_default has 30000 source rows, 23 cached features, and a training positive rate of 0.221."
+    },
+    {
+      "claim_id": "EXP-021-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:25:30+00:00",
+  "dataset": "credit_default",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.0,
+    "feature_count": 23,
+    "feature_profiles": [
+      {
+        "dtype": "int64",
+        "feature": "X1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.012332296394905125,
+        "top_value_frequency": 0.1071875,
+        "unique_count": 63,
+        "unique_ratio": 0.0196875
+      },
+      {
+        "dtype": "int64",
+        "feature": "X2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.6065625,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "int64",
+        "feature": "X3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0010558158729741544,
+        "top_value_frequency": 0.4825,
+        "unique_count": 6,
+        "unique_ratio": 0.001875
+      },
+      {
+        "dtype": "int64",
+        "feature": "X4",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0032369747014094345,
+        "top_value_frequency": 0.538125,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      },
+      {
+        "dtype": "int64",
+        "feature": "X5",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.016652117248223883,
+        "top_value_frequency": 0.0521875,
+        "unique_count": 50,
+        "unique_ratio": 0.015625
+      },
+      {
+        "dtype": "int64",
+        "feature": "X6",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005553131065140319,
+        "top_value_frequency": 0.48625,
+        "unique_count": 10,
+        "unique_ratio": 0.003125
+      },
+      {
+        "dtype": "int64",
+        "feature": "X7",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.002317735507032923,
+        "top_value_frequency": 0.52375,
+        "unique_count": 10,
+        "unique_ratio": 0.003125
+      },
+      {
+        "dtype": "int64",
+        "feature": "X8",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004346065055257865,
+        "top_value_frequency": 0.529375,
+        "unique_count": 9,
+        "unique_ratio": 0.0028125
+      },
+      {
+        "dtype": "int64",
+        "feature": "X9",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00475377576439145,
+        "top_value_frequency": 0.5615625,
+        "unique_count": 8,
+        "unique_ratio": 0.0025
+      },
+      {
+        "dtype": "int64",
+        "feature": "X10",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0016097214563034101,
+        "top_value_frequency": 0.568125,
+        "unique_count": 8,
+        "unique_ratio": 0.0025
+      },
+      {
+        "dtype": "int64",
+        "feature": "X11",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004087432945264869,
+        "top_value_frequency": 0.545,
+        "unique_count": 8,
+        "unique_ratio": 0.0025
+      },
+      {
+        "dtype": "int64",
+        "feature": "X12",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.025054522455366667,
+        "top_value_frequency": 0.070625,
+        "unique_count": 2828,
+        "unique_ratio": 0.88375
+      },
+      {
+        "dtype": "int64",
+        "feature": "X13",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007187161658704865,
+        "top_value_frequency": 0.0815625,
+        "unique_count": 2787,
+        "unique_ratio": 0.8709375
+      },
+      {
+        "dtype": "int64",
+        "feature": "X14",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.014802630027633757,
+        "top_value_frequency": 0.0934375,
+        "unique_count": 2758,
+        "unique_ratio": 0.861875
+      },
+      {
+        "dtype": "int64",
+        "feature": "X15",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007907066034492854,
+        "top_value_frequency": 0.101875,
+        "unique_count": 2696,
+        "unique_ratio": 0.8425
+      },
+      {
+        "dtype": "int64",
+        "feature": "X16",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005743968729133113,
+        "top_value_frequency": 0.1153125,
+        "unique_count": 2677,
+        "unique_ratio": 0.8365625
+      },
+      {
+        "dtype": "int64",
+        "feature": "X17",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.011676332010333553,
+        "top_value_frequency": 0.1296875,
+        "unique_count": 2605,
+        "unique_ratio": 0.8140625
+      },
+      {
+        "dtype": "int64",
+        "feature": "X18",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00925864495027746,
+        "top_value_frequency": 0.1696875,
+        "unique_count": 1504,
+        "unique_ratio": 0.47
+      },
+      {
+        "dtype": "int64",
+        "feature": "X19",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.020194357502714273,
+        "top_value_frequency": 0.185625,
+        "unique_count": 1480,
+        "unique_ratio": 0.4625
+      },
+      {
+        "dtype": "int64",
+        "feature": "X20",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00853516486398858,
+        "top_value_frequency": 0.1915625,
+        "unique_count": 1419,
+        "unique_ratio": 0.4434375
+      },
+      {
+        "dtype": "int64",
+        "feature": "X21",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.020453763756763478,
+        "top_value_frequency": 0.2059375,
+        "unique_count": 1355,
+        "unique_ratio": 0.4234375
+      },
+      {
+        "dtype": "int64",
+        "feature": "X22",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.008383850175497047,
+        "top_value_frequency": 0.22125,
+        "unique_count": 1298,
+        "unique_ratio": 0.405625
+      },
+      {
+        "dtype": "int64",
+        "feature": "X23",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.01443311908233869,
+        "top_value_frequency": 0.2353125,
+        "unique_count": 1246,
+        "unique_ratio": 0.389375
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.22125,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.22125,
+    "risk_feature_count": 0,
+    "source_rows": 30000,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-021",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/credit_default/X.parquet": "b11d5884e900aed4e4151e410a0d84eb44fdc102dce2edd430db7bc34303bd59",
+      "external_data/credit_default/meta.json": "c5d8482c94b153e1a1b7e3167a43809a92b78321262e0ac7fdc285d860b010c2",
+      "external_data/credit_default/y.parquet": "92819db23b03620a405cef2046230d4cfb1fce76756082cd2db5049bf08e214f"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients",
+  "started_at": "2026-09-18T11:25:30+00:00",
+  "status": "completed"
+}

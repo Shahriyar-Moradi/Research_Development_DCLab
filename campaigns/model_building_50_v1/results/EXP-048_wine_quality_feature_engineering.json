@@ -1,0 +1,1494 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-048-C1",
+      "evidence": [
+        "evidence.stage_results",
+        "evidence.selection_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "Generic mathematical feature generation may lack domain meaning; a domain expert must review production semantics."
+      ],
+      "statement": "Use the ratios feature recipe for the next model screen on wine_quality; it achieved 0.8429 mean training-CV ROC-AUC with about 32 features."
+    }
+  ],
+  "completed_at": "2026-09-18T11:27:21+00:00",
+  "dataset": "wine_quality",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "raw_auc_mean": 0.8397573768475842,
+    "selected_auc_mean": 0.8428791965766287,
+    "selected_stage": "ratios",
+    "selected_vs_raw_auc": 0.0031218197290444616,
+    "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage.",
+    "stage_results": [
+      {
+        "elapsed_seconds": 0.3136857080007758,
+        "evaluations": 3,
+        "feature_count_mean": 11.0,
+        "feature_stability": [
+          {
+            "feature": "total_sulfur_dioxide",
+            "mean_normalized_importance": 0.10844444444444444,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "residual_sugar",
+            "mean_normalized_importance": 0.09866666666666667,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "pH",
+            "mean_normalized_importance": 0.09811111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "free_sulfur_dioxide",
+            "mean_normalized_importance": 0.0948888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "chlorides",
+            "mean_normalized_importance": 0.09477777777777778,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "density",
+            "mean_normalized_importance": 0.0941111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "citric_acid",
+            "mean_normalized_importance": 0.08722222222222221,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "sulphates",
+            "mean_normalized_importance": 0.08655555555555557,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "volatile_acidity",
+            "mean_normalized_importance": 0.08600000000000001,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "alcohol",
+            "mean_normalized_importance": 0.08133333333333333,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "fixed_acidity",
+            "mean_normalized_importance": 0.06988888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.7797563261480788,
+            "avg_precision": 0.9031497243196406,
+            "brier": 0.15521707829940237,
+            "ece_10": 0.06297759720430646,
+            "f1": 0.8303249097472925,
+            "fit_seconds": 0.055528500000946224,
+            "log_loss": 0.48256362652300777,
+            "precision": 0.8110014104372355,
+            "recall": 0.8505917159763313,
+            "roc_auc": 0.8467062152877616,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7694470477975632,
+            "avg_precision": 0.8949002347466801,
+            "brier": 0.15914990390854347,
+            "ece_10": 0.0592726705757604,
+            "f1": 0.8206997084548106,
+            "fit_seconds": 0.054491749999215244,
+            "log_loss": 0.4961443716590299,
+            "precision": 0.8077474892395983,
+            "recall": 0.8340740740740741,
+            "roc_auc": 0.8385789871504158,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7645403377110694,
+            "avg_precision": 0.8909870848096111,
+            "brier": 0.16149800899026215,
+            "ece_10": 0.07141765766048595,
+            "f1": 0.814760147601476,
+            "fit_seconds": 0.05405220800093957,
+            "log_loss": 0.5046134886026655,
+            "precision": 0.8117647058823529,
+            "recall": 0.8177777777777778,
+            "roc_auc": 0.8339869281045752,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.7800361883636431,
+            "ci95_low": 0.762459619407498,
+            "max": 0.7797563261480788,
+            "mean": 0.7712479038855705,
+            "min": 0.7645403377110694,
+            "std": 0.007766201646627841
+          },
+          "avg_precision": {
+            "ci95_high": 0.9033716217086473,
+            "ci95_low": 0.8893197408753074,
+            "max": 0.9031497243196406,
+            "mean": 0.8963456812919773,
+            "min": 0.8909870848096111,
+            "std": 0.006208819271746939
+          },
+          "brier": {
+            "ci95_high": 0.1622129415990401,
+            "ci95_low": 0.15503038586643192,
+            "max": 0.16149800899026215,
+            "mean": 0.158621663732736,
+            "min": 0.15521707829940237,
+            "std": 0.0031736100655797173
+          },
+          "ece_10": {
+            "ci95_high": 0.07159959046405953,
+            "ci95_low": 0.05751235982964234,
+            "max": 0.07141765766048595,
+            "mean": 0.06455597514685094,
+            "min": 0.0592726705757604,
+            "std": 0.006224438570599829
+          },
+          "f1": {
+            "ci95_high": 0.8308167670723094,
+            "ci95_low": 0.8130397434634098,
+            "max": 0.8303249097472925,
+            "mean": 0.8219282552678596,
+            "min": 0.814760147601476,
+            "std": 0.007854772473970857
+          },
+          "log_loss": {
+            "ci95_high": 0.5070276281927941,
+            "ci95_low": 0.48185336299700815,
+            "max": 0.5046134886026655,
+            "mean": 0.4944404955949011,
+            "min": 0.48256362652300777,
+            "std": 0.01112324141895768
+          },
+          "precision": {
+            "ci95_high": 0.812585383564293,
+            "ci95_low": 0.8077570201418315,
+            "max": 0.8117647058823529,
+            "mean": 0.8101712018530622,
+            "min": 0.8077474892395983,
+            "std": 0.00213341090946693
+          },
+          "recall": {
+            "ci95_high": 0.8527142300716364,
+            "ci95_low": 0.815581481813819,
+            "max": 0.8505917159763313,
+            "mean": 0.8341478559427277,
+            "min": 0.8177777777777778,
+            "std": 0.016407093522246056
+          },
+          "roc_auc": {
+            "ci95_high": 0.8470460577703466,
+            "ci95_low": 0.8324686959248219,
+            "max": 0.8467062152877616,
+            "mean": 0.8397573768475842,
+            "min": 0.8339869281045752,
+            "std": 0.0064410028971338615
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 0.44632337499933783,
+        "evaluations": 3,
+        "feature_count_mean": 17.333333333333332,
+        "feature_stability": [
+          {
+            "feature": "total_sulfur_dioxide",
+            "mean_normalized_importance": 0.10844444444444444,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "residual_sugar",
+            "mean_normalized_importance": 0.09866666666666667,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "pH",
+            "mean_normalized_importance": 0.09811111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "free_sulfur_dioxide",
+            "mean_normalized_importance": 0.0948888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "chlorides",
+            "mean_normalized_importance": 0.09477777777777778,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "density",
+            "mean_normalized_importance": 0.0941111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "citric_acid",
+            "mean_normalized_importance": 0.08722222222222221,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "sulphates",
+            "mean_normalized_importance": 0.08655555555555557,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "volatile_acidity",
+            "mean_normalized_importance": 0.08600000000000001,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "alcohol",
+            "mean_normalized_importance": 0.08133333333333333,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "fixed_acidity",
+            "mean_normalized_importance": 0.06988888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_chlorides",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_density",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_fixed_acidity",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_free_sulfur_dioxide",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_residual_sugar",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_sulphates",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_volatile_acidity",
+            "mean_normalized_importance": 0.0,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.7797563261480788,
+            "avg_precision": 0.9031497243196406,
+            "brier": 0.15521707829940237,
+            "ece_10": 0.06297759720430646,
+            "f1": 0.8303249097472925,
+            "fit_seconds": 0.06680266699913773,
+            "log_loss": 0.48256362652300777,
+            "precision": 0.8110014104372355,
+            "recall": 0.8505917159763313,
+            "roc_auc": 0.8467062152877616,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7694470477975632,
+            "avg_precision": 0.8949002347466801,
+            "brier": 0.15914990390854347,
+            "ece_10": 0.0592726705757604,
+            "f1": 0.8206997084548106,
+            "fit_seconds": 0.06252154200046789,
+            "log_loss": 0.4961443716590299,
+            "precision": 0.8077474892395983,
+            "recall": 0.8340740740740741,
+            "roc_auc": 0.8385789871504158,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7645403377110694,
+            "avg_precision": 0.8909870848096111,
+            "brier": 0.16149800899026215,
+            "ece_10": 0.07141765766048595,
+            "f1": 0.814760147601476,
+            "fit_seconds": 0.06653070799984562,
+            "log_loss": 0.5046134886026655,
+            "precision": 0.8117647058823529,
+            "recall": 0.8177777777777778,
+            "roc_auc": 0.8339869281045752,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.7800361883636431,
+            "ci95_low": 0.762459619407498,
+            "max": 0.7797563261480788,
+            "mean": 0.7712479038855705,
+            "min": 0.7645403377110694,
+            "std": 0.007766201646627841
+          },
+          "avg_precision": {
+            "ci95_high": 0.9033716217086473,
+            "ci95_low": 0.8893197408753074,
+            "max": 0.9031497243196406,
+            "mean": 0.8963456812919773,
+            "min": 0.8909870848096111,
+            "std": 0.006208819271746939
+          },
+          "brier": {
+            "ci95_high": 0.1622129415990401,
+            "ci95_low": 0.15503038586643192,
+            "max": 0.16149800899026215,
+            "mean": 0.158621663732736,
+            "min": 0.15521707829940237,
+            "std": 0.0031736100655797173
+          },
+          "ece_10": {
+            "ci95_high": 0.07159959046405953,
+            "ci95_low": 0.05751235982964234,
+            "max": 0.07141765766048595,
+            "mean": 0.06455597514685094,
+            "min": 0.0592726705757604,
+            "std": 0.006224438570599829
+          },
+          "f1": {
+            "ci95_high": 0.8308167670723094,
+            "ci95_low": 0.8130397434634098,
+            "max": 0.8303249097472925,
+            "mean": 0.8219282552678596,
+            "min": 0.814760147601476,
+            "std": 0.007854772473970857
+          },
+          "log_loss": {
+            "ci95_high": 0.5070276281927941,
+            "ci95_low": 0.48185336299700815,
+            "max": 0.5046134886026655,
+            "mean": 0.4944404955949011,
+            "min": 0.48256362652300777,
+            "std": 0.01112324141895768
+          },
+          "precision": {
+            "ci95_high": 0.812585383564293,
+            "ci95_low": 0.8077570201418315,
+            "max": 0.8117647058823529,
+            "mean": 0.8101712018530622,
+            "min": 0.8077474892395983,
+            "std": 0.00213341090946693
+          },
+          "recall": {
+            "ci95_high": 0.8527142300716364,
+            "ci95_low": 0.815581481813819,
+            "max": 0.8505917159763313,
+            "mean": 0.8341478559427277,
+            "min": 0.8177777777777778,
+            "std": 0.016407093522246056
+          },
+          "roc_auc": {
+            "ci95_high": 0.8470460577703466,
+            "ci95_low": 0.8324686959248219,
+            "max": 0.8467062152877616,
+            "mean": 0.8397573768475842,
+            "min": 0.8339869281045752,
+            "std": 0.0064410028971338615
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "logs"
+      },
+      {
+        "elapsed_seconds": 0.9254279580000002,
+        "evaluations": 3,
+        "feature_count_mean": 32.333333333333336,
+        "feature_stability": [
+          {
+            "feature": "volatile_acidity",
+            "mean_normalized_importance": 0.06211111111111112,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "sulphates",
+            "mean_normalized_importance": 0.059666666666666666,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "chlorides",
+            "mean_normalized_importance": 0.05533333333333334,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "citric_acid",
+            "mean_normalized_importance": 0.05511111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "pH",
+            "mean_normalized_importance": 0.05477777777777778,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "alcohol",
+            "mean_normalized_importance": 0.05433333333333334,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "density",
+            "mean_normalized_importance": 0.050333333333333334,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+            "mean_normalized_importance": 0.048999999999999995,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_alcohol",
+            "mean_normalized_importance": 0.04988888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.042777777777777776,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.041888888888888885,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.038,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.035444444444444445,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.03744444444444445,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.034888888888888886,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.03388888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_alcohol",
+            "mean_normalized_importance": 0.033,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_alcohol_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.03122222222222222,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_alcohol",
+            "mean_normalized_importance": 0.030888888888888893,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "total_sulfur_dioxide",
+            "mean_normalized_importance": 0.030222222222222223,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8003748828491096,
+            "avg_precision": 0.8989091998482711,
+            "brier": 0.15347194420094,
+            "ece_10": 0.06660960948620245,
+            "f1": 0.8459869848156182,
+            "fit_seconds": 0.2521355829994718,
+            "log_loss": 0.4850570218478449,
+            "precision": 0.8274398868458275,
+            "recall": 0.8653846153846154,
+            "roc_auc": 0.8452950256511146,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7797563261480788,
+            "avg_precision": 0.8894677793799325,
+            "brier": 0.15807031899338306,
+            "ece_10": 0.06158818388599853,
+            "f1": 0.8300795372378886,
+            "fit_seconds": 0.11823133300094923,
+            "log_loss": 0.5006359810604137,
+            "precision": 0.8107344632768362,
+            "recall": 0.8503703703703703,
+            "roc_auc": 0.8382426303854875,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7833020637898687,
+            "avg_precision": 0.8922512037412708,
+            "brier": 0.1552624894652184,
+            "ece_10": 0.07002435756357897,
+            "f1": 0.8305209097578871,
+            "fit_seconds": 0.11444687500079453,
+            "log_loss": 0.4908253504771479,
+            "precision": 0.8226744186046512,
+            "recall": 0.8385185185185186,
+            "roc_auc": 0.845099933693284,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8002859797180375,
+            "ci95_low": 0.7753362021400005,
+            "max": 0.8003748828491096,
+            "mean": 0.787811090929019,
+            "min": 0.7797563261480788,
+            "std": 0.011024051633342523
+          },
+          "avg_precision": {
+            "ci95_high": 0.8990326092410829,
+            "ci95_low": 0.8880528460719,
+            "max": 0.8989091998482711,
+            "mean": 0.8935427276564915,
+            "min": 0.8894677793799325,
+            "std": 0.004851405016351565
+          },
+          "brier": {
+            "ci95_high": 0.1582244962295949,
+            "ci95_low": 0.15297867221009942,
+            "max": 0.15807031899338306,
+            "mean": 0.15560158421984716,
+            "min": 0.15347194420094,
+            "std": 0.0023178657472784003
+          },
+          "ece_10": {
+            "ci95_high": 0.07087603355208921,
+            "ci95_low": 0.06127206707176411,
+            "max": 0.07002435756357897,
+            "mean": 0.06607405031192666,
+            "min": 0.06158818388599853,
+            "std": 0.004243509667885595
+          },
+          "f1": {
+            "ci95_high": 0.8457808701361466,
+            "ci95_low": 0.825277417738116,
+            "max": 0.8459869848156182,
+            "mean": 0.8355291439371313,
+            "min": 0.8300795372378886,
+            "std": 0.009059444205091504
+          },
+          "log_loss": {
+            "ci95_high": 0.5010857700680384,
+            "ci95_low": 0.483259798855566,
+            "max": 0.5006359810604137,
+            "mean": 0.49217278446180224,
+            "min": 0.4850570218478449,
+            "std": 0.00787639995772002
+          },
+          "precision": {
+            "ci95_high": 0.8300211340027521,
+            "ci95_low": 0.8105447118154576,
+            "max": 0.8274398868458275,
+            "mean": 0.8202829229091049,
+            "min": 0.8107344632768362,
+            "std": 0.00860565121889184
+          },
+          "recall": {
+            "ci95_high": 0.8666604890464132,
+            "ci95_low": 0.8361885138025894,
+            "max": 0.8653846153846154,
+            "mean": 0.8514245014245013,
+            "min": 0.8385185185185186,
+            "std": 0.01346403299216426
+          },
+          "roc_auc": {
+            "ci95_high": 0.8474243720248688,
+            "ci95_low": 0.8383340211283886,
+            "max": 0.8452950256511146,
+            "mean": 0.8428791965766287,
+            "min": 0.8382426303854875,
+            "std": 0.004016568778401227
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "ratios"
+      },
+      {
+        "elapsed_seconds": 0.8874684580005123,
+        "evaluations": 3,
+        "feature_count_mean": 40.333333333333336,
+        "feature_stability": [
+          {
+            "feature": "sulphates",
+            "mean_normalized_importance": 0.05333333333333332,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "pH",
+            "mean_normalized_importance": 0.05266666666666667,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "citric_acid",
+            "mean_normalized_importance": 0.04944444444444445,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+            "mean_normalized_importance": 0.04833333333333334,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "density",
+            "mean_normalized_importance": 0.042888888888888886,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_volatile_acidity",
+            "mean_normalized_importance": 0.04833333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_density",
+            "mean_normalized_importance": 0.04666666666666666,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_alcohol",
+            "mean_normalized_importance": 0.04522222222222222,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "chlorides",
+            "mean_normalized_importance": 0.04488888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.03955555555555556,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_ratio_free_sulfur_dioxide_div_alcohol_x_ratio_fixed_acidity_div_alcohol",
+            "mean_normalized_importance": 0.044333333333333336,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "volatile_acidity",
+            "mean_normalized_importance": 0.04422222222222222,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_chlorides",
+            "mean_normalized_importance": 0.043333333333333335,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.036111111111111115,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_alcohol_x_density",
+            "mean_normalized_importance": 0.03183333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_alcohol_x_ratio_free_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.036333333333333336,
+            "observed_folds": 1,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.032777777777777774,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.03188888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.031,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "inter_alcohol_x_ratio_total_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.030833333333333334,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.7919400187441424,
+            "avg_precision": 0.9015093032738675,
+            "brier": 0.15268223633453534,
+            "ece_10": 0.05728994988349426,
+            "f1": 0.8407460545193687,
+            "fit_seconds": 0.1440314169994963,
+            "log_loss": 0.48117410921061354,
+            "precision": 0.8161559888579387,
+            "recall": 0.8668639053254438,
+            "roc_auc": 0.8482611722332359,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7825679475164011,
+            "avg_precision": 0.891499254274591,
+            "brier": 0.15670041798359083,
+            "ece_10": 0.0671203969606894,
+            "f1": 0.8321273516642547,
+            "fit_seconds": 0.1376841660003265,
+            "log_loss": 0.49508039378362995,
+            "precision": 0.8132956152758133,
+            "recall": 0.8518518518518519,
+            "roc_auc": 0.8424414210128495,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7560975609756098,
+            "avg_precision": 0.8853441028776095,
+            "brier": 0.16661249304095432,
+            "ece_10": 0.09506028999084246,
+            "f1": 0.8076923076923077,
+            "fit_seconds": 0.14637754099931044,
+            "log_loss": 0.5192540044616824,
+            "precision": 0.8064992614475628,
+            "recall": 0.8088888888888889,
+            "roc_auc": 0.8311262669318935,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.7979034017133974,
+            "ci95_low": 0.7558336164440383,
+            "max": 0.7919400187441424,
+            "mean": 0.7768685090787179,
+            "min": 0.7560975609756098,
+            "std": 0.018588521823990442
+          },
+          "avg_precision": {
+            "ci95_high": 0.9020168242873174,
+            "ci95_low": 0.8835516159967278,
+            "max": 0.9015093032738675,
+            "mean": 0.8927842201420226,
+            "min": 0.8853441028776095,
+            "std": 0.008158846666235576
+          },
+          "brier": {
+            "ci95_high": 0.16677858463808384,
+            "ci95_low": 0.15055151360130317,
+            "max": 0.16661249304095432,
+            "mean": 0.1586650491196935,
+            "min": 0.15268223633453534,
+            "std": 0.007169926401462625
+          },
+          "ece_10": {
+            "ci95_high": 0.09533114078914973,
+            "ci95_low": 0.05098261710086768,
+            "max": 0.09506028999084246,
+            "mean": 0.0731568789450087,
+            "min": 0.05728994988349426,
+            "std": 0.01959538170121847
+          },
+          "f1": {
+            "ci95_high": 0.8462577178108865,
+            "ci95_low": 0.8074527581064008,
+            "max": 0.8407460545193687,
+            "mean": 0.8268552379586437,
+            "min": 0.8076923076923077,
+            "std": 0.01714595964128369
+          },
+          "log_loss": {
+            "ci95_high": 0.5203080578831726,
+            "ci95_low": 0.4766976137541113,
+            "max": 0.5192540044616824,
+            "mean": 0.4985028358186419,
+            "min": 0.48117410921061354,
+            "std": 0.019269261472494373
+          },
+          "precision": {
+            "ci95_high": 0.8175966743993062,
+            "ci95_low": 0.8063705693215704,
+            "max": 0.8161559888579387,
+            "mean": 0.8119836218604383,
+            "min": 0.8064992614475628,
+            "std": 0.004960251113710577
+          },
+          "recall": {
+            "ci95_high": 0.8765843955130601,
+            "ci95_low": 0.8084853685310627,
+            "max": 0.8668639053254438,
+            "mean": 0.8425348820220614,
+            "min": 0.8088888888888889,
+            "std": 0.03008953435684275
+          },
+          "roc_auc": {
+            "ci95_high": 0.8504694049439991,
+            "ci95_low": 0.8307498351746534,
+            "max": 0.8482611722332359,
+            "mean": 0.8406096200593263,
+            "min": 0.8311262669318935,
+            "std": 0.00871308590405773
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "interactions"
+      },
+      {
+        "elapsed_seconds": 1.4577667499997915,
+        "evaluations": 3,
+        "feature_count_mean": 45.333333333333336,
+        "feature_stability": [
+          {
+            "feature": "sulphates",
+            "mean_normalized_importance": 0.05622222222222223,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "citric_acid",
+            "mean_normalized_importance": 0.052333333333333336,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "pH",
+            "mean_normalized_importance": 0.05033333333333334,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_alcohol",
+            "mean_normalized_importance": 0.04688888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+            "mean_normalized_importance": 0.04611111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "density",
+            "mean_normalized_importance": 0.04544444444444445,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_density",
+            "mean_normalized_importance": 0.04933333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "chlorides",
+            "mean_normalized_importance": 0.04611111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "volatile_acidity",
+            "mean_normalized_importance": 0.0461111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_volatile_acidity",
+            "mean_normalized_importance": 0.04516666666666667,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.039,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_chlorides",
+            "mean_normalized_importance": 0.049,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_alcohol_x_density",
+            "mean_normalized_importance": 0.03283333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_ratio_free_sulfur_dioxide_div_alcohol_x_ratio_fixed_acidity_div_alcohol",
+            "mean_normalized_importance": 0.038,
+            "observed_folds": 1,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.03722222222222222,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.03177777777777777,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "inter_alcohol_x_ratio_free_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.03133333333333333,
+            "observed_folds": 1,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.030555555555555555,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.030444444444444444,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_alcohol",
+            "mean_normalized_importance": 0.029444444444444443,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.7844423617619494,
+            "avg_precision": 0.8993923763809359,
+            "brier": 0.1552064396146423,
+            "ece_10": 0.06048300215804527,
+            "f1": 0.834054834054834,
+            "fit_seconds": 0.14625504099967657,
+            "log_loss": 0.4921902239568975,
+            "precision": 0.8140845070422535,
+            "recall": 0.8550295857988166,
+            "roc_auc": 0.8448977738767234,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7769447047797563,
+            "avg_precision": 0.8856908129310578,
+            "brier": 0.15555801731963323,
+            "ece_10": 0.06056340323132288,
+            "f1": 0.8282828282828283,
+            "fit_seconds": 0.13778483399983088,
+            "log_loss": 0.49756611809523865,
+            "precision": 0.8073136427566807,
+            "recall": 0.8503703703703703,
+            "roc_auc": 0.8423847316704459,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7617260787992496,
+            "avg_precision": 0.8925750949405493,
+            "brier": 0.1619106995697362,
+            "ece_10": 0.08323846569264691,
+            "f1": 0.8132352941176471,
+            "fit_seconds": 0.14684333400145988,
+            "log_loss": 0.5018578605611049,
+            "precision": 0.8072992700729927,
+            "recall": 0.8192592592592592,
+            "roc_auc": 0.8386852325471251,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.7874691267711272,
+            "ci95_low": 0.761272970122843,
+            "max": 0.7844423617619494,
+            "mean": 0.7743710484469851,
+            "min": 0.7617260787992496,
+            "std": 0.011574763846393202
+          },
+          "avg_precision": {
+            "ci95_high": 0.9003051816325512,
+            "ci95_low": 0.8848003412024777,
+            "max": 0.8993923763809359,
+            "mean": 0.8925527614175145,
+            "min": 0.8856908129310578,
+            "std": 0.0068508090275855495
+          },
+          "brier": {
+            "ci95_high": 0.16182828947899866,
+            "ci95_low": 0.15328848152367583,
+            "max": 0.1619106995697362,
+            "mean": 0.15755838550133724,
+            "min": 0.1552064396146423,
+            "std": 0.0037733115473214283
+          },
+          "ece_10": {
+            "ci95_high": 0.08293566524152546,
+            "ci95_low": 0.053254248813151245,
+            "max": 0.08323846569264691,
+            "mean": 0.06809495702733835,
+            "min": 0.06048300215804527,
+            "std": 0.013114724820039211
+          },
+          "f1": {
+            "ci95_high": 0.8373541991885486,
+            "ci95_low": 0.8130277717816575,
+            "max": 0.834054834054834,
+            "mean": 0.8251909854851031,
+            "min": 0.8132352941176471,
+            "std": 0.01074862454983961
+          },
+          "log_loss": {
+            "ci95_high": 0.5026861675558651,
+            "ci95_low": 0.49172330085296223,
+            "max": 0.5018578605611049,
+            "mean": 0.4972047342044137,
+            "min": 0.4921902239568975,
+            "std": 0.004843939317865547
+          },
+          "precision": {
+            "ci95_high": 0.8139941405007246,
+            "ci95_low": 0.8051374727472268,
+            "max": 0.8140845070422535,
+            "mean": 0.8095658066239757,
+            "min": 0.8072992700729927,
+            "std": 0.003913315952758941
+          },
+          "recall": {
+            "ci95_high": 0.8635594769512568,
+            "ci95_low": 0.8195466666677073,
+            "max": 0.8550295857988166,
+            "mean": 0.841553071809482,
+            "min": 0.8192592592592592,
+            "std": 0.01944704683545865
+          },
+          "roc_auc": {
+            "ci95_high": 0.8455256249018197,
+            "ci95_low": 0.8384528671610432,
+            "max": 0.8448977738767234,
+            "mean": 0.8419892460314314,
+            "min": 0.8386852325471251,
+            "std": 0.0031250958562885085
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "full_fe"
+      },
+      {
+        "elapsed_seconds": 1.2831910839995544,
+        "evaluations": 3,
+        "feature_count_mean": 25.0,
+        "feature_stability": [
+          {
+            "feature": "ratio_fixed_acidity_div_alcohol",
+            "mean_normalized_importance": 0.07433333333333333,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "inter_alcohol_x_density",
+            "mean_normalized_importance": 0.08733333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_free_sulfur_dioxide",
+            "mean_normalized_importance": 0.07566666666666666,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_alcohol",
+            "mean_normalized_importance": 0.075,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "volatile_acidity",
+            "mean_normalized_importance": 0.06966666666666667,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_volatile_acidity",
+            "mean_normalized_importance": 0.06316666666666666,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_residual_sugar",
+            "mean_normalized_importance": 0.05583333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "density",
+            "mean_normalized_importance": 0.04788888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_chlorides",
+            "mean_normalized_importance": 0.06433333333333334,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "citric_acid",
+            "mean_normalized_importance": 0.06166666666666667,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "log1p_chlorides",
+            "mean_normalized_importance": 0.05816666666666667,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_free_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.057666666666666665,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_residual_sugar_div_fixed_acidity",
+            "mean_normalized_importance": 0.056666666666666664,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_log1p_residual_sugar",
+            "mean_normalized_importance": 0.0555,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_ratio_fixed_acidity_div_alcohol_x_ratio_total_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.05466666666666667,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.05433333333333334,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_alcohol_x_ratio_total_sulfur_dioxide_div_fixed_acidity",
+            "mean_normalized_importance": 0.05133333333333333,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "log1p_fixed_acidity",
+            "mean_normalized_importance": 0.05,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_alcohol_x_log1p_density",
+            "mean_normalized_importance": 0.0485,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "log1p_density",
+            "mean_normalized_importance": 0.03716666666666667,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.7863167760074976,
+            "avg_precision": 0.8907976967887566,
+            "brier": 0.16025382389064546,
+            "ece_10": 0.054402358029642855,
+            "f1": 0.8335766423357664,
+            "fit_seconds": 0.09118091700111108,
+            "log_loss": 0.5083540745738834,
+            "precision": 0.8227665706051873,
+            "recall": 0.8446745562130178,
+            "roc_auc": 0.83214788359388,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7722586691658857,
+            "avg_precision": 0.8835021337752512,
+            "brier": 0.1615694151051782,
+            "ece_10": 0.0635582021160715,
+            "f1": 0.8248017303532804,
+            "fit_seconds": 0.09410654100065585,
+            "log_loss": 0.5142042278655408,
+            "precision": 0.8033707865168539,
+            "recall": 0.8474074074074074,
+            "roc_auc": 0.8299659863945578,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.7523452157598499,
+            "avg_precision": 0.8782765194863849,
+            "brier": 0.17126234128767176,
+            "ece_10": 0.07781649310241023,
+            "f1": 0.8061674008810573,
+            "fit_seconds": 0.09632937499918626,
+            "log_loss": 0.5281699897003144,
+            "precision": 0.7991266375545851,
+            "recall": 0.8133333333333334,
+            "roc_auc": 0.8169783082315051,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.7896230430327548,
+            "ci95_low": 0.750990730922734,
+            "max": 0.7863167760074976,
+            "mean": 0.7703068869777444,
+            "min": 0.7523452157598499,
+            "std": 0.017069675354187276
+          },
+          "avg_precision": {
+            "ci95_high": 0.8913088357100778,
+            "ci95_low": 0.8770753976568508,
+            "max": 0.8907976967887566,
+            "mean": 0.8841921166834643,
+            "min": 0.8782765194863849,
+            "std": 0.006289040274125869
+          },
+          "brier": {
+            "ci95_high": 0.1711651756225645,
+            "ci95_low": 0.15755854456643242,
+            "max": 0.17126234128767176,
+            "mean": 0.16436186009449846,
+            "min": 0.16025382389064546,
+            "std": 0.0060120857931289205
+          },
+          "ece_10": {
+            "ci95_high": 0.07861125602580722,
+            "ci95_low": 0.05190677947294249,
+            "max": 0.07781649310241023,
+            "mean": 0.06525901774937486,
+            "min": 0.054402358029642855,
+            "std": 0.011799364841605488
+          },
+          "f1": {
+            "ci95_high": 0.8373544068275487,
+            "ci95_low": 0.8056761088858542,
+            "max": 0.8335766423357664,
+            "mean": 0.8215152578567014,
+            "min": 0.8061674008810573,
+            "std": 0.013997046309265185
+          },
+          "log_loss": {
+            "ci95_high": 0.528430508718333,
+            "ci95_low": 0.5053883527081593,
+            "max": 0.5281699897003144,
+            "mean": 0.5169094307132461,
+            "min": 0.5083540745738834,
+            "std": 0.01018116962386465
+          },
+          "precision": {
+            "ci95_high": 0.8226832830437353,
+            "ci95_low": 0.7941593800740158,
+            "max": 0.8227665706051873,
+            "mean": 0.8084213315588755,
+            "min": 0.7991266375545851,
+            "std": 0.012603277850438544
+          },
+          "recall": {
+            "ci95_high": 0.8565632996687378,
+            "ci95_low": 0.8137135649671012,
+            "max": 0.8474074074074074,
+            "mean": 0.8351384323179195,
+            "min": 0.8133333333333334,
+            "std": 0.018933142243388164
+          },
+          "roc_auc": {
+            "ci95_high": 0.8356445723196217,
+            "ci95_low": 0.8170835464936734,
+            "max": 0.83214788359388,
+            "mean": 0.8263640594066476,
+            "min": 0.8169783082315051,
+            "std": 0.0082011836150869
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "selected"
+      }
+    ]
+  },
+  "experiment_id": "EXP-048",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
+  "kind": "feature_engineering",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/wine_quality/X.parquet": "664eda3e124c4869d2a27ce665771ff4eb00299843b1d4dfa3ec8af71f1b9be4",
+      "external_data/wine_quality/meta.json": "5ef0cd1755e15b038b1aff83a2bb6eb4b3ab1d5b233ea54f17ce80d7ad18559c",
+      "external_data/wine_quality/y.parquet": "09fe28cc9df22d3a7bf71e9a1f7cde8626039e31d3f1b65af653ee7498829d9b"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which train-fitted feature recipe improves validation evidence without feature dilution?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/186/wine+quality",
+  "started_at": "2026-09-18T11:27:16+00:00",
+  "status": "completed"
+}

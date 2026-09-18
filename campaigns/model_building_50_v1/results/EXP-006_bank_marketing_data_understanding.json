@@ -1,0 +1,252 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-006-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "bank_marketing has 45211 source rows, 16 cached features, and a training positive rate of 0.117."
+    },
+    {
+      "claim_id": "EXP-006-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:24:54+00:00",
+  "dataset": "bank_marketing",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.0,
+    "feature_count": 16,
+    "feature_profiles": [
+      {
+        "dtype": "int64",
+        "feature": "age",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007295299276592979,
+        "top_value_frequency": 0.0515625,
+        "unique_count": 69,
+        "unique_ratio": 0.0215625
+      },
+      {
+        "dtype": "float64",
+        "feature": "job",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.013089315065972097,
+        "top_value_frequency": 0.2115625,
+        "unique_count": 12,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "float64",
+        "feature": "marital",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0016686871940191645,
+        "top_value_frequency": 0.59125,
+        "unique_count": 3,
+        "unique_ratio": 0.0009375
+      },
+      {
+        "dtype": "float64",
+        "feature": "education",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0022689621146909644,
+        "top_value_frequency": 0.5259375,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      },
+      {
+        "dtype": "float64",
+        "feature": "default",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9815625,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "int64",
+        "feature": "balance",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005825847253671718,
+        "top_value_frequency": 0.0775,
+        "unique_count": 1843,
+        "unique_ratio": 0.5759375
+      },
+      {
+        "dtype": "float64",
+        "feature": "housing",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.5546875,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "loan",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.8340625,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "contact",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0025946261648590848,
+        "top_value_frequency": 0.6415625,
+        "unique_count": 3,
+        "unique_ratio": 0.0009375
+      },
+      {
+        "dtype": "int64",
+        "feature": "day_of_week",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.008261189250617923,
+        "top_value_frequency": 0.058125,
+        "unique_count": 31,
+        "unique_ratio": 0.0096875
+      },
+      {
+        "dtype": "float64",
+        "feature": "month",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.006019336553386596,
+        "top_value_frequency": 0.3053125,
+        "unique_count": 12,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "int64",
+        "feature": "duration",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.010209251072885284,
+        "top_value_frequency": 0.0065625,
+        "unique_count": 766,
+        "unique_ratio": 0.239375
+      },
+      {
+        "dtype": "int64",
+        "feature": "campaign",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0048360450074683625,
+        "top_value_frequency": 0.3909375,
+        "unique_count": 30,
+        "unique_ratio": 0.009375
+      },
+      {
+        "dtype": "int64",
+        "feature": "pdays",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0003990416323873077,
+        "top_value_frequency": 0.825,
+        "unique_count": 265,
+        "unique_ratio": 0.0828125
+      },
+      {
+        "dtype": "int64",
+        "feature": "previous",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0016302022879166303,
+        "top_value_frequency": 0.825,
+        "unique_count": 25,
+        "unique_ratio": 0.0078125
+      },
+      {
+        "dtype": "float64",
+        "feature": "poutcome",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0008998799008039867,
+        "top_value_frequency": 0.825,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.116875,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.116875,
+    "risk_feature_count": 0,
+    "source_rows": 45211,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-006",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/bank_marketing/X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+      "external_data/bank_marketing/meta.json": "b8761444ec51b658af715a32e590c0b37e2c57e6f9dc0a623d999de3f428186a",
+      "external_data/bank_marketing/y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/222/bank+marketing",
+  "started_at": "2026-09-18T11:24:54+00:00",
+  "status": "completed"
+}

@@ -4,9 +4,9 @@ This file is generated from the repository's experiment JSON. Run `python -m dcl
 
 ## Evidence inventory
 
-- **569** normalized experiment records across **11** datasets and **6** suites.
-- **473** completed results are eligible for deployment comparisons.
-- **0** records contain full code/data/runtime provenance.
+- **579** normalized experiment records across **11** datasets and **7** suites.
+- **483** completed results are eligible for deployment comparisons.
+- **10** records contain full code/data/runtime provenance.
 
 ## Deployment-eligible champions
 

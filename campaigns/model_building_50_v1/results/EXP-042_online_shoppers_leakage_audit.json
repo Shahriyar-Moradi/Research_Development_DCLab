@@ -1,0 +1,548 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-042-C1",
+      "evidence": [
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+      "claim_id": "EXP-042-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.safe_vs_unsafe_training_cv"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+      ],
+      "statement": "Declared decision-time exclusions for online_shoppers: ['PageValues']; their apparent training-CV AUC lift was +0.1968."
+    }
+  ],
+  "completed_at": "2026-09-18T11:26:56+00:00",
+  "dataset": "online_shoppers",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "declared_leakage_features": [
+      "PageValues"
+    ],
+    "detector_canary_passed": true,
+    "heuristic_review_candidates": [
+      {
+        "feature": "PageValues",
+        "reasons": [
+          "declared_post_outcome_or_contested"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.218125,
+        "univariate_auc": 0.8639586250676823
+      }
+    ],
+    "policy_rationale": "`PageValues` is a Google Analytics metric tightly coupled to purchase intent and can act as a near-outcome proxy. Safe mode drops it for an honest pre-purchase decision model.",
+    "safe_vs_unsafe_training_cv": {
+      "apparent_auc_lift": 0.19680638838657394,
+      "safe": {
+        "elapsed_seconds": 0.3943687499995576,
+        "evaluations": 3,
+        "feature_count_mean": 16.0,
+        "feature_stability": [
+          {
+            "feature": "ProductRelated_Duration",
+            "mean_normalized_importance": 0.17366666666666666,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ExitRates",
+            "mean_normalized_importance": 0.14688888888888887,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated",
+            "mean_normalized_importance": 0.13055555555555556,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative_Duration",
+            "mean_normalized_importance": 0.11111111111111112,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "BounceRates",
+            "mean_normalized_importance": 0.07455555555555556,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Month",
+            "mean_normalized_importance": 0.06588888888888889,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Informational_Duration",
+            "mean_normalized_importance": 0.05511111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "TrafficType",
+            "mean_normalized_importance": 0.05477777777777778,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Region",
+            "mean_normalized_importance": 0.049777777777777775,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative",
+            "mean_normalized_importance": 0.041444444444444443,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Browser",
+            "mean_normalized_importance": 0.023222222222222224,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "OperatingSystems",
+            "mean_normalized_importance": 0.020888888888888887,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational",
+            "mean_normalized_importance": 0.019,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Weekend",
+            "mean_normalized_importance": 0.013666666666666667,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "VisitorType",
+            "mean_normalized_importance": 0.01311111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "SpecialDay",
+            "mean_normalized_importance": 0.006333333333333333,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8275538894095595,
+            "avg_precision": 0.2927514741862923,
+            "brier": 0.13318833821382103,
+            "ece_10": 0.07780474274267109,
+            "f1": 0.226890756302521,
+            "fit_seconds": 0.06120399999963411,
+            "log_loss": 0.4461281453633213,
+            "precision": 0.3698630136986301,
+            "recall": 0.16363636363636364,
+            "roc_auc": 0.7030034267284822,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8322399250234301,
+            "avg_precision": 0.2784646783575879,
+            "brier": 0.13294673996783649,
+            "ece_10": 0.08436952056539769,
+            "f1": 0.16744186046511628,
+            "fit_seconds": 0.061629542000446236,
+            "log_loss": 0.4468775503950735,
+            "precision": 0.36,
+            "recall": 0.10909090909090909,
+            "roc_auc": 0.7141906873614191,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8348968105065666,
+            "avg_precision": 0.3226107612603708,
+            "brier": 0.12804497785183885,
+            "ece_10": 0.08204415277006183,
+            "f1": 0.17757009345794392,
+            "fit_seconds": 0.06112504199882096,
+            "log_loss": 0.4475909709331936,
+            "precision": 0.3877551020408163,
+            "recall": 0.11515151515151516,
+            "roc_auc": 0.729479030033969,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8357707359252845,
+            "ci95_low": 0.8273563473677531,
+            "max": 0.8348968105065666,
+            "mean": 0.8315635416465188,
+            "min": 0.8275538894095595,
+            "std": 0.0037178950245588442
+          },
+          "avg_precision": {
+            "ci95_high": 0.3234330496493729,
+            "ci95_low": 0.2724515595534611,
+            "max": 0.3226107612603708,
+            "mean": 0.297942304601417,
+            "min": 0.2784646783575879,
+            "std": 0.022526155890736938
+          },
+          "brier": {
+            "ci95_high": 0.13467760472142284,
+            "ci95_low": 0.12810909930090805,
+            "max": 0.13318833821382103,
+            "mean": 0.13139335201116545,
+            "min": 0.12804497785183885,
+            "std": 0.002902292121970204
+          },
+          "ece_10": {
+            "ci95_high": 0.08517276941516147,
+            "ci95_low": 0.07763950797025893,
+            "max": 0.08436952056539769,
+            "mean": 0.0814061386927102,
+            "min": 0.07780474274267109,
+            "std": 0.0033285692778752397
+          },
+          "f1": {
+            "ci95_high": 0.22662478059617636,
+            "ci95_low": 0.15464369288754448,
+            "max": 0.226890756302521,
+            "mean": 0.19063423674186042,
+            "min": 0.16744186046511628,
+            "std": 0.031804821708015824
+          },
+          "log_loss": {
+            "ci95_high": 0.44769331051570094,
+            "ci95_low": 0.4460378006120246,
+            "max": 0.4475909709331936,
+            "mean": 0.44686555556386276,
+            "min": 0.4461281453633213,
+            "std": 0.0007314865473471791
+          },
+          "precision": {
+            "ci95_high": 0.38846082209996835,
+            "ci95_low": 0.35661792172632933,
+            "max": 0.3877551020408163,
+            "mean": 0.37253937191314884,
+            "min": 0.36,
+            "std": 0.01406977584374918
+          },
+          "recall": {
+            "ci95_high": 0.16312373200166133,
+            "ci95_low": 0.09546212658419725,
+            "max": 0.16363636363636364,
+            "mean": 0.1292929292929293,
+            "min": 0.10909090909090909,
+            "std": 0.02989625977161362
+          },
+          "roc_auc": {
+            "ci95_high": 0.7305974834646587,
+            "ci95_low": 0.7005179459512549,
+            "max": 0.729479030033969,
+            "mean": 0.7155577147079568,
+            "min": 0.7030034267284822,
+            "std": 0.013290634500354465
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      "unsafe": {
+        "elapsed_seconds": 0.4032068749984319,
+        "evaluations": 3,
+        "feature_count_mean": 17.0,
+        "feature_stability": [
+          {
+            "feature": "ExitRates",
+            "mean_normalized_importance": 0.14044444444444446,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated_Duration",
+            "mean_normalized_importance": 0.13766666666666666,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated",
+            "mean_normalized_importance": 0.11344444444444446,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "PageValues",
+            "mean_normalized_importance": 0.10222222222222221,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative_Duration",
+            "mean_normalized_importance": 0.09700000000000002,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "BounceRates",
+            "mean_normalized_importance": 0.07555555555555556,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Month",
+            "mean_normalized_importance": 0.06733333333333333,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "TrafficType",
+            "mean_normalized_importance": 0.04377777777777778,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Informational_Duration",
+            "mean_normalized_importance": 0.04455555555555555,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "Region",
+            "mean_normalized_importance": 0.04422222222222222,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "Administrative",
+            "mean_normalized_importance": 0.04311111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "Browser",
+            "mean_normalized_importance": 0.024333333333333332,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational",
+            "mean_normalized_importance": 0.02011111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "OperatingSystems",
+            "mean_normalized_importance": 0.019666666666666666,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "VisitorType",
+            "mean_normalized_importance": 0.012999999999999998,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Weekend",
+            "mean_normalized_importance": 0.009444444444444445,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "SpecialDay",
+            "mean_normalized_importance": 0.004111111111111111,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8978444236176195,
+            "avg_precision": 0.7155648909224841,
+            "brier": 0.07534422011272417,
+            "ece_10": 0.03851948001146433,
+            "f1": 0.660436137071651,
+            "fit_seconds": 0.061847375000070315,
+            "log_loss": 0.25317466773499353,
+            "precision": 0.6794871794871795,
+            "recall": 0.6424242424242425,
+            "roc_auc": 0.925935631257139,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8912839737582006,
+            "avg_precision": 0.6558048182478713,
+            "brier": 0.0867595819321741,
+            "ece_10": 0.0661333750378969,
+            "f1": 0.6081081081081081,
+            "fit_seconds": 0.060512334001032286,
+            "log_loss": 0.3310685826435478,
+            "precision": 0.6870229007633588,
+            "recall": 0.5454545454545454,
+            "roc_auc": 0.8993482496808439,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9015009380863039,
+            "avg_precision": 0.7018591119853841,
+            "brier": 0.07999889407293394,
+            "ece_10": 0.05346070139498536,
+            "f1": 0.6464646464646465,
+            "fit_seconds": 0.061897749999843654,
+            "log_loss": 0.3035648637871952,
+            "precision": 0.7272727272727273,
+            "recall": 0.5818181818181818,
+            "roc_auc": 0.9118084283456093,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.902734553314031,
+            "ci95_low": 0.8910183369940519,
+            "max": 0.9015009380863039,
+            "mean": 0.8968764451540414,
+            "min": 0.8912839737582006,
+            "std": 0.005176806617007978
+          },
+          "avg_precision": {
+            "ci95_high": 0.7265015006799855,
+            "ci95_low": 0.6556510467571739,
+            "max": 0.7155648909224841,
+            "mean": 0.6910762737185797,
+            "min": 0.6558048182478713,
+            "std": 0.03130525151368049
+          },
+          "brier": {
+            "ci95_high": 0.0871962836283517,
+            "ci95_low": 0.07420551378353642,
+            "max": 0.0867595819321741,
+            "mean": 0.08070089870594406,
+            "min": 0.07534422011272417,
+            "std": 0.005739967704248397
+          },
+          "ece_10": {
+            "ci95_high": 0.06834611534962039,
+            "ci95_low": 0.03706292227994401,
+            "max": 0.0661333750378969,
+            "mean": 0.0527045188147822,
+            "min": 0.03851948001146433,
+            "std": 0.013822469341751544
+          },
+          "f1": {
+            "ci95_high": 0.6689965323787184,
+            "ci95_low": 0.6076760620508854,
+            "max": 0.660436137071651,
+            "mean": 0.6383362972148019,
+            "min": 0.6081081081081081,
+            "std": 0.027094431161180235
+          },
+          "log_loss": {
+            "ci95_high": 0.34063828778408944,
+            "ci95_low": 0.25123378832640164,
+            "max": 0.3310685826435478,
+            "mean": 0.29593603805524554,
+            "min": 0.25317466773499353,
+            "std": 0.03950335088928049
+          },
+          "precision": {
+            "ci95_high": 0.7270001804838018,
+            "ci95_low": 0.6688550245317086,
+            "max": 0.7272727272727273,
+            "mean": 0.6979276025077552,
+            "min": 0.6794871794871795,
+            "std": 0.02569141947016355
+          },
+          "recall": {
+            "ci95_high": 0.6453333333333334,
+            "ci95_low": 0.5344646464646464,
+            "max": 0.6424242424242425,
+            "mean": 0.5898989898989899,
+            "min": 0.5454545454545454,
+            "std": 0.048987295567604644
+          },
+          "roc_auc": {
+            "ci95_high": 0.92741718363354,
+            "ci95_low": 0.8973110225555215,
+            "max": 0.925935631257139,
+            "mean": 0.9123641030945308,
+            "min": 0.8993482496808439,
+            "std": 0.013302398114280741
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "raw"
+      }
+    },
+    "warning": "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+  },
+  "experiment_id": "EXP-042",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
+  "kind": "leakage_audit",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "external_data/online_shoppers/meta.json": "be48a6290897947ed31e182223abaa3c908c1a1d330de042323b0899fd05f068",
+      "external_data/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset",
+  "started_at": "2026-09-18T11:26:55+00:00",
+  "status": "completed"
+}

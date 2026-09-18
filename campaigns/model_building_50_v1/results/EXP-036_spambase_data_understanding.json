@@ -1,0 +1,662 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-036-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "spambase has 4601 source rows, 57 cached features, and a training positive rate of 0.394."
+    },
+    {
+      "claim_id": "EXP-036-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:26:20+00:00",
+  "dataset": "spambase",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.070625,
+    "feature_count": 57,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "word_freq_make",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0009194080857757566,
+        "top_value_frequency": 0.7734375,
+        "unique_count": 128,
+        "unique_ratio": 0.04
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_address",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.002342106389114426,
+        "top_value_frequency": 0.80375,
+        "unique_count": 153,
+        "unique_ratio": 0.0478125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_all",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003403549009799785,
+        "top_value_frequency": 0.5928125,
+        "unique_count": 201,
+        "unique_ratio": 0.0628125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_3d",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.989375,
+        "unique_count": 31,
+        "unique_ratio": 0.0096875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_our",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004137518555133637,
+        "top_value_frequency": 0.6196875,
+        "unique_count": 237,
+        "unique_ratio": 0.0740625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_over",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00924832335199074,
+        "top_value_frequency": 0.790625,
+        "unique_count": 129,
+        "unique_ratio": 0.0403125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_remove",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 1.745838435213531e-05,
+        "top_value_frequency": 0.825625,
+        "unique_count": 157,
+        "unique_ratio": 0.0490625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_internet",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 6.944770442329856e-05,
+        "top_value_frequency": 0.8184375,
+        "unique_count": 154,
+        "unique_ratio": 0.048125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_order",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 6.944770442329856e-05,
+        "top_value_frequency": 0.830625,
+        "unique_count": 136,
+        "unique_ratio": 0.0425
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_mail",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.002088643913679035,
+        "top_value_frequency": 0.7153125,
+        "unique_count": 216,
+        "unique_ratio": 0.0675
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_receive",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.008999767455436687,
+        "top_value_frequency": 0.8515625,
+        "unique_count": 93,
+        "unique_ratio": 0.0290625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_will",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004657107429761927,
+        "top_value_frequency": 0.49125,
+        "unique_count": 285,
+        "unique_ratio": 0.0890625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_people",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 3.811397337982521e-05,
+        "top_value_frequency": 0.815,
+        "unique_count": 147,
+        "unique_ratio": 0.0459375
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_report",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.92375,
+        "unique_count": 111,
+        "unique_ratio": 0.0346875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_addresses",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9265625,
+        "unique_count": 96,
+        "unique_ratio": 0.03
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_free",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0001888629458535366,
+        "top_value_frequency": 0.733125,
+        "unique_count": 224,
+        "unique_ratio": 0.07
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_business",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003814810450387709,
+        "top_value_frequency": 0.7828125,
+        "unique_count": 182,
+        "unique_ratio": 0.056875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_email",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0014222636152822295,
+        "top_value_frequency": 0.7759375,
+        "unique_count": 210,
+        "unique_ratio": 0.065625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_you",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.013779391632321959,
+        "top_value_frequency": 0.301875,
+        "unique_count": 544,
+        "unique_ratio": 0.17
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_credit",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9096875,
+        "unique_count": 129,
+        "unique_ratio": 0.0403125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_your",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.011616773447745816,
+        "top_value_frequency": 0.4771875,
+        "unique_count": 367,
+        "unique_ratio": 0.1146875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_font",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9753125,
+        "unique_count": 73,
+        "unique_ratio": 0.0228125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_000",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0002945887520718959,
+        "top_value_frequency": 0.8515625,
+        "unique_count": 148,
+        "unique_ratio": 0.04625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_money",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.002287067703913839,
+        "top_value_frequency": 0.83625,
+        "unique_count": 125,
+        "unique_ratio": 0.0390625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_hp",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005377429672969791,
+        "top_value_frequency": 0.7653125,
+        "unique_count": 345,
+        "unique_ratio": 0.1078125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_hpl",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 3.9172392965667815e-05,
+        "top_value_frequency": 0.8284375,
+        "unique_count": 240,
+        "unique_ratio": 0.075
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_george",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 1.726546785951436e-05,
+        "top_value_frequency": 0.830625,
+        "unique_count": 211,
+        "unique_ratio": 0.0659375
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_650",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.900625,
+        "unique_count": 177,
+        "unique_ratio": 0.0553125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_lab",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.916875,
+        "unique_count": 132,
+        "unique_ratio": 0.04125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_labs",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0002385646845226304,
+        "top_value_frequency": 0.8990625,
+        "unique_count": 152,
+        "unique_ratio": 0.0475
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_telnet",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.938125,
+        "unique_count": 107,
+        "unique_ratio": 0.0334375
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_857",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.956875,
+        "unique_count": 82,
+        "unique_ratio": 0.025625
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_data",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9125,
+        "unique_count": 159,
+        "unique_ratio": 0.0496875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_415",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9546875,
+        "unique_count": 87,
+        "unique_ratio": 0.0271875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_85",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0007046490761634401,
+        "top_value_frequency": 0.895,
+        "unique_count": 153,
+        "unique_ratio": 0.0478125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_technology",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 8.610695866650616e-05,
+        "top_value_frequency": 0.874375,
+        "unique_count": 144,
+        "unique_ratio": 0.045
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_1999",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00010645034093713215,
+        "top_value_frequency": 0.8228125,
+        "unique_count": 171,
+        "unique_ratio": 0.0534375
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_parts",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9815625,
+        "unique_count": 42,
+        "unique_ratio": 0.013125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_pm",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.92,
+        "unique_count": 135,
+        "unique_ratio": 0.0421875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_direct",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.901875,
+        "unique_count": 106,
+        "unique_ratio": 0.033125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_cs",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9703125,
+        "unique_count": 78,
+        "unique_ratio": 0.024375
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_meeting",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9246875,
+        "unique_count": 150,
+        "unique_ratio": 0.046875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_original",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.920625,
+        "unique_count": 113,
+        "unique_ratio": 0.0353125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_project",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.93,
+        "unique_count": 128,
+        "unique_ratio": 0.04
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_re",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003538587582708252,
+        "top_value_frequency": 0.7115625,
+        "unique_count": 214,
+        "unique_ratio": 0.066875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_edu",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00010645034093713215,
+        "top_value_frequency": 0.8909375,
+        "unique_count": 188,
+        "unique_ratio": 0.05875
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_table",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9859375,
+        "unique_count": 33,
+        "unique_ratio": 0.0103125
+      },
+      {
+        "dtype": "float64",
+        "feature": "word_freq_conference",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9590625,
+        "unique_count": 86,
+        "unique_ratio": 0.026875
+      },
+      {
+        "dtype": "float64",
+        "feature": "char_freq_;",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0035809132192200282,
+        "top_value_frequency": 0.8353125,
+        "unique_count": 255,
+        "unique_ratio": 0.0796875
+      },
+      {
+        "dtype": "float64",
+        "feature": "char_freq_(",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004025269477565104,
+        "top_value_frequency": 0.413125,
+        "unique_count": 572,
+        "unique_ratio": 0.17875
+      },
+      {
+        "dtype": "float64",
+        "feature": "char_freq_[",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004602296610614914,
+        "top_value_frequency": 0.8921875,
+        "unique_count": 180,
+        "unique_ratio": 0.05625
+      },
+      {
+        "dtype": "float64",
+        "feature": "char_freq_!",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0032479725216612455,
+        "top_value_frequency": 0.51375,
+        "unique_count": 817,
+        "unique_ratio": 0.2553125
+      },
+      {
+        "dtype": "float64",
+        "feature": "char_freq_$",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0012863733431918388,
+        "top_value_frequency": 0.6925,
+        "unique_count": 430,
+        "unique_ratio": 0.134375
+      },
+      {
+        "dtype": "float64",
+        "feature": "char_freq_#",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004417278053730441,
+        "top_value_frequency": 0.8265625,
+        "unique_count": 269,
+        "unique_ratio": 0.0840625
+      },
+      {
+        "dtype": "float64",
+        "feature": "capital_run_length_average",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00940249337238791,
+        "top_value_frequency": 0.0746875,
+        "unique_count": 1692,
+        "unique_ratio": 0.52875
+      },
+      {
+        "dtype": "int64",
+        "feature": "capital_run_length_longest",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005072931561055315,
+        "top_value_frequency": 0.0746875,
+        "unique_count": 240,
+        "unique_ratio": 0.075
+      },
+      {
+        "dtype": "int64",
+        "feature": "capital_run_length_total",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.008227061529171525,
+        "top_value_frequency": 0.025,
+        "unique_count": 774,
+        "unique_ratio": 0.241875
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.3940625,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.3940625,
+    "risk_feature_count": 0,
+    "source_rows": 4601,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-036",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/spambase/X.parquet": "ba78234b05f978b96111a03c66802c016e58f465686055f466d3c07c9bac71cf",
+      "external_data/spambase/meta.json": "774400eb0f24fa37cbf7b42bd02df4d2c6cf640c035b1cba283ec0ce17845caa",
+      "external_data/spambase/y.parquet": "5d631f7c7131c99c279822a9efdd2a74b781ba1e770b6f0c3ef4262ee8ae4ea1"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/94/spambase",
+  "started_at": "2026-09-18T11:26:20+00:00",
+  "status": "completed"
+}

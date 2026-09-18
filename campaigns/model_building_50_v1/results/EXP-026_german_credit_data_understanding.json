@@ -1,0 +1,292 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-026-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "german_credit has 1000 source rows, 20 cached features, and a training positive rate of 0.300."
+    },
+    {
+      "claim_id": "EXP-026-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:25:53+00:00",
+  "dataset": "german_credit",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 1000,
+    "duplicate_row_rate_train": 0.0,
+    "feature_count": 20,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "Attribute1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0003815871509372789,
+        "top_value_frequency": 0.395,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.006359368388003692,
+        "top_value_frequency": 0.18625,
+        "unique_count": 31,
+        "unique_ratio": 0.03875
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.010237390820949831,
+        "top_value_frequency": 0.52,
+        "unique_count": 5,
+        "unique_ratio": 0.00625
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute4",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0270619988425281,
+        "top_value_frequency": 0.26875,
+        "unique_count": 10,
+        "unique_ratio": 0.0125
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute5",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.04046039484404775,
+        "top_value_frequency": 0.00375,
+        "unique_count": 746,
+        "unique_ratio": 0.9325
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute6",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.024006170243194735,
+        "top_value_frequency": 0.59375,
+        "unique_count": 5,
+        "unique_ratio": 0.00625
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute7",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003738466481491378,
+        "top_value_frequency": 0.33875,
+        "unique_count": 5,
+        "unique_ratio": 0.00625
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute8",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.014442828605626831,
+        "top_value_frequency": 0.46125,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute9",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.02576433973542274,
+        "top_value_frequency": 0.5375,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute10",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.91125,
+        "unique_count": 3,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute11",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.013844797196668899,
+        "top_value_frequency": 0.40875,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute12",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0008676399693933826,
+        "top_value_frequency": 0.33375,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute13",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.07254434775850277,
+        "top_value_frequency": 0.0575,
+        "unique_count": 53,
+        "unique_ratio": 0.06625
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute14",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0012711123221775184,
+        "top_value_frequency": 0.81125,
+        "unique_count": 3,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute15",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 3.059077629989141e-05,
+        "top_value_frequency": 0.7125,
+        "unique_count": 3,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute16",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003288565098983116,
+        "top_value_frequency": 0.6275,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute17",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.009329334155003153,
+        "top_value_frequency": 0.63875,
+        "unique_count": 4,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "int64",
+        "feature": "Attribute18",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.84,
+        "unique_count": 2,
+        "unique_ratio": 0.0025
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute19",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.59375,
+        "unique_count": 2,
+        "unique_ratio": 0.0025
+      },
+      {
+        "dtype": "float64",
+        "feature": "Attribute20",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.96125,
+        "unique_count": 2,
+        "unique_ratio": 0.0025
+      }
+    ],
+    "holdout_rows": 200,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.3,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.3,
+    "risk_feature_count": 0,
+    "source_rows": 1000,
+    "train_rows": 800
+  },
+  "experiment_id": "EXP-026",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "external_data/german_credit/meta.json": "fc86255b97453eb705ee74344b34b4201ec49a574cdbd19938494fad8c17f034",
+      "external_data/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data",
+  "started_at": "2026-09-18T11:25:53+00:00",
+  "status": "completed"
+}

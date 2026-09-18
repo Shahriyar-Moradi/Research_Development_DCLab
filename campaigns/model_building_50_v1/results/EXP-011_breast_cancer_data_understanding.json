@@ -1,0 +1,394 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-011-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "breast_cancer has 569 source rows, 30 cached features, and a training positive rate of 0.374."
+    },
+    {
+      "claim_id": "EXP-011-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "1 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:25:19+00:00",
+  "dataset": "breast_cancer",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 569,
+    "duplicate_row_rate_train": 0.0,
+    "feature_count": 30,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "radius1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.04221900084135344,
+        "top_value_frequency": 0.008791208791208791,
+        "unique_count": 375,
+        "unique_ratio": 0.8241758241758241
+      },
+      {
+        "dtype": "float64",
+        "feature": "texture1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.12120255025622828,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 396,
+        "unique_ratio": 0.8703296703296703
+      },
+      {
+        "dtype": "float64",
+        "feature": "perimeter1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0321891070298904,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 426,
+        "unique_ratio": 0.9362637362637363
+      },
+      {
+        "dtype": "float64",
+        "feature": "area1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.04336709281032213,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 436,
+        "unique_ratio": 0.9582417582417583
+      },
+      {
+        "dtype": "float64",
+        "feature": "smoothness1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.12602886838734778,
+        "top_value_frequency": 0.008791208791208791,
+        "unique_count": 399,
+        "unique_ratio": 0.8769230769230769
+      },
+      {
+        "dtype": "float64",
+        "feature": "compactness1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.07536801485999149,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 438,
+        "unique_ratio": 0.9626373626373627
+      },
+      {
+        "dtype": "float64",
+        "feature": "concavity1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.08371121413999905,
+        "top_value_frequency": 0.024175824175824177,
+        "unique_count": 431,
+        "unique_ratio": 0.9472527472527472
+      },
+      {
+        "dtype": "float64",
+        "feature": "concave_points1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.059416440118241445,
+        "top_value_frequency": 0.024175824175824177,
+        "unique_count": 434,
+        "unique_ratio": 0.9538461538461539
+      },
+      {
+        "dtype": "float64",
+        "feature": "symmetry1",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.06474562451681373,
+        "top_value_frequency": 0.008791208791208791,
+        "unique_count": 360,
+        "unique_ratio": 0.7912087912087912
+      },
+      {
+        "dtype": "float64",
+        "feature": "fractal_dimension1",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "split_distribution_shift"
+        ],
+        "random_split_psi": 0.21803412051623805,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 413,
+        "unique_ratio": 0.9076923076923077
+      },
+      {
+        "dtype": "float64",
+        "feature": "radius2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.07405425752583428,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 434,
+        "unique_ratio": 0.9538461538461539
+      },
+      {
+        "dtype": "float64",
+        "feature": "texture2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.05960791049399389,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 423,
+        "unique_ratio": 0.9296703296703297
+      },
+      {
+        "dtype": "float64",
+        "feature": "perimeter2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.03508683540128639,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 430,
+        "unique_ratio": 0.945054945054945
+      },
+      {
+        "dtype": "float64",
+        "feature": "area2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.06613519519320306,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 431,
+        "unique_ratio": 0.9472527472527472
+      },
+      {
+        "dtype": "float64",
+        "feature": "smoothness2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.09433463048299492,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 443,
+        "unique_ratio": 0.9736263736263736
+      },
+      {
+        "dtype": "float64",
+        "feature": "compactness2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.054263029503997674,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 435,
+        "unique_ratio": 0.9560439560439561
+      },
+      {
+        "dtype": "float64",
+        "feature": "concavity2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.03097932368108619,
+        "top_value_frequency": 0.024175824175824177,
+        "unique_count": 427,
+        "unique_ratio": 0.9384615384615385
+      },
+      {
+        "dtype": "float64",
+        "feature": "concave_points2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.13551541241726373,
+        "top_value_frequency": 0.024175824175824177,
+        "unique_count": 414,
+        "unique_ratio": 0.9098901098901099
+      },
+      {
+        "dtype": "float64",
+        "feature": "symmetry2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.16692900733707125,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 405,
+        "unique_ratio": 0.8901098901098901
+      },
+      {
+        "dtype": "float64",
+        "feature": "fractal_dimension2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0945771244970205,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 441,
+        "unique_ratio": 0.9692307692307692
+      },
+      {
+        "dtype": "float64",
+        "feature": "radius3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.06404259337175747,
+        "top_value_frequency": 0.008791208791208791,
+        "unique_count": 373,
+        "unique_ratio": 0.8197802197802198
+      },
+      {
+        "dtype": "float64",
+        "feature": "texture3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.17659433233824343,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 419,
+        "unique_ratio": 0.9208791208791208
+      },
+      {
+        "dtype": "float64",
+        "feature": "perimeter3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.08738096568178404,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 424,
+        "unique_ratio": 0.9318681318681319
+      },
+      {
+        "dtype": "float64",
+        "feature": "area3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.07100708816893846,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 442,
+        "unique_ratio": 0.9714285714285714
+      },
+      {
+        "dtype": "float64",
+        "feature": "smoothness3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.14679671568597108,
+        "top_value_frequency": 0.008791208791208791,
+        "unique_count": 349,
+        "unique_ratio": 0.7670329670329671
+      },
+      {
+        "dtype": "float64",
+        "feature": "compactness3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.04894839127674689,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 430,
+        "unique_ratio": 0.945054945054945
+      },
+      {
+        "dtype": "float64",
+        "feature": "concavity3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.03911186923191224,
+        "top_value_frequency": 0.024175824175824177,
+        "unique_count": 431,
+        "unique_ratio": 0.9472527472527472
+      },
+      {
+        "dtype": "float64",
+        "feature": "concave_points3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.04323895250213057,
+        "top_value_frequency": 0.024175824175824177,
+        "unique_count": 404,
+        "unique_ratio": 0.8879120879120879
+      },
+      {
+        "dtype": "float64",
+        "feature": "symmetry3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.05915913456293445,
+        "top_value_frequency": 0.006593406593406593,
+        "unique_count": 411,
+        "unique_ratio": 0.9032967032967033
+      },
+      {
+        "dtype": "float64",
+        "feature": "fractal_dimension3",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.01928005271819715,
+        "top_value_frequency": 0.004395604395604396,
+        "unique_count": 433,
+        "unique_ratio": 0.9516483516483516
+      }
+    ],
+    "holdout_rows": 114,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.37362637362637363,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.37362637362637363,
+    "risk_feature_count": 1,
+    "source_rows": 569,
+    "train_rows": 455
+  },
+  "experiment_id": "EXP-011",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/breast_cancer/X.parquet": "f02d857642918cf1564d3d4a041376995bbae2e30b7446498118868da0de7d6d",
+      "external_data/breast_cancer/meta.json": "c1a623bc7dfd83846d36ddd88a48b4c77a0ba52e5511a53837f4b909ae59c2fe",
+      "external_data/breast_cancer/y.parquet": "47a82ada79debe6514de3c8d2a1240e47177d2b0c094c0294c0f8e929cf5b41f"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic",
+  "started_at": "2026-09-18T11:25:19+00:00",
+  "status": "completed"
+}

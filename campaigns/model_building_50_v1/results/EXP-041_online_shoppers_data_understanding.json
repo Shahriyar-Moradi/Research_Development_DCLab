@@ -1,0 +1,262 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-041-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "online_shoppers has 12330 source rows, 17 cached features, and a training positive rate of 0.155."
+    },
+    {
+      "claim_id": "EXP-041-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:26:55+00:00",
+  "dataset": "online_shoppers",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.005,
+    "feature_count": 17,
+    "feature_profiles": [
+      {
+        "dtype": "int64",
+        "feature": "Administrative",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004724364936279155,
+        "top_value_frequency": 0.475,
+        "unique_count": 22,
+        "unique_ratio": 0.006875
+      },
+      {
+        "dtype": "float64",
+        "feature": "Administrative_Duration",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004532165644196615,
+        "top_value_frequency": 0.484375,
+        "unique_count": 1152,
+        "unique_ratio": 0.36
+      },
+      {
+        "dtype": "int64",
+        "feature": "Informational",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0010151901817218284,
+        "top_value_frequency": 0.7865625,
+        "unique_count": 13,
+        "unique_ratio": 0.0040625
+      },
+      {
+        "dtype": "float64",
+        "feature": "Informational_Duration",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0008858715166779532,
+        "top_value_frequency": 0.8053125,
+        "unique_count": 452,
+        "unique_ratio": 0.14125
+      },
+      {
+        "dtype": "int64",
+        "feature": "ProductRelated",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.019345323549623802,
+        "top_value_frequency": 0.0490625,
+        "unique_count": 201,
+        "unique_ratio": 0.0628125
+      },
+      {
+        "dtype": "float64",
+        "feature": "ProductRelated_Duration",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.020943842526609427,
+        "top_value_frequency": 0.06,
+        "unique_count": 2753,
+        "unique_ratio": 0.8603125
+      },
+      {
+        "dtype": "float64",
+        "feature": "BounceRates",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00421617368869079,
+        "top_value_frequency": 0.4515625,
+        "unique_count": 670,
+        "unique_ratio": 0.209375
+      },
+      {
+        "dtype": "float64",
+        "feature": "ExitRates",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00790201686722771,
+        "top_value_frequency": 0.0584375,
+        "unique_count": 1501,
+        "unique_ratio": 0.4690625
+      },
+      {
+        "dtype": "float64",
+        "feature": "PageValues",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0029759625294682552,
+        "top_value_frequency": 0.7803125,
+        "unique_count": 698,
+        "unique_ratio": 0.218125
+      },
+      {
+        "dtype": "float64",
+        "feature": "SpecialDay",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0001537100419994877,
+        "top_value_frequency": 0.9,
+        "unique_count": 6,
+        "unique_ratio": 0.001875
+      },
+      {
+        "dtype": "float64",
+        "feature": "Month",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005745781129705363,
+        "top_value_frequency": 0.2753125,
+        "unique_count": 10,
+        "unique_ratio": 0.003125
+      },
+      {
+        "dtype": "int64",
+        "feature": "OperatingSystems",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0012024758296505656,
+        "top_value_frequency": 0.5346875,
+        "unique_count": 8,
+        "unique_ratio": 0.0025
+      },
+      {
+        "dtype": "int64",
+        "feature": "Browser",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0007487697098994731,
+        "top_value_frequency": 0.636875,
+        "unique_count": 12,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "int64",
+        "feature": "Region",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.011751778592001275,
+        "top_value_frequency": 0.3721875,
+        "unique_count": 9,
+        "unique_ratio": 0.0028125
+      },
+      {
+        "dtype": "int64",
+        "feature": "TrafficType",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007465601066235606,
+        "top_value_frequency": 0.32875,
+        "unique_count": 19,
+        "unique_ratio": 0.0059375
+      },
+      {
+        "dtype": "float64",
+        "feature": "VisitorType",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.011093631403099187,
+        "top_value_frequency": 0.84375,
+        "unique_count": 3,
+        "unique_ratio": 0.0009375
+      },
+      {
+        "dtype": "int64",
+        "feature": "Weekend",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.7675,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.1546875,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.1546875,
+    "risk_feature_count": 0,
+    "source_rows": 12330,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-041",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "external_data/online_shoppers/meta.json": "be48a6290897947ed31e182223abaa3c908c1a1d330de042323b0899fd05f068",
+      "external_data/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset",
+  "started_at": "2026-09-18T11:26:55+00:00",
+  "status": "completed"
+}

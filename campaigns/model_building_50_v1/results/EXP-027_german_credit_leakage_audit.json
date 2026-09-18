@@ -1,0 +1,80 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-027-C1",
+      "evidence": [
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+      "claim_id": "EXP-027-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.safe_vs_unsafe_training_cv"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+      ],
+      "statement": "Declared decision-time exclusions for german_credit: none."
+    }
+  ],
+  "completed_at": "2026-09-18T11:25:54+00:00",
+  "dataset": "german_credit",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "declared_leakage_features": [],
+    "detector_canary_passed": true,
+    "heuristic_review_candidates": [],
+    "policy_rationale": "Applicant attributes are known at underwriting time; no leakage identified.",
+    "safe_vs_unsafe_training_cv": null,
+    "warning": "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+  },
+  "experiment_id": "EXP-027",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
+  "kind": "leakage_audit",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "external_data/german_credit/meta.json": "fc86255b97453eb705ee74344b34b4201ec49a574cdbd19938494fad8c17f034",
+      "external_data/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data",
+  "started_at": "2026-09-18T11:25:53+00:00",
+  "status": "completed"
+}

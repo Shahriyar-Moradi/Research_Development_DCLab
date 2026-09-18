@@ -1,0 +1,202 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-046-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "wine_quality has 6497 source rows, 11 cached features, and a training positive rate of 0.633."
+    },
+    {
+      "claim_id": "EXP-046-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:27:16+00:00",
+  "dataset": "wine_quality",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.099375,
+    "feature_count": 11,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "fixed_acidity",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.017236855608325927,
+        "top_value_frequency": 0.05125,
+        "unique_count": 98,
+        "unique_ratio": 0.030625
+      },
+      {
+        "dtype": "float64",
+        "feature": "volatile_acidity",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.009781370432321652,
+        "top_value_frequency": 0.0478125,
+        "unique_count": 161,
+        "unique_ratio": 0.0503125
+      },
+      {
+        "dtype": "float64",
+        "feature": "citric_acid",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.01533806971206009,
+        "top_value_frequency": 0.058125,
+        "unique_count": 84,
+        "unique_ratio": 0.02625
+      },
+      {
+        "dtype": "float64",
+        "feature": "residual_sugar",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007083086158432859,
+        "top_value_frequency": 0.038125,
+        "unique_count": 277,
+        "unique_ratio": 0.0865625
+      },
+      {
+        "dtype": "float64",
+        "feature": "chlorides",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.01506303227076115,
+        "top_value_frequency": 0.0340625,
+        "unique_count": 171,
+        "unique_ratio": 0.0534375
+      },
+      {
+        "dtype": "float64",
+        "feature": "free_sulfur_dioxide",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.014594821561927098,
+        "top_value_frequency": 0.0284375,
+        "unique_count": 114,
+        "unique_ratio": 0.035625
+      },
+      {
+        "dtype": "float64",
+        "feature": "total_sulfur_dioxide",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.025381340748537835,
+        "top_value_frequency": 0.0128125,
+        "unique_count": 255,
+        "unique_ratio": 0.0796875
+      },
+      {
+        "dtype": "float64",
+        "feature": "density",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.010324748070210818,
+        "top_value_frequency": 0.013125,
+        "unique_count": 819,
+        "unique_ratio": 0.2559375
+      },
+      {
+        "dtype": "float64",
+        "feature": "pH",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.03617153834992059,
+        "top_value_frequency": 0.034375,
+        "unique_count": 98,
+        "unique_ratio": 0.030625
+      },
+      {
+        "dtype": "float64",
+        "feature": "sulphates",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.008070197185261276,
+        "top_value_frequency": 0.0428125,
+        "unique_count": 99,
+        "unique_ratio": 0.0309375
+      },
+      {
+        "dtype": "float64",
+        "feature": "alcohol",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.016922862856856232,
+        "top_value_frequency": 0.055625,
+        "unique_count": 86,
+        "unique_ratio": 0.026875
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.36687499999999995,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.633125,
+    "risk_feature_count": 0,
+    "source_rows": 6497,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-046",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/wine_quality/X.parquet": "664eda3e124c4869d2a27ce665771ff4eb00299843b1d4dfa3ec8af71f1b9be4",
+      "external_data/wine_quality/meta.json": "5ef0cd1755e15b038b1aff83a2bb6eb4b3ab1d5b233ea54f17ce80d7ad18559c",
+      "external_data/wine_quality/y.parquet": "09fe28cc9df22d3a7bf71e9a1f7cde8626039e31d3f1b65af653ee7498829d9b"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/186/wine+quality",
+  "started_at": "2026-09-18T11:27:16+00:00",
+  "status": "completed"
+}

@@ -1,0 +1,1361 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-010-C1",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.holdout_roc_auc_bootstrap_ci",
+        "evidence.holdout_consumed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The preselected extra_trees/extra_trees_C02 recipe scored 0.7718 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.7126\u20130.8290)."
+    },
+    {
+      "claim_id": "EXP-010-C2",
+      "evidence": [
+        "evidence.top_final_features",
+        "evidence.cv_feature_stability",
+        "evidence.production_feature_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [],
+      "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+  ],
+  "completed_at": "2026-09-18T11:25:19+00:00",
+  "dataset": "bank_marketing",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "configuration_results": [
+      {
+        "elapsed_seconds": 2.028790749998734,
+        "evaluations": 3,
+        "feature_count_mean": 38.0,
+        "feature_stability": [
+          {
+            "feature": "poutcome",
+            "mean_normalized_importance": 0.04460198328559354,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "age",
+            "mean_normalized_importance": 0.042348752688352954,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_pdays_div_age",
+            "mean_normalized_importance": 0.0412601259384461,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_age_div_day_of_week",
+            "mean_normalized_importance": 0.04077548335099257,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "day_of_week",
+            "mean_normalized_importance": 0.03828186125184607,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_balance_div_age",
+            "mean_normalized_importance": 0.03629123874117595,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_poutcome",
+            "mean_normalized_importance": 0.03680969409609929,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_balance_div_day_of_week",
+            "mean_normalized_importance": 0.036199242923504966,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_pdays_div_day_of_week",
+            "mean_normalized_importance": 0.036078493521180435,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "balance",
+            "mean_normalized_importance": 0.035802631526509705,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_balance_div_pdays",
+            "mean_normalized_importance": 0.03536142518456741,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_day_of_week_div_month",
+            "mean_normalized_importance": 0.035347199615948115,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_age_div_month",
+            "mean_normalized_importance": 0.03266259358952126,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "month",
+            "mean_normalized_importance": 0.031909345870731236,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_month",
+            "mean_normalized_importance": 0.03132436332025615,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_age_div_job",
+            "mean_normalized_importance": 0.03125085299866325,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_balance_div_job",
+            "mean_normalized_importance": 0.030722495265468355,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_balance_div_month",
+            "mean_normalized_importance": 0.029488120381793017,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_day_of_week_div_job",
+            "mean_normalized_importance": 0.029256658834370508,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_campaign",
+            "mean_normalized_importance": 0.028828019587453416,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.880037488284911,
+            "avg_precision": 0.34328010268453135,
+            "brier": 0.0950002603353123,
+            "ece_10": 0.038366131458919095,
+            "f1": 0.28888888888888886,
+            "fit_seconds": 0.4920410830000037,
+            "log_loss": 0.32737359713597397,
+            "precision": 0.4727272727272727,
+            "recall": 0.208,
+            "roc_auc": 0.7438938428874735,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.887535145267104,
+            "avg_precision": 0.3619861674723947,
+            "brier": 0.09135529465791993,
+            "ece_10": 0.03197437766323024,
+            "f1": 0.25925925925925924,
+            "fit_seconds": 0.5083230000000185,
+            "log_loss": 0.3505912700298658,
+            "precision": 0.5675675675675675,
+            "recall": 0.168,
+            "roc_auc": 0.7478259023354563,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8789868667917449,
+            "avg_precision": 0.3016045798106747,
+            "brier": 0.0977549718574112,
+            "ece_10": 0.0538461506566604,
+            "f1": 0.23668639053254437,
+            "fit_seconds": 0.47510958299972117,
+            "log_loss": 0.35185188546555773,
+            "precision": 0.4444444444444444,
+            "recall": 0.16129032258064516,
+            "roc_auc": 0.6948025820149306,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8874617719475741,
+            "ci95_low": 0.8769112282815992,
+            "max": 0.887535145267104,
+            "mean": 0.8821865001145867,
+            "min": 0.8789868667917449,
+            "std": 0.00466175450942413
+          },
+          "avg_precision": {
+            "ci95_high": 0.3706019819955924,
+            "ci95_low": 0.30064525131614156,
+            "max": 0.3619861674723947,
+            "mean": 0.335623616655867,
+            "min": 0.3016045798106747,
+            "std": 0.030910360170464616
+          },
+          "brier": {
+            "ci95_high": 0.09833612684625358,
+            "ci95_low": 0.09107089105417536,
+            "max": 0.0977549718574112,
+            "mean": 0.09470350895021447,
+            "min": 0.09135529465791993,
+            "std": 0.0032101422247059696
+          },
+          "ece_10": {
+            "ci95_high": 0.054121808798765686,
+            "ci95_low": 0.028669297720440814,
+            "max": 0.0538461506566604,
+            "mean": 0.04139555325960325,
+            "min": 0.03197437766323024,
+            "std": 0.011246184277517444
+          },
+          "f1": {
+            "ci95_high": 0.29123767701207,
+            "ci95_low": 0.23198534877505836,
+            "max": 0.28888888888888886,
+            "mean": 0.26161151289356416,
+            "min": 0.23668639053254437,
+            "std": 0.026180623207462287
+          },
+          "log_loss": {
+            "ci95_high": 0.3588692489960558,
+            "ci95_low": 0.32767525275820913,
+            "max": 0.35185188546555773,
+            "mean": 0.3432722508771325,
+            "min": 0.32737359713597397,
+            "std": 0.013783057748740543
+          },
+          "precision": {
+            "ci95_high": 0.5678906086127952,
+            "ci95_low": 0.4219355812133946,
+            "max": 0.5675675675675675,
+            "mean": 0.4949130949130949,
+            "min": 0.4444444444444444,
+            "std": 0.06449018445812993
+          },
+          "recall": {
+            "ci95_high": 0.20767521172085046,
+            "ci95_low": 0.1505183366662463,
+            "max": 0.208,
+            "mean": 0.17909677419354839,
+            "min": 0.16129032258064516,
+            "std": 0.025254747856234827
+          },
+          "roc_auc": {
+            "ci95_high": 0.7622723138108476,
+            "ci95_low": 0.6954092376810594,
+            "max": 0.7478259023354563,
+            "mean": 0.7288407757459535,
+            "min": 0.6948025820149306,
+            "std": 0.02954342984875996
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "ratios"
+      },
+      {
+        "elapsed_seconds": 2.263647708001372,
+        "evaluations": 3,
+        "feature_count_mean": 38.0,
+        "feature_stability": [
+          {
+            "feature": "poutcome",
+            "mean_normalized_importance": 0.07397413903678117,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_poutcome",
+            "mean_normalized_importance": 0.06162726216036413,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "month",
+            "mean_normalized_importance": 0.04155253048393191,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_month",
+            "mean_normalized_importance": 0.04090718477008324,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "age",
+            "mean_normalized_importance": 0.03749663406339052,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "day_of_week",
+            "mean_normalized_importance": 0.03663717957485819,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_day_of_week_div_month",
+            "mean_normalized_importance": 0.03441819810166959,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_pdays_div_age",
+            "mean_normalized_importance": 0.03368862560480785,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_pdays_div_month",
+            "mean_normalized_importance": 0.03154479002652139,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "job",
+            "mean_normalized_importance": 0.030174799099108463,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_age_div_day_of_week",
+            "mean_normalized_importance": 0.031051794611316078,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_age_div_month",
+            "mean_normalized_importance": 0.029110344350480072,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "housing",
+            "mean_normalized_importance": 0.02857118517623558,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_pdays_div_day_of_week",
+            "mean_normalized_importance": 0.028160285101544533,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_campaign",
+            "mean_normalized_importance": 0.028051430578946584,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_balance_div_pdays",
+            "mean_normalized_importance": 0.026995799201517606,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "balance",
+            "mean_normalized_importance": 0.0268973801427138,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_balance_div_age",
+            "mean_normalized_importance": 0.026855834050300707,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_age_div_job",
+            "mean_normalized_importance": 0.026608683684864267,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_month_div_job",
+            "mean_normalized_importance": 0.026148568777692362,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.887535145267104,
+            "avg_precision": 0.37597981488595117,
+            "brier": 0.08958208746513086,
+            "ece_10": 0.028090431662144904,
+            "f1": 0.27710843373493976,
+            "fit_seconds": 0.5778727079996315,
+            "log_loss": 0.3111880130862649,
+            "precision": 0.5609756097560976,
+            "recall": 0.184,
+            "roc_auc": 0.758004246284501,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8931583880037488,
+            "avg_precision": 0.3993744279844448,
+            "brier": 0.08775774453114586,
+            "ece_10": 0.024093201734239116,
+            "f1": 0.22972972972972974,
+            "fit_seconds": 0.5690461249996588,
+            "log_loss": 0.3086834372973165,
+            "precision": 0.7391304347826086,
+            "recall": 0.136,
+            "roc_auc": 0.7602462845010616,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8864915572232646,
+            "avg_precision": 0.3228167848181372,
+            "brier": 0.09391243860397205,
+            "ece_10": 0.028596404411217784,
+            "f1": 0.21935483870967742,
+            "fit_seconds": 0.5527982500007056,
+            "log_loss": 0.33217118180107247,
+            "precision": 0.5483870967741935,
+            "recall": 0.13709677419354838,
+            "roc_auc": 0.7107732347099514,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8931196428761825,
+            "ci95_low": 0.8850037507865622,
+            "max": 0.8931583880037488,
+            "mean": 0.8890616968313724,
+            "min": 0.8864915572232646,
+            "std": 0.0035860044510124256
+          },
+          "avg_precision": {
+            "ci95_high": 0.4104516904773995,
+            "ci95_low": 0.32166232798162253,
+            "max": 0.3993744279844448,
+            "mean": 0.366057009229511,
+            "min": 0.3228167848181372,
+            "std": 0.03923155280977966
+          },
+          "brier": {
+            "ci95_high": 0.09399469730410837,
+            "ci95_low": 0.08684014976272417,
+            "max": 0.09391243860397205,
+            "mean": 0.09041742353341627,
+            "min": 0.08775774453114586,
+            "std": 0.003161234654807256
+          },
+          "ece_10": {
+            "ci95_high": 0.0297182056278826,
+            "ci95_low": 0.0241351529105186,
+            "max": 0.028596404411217784,
+            "mean": 0.0269266792692006,
+            "min": 0.024093201734239116,
+            "std": 0.002466870144849472
+          },
+          "f1": {
+            "ci95_high": 0.27690562032886706,
+            "ci95_low": 0.20722304778736422,
+            "max": 0.27710843373493976,
+            "mean": 0.24206433405811564,
+            "min": 0.21935483870967742,
+            "std": 0.030789223480608904
+          },
+          "log_loss": {
+            "ci95_high": 0.3319436629581164,
+            "ci95_low": 0.3027514251649861,
+            "max": 0.33217118180107247,
+            "mean": 0.31734754406155125,
+            "min": 0.3086834372973165,
+            "std": 0.012898581388860707
+          },
+          "precision": {
+            "ci95_high": 0.7368814235627232,
+            "ci95_low": 0.4954473373125432,
+            "max": 0.7391304347826086,
+            "mean": 0.6161643804376332,
+            "min": 0.5483870967741935,
+            "std": 0.10667757756741796
+          },
+          "recall": {
+            "ci95_high": 0.1833735220346584,
+            "ci95_low": 0.12135766076104054,
+            "max": 0.184,
+            "mean": 0.15236559139784947,
+            "min": 0.136,
+            "std": 0.027401689439043173
+          },
+          "roc_auc": {
+            "ci95_high": 0.7746233754465127,
+            "ci95_low": 0.7113924682171632,
+            "max": 0.7602462845010616,
+            "mean": 0.743007921831838,
+            "min": 0.7107732347099514,
+            "std": 0.027938557124976452
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": "sqrt",
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 400
+        },
+        "optimization": "extra_trees_C01",
+        "repeats": 1,
+        "stage": "ratios"
+      },
+      {
+        "elapsed_seconds": 1.9796090420004475,
+        "evaluations": 3,
+        "feature_count_mean": 38.0,
+        "feature_stability": [
+          {
+            "feature": "poutcome",
+            "mean_normalized_importance": 0.11483408748906765,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_poutcome",
+            "mean_normalized_importance": 0.0978601726752552,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "month",
+            "mean_normalized_importance": 0.049436170667330435,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_month",
+            "mean_normalized_importance": 0.048171000968876936,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "housing",
+            "mean_normalized_importance": 0.036391469890376366,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_pdays_div_month",
+            "mean_normalized_importance": 0.03480343422123535,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "day_of_week",
+            "mean_normalized_importance": 0.032560097777231845,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "contact",
+            "mean_normalized_importance": 0.033396167981209125,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "age",
+            "mean_normalized_importance": 0.032709059259729806,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_day_of_week_div_month",
+            "mean_normalized_importance": 0.031219129856927787,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_pdays_div_age",
+            "mean_normalized_importance": 0.02800989909756879,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "job",
+            "mean_normalized_importance": 0.02907555635131391,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_age_div_month",
+            "mean_normalized_importance": 0.02549778327033106,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_month_div_job",
+            "mean_normalized_importance": 0.024315603238633323,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_age_div_day_of_week",
+            "mean_normalized_importance": 0.022945156525911583,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_campaign",
+            "mean_normalized_importance": 0.02280076050889499,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "log1p_education",
+            "mean_normalized_importance": 0.021192550252872765,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_pdays_div_day_of_week",
+            "mean_normalized_importance": 0.020876929298122113,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "education",
+            "mean_normalized_importance": 0.020697513697912045,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_age_div_job",
+            "mean_normalized_importance": 0.020230682161375677,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8931583880037488,
+            "avg_precision": 0.38300052730854917,
+            "brier": 0.08816990978699125,
+            "ece_10": 0.015833088654246017,
+            "f1": 0.2875,
+            "fit_seconds": 0.4694731250001496,
+            "log_loss": 0.3074126025490117,
+            "precision": 0.6571428571428571,
+            "recall": 0.184,
+            "roc_auc": 0.7596178343949045,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8922211808809747,
+            "avg_precision": 0.43259810682351635,
+            "brier": 0.08585328322411372,
+            "ece_10": 0.013546580356133674,
+            "f1": 0.1958041958041958,
+            "fit_seconds": 0.477961165999659,
+            "log_loss": 0.29895567928195416,
+            "precision": 0.7777777777777778,
+            "recall": 0.112,
+            "roc_auc": 0.7729426751592358,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8893058161350844,
+            "avg_precision": 0.32725337779061386,
+            "brier": 0.09213649794022721,
+            "ece_10": 0.015957495018121052,
+            "f1": 0.2236842105263158,
+            "fit_seconds": 0.4780084159992839,
+            "log_loss": 0.31985469327689403,
+            "precision": 0.6071428571428571,
+            "recall": 0.13709677419354838,
+            "roc_auc": 0.7243596329018561,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8938353583405919,
+            "ci95_low": 0.8892882316726135,
+            "max": 0.8931583880037488,
+            "mean": 0.8915617950066027,
+            "min": 0.8893058161350844,
+            "std": 0.0020091465350484273
+          },
+          "avg_precision": {
+            "ci95_high": 0.4405889050554998,
+            "ci95_low": 0.3213124362262865,
+            "max": 0.43259810682351635,
+            "mean": 0.38095067064089316,
+            "min": 0.32725337779061386,
+            "std": 0.05270227146928643
+          },
+          "brier": {
+            "ci95_high": 0.09231558651523455,
+            "ci95_low": 0.08512420745232024,
+            "max": 0.09213649794022721,
+            "mean": 0.0887198969837774,
+            "min": 0.08585328322411372,
+            "std": 0.003177508651391497
+          },
+          "ece_10": {
+            "ci95_high": 0.01664849310029394,
+            "ci95_low": 0.013576282918706552,
+            "max": 0.015957495018121052,
+            "mean": 0.015112388009500247,
+            "min": 0.013546580356133674,
+            "std": 0.0013574551341938173
+          },
+          "f1": {
+            "ci95_high": 0.28885607452081646,
+            "ci95_low": 0.18246952969952465,
+            "max": 0.2875,
+            "mean": 0.23566280211017054,
+            "min": 0.1958041958041958,
+            "std": 0.047006862467393114
+          },
+          "log_loss": {
+            "ci95_high": 0.32063716697983974,
+            "ci95_low": 0.2968448164254002,
+            "max": 0.31985469327689403,
+            "mean": 0.30874099170262,
+            "min": 0.29895567928195416,
+            "std": 0.010512642855045596
+          },
+          "precision": {
+            "ci95_high": 0.7799526453471816,
+            "ci95_low": 0.5814230160284798,
+            "max": 0.7777777777777778,
+            "mean": 0.6806878306878307,
+            "min": 0.6071428571428571,
+            "std": 0.08772025632342025
+          },
+          "recall": {
+            "ci95_high": 0.1857215415101245,
+            "ci95_low": 0.10300964128557444,
+            "max": 0.184,
+            "mean": 0.14436559139784946,
+            "min": 0.112,
+            "std": 0.036546227953951106
+          },
+          "roc_auc": {
+            "ci95_high": 0.7807135849351386,
+            "ci95_low": 0.7238998433688589,
+            "max": 0.7729426751592358,
+            "mean": 0.7523067141519988,
+            "min": 0.7243596329018561,
+            "std": 0.025103134428796994
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_depth": 14,
+          "model__min_samples_leaf": 3,
+          "model__n_estimators": 400
+        },
+        "optimization": "extra_trees_C02",
+        "repeats": 1,
+        "stage": "ratios"
+      },
+      {
+        "elapsed_seconds": 5.675540624999485,
+        "evaluations": 3,
+        "feature_count_mean": 38.0,
+        "feature_stability": [
+          {
+            "feature": "poutcome",
+            "mean_normalized_importance": 0.07386947854186876,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_poutcome",
+            "mean_normalized_importance": 0.06309375751443923,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "age",
+            "mean_normalized_importance": 0.045377729997111683,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "day_of_week",
+            "mean_normalized_importance": 0.04364443305229348,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_day_of_week_div_month",
+            "mean_normalized_importance": 0.03859090810286522,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_age_div_day_of_week",
+            "mean_normalized_importance": 0.03785260383574402,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "month",
+            "mean_normalized_importance": 0.037623669780192444,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "log1p_month",
+            "mean_normalized_importance": 0.032802815472872816,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "job",
+            "mean_normalized_importance": 0.0324607572805402,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "housing",
+            "mean_normalized_importance": 0.03071717168377029,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "log1p_campaign",
+            "mean_normalized_importance": 0.030614168670777635,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_pdays_div_age",
+            "mean_normalized_importance": 0.029567111005356483,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_balance_div_pdays",
+            "mean_normalized_importance": 0.02970455780191482,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_age_div_month",
+            "mean_normalized_importance": 0.029618142481962054,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_balance_div_age",
+            "mean_normalized_importance": 0.02833098906487548,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_pdays_div_month",
+            "mean_normalized_importance": 0.027570235840017027,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "balance",
+            "mean_normalized_importance": 0.027494771481207828,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "contact",
+            "mean_normalized_importance": 0.02673475943812439,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_age_div_job",
+            "mean_normalized_importance": 0.026574661149980805,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "campaign",
+            "mean_normalized_importance": 0.025961884579471798,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8847235238987816,
+            "avg_precision": 0.3776231928986015,
+            "brier": 0.09224647821826545,
+            "ece_10": 0.04231392967822556,
+            "f1": 0.32786885245901637,
+            "fit_seconds": 1.7458606670006702,
+            "log_loss": 0.34256737585357755,
+            "precision": 0.5172413793103449,
+            "recall": 0.24,
+            "roc_auc": 0.756547770700637,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8931583880037488,
+            "avg_precision": 0.369991542241845,
+            "brier": 0.09117347104758969,
+            "ece_10": 0.03842626910340519,
+            "f1": 0.3048780487804878,
+            "fit_seconds": 1.7111562919999415,
+            "log_loss": 0.3344513332575357,
+            "precision": 0.6410256410256411,
+            "recall": 0.2,
+            "roc_auc": 0.7512144373673035,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8780487804878049,
+            "avg_precision": 0.3121262513472615,
+            "brier": 0.09749375221273995,
+            "ece_10": 0.05278002683969147,
+            "f1": 0.26136363636363635,
+            "fit_seconds": 1.6398936669993418,
+            "log_loss": 0.3495832931071659,
+            "precision": 0.4423076923076923,
+            "recall": 0.18548387096774194,
+            "roc_auc": 0.707036333127868,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8938786093060512,
+            "ci95_low": 0.8767418522875058,
+            "max": 0.8931583880037488,
+            "mean": 0.8853102307967785,
+            "min": 0.8780487804878049,
+            "std": 0.007571870875786583
+          },
+          "avg_precision": {
+            "ci95_high": 0.3937760045705818,
+            "ci95_low": 0.3127179864212236,
+            "max": 0.3776231928986015,
+            "mean": 0.3532469954959027,
+            "min": 0.3121262513472615,
+            "std": 0.03581546066212464
+          },
+          "brier": {
+            "ci95_high": 0.09746509522792596,
+            "ci95_low": 0.08981070575780409,
+            "max": 0.09749375221273995,
+            "mean": 0.09363790049286502,
+            "min": 0.09117347104758969,
+            "std": 0.0033820896589722748
+          },
+          "ece_10": {
+            "ci95_high": 0.05290764646587236,
+            "ci95_low": 0.03610583728167578,
+            "max": 0.05278002683969147,
+            "mean": 0.04450674187377407,
+            "min": 0.03842626910340519,
+            "std": 0.0074238742770678205
+          },
+          "f1": {
+            "ci95_high": 0.336258311399355,
+            "ci95_low": 0.259815380336072,
+            "max": 0.32786885245901637,
+            "mean": 0.2980368458677135,
+            "min": 0.26136363636363635,
+            "std": 0.0337762858370131
+          },
+          "log_loss": {
+            "ci95_high": 0.350769918649832,
+            "ci95_low": 0.33363141616235414,
+            "max": 0.3495832931071659,
+            "mean": 0.34220066740609306,
+            "min": 0.3344513332575357,
+            "std": 0.00757264211070335
+          },
+          "precision": {
+            "ci95_high": 0.6470869652178737,
+            "ci95_low": 0.4199628432112452,
+            "max": 0.6410256410256411,
+            "mean": 0.5335249042145594,
+            "min": 0.4423076923076923,
+            "std": 0.10035472421937576
+          },
+          "recall": {
+            "ci95_high": 0.2404436468167903,
+            "ci95_low": 0.17654560049503765,
+            "max": 0.24,
+            "mean": 0.20849462365591398,
+            "min": 0.18548387096774194,
+            "std": 0.028233332330016632
+          },
+          "roc_auc": {
+            "ci95_high": 0.769019836478658,
+            "ci95_low": 0.7075125243185474,
+            "max": 0.756547770700637,
+            "mean": 0.7382661803986027,
+            "min": 0.707036333127868,
+            "std": 0.02717698716793641
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": 0.7,
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 500
+        },
+        "optimization": "extra_trees_C03",
+        "repeats": 1,
+        "stage": "ratios"
+      }
+    ],
+    "cv_feature_stability": [
+      {
+        "feature": "poutcome",
+        "mean_normalized_importance": 0.11483408748906765,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "log1p_poutcome",
+        "mean_normalized_importance": 0.0978601726752552,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "month",
+        "mean_normalized_importance": 0.049436170667330435,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "log1p_month",
+        "mean_normalized_importance": 0.048171000968876936,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "housing",
+        "mean_normalized_importance": 0.036391469890376366,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "ratio_pdays_div_month",
+        "mean_normalized_importance": 0.03480343422123535,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "day_of_week",
+        "mean_normalized_importance": 0.032560097777231845,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "contact",
+        "mean_normalized_importance": 0.033396167981209125,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+      },
+      {
+        "feature": "age",
+        "mean_normalized_importance": 0.032709059259729806,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+      },
+      {
+        "feature": "ratio_day_of_week_div_month",
+        "mean_normalized_importance": 0.031219129856927787,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+      },
+      {
+        "feature": "ratio_pdays_div_age",
+        "mean_normalized_importance": 0.02800989909756879,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+      },
+      {
+        "feature": "job",
+        "mean_normalized_importance": 0.02907555635131391,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+      },
+      {
+        "feature": "ratio_age_div_month",
+        "mean_normalized_importance": 0.02549778327033106,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "ratio_month_div_job",
+        "mean_normalized_importance": 0.024315603238633323,
+        "observed_folds": 2,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "ratio_age_div_day_of_week",
+        "mean_normalized_importance": 0.022945156525911583,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "log1p_campaign",
+        "mean_normalized_importance": 0.02280076050889499,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "log1p_education",
+        "mean_normalized_importance": 0.021192550252872765,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "ratio_pdays_div_day_of_week",
+        "mean_normalized_importance": 0.020876929298122113,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "education",
+        "mean_normalized_importance": 0.020697513697912045,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "ratio_age_div_job",
+        "mean_normalized_importance": 0.020230682161375677,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      }
+    ],
+    "feature_stage": "ratios",
+    "holdout_consumed": true,
+    "holdout_metrics": {
+      "accuracy": 0.88625,
+      "avg_precision": 0.3915037952265037,
+      "brier": 0.08698659707238321,
+      "ece_10": 0.027231064943742295,
+      "f1": 0.2222222222222222,
+      "fit_seconds": 0.622739291000471,
+      "log_loss": 0.3065981479262125,
+      "precision": 0.5652173913043478,
+      "recall": 0.13829787234042554,
+      "roc_auc": 0.7718039901151228,
+      "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+      "draws": 400,
+      "high": 0.8290159504824489,
+      "low": 0.712635957605465,
+      "median": 0.7746852853912043
+    },
+    "model": "extra_trees",
+    "optimization_search_space": [
+      {
+        "candidate_id": "extra_trees_C01",
+        "params": {
+          "model__max_features": "sqrt",
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 400
+        }
+      },
+      {
+        "candidate_id": "extra_trees_C02",
+        "params": {
+          "model__max_depth": 14,
+          "model__min_samples_leaf": 3,
+          "model__n_estimators": 400
+        }
+      },
+      {
+        "candidate_id": "extra_trees_C03",
+        "params": {
+          "model__max_features": 0.7,
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 500
+        }
+      }
+    ],
+    "optimized_vs_baseline_cv_auc": 0.023465938406045272,
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit.",
+    "selected_model_params": {
+      "model__max_depth": 14,
+      "model__min_samples_leaf": 3,
+      "model__n_estimators": 400
+    },
+    "selected_optimization": "extra_trees_C02",
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "top_final_features": [
+      {
+        "feature": "poutcome",
+        "normalized_importance": 0.11909947333202626
+      },
+      {
+        "feature": "log1p_poutcome",
+        "normalized_importance": 0.10879852145113804
+      },
+      {
+        "feature": "month",
+        "normalized_importance": 0.05214404423761857
+      },
+      {
+        "feature": "log1p_month",
+        "normalized_importance": 0.05038010576538126
+      },
+      {
+        "feature": "housing",
+        "normalized_importance": 0.038075480664963295
+      },
+      {
+        "feature": "ratio_day_of_week_div_month",
+        "normalized_importance": 0.036568413357716115
+      },
+      {
+        "feature": "ratio_pdays_div_month",
+        "normalized_importance": 0.034440993641249563
+      },
+      {
+        "feature": "contact",
+        "normalized_importance": 0.03400139334982101
+      },
+      {
+        "feature": "age",
+        "normalized_importance": 0.03315590486038369
+      },
+      {
+        "feature": "day_of_week",
+        "normalized_importance": 0.03295460593060608
+      },
+      {
+        "feature": "job",
+        "normalized_importance": 0.027987922418417164
+      },
+      {
+        "feature": "ratio_pdays_div_age",
+        "normalized_importance": 0.02701332039010424
+      },
+      {
+        "feature": "ratio_age_div_month",
+        "normalized_importance": 0.024185206732908002
+      },
+      {
+        "feature": "ratio_age_div_day_of_week",
+        "normalized_importance": 0.023291759925045917
+      },
+      {
+        "feature": "ratio_pdays_div_day_of_week",
+        "normalized_importance": 0.02206243377383133
+      },
+      {
+        "feature": "log1p_campaign",
+        "normalized_importance": 0.02115711036606279
+      },
+      {
+        "feature": "log1p_education",
+        "normalized_importance": 0.019646166306814303
+      },
+      {
+        "feature": "ratio_month_div_job",
+        "normalized_importance": 0.018934263316847392
+      },
+      {
+        "feature": "balance",
+        "normalized_importance": 0.018692669215596685
+      },
+      {
+        "feature": "ratio_age_div_job",
+        "normalized_importance": 0.01861538366462094
+      }
+    ]
+  },
+  "experiment_id": "EXP-010",
+  "feature_count": 38,
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
+  "kind": "optimization_reliability",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "metrics": {
+    "accuracy": 0.88625,
+    "avg_precision": 0.3915037952265037,
+    "brier": 0.08698659707238321,
+    "ece_10": 0.027231064943742295,
+    "f1": 0.2222222222222222,
+    "fit_seconds": 0.622739291000471,
+    "log_loss": 0.3065981479262125,
+    "precision": 0.5652173913043478,
+    "recall": 0.13829787234042554,
+    "roc_auc": 0.7718039901151228,
+    "threshold": 0.5
+  },
+  "mode": "safe",
+  "model_name": "extra_trees",
+  "optimization": "extra_trees_C02",
+  "provenance": {
+    "data_sha256": {
+      "external_data/bank_marketing/X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+      "external_data/bank_marketing/meta.json": "b8761444ec51b658af715a32e590c0b37e2c57e6f9dc0a623d999de3f428186a",
+      "external_data/bank_marketing/y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/222/bank+marketing",
+  "started_at": "2026-09-18T11:25:06+00:00",
+  "status": "completed",
+  "test_rows": 800,
+  "train_rows": 3200
+}

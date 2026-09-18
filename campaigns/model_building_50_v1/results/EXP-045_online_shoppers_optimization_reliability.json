@@ -1,0 +1,1225 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-045-C1",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.holdout_roc_auc_bootstrap_ci",
+        "evidence.holdout_consumed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The preselected extra_trees/extra_trees_C02 recipe scored 0.7394 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.6997\u20130.7828)."
+    },
+    {
+      "claim_id": "EXP-045-C2",
+      "evidence": [
+        "evidence.top_final_features",
+        "evidence.cv_feature_stability",
+        "evidence.production_feature_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [],
+      "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+  ],
+  "completed_at": "2026-09-18T11:27:16+00:00",
+  "dataset": "online_shoppers",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "configuration_results": [
+      {
+        "elapsed_seconds": 1.6884784579997358,
+        "evaluations": 3,
+        "feature_count_mean": 16.0,
+        "feature_stability": [
+          {
+            "feature": "ExitRates",
+            "mean_normalized_importance": 0.12004817213735641,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated_Duration",
+            "mean_normalized_importance": 0.1047807798154176,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated",
+            "mean_normalized_importance": 0.09880298917963397,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative",
+            "mean_normalized_importance": 0.07486138514591095,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "TrafficType",
+            "mean_normalized_importance": 0.07367214194294254,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Month",
+            "mean_normalized_importance": 0.07351256904669001,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative_Duration",
+            "mean_normalized_importance": 0.07318379253463679,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Region",
+            "mean_normalized_importance": 0.06983207786896273,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "BounceRates",
+            "mean_normalized_importance": 0.06923836026309706,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Browser",
+            "mean_normalized_importance": 0.05191531184858846,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "OperatingSystems",
+            "mean_normalized_importance": 0.05001335284322952,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational_Duration",
+            "mean_normalized_importance": 0.03990749471933516,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational",
+            "mean_normalized_importance": 0.03982657566460158,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Weekend",
+            "mean_normalized_importance": 0.02400055125539764,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "VisitorType",
+            "mean_normalized_importance": 0.02371774117520604,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "SpecialDay",
+            "mean_normalized_importance": 0.012686704558993631,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8472352389878163,
+            "avg_precision": 0.3560769959131712,
+            "brier": 0.11926002290950814,
+            "ece_10": 0.027660099187753816,
+            "f1": 0.19704433497536947,
+            "fit_seconds": 0.43745645899980445,
+            "log_loss": 0.3838045765181497,
+            "precision": 0.5263157894736842,
+            "recall": 0.12121212121212122,
+            "roc_auc": 0.7327790096082779,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8341143392689785,
+            "avg_precision": 0.30003330310395426,
+            "brier": 0.1219486722899101,
+            "ece_10": 0.02672601627616371,
+            "f1": 0.10152284263959391,
+            "fit_seconds": 0.4382562080008938,
+            "log_loss": 0.38961231917647016,
+            "precision": 0.3125,
+            "recall": 0.06060606060606061,
+            "roc_auc": 0.7322381240341329,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8395872420262664,
+            "avg_precision": 0.313850428352513,
+            "brier": 0.11971988742964436,
+            "ece_10": 0.02556597029393371,
+            "f1": 0.11398963730569948,
+            "fit_seconds": 0.5476552920008544,
+            "log_loss": 0.379893404310124,
+            "precision": 0.39285714285714285,
+            "recall": 0.06666666666666667,
+            "roc_auc": 0.7449298758954698,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8477700459771398,
+            "ci95_low": 0.8328545008782344,
+            "max": 0.8472352389878163,
+            "mean": 0.8403122734276871,
+            "min": 0.8341143392689785,
+            "std": 0.006590429064767623
+          },
+          "avg_precision": {
+            "ci95_high": 0.35636008964443755,
+            "ci95_low": 0.2902803952686548,
+            "max": 0.3560769959131712,
+            "mean": 0.32332024245654617,
+            "min": 0.30003330310395426,
+            "std": 0.02919729285905079
+          },
+          "brier": {
+            "ci95_high": 0.12193682552333161,
+            "ci95_low": 0.11868222956271011,
+            "max": 0.1219486722899101,
+            "mean": 0.12030952754302086,
+            "min": 0.11926002290950814,
+            "std": 0.0014380422351798156
+          },
+          "ece_10": {
+            "ci95_high": 0.027837857236535892,
+            "ci95_low": 0.025463533268698265,
+            "max": 0.027660099187753816,
+            "mean": 0.02665069525261708,
+            "min": 0.02556597029393371,
+            "std": 0.0010490943229396195
+          },
+          "f1": {
+            "ci95_high": 0.1962787432477893,
+            "ci95_low": 0.07875913336598597,
+            "max": 0.19704433497536947,
+            "mean": 0.13751893830688763,
+            "min": 0.10152284263959391,
+            "std": 0.051926003877795106
+          },
+          "log_loss": {
+            "ci95_high": 0.3899705510840942,
+            "ci95_low": 0.3789029822524018,
+            "max": 0.38961231917647016,
+            "mean": 0.384436766668248,
+            "min": 0.379893404310124,
+            "std": 0.004890201921621631
+          },
+          "precision": {
+            "ci95_high": 0.5327726095136344,
+            "ci95_low": 0.288342678706917,
+            "max": 0.5263157894736842,
+            "mean": 0.4105576441102757,
+            "min": 0.3125,
+            "std": 0.10800129057341318
+          },
+          "recall": {
+            "ci95_high": 0.12060042090459017,
+            "ci95_low": 0.045056144751975474,
+            "max": 0.12121212121212122,
+            "mean": 0.08282828282828282,
+            "min": 0.06060606060606061,
+            "std": 0.03337921543809759
+          },
+          "roc_auc": {
+            "ci95_high": 0.7447700268387861,
+            "ci95_low": 0.7285279795198011,
+            "max": 0.7449298758954698,
+            "mean": 0.7366490031792936,
+            "min": 0.7322381240341329,
+            "std": 0.0071765436671989685
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 1.7416241250011808,
+        "evaluations": 3,
+        "feature_count_mean": 16.0,
+        "feature_stability": [
+          {
+            "feature": "ExitRates",
+            "mean_normalized_importance": 0.1347881615329051,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated_Duration",
+            "mean_normalized_importance": 0.09454641210829158,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated",
+            "mean_normalized_importance": 0.09006026326893375,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Month",
+            "mean_normalized_importance": 0.08791988945756112,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative",
+            "mean_normalized_importance": 0.07900402863276172,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "BounceRates",
+            "mean_normalized_importance": 0.07166874358032056,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Region",
+            "mean_normalized_importance": 0.06972847146156526,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "TrafficType",
+            "mean_normalized_importance": 0.06592971088041671,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative_Duration",
+            "mean_normalized_importance": 0.05751140781704589,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "OperatingSystems",
+            "mean_normalized_importance": 0.05087310034452166,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Browser",
+            "mean_normalized_importance": 0.04474502517559115,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational",
+            "mean_normalized_importance": 0.04133748330417944,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "VisitorType",
+            "mean_normalized_importance": 0.035583251377917596,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Weekend",
+            "mean_normalized_importance": 0.03151801498000215,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational_Duration",
+            "mean_normalized_importance": 0.030973886723935317,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "SpecialDay",
+            "mean_normalized_importance": 0.013812149354050986,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8472352389878163,
+            "avg_precision": 0.35317905274723654,
+            "brier": 0.11770664521624413,
+            "ece_10": 0.014753210788064984,
+            "f1": 0.04678362573099415,
+            "fit_seconds": 0.48326354100026947,
+            "log_loss": 0.3786587464617698,
+            "precision": 0.6666666666666666,
+            "recall": 0.024242424242424242,
+            "roc_auc": 0.7401128804676477,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8434864104967198,
+            "avg_precision": 0.31291676992364365,
+            "brier": 0.11858651757370432,
+            "ece_10": 0.023933274396460296,
+            "f1": 0.0670391061452514,
+            "fit_seconds": 0.49097920900021563,
+            "log_loss": 0.3776018359426832,
+            "precision": 0.42857142857142855,
+            "recall": 0.03636363636363636,
+            "roc_auc": 0.7483101525230128,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8452157598499062,
+            "avg_precision": 0.33135846120113527,
+            "brier": 0.11699902487518565,
+            "ece_10": 0.019709421334623372,
+            "f1": 0.05714285714285714,
+            "fit_seconds": 0.4839528339998651,
+            "log_loss": 0.37245812668183437,
+            "precision": 0.5,
+            "recall": 0.030303030303030304,
+            "roc_auc": 0.7570847206807251,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8474356855197573,
+            "ci95_low": 0.8431892540365375,
+            "max": 0.8472352389878163,
+            "mean": 0.8453124697781474,
+            "min": 0.8434864104967198,
+            "std": 0.0018762844591317961
+          },
+          "avg_precision": {
+            "ci95_high": 0.3552920169616048,
+            "ci95_low": 0.3096775056197389,
+            "max": 0.35317905274723654,
+            "mean": 0.33248476129067184,
+            "min": 0.31291676992364365,
+            "std": 0.020154757960851664
+          },
+          "brier": {
+            "ci95_high": 0.11866403188725433,
+            "ci95_low": 0.11686409322283506,
+            "max": 0.11858651757370432,
+            "mean": 0.1177640625550447,
+            "min": 0.11699902487518565,
+            "std": 0.0007953023513474145
+          },
+          "ece_10": {
+            "ci95_high": 0.024664918738255527,
+            "ci95_low": 0.014265685607843576,
+            "max": 0.023933274396460296,
+            "mean": 0.01946530217304955,
+            "min": 0.014753210788064984,
+            "std": 0.004594897995313021
+          },
+          "f1": {
+            "ci95_high": 0.0684501444892025,
+            "ci95_low": 0.04552691485686596,
+            "max": 0.0670391061452514,
+            "mean": 0.05698852967303423,
+            "min": 0.04678362573099415,
+            "std": 0.010128622039993701
+          },
+          "log_loss": {
+            "ci95_high": 0.37999332336752784,
+            "ci95_low": 0.37248581602333036,
+            "max": 0.3786587464617698,
+            "mean": 0.3762395696954291,
+            "min": 0.37245812668183437,
+            "std": 0.003317189836312865
+          },
+          "precision": {
+            "ci95_high": 0.6700068337931631,
+            "ci95_low": 0.3934852296989004,
+            "max": 0.6666666666666666,
+            "mean": 0.5317460317460317,
+            "min": 0.42857142857142855,
+            "std": 0.12218098665349723
+          },
+          "recall": {
+            "ci95_high": 0.03716125168249495,
+            "ci95_low": 0.02344480892356566,
+            "max": 0.03636363636363636,
+            "mean": 0.030303030303030304,
+            "min": 0.024242424242424242,
+            "std": 0.00606060606060606
+          },
+          "roc_auc": {
+            "ci95_high": 0.7581071587146576,
+            "ci95_low": 0.7388980103995996,
+            "max": 0.7570847206807251,
+            "mean": 0.7485025845571286,
+            "min": 0.7401128804676477,
+            "std": 0.008487556339746632
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": "sqrt",
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 400
+        },
+        "optimization": "extra_trees_C01",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 1.4480609589991218,
+        "evaluations": 3,
+        "feature_count_mean": 16.0,
+        "feature_stability": [
+          {
+            "feature": "ExitRates",
+            "mean_normalized_importance": 0.168789508969981,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Month",
+            "mean_normalized_importance": 0.09404957008324562,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated_Duration",
+            "mean_normalized_importance": 0.09033250296119898,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated",
+            "mean_normalized_importance": 0.08880485553392503,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "BounceRates",
+            "mean_normalized_importance": 0.08203089160842986,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative",
+            "mean_normalized_importance": 0.07382300952845743,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Region",
+            "mean_normalized_importance": 0.05776401745414811,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "TrafficType",
+            "mean_normalized_importance": 0.053845778070633475,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "VisitorType",
+            "mean_normalized_importance": 0.050360462481221474,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative_Duration",
+            "mean_normalized_importance": 0.04449154255950082,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "OperatingSystems",
+            "mean_normalized_importance": 0.04376487314275793,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "Informational",
+            "mean_normalized_importance": 0.037872562782758,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Weekend",
+            "mean_normalized_importance": 0.03676701784587802,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Browser",
+            "mean_normalized_importance": 0.03307244411288137,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational_Duration",
+            "mean_normalized_importance": 0.026501005621676427,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "SpecialDay",
+            "mean_normalized_importance": 0.01772995724330656,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.845360824742268,
+            "avg_precision": 0.34534502803144396,
+            "brier": 0.11686872950556403,
+            "ece_10": 0.017030080322910868,
+            "f1": 0.0,
+            "fit_seconds": 0.39285799999925075,
+            "log_loss": 0.37555447062635283,
+            "precision": 0.0,
+            "recall": 0.0,
+            "roc_auc": 0.7494859907276759,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.845360824742268,
+            "avg_precision": 0.31723608710398193,
+            "brier": 0.11772499475020544,
+            "ece_10": 0.019442901820681497,
+            "f1": 0.023668639053254437,
+            "fit_seconds": 0.4005232919989794,
+            "log_loss": 0.3755849084748738,
+            "precision": 0.5,
+            "recall": 0.012121212121212121,
+            "roc_auc": 0.7564066384465498,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8452157598499062,
+            "avg_precision": 0.3533202828351047,
+            "brier": 0.11603422675085188,
+            "ece_10": 0.012721568250636675,
+            "f1": 0.0,
+            "fit_seconds": 0.3980607499997859,
+            "log_loss": 0.36970145720127806,
+            "precision": 0.0,
+            "recall": 0.0,
+            "roc_auc": 0.7640130494736488,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8454072455078239,
+            "ci95_low": 0.845217694048471,
+            "max": 0.845360824742268,
+            "mean": 0.8453124697781474,
+            "min": 0.8452157598499062,
+            "std": 8.375325465509501e-05
+          },
+          "avg_precision": {
+            "ci95_high": 0.3600835715996845,
+            "ci95_low": 0.31718402704733595,
+            "max": 0.3533202828351047,
+            "mean": 0.33863379932351023,
+            "min": 0.31723608710398193,
+            "std": 0.018955150710773583
+          },
+          "brier": {
+            "ci95_high": 0.11783265213568292,
+            "ci95_low": 0.11591931520206467,
+            "max": 0.11772499475020544,
+            "mean": 0.11687598366887379,
+            "min": 0.11603422675085188,
+            "std": 0.0008454073420981736
+          },
+          "ece_10": {
+            "ci95_high": 0.02025122500466676,
+            "ci95_low": 0.012545141924819264,
+            "max": 0.019442901820681497,
+            "mean": 0.01639818346474301,
+            "min": 0.012721568250636675,
+            "std": 0.0034049304647047747
+          },
+          "f1": {
+            "ci95_high": 0.023353057199211043,
+            "ci95_low": 0.0,
+            "max": 0.023668639053254437,
+            "mean": 0.007889546351084813,
+            "min": 0.0,
+            "std": 0.013665095128748537
+          },
+          "log_loss": {
+            "ci95_high": 0.3774475625822251,
+            "ci95_low": 0.36977966161944464,
+            "max": 0.3755849084748738,
+            "mean": 0.3736136121008349,
+            "min": 0.36970145720127806,
+            "std": 0.0033880597078933795
+          },
+          "precision": {
+            "ci95_high": 0.4933333333333334,
+            "ci95_low": 0.0,
+            "max": 0.5,
+            "mean": 0.16666666666666666,
+            "min": 0.0,
+            "std": 0.2886751345948129
+          },
+          "recall": {
+            "ci95_high": 0.01195959595959596,
+            "ci95_low": 0.0,
+            "max": 0.012121212121212121,
+            "mean": 0.00404040404040404,
+            "min": 0.0,
+            "std": 0.0069981850810863725
+          },
+          "roc_auc": {
+            "ci95_high": 0.7648577356073488,
+            "ci95_low": 0.7484127168245674,
+            "max": 0.7640130494736488,
+            "mean": 0.7566352262159581,
+            "min": 0.7494859907276759,
+            "std": 0.007266226546735209
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_depth": 14,
+          "model__min_samples_leaf": 3,
+          "model__n_estimators": 400
+        },
+        "optimization": "extra_trees_C02",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 3.1144812919992546,
+        "evaluations": 3,
+        "feature_count_mean": 16.0,
+        "feature_stability": [
+          {
+            "feature": "ExitRates",
+            "mean_normalized_importance": 0.15000572416561644,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated_Duration",
+            "mean_normalized_importance": 0.09582436097433882,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ProductRelated",
+            "mean_normalized_importance": 0.08863093374384723,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Month",
+            "mean_normalized_importance": 0.08860281433388136,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative",
+            "mean_normalized_importance": 0.07810895252902883,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Region",
+            "mean_normalized_importance": 0.07541394536067335,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "TrafficType",
+            "mean_normalized_importance": 0.0681618024218832,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "BounceRates",
+            "mean_normalized_importance": 0.06663106315157204,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Administrative_Duration",
+            "mean_normalized_importance": 0.05669152537532085,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "OperatingSystems",
+            "mean_normalized_importance": 0.05120334712359386,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "Browser",
+            "mean_normalized_importance": 0.04282659748363956,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational",
+            "mean_normalized_importance": 0.03769391714299594,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Weekend",
+            "mean_normalized_importance": 0.03367776149103283,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "Informational_Duration",
+            "mean_normalized_importance": 0.028389715895262135,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "VisitorType",
+            "mean_normalized_importance": 0.027843915039048917,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "SpecialDay",
+            "mean_normalized_importance": 0.010293623768264747,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 0.8434864104967198,
+            "avg_precision": 0.33285518655401025,
+            "brier": 0.11968848037581854,
+            "ece_10": 0.026264913889474058,
+            "f1": 0.20853080568720378,
+            "fit_seconds": 0.9430775839991838,
+            "log_loss": 0.3844871478202726,
+            "precision": 0.4782608695652174,
+            "recall": 0.13333333333333333,
+            "roc_auc": 0.7384230329906605,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.837863167760075,
+            "avg_precision": 0.29821225576115074,
+            "brier": 0.12190643502987779,
+            "ece_10": 0.02307608555064636,
+            "f1": 0.1306532663316583,
+            "fit_seconds": 0.9534854579997045,
+            "log_loss": 0.38750616606227023,
+            "precision": 0.38235294117647056,
+            "recall": 0.07878787878787878,
+            "roc_auc": 0.732520325203252,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.8461538461538461,
+            "avg_precision": 0.3348885387805712,
+            "brier": 0.11821077915052716,
+            "ece_10": 0.025996768592789335,
+            "f1": 0.1717171717171717,
+            "fit_seconds": 0.9415385000011156,
+            "log_loss": 0.3798467423260359,
+            "precision": 0.5151515151515151,
+            "recall": 0.10303030303030303,
+            "roc_auc": 0.7495947263982781,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.8472903782884124,
+            "ci95_low": 0.8377119046520151,
+            "max": 0.8461538461538461,
+            "mean": 0.8425011414702137,
+            "min": 0.837863167760075,
+            "std": 0.004232245662550835
+          },
+          "avg_precision": {
+            "ci95_high": 0.3453113258869251,
+            "ci95_low": 0.2986593281768963,
+            "max": 0.3348885387805712,
+            "mean": 0.3219853270319107,
+            "min": 0.29821225576115074,
+            "std": 0.020613170997029796
+          },
+          "brier": {
+            "ci95_high": 0.12204018169551936,
+            "ci95_low": 0.11783028134196294,
+            "max": 0.12190643502987779,
+            "mean": 0.11993523151874115,
+            "min": 0.11821077915052716,
+            "std": 0.001860143190602521
+          },
+          "ece_10": {
+            "ci95_high": 0.02711412148932599,
+            "ci95_low": 0.023111057199280517,
+            "max": 0.026264913889474058,
+            "mean": 0.025112589344303254,
+            "min": 0.02307608555064636,
+            "std": 0.0017687527388580103
+          },
+          "f1": {
+            "ci95_high": 0.21438564945386268,
+            "ci95_low": 0.12621517970349322,
+            "max": 0.20853080568720378,
+            "mean": 0.17030041457867795,
+            "min": 0.1306532663316583,
+            "std": 0.03895809523848334
+          },
+          "log_loss": {
+            "ci95_high": 0.3883126585757666,
+            "ci95_low": 0.3795807122299525,
+            "max": 0.38750616606227023,
+            "mean": 0.38394668540285953,
+            "min": 0.3798467423260359,
+            "std": 0.003858207836713115
+          },
+          "precision": {
+            "ci95_high": 0.5361602024699813,
+            "ci95_low": 0.3810166814588207,
+            "max": 0.5151515151515151,
+            "mean": 0.458588441964401,
+            "min": 0.38235294117647056,
+            "std": 0.06855011756542338
+          },
+          "recall": {
+            "ci95_high": 0.1359759381106607,
+            "ci95_low": 0.0741250719903494,
+            "max": 0.13333333333333333,
+            "mean": 0.10505050505050505,
+            "min": 0.07878787878787878,
+            "std": 0.027328786380744815
+          },
+          "roc_auc": {
+            "ci95_high": 0.7499922440812258,
+            "ci95_low": 0.7303664789802345,
+            "max": 0.7495947263982781,
+            "mean": 0.7401793615307302,
+            "min": 0.732520325203252,
+            "std": 0.00867163833987984
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": 0.7,
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 500
+        },
+        "optimization": "extra_trees_C03",
+        "repeats": 1,
+        "stage": "raw"
+      }
+    ],
+    "cv_feature_stability": [
+      {
+        "feature": "ExitRates",
+        "mean_normalized_importance": 0.168789508969981,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "Month",
+        "mean_normalized_importance": 0.09404957008324562,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "ProductRelated_Duration",
+        "mean_normalized_importance": 0.09033250296119898,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "ProductRelated",
+        "mean_normalized_importance": 0.08880485553392503,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "BounceRates",
+        "mean_normalized_importance": 0.08203089160842986,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "Administrative",
+        "mean_normalized_importance": 0.07382300952845743,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "Region",
+        "mean_normalized_importance": 0.05776401745414811,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "TrafficType",
+        "mean_normalized_importance": 0.053845778070633475,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "VisitorType",
+        "mean_normalized_importance": 0.050360462481221474,
+        "observed_folds": 3,
+        "top10_frequency": 1.0
+      },
+      {
+        "feature": "Administrative_Duration",
+        "mean_normalized_importance": 0.04449154255950082,
+        "observed_folds": 3,
+        "top10_frequency": 0.6666666666666666
+      },
+      {
+        "feature": "OperatingSystems",
+        "mean_normalized_importance": 0.04376487314275793,
+        "observed_folds": 3,
+        "top10_frequency": 0.3333333333333333
+      },
+      {
+        "feature": "Informational",
+        "mean_normalized_importance": 0.037872562782758,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "Weekend",
+        "mean_normalized_importance": 0.03676701784587802,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "Browser",
+        "mean_normalized_importance": 0.03307244411288137,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "Informational_Duration",
+        "mean_normalized_importance": 0.026501005621676427,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      },
+      {
+        "feature": "SpecialDay",
+        "mean_normalized_importance": 0.01772995724330656,
+        "observed_folds": 3,
+        "top10_frequency": 0.0
+      }
+    ],
+    "feature_stage": "raw",
+    "holdout_consumed": true,
+    "holdout_metrics": {
+      "accuracy": 0.845,
+      "avg_precision": 0.3351891604899987,
+      "brier": 0.1181793539700363,
+      "ece_10": 0.030698356608846507,
+      "f1": 0.015873015873015872,
+      "fit_seconds": 0.5201270420002402,
+      "log_loss": 0.38188381363249946,
+      "precision": 0.5,
+      "recall": 0.008064516129032258,
+      "roc_auc": 0.739418305020042,
+      "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+      "draws": 400,
+      "high": 0.7828482042518121,
+      "low": 0.6997407262181901,
+      "median": 0.7408452827367735
+    },
+    "model": "extra_trees",
+    "optimization_search_space": [
+      {
+        "candidate_id": "extra_trees_C01",
+        "params": {
+          "model__max_features": "sqrt",
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 400
+        }
+      },
+      {
+        "candidate_id": "extra_trees_C02",
+        "params": {
+          "model__max_depth": 14,
+          "model__min_samples_leaf": 3,
+          "model__n_estimators": 400
+        }
+      },
+      {
+        "candidate_id": "extra_trees_C03",
+        "params": {
+          "model__max_features": 0.7,
+          "model__min_samples_leaf": 2,
+          "model__n_estimators": 500
+        }
+      }
+    ],
+    "optimized_vs_baseline_cv_auc": 0.01998622303666453,
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit.",
+    "selected_model_params": {
+      "model__max_depth": 14,
+      "model__min_samples_leaf": 3,
+      "model__n_estimators": 400
+    },
+    "selected_optimization": "extra_trees_C02",
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "top_final_features": [
+      {
+        "feature": "ExitRates",
+        "normalized_importance": 0.17929093688180955
+      },
+      {
+        "feature": "Month",
+        "normalized_importance": 0.09643649828592038
+      },
+      {
+        "feature": "ProductRelated_Duration",
+        "normalized_importance": 0.09197694879449868
+      },
+      {
+        "feature": "BounceRates",
+        "normalized_importance": 0.08690978394556266
+      },
+      {
+        "feature": "ProductRelated",
+        "normalized_importance": 0.08490130235606472
+      },
+      {
+        "feature": "Administrative",
+        "normalized_importance": 0.07574127650673473
+      },
+      {
+        "feature": "Region",
+        "normalized_importance": 0.05417571011340856
+      },
+      {
+        "feature": "VisitorType",
+        "normalized_importance": 0.05154170941786159
+      },
+      {
+        "feature": "TrafficType",
+        "normalized_importance": 0.04904585944327385
+      },
+      {
+        "feature": "OperatingSystems",
+        "normalized_importance": 0.04259742744971188
+      },
+      {
+        "feature": "Administrative_Duration",
+        "normalized_importance": 0.04004647535471092
+      },
+      {
+        "feature": "Informational",
+        "normalized_importance": 0.0344356427151995
+      },
+      {
+        "feature": "Weekend",
+        "normalized_importance": 0.033106358258659235
+      },
+      {
+        "feature": "Browser",
+        "normalized_importance": 0.03273518269595086
+      },
+      {
+        "feature": "Informational_Duration",
+        "normalized_importance": 0.026787961176686838
+      },
+      {
+        "feature": "SpecialDay",
+        "normalized_importance": 0.02027092660394611
+      }
+    ]
+  },
+  "experiment_id": "EXP-045",
+  "feature_count": 16,
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
+  "kind": "optimization_reliability",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "metrics": {
+    "accuracy": 0.845,
+    "avg_precision": 0.3351891604899987,
+    "brier": 0.1181793539700363,
+    "ece_10": 0.030698356608846507,
+    "f1": 0.015873015873015872,
+    "fit_seconds": 0.5201270420002402,
+    "log_loss": 0.38188381363249946,
+    "precision": 0.5,
+    "recall": 0.008064516129032258,
+    "roc_auc": 0.739418305020042,
+    "threshold": 0.5
+  },
+  "mode": "safe",
+  "model_name": "extra_trees",
+  "optimization": "extra_trees_C02",
+  "provenance": {
+    "data_sha256": {
+      "external_data/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "external_data/online_shoppers/meta.json": "be48a6290897947ed31e182223abaa3c908c1a1d330de042323b0899fd05f068",
+      "external_data/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset",
+  "started_at": "2026-09-18T11:27:07+00:00",
+  "status": "completed",
+  "test_rows": 800,
+  "train_rows": 3200
+}

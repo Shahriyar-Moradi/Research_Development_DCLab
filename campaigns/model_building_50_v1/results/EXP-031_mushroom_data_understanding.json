@@ -1,0 +1,314 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-031-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "mushroom has 8124 source rows, 22 cached features, and a training positive rate of 0.482."
+    },
+    {
+      "claim_id": "EXP-031-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "1 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:26:06+00:00",
+  "dataset": "mushroom",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.0,
+    "feature_count": 22,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "cap-shape",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.001022203481514732,
+        "top_value_frequency": 0.455625,
+        "unique_count": 6,
+        "unique_ratio": 0.001875
+      },
+      {
+        "dtype": "float64",
+        "feature": "cap-surface",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.002694769561534118,
+        "top_value_frequency": 0.3928125,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      },
+      {
+        "dtype": "float64",
+        "feature": "cap-color",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007211923934943759,
+        "top_value_frequency": 0.2796875,
+        "unique_count": 10,
+        "unique_ratio": 0.003125
+      },
+      {
+        "dtype": "float64",
+        "feature": "bruises",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.585,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "odor",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005816247607327597,
+        "top_value_frequency": 0.4396875,
+        "unique_count": 9,
+        "unique_ratio": 0.0028125
+      },
+      {
+        "dtype": "float64",
+        "feature": "gill-attachment",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9746875,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "gill-spacing",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.8359375,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "gill-size",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.68875,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "gill-color",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.01214189033620932,
+        "top_value_frequency": 0.2125,
+        "unique_count": 12,
+        "unique_ratio": 0.00375
+      },
+      {
+        "dtype": "float64",
+        "feature": "stalk-shape",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.5721875,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "float64",
+        "feature": "stalk-root",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004538830865363746,
+        "top_value_frequency": 0.4659375,
+        "unique_count": 5,
+        "unique_ratio": 0.0015625
+      },
+      {
+        "dtype": "float64",
+        "feature": "stalk-surface-above-ring",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0016134435495293337,
+        "top_value_frequency": 0.631875,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      },
+      {
+        "dtype": "float64",
+        "feature": "stalk-surface-below-ring",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.00010074515452973522,
+        "top_value_frequency": 0.6053125,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      },
+      {
+        "dtype": "float64",
+        "feature": "stalk-color-above-ring",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.013271123507088698,
+        "top_value_frequency": 0.548125,
+        "unique_count": 9,
+        "unique_ratio": 0.0028125
+      },
+      {
+        "dtype": "float64",
+        "feature": "stalk-color-below-ring",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0027301676184273327,
+        "top_value_frequency": 0.54875,
+        "unique_count": 9,
+        "unique_ratio": 0.0028125
+      },
+      {
+        "dtype": "float64",
+        "feature": "veil-type",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "near_constant"
+        ],
+        "random_split_psi": null,
+        "top_value_frequency": 1.0,
+        "unique_count": 1,
+        "unique_ratio": 0.0003125
+      },
+      {
+        "dtype": "float64",
+        "feature": "veil-color",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.975625,
+        "unique_count": 4,
+        "unique_ratio": 0.00125
+      },
+      {
+        "dtype": "float64",
+        "feature": "ring-number",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.9209375,
+        "unique_count": 3,
+        "unique_ratio": 0.0009375
+      },
+      {
+        "dtype": "float64",
+        "feature": "ring-type",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0009180720155382031,
+        "top_value_frequency": 0.488125,
+        "unique_count": 5,
+        "unique_ratio": 0.0015625
+      },
+      {
+        "dtype": "float64",
+        "feature": "spore-print-color",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0007049940839144202,
+        "top_value_frequency": 0.293125,
+        "unique_count": 9,
+        "unique_ratio": 0.0028125
+      },
+      {
+        "dtype": "float64",
+        "feature": "population",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0016740484326795216,
+        "top_value_frequency": 0.49375,
+        "unique_count": 6,
+        "unique_ratio": 0.001875
+      },
+      {
+        "dtype": "float64",
+        "feature": "habitat",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.009639751771499103,
+        "top_value_frequency": 0.391875,
+        "unique_count": 7,
+        "unique_ratio": 0.0021875
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.481875,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.481875,
+    "risk_feature_count": 1,
+    "source_rows": 8124,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-031",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/mushroom/X.parquet": "9bcb0540091036661b04b82c8ed6ba76686ee2fda708d8c7c312a1b77e731092",
+      "external_data/mushroom/meta.json": "409e704d485ea638f4e24426ce1135509570aa6e29bb1c936ac3be8cf28a0a88",
+      "external_data/mushroom/y.parquet": "eef564aa188593897d5c2b171b5140a96fa9573dbe1d9396151fe7c5f2a62b1a"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/73/mushroom",
+  "started_at": "2026-09-18T11:26:06+00:00",
+  "status": "completed"
+}

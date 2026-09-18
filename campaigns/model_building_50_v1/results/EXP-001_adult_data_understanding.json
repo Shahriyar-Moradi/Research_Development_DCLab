@@ -1,0 +1,232 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-001-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.feature_count",
+        "evidence.positive_rate_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "adult has 48842 source rows, 14 cached features, and a training positive rate of 0.239."
+    },
+    {
+      "claim_id": "EXP-001-C2",
+      "evidence": [
+        "evidence.feature_profiles"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+        "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+      ],
+      "statement": "0 features triggered missingness, identifier, near-constant, or random-split shift review rules."
+    }
+  ],
+  "completed_at": "2026-09-18T11:21:22+00:00",
+  "dataset": "adult",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "analyzed_rows": 4000,
+    "duplicate_row_rate_train": 0.0003125,
+    "feature_count": 14,
+    "feature_profiles": [
+      {
+        "dtype": "int64",
+        "feature": "age",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.015573641549590421,
+        "top_value_frequency": 0.03,
+        "unique_count": 67,
+        "unique_ratio": 0.0209375
+      },
+      {
+        "dtype": "float64",
+        "feature": "workclass",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0043538946047394075,
+        "top_value_frequency": 0.6996875,
+        "unique_count": 10,
+        "unique_ratio": 0.003125
+      },
+      {
+        "dtype": "int64",
+        "feature": "fnlwgt",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.005271976932697872,
+        "top_value_frequency": 0.00125,
+        "unique_count": 3029,
+        "unique_ratio": 0.9465625
+      },
+      {
+        "dtype": "float64",
+        "feature": "education",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0060897265107363666,
+        "top_value_frequency": 0.335,
+        "unique_count": 16,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "int64",
+        "feature": "education-num",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.010124036102657347,
+        "top_value_frequency": 0.335,
+        "unique_count": 16,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "float64",
+        "feature": "marital-status",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.004152903412445636,
+        "top_value_frequency": 0.47125,
+        "unique_count": 7,
+        "unique_ratio": 0.0021875
+      },
+      {
+        "dtype": "float64",
+        "feature": "occupation",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.007089369955243666,
+        "top_value_frequency": 0.1284375,
+        "unique_count": 16,
+        "unique_ratio": 0.005
+      },
+      {
+        "dtype": "float64",
+        "feature": "relationship",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003816355588112789,
+        "top_value_frequency": 0.4096875,
+        "unique_count": 6,
+        "unique_ratio": 0.001875
+      },
+      {
+        "dtype": "float64",
+        "feature": "race",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0006656324460126927,
+        "top_value_frequency": 0.8603125,
+        "unique_count": 5,
+        "unique_ratio": 0.0015625
+      },
+      {
+        "dtype": "float64",
+        "feature": "sex",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.6640625,
+        "unique_count": 2,
+        "unique_ratio": 0.000625
+      },
+      {
+        "dtype": "int64",
+        "feature": "capital-gain",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.91,
+        "unique_count": 75,
+        "unique_ratio": 0.0234375
+      },
+      {
+        "dtype": "int64",
+        "feature": "capital-loss",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": null,
+        "top_value_frequency": 0.951875,
+        "unique_count": 47,
+        "unique_ratio": 0.0146875
+      },
+      {
+        "dtype": "int64",
+        "feature": "hours-per-week",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.003254547146383859,
+        "top_value_frequency": 0.466875,
+        "unique_count": 75,
+        "unique_ratio": 0.0234375
+      },
+      {
+        "dtype": "float64",
+        "feature": "native-country",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "random_split_psi": 0.0008756362875051617,
+        "top_value_frequency": 0.8915625,
+        "unique_count": 40,
+        "unique_ratio": 0.0125
+      }
+    ],
+    "holdout_rows": 800,
+    "limitations": [
+      "The cached UCI matrices factorized categoricals before this campaign; raw category semantics must be restored for production encoders.",
+      "Random train/holdout PSI is a smoke check, not evidence of temporal production stability."
+    ],
+    "minority_rate_train": 0.239375,
+    "missing_cell_rate_train": 0.0,
+    "positive_rate_train": 0.239375,
+    "risk_feature_count": 0,
+    "source_rows": 48842,
+    "train_rows": 3200
+  },
+  "experiment_id": "EXP-001",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "A structured train-only profile will expose reliability risks that a model leaderboard hides.",
+  "kind": "data_understanding",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/adult/X.parquet": "5d9166c4bbedbadf14b132f704bb21d858d180eaf74570b1e196054ca4bd7304",
+      "external_data/adult/meta.json": "67f926ea601836034e9309b27555c25ca8fa7ec19d0ed44c61d39af1a1f83b6c",
+      "external_data/adult/y.parquet": "e1602b8fbee0817742870165b4e0eb5982e36f671e4b3b5c3909dbe1863ccd74"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, and which quality or production-availability risks must be resolved before modeling?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/2/adult",
+  "started_at": "2026-09-18T11:21:22+00:00",
+  "status": "completed"
+}

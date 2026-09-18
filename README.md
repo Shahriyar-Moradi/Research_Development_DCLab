@@ -40,6 +40,49 @@ New runs created by the shared runners now include `schema_version` and reproduc
 
 The GitHub workflow also runs a daily evidence-health check at 01:15 UTC. Full training stays explicit through `dclab_rnd cycle`, preventing an accidental all-model/all-dataset compute run.
 
+### Evidence-first 50-experiment campaign
+
+The second-generation campaign teaches people and LLM agents the **workflow of model building**, rather than merely collecting more leaderboard rows. It defines exactly 50 experiments: 10 real public UCI datasets × 5 scientific stages.
+
+1. data understanding and production-risk profiling;
+2. declared plus heuristic leakage review;
+3. train-fitted feature-engineering ablation;
+4. stability-aware algorithm-family screening; and
+5. conservative optimization, calibration/reliability evidence, and one final holdout evaluation.
+
+```bash
+# Materialize the exact 50-task plan and agent-memory files
+make rd-campaign-plan
+
+# Run the complete resumable campaign (10k-row cap; CV can take time)
+.venv/bin/python -m dclab_rnd campaign run
+
+# Faster first pass; completed tasks are skipped on resume
+.venv/bin/python -m dclab_rnd campaign run --quick
+
+# Target one dataset or one scientific stage
+.venv/bin/python -m dclab_rnd campaign run --dataset adult --experiment leakage_audit
+
+# Inspect progress or rebuild the evidence/LLM context
+make rd-campaign-status
+make rd-campaign-report
+make rd-campaign-verify
+```
+
+The campaign writes to `campaigns/model_building_50_v1/`:
+
+| Artifact | Purpose |
+|---|---|
+| `manifest.json` | Exact questions, hypotheses, sources, and experiment IDs |
+| `results/*.json` | Observed evidence, claims, limitations, and provenance |
+| `CAMPAIGN_REPORT.md` | Human-readable cross-dataset synthesis |
+| `agent_memory.jsonl` | Claim-level retrieval memory with evidence paths |
+| `llm_review_queue.jsonl` | Bounded critic/hypothesis tasks for a capable LLM agent |
+| `AGENT_CONTEXT.md` | Agent operating contract and required answer structure |
+| `MODEL_BUILDING_WORKFLOW.md` | Reusable code/process blocks |
+
+The LLM is deliberately a critic and hypothesis generator. Deterministic code owns metrics, split discipline, provenance, and evidence; a human owns ambiguous decision-time semantics and promotion.
+
 ---
 
 ## Headline results (same test split)

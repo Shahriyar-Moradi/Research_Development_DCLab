@@ -1,0 +1,80 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-012-C1",
+      "evidence": [
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The leakage detector caught its synthetic exact-target canary: True."
+    },
+    {
+      "claim_id": "EXP-012-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.safe_vs_unsafe_training_cv"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+      ],
+      "statement": "Declared decision-time exclusions for breast_cancer: none."
+    }
+  ],
+  "completed_at": "2026-09-18T11:25:20+00:00",
+  "dataset": "breast_cancer",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "declared_leakage_features": [],
+    "detector_canary_passed": true,
+    "heuristic_review_candidates": [],
+    "policy_rationale": "All morphometry features are available at diagnosis time; no temporal leakage.",
+    "safe_vs_unsafe_training_cv": null,
+    "warning": "Name, univariate AUC, and uniqueness rules propose review; only decision-time semantics can confirm leakage."
+  },
+  "experiment_id": "EXP-012",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "Decision-time policy plus deterministic heuristics will detect known leakage and produce review candidates without auto-deleting ambiguous features.",
+  "kind": "leakage_audit",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/breast_cancer/X.parquet": "f02d857642918cf1564d3d4a041376995bbae2e30b7446498118868da0de7d6d",
+      "external_data/breast_cancer/meta.json": "c1a623bc7dfd83846d36ddd88a48b4c77a0ba52e5511a53837f4b909ae59c2fe",
+      "external_data/breast_cancer/y.parquet": "47a82ada79debe6514de3c8d2a1240e47177d2b0c094c0294c0f8e929cf5b41f"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the prediction-time contract or behave like suspicious target proxies?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic",
+  "started_at": "2026-09-18T11:25:19+00:00",
+  "status": "completed"
+}

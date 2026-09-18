@@ -5,11 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .record import ExperimentRecord
-
 
 RESULT_GLOBS = (
     "general_pipeline/results/*.json",
@@ -18,6 +18,7 @@ RESULT_GLOBS = (
     "safe_leakage_exp/results/*.json",
     "optimized_safe_model/results/*.json",
     "external_projects/*_exp/results/ladder/*.json",
+    "campaigns/model_building_50_v1/results/*_optimization_reliability.json",
 )
 
 SUMMARY_FILES = {"benchmark_dashboard.json", "benchmark_summary.json"}
@@ -79,8 +80,14 @@ def _metric(value: Any) -> float | None:
 def _family(*parts: Any) -> str:
     text = " ".join(str(part or "") for part in parts).lower()
     rules = (
-        ("ensemble", ("softvote", "soft_vote", "soft-vote", "stack", "blend", "oof", "bag")),
-        ("tabular_transformer", ("tabular_transformer", "fttransformer", "ft-transformer")),
+        (
+            "ensemble",
+            ("softvote", "soft_vote", "soft-vote", "stack", "blend", "oof", "bag"),
+        ),
+        (
+            "tabular_transformer",
+            ("tabular_transformer", "fttransformer", "ft-transformer"),
+        ),
         ("tabpfn", ("tabpfn",)),
         ("lightgbm", ("lightgbm", "lgbm")),
         ("xgboost", ("xgboost", "xgb")),
@@ -112,6 +119,8 @@ def _suite(path: Path) -> str:
         return "hyperack_optimized_safe"
     if value.startswith("external_projects/"):
         return "external_playbook"
+    if value.startswith("campaigns/model_building_50_v1/"):
+        return "model_building_50_v1"
     return "unknown"
 
 
@@ -140,7 +149,9 @@ def _deployment_eligible(
     payload: dict[str, Any],
 ) -> tuple[bool | None, bool | None]:
     raw = payload.get("has_leakage")
-    known_leakage = bool(raw) if isinstance(raw, bool) else dataset in KNOWN_LEAKAGE_DATASETS
+    known_leakage = (
+        bool(raw) if isinstance(raw, bool) else dataset in KNOWN_LEAKAGE_DATASETS
+    )
 
     if mode == "safe":
         return True, known_leakage
@@ -152,7 +163,9 @@ def _deployment_eligible(
 
 
 def _canonical_json(payload: Any) -> bytes:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
+    return json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), default=str
+    ).encode()
 
 
 def _parse(path: Path, root: Path, payload: dict[str, Any]) -> ExperimentRecord:
@@ -161,14 +174,19 @@ def _parse(path: Path, root: Path, payload: dict[str, Any]) -> ExperimentRecord:
     metrics = payload.get("metrics", {})
     experiment_id = str(payload.get("exp_id") or relative.stem)
     experiment_name = str(
-        payload.get("exp_name") or payload.get("name") or payload.get("model_name") or relative.stem
+        payload.get("exp_name")
+        or payload.get("name")
+        or payload.get("model_name")
+        or relative.stem
     )
     dataset = _dataset(relative, payload)
     mode = _mode(suite, payload, experiment_name)
     eligible, known_leakage = _deployment_eligible(dataset, mode, suite, payload)
     model_value = payload.get("model_name") or payload.get("best_model")
     if model_value is None and suite == "external_playbook":
-        model_value = PLAYBOOK_MODEL_BY_EXPERIMENT.get(str(experiment_id), experiment_name)
+        model_value = PLAYBOOK_MODEL_BY_EXPERIMENT.get(
+            str(experiment_id), experiment_name
+        )
     model = str(model_value or experiment_name)
     optimization = str(
         payload.get("optimization")
@@ -221,7 +239,9 @@ def _parse(path: Path, root: Path, payload: dict[str, Any]) -> ExperimentRecord:
     )
 
 
-def discover_result_files(root: Path, patterns: Iterable[str] = RESULT_GLOBS) -> list[Path]:
+def discover_result_files(
+    root: Path, patterns: Iterable[str] = RESULT_GLOBS
+) -> list[Path]:
     found = {path.resolve() for pattern in patterns for path in root.glob(pattern)}
     return sorted(found)
 
@@ -237,22 +257,55 @@ def collect_registry(root: Path) -> tuple[list[ExperimentRecord], list[dict[str,
         try:
             payload = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError) as exc:
-            issues.append({"severity": "error", "path": relative, "message": f"invalid JSON: {exc}"})
+            issues.append(
+                {
+                    "severity": "error",
+                    "path": relative,
+                    "message": f"invalid JSON: {exc}",
+                }
+            )
             continue
         if path.name in SUMMARY_FILES:
             continue
-        if not isinstance(payload, dict) or not isinstance(payload.get("metrics"), dict):
-            issues.append({"severity": "warning", "path": relative, "message": "ignored non-experiment JSON"})
+        if not isinstance(payload, dict) or not isinstance(
+            payload.get("metrics"), dict
+        ):
+            issues.append(
+                {
+                    "severity": "warning",
+                    "path": relative,
+                    "message": "ignored non-experiment JSON",
+                }
+            )
             continue
         record = _parse(path, root, payload)
         records.append(record)
 
         if record.status == "incomplete":
-            issues.append({"severity": "warning", "path": relative, "message": "completed result has no ROC-AUC"})
-        for metric in ("roc_auc", "avg_precision", "accuracy", "precision", "recall", "f1"):
+            issues.append(
+                {
+                    "severity": "warning",
+                    "path": relative,
+                    "message": "completed result has no ROC-AUC",
+                }
+            )
+        for metric in (
+            "roc_auc",
+            "avg_precision",
+            "accuracy",
+            "precision",
+            "recall",
+            "f1",
+        ):
             value = getattr(record, metric)
             if value is not None and not 0.0 <= value <= 1.0:
-                issues.append({"severity": "error", "path": relative, "message": f"{metric}={value} is outside [0, 1]"})
+                issues.append(
+                    {
+                        "severity": "error",
+                        "path": relative,
+                        "message": f"{metric}={value} is outside [0, 1]",
+                    }
+                )
 
     duplicates: dict[tuple[str, str, str, str], list[ExperimentRecord]] = {}
     for record in records:
@@ -261,11 +314,21 @@ def collect_registry(root: Path) -> tuple[list[ExperimentRecord], list[dict[str,
     for key, group in duplicates.items():
         if len(group) > 1:
             paths = ", ".join(item.source_path for item in group)
-            issues.append({
-                "severity": "warning",
-                "path": paths,
-                "message": "duplicate canonical experiment key: " + "/".join(key),
-            })
+            issues.append(
+                {
+                    "severity": "warning",
+                    "path": paths,
+                    "message": "duplicate canonical experiment key: " + "/".join(key),
+                }
+            )
 
-    records.sort(key=lambda item: (item.dataset, item.suite, item.mode, item.experiment_id, item.source_path))
+    records.sort(
+        key=lambda item: (
+            item.dataset,
+            item.suite,
+            item.mode,
+            item.experiment_id,
+            item.source_path,
+        )
+    )
     return records, issues

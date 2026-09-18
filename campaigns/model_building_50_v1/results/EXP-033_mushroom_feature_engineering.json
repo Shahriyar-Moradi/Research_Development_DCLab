@@ -1,0 +1,1560 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-033-C1",
+      "evidence": [
+        "evidence.stage_results",
+        "evidence.selection_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "Generic mathematical feature generation may lack domain meaning; a domain expert must review production semantics."
+      ],
+      "statement": "Use the raw feature recipe for the next model screen on mushroom; it achieved 1.0000 mean training-CV ROC-AUC with about 22 features."
+    }
+  ],
+  "completed_at": "2026-09-18T11:26:12+00:00",
+  "dataset": "mushroom",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "raw_auc_mean": 0.9999788529859583,
+    "selected_auc_mean": 0.9999788529859583,
+    "selected_stage": "raw",
+    "selected_vs_raw_auc": 0.0,
+    "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage.",
+    "stage_results": [
+      {
+        "elapsed_seconds": 0.37197754100088787,
+        "evaluations": 3,
+        "feature_count_mean": 22.0,
+        "feature_stability": [
+          {
+            "feature": "odor",
+            "mean_normalized_importance": 0.14991213273514614,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-color",
+            "mean_normalized_importance": 0.1066885110737711,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "mean_normalized_importance": 0.10117198278365568,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "spore-print-color",
+            "mean_normalized_importance": 0.09228674714272712,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "habitat",
+            "mean_normalized_importance": 0.08450144042688774,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "gill-size",
+            "mean_normalized_importance": 0.0821797864954288,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-surface",
+            "mean_normalized_importance": 0.04801217984385586,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "gill-color",
+            "mean_normalized_importance": 0.045820380768344514,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "bruises",
+            "mean_normalized_importance": 0.04574552093615603,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "population",
+            "mean_normalized_importance": 0.04226321785088236,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "cap-shape",
+            "mean_normalized_importance": 0.04051862827253718,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "gill-spacing",
+            "mean_normalized_importance": 0.03005498505274434,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-color-above-ring",
+            "mean_normalized_importance": 0.028992998819442683,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-shape",
+            "mean_normalized_importance": 0.02779339158313476,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-root",
+            "mean_normalized_importance": 0.023630729308526707,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ring-type",
+            "mean_normalized_importance": 0.01954114400530831,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "veil-color",
+            "mean_normalized_importance": 0.011335645042667762,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-color-below-ring",
+            "mean_normalized_importance": 0.008421965494241148,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-surface-below-ring",
+            "mean_normalized_importance": 0.005774848020871155,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ring-number",
+            "mean_normalized_importance": 0.004620626513758553,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 9.392801820519583e-10,
+            "ece_10": 2.490887488016297e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.03489362499931303,
+            "log_loss": 2.490934454856676e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 1.0,
+            "avg_precision": 0.9999999999999999,
+            "brier": 6.892120533735193e-10,
+            "ece_10": 2.3630605383690937e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.030684375000419095,
+            "log_loss": 2.3630950001845168e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.99812382739212,
+            "avg_precision": 0.9999330411945451,
+            "brier": 0.0018760182769295328,
+            "ece_10": 0.0018760542230753555,
+            "f1": 0.9980506822612085,
+            "fit_seconds": 0.029669290999663644,
+            "log_loss": 0.01896295504132963,
+            "precision": 1.0,
+            "recall": 0.9961089494163424,
+            "roc_auc": 0.9999365589578751,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9981488430268917,
+            "max": 1.0,
+            "mean": 0.9993746091307066,
+            "min": 0.99812382739212,
+            "std": 0.0010832087602057074
+          },
+          "avg_precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999339339786179,
+            "max": 1.0,
+            "mean": 0.9999776803981817,
+            "min": 0.9999330411945451,
+            "std": 3.8658684353988044e-05
+          },
+          "brier": {
+            "ci95_high": 0.0018510047107604287,
+            "ci95_low": 0.0,
+            "max": 0.0018760182769295328,
+            "mean": 0.0006253399684739227,
+            "min": 6.892120533735193e-10,
+            "std": 0.0010831191870847156
+          },
+          "ece_10": {
+            "ci95_high": 0.001851363979485237,
+            "ci95_low": 0.0,
+            "max": 0.0018760542230753555,
+            "mean": 0.0006415312344464031,
+            "min": 2.3630605383690937e-05,
+            "std": 0.0010691284607488693
+          },
+          "f1": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9980766731643924,
+            "max": 1.0,
+            "mean": 0.9993502274204028,
+            "min": 0.9980506822612085,
+            "std": 0.0011254391212273725
+          },
+          "log_loss": {
+            "ci95_high": 0.01871043926388424,
+            "ci95_low": 0.0,
+            "max": 0.01896295504132963,
+            "mean": 0.006337165111960014,
+            "min": 2.3630950001845168e-05,
+            "std": 0.010934254840362995
+          },
+          "precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 1.0,
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9961608300907911,
+            "max": 1.0,
+            "mean": 0.9987029831387808,
+            "min": 0.9961089494163424,
+            "std": 0.0022464991019051504
+          },
+          "roc_auc": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999374048384367,
+            "max": 1.0,
+            "mean": 0.9999788529859583,
+            "min": 0.9999365589578751,
+            "std": 3.662770274845633e-05
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 0.514803000000029,
+        "evaluations": 3,
+        "feature_count_mean": 30.666666666666668,
+        "feature_stability": [
+          {
+            "feature": "odor",
+            "mean_normalized_importance": 0.14991213273514614,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-color",
+            "mean_normalized_importance": 0.1066885110737711,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "mean_normalized_importance": 0.10117198278365568,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "spore-print-color",
+            "mean_normalized_importance": 0.09228674714272712,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "habitat",
+            "mean_normalized_importance": 0.08450144042688774,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "gill-size",
+            "mean_normalized_importance": 0.0821797864954288,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-surface",
+            "mean_normalized_importance": 0.04801217984385586,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "gill-color",
+            "mean_normalized_importance": 0.045820380768344514,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "bruises",
+            "mean_normalized_importance": 0.04574552093615603,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "population",
+            "mean_normalized_importance": 0.04226321785088236,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "cap-shape",
+            "mean_normalized_importance": 0.04051862827253718,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "gill-spacing",
+            "mean_normalized_importance": 0.03005498505274434,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-color-above-ring",
+            "mean_normalized_importance": 0.028992998819442683,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-shape",
+            "mean_normalized_importance": 0.02779339158313476,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-root",
+            "mean_normalized_importance": 0.023630729308526707,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ring-type",
+            "mean_normalized_importance": 0.01954114400530831,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "veil-color",
+            "mean_normalized_importance": 0.011335645042667762,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-color-below-ring",
+            "mean_normalized_importance": 0.008421965494241148,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-surface-below-ring",
+            "mean_normalized_importance": 0.005774848020871155,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ring-number",
+            "mean_normalized_importance": 0.004620626513758553,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 9.392801820519583e-10,
+            "ece_10": 2.490887488016297e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.034102750001693494,
+            "log_loss": 2.490934454856676e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 1.0,
+            "avg_precision": 0.9999999999999999,
+            "brier": 6.892120533735193e-10,
+            "ece_10": 2.3630605383690937e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.0382602500012581,
+            "log_loss": 2.3630950001845168e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.99812382739212,
+            "avg_precision": 0.9999330411945451,
+            "brier": 0.0018760182769295328,
+            "ece_10": 0.0018760542230753555,
+            "f1": 0.9980506822612085,
+            "fit_seconds": 0.033448000000134925,
+            "log_loss": 0.01896295504132963,
+            "precision": 1.0,
+            "recall": 0.9961089494163424,
+            "roc_auc": 0.9999365589578751,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9981488430268917,
+            "max": 1.0,
+            "mean": 0.9993746091307066,
+            "min": 0.99812382739212,
+            "std": 0.0010832087602057074
+          },
+          "avg_precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999339339786179,
+            "max": 1.0,
+            "mean": 0.9999776803981817,
+            "min": 0.9999330411945451,
+            "std": 3.8658684353988044e-05
+          },
+          "brier": {
+            "ci95_high": 0.0018510047107604287,
+            "ci95_low": 0.0,
+            "max": 0.0018760182769295328,
+            "mean": 0.0006253399684739227,
+            "min": 6.892120533735193e-10,
+            "std": 0.0010831191870847156
+          },
+          "ece_10": {
+            "ci95_high": 0.001851363979485237,
+            "ci95_low": 0.0,
+            "max": 0.0018760542230753555,
+            "mean": 0.0006415312344464031,
+            "min": 2.3630605383690937e-05,
+            "std": 0.0010691284607488693
+          },
+          "f1": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9980766731643924,
+            "max": 1.0,
+            "mean": 0.9993502274204028,
+            "min": 0.9980506822612085,
+            "std": 0.0011254391212273725
+          },
+          "log_loss": {
+            "ci95_high": 0.01871043926388424,
+            "ci95_low": 0.0,
+            "max": 0.01896295504132963,
+            "mean": 0.006337165111960014,
+            "min": 2.3630950001845168e-05,
+            "std": 0.010934254840362995
+          },
+          "precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 1.0,
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9961608300907911,
+            "max": 1.0,
+            "mean": 0.9987029831387808,
+            "min": 0.9961089494163424,
+            "std": 0.0022464991019051504
+          },
+          "roc_auc": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999374048384367,
+            "max": 1.0,
+            "mean": 0.9999788529859583,
+            "min": 0.9999365589578751,
+            "std": 3.662770274845633e-05
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "logs"
+      },
+      {
+        "elapsed_seconds": 0.84483737499977,
+        "evaluations": 3,
+        "feature_count_mean": 45.666666666666664,
+        "feature_stability": [
+          {
+            "feature": "odor",
+            "mean_normalized_importance": 0.10734673806897693,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-color",
+            "mean_normalized_importance": 0.09659161355689672,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_gill-color_div_cap-color",
+            "mean_normalized_importance": 0.08117510694380164,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "mean_normalized_importance": 0.0652726005520645,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "spore-print-color",
+            "mean_normalized_importance": 0.06212763094794255,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "habitat",
+            "mean_normalized_importance": 0.052943967826116295,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "gill-size",
+            "mean_normalized_importance": 0.04246764959949198,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-shape",
+            "mean_normalized_importance": 0.057872920526170955,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "gill-color",
+            "mean_normalized_importance": 0.056238313178216766,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_spore-print-color_div_cap-shape",
+            "mean_normalized_importance": 0.03219456841355475,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_habitat_div_cap-shape",
+            "mean_normalized_importance": 0.0334780332976507,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "population",
+            "mean_normalized_importance": 0.032129258665539784,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "bruises",
+            "mean_normalized_importance": 0.021750202839316446,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_habitat_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.04228222109016811,
+            "observed_folds": 1,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_stalk-color-below-ring_div_habitat",
+            "mean_normalized_importance": 0.041274278176140794,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_spore-print-color_div_cap-color",
+            "mean_normalized_importance": 0.037520391517128875,
+            "observed_folds": 1,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_stalk-color-below-ring_div_cap-shape",
+            "mean_normalized_importance": 0.027812327390593906,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_gill-color_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.021162604791771216,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_gill-color_div_habitat",
+            "mean_normalized_importance": 0.01644715509088875,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_cap-color_div_spore-print-color",
+            "mean_normalized_importance": 0.01629344185897522,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 1.0,
+            "avg_precision": 0.9999999999999998,
+            "brier": 8.492518140990899e-10,
+            "ece_10": 2.378694266436839e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.04766570900028455,
+            "log_loss": 2.3787367332979397e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 9.171025205784257e-10,
+            "ece_10": 2.4197566238232598e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.045482209001420415,
+            "log_loss": 2.4198024837272305e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.99812382739212,
+            "avg_precision": 0.9998331887396917,
+            "brier": 0.0018760789362635918,
+            "ece_10": 0.0018762564339601146,
+            "f1": 0.9980506822612085,
+            "fit_seconds": 0.050921500000185915,
+            "log_loss": 0.01989168263433532,
+            "precision": 1.0,
+            "recall": 0.9961089494163424,
+            "roc_auc": 0.9998378728923476,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9981488430268917,
+            "max": 1.0,
+            "mean": 0.9993746091307066,
+            "min": 0.99812382739212,
+            "std": 0.0010832087602057074
+          },
+          "avg_precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9998354128898291,
+            "max": 1.0,
+            "mean": 0.9999443962465638,
+            "min": 0.9998331887396917,
+            "std": 9.630852604277279e-05
+          },
+          "brier": {
+            "ci95_high": 0.0018510645622224402,
+            "ci95_low": 0.0,
+            "max": 0.0018760789362635918,
+            "mean": 0.0006253602342059755,
+            "min": 8.492518140990899e-10,
+            "std": 0.0010831541689701968
+          },
+          "ece_10": {
+            "ci95_high": 0.0018515596005356948,
+            "ci95_low": 0.0,
+            "max": 0.0018762564339601146,
+            "mean": 0.0006414136476209052,
+            "min": 2.378694266436839e-05,
+            "std": 0.001069405242358301
+          },
+          "f1": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9980766731643924,
+            "max": 1.0,
+            "mean": 0.9993502274204028,
+            "min": 0.9980506822612085,
+            "std": 0.0011254391212273725
+          },
+          "log_loss": {
+            "ci95_high": 0.01962678010390491,
+            "ci95_low": 0.0,
+            "max": 0.01989168263433532,
+            "mean": 0.006646556008835191,
+            "min": 2.3787367332979397e-05,
+            "std": 0.011470616135862503
+          },
+          "precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 1.0,
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9961608300907911,
+            "max": 1.0,
+            "mean": 0.9987029831387808,
+            "min": 0.9961089494163424,
+            "std": 0.0022464991019051504
+          },
+          "roc_auc": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9998400345871163,
+            "max": 1.0,
+            "mean": 0.9999459576307825,
+            "min": 0.9998378728923476,
+            "std": 9.360412924604795e-05
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "ratios"
+      },
+      {
+        "elapsed_seconds": 0.7614942090003751,
+        "evaluations": 3,
+        "feature_count_mean": 53.666666666666664,
+        "feature_stability": [
+          {
+            "feature": "odor",
+            "mean_normalized_importance": 0.10324847567936668,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-color",
+            "mean_normalized_importance": 0.09722450684724764,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_gill-color_div_cap-color",
+            "mean_normalized_importance": 0.0871451047655122,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "mean_normalized_importance": 0.06051104859544761,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "spore-print-color",
+            "mean_normalized_importance": 0.050938598657168765,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "habitat",
+            "mean_normalized_importance": 0.05040550076299342,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-shape",
+            "mean_normalized_importance": 0.04430624108880712,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "gill-size",
+            "mean_normalized_importance": 0.040771099699745024,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_spore-print-color_div_cap-shape",
+            "mean_normalized_importance": 0.032003578576162005,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_habitat_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.04229607250755287,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "gill-color",
+            "mean_normalized_importance": 0.03879510368672271,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "population",
+            "mean_normalized_importance": 0.03143321075894097,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-root",
+            "mean_normalized_importance": 0.02413883566344137,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "bruises",
+            "mean_normalized_importance": 0.0212621080161574,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_gill-color_div_spore-print-color",
+            "mean_normalized_importance": 0.018969063494045608,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_stalk-color-below-ring_div_habitat",
+            "mean_normalized_importance": 0.03854992945012514,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_spore-print-color_div_cap-color",
+            "mean_normalized_importance": 0.03849721706864564,
+            "observed_folds": 1,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_gill-color_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.020366397556631347,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_habitat_div_cap-shape",
+            "mean_normalized_importance": 0.019264614654457054,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "gill-spacing",
+            "mean_normalized_importance": 0.0177770162787594,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 1.0,
+            "avg_precision": 0.9999999999999999,
+            "brier": 8.49199488964209e-10,
+            "ece_10": 2.37865580965683e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.052371458999914466,
+            "log_loss": 2.3786982739047575e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 9.171142763688687e-10,
+            "ece_10": 2.419756587263194e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.04877250000026834,
+            "log_loss": 2.4198024477574198e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.99812382739212,
+            "avg_precision": 0.9999625139635486,
+            "brier": 0.001876005704702386,
+            "ece_10": 0.0018761603581369138,
+            "f1": 0.9980506822612085,
+            "fit_seconds": 0.053452666999874054,
+            "log_loss": 0.018815944330353072,
+            "precision": 1.0,
+            "recall": 0.9961089494163424,
+            "roc_auc": 0.9999647549765973,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9981488430268917,
+            "max": 1.0,
+            "mean": 0.9993746091307066,
+            "min": 0.99812382739212,
+            "std": 0.0010832087602057074
+          },
+          "avg_precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999630137773681,
+            "max": 1.0,
+            "mean": 0.9999875046545162,
+            "min": 0.9999625139635486,
+            "std": 2.164257323602024e-05
+          },
+          "brier": {
+            "ci95_high": 0.0018509923070817802,
+            "ci95_low": 0.0,
+            "max": 0.001876005704702386,
+            "mean": 0.0006253358236720505,
+            "min": 8.49199488964209e-10,
+            "std": 0.0010831118887203329
+          },
+          "ece_10": {
+            "ci95_high": 0.0018514648032001584,
+            "ci95_low": 0.0,
+            "max": 0.0018761603581369138,
+            "mean": 0.0006413814940353713,
+            "min": 2.37865580965683e-05,
+            "std": 0.001069349884114535
+          },
+          "f1": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9980766731643924,
+            "max": 1.0,
+            "mean": 0.9993502274204028,
+            "min": 0.9980506822612085,
+            "std": 0.0011254391212273725
+          },
+          "log_loss": {
+            "ci95_high": 0.018565384974865894,
+            "ci95_low": 0.0,
+            "max": 0.018815944330353072,
+            "mean": 0.006287976445856564,
+            "min": 2.3786982739047575e-05,
+            "std": 0.010849538447716139
+          },
+          "precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 1.0,
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9961608300907911,
+            "max": 1.0,
+            "mean": 0.9987029831387808,
+            "min": 0.9961089494163424,
+            "std": 0.0022464991019051504
+          },
+          "roc_auc": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999652249102426,
+            "max": 1.0,
+            "mean": 0.9999882516588657,
+            "min": 0.9999647549765973,
+            "std": 2.0348723749135285e-05
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "interactions"
+      },
+      {
+        "elapsed_seconds": 1.5185460000011517,
+        "evaluations": 3,
+        "feature_count_mean": 58.666666666666664,
+        "feature_stability": [
+          {
+            "feature": "odor",
+            "mean_normalized_importance": 0.10130588728410293,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "cap-color",
+            "mean_normalized_importance": 0.09718726996843169,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_gill-color_div_cap-color",
+            "mean_normalized_importance": 0.08792466371393777,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "mean_normalized_importance": 0.06043559782299618,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "spore-print-color",
+            "mean_normalized_importance": 0.05086771324137893,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "habitat",
+            "mean_normalized_importance": 0.04989348624053269,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "gill-size",
+            "mean_normalized_importance": 0.04072014700090879,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "cap-shape",
+            "mean_normalized_importance": 0.038429044317809975,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_spore-print-color_div_cap-shape",
+            "mean_normalized_importance": 0.03218533676976022,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_habitat_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.042232277526395176,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_spore-print-color_div_cap-color",
+            "mean_normalized_importance": 0.03826648224988474,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "gill-color",
+            "mean_normalized_importance": 0.038080589291872496,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "population",
+            "mean_normalized_importance": 0.032130314759872824,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "bruises",
+            "mean_normalized_importance": 0.0207355843782229,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_gill-color_div_spore-print-color",
+            "mean_normalized_importance": 0.018888776281424123,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_stalk-color-below-ring_div_habitat",
+            "mean_normalized_importance": 0.03850557147136234,
+            "observed_folds": 2,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_gill-color_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.025621327124165375,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "stalk-root",
+            "mean_normalized_importance": 0.02254072728817798,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "ratio_habitat_div_cap-shape",
+            "mean_normalized_importance": 0.019568782113105688,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          },
+          {
+            "feature": "gill-spacing",
+            "mean_normalized_importance": 0.01795537462052676,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 1.0,
+            "avg_precision": 0.9999999999999999,
+            "brier": 8.490779881882786e-10,
+            "ece_10": 2.376338408346787e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.0650668329999462,
+            "log_loss": 2.376380866516306e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 9.170762770179905e-10,
+            "ece_10": 2.4197654645075567e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.05825449999974808,
+            "log_loss": 2.4198113230977913e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.99812382739212,
+            "avg_precision": 0.9999625139635486,
+            "brier": 0.0018760057047023874,
+            "ece_10": 0.0018761603581119845,
+            "f1": 0.9980506822612085,
+            "fit_seconds": 0.05549316600081511,
+            "log_loss": 0.018815944330378007,
+            "precision": 1.0,
+            "recall": 0.9961089494163424,
+            "roc_auc": 0.9999647549765973,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9981488430268917,
+            "max": 1.0,
+            "mean": 0.9993746091307066,
+            "min": 0.99812382739212,
+            "std": 0.0010832087602057074
+          },
+          "avg_precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999630137773681,
+            "max": 1.0,
+            "mean": 0.9999875046545162,
+            "min": 0.9999625139635486,
+            "std": 2.164257323602024e-05
+          },
+          "brier": {
+            "ci95_high": 0.0018509923070807181,
+            "ci95_low": 0.0,
+            "max": 0.0018760057047023874,
+            "mean": 0.0006253358236188842,
+            "min": 8.490779881882786e-10,
+            "std": 0.0010831118887663774
+          },
+          "ece_10": {
+            "ci95_high": 0.001851464651874842,
+            "ci95_low": 0.0,
+            "max": 0.0018761603581119845,
+            "mean": 0.0006413737989468426,
+            "min": 2.376338408346787e-05,
+            "std": 0.0010693565505334964
+          },
+          "f1": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9980766731643924,
+            "max": 1.0,
+            "mean": 0.9993502274204028,
+            "min": 0.9980506822612085,
+            "std": 0.0011254391212273725
+          },
+          "log_loss": {
+            "ci95_high": 0.018565384821244747,
+            "ci95_low": 0.0,
+            "max": 0.018815944330378007,
+            "mean": 0.00628796875075805,
+            "min": 2.376380866516306e-05,
+            "std": 0.010849545112115099
+          },
+          "precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 1.0,
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9961608300907911,
+            "max": 1.0,
+            "mean": 0.9987029831387808,
+            "min": 0.9961089494163424,
+            "std": 0.0022464991019051504
+          },
+          "roc_auc": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999652249102426,
+            "max": 1.0,
+            "mean": 0.9999882516588657,
+            "min": 0.9999647549765973,
+            "std": 2.0348723749135285e-05
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "full_fe"
+      },
+      {
+        "elapsed_seconds": 1.437586416999693,
+        "evaluations": 3,
+        "feature_count_mean": 25.0,
+        "feature_stability": [
+          {
+            "feature": "odor",
+            "mean_normalized_importance": 0.1626683787474754,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "inter_odor_x_ratio_spore-print-color_div_habitat",
+            "mean_normalized_importance": 0.11866050359922946,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "inter_odor_x_gill-color",
+            "mean_normalized_importance": 0.09905921455191653,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "inter_odor_x_spore-print-color",
+            "mean_normalized_importance": 0.0957741118012621,
+            "observed_folds": 3,
+            "top10_frequency": 1.0
+          },
+          {
+            "feature": "ratio_stalk-color-below-ring_div_habitat",
+            "mean_normalized_importance": 0.06604372228854766,
+            "observed_folds": 2,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "ratio_gill-color_div_spore-print-color",
+            "mean_normalized_importance": 0.040768537982613366,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "mean_normalized_importance": 0.04047632987193566,
+            "observed_folds": 3,
+            "top10_frequency": 0.6666666666666666
+          },
+          {
+            "feature": "inter_odor_x_ratio_spore-print-color_div_cap-color",
+            "mean_normalized_importance": 0.20213713268032057,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_ratio_spore-print-color_div_habitat_x_spore-print-color",
+            "mean_normalized_importance": 0.18917576961271101,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_ratio_gill-color_div_spore-print-color_x_ratio_spore-print-color_div_habitat",
+            "mean_normalized_importance": 0.08062418725617686,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_gill-color_div_habitat",
+            "mean_normalized_importance": 0.06802383316782522,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-color-above-ring",
+            "mean_normalized_importance": 0.05461767626613704,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_odor_x_ring-type",
+            "mean_normalized_importance": 0.041372507747027845,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_odor_x_ratio_gill-color_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.03922542204568024,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_ratio_spore-print-color_div_habitat_x_ratio_gill-color_div_spore-print-color",
+            "mean_normalized_importance": 0.039180765805877114,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "stalk-surface-below-ring",
+            "mean_normalized_importance": 0.03901170351105332,
+            "observed_folds": 1,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_odor_x_ratio_gill-color_div_spore-print-color",
+            "mean_normalized_importance": 0.02858233546050755,
+            "observed_folds": 2,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "inter_odor_x_log1p_ring-type",
+            "mean_normalized_importance": 0.015600355245545946,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "ratio_spore-print-color_div_stalk-color-below-ring",
+            "mean_normalized_importance": 0.01453286035463072,
+            "observed_folds": 3,
+            "top10_frequency": 0.3333333333333333
+          },
+          {
+            "feature": "spore-print-color",
+            "mean_normalized_importance": 0.01879781058850791,
+            "observed_folds": 3,
+            "top10_frequency": 0.0
+          }
+        ],
+        "fold_metrics": [
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 8.643123629889334e-06,
+            "ece_10": 0.00013766934599401145,
+            "f1": 1.0,
+            "fit_seconds": 0.038203125001018634,
+            "log_loss": 0.00014228794114578864,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 1.0,
+            "avg_precision": 1.0,
+            "brier": 2.735298992886895e-09,
+            "ece_10": 2.7800653655765763e-05,
+            "f1": 1.0,
+            "fit_seconds": 0.0403504999994766,
+            "log_loss": 2.7802021802771105e-05,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 0.9999999999999999,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.99812382739212,
+            "avg_precision": 0.9999625139635486,
+            "brier": 0.001875766011332673,
+            "ece_10": 0.0018766824190941979,
+            "f1": 0.9980506822612085,
+            "fit_seconds": 0.04204229199967813,
+            "log_loss": 0.017146078191276653,
+            "precision": 1.0,
+            "recall": 0.9961089494163424,
+            "roc_auc": 0.9999647549765973,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9981488430268917,
+            "max": 1.0,
+            "mean": 0.9993746091307066,
+            "min": 0.99812382739212,
+            "std": 0.0010832087602057074
+          },
+          "avg_precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999630137773681,
+            "max": 1.0,
+            "mean": 0.9999875046545162,
+            "min": 0.9999625139635486,
+            "std": 2.164257323605229e-05
+          },
+          "brier": {
+            "ci95_high": 0.0018508232105007446,
+            "ci95_low": 0.0,
+            "max": 0.001875766011332673,
+            "mean": 0.000628137290087185,
+            "min": 2.735298992886895e-09,
+            "std": 0.0010804868040078582
+          },
+          "ece_10": {
+            "ci95_high": 0.0018544105206036673,
+            "ci95_low": 0.0,
+            "max": 0.0018766824190941979,
+            "mean": 0.0006807174729146583,
+            "min": 2.7800653655765763e-05,
+            "std": 0.0010371918321876146
+          },
+          "f1": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9980766731643924,
+            "max": 1.0,
+            "mean": 0.9993502274204028,
+            "min": 0.9980506822612085,
+            "std": 0.0011254391212273725
+          },
+          "log_loss": {
+            "ci95_high": 0.01691878596651697,
+            "ci95_low": 0.0,
+            "max": 0.017146078191276653,
+            "mean": 0.005772056051408404,
+            "min": 2.7802021802771105e-05,
+            "std": 0.009850358444497935
+          },
+          "precision": {
+            "ci95_high": 1.0,
+            "ci95_low": 1.0,
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9961608300907911,
+            "max": 1.0,
+            "mean": 0.9987029831387808,
+            "min": 0.9961089494163424,
+            "std": 0.0022464991019051504
+          },
+          "roc_auc": {
+            "ci95_high": 1.0,
+            "ci95_low": 0.9999652249102426,
+            "max": 1.0,
+            "mean": 0.9999882516588657,
+            "min": 0.9999647549765973,
+            "std": 2.0348723749103233e-05
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "selected"
+      }
+    ]
+  },
+  "experiment_id": "EXP-033",
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "The smallest feature set near the best CV score will generalize more reliably than unconstrained feature generation.",
+  "kind": "feature_engineering",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "provenance": {
+    "data_sha256": {
+      "external_data/mushroom/X.parquet": "9bcb0540091036661b04b82c8ed6ba76686ee2fda708d8c7c312a1b77e731092",
+      "external_data/mushroom/meta.json": "409e704d485ea638f4e24426ce1135509570aa6e29bb1c936ac3be8cf28a0a88",
+      "external_data/mushroom/y.parquet": "eef564aa188593897d5c2b171b5140a96fa9573dbe1d9396151fe7c5f2a62b1a"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which train-fitted feature recipe improves validation evidence without feature dilution?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/73/mushroom",
+  "started_at": "2026-09-18T11:26:06+00:00",
+  "status": "completed"
+}

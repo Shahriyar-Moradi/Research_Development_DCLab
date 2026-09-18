@@ -1,0 +1,675 @@
+{
+  "campaign_id": "model_building_50_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-040-C1",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.holdout_roc_auc_bootstrap_ci",
+        "evidence.holdout_consumed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The preselected hist_gradient_boosting/baseline recipe scored 0.9849 ROC-AUC on the once-consumed holdout (bootstrap 95% interval 0.9752\u20130.9925)."
+    },
+    {
+      "claim_id": "EXP-040-C2",
+      "evidence": [
+        "evidence.top_final_features",
+        "evidence.cv_feature_stability",
+        "evidence.production_feature_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [],
+      "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+  ],
+  "completed_at": "2026-09-18T11:26:55+00:00",
+  "dataset": "spambase",
+  "decision_time_rule": "Features must exist at the declared prediction moment; suspicious features require human semantic review.",
+  "evidence": {
+    "configuration_results": [
+      {
+        "elapsed_seconds": 1.8575259999997797,
+        "evaluations": 3,
+        "feature_count_mean": 57.0,
+        "feature_stability": [],
+        "fold_metrics": [
+          {
+            "accuracy": 0.9493908153701968,
+            "avg_precision": 0.9798626074575444,
+            "brier": 0.04047489708449325,
+            "ece_10": 0.02956830170150852,
+            "f1": 0.9347826086956522,
+            "fit_seconds": 0.3371503339985793,
+            "log_loss": 0.16577708106575278,
+            "precision": 0.9508599508599509,
+            "recall": 0.9192399049881235,
+            "roc_auc": 0.9854798026223867,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9653233364573571,
+            "avg_precision": 0.9843353833698237,
+            "brier": 0.03041078051238133,
+            "ece_10": 0.021332603082039082,
+            "f1": 0.9561091340450771,
+            "fit_seconds": 0.3693325410004036,
+            "log_loss": 0.12548131595264156,
+            "precision": 0.9527186761229315,
+            "recall": 0.9595238095238096,
+            "roc_auc": 0.9896739530433503,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9530956848030019,
+            "avg_precision": 0.9777393132210054,
+            "brier": 0.03667855333062791,
+            "ece_10": 0.028033596657294185,
+            "f1": 0.9411764705882353,
+            "fit_seconds": 0.337974750000285,
+            "log_loss": 0.1539736509344688,
+            "precision": 0.9302325581395349,
+            "recall": 0.9523809523809523,
+            "roc_auc": 0.987015332448769,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.965371419107579,
+            "ci95_low": 0.9465018053127915,
+            "max": 0.9653233364573571,
+            "mean": 0.9559366122101852,
+            "min": 0.9493908153701968,
+            "std": 0.00833753311524858
+          },
+          "avg_precision": {
+            "ci95_high": 0.9844559462946835,
+            "ci95_low": 0.9768355897375655,
+            "max": 0.9843353833698237,
+            "mean": 0.9806457680161245,
+            "min": 0.9777393132210054,
+            "std": 0.0033670522267140123
+          },
+          "brier": {
+            "ci95_high": 0.041606000356538636,
+            "ci95_low": 0.030103486928463024,
+            "max": 0.04047489708449325,
+            "mean": 0.03585474364250083,
+            "min": 0.03041078051238133,
+            "std": 0.005082382059227097
+          },
+          "ece_10": {
+            "ci95_high": 0.03126748419733757,
+            "ci95_low": 0.02135551676322362,
+            "max": 0.02956830170150852,
+            "mean": 0.026311500480280595,
+            "min": 0.021332603082039082,
+            "std": 0.004379599795625888
+          },
+          "f1": {
+            "ci95_high": 0.9564075546661989,
+            "ci95_low": 0.9316379208864444,
+            "max": 0.9561091340450771,
+            "mean": 0.9440227377763216,
+            "min": 0.9347826086956522,
+            "std": 0.010944455150869697
+          },
+          "log_loss": {
+            "ci95_high": 0.17185289264672993,
+            "ci95_low": 0.12496847265517885,
+            "max": 0.16577708106575278,
+            "mean": 0.1484106826509544,
+            "min": 0.12548131595264156,
+            "std": 0.0207158667114195
+          },
+          "precision": {
+            "ci95_high": 0.9587266862969697,
+            "ci95_low": 0.9304807704513085,
+            "max": 0.9527186761229315,
+            "mean": 0.9446037283741391,
+            "min": 0.9302325581395349,
+            "std": 0.012480449324234732
+          },
+          "recall": {
+            "ci95_high": 0.9680384740264952,
+            "ci95_low": 0.9193913039020948,
+            "max": 0.9595238095238096,
+            "mean": 0.943714888964295,
+            "min": 0.9192399049881235,
+            "std": 0.02149473732140523
+          },
+          "roc_auc": {
+            "ci95_high": 0.9897909521608328,
+            "ci95_low": 0.9849884399155044,
+            "max": 0.9896739530433503,
+            "mean": 0.9873896960381686,
+            "min": 0.9854798026223867,
+            "std": 0.002121988574714392
+          }
+        },
+        "model": "hist_gradient_boosting",
+        "model_params": {},
+        "optimization": "baseline",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 3.1792986249984097,
+        "evaluations": 3,
+        "feature_count_mean": 57.0,
+        "feature_stability": [],
+        "fold_metrics": [
+          {
+            "accuracy": 0.950328022492971,
+            "avg_precision": 0.9792149540356563,
+            "brier": 0.041457519804034615,
+            "ece_10": 0.031062269029875158,
+            "f1": 0.9362214199759326,
+            "fit_seconds": 0.8325815829994099,
+            "log_loss": 0.18354365198449762,
+            "precision": 0.948780487804878,
+            "recall": 0.9239904988123515,
+            "roc_auc": 0.985619525970158,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9653233364573571,
+            "avg_precision": 0.984855110331772,
+            "brier": 0.02933145711278372,
+            "ece_10": 0.02462450490455697,
+            "f1": 0.9561091340450771,
+            "fit_seconds": 0.8156053330003488,
+            "log_loss": 0.12911382586312087,
+            "precision": 0.9527186761229315,
+            "recall": 0.9595238095238096,
+            "roc_auc": 0.9902664311474203,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9577861163227017,
+            "avg_precision": 0.9756987754078298,
+            "brier": 0.03515681738637663,
+            "ece_10": 0.02629940694425264,
+            "f1": 0.9467455621301775,
+            "fit_seconds": 0.818753542000195,
+            "log_loss": 0.1680964471463741,
+            "precision": 0.9411764705882353,
+            "recall": 0.9523809523809523,
+            "roc_auc": 0.9864587940439334,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.9662969287136002,
+            "ci95_low": 0.949328054801753,
+            "max": 0.9653233364573571,
+            "mean": 0.9578124917576766,
+            "min": 0.950328022492971,
+            "std": 0.0074976917761605845
+          },
+          "avg_precision": {
+            "ci95_high": 0.9851498857000327,
+            "ci95_low": 0.9746960074834727,
+            "max": 0.984855110331772,
+            "mean": 0.9799229465917527,
+            "min": 0.9756987754078298,
+            "std": 0.004619042910004928
+          },
+          "brier": {
+            "ci95_high": 0.0421779875332954,
+            "ci95_low": 0.028452542002167906,
+            "max": 0.041457519804034615,
+            "mean": 0.035315264767731655,
+            "min": 0.02933145711278372,
+            "std": 0.00606458393276327
+          },
+          "ece_10": {
+            "ci95_high": 0.031108331131816817,
+            "ci95_low": 0.02354912278730635,
+            "max": 0.031062269029875158,
+            "mean": 0.027328726959561584,
+            "min": 0.02462450490455697,
+            "std": 0.0033400339075741695
+          },
+          "f1": {
+            "ci95_high": 0.9576176237386465,
+            "ci95_low": 0.9350997870288118,
+            "max": 0.9561091340450771,
+            "mean": 0.9463587053837291,
+            "min": 0.9362214199759326,
+            "std": 0.009949499300503383
+          },
+          "log_loss": {
+            "ci95_high": 0.19199304581417861,
+            "ci95_low": 0.1285095708484831,
+            "max": 0.18354365198449762,
+            "mean": 0.16025130833133086,
+            "min": 0.12911382586312087,
+            "std": 0.02805015410245192
+          },
+          "precision": {
+            "ci95_high": 0.9541980464646155,
+            "ci95_low": 0.9409190432127478,
+            "max": 0.9527186761229315,
+            "mean": 0.9475585448386816,
+            "min": 0.9411764705882353,
+            "std": 0.005867323547476361
+          },
+          "recall": {
+            "ci95_high": 0.9665676787885112,
+            "ci95_low": 0.9240291616895645,
+            "max": 0.9595238095238096,
+            "mean": 0.9452984202390379,
+            "min": 0.9239904988123515,
+            "std": 0.018795630840309514
+          },
+          "roc_auc": {
+            "ci95_high": 0.9902505934330296,
+            "ci95_low": 0.9846459073413117,
+            "max": 0.9902664311474203,
+            "mean": 0.9874482503871707,
+            "min": 0.985619525970158,
+            "std": 0.002476428844727008
+          }
+        },
+        "model": "hist_gradient_boosting",
+        "model_params": {
+          "model__learning_rate": 0.05,
+          "model__max_iter": 250,
+          "model__max_leaf_nodes": 31
+        },
+        "optimization": "hist_gradient_boosting_C01",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 3.2905436659984844,
+        "evaluations": 3,
+        "feature_count_mean": 57.0,
+        "feature_stability": [],
+        "fold_metrics": [
+          {
+            "accuracy": 0.943767572633552,
+            "avg_precision": 0.98000072568339,
+            "brier": 0.041705086236725517,
+            "ece_10": 0.022002604382339613,
+            "f1": 0.927007299270073,
+            "fit_seconds": 0.8705435829997441,
+            "log_loss": 0.14993876453168295,
+            "precision": 0.9501246882793017,
+            "recall": 0.9049881235154394,
+            "roc_auc": 0.9856526183419987,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9643861293345829,
+            "avg_precision": 0.9849789306120771,
+            "brier": 0.03070331714917277,
+            "ece_10": 0.014739632630659569,
+            "f1": 0.9548693586698337,
+            "fit_seconds": 0.8494024999999965,
+            "log_loss": 0.11650099310408925,
+            "precision": 0.95260663507109,
+            "recall": 0.9571428571428572,
+            "roc_auc": 0.9897107529255906,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9549718574108818,
+            "avg_precision": 0.9702334638542875,
+            "brier": 0.036863437809333835,
+            "ece_10": 0.014456601323051236,
+            "f1": 0.9435294117647058,
+            "fit_seconds": 0.8516330000002199,
+            "log_loss": 0.14262631595127784,
+            "precision": 0.9325581395348838,
+            "recall": 0.9547619047619048,
+            "roc_auc": 0.9858395989974937,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.9660558783500397,
+            "ci95_low": 0.9426944945693048,
+            "max": 0.9643861293345829,
+            "mean": 0.9543751864596722,
+            "min": 0.943767572633552,
+            "std": 0.010322220317180749
+          },
+          "avg_precision": {
+            "ci95_high": 0.9868928143267184,
+            "ci95_low": 0.9699159324397848,
+            "max": 0.9849789306120771,
+            "mean": 0.9784043733832516,
+            "min": 0.9702334638542875,
+            "std": 0.007501230097516482
+          },
+          "brier": {
+            "ci95_high": 0.04266366638500687,
+            "ci95_low": 0.030184227745147875,
+            "max": 0.041705086236725517,
+            "mean": 0.03642394706507737,
+            "min": 0.03070331714917277,
+            "std": 0.005514036166881129
+          },
+          "ece_10": {
+            "ci95_high": 0.021906527732514714,
+            "ci95_low": 0.012226031158185564,
+            "max": 0.022002604382339613,
+            "mean": 0.01706627944535014,
+            "min": 0.014456601323051236,
+            "std": 0.004277324466641468
+          },
+          "f1": {
+            "ci95_high": 0.9576570984169271,
+            "ci95_low": 0.9259469480528145,
+            "max": 0.9548693586698337,
+            "mean": 0.9418020232348708,
+            "min": 0.927007299270073,
+            "std": 0.014011120292421403
+          },
+          "log_loss": {
+            "ci95_high": 0.15624766253577235,
+            "ci95_low": 0.11646305318892768,
+            "max": 0.14993876453168295,
+            "mean": 0.13635535786235,
+            "min": 0.11650099310408925,
+            "std": 0.01757881753775883
+          },
+          "precision": {
+            "ci95_high": 0.9574640537014012,
+            "ci95_low": 0.9327289215554491,
+            "max": 0.95260663507109,
+            "mean": 0.9450964876284251,
+            "min": 0.9325581395348838,
+            "std": 0.010929210614469243
+          },
+          "recall": {
+            "ci95_high": 0.9722881844035614,
+            "ci95_low": 0.9056404058765728,
+            "max": 0.9571428571428572,
+            "mean": 0.9389642951400671,
+            "min": 0.9049881235154394,
+            "std": 0.029448300668454677
+          },
+          "roc_auc": {
+            "ci95_high": 0.9896600506065972,
+            "ci95_low": 0.9844752629034582,
+            "max": 0.9897107529255906,
+            "mean": 0.9870676567550277,
+            "min": 0.9856526183419987,
+            "std": 0.0022908968694630755
+          }
+        },
+        "model": "hist_gradient_boosting",
+        "model_params": {
+          "model__l2_regularization": 1.0,
+          "model__learning_rate": 0.03,
+          "model__max_iter": 350,
+          "model__max_leaf_nodes": 20
+        },
+        "optimization": "hist_gradient_boosting_C02",
+        "repeats": 1,
+        "stage": "raw"
+      },
+      {
+        "elapsed_seconds": 1.7566075409995392,
+        "evaluations": 3,
+        "feature_count_mean": 57.0,
+        "feature_stability": [],
+        "fold_metrics": [
+          {
+            "accuracy": 0.9465791940018744,
+            "avg_precision": 0.9816916065940039,
+            "brier": 0.0403790357830781,
+            "ece_10": 0.02098301374749225,
+            "f1": 0.9314079422382672,
+            "fit_seconds": 0.36142333399948257,
+            "log_loss": 0.14835679847974928,
+            "precision": 0.9439024390243902,
+            "recall": 0.9192399049881235,
+            "roc_auc": 0.9868843899605098,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9615745079662605,
+            "avg_precision": 0.9845334042842391,
+            "brier": 0.032553855372474676,
+            "ece_10": 0.013796351554886361,
+            "f1": 0.9511323003575686,
+            "fit_seconds": 0.3465714169997227,
+            "log_loss": 0.12432910819338461,
+            "precision": 0.9522673031026253,
+            "recall": 0.95,
+            "roc_auc": 0.9895046735850445,
+            "threshold": 0.5
+          },
+          {
+            "accuracy": 0.9549718574108818,
+            "avg_precision": 0.9692659626834965,
+            "brier": 0.03749931517888247,
+            "ece_10": 0.02393539703318965,
+            "f1": 0.9432624113475178,
+            "fit_seconds": 0.35043325000151526,
+            "log_loss": 0.15369779346812448,
+            "precision": 0.9366197183098591,
+            "recall": 0.95,
+            "roc_auc": 0.9861344537815125,
+            "threshold": 0.5
+          }
+        ],
+        "folds": 3,
+        "metrics": {
+          "accuracy": {
+            "ci95_high": 0.9628797099810281,
+            "ci95_low": 0.9458706629383163,
+            "max": 0.9615745079662605,
+            "mean": 0.9543751864596722,
+            "min": 0.9465791940018744,
+            "std": 0.007515442261812768
+          },
+          "avg_precision": {
+            "ci95_high": 0.9876851810956878,
+            "ci95_low": 0.969308801278805,
+            "max": 0.9845334042842391,
+            "mean": 0.9784969911872464,
+            "min": 0.9692659626834965,
+            "std": 0.008119597832149073
+          },
+          "brier": {
+            "ci95_high": 0.04128937742553513,
+            "ci95_low": 0.032332093464088364,
+            "max": 0.0403790357830781,
+            "mean": 0.03681073544481175,
+            "min": 0.032553855372474676,
+            "std": 0.003957773193634596
+          },
+          "ece_10": {
+            "ci95_high": 0.025472690783963386,
+            "ci95_low": 0.013670484106415455,
+            "max": 0.02393539703318965,
+            "mean": 0.01957158744518942,
+            "min": 0.013796351554886361,
+            "std": 0.005214801430342269
+          },
+          "f1": {
+            "ci95_high": 0.9531699738416073,
+            "ci95_low": 0.9306984621206285,
+            "max": 0.9511323003575686,
+            "mean": 0.9419342179811179,
+            "min": 0.9314079422382672,
+            "std": 0.009929030618269054
+          },
+          "log_loss": {
+            "ci95_high": 0.1598305559742622,
+            "ci95_low": 0.12442524411991,
+            "max": 0.15369779346812448,
+            "mean": 0.14212790004708611,
+            "min": 0.12432910819338461,
+            "std": 0.01564382627284661
+          },
+          "precision": {
+            "ci95_high": 0.9531236624808506,
+            "ci95_low": 0.9354026444770658,
+            "max": 0.9522673031026253,
+            "mean": 0.9442631534789582,
+            "min": 0.9366197183098591,
+            "std": 0.007830026414387284
+          },
+          "recall": {
+            "ci95_high": 0.9598432304038004,
+            "ci95_low": 0.9196500395882817,
+            "max": 0.95,
+            "mean": 0.939746634996041,
+            "min": 0.9192399049881235,
+            "std": 0.017759349135405354
+          },
+          "roc_auc": {
+            "ci95_high": 0.9895102110278411,
+            "ci95_low": 0.9855054671902035,
+            "max": 0.9895046735850445,
+            "mean": 0.9875078391090223,
+            "min": 0.9861344537815125,
+            "std": 0.0017694948464506454
+          }
+        },
+        "model": "hist_gradient_boosting",
+        "model_params": {
+          "model__learning_rate": 0.08,
+          "model__max_iter": 180,
+          "model__max_leaf_nodes": 15,
+          "model__min_samples_leaf": 30
+        },
+        "optimization": "hist_gradient_boosting_C03",
+        "repeats": 1,
+        "stage": "raw"
+      }
+    ],
+    "cv_feature_stability": [],
+    "feature_stage": "raw",
+    "holdout_consumed": true,
+    "holdout_metrics": {
+      "accuracy": 0.95125,
+      "avg_precision": 0.9759570014345881,
+      "brier": 0.03815602670527378,
+      "ece_10": 0.02611888250296916,
+      "f1": 0.9391575663026521,
+      "fit_seconds": 0.42475933300011093,
+      "log_loss": 0.15471254874904308,
+      "precision": 0.9233128834355828,
+      "recall": 0.9555555555555556,
+      "roc_auc": 0.9848731795123549,
+      "threshold": 0.5
+    },
+    "holdout_roc_auc_bootstrap_ci": {
+      "draws": 400,
+      "high": 0.9925227023308015,
+      "low": 0.9751896210885335,
+      "median": 0.9846331090745631
+    },
+    "model": "hist_gradient_boosting",
+    "optimization_search_space": [
+      {
+        "candidate_id": "hist_gradient_boosting_C01",
+        "params": {
+          "model__learning_rate": 0.05,
+          "model__max_iter": 250,
+          "model__max_leaf_nodes": 31
+        }
+      },
+      {
+        "candidate_id": "hist_gradient_boosting_C02",
+        "params": {
+          "model__l2_regularization": 1.0,
+          "model__learning_rate": 0.03,
+          "model__max_iter": 350,
+          "model__max_leaf_nodes": 20
+        }
+      },
+      {
+        "candidate_id": "hist_gradient_boosting_C03",
+        "params": {
+          "model__learning_rate": 0.08,
+          "model__max_iter": 180,
+          "model__max_leaf_nodes": 15,
+          "model__min_samples_leaf": 30
+        }
+      }
+    ],
+    "optimized_vs_baseline_cv_auc": 0.00011814307085367126,
+    "production_feature_rule": "A feature is a stronger candidate when it is decision-time available, stable across CV folds, contractually obtainable, monitored for missingness/drift, and not merely important in one fit.",
+    "selected_model_params": {},
+    "selected_optimization": "baseline",
+    "selection_rule": "Evaluate explicit dataset-specific parameter candidates on training CV; use the best tuned candidate only when mean ROC-AUC improves by at least 0.001, otherwise prefer baseline.",
+    "top_final_features": []
+  },
+  "experiment_id": "EXP-040",
+  "feature_count": 57,
+  "holdout_policy": "Model and feature choices use training-only CV. The locked holdout is consumed only by optimization_reliability.",
+  "hypothesis": "Conservative optimization and one final holdout evaluation will separate repeatable improvements from leaderboard noise.",
+  "kind": "optimization_reliability",
+  "llm_review": {
+    "required_outputs": [
+      "challenge unsupported claims",
+      "identify missed leakage or validation risks",
+      "propose the smallest next experiment with a falsifiable success gate",
+      "cite experiment_id and evidence paths for every conclusion"
+    ],
+    "role": "critic_and_hypothesis_generator_only",
+    "status": "pending"
+  },
+  "metrics": {
+    "accuracy": 0.95125,
+    "avg_precision": 0.9759570014345881,
+    "brier": 0.03815602670527378,
+    "ece_10": 0.02611888250296916,
+    "f1": 0.9391575663026521,
+    "fit_seconds": 0.42475933300011093,
+    "log_loss": 0.15471254874904308,
+    "precision": 0.9233128834355828,
+    "recall": 0.9555555555555556,
+    "roc_auc": 0.9848731795123549,
+    "threshold": 0.5
+  },
+  "mode": "safe",
+  "model_name": "hist_gradient_boosting",
+  "optimization": "baseline",
+  "provenance": {
+    "data_sha256": {
+      "external_data/spambase/X.parquet": "ba78234b05f978b96111a03c66802c016e58f465686055f466d3c07c9bac71cf",
+      "external_data/spambase/meta.json": "774400eb0f24fa37cbf7b42bd02df4d2c6cf640c035b1cba283ec0ce17845caa",
+      "external_data/spambase/y.parquet": "5d631f7c7131c99c279822a9efdd2a74b781ba1e770b6f0c3ef4262ee8ae4ea1"
+    },
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "git_commit": "146e2bc9f7623798764193cb47c11e3886141be7",
+    "git_dirty": true,
+    "packages": {
+      "catboost": "1.2.10",
+      "lightgbm": "4.7.0",
+      "numpy": "2.2.6",
+      "optuna": "5.0.0",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "torch": "2.12.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Does optimization produce a meaningful CV gain, and how does the preselected recipe perform on the once-consumed holdout?",
+  "schema_version": 2,
+  "source": "https://archive.ics.uci.edu/dataset/94/spambase",
+  "started_at": "2026-09-18T11:26:44+00:00",
+  "status": "completed",
+  "test_rows": 800,
+  "train_rows": 3200
+}

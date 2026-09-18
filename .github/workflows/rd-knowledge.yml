@@ -21,3 +21,5 @@ jobs:
         run: python -m dclab_rnd validate
       - name: Ensure generated knowledge is current
         run: python -m dclab_rnd sync --check
+      - name: Verify 50-experiment campaign evidence
+        run: python -m dclab_rnd campaign verify

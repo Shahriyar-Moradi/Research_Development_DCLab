@@ -20,7 +20,7 @@ Generated from gaps in the current evidence registry. Complete Priority 1 items 
 
 ## P1 — Replicate champions with full provenance
 
-**Why:** Only 0.0% of completed historical runs contain code, data, seed, and environment provenance.
+**Why:** Only 1.7% of completed historical runs contain code, data, seed, and environment provenance.
 
 **Experiment:** Re-run each deployment champion with the new provenance-enabled runners; require identical data hashes and report score drift.
 
