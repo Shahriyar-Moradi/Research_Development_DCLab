@@ -1,0 +1,326 @@
+<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>DCLab Model-Building Field Guide</title><style>body{margin:0;background:#f6f7f9;color:#1c2937;font:16px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}main{max-width:1060px;margin:auto;background:white;padding:56px 8vw;box-shadow:0 0 40px #17222c0a}h1{font-size:42px;line-height:1.15;color:#142b3d}h2{margin-top:52px;border-top:1px solid #e5e9ee;padding-top:28px;color:#18384a}h3{margin-top:30px;color:#16796c}p,li{color:#526272}.step{margin:5px 0 5px 18px}blockquote{border-left:4px solid #16796c;background:#eaf5f1;padding:16px 20px;margin:24px 0}.table-wrap{overflow:auto;margin:20px 0}table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}th,td{border:1px solid #dde4e7;padding:9px 11px;text-align:left;vertical-align:top}th{background:#eef5f3;color:#173f3a;font-weight:700}tr:nth-child(even) td{background:#fafcfc}code{background:#eef2f2;padding:2px 5px;border-radius:4px;font-size:.9em}strong{color:#263f4d}@media(max-width:700px){main{padding:28px 20px}h1{font-size:32px}th,td{padding:7px;font-size:12px}}</style></head><body><main><h1>DCLab Model-Building Field Guide</h1>
+<p><strong>Audience:</strong> data scientists, ML engineers, reviewers, product owners, and future LLM agents who were not present for these experiments.</p>
+<blockquote>This is a research guide, not a production approval document. Rules are either methodological safeguards or scoped empirical defaults; every empirical claim includes evidence and an exception path.</blockquote>
+<h2>Executive orientation</h2>
+<p>DCLab&#x27;s evidence should be read as four connected but non-independent bodies: a 579-record historical registry across 11 datasets (including 83 HyperAck experiments), a controlled 50/50 campaign on ten public datasets with one final holdout per dataset, a 15-run Telco Churn development benchmark, and live agentic trials. Do not add their experiment counts as if they were independent replications.</p>
+<p>The central lesson is simple: <strong>the best model is usually determined earlier than training</strong>. A precise prediction contract, honest split, leakage-safe feature set and meaningful objective can matter more than the last round of hyperparameter tuning.</p>
+<h3>What the evidence says</h3>
+<ul>
+<li>No algorithm won everywhere. LightGBM has the strongest mean registry rank; Extra Trees was selected on 7/10 controlled campaign datasets; engineered logistic regression led churn; a safe soft-voting ensemble led HyperAck.</li>
+<li>Feature engineering was selective, not automatically beneficial: raw features were retained on 7/10 controlled datasets; ratios helped two, interactions helped one, and charge-domain features helped churn.</li>
+<li>Leakage produced larger apparent improvements than most legitimate optimization: +0.1328 for bank marketing, +0.1575 for online shoppers and +0.0347 for HyperAck in the historical registry.</li>
+<li>A feature&#x27;s importance does not prove that it exists at prediction time, remains available, is causal, or survives production missingness.</li>
+<li>Final holdouts, once consumed, are historical evidence. They must not be reused for further selection.</li>
+</ul>
+<h2>1. Start with the prediction contract</h2>
+<p>Before EDA, write one sentence: <code>For [entity], at [time], predict [outcome during window], so [decision] can be made, with [error costs].</code> This sentence determines whether a feature is legal. The same column can be safe for a retrospective diagnosis model and leakage for an early-warning model.</p>
+<p>Minimum contract:</p>
+<p class='step'>1. unit of prediction and grouping identity;</p>
+<p class='step'>2. scoring time and latency budget;</p>
+<p class='step'>3. target definition, observation window and label delay;</p>
+<p class='step'>4. permitted source systems and data cutoff;</p>
+<p class='step'>5. action taken from the prediction;</p>
+<p class='step'>6. false-positive, false-negative, abstention and delay costs;</p>
+<p class='step'>7. populations, exclusions, privacy and fairness constraints.</p>
+<h2>2. Data understanding and EDA</h2>
+<div class='table-wrap'><table><thead><tr><th>Dataset</th><th>Source rows</th><th>Features</th><th>Positive rate</th><th>Duplicate rate</th><th>Risk flags</th></tr></thead><tbody>
+<tr><td>adult</td><td>48842</td><td>14</td><td>0.239</td><td>0.000</td><td>0</td></tr>
+<tr><td>bank_marketing</td><td>45211</td><td>16</td><td>0.117</td><td>0.000</td><td>0</td></tr>
+<tr><td>breast_cancer</td><td>569</td><td>30</td><td>0.374</td><td>0.000</td><td>1</td></tr>
+<tr><td>heart_disease</td><td>303</td><td>13</td><td>0.459</td><td>0.000</td><td>3</td></tr>
+<tr><td>credit_default</td><td>30000</td><td>23</td><td>0.221</td><td>0.000</td><td>0</td></tr>
+<tr><td>german_credit</td><td>1000</td><td>20</td><td>0.300</td><td>0.000</td><td>0</td></tr>
+<tr><td>mushroom</td><td>8124</td><td>22</td><td>0.482</td><td>0.000</td><td>1</td></tr>
+<tr><td>spambase</td><td>4601</td><td>57</td><td>0.394</td><td>0.071</td><td>0</td></tr>
+<tr><td>online_shoppers</td><td>12330</td><td>17</td><td>0.155</td><td>0.005</td><td>0</td></tr>
+<tr><td>wine_quality</td><td>6497</td><td>11</td><td>0.633</td><td>0.099</td><td>0</td></tr>
+</tbody></table></div>
+<h3>An intuitive EDA sequence</h3>
+<p class='step'>1. <strong>Shape and schema:</strong> one row per intended entity-event, unique keys, types, units and category meanings.</p>
+<p class='step'>2. <strong>Target construction:</strong> independently reproduce the label and check that its time window follows the prediction moment.</p>
+<p class='step'>3. <strong>Missingness:</strong> distinguish not-collected, not-applicable, delayed, failed-system and true unknown states.</p>
+<p class='step'>4. <strong>Duplicates and entities:</strong> exact duplicates are only the easiest case; repeated people, devices, households or orders need grouped validation.</p>
+<p class='step'>5. <strong>Distributions:</strong> inspect ranges, tails, impossible values, cardinality and slices. Random-split PSI is only a smoke test.</p>
+<p class='step'>6. <strong>Target associations:</strong> use them to generate questions, never to approve features. Target-aware summaries belong inside training partitions.</p>
+<p class='step'>7. <strong>Representativeness:</strong> compare time, geography, source system and deployment population—not only random rows.</p>
+<h3>EDA questions an LLM agent should ask</h3>
+<ul>
+<li>What real-world event creates each row and each column?</li>
+<li>Which fields can be revised after the event?</li>
+<li>Are nulls generated by the business process?</li>
+<li>Does one entity appear more than once?</li>
+<li>Which categories or ranges could appear after deployment but not in training?</li>
+<li>Which high associations are plausible mechanisms, and which look like outcome recording?</li>
+</ul>
+<h2>3. Leakage: the practical taxonomy</h2>
+<div class='table-wrap'><table><thead><tr><th>Dataset</th><th>Safe AUC</th><th>Unsafe AUC</th><th>Apparent lift</th></tr></thead><tbody>
+<tr><td>bank_marketing</td><td>0.8029</td><td>0.9357</td><td>0.1328</td></tr>
+<tr><td>hyperack</td><td>0.9455</td><td>0.9802</td><td>0.0347</td></tr>
+<tr><td>online_shoppers</td><td>0.7737</td><td>0.9311</td><td>0.1575</td></tr>
+</tbody></table></div>
+<h3>Leakage types</h3>
+<ul>
+<li><strong>Direct target leakage:</strong> a target copy or deterministic encoding.</li>
+<li><strong>Post-outcome leakage:</strong> information recorded because the outcome already happened, such as HyperAck final fares.</li>
+<li><strong>Future leakage:</strong> later measurements used to predict an earlier event.</li>
+<li><strong>Window leakage:</strong> aggregates whose calculation window crosses the prediction time.</li>
+<li><strong>Entity leakage:</strong> the same person/order/device appears across train and evaluation.</li>
+<li><strong>Preprocessing leakage:</strong> imputers, encoders, scalers or selectors fitted before splitting.</li>
+<li><strong>Selection leakage:</strong> repeated model/feature decisions made from the same test or holdout.</li>
+<li><strong>External-data leakage:</strong> a join uses current values instead of the historically available vintage.</li>
+</ul>
+<h3>How to decide whether a feature is leakage</h3>
+<p>Use four tests together: (1) semantic availability at the exact prediction moment, (2) source lineage and event timestamps, (3) split/pipeline isolation, and (4) a removal or time-shift ablation to measure severity. The ablation measures impact; it does not replace the semantic proof.</p>
+<h2>4. Feature engineering</h2>
+<div class='table-wrap'><table><thead><tr><th>Dataset</th><th>Raw CV AUC</th><th>Selected recipe</th><th>Δ vs raw</th><th>Selected model</th><th>Final holdout AUC</th></tr></thead><tbody>
+<tr><td>adult</td><td>0.8955</td><td>raw</td><td>0.0000</td><td>lightgbm</td><td>0.9097</td></tr>
+<tr><td>bank_marketing</td><td>0.7130</td><td>ratios</td><td>0.0042</td><td>extra_trees</td><td>0.7718</td></tr>
+<tr><td>breast_cancer</td><td>0.9907</td><td>raw</td><td>0.0000</td><td>logistic_regression</td><td>0.9960</td></tr>
+<tr><td>heart_disease</td><td>0.8700</td><td>raw</td><td>0.0000</td><td>extra_trees</td><td>0.9448</td></tr>
+<tr><td>credit_default</td><td>0.7317</td><td>raw</td><td>0.0000</td><td>extra_trees</td><td>0.7746</td></tr>
+<tr><td>german_credit</td><td>0.7527</td><td>interactions</td><td>0.0073</td><td>extra_trees</td><td>0.7943</td></tr>
+<tr><td>mushroom</td><td>1.0000</td><td>raw</td><td>0.0000</td><td>extra_trees</td><td>1.0000</td></tr>
+<tr><td>spambase</td><td>0.9869</td><td>raw</td><td>0.0000</td><td>hist_gradient_boosting</td><td>0.9849</td></tr>
+<tr><td>online_shoppers</td><td>0.7156</td><td>raw</td><td>0.0000</td><td>extra_trees</td><td>0.7394</td></tr>
+<tr><td>wine_quality</td><td>0.8398</td><td>ratios</td><td>0.0031</td><td>extra_trees</td><td>0.8878</td></tr>
+</tbody></table></div>
+<h3>Generation ladder</h3>
+<p>Move from interpretable, low-search transformations toward higher-risk ones:</p>
+<p class='step'>1. correct units, data types, category semantics and missing states;</p>
+<p class='step'>2. monotonic transforms for skew (<code>log1p</code>, clipping only with a domain reason);</p>
+<p class='step'>3. domain ratios and differences with explicit denominator-zero behavior;</p>
+<p class='step'>4. calendar/cyclical features derived from timestamps available at scoring time;</p>
+<p class='step'>5. bounded interactions representing a mechanism;</p>
+<p class='step'>6. history/count/recency aggregates computed strictly before the cutoff;</p>
+<p class='step'>7. external features with licensed, point-in-time joins;</p>
+<p class='step'>8. learned representations only after simpler baselines and leakage controls.</p>
+<h3>Feature reliability scorecard</h3>
+<p>A feature should answer <strong>yes</strong> to: Is it known at scoring time? Is the formula reproducible online? Is its unit and category mapping stable? Does it appear often enough? Does it help on paired folds? Is the gain stable across time/slices? Can the model tolerate its absence? Can drift, coverage and latency be monitored? Is its use lawful and fair? A <code>no</code> does not always mean remove it; it means define fallback, redesign or collect better evidence.</p>
+<h3>What not to do</h3>
+<p>Do not create every pairwise interaction, use feature importance as approval, arithmetic-combine categorical codes, compute customer history across the cutoff, tune feature recipes against the final holdout, or keep a feature merely because a complex model can use it.</p>
+<h2>5. Model-family selection</h2>
+<div class='table-wrap'><table><thead><tr><th>Family</th><th>Datasets</th><th>Wins</th><th>Mean rank</th><th>Mean ROC-AUC</th></tr></thead><tbody>
+<tr><td>lightgbm</td><td>11</td><td>3</td><td>2.55</td><td>0.8998</td></tr>
+<tr><td>xgboost</td><td>11</td><td>1</td><td>3.55</td><td>0.8982</td></tr>
+<tr><td>ensemble</td><td>11</td><td>2</td><td>3.64</td><td>0.8982</td></tr>
+<tr><td>hist_gradient_boosting</td><td>11</td><td>1</td><td>4.36</td><td>0.8975</td></tr>
+<tr><td>extra_trees</td><td>11</td><td>1</td><td>4.55</td><td>0.8948</td></tr>
+<tr><td>logistic_regression</td><td>11</td><td>0</td><td>7.64</td><td>0.8528</td></tr>
+<tr><td>catboost</td><td>9</td><td>3</td><td>3.56</td><td>0.9217</td></tr>
+<tr><td>random_forest</td><td>9</td><td>0</td><td>5.22</td><td>0.9226</td></tr>
+<tr><td>tabular_transformer</td><td>1</td><td>0</td><td>8.00</td><td>0.9186</td></tr>
+<tr><td>linear_svc</td><td>1</td><td>0</td><td>9.00</td><td>0.8829</td></tr>
+</tbody></table></div>
+<h3>Practical defaults by data behavior</h3>
+<ul>
+<li><strong>Dummy + logistic regression:</strong> mandatory floors; often competitive on additive effects and smaller data, and easiest to calibrate/explain.</li>
+<li><strong>Extra Trees / Random Forest:</strong> strong when nonlinear interactions and mixed thresholds matter; regularization via depth/leaf size is often more valuable than more trees.</li>
+<li><strong>Histogram boosting / LightGBM / XGBoost / CatBoost:</strong> strong general tabular candidates. Prefer native categorical handling only when raw semantics are preserved and fold isolation is verified.</li>
+<li><strong>Ensembles:</strong> use only when members make complementary errors and the gain survives paired evaluation; HyperAck&#x27;s safe ensemble gain is narrow.</li>
+<li><strong>Tabular transformers:</strong> not a default. They need data scale, appropriate regularization and evidence that they beat strong boosted-tree/linear baselines for the same cost.</li>
+</ul>
+<p>The correct conclusion is not &#x27;LightGBM is best.&#x27; It is: &#x27;LightGBM is a strong default challenger in this registry, while the winner changes with sample size, representation, objective and protocol.&#x27;</p>
+<h2>6. Optimization without fooling yourself</h2>
+<p class='step'>1. Freeze the metric, folds, feature recipe and candidate family.</p>
+<p class='step'>2. Search a small explicit space based on model behavior.</p>
+<p class='step'>3. Compare every candidate to its paired baseline on identical folds.</p>
+<p class='step'>4. Check mean delta, direction across folds, variability, log loss/Brier/calibration, runtime and complexity.</p>
+<p class='step'>5. Accept tuning only if it clears a predeclared useful margin; otherwise keep the baseline.</p>
+<p class='step'>6. Select thresholds from OOF predictions and decision costs—not from the final test.</p>
+<p class='step'>7. Evaluate the locked pipeline once on the untouched holdout.</p>
+<p>The campaign&#x27;s +0.001 CV gate and 0.002 feature tolerance are DCLab conventions for screening, not statistical laws. A high-risk or noisy use case should demand a larger margin and stronger replication.</p>
+<h2>7. Evaluation and production reliability</h2>
+<p>Report discrimination (ROC-AUC and average precision), probability quality (log loss, Brier and calibration), operating metrics at cost-selected thresholds, uncertainty, runtime, and slice/stress results. For imbalance, accuracy can be actively misleading. For intervention systems, calibration and decision cost may matter more than rank.</p>
+<p>A production challenge set should include later time, unseen entities, source outages, missing critical features, rare categories, geographic/source shifts and protected/relevant subgroups. Define a performance floor and rollback rule before deployment.</p>
+<h2>8. Case studies</h2>
+<h3>HyperAck</h3>
+<p>The unsafe historical ceiling reached about 0.9802 ROC-AUC, while the optimized safe champion reached 0.9455. Final customer and biker fares are forbidden for pre-dispatch prediction. The 0.0347 gap shows how a plausible business field can create a large false improvement. The safe champion is still historical random-split evidence; temporal, zone and demand-regime backtests remain necessary.</p>
+<h3>Telco Churn</h3>
+<p>Across 15 repeated development-CV comparisons, logistic regression with tenure/charge features led at 0.8499 ROC-AUC and improved +0.0050 over plain logistic regression. Regularized histogram boosting was second at 0.8478. The lesson is not that logistic always wins; it is that domain representation can outperform complexity when the signal is mostly additive and the data are modest. There is no independent churn holdout yet.</p>
+<h3>Controlled 50-experiment campaign</h3>
+<p>Raw features were selected on 7/10 datasets, ratios on two and interactions on one. Extra Trees led the model screen on seven datasets, but the historical registry gives LightGBM the best average rank across eleven. These results differ because protocols, candidate sets and selection rules differ. That disagreement is useful evidence against universal model rules.</p>
+<h2>9. Reusable workflow blocks</h2>
+<h3>WF-01 · Prediction contract</h3>
+<p>define entity and decision → define prediction moment → define target window → define action and costs → freeze allowable information</p>
+<h3>WF-02 · Source and lineage gate</h3>
+<p>inventory sources → hash immutable snapshot → record event timestamps → map raw-to-modeled fields → label owner and SLA</p>
+<h3>WF-03 · Split design</h3>
+<p>identify independence unit → choose group/time/domain split → lock test IDs → verify no overlap → version split manifest</p>
+<h3>WF-04 · Train-only EDA</h3>
+<p>schema and type audit → target and missingness profile → duplicates/entities → distribution slices → association hypotheses without promotion</p>
+<h3>WF-05 · Leakage audit</h3>
+<p>semantic availability matrix → lineage/timestamp check → target-proxy review → split/preprocessing audit → safe-vs-unsafe severity ablation</p>
+<h3>WF-06 · Feature ladder</h3>
+<p>raw baseline → single domain transform → ratios/differences → bounded interactions → external point-in-time features → retain only reproducible lift</p>
+<h3>WF-07 · Algorithm screen</h3>
+<p>dummy floor → regularized linear model → bagged trees → boosting families → domain-appropriate specialist → rank on identical folds</p>
+<h3>WF-08 · Conservative optimization</h3>
+<p>freeze objective → small explicit search → paired fold comparison → proper scoring and runtime → accept or keep baseline</p>
+<h3>WF-09 · Reliability challenge</h3>
+<p>calibration → threshold/cost analysis → missing-input stress → subgroup/slice floors → temporal/domain holdout → failure and rollback rule</p>
+<h3>WF-10 · Knowledge capture</h3>
+<p>observed result → narrow interpretation → limitations/counterexample → evidence paths and hashes → next discriminating test → human review status</p>
+<h2>10. Rules for future use cases</h2>
+<h3>DCLAB-R01 · Problem Contract</h3>
+<p><strong>Rule:</strong> Write the prediction moment, target window, action, unit of prediction and error costs before inspecting target associations.</p>
+<p><strong>Why:</strong> Leakage is defined relative to what is knowable at a specific decision moment, not by a column name.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/AGENT_CONTEXT.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R02 · Splitting</h3>
+<p><strong>Rule:</strong> Split by the real independence unit and time direction before preprocessing or feature selection.</p>
+<p><strong>Why:</strong> Random rows leak entity history and future regimes when observations are related.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R03 · Eda</h3>
+<p><strong>Rule:</strong> Fit target-aware EDA, imputers, encoders, scalers, selectors and learned aggregations on training partitions only.</p>
+<p><strong>Why:</strong> Any statistic that sees evaluation labels or distributions can make validation optimistic.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R04 · Leakage</h3>
+<p><strong>Rule:</strong> Treat post-outcome, future, target-derived, cross-split aggregate, duplicate/entity and preprocessing leakage as separate failure modes.</p>
+<p><strong>Why:</strong> One correlation detector cannot identify all leakage mechanisms.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>EXP-007</code>, <code>EXP-042</code>, <code>knowledge/KNOWLEDGE_BASE.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R05 · Leakage</h3>
+<p><strong>Rule:</strong> A suspicious name or high univariate AUC starts a semantic review; it does not prove leakage.</p>
+<p><strong>Why:</strong> Availability requires source lineage and timestamps; useful real predictors can also be highly associated.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R06 · Leakage</h3>
+<p><strong>Rule:</strong> A large safe-versus-unsafe score gap is a severity demonstration, not the primary proof of leakage.</p>
+<p><strong>Why:</strong> Bank marketing and online shoppers showed +0.1328 to +0.1575 registry gaps, while semantics identified the forbidden fields.</p>
+<p><strong>Confidence:</strong> strong empirical. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>knowledge/evidence.json</code>, <code>EXP-007</code>, <code>EXP-042</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R07 · Feature Engineering</h3>
+<p><strong>Rule:</strong> Begin with a strong raw baseline and promote the smallest defensible feature set within a predeclared tolerance.</p>
+<p><strong>Why:</strong> Seven of ten campaign datasets selected raw features; extra features often added dilution without repeatable lift.</p>
+<p><strong>Confidence:</strong> moderate empirical. <strong>Exceptions:</strong> Domain transformations may still be essential when raw representation hides a known relationship.</p>
+<p><strong>Evidence:</strong> <code>EXP-003</code>, <code>EXP-013</code>, <code>EXP-023</code>, <code>EXP-033</code>, <code>EXP-038</code>, <code>EXP-043</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R08 · Feature Engineering</h3>
+<p><strong>Rule:</strong> Generate features from domain invariances and mechanisms before blind combinatorial expansion.</p>
+<p><strong>Why:</strong> Ratios helped bank marketing and wine quality; interactions helped German credit; churn charge/tenure features improved logistic AUC by +0.0050.</p>
+<p><strong>Confidence:</strong> moderate empirical. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>EXP-008</code>, <code>EXP-028</code>, <code>EXP-048</code>, <code>CHURN-014</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R09 · Feature Engineering</h3>
+<p><strong>Rule:</strong> Every generated feature needs explicit lineage, availability time, units, null behavior and a reproducible formula.</p>
+<p><strong>Why:</strong> A mathematically valid feature can still be unavailable, unstable or impossible to reproduce online.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code>, <code>churn_exp/results/CHURN-014/recipe.json</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R10 · Feature Reliability</h3>
+<p><strong>Rule:</strong> Importance is only a nomination signal; production reliability additionally requires availability, fold stability, coverage, missing-input resilience and drift monitoring.</p>
+<p><strong>Why:</strong> The campaign explicitly rejects importance-only promotion and the agentic worker measures missing-input stress.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>EXP-005</code>, <code>dclab_rnd/agentic/worker.py</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R11 · Categoricals</h3>
+<p><strong>Rule:</strong> Preserve raw categorical semantics and fit encoders inside folds; do not treat arbitrary category codes as ordered numbers.</p>
+<p><strong>Why:</strong> Legacy factorized caches lose labels and can introduce false ordinal structure.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>dclab_rnd/agentic/catalog.py</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R12 · Missingness</h3>
+<p><strong>Rule:</strong> Model missingness as an operational state: measure coverage, add indicators when justified, simulate absence, and define fallback behavior.</p>
+<p><strong>Why:</strong> A feature that disappears in production can dominate offline ranking yet make the system brittle.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>dclab_rnd/agentic/worker.py</code>, <code>churn_exp/results/CHURN-014/result.json</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R13 · Model Selection</h3>
+<p><strong>Rule:</strong> There is no universal best tabular algorithm; screen a transparent linear baseline and several nonlinear families on identical folds.</p>
+<p><strong>Why:</strong> LightGBM had best mean rank across the registry, Extra Trees won 7/10 in the controlled campaign, logistic won churn, and an ensemble won HyperAck.</p>
+<p><strong>Confidence:</strong> strong empirical. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>knowledge/evidence.json</code>, <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>CHURN-014</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R14 · Model Selection</h3>
+<p><strong>Rule:</strong> Use mean performance, fold stability, probability quality, runtime and operational constraints—not ROC-AUC alone.</p>
+<p><strong>Why:</strong> Small AUC wins can coincide with worse log loss, calibration, recall or latency.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>EXP-004</code>, <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>CHURN-010</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R15 · Optimization</h3>
+<p><strong>Rule:</strong> Optimize only after data, leakage, features, metric and candidate family are locked.</p>
+<p><strong>Why:</strong> Early broad tuning increases adaptive overfitting and obscures what caused improvement.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R16 · Optimization</h3>
+<p><strong>Rule:</strong> Compare tuning and feature changes with a paired baseline on the same folds and demand a predeclared useful margin.</p>
+<p><strong>Why:</strong> The campaign used a 0.001 CV gate; this is a project convention, not a universal constant.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> Use a larger gate when business value, noise or retraining cost demands it.</p>
+<p><strong>Evidence:</strong> <code>EXP-005</code>, <code>EXP-030</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R17 · Evaluation</h3>
+<p><strong>Rule:</strong> Consume the final holdout once, after all choices are locked, and never tune from its result.</p>
+<p><strong>Why:</strong> Repeated consultation converts a holdout into development data.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R18 · Evaluation</h3>
+<p><strong>Rule:</strong> Choose metrics and thresholds from the real decision cost; report ranking, probability quality and operating-point errors together.</p>
+<p><strong>Why:</strong> AUC does not specify calibration or the false-positive/false-negative tradeoff.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>churn_exp/CHURN_BENCHMARK.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R19 · Generalization</h3>
+<p><strong>Rule:</strong> Use temporal, geographic, source-system and out-of-domain slices when those shifts exist.</p>
+<p><strong>Why:</strong> Random CV estimates interpolation under the historical mixture, not future operational performance.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>knowledge/NEXT_EXPERIMENTS.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R20 · Llm Governance</h3>
+<p><strong>Rule:</strong> Let LLM agents propose hypotheses, challenge semantics and curate cited lessons; deterministic executors own splits, metrics and artifacts.</p>
+<p><strong>Why:</strong> This preserves creativity without letting generated text become measurement.</p>
+<p><strong>Confidence:</strong> high system-design. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>dclab_rnd/agentic/agents.py</code>, <code>dclab_rnd/agentic/engine.py</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R21 · Knowledge</h3>
+<p><strong>Rule:</strong> Store claims with scope, evidence IDs, counterevidence, uncertainty and the next discriminating test.</p>
+<p><strong>Why:</strong> A score without context cannot teach a future person or model when the lesson applies.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/agent_memory.jsonl</code>, <code>dclab_rnd/agentic/store.py</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h3>DCLAB-R22 · Promotion</h3>
+<p><strong>Rule:</strong> A candidate is not production-ready until provenance, independent confirmation, feature contracts, monitoring, fairness/privacy and rollback gates are reviewed.</p>
+<p><strong>Why:</strong> Benchmark excellence does not establish operational safety.</p>
+<p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>knowledge/DATA_QUALITY.md</code></p>
+<p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
+<h2>11. LLM-agent operating model</h2>
+<p>Use agents as a scientific team with constrained responsibilities:</p>
+<ul>
+<li><strong>Planner:</strong> converts the business goal into falsifiable questions and budgets.</li>
+<li><strong>Data/lineage reviewer:</strong> audits schema, timing, missingness and leakage hypotheses.</li>
+<li><strong>Experiment designer:</strong> proposes one bounded, typed experiment and cites prior evidence.</li>
+<li><strong>Deterministic executor:</strong> owns data, splits, transformations, training and metrics; it never executes generated code.</li>
+<li><strong>Results critic:</strong> separates observation from interpretation and requests counterevidence.</li>
+<li><strong>Knowledge curator:</strong> stores narrow claims, evidence paths, scope, exceptions and next tests.</li>
+</ul>
+<p>LLM outputs are suggestions, not measurements. Never allow an agent to invent rows, metrics, citations, production availability or approvals. The strongest future training record is not a chat transcript; it is a structured decision with an evidence pointer and a known counterexample.</p>
+<h2>12. Future-LLM training format</h2>
+<p>Each durable example should contain: problem contract, dataset fingerprint, split protocol, hypothesis, workflow block IDs, typed configuration, measured outputs, observation, interpretation, limitations, counterevidence, failure mode, next test, human-review status and <code>training_ready=false</code> until curated. Include negative results and rejected experiments so the model learns when not to add complexity.</p>
+<h2>13. Remaining evidence gaps</h2>
+<p class='step'>1. Reproduce historical champions with complete code/data/environment provenance; only 10 registry records currently contain it.</p>
+<p class='step'>2. Restore raw category labels and compare fold-fitted/native categorical handling to legacy codes.</p>
+<p class='step'>3. Add temporal and operational holdouts for HyperAck and an untouched confirmation set for churn.</p>
+<p class='step'>4. Repeat close choices with more resamples or nested validation.</p>
+<p class='step'>5. Add cost matrices, threshold selection, fairness/privacy review and monitoring contracts.</p>
+<p class='step'>6. Treat 1.0 benchmark scores as audit triggers for duplicates, target proxies and overly easy splits—not automatic success.</p>
+<h2>Evidence map</h2>
+<ul>
+<li>Controlled campaign: <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></li>
+<li>Historical registry: <code>knowledge/KNOWLEDGE_BASE.md</code> and <code>knowledge/evidence.json</code></li>
+<li>Churn campaign: <code>churn_exp/CHURN_BENCHMARK.md</code></li>
+<li>HyperAck safe report: <code>optimized_safe_model/OPTIMIZED_SAFE_REPORT.md</code></li>
+<li>Machine rules: <code>knowledge/model_building_rules.jsonl</code></li>
+<li>Evidence pack: <code>knowledge/master_evidence_pack.json</code></li>
+<li>Typed GPT-6 Astra workflow: <code>dclab_rnd/agentic/guide_review.py</code> (advisory review appears when API credits are available)</li>
+<li>Reviewer lifecycle status: <code>knowledge/gpt6_astra_master_review_status.json</code></li>
+</ul></main></body></html>

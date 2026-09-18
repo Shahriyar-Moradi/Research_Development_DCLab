@@ -108,6 +108,11 @@ def create_app(home=None):
         return FileResponse(path, filename=filename)
     @app.get("/api/knowledge")
     async def knowledge(): return store.knowledge()
+    @app.get("/guide")
+    async def guide():
+        path = ROOT / "knowledge" / "MODEL_BUILDING_FIELD_GUIDE.html"
+        if not path.is_file(): raise HTTPException(404, "Build the field guide with: .venv/bin/python -m dclab_rnd.master_review build")
+        return FileResponse(path, media_type="text/html")
     @app.get("/")
     async def index(): return FileResponse(STATIC / "index.html")
     @app.get("/favicon.ico", include_in_schema=False)

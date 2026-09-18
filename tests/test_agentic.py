@@ -89,6 +89,7 @@ def test_local_api_security_and_missing_key(monkeypatch):
         assert client.post("/api/runs",json={},headers={"X-DCLab-Token":token}).status_code==409
         assert client.get("/api/config",headers={"Host":"evil.example"}).status_code==400
         assert client.get("/api/runs/missing").status_code==404
+        assert client.get("/guide").status_code==200
         assert client.get("/").headers["Content-Security-Policy"].startswith("default-src 'self'")
 
 def test_real_worker_profile_and_trial():

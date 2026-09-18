@@ -1,0 +1,2390 @@
+{
+  "schema_version": 1,
+  "scope": {
+    "registry_experiments": 579,
+    "registry_datasets": 11,
+    "campaign_experiments": 50,
+    "campaign_datasets": 10,
+    "hyperack_historical_experiments": 83,
+    "churn_experiments": 15,
+    "distinct_datasets_including_churn": 12
+  },
+  "boundaries": [
+    "Historical registry records and the 50-experiment campaign use different protocols and must not be pooled as independent replications.",
+    "HyperAck's 83 experiments are included in the 579-record registry inventory.",
+    "The churn campaign is adaptive development CV with no independent holdout.",
+    "Public benchmark performance is not production validation."
+  ],
+  "campaign": [
+    {
+      "dataset": "adult",
+      "evidence_ids": {
+        "data_understanding": "EXP-001",
+        "leakage_audit": "EXP-002",
+        "feature_engineering": "EXP-003",
+        "model_selection": "EXP-004",
+        "optimization_reliability": "EXP-005"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-001_adult_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-002_adult_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-003_adult_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-004_adult_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-005_adult_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 48842,
+        "analyzed_rows": 4000,
+        "feature_count": 14,
+        "positive_rate_train": 0.239375,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.0003125,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Census attributes are contemporaneous. No post-outcome leakage columns; safe and unsafe feature matrices are identical. Focus is FE + optimization ladder.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.895549250905629,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.895549250905629,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "lightgbm",
+        "selected_auc_mean": 0.895549250905629,
+        "selected_auc_std": 0.006452617087274231,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "lightgbm_C02",
+        "cv_lift": 0.006682772447988761,
+        "holdout_metrics": {
+          "accuracy": 0.8575,
+          "avg_precision": 0.7923877827121867,
+          "brier": 0.09713909221549083,
+          "ece_10": 0.026080434704014666,
+          "f1": 0.6833333333333333,
+          "fit_seconds": 0.13832908400036104,
+          "log_loss": 0.31010193410815673,
+          "precision": 0.727810650887574,
+          "recall": 0.643979057591623,
+          "roc_auc": 0.9096536249451939,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.929674276420258,
+          "low": 0.8854969409371798,
+          "median": 0.9106368424935218
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "fnlwgt",
+            "normalized_importance": 0.19333333333333333
+          },
+          {
+            "feature": "age",
+            "normalized_importance": 0.1797037037037037
+          },
+          {
+            "feature": "hours-per-week",
+            "normalized_importance": 0.11748148148148148
+          },
+          {
+            "feature": "education-num",
+            "normalized_importance": 0.08637037037037038
+          },
+          {
+            "feature": "occupation",
+            "normalized_importance": 0.08592592592592592
+          },
+          {
+            "feature": "relationship",
+            "normalized_importance": 0.06992592592592592
+          },
+          {
+            "feature": "capital-gain",
+            "normalized_importance": 0.06918518518518518
+          },
+          {
+            "feature": "workclass",
+            "normalized_importance": 0.03837037037037037
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "bank_marketing",
+      "evidence_ids": {
+        "data_understanding": "EXP-006",
+        "leakage_audit": "EXP-007",
+        "feature_engineering": "EXP-008",
+        "model_selection": "EXP-009",
+        "optimization_reliability": "EXP-010"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-006_bank_marketing_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-007_bank_marketing_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-008_bank_marketing_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-009_bank_marketing_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-010_bank_marketing_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 45211,
+        "analyzed_rows": 4000,
+        "feature_count": 16,
+        "positive_rate_train": 0.116875,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.0,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [
+          "duration"
+        ],
+        "review_candidates": [
+          {
+            "feature": "duration",
+            "reasons": [
+              "declared_post_outcome_or_contested"
+            ],
+            "requires_human_decision_time_review": true,
+            "unique_ratio": 0.239375,
+            "univariate_auc": 0.8117144657515584
+          }
+        ],
+        "policy_rationale": "`duration` is call length known only after the call ends \u2014 classic target leakage for predicting subscription (y). Safe models must drop it (HyperAck analog of final fares).",
+        "safe_vs_unsafe": {
+          "apparent_auc_lift": 0.18424053147044717,
+          "safe": {
+            "elapsed_seconds": 0.3620682090004266,
+            "evaluations": 3,
+            "feature_count_mean": 15.0,
+            "feature_stability": [
+              {
+                "feature": "balance",
+                "mean_normalized_importance": 0.2554444444444444,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "age",
+                "mean_normalized_importance": 0.16966666666666666,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "day_of_week",
+                "mean_normalized_importance": 0.15133333333333335,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "month",
+                "mean_normalized_importance": 0.07877777777777778,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "job",
+                "mean_normalized_importance": 0.07422222222222223,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "campaign",
+                "mean_normalized_importance": 0.0641111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "pdays",
+                "mean_normalized_importance": 0.058666666666666666,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "education",
+                "mean_normalized_importance": 0.03311111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "marital",
+                "mean_normalized_importance": 0.025111111111111112,
+                "observed_folds": 3,
+                "top10_frequency": 0.6666666666666666
+              },
+              {
+                "feature": "housing",
+                "mean_normalized_importance": 0.021333333333333333,
+                "observed_folds": 3,
+                "top10_frequency": 0.6666666666666666
+              },
+              {
+                "feature": "contact",
+                "mean_normalized_importance": 0.02111111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.3333333333333333
+              },
+              {
+                "feature": "poutcome",
+                "mean_normalized_importance": 0.019666666666666666,
+                "observed_folds": 3,
+                "top10_frequency": 0.3333333333333333
+              },
+              {
+                "feature": "previous",
+                "mean_normalized_importance": 0.01677777777777778,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "loan",
+                "mean_normalized_importance": 0.009555555555555555,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "default",
+                "mean_normalized_importance": 0.0011111111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              }
+            ],
+            "fold_metrics": [
+              {
+                "accuracy": 0.8819119025304593,
+                "avg_precision": 0.3257372057171791,
+                "brier": 0.09660339502529411,
+                "ece_10": 0.06296426518356268,
+                "f1": 0.2840909090909091,
+                "fit_seconds": 0.0671198749987525,
+                "log_loss": 0.37333335475133916,
+                "precision": 0.49019607843137253,
+                "recall": 0.2,
+                "roc_auc": 0.7212738853503184,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8791002811621368,
+                "avg_precision": 0.2952599381248807,
+                "brier": 0.09980698721122898,
+                "ece_10": 0.06115803286793543,
+                "f1": 0.26285714285714284,
+                "fit_seconds": 0.04970741599936446,
+                "log_loss": 0.37971812987122566,
+                "precision": 0.46,
+                "recall": 0.184,
+                "roc_auc": 0.719524416135881,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8799249530956847,
+                "avg_precision": 0.2988078573900619,
+                "brier": 0.10049106140772662,
+                "ece_10": 0.06671687361457446,
+                "f1": 0.3118279569892473,
+                "fit_seconds": 0.05008549999911338,
+                "log_loss": 0.3803877816058499,
+                "precision": 0.46774193548387094,
+                "recall": 0.23387096774193547,
+                "roc_auc": 0.6981285528388467,
+                "threshold": 0.5
+              }
+            ],
+            "folds": 3,
+            "metrics": {
+              "accuracy": {
+                "ci95_high": 0.881947884234751,
+                "ci95_low": 0.8786768736241028,
+                "max": 0.8819119025304593,
+                "mean": 0.8803123789294269,
+                "min": 0.8791002811621368,
+                "std": 0.0014452950433008476
+              },
+              "avg_precision": {
+                "ci95_high": 0.32546163275416506,
+                "ci95_low": 0.28774170140058275,
+                "max": 0.3257372057171791,
+                "mean": 0.3066016670773739,
+                "min": 0.2952599381248807,
+                "std": 0.01666654019449357
+              },
+              "brier": {
+                "ci95_high": 0.10131573856299873,
+                "ci95_low": 0.0966185571998344,
+                "max": 0.10049106140772662,
+                "mean": 0.09896714788141657,
+                "min": 0.09660339502529411,
+                "std": 0.0020754481564709813
+              },
+              "ece_10": {
+                "ci95_high": 0.06682189029260487,
+                "ci95_low": 0.06040422415144351,
+                "max": 0.06671687361457446,
+                "mean": 0.06361305722202419,
+                "min": 0.06115803286793543,
+                "std": 0.0028356438322719325
+              },
+              "f1": {
+                "ci95_high": 0.3140478375698526,
+                "ci95_low": 0.2584695017216803,
+                "max": 0.3118279569892473,
+                "mean": 0.28625866964576646,
+                "min": 0.26285714285714284,
+                "std": 0.024557270788051287
+              },
+              "log_loss": {
+                "ci95_high": 0.38221954782797984,
+                "ci95_low": 0.37340662965762994,
+                "max": 0.3803877816058499,
+                "mean": 0.3778130887428049,
+                "min": 0.37333335475133916,
+                "std": 0.0038939852127533228
+              },
+              "precision": {
+                "ci95_high": 0.49039413414706384,
+                "ci95_low": 0.45489787512976515,
+                "max": 0.49019607843137253,
+                "mean": 0.4726460046384145,
+                "min": 0.46,
+                "std": 0.01568401124912913
+              },
+              "recall": {
+                "ci95_high": 0.23477171459727608,
+                "ci95_low": 0.1771422638973476,
+                "max": 0.23387096774193547,
+                "mean": 0.20595698924731184,
+                "min": 0.184,
+                "std": 0.025463555261367836
+              },
+              "roc_auc": {
+                "ci95_high": 0.7275593734912061,
+                "ci95_low": 0.6983918627254914,
+                "max": 0.7212738853503184,
+                "mean": 0.7129756181083488,
+                "min": 0.6981285528388467,
+                "std": 0.01288765575931893
+              }
+            },
+            "model": "lightgbm",
+            "model_params": {},
+            "optimization": "baseline",
+            "repeats": 1,
+            "stage": "raw"
+          },
+          "unsafe": {
+            "elapsed_seconds": 0.3604031250015396,
+            "evaluations": 3,
+            "feature_count_mean": 16.0,
+            "feature_stability": [
+              {
+                "feature": "duration",
+                "mean_normalized_importance": 0.2007777777777778,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "balance",
+                "mean_normalized_importance": 0.16277777777777777,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "age",
+                "mean_normalized_importance": 0.13255555555555557,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "day_of_week",
+                "mean_normalized_importance": 0.13255555555555557,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "month",
+                "mean_normalized_importance": 0.0908888888888889,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "job",
+                "mean_normalized_importance": 0.05088888888888889,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "pdays",
+                "mean_normalized_importance": 0.05088888888888889,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "campaign",
+                "mean_normalized_importance": 0.04466666666666667,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "education",
+                "mean_normalized_importance": 0.029,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "contact",
+                "mean_normalized_importance": 0.021666666666666667,
+                "observed_folds": 3,
+                "top10_frequency": 0.6666666666666666
+              },
+              {
+                "feature": "marital",
+                "mean_normalized_importance": 0.021444444444444443,
+                "observed_folds": 3,
+                "top10_frequency": 0.3333333333333333
+              },
+              {
+                "feature": "poutcome",
+                "mean_normalized_importance": 0.020666666666666667,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "housing",
+                "mean_normalized_importance": 0.01711111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "previous",
+                "mean_normalized_importance": 0.015111111111111112,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "loan",
+                "mean_normalized_importance": 0.00811111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "default",
+                "mean_normalized_importance": 0.000888888888888889,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              }
+            ],
+            "fold_metrics": [
+              {
+                "accuracy": 0.8884723523898782,
+                "avg_precision": 0.5423807093339138,
+                "brier": 0.07565017909693812,
+                "ece_10": 0.0499173912638387,
+                "f1": 0.41379310344827586,
+                "fit_seconds": 0.054188292000617366,
+                "log_loss": 0.2475061414534819,
+                "precision": 0.5384615384615384,
+                "recall": 0.336,
+                "roc_auc": 0.9146751592356688,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8865979381443299,
+                "avg_precision": 0.472177156608149,
+                "brier": 0.08519995096064309,
+                "ece_10": 0.06176586460525201,
+                "f1": 0.4097560975609756,
+                "fit_seconds": 0.05329604100006691,
+                "log_loss": 0.3008788249376267,
+                "precision": 0.525,
+                "recall": 0.336,
+                "roc_auc": 0.893104033970276,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8855534709193246,
+                "avg_precision": 0.4908209635596231,
+                "brier": 0.08399925871683611,
+                "ece_10": 0.05933867930418813,
+                "f1": 0.42452830188679247,
+                "fit_seconds": 0.05256358299993735,
+                "log_loss": 0.2957962782450255,
+                "precision": 0.5113636363636364,
+                "recall": 0.3629032258064516,
+                "roc_auc": 0.883869255530443,
+                "threshold": 0.5
+              }
+            ],
+            "folds": 3,
+            "metrics": {
+              "accuracy": {
+                "ci95_high": 0.888548205379748,
+                "ci95_low": 0.8852009689226072,
+                "max": 0.8884723523898782,
+                "mean": 0.8868745871511776,
+                "min": 0.8855534709193246,
+                "std": 0.0014789754103864264
+              },
+              "avg_precision": {
+                "ci95_high": 0.5429439659515386,
+                "ci95_low": 0.4606419203829188,
+                "max": 0.5423807093339138,
+                "mean": 0.5017929431672287,
+                "min": 0.472177156608149,
+                "std": 0.03636513379890266
+              },
+              "brier": {
+                "ci95_high": 0.08750275578545619,
+                "ci95_low": 0.07573017006415536,
+                "max": 0.08519995096064309,
+                "mean": 0.08161646292480577,
+                "min": 0.07565017909693812,
+                "std": 0.005201713419834937
+              },
+              "ece_10": {
+                "ci95_high": 0.06408985213400889,
+                "ci95_low": 0.049924771314843665,
+                "max": 0.06176586460525201,
+                "mean": 0.05700731172442628,
+                "min": 0.0499173912638387,
+                "std": 0.006258836651049375
+              },
+              "f1": {
+                "ci95_high": 0.42466565721036315,
+                "ci95_low": 0.4073860113869994,
+                "max": 0.42452830188679247,
+                "mean": 0.4160258342986813,
+                "min": 0.4097560975609756,
+                "std": 0.007635006250729919
+              },
+              "log_loss": {
+                "ci95_high": 0.3147278781435925,
+                "ci95_low": 0.24805961828049694,
+                "max": 0.3008788249376267,
+                "mean": 0.2813937482120447,
+                "min": 0.2475061414534819,
+                "std": 0.02945735034058327
+              },
+              "precision": {
+                "ci95_high": 0.540273912752634,
+                "ci95_low": 0.5096095371308159,
+                "max": 0.5384615384615384,
+                "mean": 0.524941724941725,
+                "min": 0.5113636363636364,
+                "std": 0.013549045040654498
+              },
+              "recall": {
+                "ci95_high": 0.36254451612903227,
+                "ci95_low": 0.32739096774193555,
+                "max": 0.3629032258064516,
+                "mean": 0.3449677419354839,
+                "min": 0.336,
+                "std": 0.01553258466142412
+              },
+              "roc_auc": {
+                "ci95_high": 0.9151060237427557,
+                "ci95_low": 0.8793262754148361,
+                "max": 0.9146751592356688,
+                "mean": 0.8972161495787959,
+                "min": 0.883869255530443,
+                "std": 0.015809270914791895
+              }
+            },
+            "model": "lightgbm",
+            "model_params": {},
+            "optimization": "baseline",
+            "repeats": 1,
+            "stage": "raw"
+          }
+        }
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.7129756181083488,
+        "selected_stage": "ratios",
+        "selected_auc_mean": 0.7171968586626486,
+        "selected_vs_raw_auc": 0.004221240554299843,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 0.7288407757459535,
+        "selected_auc_std": 0.02954342984875996,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "extra_trees_C02",
+        "cv_lift": 0.023465938406045272,
+        "holdout_metrics": {
+          "accuracy": 0.88625,
+          "avg_precision": 0.3915037952265037,
+          "brier": 0.08698659707238321,
+          "ece_10": 0.027231064943742295,
+          "f1": 0.2222222222222222,
+          "fit_seconds": 0.622739291000471,
+          "log_loss": 0.3065981479262125,
+          "precision": 0.5652173913043478,
+          "recall": 0.13829787234042554,
+          "roc_auc": 0.7718039901151228,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.8290159504824489,
+          "low": 0.712635957605465,
+          "median": 0.7746852853912043
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "poutcome",
+            "normalized_importance": 0.11909947333202626
+          },
+          {
+            "feature": "log1p_poutcome",
+            "normalized_importance": 0.10879852145113804
+          },
+          {
+            "feature": "month",
+            "normalized_importance": 0.05214404423761857
+          },
+          {
+            "feature": "log1p_month",
+            "normalized_importance": 0.05038010576538126
+          },
+          {
+            "feature": "housing",
+            "normalized_importance": 0.038075480664963295
+          },
+          {
+            "feature": "ratio_day_of_week_div_month",
+            "normalized_importance": 0.036568413357716115
+          },
+          {
+            "feature": "ratio_pdays_div_month",
+            "normalized_importance": 0.034440993641249563
+          },
+          {
+            "feature": "contact",
+            "normalized_importance": 0.03400139334982101
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "breast_cancer",
+      "evidence_ids": {
+        "data_understanding": "EXP-011",
+        "leakage_audit": "EXP-012",
+        "feature_engineering": "EXP-013",
+        "model_selection": "EXP-014",
+        "optimization_reliability": "EXP-015"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-011_breast_cancer_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-012_breast_cancer_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-013_breast_cancer_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-014_breast_cancer_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-015_breast_cancer_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 569,
+        "analyzed_rows": 569,
+        "feature_count": 30,
+        "positive_rate_train": 0.37362637362637363,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.0,
+        "risk_feature_count": 1
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "All morphometry features are available at diagnosis time; no temporal leakage.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.9907334124785648,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.9907334124785648,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "logistic_regression",
+        "selected_auc_mean": 0.995510706591039,
+        "selected_auc_std": 0.00470927675276659,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "baseline",
+        "cv_lift": -6.265664160398643e-05,
+        "holdout_metrics": {
+          "accuracy": 0.9649122807017544,
+          "avg_precision": 0.994273631904294,
+          "brier": 0.021313139001192874,
+          "ece_10": 0.030241029515853654,
+          "f1": 0.9512195121951219,
+          "fit_seconds": 0.007500207999328268,
+          "log_loss": 0.0772650181016092,
+          "precision": 0.975,
+          "recall": 0.9285714285714286,
+          "roc_auc": 0.996031746031746,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 1.0,
+          "low": 0.9857785443722944,
+          "median": 0.9967793880837359
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "texture3",
+            "normalized_importance": 0.08130408644100229
+          },
+          {
+            "feature": "radius2",
+            "normalized_importance": 0.06992180003548994
+          },
+          {
+            "feature": "symmetry3",
+            "normalized_importance": 0.06016699212341878
+          },
+          {
+            "feature": "concave_points1",
+            "normalized_importance": 0.05401851037606667
+          },
+          {
+            "feature": "concavity3",
+            "normalized_importance": 0.05167099155091937
+          },
+          {
+            "feature": "area2",
+            "normalized_importance": 0.05153624508173892
+          },
+          {
+            "feature": "compactness2",
+            "normalized_importance": 0.051416946974392266
+          },
+          {
+            "feature": "area3",
+            "normalized_importance": 0.051051374986158256
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "heart_disease",
+      "evidence_ids": {
+        "data_understanding": "EXP-016",
+        "leakage_audit": "EXP-017",
+        "feature_engineering": "EXP-018",
+        "model_selection": "EXP-019",
+        "optimization_reliability": "EXP-020"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-016_heart_disease_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-017_heart_disease_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-018_heart_disease_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-019_heart_disease_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-020_heart_disease_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 303,
+        "analyzed_rows": 303,
+        "feature_count": 13,
+        "positive_rate_train": 0.45867768595041325,
+        "missing_cell_rate_train": 0.0006357279084551812,
+        "duplicate_row_rate_train": 0.0,
+        "risk_feature_count": 3
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Clinical attributes are pre-diagnosis; no post-outcome leakage identified.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.8700264746776375,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.8700264746776375,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 0.8977867931356304,
+        "selected_auc_std": 0.024360745414873528,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "extra_trees_C02",
+        "cv_lift": 0.0069376987981639715,
+        "holdout_metrics": {
+          "accuracy": 0.819672131147541,
+          "avg_precision": 0.9352056634897589,
+          "brier": 0.10701414972093289,
+          "ece_10": 0.14948788876925767,
+          "f1": 0.8135593220338984,
+          "fit_seconds": 0.14819004099990707,
+          "log_loss": 0.3593703852051472,
+          "precision": 0.7741935483870968,
+          "recall": 0.8571428571428571,
+          "roc_auc": 0.9448051948051949,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.9871619177677714,
+          "low": 0.8851264748323572,
+          "median": 0.9485670698485344
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "thal",
+            "normalized_importance": 0.28209336513835537
+          },
+          {
+            "feature": "ca",
+            "normalized_importance": 0.13854563603412492
+          },
+          {
+            "feature": "exang",
+            "normalized_importance": 0.12809434736115755
+          },
+          {
+            "feature": "cp",
+            "normalized_importance": 0.1099837165072628
+          },
+          {
+            "feature": "sex",
+            "normalized_importance": 0.07181456420284042
+          },
+          {
+            "feature": "slope",
+            "normalized_importance": 0.06637937998041148
+          },
+          {
+            "feature": "thalach",
+            "normalized_importance": 0.047685214458576285
+          },
+          {
+            "feature": "oldpeak",
+            "normalized_importance": 0.04439644464420512
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "credit_default",
+      "evidence_ids": {
+        "data_understanding": "EXP-021",
+        "leakage_audit": "EXP-022",
+        "feature_engineering": "EXP-023",
+        "model_selection": "EXP-024",
+        "optimization_reliability": "EXP-025"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-021_credit_default_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-022_credit_default_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-023_credit_default_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-024_credit_default_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-025_credit_default_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 30000,
+        "analyzed_rows": 4000,
+        "feature_count": 23,
+        "positive_rate_train": 0.22125,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.0,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Payment history / bill amounts are known before predicting next-month default; no post-outcome leakage identified.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.7316521444852612,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.7316521444852612,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 0.7362568489708696,
+        "selected_auc_std": 0.01590385515180382,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "extra_trees_C02",
+        "cv_lift": 0.018880713660082038,
+        "holdout_metrics": {
+          "accuracy": 0.81,
+          "avg_precision": 0.5298469143747347,
+          "brier": 0.13712771805442664,
+          "ece_10": 0.046174388225831545,
+          "f1": 0.4198473282442748,
+          "fit_seconds": 0.5092285829996399,
+          "log_loss": 0.4362450195279426,
+          "precision": 0.6470588235294118,
+          "recall": 0.3107344632768362,
+          "roc_auc": 0.7746098248859629,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.8150416307620654,
+          "low": 0.7325987769358417,
+          "median": 0.7739807797173905
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "X6",
+            "normalized_importance": 0.2673658193989641
+          },
+          {
+            "feature": "X7",
+            "normalized_importance": 0.12185895253167019
+          },
+          {
+            "feature": "X8",
+            "normalized_importance": 0.07695923369983775
+          },
+          {
+            "feature": "X11",
+            "normalized_importance": 0.06780915323898044
+          },
+          {
+            "feature": "X9",
+            "normalized_importance": 0.05818633127005271
+          },
+          {
+            "feature": "X10",
+            "normalized_importance": 0.05229979862036507
+          },
+          {
+            "feature": "X1",
+            "normalized_importance": 0.04367268594432901
+          },
+          {
+            "feature": "X5",
+            "normalized_importance": 0.02321569973571746
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "german_credit",
+      "evidence_ids": {
+        "data_understanding": "EXP-026",
+        "leakage_audit": "EXP-027",
+        "feature_engineering": "EXP-028",
+        "model_selection": "EXP-029",
+        "optimization_reliability": "EXP-030"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-026_german_credit_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-027_german_credit_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-028_german_credit_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-029_german_credit_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-030_german_credit_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 1000,
+        "analyzed_rows": 1000,
+        "feature_count": 20,
+        "positive_rate_train": 0.3,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.0,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Applicant attributes are known at underwriting time; no leakage identified.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.7527162037835663,
+        "selected_stage": "interactions",
+        "selected_auc_mean": 0.7600576447587833,
+        "selected_vs_raw_auc": 0.007341440975217051,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 0.7768815407394629,
+        "selected_auc_std": 0.029815169083194874,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "extra_trees_C01",
+        "cv_lift": 0.009866513809825062,
+        "holdout_metrics": {
+          "accuracy": 0.745,
+          "avg_precision": 0.6502437820222193,
+          "brier": 0.1604743215609027,
+          "ece_10": 0.08242811950202572,
+          "f1": 0.48484848484848486,
+          "fit_seconds": 0.32817849999992177,
+          "log_loss": 0.4926680677809403,
+          "precision": 0.6153846153846154,
+          "recall": 0.4,
+          "roc_auc": 0.7942857142857144,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.8620644773123065,
+          "low": 0.7179534546874278,
+          "median": 0.7931015658237046
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "Attribute1",
+            "normalized_importance": 0.05606462646572138
+          },
+          {
+            "feature": "inter_Attribute1_x_log1p_Attribute2",
+            "normalized_importance": 0.03522635315350235
+          },
+          {
+            "feature": "inter_Attribute1_x_Attribute8",
+            "normalized_importance": 0.03405538803216886
+          },
+          {
+            "feature": "log1p_Attribute3",
+            "normalized_importance": 0.03220417247433946
+          },
+          {
+            "feature": "Attribute3",
+            "normalized_importance": 0.029634574336790235
+          },
+          {
+            "feature": "log1p_Attribute2",
+            "normalized_importance": 0.027977330533511226
+          },
+          {
+            "feature": "ratio_Attribute2_div_Attribute13",
+            "normalized_importance": 0.02641421604019681
+          },
+          {
+            "feature": "Attribute2",
+            "normalized_importance": 0.02634826220465025
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "mushroom",
+      "evidence_ids": {
+        "data_understanding": "EXP-031",
+        "leakage_audit": "EXP-032",
+        "feature_engineering": "EXP-033",
+        "model_selection": "EXP-034",
+        "optimization_reliability": "EXP-035"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-031_mushroom_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-032_mushroom_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-033_mushroom_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-034_mushroom_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-035_mushroom_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 8124,
+        "analyzed_rows": 4000,
+        "feature_count": 22,
+        "positive_rate_train": 0.481875,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.0,
+        "risk_feature_count": 1
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Physical traits are observed before edibility label; no leakage identified.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.9999788529859583,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.9999788529859583,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 1.0,
+        "selected_auc_std": 0.0,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "baseline",
+        "cv_lift": 0.0,
+        "holdout_metrics": {
+          "accuracy": 1.0,
+          "avg_precision": 1.0,
+          "brier": 2.277777787490279e-06,
+          "ece_10": 0.00018343045833321136,
+          "f1": 1.0,
+          "fit_seconds": 0.24700241699974868,
+          "log_loss": 0.0001845851429923805,
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 1.0,
+          "low": 1.0,
+          "median": 1.0
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "gill-size",
+            "normalized_importance": 0.14312866867792856
+          },
+          {
+            "feature": "odor",
+            "normalized_importance": 0.12539255346500033
+          },
+          {
+            "feature": "spore-print-color",
+            "normalized_importance": 0.10198155817462923
+          },
+          {
+            "feature": "stalk-surface-below-ring",
+            "normalized_importance": 0.07457873052680415
+          },
+          {
+            "feature": "stalk-surface-above-ring",
+            "normalized_importance": 0.07286423925600884
+          },
+          {
+            "feature": "bruises",
+            "normalized_importance": 0.07262981568872165
+          },
+          {
+            "feature": "ring-type",
+            "normalized_importance": 0.06998188971033767
+          },
+          {
+            "feature": "stalk-root",
+            "normalized_importance": 0.05917286472731439
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "spambase",
+      "evidence_ids": {
+        "data_understanding": "EXP-036",
+        "leakage_audit": "EXP-037",
+        "feature_engineering": "EXP-038",
+        "model_selection": "EXP-039",
+        "optimization_reliability": "EXP-040"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-036_spambase_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-037_spambase_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-038_spambase_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-039_spambase_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-040_spambase_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 4601,
+        "analyzed_rows": 4000,
+        "feature_count": 57,
+        "positive_rate_train": 0.3940625,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.070625,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Word/char frequencies are available at classification time; no leakage identified.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.9869415267776401,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.9869415267776401,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "hist_gradient_boosting",
+        "selected_auc_mean": 0.9873896960381686,
+        "selected_auc_std": 0.002121988574714392,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "baseline",
+        "cv_lift": 0.00011814307085367126,
+        "holdout_metrics": {
+          "accuracy": 0.95125,
+          "avg_precision": 0.9759570014345881,
+          "brier": 0.03815602670527378,
+          "ece_10": 0.02611888250296916,
+          "f1": 0.9391575663026521,
+          "fit_seconds": 0.42475933300011093,
+          "log_loss": 0.15471254874904308,
+          "precision": 0.9233128834355828,
+          "recall": 0.9555555555555556,
+          "roc_auc": 0.9848731795123549,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.9925227023308015,
+          "low": 0.9751896210885335,
+          "median": 0.9846331090745631
+        },
+        "holdout_consumed": true,
+        "top_features": []
+      }
+    },
+    {
+      "dataset": "online_shoppers",
+      "evidence_ids": {
+        "data_understanding": "EXP-041",
+        "leakage_audit": "EXP-042",
+        "feature_engineering": "EXP-043",
+        "model_selection": "EXP-044",
+        "optimization_reliability": "EXP-045"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-041_online_shoppers_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-042_online_shoppers_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-043_online_shoppers_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-044_online_shoppers_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-045_online_shoppers_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 12330,
+        "analyzed_rows": 4000,
+        "feature_count": 17,
+        "positive_rate_train": 0.1546875,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.005,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [
+          "PageValues"
+        ],
+        "review_candidates": [
+          {
+            "feature": "PageValues",
+            "reasons": [
+              "declared_post_outcome_or_contested"
+            ],
+            "requires_human_decision_time_review": true,
+            "unique_ratio": 0.218125,
+            "univariate_auc": 0.8639586250676823
+          }
+        ],
+        "policy_rationale": "`PageValues` is a Google Analytics metric tightly coupled to purchase intent and can act as a near-outcome proxy. Safe mode drops it for an honest pre-purchase decision model.",
+        "safe_vs_unsafe": {
+          "apparent_auc_lift": 0.19680638838657394,
+          "safe": {
+            "elapsed_seconds": 0.3943687499995576,
+            "evaluations": 3,
+            "feature_count_mean": 16.0,
+            "feature_stability": [
+              {
+                "feature": "ProductRelated_Duration",
+                "mean_normalized_importance": 0.17366666666666666,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "ExitRates",
+                "mean_normalized_importance": 0.14688888888888887,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "ProductRelated",
+                "mean_normalized_importance": 0.13055555555555556,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Administrative_Duration",
+                "mean_normalized_importance": 0.11111111111111112,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "BounceRates",
+                "mean_normalized_importance": 0.07455555555555556,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Month",
+                "mean_normalized_importance": 0.06588888888888889,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Informational_Duration",
+                "mean_normalized_importance": 0.05511111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "TrafficType",
+                "mean_normalized_importance": 0.05477777777777778,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Region",
+                "mean_normalized_importance": 0.049777777777777775,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Administrative",
+                "mean_normalized_importance": 0.041444444444444443,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Browser",
+                "mean_normalized_importance": 0.023222222222222224,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "OperatingSystems",
+                "mean_normalized_importance": 0.020888888888888887,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "Informational",
+                "mean_normalized_importance": 0.019,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "Weekend",
+                "mean_normalized_importance": 0.013666666666666667,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "VisitorType",
+                "mean_normalized_importance": 0.01311111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "SpecialDay",
+                "mean_normalized_importance": 0.006333333333333333,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              }
+            ],
+            "fold_metrics": [
+              {
+                "accuracy": 0.8275538894095595,
+                "avg_precision": 0.2927514741862923,
+                "brier": 0.13318833821382103,
+                "ece_10": 0.07780474274267109,
+                "f1": 0.226890756302521,
+                "fit_seconds": 0.06120399999963411,
+                "log_loss": 0.4461281453633213,
+                "precision": 0.3698630136986301,
+                "recall": 0.16363636363636364,
+                "roc_auc": 0.7030034267284822,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8322399250234301,
+                "avg_precision": 0.2784646783575879,
+                "brier": 0.13294673996783649,
+                "ece_10": 0.08436952056539769,
+                "f1": 0.16744186046511628,
+                "fit_seconds": 0.061629542000446236,
+                "log_loss": 0.4468775503950735,
+                "precision": 0.36,
+                "recall": 0.10909090909090909,
+                "roc_auc": 0.7141906873614191,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8348968105065666,
+                "avg_precision": 0.3226107612603708,
+                "brier": 0.12804497785183885,
+                "ece_10": 0.08204415277006183,
+                "f1": 0.17757009345794392,
+                "fit_seconds": 0.06112504199882096,
+                "log_loss": 0.4475909709331936,
+                "precision": 0.3877551020408163,
+                "recall": 0.11515151515151516,
+                "roc_auc": 0.729479030033969,
+                "threshold": 0.5
+              }
+            ],
+            "folds": 3,
+            "metrics": {
+              "accuracy": {
+                "ci95_high": 0.8357707359252845,
+                "ci95_low": 0.8273563473677531,
+                "max": 0.8348968105065666,
+                "mean": 0.8315635416465188,
+                "min": 0.8275538894095595,
+                "std": 0.0037178950245588442
+              },
+              "avg_precision": {
+                "ci95_high": 0.3234330496493729,
+                "ci95_low": 0.2724515595534611,
+                "max": 0.3226107612603708,
+                "mean": 0.297942304601417,
+                "min": 0.2784646783575879,
+                "std": 0.022526155890736938
+              },
+              "brier": {
+                "ci95_high": 0.13467760472142284,
+                "ci95_low": 0.12810909930090805,
+                "max": 0.13318833821382103,
+                "mean": 0.13139335201116545,
+                "min": 0.12804497785183885,
+                "std": 0.002902292121970204
+              },
+              "ece_10": {
+                "ci95_high": 0.08517276941516147,
+                "ci95_low": 0.07763950797025893,
+                "max": 0.08436952056539769,
+                "mean": 0.0814061386927102,
+                "min": 0.07780474274267109,
+                "std": 0.0033285692778752397
+              },
+              "f1": {
+                "ci95_high": 0.22662478059617636,
+                "ci95_low": 0.15464369288754448,
+                "max": 0.226890756302521,
+                "mean": 0.19063423674186042,
+                "min": 0.16744186046511628,
+                "std": 0.031804821708015824
+              },
+              "log_loss": {
+                "ci95_high": 0.44769331051570094,
+                "ci95_low": 0.4460378006120246,
+                "max": 0.4475909709331936,
+                "mean": 0.44686555556386276,
+                "min": 0.4461281453633213,
+                "std": 0.0007314865473471791
+              },
+              "precision": {
+                "ci95_high": 0.38846082209996835,
+                "ci95_low": 0.35661792172632933,
+                "max": 0.3877551020408163,
+                "mean": 0.37253937191314884,
+                "min": 0.36,
+                "std": 0.01406977584374918
+              },
+              "recall": {
+                "ci95_high": 0.16312373200166133,
+                "ci95_low": 0.09546212658419725,
+                "max": 0.16363636363636364,
+                "mean": 0.1292929292929293,
+                "min": 0.10909090909090909,
+                "std": 0.02989625977161362
+              },
+              "roc_auc": {
+                "ci95_high": 0.7305974834646587,
+                "ci95_low": 0.7005179459512549,
+                "max": 0.729479030033969,
+                "mean": 0.7155577147079568,
+                "min": 0.7030034267284822,
+                "std": 0.013290634500354465
+              }
+            },
+            "model": "lightgbm",
+            "model_params": {},
+            "optimization": "baseline",
+            "repeats": 1,
+            "stage": "raw"
+          },
+          "unsafe": {
+            "elapsed_seconds": 0.4032068749984319,
+            "evaluations": 3,
+            "feature_count_mean": 17.0,
+            "feature_stability": [
+              {
+                "feature": "ExitRates",
+                "mean_normalized_importance": 0.14044444444444446,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "ProductRelated_Duration",
+                "mean_normalized_importance": 0.13766666666666666,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "ProductRelated",
+                "mean_normalized_importance": 0.11344444444444446,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "PageValues",
+                "mean_normalized_importance": 0.10222222222222221,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Administrative_Duration",
+                "mean_normalized_importance": 0.09700000000000002,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "BounceRates",
+                "mean_normalized_importance": 0.07555555555555556,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Month",
+                "mean_normalized_importance": 0.06733333333333333,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "TrafficType",
+                "mean_normalized_importance": 0.04377777777777778,
+                "observed_folds": 3,
+                "top10_frequency": 1.0
+              },
+              {
+                "feature": "Informational_Duration",
+                "mean_normalized_importance": 0.04455555555555555,
+                "observed_folds": 3,
+                "top10_frequency": 0.6666666666666666
+              },
+              {
+                "feature": "Region",
+                "mean_normalized_importance": 0.04422222222222222,
+                "observed_folds": 3,
+                "top10_frequency": 0.6666666666666666
+              },
+              {
+                "feature": "Administrative",
+                "mean_normalized_importance": 0.04311111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.6666666666666666
+              },
+              {
+                "feature": "Browser",
+                "mean_normalized_importance": 0.024333333333333332,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "Informational",
+                "mean_normalized_importance": 0.02011111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "OperatingSystems",
+                "mean_normalized_importance": 0.019666666666666666,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "VisitorType",
+                "mean_normalized_importance": 0.012999999999999998,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "Weekend",
+                "mean_normalized_importance": 0.009444444444444445,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              },
+              {
+                "feature": "SpecialDay",
+                "mean_normalized_importance": 0.004111111111111111,
+                "observed_folds": 3,
+                "top10_frequency": 0.0
+              }
+            ],
+            "fold_metrics": [
+              {
+                "accuracy": 0.8978444236176195,
+                "avg_precision": 0.7155648909224841,
+                "brier": 0.07534422011272417,
+                "ece_10": 0.03851948001146433,
+                "f1": 0.660436137071651,
+                "fit_seconds": 0.061847375000070315,
+                "log_loss": 0.25317466773499353,
+                "precision": 0.6794871794871795,
+                "recall": 0.6424242424242425,
+                "roc_auc": 0.925935631257139,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.8912839737582006,
+                "avg_precision": 0.6558048182478713,
+                "brier": 0.0867595819321741,
+                "ece_10": 0.0661333750378969,
+                "f1": 0.6081081081081081,
+                "fit_seconds": 0.060512334001032286,
+                "log_loss": 0.3310685826435478,
+                "precision": 0.6870229007633588,
+                "recall": 0.5454545454545454,
+                "roc_auc": 0.8993482496808439,
+                "threshold": 0.5
+              },
+              {
+                "accuracy": 0.9015009380863039,
+                "avg_precision": 0.7018591119853841,
+                "brier": 0.07999889407293394,
+                "ece_10": 0.05346070139498536,
+                "f1": 0.6464646464646465,
+                "fit_seconds": 0.061897749999843654,
+                "log_loss": 0.3035648637871952,
+                "precision": 0.7272727272727273,
+                "recall": 0.5818181818181818,
+                "roc_auc": 0.9118084283456093,
+                "threshold": 0.5
+              }
+            ],
+            "folds": 3,
+            "metrics": {
+              "accuracy": {
+                "ci95_high": 0.902734553314031,
+                "ci95_low": 0.8910183369940519,
+                "max": 0.9015009380863039,
+                "mean": 0.8968764451540414,
+                "min": 0.8912839737582006,
+                "std": 0.005176806617007978
+              },
+              "avg_precision": {
+                "ci95_high": 0.7265015006799855,
+                "ci95_low": 0.6556510467571739,
+                "max": 0.7155648909224841,
+                "mean": 0.6910762737185797,
+                "min": 0.6558048182478713,
+                "std": 0.03130525151368049
+              },
+              "brier": {
+                "ci95_high": 0.0871962836283517,
+                "ci95_low": 0.07420551378353642,
+                "max": 0.0867595819321741,
+                "mean": 0.08070089870594406,
+                "min": 0.07534422011272417,
+                "std": 0.005739967704248397
+              },
+              "ece_10": {
+                "ci95_high": 0.06834611534962039,
+                "ci95_low": 0.03706292227994401,
+                "max": 0.0661333750378969,
+                "mean": 0.0527045188147822,
+                "min": 0.03851948001146433,
+                "std": 0.013822469341751544
+              },
+              "f1": {
+                "ci95_high": 0.6689965323787184,
+                "ci95_low": 0.6076760620508854,
+                "max": 0.660436137071651,
+                "mean": 0.6383362972148019,
+                "min": 0.6081081081081081,
+                "std": 0.027094431161180235
+              },
+              "log_loss": {
+                "ci95_high": 0.34063828778408944,
+                "ci95_low": 0.25123378832640164,
+                "max": 0.3310685826435478,
+                "mean": 0.29593603805524554,
+                "min": 0.25317466773499353,
+                "std": 0.03950335088928049
+              },
+              "precision": {
+                "ci95_high": 0.7270001804838018,
+                "ci95_low": 0.6688550245317086,
+                "max": 0.7272727272727273,
+                "mean": 0.6979276025077552,
+                "min": 0.6794871794871795,
+                "std": 0.02569141947016355
+              },
+              "recall": {
+                "ci95_high": 0.6453333333333334,
+                "ci95_low": 0.5344646464646464,
+                "max": 0.6424242424242425,
+                "mean": 0.5898989898989899,
+                "min": 0.5454545454545454,
+                "std": 0.048987295567604644
+              },
+              "roc_auc": {
+                "ci95_high": 0.92741718363354,
+                "ci95_low": 0.8973110225555215,
+                "max": 0.925935631257139,
+                "mean": 0.9123641030945308,
+                "min": 0.8993482496808439,
+                "std": 0.013302398114280741
+              }
+            },
+            "model": "lightgbm",
+            "model_params": {},
+            "optimization": "baseline",
+            "repeats": 1,
+            "stage": "raw"
+          }
+        }
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.7155577147079568,
+        "selected_stage": "raw",
+        "selected_auc_mean": 0.7155577147079568,
+        "selected_vs_raw_auc": 0.0,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 0.7366490031792936,
+        "selected_auc_std": 0.0071765436671989685,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "extra_trees_C02",
+        "cv_lift": 0.01998622303666453,
+        "holdout_metrics": {
+          "accuracy": 0.845,
+          "avg_precision": 0.3351891604899987,
+          "brier": 0.1181793539700363,
+          "ece_10": 0.030698356608846507,
+          "f1": 0.015873015873015872,
+          "fit_seconds": 0.5201270420002402,
+          "log_loss": 0.38188381363249946,
+          "precision": 0.5,
+          "recall": 0.008064516129032258,
+          "roc_auc": 0.739418305020042,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.7828482042518121,
+          "low": 0.6997407262181901,
+          "median": 0.7408452827367735
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "ExitRates",
+            "normalized_importance": 0.17929093688180955
+          },
+          {
+            "feature": "Month",
+            "normalized_importance": 0.09643649828592038
+          },
+          {
+            "feature": "ProductRelated_Duration",
+            "normalized_importance": 0.09197694879449868
+          },
+          {
+            "feature": "BounceRates",
+            "normalized_importance": 0.08690978394556266
+          },
+          {
+            "feature": "ProductRelated",
+            "normalized_importance": 0.08490130235606472
+          },
+          {
+            "feature": "Administrative",
+            "normalized_importance": 0.07574127650673473
+          },
+          {
+            "feature": "Region",
+            "normalized_importance": 0.05417571011340856
+          },
+          {
+            "feature": "VisitorType",
+            "normalized_importance": 0.05154170941786159
+          }
+        ]
+      }
+    },
+    {
+      "dataset": "wine_quality",
+      "evidence_ids": {
+        "data_understanding": "EXP-046",
+        "leakage_audit": "EXP-047",
+        "feature_engineering": "EXP-048",
+        "model_selection": "EXP-049",
+        "optimization_reliability": "EXP-050"
+      },
+      "source_paths": {
+        "data_understanding": "campaigns/model_building_50_v1/results/EXP-046_wine_quality_data_understanding.json",
+        "leakage_audit": "campaigns/model_building_50_v1/results/EXP-047_wine_quality_leakage_audit.json",
+        "feature_engineering": "campaigns/model_building_50_v1/results/EXP-048_wine_quality_feature_engineering.json",
+        "model_selection": "campaigns/model_building_50_v1/results/EXP-049_wine_quality_model_selection.json",
+        "optimization_reliability": "campaigns/model_building_50_v1/results/EXP-050_wine_quality_optimization_reliability.json"
+      },
+      "data": {
+        "source_rows": 6497,
+        "analyzed_rows": 4000,
+        "feature_count": 11,
+        "positive_rate_train": 0.633125,
+        "missing_cell_rate_train": 0.0,
+        "duplicate_row_rate_train": 0.099375,
+        "risk_feature_count": 0
+      },
+      "leakage": {
+        "declared": [],
+        "review_candidates": [],
+        "policy_rationale": "Physicochemical tests are available before quality rating; no leakage identified.",
+        "safe_vs_unsafe": null
+      },
+      "feature_engineering": {
+        "raw_auc_mean": 0.8397573768475842,
+        "selected_stage": "ratios",
+        "selected_auc_mean": 0.8428791965766287,
+        "selected_vs_raw_auc": 0.0031218197290444616,
+        "selection_rule": "Choose the smallest feature matrix within 0.002 mean training-CV ROC-AUC of the best stage."
+      },
+      "model_selection": {
+        "selected_model": "extra_trees",
+        "selected_auc_mean": 0.8609445343373799,
+        "selected_auc_std": 0.003620327958350225,
+        "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only."
+      },
+      "optimization": {
+        "accepted": "baseline",
+        "cv_lift": -0.0013612039542780785,
+        "holdout_metrics": {
+          "accuracy": 0.8125,
+          "avg_precision": 0.9332202964322408,
+          "brier": 0.1319280694444463,
+          "ece_10": 0.033120840083333256,
+          "f1": 0.857685009487666,
+          "fit_seconds": 0.7810957919991779,
+          "log_loss": 0.3986921902873901,
+          "precision": 0.8248175182481752,
+          "recall": 0.8932806324110671,
+          "roc_auc": 0.8878391277459601,
+          "threshold": 0.5
+        },
+        "holdout_auc_ci": {
+          "draws": 400,
+          "high": 0.9076586798160596,
+          "low": 0.8609965140062155,
+          "median": 0.8880049305118762
+        },
+        "holdout_consumed": true,
+        "top_features": [
+          {
+            "feature": "alcohol",
+            "normalized_importance": 0.08481948410949623
+          },
+          {
+            "feature": "log1p_volatile_acidity",
+            "normalized_importance": 0.04893824707029331
+          },
+          {
+            "feature": "volatile_acidity",
+            "normalized_importance": 0.04674906022493075
+          },
+          {
+            "feature": "density",
+            "normalized_importance": 0.03908002084081859
+          },
+          {
+            "feature": "ratio_fixed_acidity_div_alcohol",
+            "normalized_importance": 0.03798478368184796
+          },
+          {
+            "feature": "log1p_density",
+            "normalized_importance": 0.03606375830618004
+          },
+          {
+            "feature": "ratio_total_sulfur_dioxide_div_alcohol",
+            "normalized_importance": 0.03370778005473211
+          },
+          {
+            "feature": "citric_acid",
+            "normalized_importance": 0.032942035004691075
+          }
+        ]
+      }
+    }
+  ],
+  "cross_dataset_models": [
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 2.5454545454545454,
+      "mean_roc_auc": 0.8997944740949849,
+      "min_roc_auc": 0.7718845152797178,
+      "model_family": "lightgbm",
+      "wins": 3
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 3.5454545454545454,
+      "mean_roc_auc": 0.8982381608708013,
+      "min_roc_auc": 0.7736581885419702,
+      "model_family": "xgboost",
+      "wins": 1
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 3.6363636363636362,
+      "mean_roc_auc": 0.8982064344479925,
+      "min_roc_auc": 0.7734722794464933,
+      "model_family": "ensemble",
+      "wins": 2
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 4.363636363636363,
+      "mean_roc_auc": 0.8974587491368065,
+      "min_roc_auc": 0.7696284832832552,
+      "model_family": "hist_gradient_boosting",
+      "wins": 1
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 4.545454545454546,
+      "mean_roc_auc": 0.8947653079716316,
+      "min_roc_auc": 0.7532044196119022,
+      "model_family": "extra_trees",
+      "wins": 1
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 0.9996769232169347,
+      "mean_rank": 7.636363636363637,
+      "mean_roc_auc": 0.852810739506118,
+      "min_roc_auc": 0.7048429319371727,
+      "model_family": "logistic_regression",
+      "wins": 0
+    },
+    {
+      "dataset_count": 9,
+      "max_roc_auc": 1.0,
+      "mean_rank": 3.5555555555555554,
+      "mean_roc_auc": 0.9217208202396346,
+      "min_roc_auc": 0.790693836094712,
+      "model_family": "catboost",
+      "wins": 3
+    },
+    {
+      "dataset_count": 9,
+      "max_roc_auc": 1.0,
+      "mean_rank": 5.222222222222222,
+      "mean_roc_auc": 0.9226251293775211,
+      "min_roc_auc": 0.7961400549555188,
+      "model_family": "random_forest",
+      "wins": 0
+    },
+    {
+      "dataset_count": 1,
+      "max_roc_auc": 0.9185568335676717,
+      "mean_rank": 8.0,
+      "mean_roc_auc": 0.9185568335676717,
+      "min_roc_auc": 0.9185568335676717,
+      "model_family": "tabular_transformer",
+      "wins": 0
+    },
+    {
+      "dataset_count": 1,
+      "max_roc_auc": 0.8828991563818154,
+      "mean_rank": 9.0,
+      "mean_roc_auc": 0.8828991563818154,
+      "min_roc_auc": 0.8828991563818154,
+      "model_family": "linear_svc",
+      "wins": 0
+    }
+  ],
+  "registry_leakage_gaps": [
+    {
+      "apparent_leakage_lift": 0.13276992527417208,
+      "dataset": "bank_marketing",
+      "safe_roc_auc": 0.8028939924112631,
+      "safe_source": "external_projects/bank_marketing_exp/results/ladder/02_safe_baseline_lightgbm.json",
+      "unsafe_roc_auc": 0.9356639176854352,
+      "unsafe_source": "external_projects/bank_marketing_exp/results/ladder/08_unsafe_tuned_xgboost.json"
+    },
+    {
+      "apparent_leakage_lift": 0.03472113732229365,
+      "dataset": "hyperack",
+      "safe_roc_auc": 0.9454609956777585,
+      "safe_source": "optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json",
+      "unsafe_roc_auc": 0.9801821330000522,
+      "unsafe_source": "general_pipeline/results/unsafe_baseline_hist_gradient_boosting.json"
+    },
+    {
+      "apparent_leakage_lift": 0.15747756529428913,
+      "dataset": "online_shoppers",
+      "safe_roc_auc": 0.7736581885419702,
+      "safe_source": "external_projects/online_shoppers_exp/results/ladder/08_safe_tuned_xgboost.json",
+      "unsafe_roc_auc": 0.9311357538362594,
+      "unsafe_source": "external_projects/online_shoppers_exp/results/ladder/09_unsafe_tuned_lightgbm.json"
+    }
+  ],
+  "hyperack": {
+    "safe_champion_auc": 0.9454609956777585,
+    "unsafe_auc": 0.9801821330000522,
+    "unsafe_lift": 0.03472113732229365,
+    "blocked_features": [
+      "final_customer_fare",
+      "final_biker_fare"
+    ],
+    "safe_source": "optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json",
+    "unsafe_source": "general_pipeline/results/unsafe_baseline_hist_gradient_boosting.json"
+  },
+  "churn": {
+    "project": "telco_churn",
+    "planned": 15,
+    "completed": 15,
+    "evaluation": "2x3-fold adaptive stratified duplicate-group development CV",
+    "production_approved": false,
+    "baseline_id": "CHURN-002",
+    "best": {
+      "id": "CHURN-014",
+      "title": "Logistic with charge features",
+      "model": "logistic_regression",
+      "metrics": {
+        "roc_auc": 0.8498569450082513,
+        "average_precision": 0.6708273870969489,
+        "log_loss": 0.41083912520014637,
+        "brier": 0.13319639152130014
+      },
+      "fold_standard_deviation": {
+        "roc_auc": 0.004138525598094455,
+        "average_precision": 0.007169735004663772,
+        "log_loss": 0.007960883578221153,
+        "brier": 0.002256419923099919
+      },
+      "wall_seconds": 1.686670957999013,
+      "paired_auc_delta_vs_logistic": 0.0050178511461930015
+    },
+    "leaderboard": [
+      {
+        "id": "CHURN-014",
+        "title": "Logistic with charge features",
+        "model": "logistic_regression",
+        "metrics": {
+          "roc_auc": 0.8498569450082513,
+          "average_precision": 0.6708273870969489,
+          "log_loss": 0.41083912520014637,
+          "brier": 0.13319639152130014
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.004138525598094455,
+          "average_precision": 0.007169735004663772,
+          "log_loss": 0.007960883578221153,
+          "brier": 0.002256419923099919
+        },
+        "wall_seconds": 1.686670957999013,
+        "paired_auc_delta_vs_logistic": 0.0050178511461930015
+      },
+      {
+        "id": "CHURN-010",
+        "title": "Regularized histogram boosting",
+        "model": "hist_gradient_boosting",
+        "metrics": {
+          "roc_auc": 0.8477953354691561,
+          "average_precision": 0.6670022629651927,
+          "log_loss": 0.41333828081909907,
+          "brier": 0.13403687327807562
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.004511251507689259,
+          "average_precision": 0.006773075015319403,
+          "log_loss": 0.007102115071216033,
+          "brier": 0.002421288924680938
+        },
+        "wall_seconds": 4.399563249999119,
+        "paired_auc_delta_vs_logistic": 0.002956241607097935
+      },
+      {
+        "id": "CHURN-008",
+        "title": "Regularized Random Forest",
+        "model": "random_forest",
+        "metrics": {
+          "roc_auc": 0.8472168850679552,
+          "average_precision": 0.6623237685839604,
+          "log_loss": 0.41531168645880573,
+          "brier": 0.1346071049916346
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.005990656541999303,
+          "average_precision": 0.007917827322869076,
+          "log_loss": 0.008964520126003751,
+          "brier": 0.0029789943565440217
+        },
+        "wall_seconds": 5.600937541999883,
+        "paired_auc_delta_vs_logistic": 0.002377791205897021
+      },
+      {
+        "id": "CHURN-012",
+        "title": "Regularized LightGBM",
+        "model": "lightgbm",
+        "metrics": {
+          "roc_auc": 0.8468030613793834,
+          "average_precision": 0.6665708215988738,
+          "log_loss": 0.41433728580904666,
+          "brier": 0.13438709304675386
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.004627575916552999,
+          "average_precision": 0.005726367144186462,
+          "log_loss": 0.007877884149422601,
+          "brier": 0.0024937761635997788
+        },
+        "wall_seconds": 2.439817792001122,
+        "paired_auc_delta_vs_logistic": 0.001963967517325286
+      },
+      {
+        "id": "CHURN-015",
+        "title": "LightGBM with charge features",
+        "model": "lightgbm",
+        "metrics": {
+          "roc_auc": 0.8466373506002429,
+          "average_precision": 0.6632784812815526,
+          "log_loss": 0.41472620700103296,
+          "brier": 0.13457146764156278
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.00476931382557512,
+          "average_precision": 0.010686489309679052,
+          "log_loss": 0.007995713154920916,
+          "brier": 0.0025705783754487533
+        },
+        "wall_seconds": 2.6641625829997793,
+        "paired_auc_delta_vs_logistic": 0.0017982567381847152
+      },
+      {
+        "id": "CHURN-013",
+        "title": "XGBoost baseline",
+        "model": "xgboost",
+        "metrics": {
+          "roc_auc": 0.8459876175772565,
+          "average_precision": 0.6666324637308306,
+          "log_loss": 0.4152370844125947,
+          "brier": 0.13461951148254836
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.004290616374478133,
+          "average_precision": 0.007002239053845187,
+          "log_loss": 0.007543502957369298,
+          "brier": 0.002334347790556696
+        },
+        "wall_seconds": 2.1638410420000582,
+        "paired_auc_delta_vs_logistic": 0.001148523715198339
+      },
+      {
+        "id": "CHURN-004",
+        "title": "Flexible logistic C=3",
+        "model": "logistic_regression",
+        "metrics": {
+          "roc_auc": 0.8449236266383132,
+          "average_precision": 0.6533878541361312,
+          "log_loss": 0.41809170035741827,
+          "brier": 0.13566500519796845
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.005164792015333393,
+          "average_precision": 0.011514033556504568,
+          "log_loss": 0.009398294872034653,
+          "brier": 0.0024539581183783995
+        },
+        "wall_seconds": 1.5230188749992521,
+        "paired_auc_delta_vs_logistic": 8.453277625499374e-05
+      },
+      {
+        "id": "CHURN-002",
+        "title": "Logistic baseline C=1",
+        "model": "logistic_regression",
+        "metrics": {
+          "roc_auc": 0.8448390938620584,
+          "average_precision": 0.6535073959618461,
+          "log_loss": 0.4180774187684779,
+          "brier": 0.13567875700388032
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.005170048149943732,
+          "average_precision": 0.011197713972873273,
+          "log_loss": 0.009338989837121907,
+          "brier": 0.0024632249409450254
+        },
+        "wall_seconds": 1.5636177090000274,
+        "paired_auc_delta_vs_logistic": 0.0
+      },
+      {
+        "id": "CHURN-003",
+        "title": "Regularized logistic C=0.2",
+        "model": "logistic_regression",
+        "metrics": {
+          "roc_auc": 0.8444836459270326,
+          "average_precision": 0.6528843721655729,
+          "log_loss": 0.418159189879516,
+          "brier": 0.1357923159838574
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.0052461918792184245,
+          "average_precision": 0.010715909138592784,
+          "log_loss": 0.009237020020140835,
+          "brier": 0.0025361739668792135
+        },
+        "wall_seconds": 1.572963291000633,
+        "paired_auc_delta_vs_logistic": -0.0003554479350256212
+      },
+      {
+        "id": "CHURN-011",
+        "title": "LightGBM baseline",
+        "model": "lightgbm",
+        "metrics": {
+          "roc_auc": 0.840197255021241,
+          "average_precision": 0.6578300469435114,
+          "log_loss": 0.4236259580771892,
+          "brier": 0.1373601883710988
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.006179265937972176,
+          "average_precision": 0.009355305066431646,
+          "log_loss": 0.010354855324152661,
+          "brier": 0.003328787566367766
+        },
+        "wall_seconds": 2.5965209160003724,
+        "paired_auc_delta_vs_logistic": -0.00464183884081724
+      },
+      {
+        "id": "CHURN-006",
+        "title": "Regularized Extra Trees",
+        "model": "extra_trees",
+        "metrics": {
+          "roc_auc": 0.8396733704559045,
+          "average_precision": 0.6418370471389293,
+          "log_loss": 0.4238777170365174,
+          "brier": 0.13797525053915635
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.007186346663195813,
+          "average_precision": 0.009092299494060083,
+          "log_loss": 0.009759236024893161,
+          "brier": 0.0033497573685893622
+        },
+        "wall_seconds": 5.564458959001058,
+        "paired_auc_delta_vs_logistic": -0.005165723406153788
+      },
+      {
+        "id": "CHURN-009",
+        "title": "Histogram gradient boosting",
+        "model": "hist_gradient_boosting",
+        "metrics": {
+          "roc_auc": 0.8382283846879096,
+          "average_precision": 0.6540011135920708,
+          "log_loss": 0.42743692162751473,
+          "brier": 0.13805229946186195
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.007409276540100269,
+          "average_precision": 0.008665039895714557,
+          "log_loss": 0.011705250268892206,
+          "brier": 0.003531503000044208
+        },
+        "wall_seconds": 6.367136208000375,
+        "paired_auc_delta_vs_logistic": -0.006610709174148559
+      },
+      {
+        "id": "CHURN-007",
+        "title": "Random Forest baseline",
+        "model": "random_forest",
+        "metrics": {
+          "roc_auc": 0.8363693226170626,
+          "average_precision": 0.6442539965529934,
+          "log_loss": 0.4359942789259987,
+          "brier": 0.13840026103139655
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.00777635891144553,
+          "average_precision": 0.012020335140961992,
+          "log_loss": 0.02603708744898289,
+          "brier": 0.003308991686340422
+        },
+        "wall_seconds": 4.833799874999386,
+        "paired_auc_delta_vs_logistic": -0.008469771244995724
+      },
+      {
+        "id": "CHURN-005",
+        "title": "Extra Trees baseline",
+        "model": "extra_trees",
+        "metrics": {
+          "roc_auc": 0.8246418694591507,
+          "average_precision": 0.613381432951284,
+          "log_loss": 0.44211312904555927,
+          "brier": 0.1438651022006002
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.008364876523246117,
+          "average_precision": 0.012055278973512547,
+          "log_loss": 0.012668206785396796,
+          "brier": 0.003815676917719116
+        },
+        "wall_seconds": 4.887003124998955,
+        "paired_auc_delta_vs_logistic": -0.020197224402907592
+      },
+      {
+        "id": "CHURN-001",
+        "title": "Prior-only floor",
+        "model": "dummy",
+        "metrics": {
+          "roc_auc": 0.5,
+          "average_precision": 0.2653623772590393,
+          "log_loss": 0.5786767602454934,
+          "brier": 0.19497851041170297
+        },
+        "fold_standard_deviation": {
+          "roc_auc": 0.0,
+          "average_precision": 0.005660402102262497,
+          "log_loss": 0.005728088368002422,
+          "brier": 0.0026419092585367246
+        },
+        "wall_seconds": 1.3048573750002106,
+        "paired_auc_delta_vs_logistic": -0.34483909386205824
+      }
+    ]
+  },
+  "registry_quality": {
+    "errors": 0,
+    "warnings": 2,
+    "full_provenance_records": 10,
+    "source": "knowledge/DATA_QUALITY.md"
+  }
+}

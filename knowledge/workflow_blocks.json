@@ -1,0 +1,116 @@
+[
+  {
+    "id": "WF-01",
+    "name": "Prediction contract",
+    "flow": [
+      "define entity and decision",
+      "define prediction moment",
+      "define target window",
+      "define action and costs",
+      "freeze allowable information"
+    ]
+  },
+  {
+    "id": "WF-02",
+    "name": "Source and lineage gate",
+    "flow": [
+      "inventory sources",
+      "hash immutable snapshot",
+      "record event timestamps",
+      "map raw-to-modeled fields",
+      "label owner and SLA"
+    ]
+  },
+  {
+    "id": "WF-03",
+    "name": "Split design",
+    "flow": [
+      "identify independence unit",
+      "choose group/time/domain split",
+      "lock test IDs",
+      "verify no overlap",
+      "version split manifest"
+    ]
+  },
+  {
+    "id": "WF-04",
+    "name": "Train-only EDA",
+    "flow": [
+      "schema and type audit",
+      "target and missingness profile",
+      "duplicates/entities",
+      "distribution slices",
+      "association hypotheses without promotion"
+    ]
+  },
+  {
+    "id": "WF-05",
+    "name": "Leakage audit",
+    "flow": [
+      "semantic availability matrix",
+      "lineage/timestamp check",
+      "target-proxy review",
+      "split/preprocessing audit",
+      "safe-vs-unsafe severity ablation"
+    ]
+  },
+  {
+    "id": "WF-06",
+    "name": "Feature ladder",
+    "flow": [
+      "raw baseline",
+      "single domain transform",
+      "ratios/differences",
+      "bounded interactions",
+      "external point-in-time features",
+      "retain only reproducible lift"
+    ]
+  },
+  {
+    "id": "WF-07",
+    "name": "Algorithm screen",
+    "flow": [
+      "dummy floor",
+      "regularized linear model",
+      "bagged trees",
+      "boosting families",
+      "domain-appropriate specialist",
+      "rank on identical folds"
+    ]
+  },
+  {
+    "id": "WF-08",
+    "name": "Conservative optimization",
+    "flow": [
+      "freeze objective",
+      "small explicit search",
+      "paired fold comparison",
+      "proper scoring and runtime",
+      "accept or keep baseline"
+    ]
+  },
+  {
+    "id": "WF-09",
+    "name": "Reliability challenge",
+    "flow": [
+      "calibration",
+      "threshold/cost analysis",
+      "missing-input stress",
+      "subgroup/slice floors",
+      "temporal/domain holdout",
+      "failure and rollback rule"
+    ]
+  },
+  {
+    "id": "WF-10",
+    "name": "Knowledge capture",
+    "flow": [
+      "observed result",
+      "narrow interpretation",
+      "limitations/counterexample",
+      "evidence paths and hashes",
+      "next discriminating test",
+      "human review status"
+    ]
+  }
+]

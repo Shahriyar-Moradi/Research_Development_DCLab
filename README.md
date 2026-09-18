@@ -282,3 +282,21 @@ Telco Churn now has a fixed, fully executed 15-experiment 2×3-fold development
 campaign under `churn_exp/results/`. Its leaderboard and protocol are in
 `churn_exp/CHURN_BENCHMARK.md`. These are adaptive development comparisons—not
 independent confirmation, production approval, or a universal model ranking.
+
+### Model-building field guide and future LLM memory
+
+```bash
+# Deterministically rebuild the human and machine-readable synthesis.
+make master-guide
+
+# Run four typed GPT-6 Astra advisory reviewers, then include their cited
+# critiques in the guide. Requires OPENAI_API_KEY with available API credit.
+make master-review
+```
+
+The main entry point is [`knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](knowledge/MODEL_BUILDING_FIELD_GUIDE.md), also available inside the local UI under **Knowledge**. Machine consumers should use `knowledge/master_evidence_pack.json`, `knowledge/model_building_rules.jsonl`, and `knowledge/workflow_blocks.json`. Agent reviews remain advisory; deterministic measurements and repository evidence are authoritative.
+
+The current reviewer lifecycle is recorded in
+`knowledge/gpt6_astra_master_review_status.json`. The last provider attempt was
+blocked by exhausted API credit, so no invented LLM findings were merged into
+the guide; rerun `make master-review` after credits are available.

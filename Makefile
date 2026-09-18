@@ -1,4 +1,4 @@
-.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status churn-run churn-status agent-hyperack agent-churn
+.PHONY: test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status churn-run churn-status agent-hyperack agent-churn master-guide master-review
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -63,3 +63,10 @@ agent-hyperack:
 
 agent-churn:
 	$(AGENT_PYTHON) -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4 --rows 7043
+
+master-guide:
+	$(PYTHON) -m dclab_rnd.master_review build
+
+master-review: master-guide
+	$(AGENT_PYTHON) -m dclab_rnd.agentic.guide_review --model gpt-6-astra
+	$(PYTHON) -m dclab_rnd.master_review build
