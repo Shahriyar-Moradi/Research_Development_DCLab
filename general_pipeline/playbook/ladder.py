@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "hyperack_exp"))
 
 from shared.protocol import evaluate  # noqa: E402
+from dclab_rnd.provenance import capture_provenance  # noqa: E402
 from general_pipeline.external_catalog import DATASET_CATALOG  # noqa: E402
 from general_pipeline.external_project import PROJECTS_ROOT, project_dir, scaffold_project  # noqa: E402
 from general_pipeline.models import SoftVotingClassifier, get_model  # noqa: E402
@@ -36,6 +37,23 @@ from general_pipeline.playbook.policy import get_policy  # noqa: E402
 
 RANDOM_STATE = 42
 EXTERNAL_DATA = ROOT / "external_data"
+LADDER_MODEL_BY_ID = {
+    1: "logistic_regression",
+    2: "lightgbm",
+    3: "lightgbm",
+    4: "lightgbm",
+    5: "lightgbm",
+    6: "lightgbm",
+    7: "lightgbm",
+    8: "xgboost",
+    9: "lightgbm",
+    10: "hist_gradient_boosting",
+    11: "extra_trees",
+    12: "lightgbm_calibrated",
+    13: "stacking_ensemble",
+    14: "soft_vote_blend",
+    15: "lightgbm",
+}
 
 
 def _serialize(obj: Any) -> Any:
@@ -122,8 +140,10 @@ def run_ladder_experiment(
     model = model_factory()
     metrics, elapsed = _run_eval(model, Xtr, y_train, Xte, y_test)
     payload = {
+        "schema_version": 1,
         "exp_id": exp_id,
         "exp_name": exp_name,
+        "model_name": LADDER_MODEL_BY_ID.get(exp_id, exp_name),
         "dataset": key,
         "mode": mode,
         "fe_stage": stage,
@@ -139,6 +159,15 @@ def run_ladder_experiment(
         "metrics": _serialize(metrics),
         "total_elapsed_seconds": round(elapsed, 3),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "provenance": capture_provenance(
+            ROOT,
+            data_paths=[
+                EXTERNAL_DATA / key / "X.parquet",
+                EXTERNAL_DATA / key / "y.parquet",
+                EXTERNAL_DATA / key / "meta.json",
+            ],
+            random_state=RANDOM_STATE,
+        ),
     }
     path = _save(key, payload)
     m = metrics

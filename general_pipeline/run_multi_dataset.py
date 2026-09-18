@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "hyperack_exp"))
 
 from shared.protocol import evaluate  # noqa: E402
+from dclab_rnd.provenance import capture_provenance  # noqa: E402
 from general_pipeline.external_catalog import DATASET_CATALOG  # noqa: E402
 from general_pipeline.external_dataset import list_available_datasets, load_external_dataset  # noqa: E402
 from general_pipeline.models import get_model  # noqa: E402
@@ -77,6 +78,7 @@ def run_one(
     elapsed = time.perf_counter() - t0
 
     payload = {
+        "schema_version": 1,
         "dataset": dataset_key,
         "dataset_name": meta.get("name", dataset_key),
         "model_name": model_name,
@@ -90,6 +92,15 @@ def run_one(
         "total_elapsed_seconds": round(elapsed, 3),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "source_url": meta.get("url"),
+        "provenance": capture_provenance(
+            ROOT,
+            data_paths=[
+                ROOT / "external_data" / dataset_key / "X.parquet",
+                ROOT / "external_data" / dataset_key / "y.parquet",
+                ROOT / "external_data" / dataset_key / "meta.json",
+            ],
+            random_state=42,
+        ),
     }
 
     if save:

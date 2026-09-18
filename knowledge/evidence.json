@@ -1,0 +1,316 @@
+{
+  "champions": [
+    {
+      "dataset": "adult",
+      "experiment": "catboost",
+      "f1": 0.7045977011494253,
+      "model": "catboost",
+      "model_family": "catboost",
+      "recall": 0.6405433646812957,
+      "roc_auc": 0.9274019444733465,
+      "run_id": "e75acdfdafa1e05b",
+      "source_path": "general_pipeline/results_external/adult__optimized__catboost.json",
+      "suite": "external_benchmark"
+    },
+    {
+      "dataset": "bank_marketing",
+      "experiment": "baseline_lightgbm",
+      "f1": 0.3333333333333333,
+      "model": "lightgbm",
+      "model_family": "lightgbm",
+      "recall": 0.2329059829059829,
+      "roc_auc": 0.8028939924112631,
+      "run_id": "00ad0812ca49c8c9",
+      "source_path": "external_projects/bank_marketing_exp/results/ladder/02_safe_baseline_lightgbm.json",
+      "suite": "external_playbook"
+    },
+    {
+      "dataset": "breast_cancer",
+      "experiment": "fe_ratios",
+      "f1": 0.9629629629629629,
+      "model": "lightgbm",
+      "model_family": "lightgbm",
+      "recall": 0.9285714285714286,
+      "roc_auc": 1.0,
+      "run_id": "a33cb96901defa8d",
+      "source_path": "external_projects/breast_cancer_exp/results/ladder/04_safe_fe_ratios.json",
+      "suite": "external_playbook"
+    },
+    {
+      "dataset": "credit_default",
+      "experiment": "stacking_ensemble",
+      "f1": 0.48484848484848486,
+      "model": "stacking_ensemble",
+      "model_family": "ensemble",
+      "recall": 0.3706214689265537,
+      "roc_auc": 0.8004617714539634,
+      "run_id": "903c82449ddeae5c",
+      "source_path": "external_projects/credit_default_exp/results/ladder/13_safe_stacking_ensemble.json",
+      "suite": "external_playbook"
+    },
+    {
+      "dataset": "german_credit",
+      "experiment": "catboost",
+      "f1": 0.5961538461538461,
+      "model": "catboost",
+      "model_family": "catboost",
+      "recall": 0.5166666666666667,
+      "roc_auc": 0.8111904761904762,
+      "run_id": "a869da756586eecc",
+      "source_path": "general_pipeline/results_external/german_credit__optimized__catboost.json",
+      "suite": "external_benchmark"
+    },
+    {
+      "dataset": "heart_disease",
+      "experiment": "hist_gradient_boosting",
+      "f1": 0.9152542372881356,
+      "model": "hist_gradient_boosting",
+      "model_family": "hist_gradient_boosting",
+      "recall": 0.9642857142857143,
+      "roc_auc": 0.974025974025974,
+      "run_id": "6e847fbecccf46e6",
+      "source_path": "external_projects/heart_disease_exp/results/ladder/10_safe_hist_gradient_boosting.json",
+      "suite": "external_playbook"
+    },
+    {
+      "dataset": "hyperack",
+      "experiment": "softvote_etbag_lgbmwinner_xgb",
+      "f1": 0.8505263157894737,
+      "model": "Soft3",
+      "model_family": "ensemble",
+      "recall": 0.7784200385356455,
+      "roc_auc": 0.9454609956777585,
+      "run_id": "acecba4c61a83ca7",
+      "source_path": "optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json",
+      "suite": "hyperack_optimized_safe"
+    },
+    {
+      "dataset": "mushroom",
+      "experiment": "catboost",
+      "f1": 1.0,
+      "model": "catboost",
+      "model_family": "catboost",
+      "recall": 1.0,
+      "roc_auc": 1.0,
+      "run_id": "f64f5fbcadf0a56a",
+      "source_path": "general_pipeline/results_external/mushroom__baseline__catboost.json",
+      "suite": "external_benchmark"
+    },
+    {
+      "dataset": "online_shoppers",
+      "experiment": "tuned_xgboost",
+      "f1": 0.12121212121212122,
+      "model": "xgboost",
+      "model_family": "xgboost",
+      "recall": 0.06806282722513089,
+      "roc_auc": 0.7736581885419702,
+      "run_id": "e5f976de0814e367",
+      "source_path": "external_projects/online_shoppers_exp/results/ladder/08_safe_tuned_xgboost.json",
+      "suite": "external_playbook"
+    },
+    {
+      "dataset": "spambase",
+      "experiment": "lightgbm",
+      "f1": 0.9349930843706777,
+      "model": "lightgbm",
+      "model_family": "lightgbm",
+      "recall": 0.931129476584022,
+      "roc_auc": 0.9877662253028822,
+      "run_id": "34c695643e2ef49e",
+      "source_path": "general_pipeline/results_external/spambase__baseline__lightgbm.json",
+      "suite": "external_benchmark"
+    },
+    {
+      "dataset": "wine_quality",
+      "experiment": "extra_trees",
+      "f1": 0.8832844574780059,
+      "model": "extra_trees",
+      "model_family": "extra_trees",
+      "recall": 0.9149453219927096,
+      "roc_auc": 0.9160266550509335,
+      "run_id": "c00fe723fbf5ce78",
+      "source_path": "general_pipeline/results_external/wine_quality__baseline__extra_trees.json",
+      "suite": "external_benchmark"
+    }
+  ],
+  "leakage_gaps": [
+    {
+      "apparent_leakage_lift": 0.13276992527417208,
+      "dataset": "bank_marketing",
+      "safe_roc_auc": 0.8028939924112631,
+      "safe_source": "external_projects/bank_marketing_exp/results/ladder/02_safe_baseline_lightgbm.json",
+      "unsafe_roc_auc": 0.9356639176854352,
+      "unsafe_source": "external_projects/bank_marketing_exp/results/ladder/08_unsafe_tuned_xgboost.json"
+    },
+    {
+      "apparent_leakage_lift": 0.03472113732229365,
+      "dataset": "hyperack",
+      "safe_roc_auc": 0.9454609956777585,
+      "safe_source": "optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json",
+      "unsafe_roc_auc": 0.9801821330000522,
+      "unsafe_source": "general_pipeline/results/unsafe_baseline_hist_gradient_boosting.json"
+    },
+    {
+      "apparent_leakage_lift": 0.15747756529428913,
+      "dataset": "online_shoppers",
+      "safe_roc_auc": 0.7736581885419702,
+      "safe_source": "external_projects/online_shoppers_exp/results/ladder/08_safe_tuned_xgboost.json",
+      "unsafe_roc_auc": 0.9311357538362594,
+      "unsafe_source": "external_projects/online_shoppers_exp/results/ladder/09_unsafe_tuned_lightgbm.json"
+    }
+  ],
+  "model_evidence": [
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 2.5454545454545454,
+      "mean_roc_auc": 0.8997944740949849,
+      "min_roc_auc": 0.7718845152797178,
+      "model_family": "lightgbm",
+      "wins": 3
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 3.5454545454545454,
+      "mean_roc_auc": 0.8982381608708013,
+      "min_roc_auc": 0.7736581885419702,
+      "model_family": "xgboost",
+      "wins": 1
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 3.6363636363636362,
+      "mean_roc_auc": 0.8982064344479925,
+      "min_roc_auc": 0.7734722794464933,
+      "model_family": "ensemble",
+      "wins": 2
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 4.363636363636363,
+      "mean_roc_auc": 0.8974587491368065,
+      "min_roc_auc": 0.7696284832832552,
+      "model_family": "hist_gradient_boosting",
+      "wins": 1
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 1.0,
+      "mean_rank": 4.545454545454546,
+      "mean_roc_auc": 0.8947653079716316,
+      "min_roc_auc": 0.7532044196119022,
+      "model_family": "extra_trees",
+      "wins": 1
+    },
+    {
+      "dataset_count": 11,
+      "max_roc_auc": 0.9996769232169347,
+      "mean_rank": 7.636363636363637,
+      "mean_roc_auc": 0.852810739506118,
+      "min_roc_auc": 0.7048429319371727,
+      "model_family": "logistic_regression",
+      "wins": 0
+    },
+    {
+      "dataset_count": 9,
+      "max_roc_auc": 1.0,
+      "mean_rank": 3.5555555555555554,
+      "mean_roc_auc": 0.9217208202396346,
+      "min_roc_auc": 0.790693836094712,
+      "model_family": "catboost",
+      "wins": 3
+    },
+    {
+      "dataset_count": 9,
+      "max_roc_auc": 1.0,
+      "mean_rank": 5.222222222222222,
+      "mean_roc_auc": 0.9226251293775211,
+      "min_roc_auc": 0.7961400549555188,
+      "model_family": "random_forest",
+      "wins": 0
+    },
+    {
+      "dataset_count": 1,
+      "max_roc_auc": 0.9185568335676717,
+      "mean_rank": 8.0,
+      "mean_roc_auc": 0.9185568335676717,
+      "min_roc_auc": 0.9185568335676717,
+      "model_family": "tabular_transformer",
+      "wins": 0
+    },
+    {
+      "dataset_count": 1,
+      "max_roc_auc": 0.8828991563818154,
+      "mean_rank": 9.0,
+      "mean_roc_auc": 0.8828991563818154,
+      "min_roc_auc": 0.8828991563818154,
+      "model_family": "linear_svc",
+      "wins": 0
+    }
+  ],
+  "quality_issues": [
+    {
+      "message": "duplicate canonical experiment key: external_playbook/breast_cancer/safe/6",
+      "path": "external_projects/breast_cancer_exp/results/ladder/06_safe_fe_full.json, external_projects/breast_cancer_exp/results/ladder/06_safe_fe_full_clusters_bins.json",
+      "severity": "warning"
+    },
+    {
+      "message": "duplicate canonical experiment key: external_playbook/heart_disease/safe/6",
+      "path": "external_projects/heart_disease_exp/results/ladder/06_safe_fe_full.json, external_projects/heart_disease_exp/results/ladder/06_safe_fe_full_clusters_bins.json",
+      "severity": "warning"
+    }
+  ],
+  "recommendations": [
+    {
+      "experiment": "Evaluate the top three safe model families with Brier score, log loss, ECE, and calibration curves on the locked split.",
+      "priority": 1,
+      "success": "Select a calibrated champion that preserves ROC-AUC while improving Brier score and expected business cost.",
+      "title": "Add probability-quality benchmarks",
+      "why": "The registry is rich in ranking metrics, but it has no systematic Brier score, log loss, or calibration error evidence."
+    },
+    {
+      "experiment": "Run repeated stratified 5-fold CV (5 repeats) for the top three deployment-eligible families and bootstrap paired score differences.",
+      "priority": 1,
+      "success": "Promote a winner only when its median lift is positive and the 95% paired interval is decision-useful.",
+      "title": "Measure winner stability, not only point estimates",
+      "why": "Most stored results expose one locked split and no confidence interval, so small leaderboard differences may be noise."
+    },
+    {
+      "experiment": "Re-run each deployment champion with the new provenance-enabled runners; require identical data hashes and report score drift.",
+      "priority": 1,
+      "success": "All active champions are reproducible from a clean checkout and differ by no more than 0.001 ROC-AUC.",
+      "title": "Replicate champions with full provenance",
+      "why": "Only 0.0% of completed historical runs contain code, data, seed, and environment provenance."
+    },
+    {
+      "experiment": "Backtest the safe champion on later-time, unseen-zone, and high-demand slices; compare AUC, recall, calibration, and coverage.",
+      "priority": 2,
+      "success": "Document the worst-slice floor and define a retraining or rollback threshold before deployment.",
+      "title": "Add temporal and operational holdouts for HyperAck",
+      "why": "A random locked split can overestimate production performance when pricing, geography, or demand changes over time."
+    },
+    {
+      "experiment": "Add three datasets from different row-count, imbalance, and categorical-cardinality regimes and compare rank stability against GBDT and ensemble baselines.",
+      "priority": 3,
+      "success": "The preferred default is based on broad rank stability plus runtime/cost, with documented exceptions by dataset profile.",
+      "title": "Challenge the cross-dataset leader: lightgbm",
+      "why": "It currently covers 11 datasets with mean rank 2.55; that is evidence, not a universal guarantee."
+    }
+  ],
+  "regressions": [],
+  "schema_version": 1,
+  "summary": {
+    "datasets": 11,
+    "deployment_eligible_completed": 473,
+    "experiments": 569,
+    "status_counts": {
+      "completed": 566,
+      "skipped": 3
+    },
+    "suites": 6,
+    "with_provenance": 0
+  }
+}

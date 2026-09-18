@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Any, Iterable
@@ -23,6 +24,11 @@ from sklearn.model_selection import train_test_split
 
 EXPERIMENT_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = EXPERIMENT_ROOT.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from dclab_rnd.provenance import capture_provenance  # noqa: E402
+
 DATA_PATH = PROJECT_ROOT / "hyper_ackt-dataset.csv"
 RESULTS_DIR = EXPERIMENT_ROOT / "results"
 SPLIT_PATH = RESULTS_DIR / "split_indices.npz"
@@ -329,6 +335,7 @@ def save_result(
         if key not in {"y_true", "y_pred", "y_prob"}
     }
     payload = {
+        "schema_version": 1,
         "exp_id": str(exp_id),
         "name": name,
         "strategy": strategy,
@@ -337,6 +344,12 @@ def save_result(
         "best_model": best_model,
         "feature_count": int(feature_count),
         "notes": notes,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "provenance": capture_provenance(
+            PROJECT_ROOT,
+            data_paths=[DATA_PATH, SPLIT_PATH],
+            random_state=RANDOM_STATE,
+        ),
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     return path

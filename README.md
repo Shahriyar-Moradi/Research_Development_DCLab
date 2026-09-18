@@ -6,6 +6,42 @@ HyperAck order-acceptance tabular classification R&D: feature engineering, leaka
 
 ---
 
+## Automated R&D control plane
+
+All historical result JSON is normalized into one evidence registry. The automation excludes known leakage from deployment leaderboards, ranks algorithm families across datasets, detects malformed/duplicate results and benchmark regressions, and generates the next experiment backlog from evidence gaps.
+
+```bash
+# Rebuild registry + knowledge base after any experiment
+make rd-sync
+
+# Tests, result validation, regression gates, and stale-artifact check
+make rd-check
+
+# Fast view of deployment-eligible champions
+make rd-status
+
+# Run a fast, safe HyperAck experiment and refresh all evidence
+make rd-smoke
+
+# Or target an existing runner through one controlled lifecycle command
+.venv/bin/python -m dclab_rnd cycle external --dataset adult --model lightgbm --optimization optimized
+```
+
+Generated research memory:
+
+| Artifact | Purpose |
+|---|---|
+| [`knowledge/KNOWLEDGE_BASE.md`](knowledge/KNOWLEDGE_BASE.md) | Champions, cross-dataset evidence, leakage gaps |
+| [`knowledge/NEXT_EXPERIMENTS.md`](knowledge/NEXT_EXPERIMENTS.md) | Prioritized, evidence-driven experiment backlog |
+| [`knowledge/experiment_registry.csv`](knowledge/experiment_registry.csv) | Canonical machine-readable ledger of every run |
+| [`knowledge/DATA_QUALITY.md`](knowledge/DATA_QUALITY.md) | Duplicate, schema, metric, and regression findings |
+
+New runs created by the shared runners now include `schema_version` and reproducibility provenance: git commit/dirty state, Python and ML package versions, random seed, and SHA-256 hashes of source data. CI verifies the automation layer and refuses stale knowledge artifacts.
+
+The GitHub workflow also runs a daily evidence-health check at 01:15 UTC. Full training stays explicit through `dclab_rnd cycle`, preventing an accidental all-model/all-dataset compute run.
+
+---
+
 ## Headline results (same test split)
 
 | Suite | Best ROC-AUC | Best recall (same or related) | Notes |

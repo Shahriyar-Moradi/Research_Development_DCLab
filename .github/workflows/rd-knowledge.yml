@@ -1,0 +1,23 @@
+name: R&D evidence quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 1 * * *"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Test automation layer
+        run: python -m unittest discover -s tests -v
+      - name: Validate experiment records
+        run: python -m dclab_rnd validate
+      - name: Ensure generated knowledge is current
+        run: python -m dclab_rnd sync --check

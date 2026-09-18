@@ -21,6 +21,7 @@ sys.path.insert(0, str(HYPERACK_DIR))
 sys.path.insert(0, str(ROOT))
 
 from shared.protocol import evaluate  # noqa: E402
+from dclab_rnd.provenance import capture_provenance  # noqa: E402
 from general_pipeline.dataset import load_dataset  # noqa: E402
 from general_pipeline.models import MODEL_REGISTRY, get_model  # noqa: E402
 
@@ -83,6 +84,7 @@ def run_experiment(
     total_time = time.perf_counter() - t0
 
     payload = {
+        "schema_version": 1,
         "model_name": model_name,
         "mode": mode,
         "optimization": optimization,
@@ -90,6 +92,14 @@ def run_experiment(
         "metrics": _serialize(metrics),
         "total_elapsed_seconds": round(total_time, 3),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "provenance": capture_provenance(
+            ROOT,
+            data_paths=[
+                ROOT / "hyper_ackt-dataset.csv",
+                ROOT / "hyperack_exp" / "results" / "split_indices.npz",
+            ],
+            random_state=42,
+        ),
     }
 
     if save:
