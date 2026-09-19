@@ -55,6 +55,9 @@ agent-status:
 agent-archive:
 	$(AGENT_PYTHON) -m dclab_rnd.agentic archive --all
 
+agent-export-clean:
+	$(AGENT_PYTHON) -m dclab_rnd.agentic export-clean
+
 churn-run:
 	$(PYTHON) -m dclab_rnd.churn_suite run
 

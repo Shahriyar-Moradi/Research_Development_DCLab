@@ -33,6 +33,10 @@ def main():
     )
     archive.add_argument("--all", action="store_true", help="archive every run in the studio home")
     archive.add_argument("--run-id", default=None, help="archive one run id")
+    sub.add_parser(
+        "export-clean",
+        help="add clean run cards + SLM fine-tuning JSONL beside existing archives (no deletes)",
+    )
     replay = sub.add_parser("replay")
     replay.add_argument("recipe", type=Path)
     replay.add_argument("--output", type=Path, required=True)
@@ -56,6 +60,22 @@ def main():
             print(json.dumps({"run_id": args.run_id, "label": manifest.get("label"), "file_count": manifest.get("file_count")}, indent=2))
         else:
             parser.error("Pass --all or --run-id")
+    elif args.command == "export-clean":
+        from .clean_export import write_studio_clean_exports
+
+        export_root = write_studio_clean_exports(store)
+        manifest = json.loads((export_root / "MANIFEST.json").read_text(encoding="utf-8"))
+        print(
+            json.dumps(
+                {
+                    "export_root": str(export_root),
+                    "trial_count": manifest.get("trial_count"),
+                    "sft_record_count": manifest.get("sft_record_count"),
+                    "sft_task_counts": manifest.get("sft_task_counts"),
+                },
+                indent=2,
+            )
+        )
     elif args.command == "replay":
         import hashlib
         recipe = json.loads(args.recipe.read_text())

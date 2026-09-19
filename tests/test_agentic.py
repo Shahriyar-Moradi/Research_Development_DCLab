@@ -114,6 +114,95 @@ def test_archive_materializes_process_files_and_index():
         assert (home / "STUDIO_ARCHIVE_INDEX.json").exists()
         assert (home / "catalog" / "by_label" / manifest["label"]).exists()
         assert (home / "README.md").exists()
+        assert (root / "clean" / "run_card.json").exists()
+        assert (home / "clean_exports" / "sft_chat.jsonl").exists()
+        assert (home / "clean_exports" / "MANIFEST.json").exists()
+
+def test_clean_export_builds_compact_trials_and_sft():
+    from dclab_rnd.agentic.clean_export import write_run_clean, write_studio_clean_exports, compact_trial_from_disk
+
+    with tempfile.TemporaryDirectory() as directory:
+        home = Path(directory)
+        store = Store(home)
+        store.create("runclean1", RunRequest(max_experiments=1, datasets=["bank_marketing"]).model_dump())
+        store.event(
+            "runclean1",
+            "agenda",
+            {
+                "goal_interpretation": "learn",
+                "research_questions": ["baseline?"],
+                "sequence": ["profile", "fit"],
+                "success_criteria": ["paired"],
+                "limitations": ["dev cv"],
+            },
+        )
+        store.event(
+            "runclean1",
+            "proposal",
+            experiment("logistic_regression"),
+        )
+        store.event(
+            "runclean1",
+            "critique",
+            {
+                "observation": "AUC 0.7",
+                "interpretation": "useful baseline",
+                "limitations": ["dev cv"],
+                "next_question": "try trees",
+                "evidence_ids": ["runclean1:trial-001"],
+                "continue_research": False,
+            },
+        )
+        trial = home / "runclean1" / "trial-001"
+        trial.mkdir(parents=True)
+        plan = experiment("logistic_regression")
+        (trial / "recipe.json").write_text(
+            json.dumps({"schema_version": 1, "plan": plan, "max_rows": 300, "repeats": 1}),
+            encoding="utf-8",
+        )
+        (trial / "result.json").write_text(
+            json.dumps(
+                {
+                    "dataset": "bank_marketing",
+                    "plan": plan,
+                    "rows": 300,
+                    "feature_count": 5,
+                    "metrics": {"roc_auc": 0.71, "average_precision": 0.4, "log_loss": 0.5, "brier": 0.2},
+                    "fold_standard_deviation": {"roc_auc": 0.01},
+                    "input_sensitivity": [{"column": "balance", "auc_drop": 0.02}],
+                    "stress_tests": [{"columns": ["balance"], "roc_auc": 0.68, "auc_drop": 0.03}],
+                    "limitations": ["test"],
+                    "production_approved": False,
+                    "wall_seconds": 1.2,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (trial / "oof_predictions.jsonl").write_text(
+            '{"row_id":0,"repeat":0,"fold":0,"target":0,"probability":0.1}\n',
+            encoding="utf-8",
+        )
+        write_run_clean(store, "runclean1")
+        card = json.loads((home / "runclean1" / "clean" / "run_card.json").read_text(encoding="utf-8"))
+        assert card["trial_count"] == 1
+        assert card["best_cv_auc"] == 0.71
+        trial_line = (home / "runclean1" / "clean" / "trials.jsonl").read_text(encoding="utf-8")
+        assert "roc_auc" in trial_line
+        assert "probability" not in trial_line  # OOF not embedded in clean trials
+        compact = compact_trial_from_disk("runclean1", trial)
+        assert compact["metrics"]["roc_auc"] == 0.71
+        assert "oof_predictions" not in compact
+        export_root = write_studio_clean_exports(store)
+        sft_lines = (export_root / "sft_chat.jsonl").read_text(encoding="utf-8").strip().splitlines()
+        assert len(sft_lines) >= 3
+        tasks = {json.loads(line)["task"] for line in sft_lines}
+        assert "plan_agenda" in tasks
+        assert "propose_experiment" in tasks
+        assert "critique_experiment" in tasks
+        assert (export_root / "leaderboard.csv").exists()
+        # Raw trial artifacts untouched.
+        assert (trial / "oof_predictions.jsonl").exists()
+        assert (trial / "result.json").exists()
 
 def test_local_api_security_and_missing_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)

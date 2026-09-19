@@ -25,6 +25,7 @@ Layout per run (canonical path stays agent_runs/<run_id>/ for API compatibility)
     snapshots/                latest convenient named phase outputs
     trial-001/                deterministic worker outputs (+ META.json)
     trial-002/
+    clean/                    additive simple cards (no OOF); raw trials kept
     ...
 
 Studio home also gets:
@@ -32,6 +33,7 @@ Studio home also gets:
   STUDIO_ARCHIVE_INDEX.json / .md
   catalog/by_{project,dataset,status}/<label>__<shortid> -> ../../<run_id>
   studio_assets/              UI screenshots and other studio files
+  clean_exports/              leaderboard.csv + SLM SFT JSONL (additive)
 """
 
 from __future__ import annotations
@@ -796,6 +798,10 @@ def archive_run(store, run_id: str, *, reset_snapshots: bool = True) -> dict[str
     trajectory = store.export(run_id)
     _write_json(root / "trajectory.json", trajectory)
     write_studio_run_report(store, run_id)
+    # Additive clean projection (does not remove trial-*/events/reports).
+    from .clean_export import write_run_clean
+
+    write_run_clean(store, run_id)
     manifest_path = write_manifest(store, run_id)
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
@@ -907,11 +913,14 @@ def write_studio_readme(store) -> Path:
                 "- `STUDIO_ARCHIVE_INDEX.json` / `.md` — inventory of all runs",
                 "- `catalog/` — symlinks by label, project, dataset, status",
                 "- `studio_assets/` — UI screenshots and studio files",
+                "- `clean_exports/` — simple leaderboards + SLM fine-tuning JSONL",
+                "- `<run_id>/clean/` — one-page run card + compact trials (raw kept)",
                 "",
                 "## Refresh archives",
                 "",
                 "```bash",
                 ".venv-agent/bin/python -m dclab_rnd.agentic archive --all",
+                ".venv-agent/bin/python -m dclab_rnd.agentic export-clean",
                 "```",
                 "",
                 "Existing storage methods are kept. Archiving only **adds** readable files.",
@@ -928,6 +937,9 @@ def write_studio_index(store) -> Path:
     organize_studio_assets(store)
     write_studio_readme(store)
     write_catalog_links(store)
+    from .clean_export import write_studio_clean_exports
+
+    write_studio_clean_exports(store)
 
     runs = []
     for run in store.list():
@@ -987,7 +999,8 @@ def write_studio_index(store) -> Path:
     lines += [
         "",
         "Canonical folders: `agent_runs/<run_id>/`  ",
-        "Friendly links: `agent_runs/catalog/by_label/`",
+        "Friendly links: `agent_runs/catalog/by_label/`  ",
+        "Clean / SLM: `agent_runs/clean_exports/` and `<run_id>/clean/`",
         "",
         "Re-archive everything:",
         "",

@@ -1,0 +1,65 @@
+---
+description: Persian (Farsi) RTL technical writing style for AI/ML/docs — apply whenever producing Persian prose, bilingual EN+FA explanations, or Persian markdown.
+alwaysApply: true
+---
+
+# Technical Writing Style Guide for Persian (Right-to-Left / RTL)
+
+Use these rules whenever writing Persian technical documentation or bilingual answers (AI, ML, software engineering, systems design). English-only replies are unchanged.
+
+---
+
+## 1. Visual Layout & RTL Alignment
+
+* **Markdown Table Alignment:** Right-align columns with colons on the right (`|---:|`). Prevents LTR default column alignment.
+* **Text Diagrams & Flowcharts:** Reverse flow arrows to RTL (`←` instead of `→`).
+* **Persian Numerals:** Use Eastern Arabic numerals (`۰۱۲۳۴۵۶۷۸۹`) in general prose, ordered steps, and metrics inside Persian text. Keep Western digits (`0123456789`) only in code, paths, equations, and raw variable names.
+* **Persian Punctuation:**
+  * Comma: `،` (not `,`)
+  * Question mark: `؟` (not `?`)
+  * Quotes: « » (not `" "`)
+
+---
+
+## 2. English Code Terms & Mixed Text
+
+* Wrap variables, schemas, decorators, files, and paths in backticks (e.g. `continue_research`, `checkpoints.sqlite3`, `@strategy(PREDICT)`).
+* Never start a sentence or bullet with an English word. Lead with Persian (or the bullet) so RTL orientation is anchored before inline code.
+* Keep domain acronyms in English uppercase: API, LLM, JSON, UI, ML, SQLite, CV — do not transliterate them.
+
+---
+
+## 3. Specialized Technical Glossary
+
+Prefer industry-standard Iranian SE/AI terms; avoid literal calques:
+
+| English | Recommended Persian | Avoid |
+| --- | --- | --- |
+| Orchestrator | ارکستراتور / مدیریت اجرا | هماهنگ‌کننده |
+| Data Leakage | نشت داده | فرار اطلاعات |
+| Checkpoint | نقطهٔ بررسی / چک‌پوینت | نقطه بازرسی |
+| Persistence | ماندگاری داده‌ها / پایداری | ایستایی |
+| Subprocess | زیرپردازش / ساب‌پراسس | فرآیند فرعی |
+| Holdout Data | داده‌های ارزیابی نهایی (Holdout) | داده‌های نگه‌داشته‌شده |
+| Pipeline | پایپ‌لاین / زنجیرهٔ پردازش | مجرا / لوله |
+| Deterministic | قطعی / قطعی‌نگر | تعیین‌شده |
+| Agent | عامل / عامل هوشمند | نماینده / نماینده متحرک |
+
+---
+
+## 4. Typography & Grammar
+
+* **ZWNJ (نیم‌فاصله):** Always — `می‌شود` (not `می شود`)، `عامل‌ها` (not `عامل ها`)، `پایگاه‌داده`، `پیش‌فرض`.
+* **SOV order:** Subject–Object–Verb. Do not mirror English passive mid-sentence verb placement.
+* **Tone:** Formal, objective, technical. Not chatty; not archaic.
+
+---
+
+## 5. QA Checklist (before finishing Persian docs)
+
+1. Tables right-aligned (`|---:|`)?
+2. Diagram arrows RTL (`←`)?
+3. Prose numbers Persian (`۱، ۲، ۳`)?
+4. Code/paths in backticks?
+5. ZWNJ on `می‌` and `ها`?
+6. Sentences end with a Persian verb?
