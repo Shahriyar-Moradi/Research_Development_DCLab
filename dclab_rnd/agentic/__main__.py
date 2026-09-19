@@ -27,6 +27,12 @@ def main():
     run.add_argument("--minutes", type=int, default=30)
     resume = sub.add_parser("resume")
     resume.add_argument("run_id")
+    archive = sub.add_parser(
+        "archive",
+        help="materialize every research artifact as clean on-disk folders (keeps SQLite)",
+    )
+    archive.add_argument("--all", action="store_true", help="archive every run in the studio home")
+    archive.add_argument("--run-id", default=None, help="archive one run id")
     replay = sub.add_parser("replay")
     replay.add_argument("recipe", type=Path)
     replay.add_argument("--output", type=Path, required=True)
@@ -38,6 +44,18 @@ def main():
         uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("DCLAB_PORT", "8765")))
     elif args.command == "status":
         print(json.dumps([{k: r[k] for k in ("id", "status", "config", "llm_calls", "usage")} for r in store.list()], indent=2))
+    elif args.command == "archive":
+        from .archive import archive_all, archive_run, write_studio_index
+
+        if args.all:
+            results = archive_all(store)
+            print(json.dumps({"archived_runs": len(results), "index": str(store.home / "STUDIO_ARCHIVE_INDEX.json")}, indent=2))
+        elif args.run_id:
+            manifest = archive_run(store, args.run_id, reset_snapshots=True)
+            write_studio_index(store)
+            print(json.dumps({"run_id": args.run_id, "label": manifest.get("label"), "file_count": manifest.get("file_count")}, indent=2))
+        else:
+            parser.error("Pass --all or --run-id")
     elif args.command == "replay":
         import hashlib
         recipe = json.loads(args.recipe.read_text())

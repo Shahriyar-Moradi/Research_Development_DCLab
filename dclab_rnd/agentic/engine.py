@@ -150,6 +150,14 @@ def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
                     "interpretation": "Descriptive paired development folds, not statistical significance; cited compatible reference preferred."}
         except (ValueError, RuntimeError, asyncio.TimeoutError) as exc:
             trial["error"] = str(exc)[:2200]
+        # Durable META sidecar beside worker files (archive also rebuilds this).
+        try:
+            from .archive import write_trial_meta
+
+            directory.mkdir(parents=True, exist_ok=True)
+            write_trial_meta(directory, trial)
+        except Exception:  # noqa: BLE001 — never fail the research loop on sidecar IO
+            pass
         store.event(run_id, "trial", trial)
         return {"trials": state.get("trials", []) + [trial]}
     async def critique(state):
@@ -164,9 +172,6 @@ def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
         value = await phase("Curate research memory", KnowledgeCurator, "synthesize", context(state))
         for lesson in value["lessons"]: check_citations(lesson["evidence_ids"], state["trials"], required=True)
         store.event(run_id, "synthesis", value)
-        directory = store.home / run_id
-        directory.mkdir(exist_ok=True)
-        (directory / "trajectory.json").write_text(json.dumps(store.export(run_id), indent=2))
         return {"synthesis": value}
     graph = StateGraph(ResearchState)
     for name, fn in [("profile", profile), ("plan", plan), ("review", review), ("propose", propose), ("execute", execute), ("critique", critique), ("synthesize", synthesize)]: graph.add_node(name, fn)
@@ -204,6 +209,4 @@ async def run_research(store: Store, run_id: str, resume=False):
         store.event(run_id, "failure", {"type": type(exc).__name__})
     finally:
         store.update(run_id, active_seconds=run["active_seconds"] + time.monotonic() - started)
-        directory = store.home / run_id
-        directory.mkdir(exist_ok=True)
-        (directory / "trajectory.json").write_text(json.dumps(store.export(run_id), indent=2))
+        store.finalize_archive(run_id)

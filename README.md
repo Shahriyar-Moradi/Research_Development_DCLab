@@ -289,14 +289,14 @@ independent confirmation, production approval, or a universal model ranking.
 # Deterministically rebuild the human and machine-readable synthesis.
 make master-guide
 
-# Run four typed GPT-6 Astra advisory reviewers, then include their cited
-# critiques in the guide. Requires OPENAI_API_KEY with available API credit.
+# Run four typed advisory reviewers (default: gpt-5.6-terra), then include
+# their cited critiques in the guide. Requires OPENAI_API_KEY with credit.
 make master-review
 ```
 
 The main entry point is [`knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](knowledge/MODEL_BUILDING_FIELD_GUIDE.md), also available inside the local UI under **Knowledge**. Machine consumers should use `knowledge/master_evidence_pack.json`, `knowledge/model_building_rules.jsonl`, and `knowledge/workflow_blocks.json`. Agent reviews remain advisory; deterministic measurements and repository evidence are authoritative.
 
-The current reviewer lifecycle is recorded in
-`knowledge/gpt6_astra_master_review_status.json`. The last provider attempt was
-blocked by exhausted API credit, so no invented LLM findings were merged into
-the guide; rerun `make master-review` after credits are available.
+Reviewer lifecycle is recorded in
+`knowledge/gpt6_astra_master_review_status.json` (filename is historical; the
+Makefile now calls `guide_review` with `gpt-5.6-terra`). Rerun
+`make master-review` when API credit is available.

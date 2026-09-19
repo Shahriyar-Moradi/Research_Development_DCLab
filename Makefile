@@ -52,6 +52,9 @@ agent-test:
 agent-status:
 	$(AGENT_PYTHON) -m dclab_rnd.agentic status
 
+agent-archive:
+	$(AGENT_PYTHON) -m dclab_rnd.agentic archive --all
+
 churn-run:
 	$(PYTHON) -m dclab_rnd.churn_suite run
 
@@ -68,5 +71,5 @@ master-guide:
 	$(PYTHON) -m dclab_rnd.master_review build
 
 master-review: master-guide
-	$(AGENT_PYTHON) -m dclab_rnd.agentic.guide_review --model gpt-6-astra
+	$(AGENT_PYTHON) -m dclab_rnd.agentic.guide_review --model gpt-5.6-terra
 	$(PYTHON) -m dclab_rnd.master_review build

@@ -76,6 +76,45 @@ def test_graph_adapts_after_critique_and_persists():
         assert len(store.knowledge())==1
         assert store.export("test")["training_ready"] is False
 
+def test_archive_materializes_process_files_and_index():
+    from dclab_rnd.agentic.archive import archive_run, write_studio_index, run_label
+
+    with tempfile.TemporaryDirectory() as directory:
+        home = Path(directory)
+        store = Store(home)
+        request = RunRequest(max_experiments=1).model_dump()
+        store.create("runabc123", request)
+        store.event("runabc123", "profiles", [{"dataset": "bank_marketing", "rows": 100}])
+        store.event(
+            "runabc123",
+            "agenda",
+            {
+                "goal_interpretation": "test",
+                "research_questions": ["q"],
+                "sequence": ["s"],
+                "success_criteria": ["c"],
+                "limitations": ["l"],
+            },
+        )
+        store.update("runabc123", status="failed", phase="Research planner", error="rate limit")
+        store.event("runabc123", "failure", {"type": "RateLimitError"})
+        manifest = archive_run(store, "runabc123", reset_snapshots=True)
+        root = home / "runabc123"
+        assert (root / "run_config.json").exists()
+        assert (root / "LABEL.txt").exists()
+        assert (root / "process" / "01_profiles.json").exists()
+        assert (root / "process" / "02_agenda.json").exists()
+        assert (root / "process" / "99_failures.jsonl").exists()
+        assert (root / "events").is_dir()
+        assert (root / "trajectory.json").exists()
+        assert (root / "manifest.json").exists()
+        assert (root / "README.md").exists()
+        assert manifest["label"] == run_label(store.get("runabc123"))
+        write_studio_index(store)
+        assert (home / "STUDIO_ARCHIVE_INDEX.json").exists()
+        assert (home / "catalog" / "by_label" / manifest["label"]).exists()
+        assert (home / "README.md").exists()
+
 def test_local_api_security_and_missing_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with tempfile.TemporaryDirectory() as directory, TestClient(create_app(Path(directory))) as client:
