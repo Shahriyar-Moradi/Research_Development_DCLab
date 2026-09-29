@@ -37,7 +37,7 @@ def create_app(home=None):
         for task in active: task.cancel()
         if active: await asyncio.gather(*active, return_exceptions=True)
     app = FastAPI(title="DCLab Research Studio", lifespan=lifespan)
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
     app.state.store, app.state.tasks = store, tasks
     @app.middleware("http")
     async def protect(request: Request, call_next):

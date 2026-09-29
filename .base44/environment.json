@@ -1,0 +1,13 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/api/config",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "OPENAI_API_KEY",
+      "description": "OpenAI API key for the Agentic Research Studio LLM reasoning/critic loop. Get it from https://platform.openai.com/api-keys. Required to run research experiments; the UI loads without it.",
+      "requiredAtBoot": false,
+      "generatedForDevelopment": true
+    }
+  ]
+}

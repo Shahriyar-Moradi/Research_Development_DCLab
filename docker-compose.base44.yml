@@ -1,0 +1,45 @@
+services:
+  studio:
+    build:
+      context: .
+      dockerfile: Dockerfile.base44
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - venv-agent:/app/.venv-agent
+      - venv-ml:/app/.venv
+    environment:
+      - DCLAB_PORT=3000
+      - DCLAB_ML_PYTHON=/app/.venv/bin/python
+      - PYTHONDONTWRITEBYTECODE=1
+    env_file:
+      - ./.env.base44-defaults
+      - /run/base44/app.env
+    command:
+      - sh
+      - -ec
+      - |
+        if [ ! -x .venv-agent/bin/python ]; then
+          echo "Installing agent dependencies..."
+          uv venv .venv-agent --python 3.13
+          uv pip install --python .venv-agent/bin/python -r requirements-agent.lock.txt
+        fi
+        if [ ! -x .venv/bin/python ]; then
+          echo "Installing ML worker dependencies..."
+          uv venv .venv --python 3.13
+          uv pip install --python .venv/bin/python numpy pandas scikit-learn lightgbm xgboost
+        fi
+        echo "Starting DCLab Research Studio on port 3000..."
+        exec .venv-agent/bin/python -m uvicorn dclab_rnd.agentic.server:app --host 0.0.0.0 --port 3000 --reload --reload-dir /app/dclab_rnd
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/config"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 300s
+    restart: on-failure
+
+volumes:
+  venv-agent:
+  venv-ml:
