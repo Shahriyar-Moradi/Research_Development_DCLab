@@ -20,7 +20,7 @@ Imagine predicting whether a bank client will subscribe to an offer, before call
 
 But you only know how long a call lasted *after the call ends*. At the moment you decide whom to call, that number does not exist yet. A model that uses it is reading the answer sheet.
 
-What it did to the score (`campaigns/model_building_50_v1/results/EXP-007_bank_marketing_leakage_audit.json`):
+What it did to the score (`evidence/campaigns/model_building_50_v1/results/EXP-007_bank_marketing_leakage_audit.json`):
 
 | | Score (ROC-AUC, 0.5 = guessing, 1.0 = perfect) |
 |---|---:|
@@ -32,13 +32,13 @@ This is called **leakage**: information that would not be available at the real 
 
 **The rule we derived:** before looking at any score, write down the exact moment the prediction is made, and allow only information that exists at that moment. A suspiciously large improvement is a reason to look for cheating, not a reason to celebrate.
 
-**A warning we measured:** an automatic scanner cannot fully do this for you. Running our leakage scanner "blind", without telling it the answers, it found 11 of 18 known cheating columns across 7 datasets (`campaigns/agent_verification_v1/VERIFICATION_REPORT.md`). The ones it missed look like ordinary numbers. Only a person who knows *when* each value is written can catch them.
+**A warning we measured:** an automatic scanner cannot fully do this for you. Running our leakage scanner "blind", without telling it the answers, it found 11 of 18 known cheating columns across 7 datasets (`evidence/campaigns/agent_verification_v1/VERIFICATION_REPORT.md`). The ones it missed look like ordinary numbers. Only a person who knows *when* each value is written can catch them.
 
 ---
 
 ## Lesson 2: some common habits lie a lot, and some barely matter
 
-We ran six common notebook habits the wrong way and the right way on identical data and measured how much the score changed (`campaigns/pitfalls_v1/PITFALLS_REPORT.md`):
+We ran six common notebook habits the wrong way and the right way on identical data and measured how much the score changed (`evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md`):
 
 | Habit | How much the score lied |
 |---|---|
@@ -55,7 +55,7 @@ Two lessons hide in this table. First, "data leakage" is not one thing; some for
 
 ## Lesson 3: there is no single best algorithm
 
-People often ask, "which model is best?" Across our datasets the answer kept changing (`campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`):
+People often ask, "which model is best?" Across our datasets the answer kept changing (`evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`):
 
 - In the controlled 10-dataset campaign, **Extra Trees** was the best candidate on 7 datasets, but LightGBM, histogram boosting and logistic regression each won one.
 - On customer churn, the simplest model, **logistic regression**, beat every boosted model (0.850).
@@ -91,7 +91,7 @@ We asked a language model to critique every experiment. Many critiques were shar
 
 ## Lesson 7: different problems need different scorecards
 
-The first campaign only asked yes/no questions. We then ran the same five-step workflow on four harder kinds of problem (`campaigns/expansion_v1/CAMPAIGN_REPORT.md`):
+The first campaign only asked yes/no questions. We then ran the same five-step workflow on four harder kinds of problem (`evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md`):
 
 | Problem | What we predicted | The trap | Honest result |
 |---|---|---|---|
@@ -106,7 +106,7 @@ Two lessons from this round. First, pick the scorecard from the cost of mistakes
 
 ## How DCLab turns these lessons into a product
 
-1. **A searchable memory.** Every rule, experiment, cheating case and measured mistake is stored as a self-contained record with its source file, so any answer can show its proof (`knowledge/rag/records.jsonl`).
+1. **A searchable memory.** Every rule, experiment, cheating case and measured mistake is stored as a self-contained record with its source file, so any answer can show its proof (`evidence/knowledge/rag/records.jsonl`).
 2. **A notebook reviewer.** It reads a data scientist's notebook and pins notes beside the cells that contain these mistakes, each with "Show proof". On a demo notebook that reports 96.7% accuracy, it raises three high-severity problems. The careful version of the same analysis scores an honest 0.80 (`docs/guides/NOTEBOOK_COPILOT.md`).
 3. **Tools for an AI agent.** The agent looks things up and checks them instead of guessing (`dclab_rnd/tools.py`).
 4. **Training material for a future small model.** Built so that every example contains the evidence it depends on (`docs/guides/SFT_DATA_GUIDE.md`).

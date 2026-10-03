@@ -165,37 +165,37 @@
 <p><strong>Rule:</strong> Write the prediction moment, target window, action, unit of prediction and error costs before inspecting target associations.</p>
 <p><strong>Why:</strong> Leakage is defined relative to what is knowable at a specific decision moment, not by a column name.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/AGENT_CONTEXT.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/AGENT_CONTEXT.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R02 · Splitting</h3>
 <p><strong>Rule:</strong> Split by the real independence unit and time direction before preprocessing or feature selection.</p>
 <p><strong>Why:</strong> Random rows leak entity history and future regimes when observations are related.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R03 · Eda</h3>
 <p><strong>Rule:</strong> Fit target-aware EDA, imputers, encoders, scalers, selectors and learned aggregations on training partitions only.</p>
 <p><strong>Why:</strong> Any statistic that sees evaluation labels or distributions can make validation optimistic.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R04 · Leakage</h3>
 <p><strong>Rule:</strong> Treat post-outcome, future, target-derived, cross-split aggregate, duplicate/entity and preprocessing leakage as separate failure modes.</p>
 <p><strong>Why:</strong> One correlation detector cannot identify all leakage mechanisms.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>EXP-007</code>, <code>EXP-042</code>, <code>knowledge/KNOWLEDGE_BASE.md</code></p>
+<p><strong>Evidence:</strong> <code>EXP-007</code>, <code>EXP-042</code>, <code>evidence/knowledge/KNOWLEDGE_BASE.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R05 · Leakage</h3>
 <p><strong>Rule:</strong> A suspicious name or high univariate AUC starts a semantic review; it does not prove leakage.</p>
 <p><strong>Why:</strong> Availability requires source lineage and timestamps; useful real predictors can also be highly associated.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R06 · Leakage</h3>
 <p><strong>Rule:</strong> A large safe-versus-unsafe score gap is a severity demonstration, not the primary proof of leakage.</p>
 <p><strong>Why:</strong> Bank marketing and online shoppers showed +0.1328 to +0.1575 registry gaps, while semantics identified the forbidden fields.</p>
 <p><strong>Confidence:</strong> strong empirical. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>knowledge/evidence.json</code>, <code>EXP-007</code>, <code>EXP-042</code></p>
+<p><strong>Evidence:</strong> <code>evidence/knowledge/evidence.json</code>, <code>EXP-007</code>, <code>EXP-042</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R07 · Feature Engineering</h3>
 <p><strong>Rule:</strong> Begin with a strong raw baseline and promote the smallest defensible feature set within a predeclared tolerance.</p>
@@ -213,7 +213,7 @@
 <p><strong>Rule:</strong> Every generated feature needs explicit lineage, availability time, units, null behavior and a reproducible formula.</p>
 <p><strong>Why:</strong> A mathematically valid feature can still be unavailable, unstable or impossible to reproduce online.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code>, <code>research/churn-prediction/churn_exp/results/CHURN-014/recipe.json</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code>, <code>research/churn-prediction/churn_exp/results/CHURN-014/recipe.json</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R10 · Feature Reliability</h3>
 <p><strong>Rule:</strong> Importance is only a nomination signal; production reliability additionally requires availability, fold stability, coverage, missing-input resilience and drift monitoring.</p>
@@ -225,7 +225,7 @@
 <p><strong>Rule:</strong> Preserve raw categorical semantics and fit encoders inside folds; do not treat arbitrary category codes as ordered numbers.</p>
 <p><strong>Why:</strong> Legacy factorized caches lose labels and can introduce false ordinal structure.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>dclab_rnd/agentic/catalog.py</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>dclab_rnd/agentic/catalog.py</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R12 · Missingness</h3>
 <p><strong>Rule:</strong> Model missingness as an operational state: measure coverage, add indicators when justified, simulate absence, and define fallback behavior.</p>
@@ -237,19 +237,19 @@
 <p><strong>Rule:</strong> There is no universal best tabular algorithm; screen a transparent linear baseline and several nonlinear families on identical folds.</p>
 <p><strong>Why:</strong> LightGBM had best mean rank across the registry, Extra Trees won 7/10 in the controlled campaign, logistic won churn, and an ensemble won HyperAck.</p>
 <p><strong>Confidence:</strong> strong empirical. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>knowledge/evidence.json</code>, <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>CHURN-014</code></p>
+<p><strong>Evidence:</strong> <code>evidence/knowledge/evidence.json</code>, <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>CHURN-014</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R14 · Model Selection</h3>
 <p><strong>Rule:</strong> Use mean performance, fold stability, probability quality, runtime and operational constraints—not ROC-AUC alone.</p>
 <p><strong>Why:</strong> Small AUC wins can coincide with worse log loss, calibration, recall or latency.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>EXP-004</code>, <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>CHURN-010</code></p>
+<p><strong>Evidence:</strong> <code>EXP-004</code>, <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>CHURN-010</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R15 · Optimization</h3>
 <p><strong>Rule:</strong> Optimize only after data, leakage, features, metric and candidate family are locked.</p>
 <p><strong>Why:</strong> Early broad tuning increases adaptive overfitting and obscures what caused improvement.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R16 · Optimization</h3>
 <p><strong>Rule:</strong> Compare tuning and feature changes with a paired baseline on the same folds and demand a predeclared useful margin.</p>
@@ -261,19 +261,19 @@
 <p><strong>Rule:</strong> Consume the final holdout once, after all choices are locked, and never tune from its result.</p>
 <p><strong>Why:</strong> Repeated consultation converts a holdout into development data.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R18 · Evaluation</h3>
 <p><strong>Rule:</strong> Choose metrics and thresholds from the real decision cost; report ranking, probability quality and operating-point errors together.</p>
 <p><strong>Why:</strong> AUC does not specify calibration or the false-positive/false-negative tradeoff.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>research/churn-prediction/churn_exp/CHURN_BENCHMARK.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>research/churn-prediction/churn_exp/CHURN_BENCHMARK.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R19 · Generalization</h3>
 <p><strong>Rule:</strong> Use temporal, geographic, source-system and out-of-domain slices when those shifts exist.</p>
 <p><strong>Why:</strong> Random CV estimates interpolation under the historical mixture, not future operational performance.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>knowledge/NEXT_EXPERIMENTS.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/knowledge/NEXT_EXPERIMENTS.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R20 · Llm Governance</h3>
 <p><strong>Rule:</strong> Let LLM agents propose hypotheses, challenge semantics and curate cited lessons; deterministic executors own splits, metrics and artifacts.</p>
@@ -285,13 +285,13 @@
 <p><strong>Rule:</strong> Store claims with scope, evidence IDs, counterevidence, uncertainty and the next discriminating test.</p>
 <p><strong>Why:</strong> A score without context cannot teach a future person or model when the lesson applies.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/agent_memory.jsonl</code>, <code>dclab_rnd/agentic/store.py</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/agent_memory.jsonl</code>, <code>dclab_rnd/agentic/store.py</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R22 · Promotion</h3>
 <p><strong>Rule:</strong> A candidate is not production-ready until provenance, independent confirmation, feature contracts, monitoring, fairness/privacy and rollback gates are reviewed.</p>
 <p><strong>Why:</strong> Benchmark excellence does not establish operational safety.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>knowledge/DATA_QUALITY.md</code></p>
+<p><strong>Evidence:</strong> <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>evidence/knowledge/DATA_QUALITY.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h2>11. LLM-agent operating model</h2>
 <p>Use agents as a scientific team with constrained responsibilities:</p>
@@ -315,12 +315,12 @@
 <p class='step'>6. Treat 1.0 benchmark scores as audit triggers for duplicates, target proxies and overly easy splits—not automatic success.</p>
 <h2>Evidence map</h2>
 <ul>
-<li>Controlled campaign: <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></li>
-<li>Historical registry: <code>knowledge/KNOWLEDGE_BASE.md</code> and <code>knowledge/evidence.json</code></li>
+<li>Controlled campaign: <code>evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></li>
+<li>Historical registry: <code>evidence/knowledge/KNOWLEDGE_BASE.md</code> and <code>evidence/knowledge/evidence.json</code></li>
 <li>Churn campaign: <code>research/churn-prediction/churn_exp/CHURN_BENCHMARK.md</code></li>
 <li>HyperAck safe report: <code>research/tabular-classification/optimized_safe_model/OPTIMIZED_SAFE_REPORT.md</code></li>
-<li>Machine rules: <code>knowledge/model_building_rules.jsonl</code></li>
-<li>Evidence pack: <code>knowledge/master_evidence_pack.json</code></li>
+<li>Machine rules: <code>evidence/knowledge/model_building_rules.jsonl</code></li>
+<li>Evidence pack: <code>evidence/knowledge/master_evidence_pack.json</code></li>
 <li>Typed GPT-6 Astra workflow: <code>dclab_rnd/agentic/guide_review.py</code> (advisory review appears when API credits are available)</li>
-<li>Reviewer lifecycle status: <code>knowledge/gpt6_astra_master_review_status.json</code></li>
+<li>Reviewer lifecycle status: <code>evidence/knowledge/gpt6_astra_master_review_status.json</code></li>
 </ul></main></body></html>

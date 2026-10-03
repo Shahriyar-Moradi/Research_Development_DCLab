@@ -28,7 +28,7 @@ The usual RAG recipe cuts documents into fixed-size text windows. That is wrong 
 | `pitfall` | `PIT-003` | Measured cost of a common mistake (wrong way vs right way on identical data) |
 | `finding` | `FINDING-model-families` | Cross-study conclusions such as "no universal best algorithm" |
 
-Every record carries `metadata` (dataset, stage, task type, category) and `citations` (the file the claim comes from). The full index is committed as [`knowledge/rag/records.jsonl`](../../knowledge/rag/records.jsonl), and CI fails if it is stale.
+Every record carries `metadata` (dataset, stage, task type, category) and `citations` (the file the claim comes from). The full index is committed as [`evidence/knowledge/rag/records.jsonl`](../../evidence/knowledge/rag/records.jsonl), and CI fails if it is stale.
 
 ### Filter first, rank second
 

@@ -1,12 +1,17 @@
-# `data/` — raw project datasets
+# `data/` — every dataset in one place
 
-Local source tables used by the HyperAck and Telco Churn work. Public UCI benchmark
-tables live separately under [`external_data/`](../external_data/) as parquet caches. Public data downloaded by the expansion campaign lands in `data/external/` (gitignored, re-fetched with pinned SHA-256).
+| Folder | What it holds | In git? |
+|---|---|---|
+| `project/` | DCLab project data: HyperAck orders and Telco churn (CSV) | yes |
+| [`public/`](public/) | 10 public UCI datasets as cached parquet (`X.parquet`, `y.parquet`, `meta.json`) plus `index.json` | yes |
+| `downloads/` | Public data fetched by the expansion campaign (fraud, letters, bike sharing, reviews) | no, re-fetched by `make expansion` with pinned SHA-256 |
+
+## Project datasets
 
 | Path | Rows | Target | Used by |
 |---|---:|---|---|
-| `hyperack/hyper_ackt-dataset.csv` | 11,118 | `hyper_ack` (0/1) | [`research/tabular-classification/`](../research/tabular-classification/), `general_pipeline/`, `dclab_rnd.agentic`, [`research/tabular-foundation-models/`](../research/tabular-foundation-models/) |
-| `telco/WA_Fn-UseC_-Telco-Customer-Churn.csv` | 7,043 | `Churn` (Yes/No) | [`research/churn-prediction/`](../research/churn-prediction/) (via `dclab_rnd.churn_suite`), `dclab_rnd.agentic`, [`research/tabular-foundation-models/`](../research/tabular-foundation-models/) |
+| `project/hyperack/hyper_ackt-dataset.csv` | 11,118 | `hyper_ack` (0/1) | [`research/tabular-classification/`](../research/tabular-classification/), `general_pipeline/`, `dclab_rnd.agentic`, [`research/tabular-foundation-models/`](../research/tabular-foundation-models/) |
+| `project/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv` | 7,043 | `Churn` (Yes/No) | [`research/churn-prediction/`](../research/churn-prediction/) (via `dclab_rnd.churn_suite`), `dclab_rnd.agentic`, [`research/tabular-foundation-models/`](../research/tabular-foundation-models/) |
 
 Rules:
 

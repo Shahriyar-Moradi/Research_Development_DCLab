@@ -15,7 +15,7 @@ import seaborn as sns
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-TELCO_CSV = REPO / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+TELCO_CSV = REPO / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 MODELS_DIR = HERE / "models"
 
 

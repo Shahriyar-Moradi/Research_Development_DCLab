@@ -18,7 +18,7 @@ RESULT_GLOBS = (
     "research/tabular-classification/safe_leakage_exp/results/*.json",
     "research/tabular-classification/optimized_safe_model/results/*.json",
     "research/tabular-classification/external_projects/*_exp/results/ladder/*.json",
-    "campaigns/model_building_50_v1/results/*_optimization_reliability.json",
+    "evidence/campaigns/model_building_50_v1/results/*_optimization_reliability.json",
 )
 
 SUMMARY_FILES = {"benchmark_dashboard.json", "benchmark_summary.json"}
@@ -119,7 +119,7 @@ def _suite(path: Path) -> str:
         return "hyperack_optimized_safe"
     if value.startswith("research/tabular-classification/external_projects/"):
         return "external_playbook"
-    if value.startswith("campaigns/model_building_50_v1/"):
+    if value.startswith("evidence/campaigns/model_building_50_v1/"):
         return "model_building_50_v1"
     return "unknown"
 

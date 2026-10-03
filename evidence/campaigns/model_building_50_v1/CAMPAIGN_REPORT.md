@@ -8,16 +8,16 @@ This campaign is intentionally organized as 10 real UCI datasets × 5 scientific
 
 | Dataset | Leakage exclusions | Feature recipe | CV model candidate | Final recipe | Holdout ROC-AUC | Brier | Evidence |
 |---|---|---|---|---|---:|---:|---|
-| adult | none declared | raw | lightgbm | lightgbm/lightgbm_C02 | 0.9097 | 0.0971 | `campaigns/model_building_50_v1/results/EXP-005_adult_optimization_reliability.json` |
-| bank_marketing | duration | ratios | extra_trees | extra_trees/extra_trees_C02 | 0.7718 | 0.0870 | `campaigns/model_building_50_v1/results/EXP-010_bank_marketing_optimization_reliability.json` |
-| breast_cancer | none declared | raw | logistic_regression | logistic_regression/baseline | 0.9960 | 0.0213 | `campaigns/model_building_50_v1/results/EXP-015_breast_cancer_optimization_reliability.json` |
-| credit_default | none declared | raw | extra_trees | extra_trees/extra_trees_C02 | 0.7746 | 0.1371 | `campaigns/model_building_50_v1/results/EXP-025_credit_default_optimization_reliability.json` |
-| german_credit | none declared | interactions | extra_trees | extra_trees/extra_trees_C01 | 0.7943 | 0.1605 | `campaigns/model_building_50_v1/results/EXP-030_german_credit_optimization_reliability.json` |
-| heart_disease | none declared | raw | extra_trees | extra_trees/extra_trees_C02 | 0.9448 | 0.1070 | `campaigns/model_building_50_v1/results/EXP-020_heart_disease_optimization_reliability.json` |
-| mushroom | none declared | raw | extra_trees | extra_trees/baseline | 1.0000 | 0.0000 | `campaigns/model_building_50_v1/results/EXP-035_mushroom_optimization_reliability.json` |
-| online_shoppers | PageValues | raw | extra_trees | extra_trees/extra_trees_C02 | 0.7394 | 0.1182 | `campaigns/model_building_50_v1/results/EXP-045_online_shoppers_optimization_reliability.json` |
-| spambase | none declared | raw | hist_gradient_boosting | hist_gradient_boosting/baseline | 0.9849 | 0.0382 | `campaigns/model_building_50_v1/results/EXP-040_spambase_optimization_reliability.json` |
-| wine_quality | none declared | ratios | extra_trees | extra_trees/baseline | 0.8878 | 0.1319 | `campaigns/model_building_50_v1/results/EXP-050_wine_quality_optimization_reliability.json` |
+| adult | none declared | raw | lightgbm | lightgbm/lightgbm_C02 | 0.9097 | 0.0971 | `evidence/campaigns/model_building_50_v1/results/EXP-005_adult_optimization_reliability.json` |
+| bank_marketing | duration | ratios | extra_trees | extra_trees/extra_trees_C02 | 0.7718 | 0.0870 | `evidence/campaigns/model_building_50_v1/results/EXP-010_bank_marketing_optimization_reliability.json` |
+| breast_cancer | none declared | raw | logistic_regression | logistic_regression/baseline | 0.9960 | 0.0213 | `evidence/campaigns/model_building_50_v1/results/EXP-015_breast_cancer_optimization_reliability.json` |
+| credit_default | none declared | raw | extra_trees | extra_trees/extra_trees_C02 | 0.7746 | 0.1371 | `evidence/campaigns/model_building_50_v1/results/EXP-025_credit_default_optimization_reliability.json` |
+| german_credit | none declared | interactions | extra_trees | extra_trees/extra_trees_C01 | 0.7943 | 0.1605 | `evidence/campaigns/model_building_50_v1/results/EXP-030_german_credit_optimization_reliability.json` |
+| heart_disease | none declared | raw | extra_trees | extra_trees/extra_trees_C02 | 0.9448 | 0.1070 | `evidence/campaigns/model_building_50_v1/results/EXP-020_heart_disease_optimization_reliability.json` |
+| mushroom | none declared | raw | extra_trees | extra_trees/baseline | 1.0000 | 0.0000 | `evidence/campaigns/model_building_50_v1/results/EXP-035_mushroom_optimization_reliability.json` |
+| online_shoppers | PageValues | raw | extra_trees | extra_trees/extra_trees_C02 | 0.7394 | 0.1182 | `evidence/campaigns/model_building_50_v1/results/EXP-045_online_shoppers_optimization_reliability.json` |
+| spambase | none declared | raw | hist_gradient_boosting | hist_gradient_boosting/baseline | 0.9849 | 0.0382 | `evidence/campaigns/model_building_50_v1/results/EXP-040_spambase_optimization_reliability.json` |
+| wine_quality | none declared | ratios | extra_trees | extra_trees/baseline | 0.8878 | 0.1319 | `evidence/campaigns/model_building_50_v1/results/EXP-050_wine_quality_optimization_reliability.json` |
 
 ## Data-understanding evidence
 

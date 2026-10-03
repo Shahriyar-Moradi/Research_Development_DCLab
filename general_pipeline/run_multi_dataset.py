@@ -95,9 +95,9 @@ def run_one(
         "provenance": capture_provenance(
             ROOT,
             data_paths=[
-                ROOT / "external_data" / dataset_key / "X.parquet",
-                ROOT / "external_data" / dataset_key / "y.parquet",
-                ROOT / "external_data" / dataset_key / "meta.json",
+                ROOT / "data/public" / dataset_key / "X.parquet",
+                ROOT / "data/public" / dataset_key / "y.parquet",
+                ROOT / "data/public" / dataset_key / "meta.json",
             ],
             random_state=42,
         ),

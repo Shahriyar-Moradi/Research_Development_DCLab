@@ -26,7 +26,7 @@ DCLab's users range from beginners to experts; the agent needs a clear model of 
 
 ## Candidate datasets
 
-All datasets already in `data/` and `external_data/`.
+All datasets already in `data/` and `data/public/`.
 
 ## Start the track
 

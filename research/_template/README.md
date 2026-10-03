@@ -64,8 +64,8 @@ Write results in the shape the rest of the repository already understands, so `d
 }
 ```
 
-Results that follow the five standard stages can live under `campaigns/<track>_v1/results/EXP-*.json`, where the evidence index, the critic gate and the SFT builder pick them up automatically.
+Results that follow the five standard stages can live under `evidence/campaigns/<track>_v1/results/EXP-*.json`, where the evidence index, the critic gate and the SFT builder pick them up automatically.
 
 ## Conclusions
 
-Write what was learned, with the numbers and the result files that support it. Turn durable lessons into rules in `knowledge/model_building_rules.jsonl` only after they hold on more than one dataset.
+Write what was learned, with the numbers and the result files that support it. Turn durable lessons into rules in `evidence/knowledge/model_building_rules.jsonl` only after they hold on more than one dataset.

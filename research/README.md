@@ -64,7 +64,7 @@ This creates `research/my-new-idea/` from [`_template/`](_template/README.md), w
 
 - **Keep proposals separate from measured outcomes.** Record the question, data source and license, split strategy, method, code and data fingerprints, metrics, failures, uncertainty, counterevidence and the next question. Never label a result production-ready on benchmark performance alone.
 
-- **What stays outside `research/`:** data in `data/` and `external_data/`, cross-track evidence campaigns in `campaigns/`, generated knowledge in `knowledge/`, and shared code in `dclab_rnd/` and `general_pipeline/`.
-- **One result file per experiment.** Write it in the schema in the template, so the evidence index, critic gate and SFT builder can learn from it. Run `make knowledge` after adding results.
+- **What stays outside `research/`:** data in `data/` and `data/public/`, cross-track evidence campaigns in `evidence/campaigns/`, generated knowledge in `evidence/knowledge/`, and shared code in `dclab_rnd/` and `general_pipeline/`.
+- **One result file per experiment.** Write it in the schema in the template, so the evidence index, critic gate and SFT builder can learn from it. Run `make evidence/knowledge` after adding results.
 - **Prediction contract first.** No score is recorded before the prediction moment and the forbidden columns are written down.
 - **Review your notebooks** with `python -m dclab_rnd.copilot review NOTEBOOK.ipynb` before sharing results.

@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Wine Quality (Binary)**.
 
 - Source: [https://archive.ics.uci.edu/dataset/186/wine+quality](https://archive.ics.uci.edu/dataset/186/wine+quality)
-- Cached data: `data/` → `external_data/wine_quality/`
+- Cached data: `data/` → `data/public/wine_quality/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

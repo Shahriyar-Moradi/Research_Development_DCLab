@@ -8,7 +8,7 @@ How do we build the most accurate *honest* classifier for tabular business data,
 
 ## Why it matters for DCLab
 
-This track produced most of DCLab's rules (`knowledge/model_building_rules.jsonl`), the leakage precedents the copilot cites, and the five-stage workflow the agent follows.
+This track produced most of DCLab's rules (`evidence/knowledge/model_building_rules.jsonl`), the leakage precedents the copilot cites, and the five-stage workflow the agent follows.
 
 ## Prediction contract (HyperAck)
 
@@ -35,7 +35,7 @@ The shared pipeline code is in [`general_pipeline/`](../../general_pipeline/) at
 
 ## How to run
 
-From the repository root, with the ML environment installed (`pip install -r requirements.txt`):
+From the repository root, with the ML environment installed (`pip install -r requirements/base.txt`):
 
 ```bash
 # Leakage-safe ladder and the safe-vs-unsafe comparison
@@ -80,8 +80,8 @@ The HyperAck notebooks in `hyperack_exp/` run from that folder (`cd research/tab
 
 ### Existing material
 
-- [`../../knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](../../knowledge/MODEL_BUILDING_FIELD_GUIDE.md): EDA, leakage, feature reliability, model selection, and ten workflow blocks.
-- [`../../campaigns/model_building_50_v1/`](../../campaigns/model_building_50_v1/): 10 public UCI datasets × 5 research stages.
+- [`../../evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](../../evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md): EDA, leakage, feature reliability, model selection, and ten workflow blocks.
+- [`../../evidence/campaigns/model_building_50_v1/`](../../evidence/campaigns/model_building_50_v1/): 10 public UCI datasets × 5 research stages.
 - [`../tabular-classification/external_projects/`](../tabular-classification/external_projects/): per-dataset experiments, reports, and notebooks.
 - [`../tabular-classification/hyperack_exp/`](../tabular-classification/hyperack_exp/), [`../tabular-classification/safe_leakage_exp/`](../tabular-classification/safe_leakage_exp/), [`../tabular-classification/optimized_safe_model/`](../tabular-classification/optimized_safe_model/): HyperAck feature/model comparisons, including deliberate unsafe-versus-safe analysis.
 - [`../churn-prediction/churn_exp/`](../churn-prediction/churn_exp/): churn research.

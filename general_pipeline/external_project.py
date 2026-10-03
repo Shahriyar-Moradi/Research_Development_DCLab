@@ -4,7 +4,7 @@ Each project lives at:
   research/tabular-classification/external_projects/<dataset>_exp/
     README.md
     run_all.py
-    data/                 -> symlink to ../../external_data/<dataset>
+    data/                 -> symlink to ../../data/public/<dataset>
     results/              JSON experiment records
     benchmark_outputs/    CSVs + PNG plots
     MASTER_BENCHMARK_REPORT.md
@@ -37,7 +37,7 @@ from general_pipeline.external_catalog import DATASET_CATALOG  # noqa: E402
 from general_pipeline.models import MODEL_REGISTRY, get_model  # noqa: E402
 
 PROJECTS_ROOT = ROOT / "research/tabular-classification/external_projects"
-EXTERNAL_DATA = ROOT / "external_data"
+EXTERNAL_DATA = ROOT / "data/public"
 RANDOM_STATE = 42
 
 # Bank Marketing: call duration is post-outcome leakage (analogous to HyperAck final fares).
@@ -157,7 +157,7 @@ def scaffold_project(key: str) -> Path:
 HyperAck-style tabular classification project for **{spec.name}**.
 
 - Source: [{spec.url}]({spec.url})
-- Cached data: `data/` → `external_data/{key}/`
+- Cached data: `data/` → `data/public/{key}/`
 - Locked split: stratified 80/20, seed `{RANDOM_STATE}`
 - {modes_note}
 

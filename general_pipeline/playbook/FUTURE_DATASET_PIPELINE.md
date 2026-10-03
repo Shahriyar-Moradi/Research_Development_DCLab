@@ -5,7 +5,7 @@ Reusable path to produce the same depth of analysis as HyperAck for any new tabu
 ## Steps
 
 1. **Register** the dataset in `general_pipeline/external_catalog.py`.
-2. **Download / cache** via `download_external_datasets.py` (or drop parquet into `external_data/<key>/`).
+2. **Download / cache** via `download_external_datasets.py` (or drop parquet into `data/public/<key>/`).
 3. **Define leakage policy** in `general_pipeline/playbook/policy.py`:
    - List post-outcome columns in `unsafe_only_features`.
    - Write a clear decision-time rationale.

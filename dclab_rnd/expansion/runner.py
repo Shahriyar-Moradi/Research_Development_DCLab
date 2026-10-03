@@ -2437,7 +2437,7 @@ def validate_result(result: dict[str, Any]) -> list[str]:
 
 
 def campaign_dir(root: Path) -> Path:
-    return Path(root) / "campaigns" / CAMPAIGN_ID
+    return Path(root) / "evidence/campaigns" / CAMPAIGN_ID
 
 
 def load_results(results_dir: Path) -> dict[str, dict[str, Any]]:

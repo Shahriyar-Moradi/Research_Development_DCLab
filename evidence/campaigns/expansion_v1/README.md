@@ -30,7 +30,7 @@ Stages 1–4 use training rows only. CV is time-ordered for fraud and bike, grou
 
 ## Rerun
 
-Raw files download to `data/external/<dataset>/` on first use. That folder is not committed. Their SHA-256 hashes are pinned in `dclab_rnd/expansion/datasets.py`, and a mismatch stops the run.
+Raw files download to `data/downloads/<dataset>/` on first use. That folder is not committed. Their SHA-256 hashes are pinned in `dclab_rnd/expansion/datasets.py`, and a mismatch stops the run.
 
 ```bash
 python3 -m dclab_rnd.expansion run                      # resumable: skips completed results

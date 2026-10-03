@@ -308,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
                 row["dataset"]: row["roc_auc"] for row in evidence["champions"]
             },
         }
-        path = root / "knowledge" / "approved_baseline.json"
+        path = root / "evidence/knowledge" / "approved_baseline.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
         print(

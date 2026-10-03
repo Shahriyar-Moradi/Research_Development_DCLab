@@ -458,8 +458,8 @@ def build(root: Path = ROOT) -> tuple[dict[str, str], dict[str, Any]]:
         if selection:
             examples.append(selection)
         examples += leakage_judgments(result, ctx)
-    rules = [json.loads(line) for line in (root / "knowledge" / "model_building_rules.jsonl").read_text().splitlines() if line.strip()]
-    blocks = json.loads((root / "knowledge" / "workflow_blocks.json").read_text())
+    rules = [json.loads(line) for line in (root / "evidence/knowledge" / "model_building_rules.jsonl").read_text().splitlines() if line.strip()]
+    blocks = json.loads((root / "evidence/knowledge" / "workflow_blocks.json").read_text())
     examples += rule_reasoning(rules)
     examples += workflow_steps(blocks)
     examples += grounded_qa(records, results, cards, rng)

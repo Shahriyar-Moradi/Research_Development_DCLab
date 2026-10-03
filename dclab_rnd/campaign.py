@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 CAMPAIGN_ID = "model_building_50_v1"
-CAMPAIGN_DIR = Path("campaigns") / CAMPAIGN_ID
+CAMPAIGN_DIR = Path("evidence/campaigns") / CAMPAIGN_ID
 DATASETS = (
     ("adult", "Adult (Census Income)", "https://archive.ics.uci.edu/dataset/2/adult"),
     (
@@ -87,7 +87,7 @@ def build_manifest(root: Path) -> dict[str, Any]:
     """Build the deterministic 10-dataset × 5-question campaign manifest."""
     available = {
         item.name
-        for item in (root / "external_data").iterdir()
+        for item in (root / "data/public").iterdir()
         if item.is_dir()
         and (item / "X.parquet").exists()
         and (item / "y.parquet").exists()

@@ -57,7 +57,7 @@ class CriticGateTests(unittest.TestCase):
         self.assertTrue(all(c["consistent"] for c in checks))
 
     def test_known_false_critique_is_contradicted(self):
-        result = json.loads(next((ROOT / "campaigns/model_building_50_v1/results").glob("EXP-008_*.json")).read_text())
+        result = json.loads(next((ROOT / "evidence/campaigns/model_building_50_v1/results").glob("EXP-008_*.json")).read_text())
         gated = critic_gate.gate_result(result)
         self.assertEqual(gated["rule_check"]["recomputed"], "ratios")
         self.assertGreaterEqual(gated["contradicted"], 1)

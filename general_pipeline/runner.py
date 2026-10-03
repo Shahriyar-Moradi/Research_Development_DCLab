@@ -95,7 +95,7 @@ def run_experiment(
         "provenance": capture_provenance(
             ROOT,
             data_paths=[
-                ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv",
+                ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv",
                 ROOT / "research/tabular-classification/hyperack_exp" / "results" / "split_indices.npz",
             ],
             random_state=42,

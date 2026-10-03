@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from general_pipeline.external_catalog import DATASET_CATALOG, prepare_xy  # noqa: E402
 
-DATA_DIR = ROOT / "external_data"
+DATA_DIR = ROOT / "data/public"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 

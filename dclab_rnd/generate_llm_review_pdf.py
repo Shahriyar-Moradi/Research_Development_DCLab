@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CAMPAIGN = ROOT / "campaigns" / "model_building_50_v1"
+CAMPAIGN = ROOT / "evidence/campaigns" / "model_building_50_v1"
 MEMORY = CAMPAIGN / "llm_review_memory.jsonl"
 RESULTS = CAMPAIGN / "results"
 
@@ -376,7 +376,7 @@ def build_html(reviews: list[dict]) -> str:
   {''.join(detail_sections)}
 
   <div class="footer">
-    Sources: llm_review_memory.jsonl and results/EXP-*.json · Repo path: campaigns/model_building_50_v1/
+    Sources: llm_review_memory.jsonl and results/EXP-*.json · Repo path: evidence/campaigns/model_building_50_v1/
   </div>
 </body>
 </html>

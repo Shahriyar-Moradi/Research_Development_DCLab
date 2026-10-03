@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Heart Disease**.
 
 - Source: [https://archive.ics.uci.edu/dataset/45/heart+disease](https://archive.ics.uci.edu/dataset/45/heart+disease)
-- Cached data: `data/` → `external_data/heart_disease/`
+- Cached data: `data/` → `data/public/heart_disease/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

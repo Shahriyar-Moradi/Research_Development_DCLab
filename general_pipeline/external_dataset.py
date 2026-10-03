@@ -10,7 +10,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "external_data"
+DATA_DIR = ROOT / "data/public"
 RANDOM_STATE = 42
 
 

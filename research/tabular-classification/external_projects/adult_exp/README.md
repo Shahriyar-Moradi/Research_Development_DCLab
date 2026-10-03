@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Adult (Census Income)**.
 
 - Source: [https://archive.ics.uci.edu/dataset/2/adult](https://archive.ics.uci.edu/dataset/2/adult)
-- Cached data: `data/` → `external_data/adult/`
+- Cached data: `data/` → `data/public/adult/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

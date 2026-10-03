@@ -166,7 +166,7 @@ def gate_result(result: dict[str, Any]) -> dict[str, Any]:
 
 def gate_campaigns(root: Path = ROOT) -> list[dict[str, Any]]:
     gated = []
-    for path in sorted(root.glob("campaigns/*/results/EXP-*.json")):
+    for path in sorted(root.glob("evidence/campaigns/*/results/EXP-*.json")):
         result = json.loads(path.read_text(encoding="utf-8"))
         gated.append({**gate_result(result), "path": path.relative_to(root).as_posix()})
     return gated

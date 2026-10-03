@@ -9,9 +9,9 @@ Converts DCLab's existing evidence artifacts into a CLEAN instruction-tuning
 Sources (all optional if the path is missing)
 ---------------------------------------------
   A. Knowledge / campaign (this script's original job)
-     - knowledge/model_building_rules.jsonl
-     - knowledge/workflow_blocks.json
-     - campaigns/model_building_50_v1/agent_memory.jsonl
+     - evidence/knowledge/model_building_rules.jsonl
+     - evidence/knowledge/workflow_blocks.json
+     - evidence/campaigns/model_building_50_v1/agent_memory.jsonl
 
   B. Agentic Research Studio (additive; does not replace A)
      - agent_runs/clean_exports/sft_chat.jsonl
@@ -233,12 +233,12 @@ def dedup(examples):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rules", type=Path, default=ROOT / "knowledge/model_building_rules.jsonl")
-    parser.add_argument("--blocks", type=Path, default=ROOT / "knowledge/workflow_blocks.json")
+    parser.add_argument("--rules", type=Path, default=ROOT / "evidence/knowledge/model_building_rules.jsonl")
+    parser.add_argument("--blocks", type=Path, default=ROOT / "evidence/knowledge/workflow_blocks.json")
     parser.add_argument(
         "--claims",
         type=Path,
-        default=ROOT / "campaigns/model_building_50_v1/agent_memory.jsonl",
+        default=ROOT / "evidence/campaigns/model_building_50_v1/agent_memory.jsonl",
     )
     parser.add_argument(
         "--studio-sft",

@@ -26,9 +26,9 @@ def _find_repo_root() -> Path:
         pass
     for start in starts:
         for p in [start, *start.parents]:
-            if (p / "general_pipeline").is_dir() and (p / "external_data").is_dir():
+            if (p / "general_pipeline").is_dir() and (p / "data/public").is_dir():
                 return p
-    raise RuntimeError("Could not find R&D repo root (needs general_pipeline/ and external_data/).")
+    raise RuntimeError("Could not find R&D repo root (needs general_pipeline/ and data/public/).")
 
 ROOT = _find_repo_root()
 sys.path.insert(0, str(ROOT))
@@ -120,9 +120,9 @@ print(policy)
 """))
 
     # ---- Load ----
-    cells.append(_md("## Load Dataset\n\nCached UCI parquet from `external_data/` (same rows used by the playbook ladder)."))
+    cells.append(_md("## Load Dataset\n\nCached UCI parquet from `data/public/` (same rows used by the playbook ladder)."))
     cells.append(_code("""
-DATA = ROOT / "external_data" / KEY
+DATA = ROOT / "data/public" / KEY
 X_raw = pd.read_parquet(DATA / "X.parquet")
 y_raw = pd.read_parquet(DATA / "y.parquet")["target"].astype(int)
 meta = pd.read_json(DATA / "meta.json", typ="series")

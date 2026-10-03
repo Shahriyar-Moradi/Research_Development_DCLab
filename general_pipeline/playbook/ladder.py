@@ -36,7 +36,7 @@ from general_pipeline.playbook.features import build_feature_matrix  # noqa: E40
 from general_pipeline.playbook.policy import get_policy  # noqa: E402
 
 RANDOM_STATE = 42
-EXTERNAL_DATA = ROOT / "external_data"
+EXTERNAL_DATA = ROOT / "data/public"
 LADDER_MODEL_BY_ID = {
     1: "logistic_regression",
     2: "lightgbm",

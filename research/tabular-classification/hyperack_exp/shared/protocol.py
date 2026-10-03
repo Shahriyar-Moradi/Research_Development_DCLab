@@ -29,7 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from dclab_rnd.provenance import capture_provenance  # noqa: E402
 
-DATA_PATH = PROJECT_ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv"
+DATA_PATH = PROJECT_ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"
 RESULTS_DIR = EXPERIMENT_ROOT / "results"
 SPLIT_PATH = RESULTS_DIR / "split_indices.npz"
 TARGET = "hyper_ack"

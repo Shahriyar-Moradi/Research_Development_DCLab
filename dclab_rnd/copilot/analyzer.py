@@ -3,7 +3,7 @@
 Every detector is deliberately conservative: it reports what it can see in the
 code and says what it cannot know (static analysis cannot see column names that
 only exist in the data). Severity is calibrated by the pitfalls campaign
-(``campaigns/pitfalls_v1``): a mistake whose measured cost is large is ``high``.
+(``evidence/campaigns/pitfalls_v1``): a mistake whose measured cost is large is ``high``.
 """
 
 from __future__ import annotations

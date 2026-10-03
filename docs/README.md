@@ -31,4 +31,4 @@ make report-pdf
 ```
 
 Generated research memory (knowledge base, registry, field guide) lives in
-[`knowledge/`](../knowledge/) and is rebuilt by `make rd-sync` and `make master-guide`.
+[`evidence/knowledge/`](../evidence/knowledge/) and is rebuilt by `make rd-sync` and `make master-guide`.

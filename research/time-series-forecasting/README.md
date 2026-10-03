@@ -20,7 +20,7 @@ Demand, capacity and revenue forecasts are core DCLab use cases, and time leakag
 
 | ID | Question |
 |---|---|
-| TS-001 | Seed result, done: bike sharing daily. XGBoost MAE 680 vs 1,156 for the lag-2 naive baseline (`campaigns/expansion_v1`, EXP-061..065) |
+| TS-001 | Seed result, done: bike sharing daily. XGBoost MAE 680 vs 1,156 for the lag-2 naive baseline (`evidence/campaigns/expansion_v1`, EXP-061..065) |
 | TS-002 | Hourly bike demand and Rossmann store sales: gradient boosting with lags vs ETS/ARIMA vs a global deep model, on rolling-origin backtests |
 | TS-003 | How large must a backtest be (number of origins) before model rankings stabilize? |
 

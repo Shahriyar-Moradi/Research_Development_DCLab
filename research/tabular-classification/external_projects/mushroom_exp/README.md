@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Mushroom**.
 
 - Source: [https://archive.ics.uci.edu/dataset/73/mushroom](https://archive.ics.uci.edu/dataset/73/mushroom)
-- Cached data: `data/` → `external_data/mushroom/`
+- Cached data: `data/` → `data/public/mushroom/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

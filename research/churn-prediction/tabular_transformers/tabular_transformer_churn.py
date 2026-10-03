@@ -46,7 +46,7 @@ from saint_tabular import SaintConfig, predict_proba as saint_predict_proba, tra
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parents[2]
-DEFAULT_CSV = REPO / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+DEFAULT_CSV = REPO / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 OUTPUT_DIR = ROOT / "outputs"
 MODEL_DIR = ROOT / "models"
 

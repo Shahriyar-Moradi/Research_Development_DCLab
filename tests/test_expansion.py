@@ -1,4 +1,4 @@
-"""Fast, offline tests for the expansion_v1 campaign (no downloads, no data/external)."""
+"""Fast, offline tests for the expansion_v1 campaign (no downloads, no data/downloads)."""
 
 from __future__ import annotations
 

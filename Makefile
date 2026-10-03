@@ -103,7 +103,7 @@ report-pdf:  ## regenerate docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_R
 
 knowledge: index sft-v3  ## rebuild the evidence index and the SFT v3 corpus after new results
 
-index:  ## rebuild knowledge/rag/records.jsonl
+index:  ## rebuild evidence/knowledge/rag/records.jsonl
 	$(PYTHON) -m dclab_rnd.evidence_index build
 
 sft-v3:  ## rebuild the self-contained SFT v3 corpus into research/llm-fine-tuning/sft/out_v3/
@@ -112,7 +112,7 @@ sft-v3:  ## rebuild the self-contained SFT v3 corpus into research/llm-fine-tuni
 critic-gate:  ## show LLM critic challenges that the recorded numbers disprove
 	$(PYTHON) -m dclab_rnd.critic_gate
 
-pitfalls:  ## re-measure the six common notebook mistakes (campaigns/pitfalls_v1)
+pitfalls:  ## re-measure the six common notebook mistakes (evidence/campaigns/pitfalls_v1)
 	$(PYTHON) -m dclab_rnd.pitfalls run --force
 
 copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.html
@@ -121,7 +121,7 @@ copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.htm
 verify-auditor:  ## blind replay of the leakage auditor on datasets with known leaks
 	$(PYTHON) -m dclab_rnd.tools verify-auditor
 
-expansion:  ## run the task-type expansion campaign (downloads public data to data/external/)
+expansion:  ## run the task-type expansion campaign (downloads public data to data/downloads/)
 	$(PYTHON) -m dclab_rnd.expansion run
 
 expansion-status:  ## expansion campaign progress

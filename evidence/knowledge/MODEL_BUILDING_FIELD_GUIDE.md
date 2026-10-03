@@ -234,7 +234,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/AGENT_CONTEXT.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/AGENT_CONTEXT.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -246,7 +246,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -258,7 +258,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -270,7 +270,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `EXP-007`, `EXP-042`, `knowledge/KNOWLEDGE_BASE.md`
+**Evidence:** `EXP-007`, `EXP-042`, `evidence/knowledge/KNOWLEDGE_BASE.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -282,7 +282,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -294,7 +294,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** strong empirical. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `knowledge/evidence.json`, `EXP-007`, `EXP-042`
+**Evidence:** `evidence/knowledge/evidence.json`, `EXP-007`, `EXP-042`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -330,7 +330,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`, `research/churn-prediction/churn_exp/results/CHURN-014/recipe.json`
+**Evidence:** `evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`, `research/churn-prediction/churn_exp/results/CHURN-014/recipe.json`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -354,7 +354,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `dclab_rnd/agentic/catalog.py`
+**Evidence:** `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `dclab_rnd/agentic/catalog.py`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -378,7 +378,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** strong empirical. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `knowledge/evidence.json`, `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `CHURN-014`
+**Evidence:** `evidence/knowledge/evidence.json`, `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `CHURN-014`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -390,7 +390,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `EXP-004`, `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `CHURN-010`
+**Evidence:** `EXP-004`, `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `CHURN-010`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -402,7 +402,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -426,7 +426,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -438,7 +438,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -450,7 +450,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `knowledge/NEXT_EXPERIMENTS.md`
+**Evidence:** `evidence/knowledge/NEXT_EXPERIMENTS.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -474,7 +474,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/agent_memory.jsonl`, `dclab_rnd/agentic/store.py`
+**Evidence:** `evidence/campaigns/model_building_50_v1/agent_memory.jsonl`, `dclab_rnd/agentic/store.py`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -486,7 +486,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `knowledge/DATA_QUALITY.md`
+**Evidence:** `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `evidence/knowledge/DATA_QUALITY.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -518,11 +518,11 @@ Each durable example should contain: problem contract, dataset fingerprint, spli
 
 ## Evidence map
 
-- Controlled campaign: `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
-- Historical registry: `knowledge/KNOWLEDGE_BASE.md` and `knowledge/evidence.json`
+- Controlled campaign: `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
+- Historical registry: `evidence/knowledge/KNOWLEDGE_BASE.md` and `evidence/knowledge/evidence.json`
 - Churn campaign: `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`
 - HyperAck safe report: `research/tabular-classification/optimized_safe_model/OPTIMIZED_SAFE_REPORT.md`
-- Machine rules: `knowledge/model_building_rules.jsonl`
-- Evidence pack: `knowledge/master_evidence_pack.json`
+- Machine rules: `evidence/knowledge/model_building_rules.jsonl`
+- Evidence pack: `evidence/knowledge/master_evidence_pack.json`
 - Typed GPT-6 Astra workflow: `dclab_rnd/agentic/guide_review.py` (advisory review appears when API credits are available)
-- Reviewer lifecycle status: `knowledge/gpt6_astra_master_review_status.json`
+- Reviewer lifecycle status: `evidence/knowledge/gpt6_astra_master_review_status.json`

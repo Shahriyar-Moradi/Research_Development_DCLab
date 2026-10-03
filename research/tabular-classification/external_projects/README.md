@@ -8,7 +8,7 @@ HyperAck-style folders for each public dataset — full experiment ladder, noteb
 research/tabular-classification/external_projects/<dataset>_exp/
   README.md
   run_all.py
-  data/                          → external_data/<dataset>
+  data/                          → data/public/<dataset>
   notebooks/
     part1_<key>_classification.ipynb   ← main walkthrough (like part1_hyper_ack)
     01_<key>_full_ladder.ipynb

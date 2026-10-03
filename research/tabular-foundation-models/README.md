@@ -24,7 +24,7 @@ Can a pretrained tabular foundation model (TabPFN v2/v3) match or beat tuned gra
 Run from inside the folder; TabPFN v3 and thinking mode need `TABPFN_TOKEN` in the repository-root `.env`.
 
 ```bash
-pip install -r requirements.txt   # includes tabpfn, tabpfn-client, tab-transformer-pytorch
+pip install -r requirements/base.txt   # includes tabpfn, tabpfn-client, tab-transformer-pytorch
 cd research/tabular-foundation-models/tabpfn
 python train_tabpfn.py                              # TabPFN-2 when no token is set
 python train_tabpfn.py --version v3

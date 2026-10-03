@@ -5,7 +5,7 @@ only trustworthy if we know how much the mistake matters, so each pitfall here i
 run both the WRONG way and the RIGHT way on identical data, and the difference in
 the reported score is recorded as evidence.
 
-Pitfalls measured (``campaigns/pitfalls_v1/``):
+Pitfalls measured (``evidence/campaigns/pitfalls_v1/``):
 
 PIT-001  Scaling / imputation fitted on all rows before the split
 PIT-002  Feature selection fitted on all rows before cross-validation
@@ -36,7 +36,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 CAMPAIGN_ID = "pitfalls_v1"
-OUT = ROOT / "campaigns" / CAMPAIGN_ID
+OUT = ROOT / "evidence/campaigns" / CAMPAIGN_ID
 RESULTS = OUT / "results"
 SEEDS = (11, 22, 33)
 ROW_CAP = 8000
@@ -54,8 +54,8 @@ BLOCKED = {
 
 
 def load_external(key: str, cap: int = ROW_CAP, seed: int = 0) -> tuple[pd.DataFrame, np.ndarray]:
-    X = pd.read_parquet(ROOT / "external_data" / key / "X.parquet")
-    y = pd.read_parquet(ROOT / "external_data" / key / "y.parquet").iloc[:, 0].to_numpy().astype(int)
+    X = pd.read_parquet(ROOT / "data/public" / key / "X.parquet")
+    y = pd.read_parquet(ROOT / "data/public" / key / "y.parquet").iloc[:, 0].to_numpy().astype(int)
     X = X.drop(columns=[c for c in BLOCKED.get(key, []) if c in X.columns])
     # LightGBM rejects JSON characters in names; keep names unique after cleaning.
     X.columns = [
@@ -73,11 +73,11 @@ def data_paths(keys: list[str]) -> list[Path]:
     paths = []
     for key in keys:
         if key == "telco_churn":
-            paths.append(ROOT / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv")
+            paths.append(ROOT / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv")
         elif key == "hyperack":
-            paths.append(ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv")
+            paths.append(ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv")
         else:
-            paths += [ROOT / "external_data" / key / "X.parquet", ROOT / "external_data" / key / "y.parquet"]
+            paths += [ROOT / "data/public" / key / "X.parquet", ROOT / "data/public" / key / "y.parquet"]
     return paths
 
 
@@ -244,13 +244,13 @@ def pit_target_encoding_before_split() -> dict[str, Any]:
         return apply_keys.map(enc).fillna(prior).to_numpy()
 
     cases = []
-    telco = pd.read_csv(ROOT / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv")
+    telco = pd.read_csv(ROOT / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv")
     telco["TotalCharges"] = pd.to_numeric(telco["TotalCharges"], errors="coerce")
     cases.append(("telco_churn", "customerID (unique per row)", telco[["tenure", "MonthlyCharges", "TotalCharges"]],
                   telco["customerID"], (telco["Churn"] == "Yes").astype(int).to_numpy()))
     X, y = load_external("adult", seed=0)
     cases.append(("adult", "occupation (~15 levels)", X.drop(columns=["occupation"]), X["occupation"].astype(str), y))
-    hyper = pd.read_csv(ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv").dropna(subset=["total_distance"])
+    hyper = pd.read_csv(ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv").dropna(subset=["total_distance"])
     num = hyper[["total_distance", "sum_product", "first_customer_fare", "weekday"]]
     cases.append(("hyperack", "deliverey_category_id", num, hyper["deliverey_category_id"].astype(str), hyper["hyper_ack"].to_numpy().astype(int)))
 
@@ -295,7 +295,7 @@ def pit_random_vs_time_split() -> dict[str, Any]:
     from lightgbm import LGBMClassifier
     from sklearn.model_selection import train_test_split
 
-    df = pd.read_csv(ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv").dropna(subset=["total_distance"])
+    df = pd.read_csv(ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv").dropna(subset=["total_distance"])
     ts = pd.to_datetime(df["first_created_at"], errors="coerce", utc=True)
     df = df.assign(_ts=ts, hour=ts.dt.hour).dropna(subset=["_ts"]).sort_values("_ts").reset_index(drop=True)
     features = ["deliverey_category_id", "weekday", "time_bucket", "total_distance", "sum_product", "source_latitude",
@@ -468,7 +468,7 @@ def write_report() -> None:
         lines += [f"- **{c['kind']}**: {c['statement']}" for c in r["claims"]]
         if r["claims"] and r["claims"][0].get("limitations"):
             lines += ["", "Limitations: " + " ".join(r["claims"][0]["limitations"])]
-        lines += ["", f"Evidence: `campaigns/{CAMPAIGN_ID}/results/{result_path(r['experiment_id']).name}`", ""]
+        lines += ["", f"Evidence: `evidence/campaigns/{CAMPAIGN_ID}/results/{result_path(r['experiment_id']).name}`", ""]
     lines += ["Re-run: `python -m dclab_rnd.pitfalls run --force`.", ""]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "PITFALLS_REPORT.md").write_text("\n".join(lines), encoding="utf-8")

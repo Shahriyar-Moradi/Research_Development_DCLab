@@ -15,7 +15,7 @@ classification/prediction problems, read
 1. Run `01_baseline_current.ipynb` through `15_full_fe_best_blend.ipynb`.
 2. Run `99_final_benchmark.ipynb`.
 
-Every experiment reads `data/hyperack/hyper_ackt-dataset.csv` (repository root), uses the same persisted
+Every experiment reads `data/project/hyperack/hyper_ackt-dataset.csv` (repository root), uses the same persisted
 stratified 80/20 split (`results/split_indices.npz`), and writes one record to
 `results/`. Do not change the split file while comparing experiments.
 
@@ -33,5 +33,5 @@ on training folds; Optuna is included for a more extensive follow-up search.
 Install dependencies from the repository root before running:
 
 ```bash
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements/base.txt
 ```

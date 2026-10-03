@@ -17,9 +17,9 @@ Nothing here deletes Research Studio archives or campaign results.
 
 ```
 A — Knowledge / campaign (this pack's original job)
-    knowledge/model_building_rules.jsonl
-    knowledge/workflow_blocks.json
-    campaigns/model_building_50_v1/agent_memory.jsonl
+    evidence/knowledge/model_building_rules.jsonl
+    evidence/knowledge/workflow_blocks.json
+    evidence/campaigns/model_building_50_v1/agent_memory.jsonl
     → "what DCLab believes / found in the 50-exp campaign"
 
 B — Agentic Research Studio (additive)

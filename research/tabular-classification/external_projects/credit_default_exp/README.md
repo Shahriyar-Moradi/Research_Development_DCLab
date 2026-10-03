@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Default of Credit Card Clients**.
 
 - Source: [https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients)
-- Cached data: `data/` → `external_data/credit_default/`
+- Cached data: `data/` → `data/public/credit_default/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

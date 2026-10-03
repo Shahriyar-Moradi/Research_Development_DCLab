@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Spambase**.
 
 - Source: [https://archive.ics.uci.edu/dataset/94/spambase](https://archive.ics.uci.edu/dataset/94/spambase)
-- Cached data: `data/` → `external_data/spambase/`
+- Cached data: `data/` → `data/public/spambase/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

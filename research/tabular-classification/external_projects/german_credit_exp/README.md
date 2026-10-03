@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Statlog German Credit**.
 
 - Source: [https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data](https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data)
-- Cached data: `data/` → `external_data/german_credit/`
+- Cached data: `data/` → `data/public/german_credit/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

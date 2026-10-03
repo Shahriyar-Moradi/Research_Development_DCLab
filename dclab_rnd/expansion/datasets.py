@@ -6,7 +6,7 @@ the decision-time contract (which columns are blocked and why), and produces a
 folds that respect the task's structure (time order, entity groups, or class
 strata).
 
-Raw files live in ``data/external/<dataset>/`` and are never committed.  Nothing
+Raw files live in ``data/downloads/<dataset>/`` and are never committed.  Nothing
 in this module downloads data at import time; :func:`dataset_cards` is purely
 static metadata.
 """
@@ -403,7 +403,7 @@ def default_root() -> Path:
 
 
 def raw_path(root: Path, spec: DatasetSpec) -> Path:
-    return root / "data" / "external" / spec.key / spec.filename
+    return root / "data" / "downloads" / spec.key / spec.filename
 
 
 def _download(url: str, destination: Path) -> None:

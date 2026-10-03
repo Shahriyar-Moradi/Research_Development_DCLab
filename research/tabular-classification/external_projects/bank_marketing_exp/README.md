@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Bank Marketing**.
 
 - Source: [https://archive.ics.uci.edu/dataset/222/bank+marketing](https://archive.ics.uci.edu/dataset/222/bank+marketing)
-- Cached data: `data/` → `external_data/bank_marketing/`
+- Cached data: `data/` → `data/public/bank_marketing/`
 - Locked split: stratified 80/20, seed `42`
 - Supports **safe** (drop leakage cols) vs **unsafe** (keep all) plus baseline/optimized.
 

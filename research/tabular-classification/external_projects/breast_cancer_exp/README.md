@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Breast Cancer Wisconsin (Diagnostic)**.
 
 - Source: [https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic](https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic)
-- Cached data: `data/` → `external_data/breast_cancer/`
+- Cached data: `data/` → `data/public/breast_cancer/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

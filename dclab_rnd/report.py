@@ -155,7 +155,7 @@ def render_outputs(records: list[ExperimentRecord], evidence: dict) -> dict[str,
 
 
 def sync_outputs(root: Path, outputs: dict[str, str], *, check: bool = False) -> list[str]:
-    knowledge = root / "knowledge"
+    knowledge = root / "evidence/knowledge"
     changed = []
     for name, content in outputs.items():
         path = knowledge / name

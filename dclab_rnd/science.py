@@ -84,7 +84,7 @@ def load_dataset(
     random_state: int = RANDOM_STATE,
 ) -> dict[str, Any]:
     """Load one cached real dataset and create one deterministic locked holdout."""
-    data_dir = root / "external_data" / key
+    data_dir = root / "data/public" / key
     x_path = data_dir / "X.parquet"
     y_path = data_dir / "y.parquet"
     meta_path = data_dir / "meta.json"

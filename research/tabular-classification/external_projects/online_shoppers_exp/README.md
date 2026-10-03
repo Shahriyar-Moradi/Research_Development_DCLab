@@ -3,7 +3,7 @@
 HyperAck-style tabular classification project for **Online Shoppers Purchasing Intention**.
 
 - Source: [https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset](https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset)
-- Cached data: `data/` → `external_data/online_shoppers/`
+- Cached data: `data/` → `data/public/online_shoppers/`
 - Locked split: stratified 80/20, seed `42`
 - Baseline vs optimized across the shared model zoo (no domain leakage split).
 

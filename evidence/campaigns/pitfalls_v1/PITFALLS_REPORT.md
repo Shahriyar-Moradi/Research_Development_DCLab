@@ -22,7 +22,7 @@ Each mistake was run the wrong way and the right way on identical data. The diff
 
 Limitations: Simple, unsupervised, row-wise transforms only; learned or target-aware transforms behave very differently.
 
-Evidence: `campaigns/pitfalls_v1/results/PIT-001_preprocess_before_split.json`
+Evidence: `evidence/campaigns/pitfalls_v1/results/PIT-001_preprocess_before_split.json`
 
 ## PIT-002 · selection before cv
 
@@ -36,7 +36,7 @@ Evidence: `campaigns/pitfalls_v1/results/PIT-001_preprocess_before_split.json`
 
 Limitations: Univariate filter selection only; wrapper/model-based selection can inflate more.
 
-Evidence: `campaigns/pitfalls_v1/results/PIT-002_selection_before_cv.json`
+Evidence: `evidence/campaigns/pitfalls_v1/results/PIT-002_selection_before_cv.json`
 
 ## PIT-003 · oversample before split
 
@@ -49,7 +49,7 @@ Evidence: `campaigns/pitfalls_v1/results/PIT-002_selection_before_cv.json`
 
 Limitations: Random duplication oversampling; SMOTE interpolates new points and leaks through near-duplicates instead of exact copies.
 
-Evidence: `campaigns/pitfalls_v1/results/PIT-003_oversample_before_split.json`
+Evidence: `evidence/campaigns/pitfalls_v1/results/PIT-003_oversample_before_split.json`
 
 ## PIT-004 · target encoding before split
 
@@ -63,7 +63,7 @@ Evidence: `campaigns/pitfalls_v1/results/PIT-003_oversample_before_split.json`
 
 Limitations: One encoding scheme and smoothing value; out-of-fold encoders reduce but do not remove the risk for rare categories.
 
-Evidence: `campaigns/pitfalls_v1/results/PIT-004_target_encoding_before_split.json`
+Evidence: `evidence/campaigns/pitfalls_v1/results/PIT-004_target_encoding_before_split.json`
 
 ## PIT-005 · random split on time data
 
@@ -76,7 +76,7 @@ Evidence: `campaigns/pitfalls_v1/results/PIT-004_target_encoding_before_split.js
 
 Limitations: One dataset and one cut-off; the gap depends on how fast the process drifts.
 
-Evidence: `campaigns/pitfalls_v1/results/PIT-005_random_split_on_time_data.json`
+Evidence: `evidence/campaigns/pitfalls_v1/results/PIT-005_random_split_on_time_data.json`
 
 ## PIT-006 · holdout reuse for selection
 
@@ -89,6 +89,6 @@ Evidence: `campaigns/pitfalls_v1/results/PIT-005_random_split_on_time_data.json`
 
 Limitations: Configurations from one model family are highly correlated, which keeps the bias small; comparing many unrelated pipelines inflates more.
 
-Evidence: `campaigns/pitfalls_v1/results/PIT-006_holdout_reuse_for_selection.json`
+Evidence: `evidence/campaigns/pitfalls_v1/results/PIT-006_holdout_reuse_for_selection.json`
 
 Re-run: `python -m dclab_rnd.pitfalls run --force`.

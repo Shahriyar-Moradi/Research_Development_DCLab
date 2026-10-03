@@ -55,8 +55,8 @@ python research/llm-fine-tuning/sft/eval_sft.py score --predictions preds.jsonl
 
 ### Existing material
 
-- Rules, workflow blocks, and campaign records: [`../../knowledge/`](../../knowledge/) and [`../../campaigns/model_building_50_v1/agent_memory.jsonl`](../../campaigns/model_building_50_v1/agent_memory.jsonl)
-- Experiment-level claim memory: [`../../campaigns/model_building_50_v1/agent_memory.jsonl`](../../campaigns/model_building_50_v1/agent_memory.jsonl)
+- Rules, workflow blocks, and campaign records: [`../../evidence/knowledge/`](../../evidence/knowledge/) and [`../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl`](../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl)
+- Experiment-level claim memory: [`../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl`](../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl)
 - SFT preparation: [`../llm-fine-tuning/sft/README.md`](../llm-fine-tuning/sft/README.md) and [`../llm-fine-tuning/sft/build_sft_dataset.py`](../llm-fine-tuning/sft/build_sft_dataset.py)
 
 ### Suggested experiment

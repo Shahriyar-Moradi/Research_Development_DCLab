@@ -6,16 +6,16 @@ DCLab's promise to data scientists and ML engineers is to do the notebook work a
 
 | Asset | Where | Product use |
 |---|---|---|
-| 50-experiment campaign (10 datasets × 5 stages) | `campaigns/model_building_50_v1/` | Precedents for every workflow stage |
-| Task-type expansion (fraud, multiclass, time series, text + tabular) | `campaigns/expansion_v1/` | Precedents beyond binary classification |
-| Pitfalls campaign (6 measured mistakes) | `campaigns/pitfalls_v1/` | Calibrated severity and proof for copilot notes |
-| 22 rules, 10 workflow blocks | `knowledge/` | The agent's operating rules |
-| Evidence index | `knowledge/rag/records.jsonl` | Retrieval for every agent answer |
+| 50-experiment campaign (10 datasets × 5 stages) | `evidence/campaigns/model_building_50_v1/` | Precedents for every workflow stage |
+| Task-type expansion (fraud, multiclass, time series, text + tabular) | `evidence/campaigns/expansion_v1/` | Precedents beyond binary classification |
+| Pitfalls campaign (6 measured mistakes) | `evidence/campaigns/pitfalls_v1/` | Calibrated severity and proof for copilot notes |
+| 22 rules, 10 workflow blocks | `evidence/knowledge/` | The agent's operating rules |
+| Evidence index | `evidence/knowledge/rag/records.jsonl` | Retrieval for every agent answer |
 | Critic gate | `dclab_rnd/critic_gate.py` | Filters LLM critique before it becomes memory |
 | Notebook copilot | `dclab_rnd/copilot/` | Inline review with "Show proof" |
 | Agent tools + MCP server | `dclab_rnd/tools.py` | One tool surface for the product agent |
 | SFT v3 corpus + trainer + evaluator | `research/llm-fine-tuning/sft/` | A future small in-house model |
-| Blind auditor replay | `campaigns/agent_verification_v1/` | Regression test for leakage detection |
+| Blind auditor replay | `evidence/campaigns/agent_verification_v1/` | Regression test for leakage detection |
 
 ## Phase 1 — now: retrieval and tools with a hosted model
 
@@ -60,7 +60,7 @@ Every iteration writes a record with Goal, Change, Reason, Result and Cost. The 
 | **Blind auditor replay** (`python -m dclab_rnd.tools verify-auditor`) | The auditor finds known leaks without being told | Implemented. Found 11 of 18 known leaks across 7 datasets, at least one in 6 of them. The misses are documented and drive the "always ask for the contract" rule |
 | **Copilot demos** (`tests/test_knowledge_layer.py`) | Planted mistakes are caught, a clean notebook stays clean | Implemented, in CI |
 | **Critic gate** (`python -m dclab_rnd.critic_gate`) | LLM critique contradicted by numbers never reaches memory or training | Implemented: 10 of 157 challenges disproved |
-| **Campaign replay** | The loop, run on the 10 campaign datasets *without* their results, excludes the same leakage columns and lands within the campaign's holdout confidence interval | Next. Uses `campaigns/model_building_50_v1` as the answer key |
+| **Campaign replay** | The loop, run on the 10 campaign datasets *without* their results, excludes the same leakage columns and lands within the campaign's holdout confidence interval | Next. Uses `evidence/campaigns/model_building_50_v1` as the answer key |
 | **Red-team with unsafe data** | Given the "unsafe" ablation data, the loop flags the suspicious jump instead of reporting it as progress | Next. Uses the unsafe results already in `research/tabular-classification/external_projects/*/results/ladder/` |
 | **Widening gate** | Each new capability (a new action, a new task type) is advertised only after a campaign validates it | Policy |
 

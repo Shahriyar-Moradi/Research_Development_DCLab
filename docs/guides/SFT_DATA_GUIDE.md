@@ -51,10 +51,10 @@ This shape has a name: **RAFT** (retrieval-augmented fine-tuning). You train on 
 ## 2. From R&D outputs to examples
 
 ```text
-campaigns/*/results/EXP-*.json ─┐
-knowledge/model_building_rules  ├─► dclab_rnd.evidence_index  ─► self-contained records
-knowledge/workflow_blocks       │       (dataset card + stage card + setup summary)
-external_data/*/meta.json ──────┘
+evidence/campaigns/*/results/EXP-*.json ─┐
+evidence/knowledge/model_building_rules  ├─► dclab_rnd.evidence_index  ─► self-contained records
+evidence/knowledge/workflow_blocks       │       (dataset card + stage card + setup summary)
+data/public/*/meta.json ──────┘
                                          │
               dclab_rnd.critic_gate ─────┤  drop critic claims that the numbers disprove
                                          ▼

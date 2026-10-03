@@ -14,12 +14,12 @@ These campaigns are the answer key DCLab's agent and copilot are tested against.
 
 | Campaign | Folder | What it measured |
 |---|---|---|
-| 50-experiment workflow campaign | [`campaigns/model_building_50_v1`](../../campaigns/model_building_50_v1/CAMPAIGN_REPORT.md) | 10 datasets × 5 stages (understanding, leakage, features, model screen, optimization + holdout) |
-| Task-type expansion | [`campaigns/expansion_v1`](../../campaigns/expansion_v1/CAMPAIGN_REPORT.md) | Imbalanced fraud, 26-class, time-series, text + tabular |
-| Pitfalls | [`campaigns/pitfalls_v1`](../../campaigns/pitfalls_v1/PITFALLS_REPORT.md) | Cost of six common notebook mistakes |
-| Agent verification | [`campaigns/agent_verification_v1`](../../campaigns/agent_verification_v1/VERIFICATION_REPORT.md) | Blind replay of the leakage auditor |
+| 50-experiment workflow campaign | [`evidence/campaigns/model_building_50_v1`](../../evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md) | 10 datasets × 5 stages (understanding, leakage, features, model screen, optimization + holdout) |
+| Task-type expansion | [`evidence/campaigns/expansion_v1`](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md) | Imbalanced fraud, 26-class, time-series, text + tabular |
+| Pitfalls | [`evidence/campaigns/pitfalls_v1`](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md) | Cost of six common notebook mistakes |
+| Agent verification | [`evidence/campaigns/agent_verification_v1`](../../evidence/campaigns/agent_verification_v1/VERIFICATION_REPORT.md) | Blind replay of the leakage auditor |
 
-Engines: `dclab_rnd/science.py` and `dclab_rnd/campaign.py` (binary campaign), `dclab_rnd/expansion/` (task-aware), `dclab_rnd/pitfalls.py`. They stay in the shared package because the evidence index, critic gate and SFT builder read `campaigns/*/results/` directly.
+Engines: `dclab_rnd/science.py` and `dclab_rnd/campaign.py` (binary campaign), `dclab_rnd/expansion/` (task-aware), `dclab_rnd/pitfalls.py`. They stay in the shared package because the evidence index, critic gate and SFT builder read `evidence/campaigns/*/results/` directly.
 
 ## How to run
 

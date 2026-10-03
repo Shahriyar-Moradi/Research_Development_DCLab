@@ -83,10 +83,10 @@ def main():
         Experiment.model_validate(recipe["plan"])
         if args.output.exists(): parser.error("Use a new output directory; evidence cannot be overwritten")
         dataset = recipe["plan"]["dataset"]
-        if dataset == "hyperack": source_list = [ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv"]
-        elif dataset == "telco_churn": source_list = [ROOT / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
+        if dataset == "hyperack": source_list = [ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"]
+        elif dataset == "telco_churn": source_list = [ROOT / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
         else:
-            directory = ROOT / "external_data" / dataset
+            directory = ROOT / "data/public" / dataset
             source_list = [directory / "X.parquet", directory / "y.parquet", directory / "meta.json"]
         allowed_sources = {path.name: path for path in source_list}
         for name, expected in recipe["data_hashes"].items():

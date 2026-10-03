@@ -13,7 +13,7 @@ Tools are deterministic and read-only, except none: they never execute user code
 
 Verification: ``python -m dclab_rnd.tools verify-auditor`` runs the column auditor
 BLIND (no catalog, no precedents) on datasets whose leakage is already known and
-reports how many known leaks it finds. See ``campaigns/agent_verification_v1``.
+reports how many known leaks it finds. See ``evidence/campaigns/agent_verification_v1``.
 """
 
 from __future__ import annotations
@@ -302,16 +302,16 @@ def _verification_cases() -> list[dict[str, Any]]:
                        ("online_shoppers", ["PageValues", "Administrative", "Administrative_Duration", "Informational",
                                             "Informational_Duration", "ProductRelated", "ProductRelated_Duration",
                                             "BounceRates", "ExitRates"])):
-        base = ROOT / "external_data" / key
+        base = ROOT / "data/public" / key
         if (base / "X.parquet").exists():
             cases.append({"dataset": key, "X": pd.read_parquet(base / "X.parquet"),
                           "y": pd.read_parquet(base / "y.parquet").iloc[:, 0], "known": known, "task": "classification"})
-    hyper = ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv"
+    hyper = ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"
     if hyper.exists():
         df = pd.read_csv(hyper)
         cases.append({"dataset": "hyperack", "X": df.drop(columns=["hyper_ack"]), "y": df["hyper_ack"],
                       "known": ["final_customer_fare", "final_biker_fare"], "task": "classification"})
-    telco = ROOT / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    telco = ROOT / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
     if telco.exists():
         df = pd.read_csv(telco)
         cases.append({"dataset": "telco_churn", "X": df.drop(columns=["Churn"]), "y": df["Churn"],
@@ -369,7 +369,7 @@ def verify_auditor(write: bool = True) -> dict[str, Any]:
         "cases": cases,
     }
     if write:
-        out = ROOT / "campaigns" / "agent_verification_v1"
+        out = ROOT / "evidence/campaigns" / "agent_verification_v1"
         (out / "results").mkdir(parents=True, exist_ok=True)
         (out / "results" / "VER-001_auditor_blind_replay.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
         lines = ["# Agent verification: blind leakage-auditor replay", "",

@@ -29,9 +29,9 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def source_paths(key, root=ROOT):
-    if key == "hyperack": return [root / "data" / "hyperack" / "hyper_ackt-dataset.csv"]
-    if key == "telco_churn": return [root / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
-    directory = root / "external_data" / key
+    if key == "hyperack": return [root / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv"]
+    if key == "telco_churn": return [root / "data" / "project" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
+    directory = root / "data/public" / key
     return [directory / "X.parquet", directory / "y.parquet", directory / "meta.json"]
 
 def _load_custom(key, root):
@@ -57,7 +57,7 @@ def _load_custom(key, root):
 def load(key, max_rows, root=ROOT):
     if key not in DATASETS:
         raise ValueError("Unknown dataset")
-    directory = root / "external_data" / key
+    directory = root / "data/public" / key
     if key in ("hyperack", "telco_churn"):
         X, y = _load_custom(key, root)
     else:

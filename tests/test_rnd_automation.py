@@ -139,12 +139,12 @@ class RegistryTests(unittest.TestCase):
             }
             _write(
                 root,
-                "campaigns/model_building_50_v1/results/EXP-005_adult_optimization_reliability.json",
+                "evidence/campaigns/model_building_50_v1/results/EXP-005_adult_optimization_reliability.json",
                 final,
             )
             _write(
                 root,
-                "campaigns/model_building_50_v1/results/EXP-002_adult_leakage_audit.json",
+                "evidence/campaigns/model_building_50_v1/results/EXP-002_adult_leakage_audit.json",
                 audit,
             )
             records, issues = collect_registry(root)
@@ -204,7 +204,7 @@ class EvidenceTests(unittest.TestCase):
             self.assertFalse(sync_outputs(root, outputs, check=True))
             self.assertIn(
                 "Deployment-eligible champions",
-                (root / "knowledge" / "KNOWLEDGE_BASE.md").read_text(),
+                (root / "evidence/knowledge" / "KNOWLEDGE_BASE.md").read_text(),
             )
 
 
@@ -246,7 +246,7 @@ class CampaignTests(unittest.TestCase):
             "online_shoppers",
             "wine_quality",
         ):
-            directory = root / "external_data" / key
+            directory = root / "data/public" / key
             directory.mkdir(parents=True)
             (directory / "X.parquet").touch()
             (directory / "y.parquet").touch()

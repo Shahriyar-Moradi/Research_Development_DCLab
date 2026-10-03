@@ -163,7 +163,7 @@ def _recommendations(records: list[ExperimentRecord], champions: list[dict], mod
 
 
 def _regressions(root: Path, champions: list[dict]) -> list[dict]:
-    baseline_path = root / "knowledge" / "approved_baseline.json"
+    baseline_path = root / "evidence/knowledge" / "approved_baseline.json"
     if not baseline_path.exists():
         return []
     import json

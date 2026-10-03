@@ -2,7 +2,7 @@
 
 Replicates the HyperAck tabular pipeline across **10 public UCI classification datasets** with the same model zoo (baseline + optimized).
 
-## Datasets (cached under `external_data/`)
+## Datasets (cached under `data/public/`)
 
 | Key | Dataset | Rows | Feats | Pos rate | Source |
 |---|---|---:|---:|---:|---|

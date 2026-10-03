@@ -15,11 +15,11 @@ Design choices (see docs/guides/AGENT_KNOWLEDGE_ARCHITECTURE.md):
   small BM25 ranker orders what survives. Swap BM25 for embeddings later without
   changing the record contract.
 * Pure standard library and deterministic, so CI can verify that the committed
-  ``knowledge/rag/records.jsonl`` is current.
+  ``evidence/knowledge/rag/records.jsonl`` is current.
 
 CLI::
 
-    python -m dclab_rnd.evidence_index build          # write knowledge/rag/records.jsonl
+    python -m dclab_rnd.evidence_index build          # write evidence/knowledge/rag/records.jsonl
     python -m dclab_rnd.evidence_index check          # fail if the committed index is stale
     python -m dclab_rnd.evidence_index search "is call duration safe" --dataset bank_marketing
 """
@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
-INDEX_PATH = Path("knowledge") / "rag" / "records.jsonl"
+INDEX_PATH = Path("evidence/knowledge") / "rag" / "records.jsonl"
 SCHEMA_VERSION = 1
 
 STAGE_CARDS: dict[str, dict[str, str]] = {
@@ -210,7 +210,7 @@ def dataset_cards(root: Path) -> dict[str, dict[str, Any]]:
     descriptions = _external_descriptions(root)
     policies = _agentic_policies()
     cards: dict[str, dict[str, Any]] = {}
-    for meta_path in sorted((root / "external_data").glob("*/meta.json")):
+    for meta_path in sorted((root / "data/public").glob("*/meta.json")):
         meta = _read_json(meta_path)
         key = meta.get("key", meta_path.parent.name)
         policy = policies.get(key, {})
@@ -452,7 +452,7 @@ class Record:
 
 def _rule_records(root: Path) -> list[Record]:
     out = []
-    for rule in _read_jsonl(root / "knowledge" / "model_building_rules.jsonl"):
+    for rule in _read_jsonl(root / "evidence/knowledge" / "model_building_rules.jsonl"):
         text = (
             f"Rule {rule['rule_id']} ({rule['category']}): {rule['statement']} "
             f"Why: {rule['why']} Failure signal: {rule.get('failure_signal', '')} "
@@ -465,14 +465,14 @@ def _rule_records(root: Path) -> list[Record]:
                 title=rule["statement"],
                 text=text,
                 metadata={"category": rule["category"], "confidence": rule.get("confidence", "")},
-                citations=["knowledge/model_building_rules.jsonl", *rule.get("evidence", [])],
+                citations=["evidence/knowledge/model_building_rules.jsonl", *rule.get("evidence", [])],
             )
         )
     return out
 
 
 def _workflow_records(root: Path) -> list[Record]:
-    path = root / "knowledge" / "workflow_blocks.json"
+    path = root / "evidence/knowledge" / "workflow_blocks.json"
     if not path.exists():
         return []
     stage_for_block = {card["workflow"]: kind for kind, card in STAGE_CARDS.items()}
@@ -486,7 +486,7 @@ def _workflow_records(root: Path) -> list[Record]:
                 title=block["name"],
                 text=f"Workflow block {block['id']} — {block['name']}: " + " → ".join(block["flow"]) + ".",
                 metadata={"stage": stages[0] if stages else None},
-                citations=["knowledge/workflow_blocks.json"],
+                citations=["evidence/knowledge/workflow_blocks.json"],
             )
         )
     return out
@@ -507,7 +507,7 @@ def _dataset_records(cards: dict[str, dict[str, Any]]) -> list[Record]:
 
 
 def experiment_files(root: Path) -> list[Path]:
-    return sorted(root.glob("campaigns/*/results/EXP-*.json"))
+    return sorted(root.glob("evidence/campaigns/*/results/EXP-*.json"))
 
 
 def experiment_context(result: dict[str, Any], cards: dict[str, dict[str, Any]]) -> dict[str, str]:
@@ -616,7 +616,7 @@ def _leakage_records(root: Path, cards: dict[str, dict[str, Any]]) -> list[Recor
                 citations=[path.relative_to(root).as_posix()],
             )
         )
-    pack_path = root / "knowledge" / "master_evidence_pack.json"
+    pack_path = root / "evidence/knowledge" / "master_evidence_pack.json"
     if pack_path.exists():
         hyper = _read_json(pack_path).get("hyperack") or {}
         if hyper:
@@ -645,7 +645,7 @@ def _leakage_records(root: Path, cards: dict[str, dict[str, Any]]) -> list[Recor
 def _pitfall_records(root: Path) -> list[Record]:
     """Measured cost of common notebook mistakes (wrong way vs right way on identical data)."""
     out = []
-    for path in sorted(root.glob("campaigns/*/results/PIT-*.json")):
+    for path in sorted(root.glob("evidence/campaigns/*/results/PIT-*.json")):
         result = _read_json(path)
         claims = " ".join(c.get("statement", "") for c in result.get("claims", []))
         limits = sorted({lim for c in result.get("claims", []) for lim in c.get("limitations", [])})
@@ -668,7 +668,7 @@ def _pitfall_records(root: Path) -> list[Record]:
 
 
 def _finding_records(root: Path) -> list[Record]:
-    path = root / "knowledge" / "master_evidence_pack.json"
+    path = root / "evidence/knowledge" / "master_evidence_pack.json"
     if not path.exists():
         return []
     pack = _read_json(path)
@@ -691,7 +691,7 @@ def _finding_records(root: Path) -> list[Record]:
                     "defaulting to one."
                 ),
                 metadata={"stage": "model_selection"},
-                citations=["knowledge/master_evidence_pack.json", "knowledge/evidence.json"],
+                citations=["evidence/knowledge/master_evidence_pack.json", "evidence/knowledge/evidence.json"],
             )
         )
     gaps = pack.get("registry_leakage_gaps") or []
@@ -709,7 +709,7 @@ def _finding_records(root: Path) -> list[Record]:
                 )
                 + ". A sudden large improvement is a reason to audit for leakage before celebrating.",
                 metadata={"stage": "leakage_audit"},
-                citations=["knowledge/master_evidence_pack.json"],
+                citations=["evidence/knowledge/master_evidence_pack.json"],
             )
         )
     churn = (pack.get("churn") or {}).get("best") or {}
@@ -727,7 +727,7 @@ def _finding_records(root: Path) -> list[Record]:
                     "fair screen, and adaptive development CV is not independent confirmation."
                 ),
                 metadata={"dataset": "telco_churn", "stage": "model_selection"},
-                citations=["research/churn-prediction/churn_exp/CHURN_BENCHMARK.md", "knowledge/master_evidence_pack.json"],
+                citations=["research/churn-prediction/churn_exp/CHURN_BENCHMARK.md", "evidence/knowledge/master_evidence_pack.json"],
             )
         )
     return out
@@ -843,7 +843,7 @@ class EvidenceIndex:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.evidence_index", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("build", help="write knowledge/rag/records.jsonl")
+    sub.add_parser("build", help="write evidence/knowledge/rag/records.jsonl")
     sub.add_parser("check", help="exit 1 when the committed index is stale")
     search = sub.add_parser("search", help="filter-then-rank search")
     search.add_argument("query")
