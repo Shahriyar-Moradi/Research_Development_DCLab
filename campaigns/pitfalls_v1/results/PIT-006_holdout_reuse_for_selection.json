@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pitfalls_v1",
+  "experiment_id": "PIT-006",
+  "kind": "pitfall",
+  "pitfall": "holdout_reuse_for_selection",
+  "dataset": "multiple",
+  "datasets": [
+    "bank_marketing",
+    "credit_default",
+    "spambase",
+    "german_credit",
+    "online_shoppers"
+  ],
+  "question": "If we pick the best of many configurations by their holdout score, how optimistic is that holdout score?",
+  "hypothesis": "Selecting the maximum of noisy scores selects favorable noise; the chosen model's holdout score overstates its performance on fresh data.",
+  "setup_summary": "30 random LightGBM configurations per run on a 60/20/20 split into train and two holdouts, 5 datasets (≤6000 rows), 3 seeds, both selection directions. Bias = the picked model's score drop from the selection holdout to the untouched one, minus the average drop across all configurations.",
+  "evidence": {
+    "datasets": [
+      {
+        "dataset": "bank_marketing",
+        "configs": 30,
+        "selection_bias": {
+          "mean": 0.005754601698271429,
+          "std": 0.012726978080015189,
+          "min": -0.006681973671042585,
+          "max": 0.027789600524272255
+        },
+        "picked_config_rank_on_untouched_holdout": {
+          "mean": 5.666666666666667,
+          "std": 5.278888771954441,
+          "min": 1.0,
+          "max": 13.0
+        }
+      },
+      {
+        "dataset": "credit_default",
+        "configs": 30,
+        "selection_bias": {
+          "mean": 0.0042433502555430285,
+          "std": 0.0031331615050590915,
+          "min": 0.00033009009009017654,
+          "max": 0.009243679281770615
+        },
+        "picked_config_rank_on_untouched_holdout": {
+          "mean": 4.5,
+          "std": 2.8106938645110393,
+          "min": 2.0,
+          "max": 10.0
+        }
+      },
+      {
+        "dataset": "spambase",
+        "configs": 30,
+        "selection_bias": {
+          "mean": 0.0012513612767173405,
+          "std": 0.0015642400455611349,
+          "min": -0.00026614574789679893,
+          "max": 0.003489077309643599
+        },
+        "picked_config_rank_on_untouched_holdout": {
+          "mean": 7.666666666666667,
+          "std": 6.250333324444918,
+          "min": 1.0,
+          "max": 16.0
+        }
+      },
+      {
+        "dataset": "german_credit",
+        "configs": 30,
+        "selection_bias": {
+          "mean": 0.01767857142857145,
+          "std": 0.007209224305843336,
+          "min": 0.009146825396825362,
+          "max": 0.030488095238095154
+        },
+        "picked_config_rank_on_untouched_holdout": {
+          "mean": 12.0,
+          "std": 8.508818954473059,
+          "min": 2.0,
+          "max": 24.0
+        }
+      },
+      {
+        "dataset": "online_shoppers",
+        "configs": 30,
+        "selection_bias": {
+          "mean": 0.006836593580726191,
+          "std": 0.008014236068889598,
+          "min": 0.0013097918267413397,
+          "max": 0.022632909034572775
+        },
+        "picked_config_rank_on_untouched_holdout": {
+          "mean": 6.166666666666667,
+          "std": 4.119061381755152,
+          "min": 2.0,
+          "max": 12.0
+        }
+      }
+    ],
+    "average_selection_bias": 0.007152895647965887,
+    "average_rank_of_pick_on_untouched_holdout": 7.2
+  },
+  "claims": [
+    {
+      "claim_id": "PIT-006-C1",
+      "kind": "fact",
+      "statement": "Choosing the best of 30 configurations by holdout score overstated ROC-AUC by +0.0072 on average and by +0.0177 on german_credit; on the untouched holdout the pick ranked 7.2 of 30 on average.",
+      "evidence": [
+        "evidence.datasets",
+        "evidence.average_selection_bias"
+      ],
+      "limitations": [
+        "Configurations from one model family are highly correlated, which keeps the bias small; comparing many unrelated pipelines inflates more."
+      ]
+    },
+    {
+      "claim_id": "PIT-006-C2",
+      "kind": "recommendation",
+      "statement": "Tune with cross-validation on training data, then touch the holdout once. If the holdout was used to choose, the reported score is biased upward; confirm on a fresh split or use nested CV. The bias grows with the number of configurations tried and shrinks with holdout size.",
+      "evidence": [
+        "evidence.average_selection_bias"
+      ],
+      "limitations": [
+        "Configurations from one model family are highly correlated, which keeps the bias small; comparing many unrelated pipelines inflates more."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-03T06:25:13+00:00",
+  "completed_at": "2026-10-03T06:26:28+00:00",
+  "elapsed_seconds": 75.35,
+  "provenance": {
+    "git_commit": "601868e1a11223c0eb969a90a85702f0636caff8",
+    "git_dirty": true,
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "executable": "/usr/bin/python3",
+    "random_state": [
+      11,
+      22,
+      33
+    ],
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0"
+    },
+    "data_sha256": {
+      "external_data/bank_marketing/X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+      "external_data/bank_marketing/y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237",
+      "external_data/credit_default/X.parquet": "b11d5884e900aed4e4151e410a0d84eb44fdc102dce2edd430db7bc34303bd59",
+      "external_data/credit_default/y.parquet": "92819db23b03620a405cef2046230d4cfb1fce76756082cd2db5049bf08e214f",
+      "external_data/spambase/X.parquet": "ba78234b05f978b96111a03c66802c016e58f465686055f466d3c07c9bac71cf",
+      "external_data/spambase/y.parquet": "5d631f7c7131c99c279822a9efdd2a74b781ba1e770b6f0c3ef4262ee8ae4ea1",
+      "external_data/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "external_data/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec",
+      "external_data/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "external_data/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78"
+    }
+  }
+}

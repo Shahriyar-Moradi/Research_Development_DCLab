@@ -26,3 +26,7 @@ jobs:
         run: python -m dclab_rnd sync --check
       - name: Verify 50-experiment campaign evidence
         run: python -m dclab_rnd campaign verify
+      - name: Ensure evidence index and SFT v3 corpus are current
+        run: |
+          python -m dclab_rnd.evidence_index check
+          python sft/build_sft_dataset_v3.py --check

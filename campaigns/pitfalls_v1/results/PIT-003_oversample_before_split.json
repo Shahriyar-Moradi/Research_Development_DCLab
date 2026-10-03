@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pitfalls_v1",
+  "experiment_id": "PIT-003",
+  "kind": "pitfall",
+  "pitfall": "oversample_before_split",
+  "dataset": "multiple",
+  "datasets": [
+    "bank_marketing",
+    "credit_default",
+    "online_shoppers",
+    "german_credit"
+  ],
+  "question": "How much does oversampling the minority class before the split inflate the holdout score?",
+  "hypothesis": "Duplicated minority rows end up in both train and test, so a flexible model recognizes them and the holdout score is inflated.",
+  "setup_summary": "Random minority oversampling to a 50/50 balance, random forest (200 trees), 4 imbalanced datasets (≤6000 rows), 3 seeds. Wrong = oversample then split; right = split, oversample the training rows only.",
+  "evidence": {
+    "datasets": [
+      {
+        "dataset": "bank_marketing",
+        "wrong_auc": {
+          "mean": 0.9996936707789635,
+          "std": 0.00029435392083260154,
+          "min": 0.9993549639843808,
+          "max": 0.9998875702795548
+        },
+        "right_auc": {
+          "mean": 0.7731157427161035,
+          "std": 0.02449563495572722,
+          "min": 0.7471512595867791,
+          "max": 0.7958149973894589
+        },
+        "inflation": {
+          "mean": 0.22657792806285992,
+          "std": 0.02423650728651783,
+          "min": 0.20402348068349574,
+          "max": 0.25220370439760176
+        }
+      },
+      {
+        "dataset": "credit_default",
+        "wrong_auc": {
+          "mean": 0.9799570579058279,
+          "std": 0.005465121650008308,
+          "min": 0.9738994771462304,
+          "max": 0.9845177886092374
+        },
+        "right_auc": {
+          "mean": 0.7558589390480209,
+          "std": 0.018115706966669996,
+          "min": 0.7363405012861535,
+          "max": 0.7721336609336609
+        },
+        "inflation": {
+          "mean": 0.22409811885780703,
+          "std": 0.01416535730397017,
+          "min": 0.20932024702835517,
+          "max": 0.2375589758600769
+        }
+      },
+      {
+        "dataset": "online_shoppers",
+        "wrong_auc": {
+          "mean": 0.9019257283458568,
+          "std": 0.006358149824083427,
+          "min": 0.8982183358036796,
+          "max": 0.9092673659057302
+        },
+        "right_auc": {
+          "mean": 0.6015968515096108,
+          "std": 0.009383708831410056,
+          "min": 0.5933781892218617,
+          "max": 0.6118212610734757
+        },
+        "inflation": {
+          "mean": 0.300328876836246,
+          "std": 0.00395688855280523,
+          "min": 0.29744610483225453,
+          "max": 0.3048401465818179
+        }
+      },
+      {
+        "dataset": "german_credit",
+        "wrong_auc": {
+          "mean": 0.9525,
+          "std": 0.006173891029622065,
+          "min": 0.9459183673469388,
+          "max": 0.9581632653061225
+        },
+        "right_auc": {
+          "mean": 0.781329365079365,
+          "std": 0.026502025051335573,
+          "min": 0.7597023809523809,
+          "max": 0.8108928571428571
+        },
+        "inflation": {
+          "mean": 0.171170634920635,
+          "std": 0.02092835703433208,
+          "min": 0.14727040816326542,
+          "max": 0.18621598639455794
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "PIT-003-C1",
+      "kind": "fact",
+      "statement": "Oversampling before the split inflated holdout ROC-AUC by up to +0.3003 on average (online_shoppers: 0.9019 reported vs 0.6016 honest).",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Random duplication oversampling; SMOTE interpolates new points and leaks through near-duplicates instead of exact copies."
+      ]
+    },
+    {
+      "claim_id": "PIT-003-C2",
+      "kind": "recommendation",
+      "statement": "Resample only inside the training data (imblearn Pipeline or after the split), and evaluate on untouched, naturally imbalanced rows with a metric that respects imbalance such as average precision.",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Random duplication oversampling; SMOTE interpolates new points and leaks through near-duplicates instead of exact copies."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-03T06:21:26+00:00",
+  "completed_at": "2026-10-03T06:21:39+00:00",
+  "elapsed_seconds": 13.91,
+  "provenance": {
+    "git_commit": "601868e1a11223c0eb969a90a85702f0636caff8",
+    "git_dirty": true,
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "executable": "/usr/bin/python3",
+    "random_state": [
+      11,
+      22,
+      33
+    ],
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0"
+    },
+    "data_sha256": {
+      "external_data/bank_marketing/X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+      "external_data/bank_marketing/y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237",
+      "external_data/credit_default/X.parquet": "b11d5884e900aed4e4151e410a0d84eb44fdc102dce2edd430db7bc34303bd59",
+      "external_data/credit_default/y.parquet": "92819db23b03620a405cef2046230d4cfb1fce76756082cd2db5049bf08e214f",
+      "external_data/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "external_data/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78",
+      "external_data/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "external_data/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec"
+    }
+  }
+}

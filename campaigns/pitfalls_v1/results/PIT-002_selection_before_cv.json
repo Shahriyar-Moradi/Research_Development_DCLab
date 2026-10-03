@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pitfalls_v1",
+  "experiment_id": "PIT-002",
+  "kind": "pitfall",
+  "pitfall": "selection_before_cv",
+  "dataset": "multiple",
+  "datasets": [
+    "spambase",
+    "german_credit",
+    "credit_default"
+  ],
+  "question": "How much does selecting features on all rows before cross-validation inflate the CV score?",
+  "hypothesis": "With many candidate features and few rows, selection before CV manufactures signal from noise; with few features and many rows the inflation is small.",
+  "setup_summary": "SelectKBest(f_classif) + logistic regression, 5-fold CV, 3 seeds. A pure-noise canary (random labels, 2000 features, 200 rows) plus three real datasets (≤4000 rows). Wrong = selection fitted once on all rows; right = selection inside each training fold.",
+  "evidence": {
+    "datasets": [
+      {
+        "dataset": "noise_canary (200 rows, 2000 pure-noise features, random labels)",
+        "k": 20,
+        "wrong_auc": {
+          "mean": 0.8587080200501255,
+          "std": 0.02254983206645541,
+          "min": 0.8335839598997493,
+          "max": 0.8771929824561404
+        },
+        "right_auc": {
+          "mean": 0.5120258980785297,
+          "std": 0.07193515163411907,
+          "min": 0.4406015037593985,
+          "max": 0.5844611528822056
+        },
+        "inflation": {
+          "mean": 0.34668212197159565,
+          "std": 0.05056123443328641,
+          "min": 0.29273182957393484,
+          "max": 0.3929824561403508
+        }
+      },
+      {
+        "dataset": "spambase",
+        "k": 10,
+        "wrong_auc": {
+          "mean": 0.9459104323015607,
+          "std": 0.0006154524025872653,
+          "min": 0.9452483089503186,
+          "max": 0.9464650474621813
+        },
+        "right_auc": {
+          "mean": 0.9417609336629358,
+          "std": 0.005068740812194372,
+          "min": 0.9359513343400299,
+          "max": 0.9452809976591855
+        },
+        "inflation": {
+          "mean": 0.004149498638624793,
+          "std": 0.0051243700624655384,
+          "min": 0.0011840498029958013,
+          "max": 0.010066606152152047
+        }
+      },
+      {
+        "dataset": "german_credit",
+        "k": 5,
+        "wrong_auc": {
+          "mean": 0.7543333333333333,
+          "std": 0.0027358168574579188,
+          "min": 0.7513333333333334,
+          "max": 0.7566904761904762
+        },
+        "right_auc": {
+          "mean": 0.7513095238095239,
+          "std": 0.00200806198240241,
+          "min": 0.7499761904761906,
+          "max": 0.7536190476190476
+        },
+        "inflation": {
+          "mean": 0.003023809523809503,
+          "std": 0.0020004251248851826,
+          "min": 0.0010000000000000009,
+          "max": 0.004999999999999893
+        }
+      },
+      {
+        "dataset": "credit_default",
+        "k": 5,
+        "wrong_auc": {
+          "mean": 0.6912179673650477,
+          "std": 0.01705425406807955,
+          "min": 0.6774135567793129,
+          "max": 0.7102826669787339
+        },
+        "right_auc": {
+          "mean": 0.6912179673650477,
+          "std": 0.01705425406807955,
+          "min": 0.6774135567793129,
+          "max": 0.7102826669787339
+        },
+        "inflation": {
+          "mean": 0.0,
+          "std": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "PIT-002-C1",
+      "kind": "fact",
+      "statement": "On pure noise with random labels, selecting 20 of 2000 features before CV produced ROC-AUC 0.859; doing it inside the folds gave 0.512 (chance is 0.5).",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Univariate filter selection only; wrapper/model-based selection can inflate more."
+      ]
+    },
+    {
+      "claim_id": "PIT-002-C2",
+      "kind": "fact",
+      "statement": "On the real datasets (few features, thousands of rows) the inflation was at most +0.0041.",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Univariate filter selection only; wrapper/model-based selection can inflate more."
+      ]
+    },
+    {
+      "claim_id": "PIT-002-C3",
+      "kind": "recommendation",
+      "statement": "Put feature selection inside the cross-validated pipeline. The danger grows with the number of candidate features relative to rows, so wide data (text, genomics, many engineered features) is where this mistake fabricates results.",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Univariate filter selection only; wrapper/model-based selection can inflate more."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-03T06:21:24+00:00",
+  "completed_at": "2026-10-03T06:21:26+00:00",
+  "elapsed_seconds": 1.3,
+  "provenance": {
+    "git_commit": "601868e1a11223c0eb969a90a85702f0636caff8",
+    "git_dirty": true,
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "executable": "/usr/bin/python3",
+    "random_state": [
+      11,
+      22,
+      33
+    ],
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0"
+    },
+    "data_sha256": {
+      "external_data/spambase/X.parquet": "ba78234b05f978b96111a03c66802c016e58f465686055f466d3c07c9bac71cf",
+      "external_data/spambase/y.parquet": "5d631f7c7131c99c279822a9efdd2a74b781ba1e770b6f0c3ef4262ee8ae4ea1",
+      "external_data/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "external_data/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec",
+      "external_data/credit_default/X.parquet": "b11d5884e900aed4e4151e410a0d84eb44fdc102dce2edd430db7bc34303bd59",
+      "external_data/credit_default/y.parquet": "92819db23b03620a405cef2046230d4cfb1fce76756082cd2db5049bf08e214f"
+    }
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pitfalls_v1",
+  "experiment_id": "PIT-001",
+  "kind": "pitfall",
+  "pitfall": "preprocess_before_split",
+  "dataset": "multiple",
+  "datasets": [
+    "adult",
+    "bank_marketing",
+    "credit_default",
+    "spambase",
+    "german_credit",
+    "online_shoppers"
+  ],
+  "question": "How much does fitting an imputer and scaler on all rows before the train/test split inflate the holdout score?",
+  "hypothesis": "For row-wise scaling and mean imputation the inflation is tiny; the habit matters because the same mistake with target-aware or high-capacity transforms is large.",
+  "setup_summary": "Logistic regression with mean imputation + standard scaling on 6 datasets (≤8000 rows each), 3 random stratified 80/20 splits; wrong = preprocessing fitted on all rows, right = fitted on training rows only.",
+  "evidence": {
+    "datasets": [
+      {
+        "dataset": "adult",
+        "wrong_auc": {
+          "mean": 0.8532449573951969,
+          "std": 0.014231445300864828,
+          "min": 0.8429228090242508,
+          "max": 0.8694796025994352
+        },
+        "right_auc": {
+          "mean": 0.8532407349888474,
+          "std": 0.014232423032946945,
+          "min": 0.8429228090242509,
+          "max": 0.8694774760981252
+        },
+        "inflation": {
+          "mean": 4.222406349563279e-06,
+          "std": 5.5741632613034e-06,
+          "min": -1.1102230246251565e-16,
+          "max": 1.0540717738760641e-05
+        }
+      },
+      {
+        "dataset": "bank_marketing",
+        "wrong_auc": {
+          "mean": 0.7497153446677972,
+          "std": 0.023577651169270283,
+          "min": 0.7233256870069282,
+          "max": 0.7687063024707783
+        },
+        "right_auc": {
+          "mean": 0.7497037140336419,
+          "std": 0.02359994228343334,
+          "min": 0.7232869387312265,
+          "max": 0.7687063024707784
+        },
+        "inflation": {
+          "mean": 1.1630634155472089e-05,
+          "std": 2.3563589834849245e-05,
+          "min": -3.856373235189281e-06,
+          "max": 3.874827570171657e-05
+        }
+      },
+      {
+        "dataset": "credit_default",
+        "wrong_auc": {
+          "mean": 0.7189310743317749,
+          "std": 0.008569494171244418,
+          "min": 0.7094136863056614,
+          "max": 0.7260351306241577
+        },
+        "right_auc": {
+          "mean": 0.7188708752828851,
+          "std": 0.00850176859897837,
+          "min": 0.7094270745008435,
+          "max": 0.7259146368675194
+        },
+        "inflation": {
+          "mean": 6.019904888987515e-05,
+          "std": 6.792358130463104e-05,
+          "min": -1.3388195182151286e-05,
+          "max": 0.00012049375663825135
+        }
+      },
+      {
+        "dataset": "spambase",
+        "wrong_auc": {
+          "mean": 0.9707773400344272,
+          "std": 0.003757647454766735,
+          "min": 0.9671569063064664,
+          "max": 0.9746586095559704
+        },
+        "right_auc": {
+          "mean": 0.9707345530903693,
+          "std": 0.003652512999577214,
+          "min": 0.9672013389022187,
+          "max": 0.9744956900382119
+        },
+        "inflation": {
+          "mean": 4.278694405783027e-05,
+          "std": 0.00010752290730004804,
+          "min": -4.443259575226399e-05,
+          "max": 0.00016291951775848634
+        }
+      },
+      {
+        "dataset": "german_credit",
+        "wrong_auc": {
+          "mean": 0.7706349206349206,
+          "std": 0.01901348628263116,
+          "min": 0.756547619047619,
+          "max": 0.7922619047619047
+        },
+        "right_auc": {
+          "mean": 0.770515873015873,
+          "std": 0.01908528022824863,
+          "min": 0.756547619047619,
+          "max": 0.7922619047619047
+        },
+        "inflation": {
+          "mean": 0.00011904761904761123,
+          "std": 0.00020619652471056709,
+          "min": 0.0,
+          "max": 0.00035714285714283367
+        }
+      },
+      {
+        "dataset": "online_shoppers",
+        "wrong_auc": {
+          "mean": 0.610969714907136,
+          "std": 0.015630070317602024,
+          "min": 0.5935557809755498,
+          "max": 0.6237834174260111
+        },
+        "right_auc": {
+          "mean": 0.6109796792982997,
+          "std": 0.015607078932816007,
+          "min": 0.5935946808860801,
+          "max": 0.6237834174260111
+        },
+        "inflation": {
+          "mean": -9.964391163667466e-06,
+          "std": 2.546033265270288e-05,
+          "min": -3.8899910530298953e-05,
+          "max": 9.006737039296553e-06
+        }
+      }
+    ],
+    "largest_abs_inflation": {
+      "dataset": "german_credit",
+      "mean": 0.00011904761904761123
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "PIT-001-C1",
+      "kind": "fact",
+      "statement": "Fitting mean-imputation and scaling before the split changed holdout ROC-AUC by at most 0.0001 on average (german_credit).",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Simple, unsupervised, row-wise transforms only; learned or target-aware transforms behave very differently."
+      ]
+    },
+    {
+      "claim_id": "PIT-001-C2",
+      "kind": "recommendation",
+      "statement": "Still fit every preprocessing step inside the training data (a Pipeline): the measured cost is small here, but the identical mistake with feature selection, oversampling or target encoding is large (PIT-002, PIT-003, PIT-004).",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "Simple, unsupervised, row-wise transforms only; learned or target-aware transforms behave very differently."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-03T06:21:20+00:00",
+  "completed_at": "2026-10-03T06:21:24+00:00",
+  "elapsed_seconds": 3.93,
+  "provenance": {
+    "git_commit": "601868e1a11223c0eb969a90a85702f0636caff8",
+    "git_dirty": true,
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "executable": "/usr/bin/python3",
+    "random_state": [
+      11,
+      22,
+      33
+    ],
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0"
+    },
+    "data_sha256": {
+      "external_data/adult/X.parquet": "5d9166c4bbedbadf14b132f704bb21d858d180eaf74570b1e196054ca4bd7304",
+      "external_data/adult/y.parquet": "e1602b8fbee0817742870165b4e0eb5982e36f671e4b3b5c3909dbe1863ccd74",
+      "external_data/bank_marketing/X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+      "external_data/bank_marketing/y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237",
+      "external_data/credit_default/X.parquet": "b11d5884e900aed4e4151e410a0d84eb44fdc102dce2edd430db7bc34303bd59",
+      "external_data/credit_default/y.parquet": "92819db23b03620a405cef2046230d4cfb1fce76756082cd2db5049bf08e214f",
+      "external_data/spambase/X.parquet": "ba78234b05f978b96111a03c66802c016e58f465686055f466d3c07c9bac71cf",
+      "external_data/spambase/y.parquet": "5d631f7c7131c99c279822a9efdd2a74b781ba1e770b6f0c3ef4262ee8ae4ea1",
+      "external_data/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "external_data/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec",
+      "external_data/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "external_data/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78"
+    }
+  }
+}

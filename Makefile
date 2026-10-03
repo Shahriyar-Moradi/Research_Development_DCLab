@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -19,6 +19,8 @@ rd-check:  ## tests, record validation, stale-knowledge and campaign gates
 	$(PYTHON) -m dclab_rnd validate
 	$(PYTHON) -m dclab_rnd sync --check
 	$(PYTHON) -m dclab_rnd campaign verify
+	$(PYTHON) -m dclab_rnd.evidence_index check
+	$(PYTHON) sft/build_sft_dataset_v3.py --check
 
 rd-status:  ## deployment-eligible champions
 	$(PYTHON) -m dclab_rnd status
@@ -96,3 +98,32 @@ sft-build:  ## build the SFT corpus into sft/out/
 
 report-pdf:  ## regenerate docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf
 	$(PYTHON) scripts/generate_pdf.py
+
+# --- Knowledge layer: evidence index, SFT v3, copilot, agent tools ---------------
+
+knowledge: index sft-v3  ## rebuild the evidence index and the SFT v3 corpus after new results
+
+index:  ## rebuild knowledge/rag/records.jsonl
+	$(PYTHON) -m dclab_rnd.evidence_index build
+
+sft-v3:  ## rebuild the self-contained SFT v3 corpus into sft/out_v3/
+	$(PYTHON) sft/build_sft_dataset_v3.py
+
+critic-gate:  ## show LLM critic challenges that the recorded numbers disprove
+	$(PYTHON) -m dclab_rnd.critic_gate
+
+pitfalls:  ## re-measure the six common notebook mistakes (campaigns/pitfalls_v1)
+	$(PYTHON) -m dclab_rnd.pitfalls run --force
+
+copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.html
+	$(PYTHON) -m dclab_rnd.copilot review dclab_rnd/copilot/examples/leaky_bank_marketing.ipynb --html docs/copilot_demo.html > /dev/null
+
+verify-auditor:  ## blind replay of the leakage auditor on datasets with known leaks
+	$(PYTHON) -m dclab_rnd.tools verify-auditor
+
+expansion:  ## run the task-type expansion campaign (downloads public data to data/external/)
+	$(PYTHON) -m dclab_rnd.expansion run
+
+expansion-status:  ## expansion campaign progress
+	$(PYTHON) -m dclab_rnd.expansion status
+

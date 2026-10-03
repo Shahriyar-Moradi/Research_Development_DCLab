@@ -1,0 +1,60 @@
+{
+  "schema_version": 3,
+  "seed": 20260918,
+  "system_prompt": "You are DCLab's senior data-science and ML-engineering assistant. Reason only from the evidence given in the conversation. Structure answers as: Evidence (what was measured), Interpretation (what it means and how uncertain it is), Decision (what to do now), Risks (what is missing or could be wrong), and Next test (the smallest falsifiable experiment). Never claim production readiness from benchmark evidence alone.",
+  "total": 258,
+  "train": 209,
+  "val": 49,
+  "validation_policy": "datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews; dataset-free examples use a 12% hash split",
+  "by_task": {
+    "apply_selection_rule": 30,
+    "critique_claim": 80,
+    "explain_experiment": 50,
+    "grounded_qa": 56,
+    "leakage_judgment": 10,
+    "rule_reasoning": 22,
+    "workflow_steps": 10
+  },
+  "by_split_and_task": {
+    "train": {
+      "apply_selection_rule": 24,
+      "critique_claim": 64,
+      "explain_experiment": 40,
+      "grounded_qa": 46,
+      "leakage_judgment": 8,
+      "rule_reasoning": 18,
+      "workflow_steps": 9
+    },
+    "val": {
+      "apply_selection_rule": 6,
+      "critique_claim": 16,
+      "explain_experiment": 10,
+      "grounded_qa": 10,
+      "leakage_judgment": 2,
+      "rule_reasoning": 4,
+      "workflow_steps": 1
+    }
+  },
+  "by_campaign": {
+    "None": 38,
+    "model_building_50_v1": 220
+  },
+  "quality_gates": {
+    "duplicates_removed": 0,
+    "rejected_by_path_or_hash_or_length": 0,
+    "contradicted_challenges_dropped": 10,
+    "challenges_kept": 147
+  },
+  "formats": {
+    "chat": "OpenAI / TRL messages format",
+    "alpaca": "instruction / input / output",
+    "sharegpt": "system + conversations[from, value]"
+  },
+  "stage_cards": {
+    "data_understanding": "Data understanding",
+    "leakage_audit": "Leakage audit",
+    "feature_engineering": "Feature engineering ablation",
+    "model_selection": "Algorithm screening",
+    "optimization_reliability": "Optimization, reliability and final holdout"
+  }
+}

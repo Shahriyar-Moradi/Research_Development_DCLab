@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pitfalls_v1",
+  "experiment_id": "PIT-004",
+  "kind": "pitfall",
+  "pitfall": "target_encoding_before_split",
+  "dataset": "multiple",
+  "datasets": [
+    "telco_churn",
+    "adult",
+    "hyperack"
+  ],
+  "question": "How much does computing target-mean encodings on all rows before the split inflate the holdout score?",
+  "hypothesis": "The fewer rows per category, the more each encoding contains the row's own label; for identifier-like columns the leak is near total.",
+  "setup_summary": "Mean-target encoding (smoothing 1) of one categorical column plus a few numeric columns, histogram gradient boosting, 80/20 stratified split, 3 seeds. Wrong = encoding computed on all rows; right = out-of-fold encodings for training rows, training statistics applied to test rows.",
+  "evidence": {
+    "datasets": [
+      {
+        "dataset": "telco_churn",
+        "encoded_column": "customerID (unique per row)",
+        "wrong_auc": {
+          "mean": 1.0,
+          "std": 0.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "right_auc": {
+          "mean": 0.8159536541889483,
+          "std": 0.015929694923921944,
+          "min": 0.7977059598542975,
+          "max": 0.8270828489498566
+        },
+        "inflation": {
+          "mean": 0.1840463458110517,
+          "std": 0.015929694923921944,
+          "min": 0.17291715105014338,
+          "max": 0.20229404014570251
+        }
+      },
+      {
+        "dataset": "adult",
+        "encoded_column": "occupation (~15 levels)",
+        "wrong_auc": {
+          "mean": 0.9212619597763908,
+          "std": 0.0041800076083253705,
+          "min": 0.9179776920089849,
+          "max": 0.925967205236521
+        },
+        "right_auc": {
+          "mean": 0.9178554035412166,
+          "std": 0.00295850233571113,
+          "min": 0.9145461059704663,
+          "max": 0.920244319486131
+        },
+        "inflation": {
+          "mean": 0.003406556235174348,
+          "std": 0.0036476164069771536,
+          "min": -0.0007980931580675588,
+          "max": 0.005722885750390039
+        }
+      },
+      {
+        "dataset": "hyperack",
+        "encoded_column": "deliverey_category_id",
+        "wrong_auc": {
+          "mean": 0.8991005094690067,
+          "std": 0.0021107350883312103,
+          "min": 0.8970432679789617,
+          "max": 0.9012609520647816
+        },
+        "right_auc": {
+          "mean": 0.8972164451301011,
+          "std": 0.002295704242549788,
+          "min": 0.8949346293547883,
+          "max": 0.8995257902411081
+        },
+        "inflation": {
+          "mean": 0.0018840643389054224,
+          "std": 0.0021081111530329077,
+          "min": -0.0001456478154454599,
+          "max": 0.004062679008488224
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "PIT-004-C1",
+      "kind": "fact",
+      "statement": "Encoding customerID (unique per row) with the target before the split gave ROC-AUC 1.0000 on telco_churn versus 0.8160 honestly (inflation +0.1840).",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "One encoding scheme and smoothing value; out-of-fold encoders reduce but do not remove the risk for rare categories."
+      ]
+    },
+    {
+      "claim_id": "PIT-004-C2",
+      "kind": "fact",
+      "statement": "For a low-cardinality column (deliverey_category_id on hyperack) the inflation was +0.0019.",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "One encoding scheme and smoothing value; out-of-fold encoders reduce but do not remove the risk for rare categories."
+      ]
+    },
+    {
+      "claim_id": "PIT-004-C3",
+      "kind": "recommendation",
+      "statement": "Compute target encodings out-of-fold on training data only, and never target-encode identifiers; an identifier that looks predictive is memorizing labels. Even encoding training rows with their own label (without out-of-fold) teaches the model to trust a column that is useless on new rows.",
+      "evidence": [
+        "evidence.datasets"
+      ],
+      "limitations": [
+        "One encoding scheme and smoothing value; out-of-fold encoders reduce but do not remove the risk for rare categories."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-03T06:25:08+00:00",
+  "completed_at": "2026-10-03T06:25:12+00:00",
+  "elapsed_seconds": 4.18,
+  "provenance": {
+    "git_commit": "601868e1a11223c0eb969a90a85702f0636caff8",
+    "git_dirty": true,
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "executable": "/usr/bin/python3",
+    "random_state": [
+      11,
+      22,
+      33
+    ],
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0"
+    },
+    "data_sha256": {
+      "data/telco/WA_Fn-UseC_-Telco-Customer-Churn.csv": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a",
+      "external_data/adult/X.parquet": "5d9166c4bbedbadf14b132f704bb21d858d180eaf74570b1e196054ca4bd7304",
+      "external_data/adult/y.parquet": "e1602b8fbee0817742870165b4e0eb5982e36f671e4b3b5c3909dbe1863ccd74",
+      "data/hyperack/hyper_ackt-dataset.csv": "937834153a0a047de4ed387a043894e6f9fde0e7db9dbc7cf280ecd599b4766b"
+    }
+  }
+}
