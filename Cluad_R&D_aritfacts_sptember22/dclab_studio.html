@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DCLab Studio — churn_model.ipynb</title>
+<style>
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f1f4;
+  --border: #e3e5e9;
+  --text-primary: #16181d;
+  --text-secondary: #5b5f68;
+  --text-muted: #8b8f98;
+  --accent: #4f46e5;
+  --accent-bg: #eeecfd;
+  --accent-text: #4338ca;
+  --danger: #dc2626;
+  --danger-bg: #fdecec;
+  --danger-border: #f3c6c6;
+  --success: #16a34a;
+  --success-bg: #e9f7ee;
+  --warning: #b45309;
+  --warning-bg: #fdf1de;
+  --code-bg: #f7f8fa;
+  --code-kw: #7c3aed;
+  --code-fn: #2563eb;
+  --code-str: #16a34a;
+  --code-num: #b45309;
+  --radius: 8px;
+  --radius-lg: 14px;
+}
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --bg: #121317;
+    --surface: #1a1c22;
+    --surface-2: #22242b;
+    --border: #2d2f37;
+    --text-primary: #eef0f4;
+    --text-secondary: #a3a7b0;
+    --text-muted: #71757e;
+    --accent: #857bf0;
+    --accent-bg: #2a2650;
+    --accent-text: #b7b0f7;
+    --danger: #f27272;
+    --danger-bg: #3a1f20;
+    --danger-border: #5a2c2c;
+    --success: #4ade80;
+    --success-bg: #163826;
+    --warning: #f2b774;
+    --warning-bg: #3a2a12;
+    --code-bg: #1f2128;
+    --code-kw: #b7a5f7;
+    --code-fn: #7fb1f5;
+    --code-str: #7fd99e;
+    --code-num: #f2b774;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121317; --surface: #1a1c22; --surface-2: #22242b; --border: #2d2f37;
+  --text-primary: #eef0f4; --text-secondary: #a3a7b0; --text-muted: #71757e;
+  --accent: #857bf0; --accent-bg: #2a2650; --accent-text: #b7b0f7;
+  --danger: #f27272; --danger-bg: #3a1f20; --danger-border: #5a2c2c;
+  --success: #4ade80; --success-bg: #163826; --warning: #f2b774; --warning-bg: #3a2a12;
+  --code-bg: #1f2128; --code-kw: #b7a5f7; --code-fn: #7fb1f5; --code-str: #7fd99e; --code-num: #f2b774;
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  font-size: 14px;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+button { font-family: inherit; cursor: pointer; }
+.app { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar { width: 232px; flex-shrink: 0; background: var(--surface); border-right: 0.5px solid var(--border); padding: 18px 14px; display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 9px; padding: 4px 6px 18px; }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+.brand-name { font-weight: 600; font-size: 14.5px; }
+.nav-section-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-muted); padding: 12px 8px 6px; }
+.nav-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 8px; border-radius: var(--radius); font-size: 13.5px; color: var(--text-secondary); }
+.nav-item.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 500; }
+.nav-item .count { font-size: 11.5px; color: var(--text-muted); }
+.activity-item { padding: 6px 8px; font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: baseline; gap: 6px; }
+.activity-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.sidebar-footer { margin-top: auto; padding: 12px; border: 0.5px solid var(--border); border-radius: var(--radius-lg); }
+.sidebar-footer .label { font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+.sidebar-footer .sub { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
+.bar-track { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); }
+
+/* Main */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 0.5px solid var(--border); background: var(--surface); }
+.crumb { font-size: 13.5px; color: var(--text-secondary); }
+.crumb b { color: var(--text-primary); font-weight: 500; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.pill { font-size: 12px; color: var(--text-secondary); background: var(--surface-2); padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.btn { border: 0.5px solid var(--border); background: var(--surface); color: var(--text-primary); border-radius: var(--radius); padding: 7px 13px; font-size: 13px; font-weight: 500; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:disabled, .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.content { padding: 22px 24px 8px; max-width: 1180px; }
+
+/* Status band */
+.status-band { display: flex; gap: 16px; margin-bottom: 20px; }
+.status-main { flex: 1; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 20px 22px; }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--accent-text); margin-bottom: 8px; }
+.status-main h1 { font-size: 21px; font-weight: 600; margin: 0 0 6px; }
+.status-main p { font-size: 13.5px; color: var(--text-secondary); margin: 0 0 16px; max-width: 460px; line-height: 1.5; }
+.status-chips { display: flex; gap: 18px; }
+.status-chip { display: flex; align-items: center; gap: 7px; font-size: 12.5px; }
+.chip-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.chip-icon.danger { background: var(--danger-bg); color: var(--danger); }
+.chip-icon.warning { background: var(--warning-bg); color: var(--warning); }
+.chip-icon.success { background: var(--success-bg); color: var(--success); }
+.status-side { width: 230px; flex-shrink: 0; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px; }
+.status-side .label { font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; }
+.gate-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 5px 0; color: var(--text-secondary); }
+.gate-row.blocked { color: var(--text-muted); }
+
+/* Workspace grid */
+.workspace { display: flex; gap: 16px; align-items: flex-start; }
+.notebook-col { flex: 1; min-width: 0; }
+.insights-col { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 2px 12px; font-size: 12.5px; color: var(--text-secondary); }
+.toolbar button { background: none; border: none; color: var(--text-secondary); font-size: 12.5px; padding: 4px 6px; border-radius: var(--radius); }
+.toolbar button:hover { background: var(--surface-2); }
+.section-heading { font-size: 15px; font-weight: 600; margin: 4px 0 3px; }
+.section-sub { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; }
+
+.cell { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 14px; overflow: hidden; }
+.cell-head { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; border-bottom: 0.5px solid var(--border); }
+.cell-title { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; }
+.cell-num { color: var(--text-muted); font-weight: 400; font-family: ui-monospace, monospace; font-size: 12px; }
+.cell-code { padding: 12px 14px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; line-height: 1.7; background: var(--code-bg); overflow-x: auto; white-space: pre; }
+.tok-kw { color: var(--code-kw); } .tok-fn { color: var(--code-fn); } .tok-str { color: var(--code-str); } .tok-num { color: var(--code-num); }
+.leak-line { background: var(--danger-bg); border-radius: 4px; }
+.cell-output { padding: 10px 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.out-tag { font-size: 11.5px; background: var(--surface-2); color: var(--text-secondary); padding: 3px 9px; border-radius: 20px; }
+.metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 14px; }
+.metric-box { background: var(--surface-2); border-radius: var(--radius); padding: 10px 12px; }
+.metric-box .m-label { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; }
+.metric-box .m-value { font-size: 16px; font-weight: 600; font-family: ui-monospace, monospace; margin-top: 3px; }
+.measured-tag { font-size: 9.5px; color: var(--success); background: var(--success-bg); padding: 1px 6px; border-radius: 8px; font-weight: 500; }
+
+/* Insight cards */
+.insight { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px; }
+.insight.danger { border-color: var(--danger-border); }
+.insight-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.insight-icon { width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; }
+.insight-icon.danger { background: var(--danger-bg); color: var(--danger); }
+.insight-icon.locked { background: var(--surface-2); color: var(--text-muted); }
+.insight-icon.success { background: var(--success-bg); color: var(--success); }
+.insight-title { font-size: 13px; font-weight: 600; flex: 1; }
+.tag-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+.tag-badge.danger { background: var(--danger-bg); color: var(--danger); }
+.tag-badge.locked { background: var(--surface-2); color: var(--text-muted); }
+.insight-body { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px; }
+.proof-line { font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+.insight-stats { display: flex; gap: 16px; margin-bottom: 10px; }
+.insight-stats div { font-size: 11px; color: var(--text-muted); }
+.insight-stats b { display: block; font-size: 14px; color: var(--text-primary); font-family: ui-monospace, monospace; font-weight: 600; }
+.insight-actions { display: flex; gap: 8px; }
+.insight-actions .btn { padding: 6px 11px; font-size: 12px; }
+.compare-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.compare-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.compare-row .cname { width: 70px; flex-shrink: 0; color: var(--text-secondary); }
+.compare-row .cbar-track { flex: 1; height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.compare-row .cbar-fill { height: 100%; background: var(--text-muted); border-radius: 3px; }
+.compare-row.best .cbar-fill { background: var(--accent); }
+.compare-row .cval { width: 40px; text-align: right; font-family: ui-monospace, monospace; color: var(--text-secondary); }
+.locked-overlay { text-align: center; padding: 6px 0 4px; font-size: 12px; color: var(--text-muted); }
+
+.command-wrap { padding: 6px 24px 24px; }
+.command-bar { max-width: 1180px; display: flex; align-items: center; gap: 10px; background: var(--surface); border: 0.5px solid var(--border); border-radius: 24px; padding: 6px 8px 6px 16px; }
+.scope-chip { font-size: 11.5px; background: var(--accent-bg); color: var(--accent-text); padding: 4px 10px; border-radius: 20px; flex-shrink: 0; white-space: nowrap; }
+.command-input { flex: 1; border: none; background: transparent; font-size: 13.5px; height: 30px; color: var(--text-primary); outline: none; }
+.command-send { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; border: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.demo-reply { max-width: 1180px; margin: 10px 0 0; font-size: 12.5px; color: var(--text-secondary); padding: 10px 14px; background: var(--surface-2); border-radius: var(--radius); display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">D</div><div class="brand-name">DCLab Studio</div></div>
+    <div class="nav-section-label">Workspace</div>
+    <div class="nav-item active"><span>Notebooks</span><span class="count">12</span></div>
+    <div class="nav-item"><span>Datasets</span><span class="count">7</span></div>
+    <div class="nav-item"><span>Experiments</span><span class="count">4</span></div>
+    <div class="nav-section-label">Agent activity</div>
+    <div class="activity-item"><span class="activity-dot"></span>Review &middot; 2m ago</div>
+    <div class="activity-item"><span class="activity-dot"></span>Waiting on leakage fix</div>
+    <div class="sidebar-footer">
+      <div class="label">Compute this week</div>
+      <div class="sub">6.4 of 10 GPU hours</div>
+      <div class="bar-track"><div class="bar-fill" style="width:64%"></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">Churn project / <b>churn_model.ipynb</b></div>
+      <div class="topbar-right">
+        <span class="pill"><span class="pill-dot"></span>Python 3.12</span>
+        <button class="btn">Share</button>
+        <button class="btn primary">Publish</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="status-band">
+        <div class="status-main">
+          <div class="eyebrow">NOTEBOOK REVIEW</div>
+          <h1>1 finding blocks the rest of the review</h1>
+          <p>The model comparison and its numbers won't be trustworthy until the leakage in cell 1 is fixed — so it stays locked until then, not hidden behind a confident score.</p>
+          <div class="status-chips">
+            <div class="status-chip"><span class="chip-icon danger">!</span>Leakage &middot; blocking</div>
+            <div class="status-chip"><span class="chip-icon warning">&middot;</span>Model comparison &middot; locked</div>
+            <div class="status-chip"><span class="chip-icon success">&#10003;</span>Metric choice &middot; verified</div>
+          </div>
+        </div>
+        <div class="status-side">
+          <div class="label">Review gate</div>
+          <div class="gate-row"><span class="chip-icon danger" style="width:16px;height:16px;font-size:9px;">1</span>Fix preprocessing order</div>
+          <div class="gate-row blocked"><span class="chip-icon locked" style="width:16px;height:16px;font-size:9px;background:var(--surface-2);color:var(--text-muted);">2</span>Compare models</div>
+          <div class="gate-row blocked"><span class="chip-icon locked" style="width:16px;height:16px;font-size:9px;background:var(--surface-2);color:var(--text-muted);">3</span>Tune the winner</div>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <div class="notebook-col">
+          <div class="toolbar"><button>&#9654; Run all</button><button>+ Code</button><button>+ Text</button></div>
+          <div class="section-heading">Train and evaluate</div>
+          <div class="section-sub">Build a binary churn classifier and compare model quality on the validation set.</div>
+
+          <div class="cell">
+            <div class="cell-head"><div class="cell-title"><span class="cell-num">[1]</span>Prepare features</div></div>
+            <div class="cell-code" id="cell1-code"><span class="tok-kw">from</span> sklearn.preprocessing <span class="tok-kw">import</span> StandardScaler
+<span class="tok-kw">from</span> sklearn.model_selection <span class="tok-kw">import</span> train_test_split
+
+<span class="leak-line">scaler = StandardScaler()
+X_scaled = scaler.<span class="tok-fn">fit_transform</span>(X)</span>
+X_train, X_test, y_train, y_test = <span class="tok-fn">train_test_split</span>(
+    X_scaled, y, test_size=<span class="tok-num">0.2</span>, random_state=<span class="tok-num">42</span>
+)</div>
+            <div class="cell-output"><span class="out-tag">5,000 rows</span><span class="out-tag">6 features</span></div>
+          </div>
+
+          <div class="cell">
+            <div class="cell-head"><div class="cell-title"><span class="cell-num">[2]</span>Train baseline</div></div>
+            <div class="cell-code"><span class="tok-kw">from</span> sklearn.linear_model <span class="tok-kw">import</span> LogisticRegression
+model = <span class="tok-fn">LogisticRegression</span>(max_iter=<span class="tok-num">1000</span>, random_state=<span class="tok-num">42</span>)
+model.<span class="tok-fn">fit</span>(X_train, y_train)</div>
+            <div class="metric-row">
+              <div class="metric-box"><div class="m-label">ROC-AUC<span class="measured-tag">measured</span></div><div class="m-value">0.776</div></div>
+              <div class="metric-box"><div class="m-label">Train time<span class="measured-tag">measured</span></div><div class="m-value">0.05s</div></div>
+              <div class="metric-box"><div class="m-label">Std across folds<span class="measured-tag">measured</span></div><div class="m-value">0.013</div></div>
+            </div>
+          </div>
+
+          <div class="cell">
+            <div class="cell-head"><div class="cell-title"><span class="cell-num">[3]</span>Evaluate model</div></div>
+            <div class="cell-code"><span class="tok-kw">from</span> sklearn.metrics <span class="tok-kw">import</span> roc_auc_score
+pred = model.<span class="tok-fn">predict_proba</span>(X_test)[:, <span class="tok-num">1</span>]
+auc = <span class="tok-fn">roc_auc_score</span>(y_test, pred)</div>
+            <div class="cell-output"><span class="out-tag">PR-AUC recommended alongside ROC-AUC &middot; 13.5% positive rate</span></div>
+          </div>
+        </div>
+
+        <div class="insights-col">
+          <div class="insight danger">
+            <div class="insight-head"><div class="insight-icon danger">!</div><div class="insight-title">Cell 1 &middot; leakage risk</div><div class="tag-badge danger">Fix first</div></div>
+            <div class="insight-body">The scaler fits on the full dataset before the split. Test-set statistics leak into training and inflate every score after it.</div>
+            <div class="proof-line">DCLAB-R04 &middot; confirmed precedent EXP-002</div>
+            <div class="insight-stats"><div>Confidence<b>97%</b></div><div>Score impact<b>&minus;3 to &minus;8 pts</b></div></div>
+            <div class="insight-actions"><button class="btn primary" id="fix-btn">Fix in cell</button><button class="btn">Explain</button></div>
+          </div>
+
+          <div class="insight" id="compare-card">
+            <div class="insight-head"><div class="insight-icon locked" id="compare-icon">&#128274;</div><div class="insight-title">Model comparison</div><div class="tag-badge locked" id="compare-badge">Locked</div></div>
+            <div class="insight-body" id="compare-body">Unlocks once the leakage fix is applied — comparing models on leaky data would just rank who overfits to the leak.</div>
+            <div id="compare-content" style="display:none;">
+              <div class="compare-rows">
+                <div class="compare-row best"><span class="cname">logistic reg.</span><div class="cbar-track"><div class="cbar-fill" style="width:100%"></div></div><span class="cval">.776</span></div>
+                <div class="compare-row"><span class="cname">hist gb</span><div class="cbar-track"><div class="cbar-fill" style="width:85%"></div></div><span class="cval">.733</span></div>
+                <div class="compare-row"><span class="cname">lightgbm</span><div class="cbar-track"><div class="cbar-fill" style="width:83%"></div></div><span class="cval">.731</span></div>
+              </div>
+              <div class="proof-line">No single model wins every time &middot; DCLAB-R13</div>
+              <div class="insight-actions"><button class="btn primary">Use logistic regression</button><button class="btn">Compare</button></div>
+            </div>
+          </div>
+
+          <div class="insight">
+            <div class="insight-head"><div class="insight-icon success">&#10003;</div><div class="insight-title">Cell 3 &middot; metric choice verified</div></div>
+            <div class="insight-body">ROC-AUC alone understates risk at 13.5% positive rate. PR-AUC is already suggested in the output above.</div>
+            <div class="insight-actions"><button class="btn">Add threshold view</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="command-wrap">
+      <div class="command-bar">
+        <span class="scope-chip">Whole notebook</span>
+        <input class="command-input" id="cmd-input" type="text" placeholder="Ask to review, explain, compare, or optimize">
+        <button class="command-send" id="cmd-send" aria-label="Send">&#8594;</button>
+      </div>
+      <div class="demo-reply" id="demo-reply"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('fix-btn').addEventListener('click', function () {
+  document.getElementById('cell1-code').innerHTML =
+    '<span class="tok-kw">from</span> sklearn.preprocessing <span class="tok-kw">import</span> StandardScaler\n' +
+    '<span class="tok-kw">from</span> sklearn.model_selection <span class="tok-kw">import</span> train_test_split\n\n' +
+    'X_train, X_test, y_train, y_test = <span class="tok-fn">train_test_split</span>(\n' +
+    '    X, y, test_size=<span class="tok-num">0.2</span>, random_state=<span class="tok-num">42</span>\n' +
+    ')\n\n' +
+    'scaler = StandardScaler()\n' +
+    'X_train_scaled = scaler.<span class="tok-fn">fit_transform</span>(X_train)\n' +
+    'X_test_scaled = scaler.<span class="tok-fn">transform</span>(X_test)  <span style="color:var(--text-muted)"># fit on train only</span>';
+  this.textContent = 'Fixed';
+  this.disabled = true;
+
+  document.getElementById('compare-icon').textContent = '\u2713';
+  document.getElementById('compare-icon').className = 'insight-icon success';
+  document.getElementById('compare-badge').textContent = 'Unlocked';
+  document.getElementById('compare-badge').className = 'tag-badge';
+  document.getElementById('compare-badge').style.background = 'var(--success-bg)';
+  document.getElementById('compare-badge').style.color = 'var(--success)';
+  document.getElementById('compare-body').textContent = 'Recomputed after the fix. Ranked by mean ROC-AUC minus a stability penalty, then runtime.';
+  document.getElementById('compare-content').style.display = 'block';
+});
+
+function sendDemo() {
+  var v = document.getElementById('cmd-input').value.trim();
+  if (!v) return;
+  var box = document.getElementById('demo-reply');
+  box.style.display = 'block';
+  box.textContent = 'Demo only \u2014 wiring this to a live agent is the next integration step, not simulated here for: \u201c' + v + '\u201d';
+  document.getElementById('cmd-input').value = '';
+}
+document.getElementById('cmd-send').addEventListener('click', sendDemo);
+document.getElementById('cmd-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') sendDemo(); });
+</script>
+</body>
+</html>
