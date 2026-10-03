@@ -1,0 +1,35 @@
+{
+  "experiment_id": "EXP-DEMO-001",
+  "dataset": "synthetic_churn_demo",
+  "kind": "model_selection",
+  "question": "Which model family should be recommended as the default for a churn-prediction notebook?",
+  "claims": [
+    {
+      "kind": "fact",
+      "statement": "On a synthetic churn dataset (n=5000, 13.5% positive rate, 5-fold stratified CV), logistic_regression achieved the best selection-rule score (mean ROC-AUC 0.776, std 0.013, rank_score 0.773), ahead of hist_gradient_boosting (0.730), lightgbm (0.728), extra_trees (0.712), and xgboost (0.711).",
+      "limitations": [
+        "Synthetic data built for this demo, not real customer records.",
+        "The true churn signal was constructed as a mostly-linear/logistic combination of features, which structurally favors a linear model."
+      ]
+    },
+    {
+      "kind": "risk",
+      "statement": "This directly contradicts the registry-wide tendency for LightGBM to have the best mean rank across 11 datasets (DCLAB rule set) \u2014 concrete confirmation of DCLAB-R13: there is no universal best model, and an aggregate-evidence default can lose outright on a specific dataset."
+    },
+    {
+      "kind": "decision",
+      "statement": "A notebook copilot should never hardcode a 'recommended model' badge from registry aggregates alone \u2014 it must run the same 5-family screen on the user's actual data and show the real result, falling back to the aggregate only as a prior before real numbers exist."
+    }
+  ],
+  "evidence": {
+    "model_results": [
+      {"model": "logistic_regression", "metrics": {"roc_auc": {"mean": 0.7757, "std": 0.0130}}, "elapsed_seconds": 0.048},
+      {"model": "hist_gradient_boosting", "metrics": {"roc_auc": {"mean": 0.7331, "std": 0.0121}}, "elapsed_seconds": 0.770},
+      {"model": "lightgbm", "metrics": {"roc_auc": {"mean": 0.7313, "std": 0.0142}}, "elapsed_seconds": 0.349},
+      {"model": "extra_trees", "metrics": {"roc_auc": {"mean": 0.7162, "std": 0.0165}}, "elapsed_seconds": 4.505},
+      {"model": "xgboost", "metrics": {"roc_auc": {"mean": 0.7150, "std": 0.0168}}, "elapsed_seconds": 0.375}
+    ],
+    "selection_rule": "Rank by mean ROC-AUC minus 0.25\u00d7fold standard deviation, then runtime; training CV only.",
+    "selected_model": "logistic_regression"
+  }
+}
