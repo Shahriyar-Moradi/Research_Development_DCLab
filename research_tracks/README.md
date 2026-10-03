@@ -16,7 +16,7 @@ The CV, scene-graph, GNN, graph-transformer, autonomous-driving, and cross-indus
 |---|---|---|
 | [Tabular data science and ML](tabular-ml/README.md) | Which EDA, leakage controls, features, model families, and optimization steps hold up under sound evaluation? | Existing experiment suites and field guide |
 | [Agentic R&D studio](agentic-rd/README.md) | Can bounded research agents plan tests and retain trustworthy, replayable evidence? | Implemented prototype; requires continuing system evaluation |
-| [Notebook assistant](notebook-assistant/README.md) | Can useful, evidence-linked help appear beside notebook cells without taking control away from the engineer? | Proposed extension; notebook integration is not in this main-branch snapshot |
+| [Notebook assistant](notebook-assistant/README.md) | Can useful, evidence-linked help appear beside notebook cells without taking control away from the engineer? | Notebook copilot prototype exists; VS Code-specific inline integration remains proposed |
 | [Evidence, retrieval, and SLM learning](evidence-and-slm/README.md) | How should verified experiments, rules, and counterexamples ground answers and later training? | SFT preparation exists; retrieval and quality gates need evaluation |
 | [Focused workflow model](workflow-model/README.md) | Can a small model reliably follow a narrow, versioned workflow and choose the next valid step? | Research proposal plus early training data |
 | [Workflow-sized generation](workflow-actions/README.md) | Can the model generate a complete useful action or code block with fewer fragile intermediate steps? | Hypothesis; needs controlled token/action-unit experiments |
@@ -24,7 +24,7 @@ The CV, scene-graph, GNN, graph-transformer, autonomous-driving, and cross-indus
 | [Temporal graphs and GNNs](temporal-gnn/README.md) | Does graph reasoning improve recognition of interactions and event sequences over simpler baselines? | Proposed research |
 | [Autonomous driving and road maps](driving-maps/README.md) | Can actor, lane, and map graphs support safer, evidence-grounded predictions in a bounded driving scenario? | Proposed, safety-critical research |
 | [Workflow transfer to other industries](cross-industry-workflows/README.md) | Which parts of DCLab's workflow engine transfer, and which must be domain-specific? | Proposed research |
-| [Evaluation and trust](evaluation-and-trust/README.md) | What measurable evidence shows that the assistant is correct, useful, and safe within a defined scope? | Evaluation framework and pilot artifacts exist |
+| [Evaluation and trust](evaluation-and-trust/README.md) | What measurable evidence shows that the assistant is correct, useful, and safe within a defined scope? | Automated checks and a blind auditor replay exist; broader usefulness remains unproven |
 
 ## Recommended order
 

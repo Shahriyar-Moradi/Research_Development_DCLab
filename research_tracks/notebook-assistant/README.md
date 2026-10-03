@@ -1,6 +1,6 @@
 # Notebook assistant
 
-**Status: proposed extension.** The goal is to help ML engineers where they work: point out possible issues near a code cell, explain evidence, and suggest a next check. A VS Code companion prototype exists in local work but is not included in this main-branch snapshot.
+**Status: notebook copilot prototype exists; VS Code inline integration is proposed.** The goal is to help ML engineers where they work: point out possible issues near a code cell, explain evidence, and suggest a next check. The current tracked copilot can analyze a notebook and render a review; it is not yet an editor extension that continuously comments beside the active VS Code cell.
 
 ## Questions to answer
 
@@ -11,9 +11,10 @@
 
 ## Existing files
 
-- Existing notebook examples: [`../../notebooks/`](../../notebooks/) and [`../../external_projects/`](../../external_projects/)
+- Copilot implementation: [`../../dclab_rnd/copilot/`](../../dclab_rnd/copilot/)
+- Usage examples: [`../../dclab_rnd/copilot/examples/`](../../dclab_rnd/copilot/examples/) and [`../../notebooks/`](../../notebooks/)
 - Product context: [`../../docs/DCLAB_MASTER_CONTEXT.md`](../../docs/DCLAB_MASTER_CONTEXT.md)
 
 ## Next evaluation
 
-Implement the smallest read-only VS Code extension first. Then expand to blinded notebooks from different projects. Have ML reviewers label the issue, severity, evidence match, and recommended action per cell. Measure precision of actionable warnings, missed critical issues, false-alarm burden, evidence citation accuracy, and engineer task completion. Test unsaved notebook content and large notebooks; keep behavior read-only until edits have separate approval and rollback design.
+Connect the existing read-only copilot to VS Code notebook cells. Then evaluate it on blinded notebooks from different projects. Have ML reviewers label the issue, severity, evidence match, and recommended action per cell. Measure precision of actionable warnings, missed critical issues, false-alarm burden, evidence citation accuracy, and engineer task completion. Test unsaved notebook content and large notebooks; keep behavior read-only until edits have separate approval and rollback design.

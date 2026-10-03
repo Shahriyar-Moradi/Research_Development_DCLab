@@ -13,6 +13,8 @@
 ## Existing artifacts
 
 - Agent and worker tests: [`../../tests/test_agentic.py`](../../tests/test_agentic.py) and [`../../tests/test_agentic_worker.py`](../../tests/test_agentic_worker.py)
+- Blind leakage-auditor replay: [`../../campaigns/agent_verification_v1/VERIFICATION_REPORT.md`](../../campaigns/agent_verification_v1/VERIFICATION_REPORT.md)
+- Measured common workflow pitfalls: [`../../campaigns/pitfalls_v1/PITFALLS_REPORT.md`](../../campaigns/pitfalls_v1/PITFALLS_REPORT.md)
 - CI workflow: [`../../.github/workflows/`](../../.github/workflows/)
 
 ## Next useful study
