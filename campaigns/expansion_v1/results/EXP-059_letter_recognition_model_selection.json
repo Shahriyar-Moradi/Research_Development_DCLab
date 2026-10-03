@@ -1,0 +1,728 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-059-C1",
+      "evidence": [
+        "evidence.model_results",
+        "evidence.ranking",
+        "evidence.selection_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "A cross-validation leader is not a universal algorithm winner and has not yet seen the locked holdout."
+      ],
+      "statement": "extra_trees is the training-CV model candidate for letter_recognition on the `raw` recipe (0.9625\u00b10.0018 macro-F1, adjusted 0.9621); runner-up lightgbm at 0.9592\u00b10.0040."
+    },
+    {
+      "claim_id": "EXP-059-C2",
+      "evidence": [
+        "evidence.ranking"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Model screen ranking (mean\u00b1std, runtime for 3 folds): extra_trees 0.9625\u00b10.0018 (3.5s); lightgbm 0.9592\u00b10.0040 (19.6s); hist_gradient_boosting 0.9538\u00b10.0011 (14.4s); xgboost 0.9522\u00b10.0010 (11.7s); logistic_regression 0.7672\u00b10.0035 (2.9s)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:13+00:00",
+  "dataset": "letter_recognition",
+  "decision_time_rule": "All 16 shape statistics are computed from the glyph image itself before classification, so every column is decision-time available; no column is blocked.",
+  "evidence": {
+    "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "elapsed_seconds": 52.2562319650001,
+    "feature_recipe": "raw",
+    "model_results": [
+      {
+        "adjusted_score": 0.7662848933444952,
+        "config_id": "logistic_regression",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "elapsed_seconds": 2.9148080360000677,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.7727784026996626,
+            "balanced_accuracy": 0.7713326351432013,
+            "fit_rows": 10666,
+            "fit_seconds": 0.6821567400002095,
+            "fold": 1,
+            "log_loss": 0.859128304665517,
+            "macro_f1": 0.769441099460273,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.7657978623663979,
+            "balanced_accuracy": 0.7643865949310579,
+            "fit_rows": 10667,
+            "fit_seconds": 1.3221659920000093,
+            "fold": 2,
+            "log_loss": 0.8448242043423462,
+            "macro_f1": 0.7631123619590319,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.7701106319144947,
+            "balanced_accuracy": 0.7685609787696477,
+            "fit_rows": 10667,
+            "fit_seconds": 0.7599740609998662,
+            "fold": 3,
+            "log_loss": 0.8767777695389114,
+            "macro_f1": 0.7689398159630261,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.7727784026996626,
+            "mean": 0.7695622989935185,
+            "min": 0.7657978623663979,
+            "std": 0.0035224263768393396
+          },
+          "balanced_accuracy": {
+            "max": 0.7713326351432013,
+            "mean": 0.768093402947969,
+            "min": 0.7643865949310579,
+            "std": 0.003496546727693225
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 1.3221659920000093,
+            "mean": 0.9214322643333617,
+            "min": 0.6821567400002095,
+            "std": 0.3492198794872595
+          },
+          "log_loss": {
+            "max": 0.8767777695389114,
+            "mean": 0.8602434261822581,
+            "min": 0.8448242043423462,
+            "std": 0.016005942777312758
+          },
+          "macro_f1": {
+            "max": 0.769441099460273,
+            "mean": 0.7671644257941104,
+            "min": 0.7631123619590319,
+            "std": 0.0035181297984605234
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "logistic_regression",
+        "model_params": {},
+        "optimization": "logistic_regression",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.10368132018676507
+          },
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.09531166369829995
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.07658507884715485
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.07546351139813064
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.0728776227840398
+          },
+          {
+            "feature": "width",
+            "mean_normalized_importance": 0.06919643417561504
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.06793418417759774
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.06690910679005234
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.0571817406441165
+          },
+          {
+            "feature": "onpix",
+            "mean_normalized_importance": 0.05692085888944209
+          }
+        ]
+      },
+      {
+        "adjusted_score": 0.9620548959050822,
+        "config_id": "extra_trees",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "elapsed_seconds": 3.515054191999752,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9610048743907011,
+            "balanced_accuracy": 0.9607797330042838,
+            "fit_rows": 10666,
+            "fit_seconds": 0.9229061449996152,
+            "fold": 1,
+            "log_loss": 0.4040919040753259,
+            "macro_f1": 0.9608489517484321,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.962310144384024,
+            "balanced_accuracy": 0.9620300683800533,
+            "fit_rows": 10667,
+            "fit_seconds": 0.8690314610003043,
+            "fold": 2,
+            "log_loss": 0.4007397493201342,
+            "macro_f1": 0.96221889474647,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9645602850178137,
+            "balanced_accuracy": 0.9643309914033361,
+            "fit_rows": 10667,
+            "fit_seconds": 0.8046106970000437,
+            "fold": 3,
+            "log_loss": 0.406179742850275,
+            "macro_f1": 0.9644667763272172,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9645602850178137,
+            "mean": 0.9626251012641797,
+            "min": 0.9610048743907011,
+            "std": 0.001798508982216705
+          },
+          "balanced_accuracy": {
+            "max": 0.9643309914033361,
+            "mean": 0.9623802642625577,
+            "min": 0.9607797330042838,
+            "std": 0.001801343088171223
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 0.9229061449996152,
+            "mean": 0.8655161009999878,
+            "min": 0.8046106970000437,
+            "std": 0.059226021065944476
+          },
+          "log_loss": {
+            "max": 0.406179742850275,
+            "mean": 0.403670465415245,
+            "min": 0.4007397493201342,
+            "std": 0.002744374302122736
+          },
+          "macro_f1": {
+            "max": 0.9644667763272172,
+            "mean": 0.9625115409407066,
+            "min": 0.9608489517484321,
+            "std": 0.0018265801424975114
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {},
+        "optimization": "extra_trees",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.10739874817385046
+          },
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.10054317994657423
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.09350727017268988
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.09248307411779254
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.08623419443329446
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.0832674363031647
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.07379134667709307
+          },
+          {
+            "feature": "xegvy",
+            "mean_normalized_importance": 0.07220087726411346
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.07183185950856003
+          },
+          {
+            "feature": "x-bar",
+            "mean_normalized_importance": 0.05526399825218098
+          }
+        ]
+      },
+      {
+        "adjusted_score": 0.9535293874239539,
+        "config_id": "hist_gradient_boosting",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "elapsed_seconds": 14.439422036999986,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9533183352080989,
+            "balanced_accuracy": 0.9532634624353931,
+            "fit_rows": 10666,
+            "fit_seconds": 4.439122168000267,
+            "fold": 1,
+            "log_loss": 0.15965323609617738,
+            "macro_f1": 0.9533537358612568,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9529345584099006,
+            "balanced_accuracy": 0.9527128732281379,
+            "fit_rows": 10667,
+            "fit_seconds": 5.120114617000127,
+            "fold": 2,
+            "log_loss": 0.17190796391841706,
+            "macro_f1": 0.9529966132345444,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9551846990436902,
+            "balanced_accuracy": 0.9548416879967948,
+            "fit_rows": 10667,
+            "fit_seconds": 4.299565137000172,
+            "fold": 3,
+            "log_loss": 0.17233237601393103,
+            "macro_f1": 0.9550685230907472,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9551846990436902,
+            "mean": 0.9538125308872298,
+            "min": 0.9529345584099006,
+            "std": 0.0012037255687703658
+          },
+          "balanced_accuracy": {
+            "max": 0.9548416879967948,
+            "mean": 0.9536060078867753,
+            "min": 0.9527128732281379,
+            "std": 0.0011049733569230996
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 5.120114617000127,
+            "mean": 4.619600640666856,
+            "min": 4.299565137000172,
+            "std": 0.43903840561401586
+          },
+          "log_loss": {
+            "max": 0.17233237601393103,
+            "mean": 0.16796452534284181,
+            "min": 0.15965323609617738,
+            "std": 0.0072009150885838594
+          },
+          "macro_f1": {
+            "max": 0.9550685230907472,
+            "mean": 0.9538062907288495,
+            "min": 0.9529966132345444,
+            "std": 0.0011076132195824903
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "hist_gradient_boosting",
+        "model_params": {},
+        "optimization": "hist_gradient_boosting",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": []
+      },
+      {
+        "adjusted_score": 0.958212747841883,
+        "config_id": "lightgbm",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "elapsed_seconds": 19.643348112999774,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9615673040869891,
+            "balanced_accuracy": 0.9615378996864301,
+            "fit_rows": 10666,
+            "fit_seconds": 5.586553551000179,
+            "fold": 1,
+            "log_loss": 0.1517284634225215,
+            "macro_f1": 0.9614901756233714,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9546221638852428,
+            "balanced_accuracy": 0.9543707883932764,
+            "fit_rows": 10667,
+            "fit_seconds": 5.70420699000033,
+            "fold": 2,
+            "log_loss": 0.16807248716009643,
+            "macro_f1": 0.9545570604279455,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9617476092255766,
+            "balanced_accuracy": 0.961529436832946,
+            "fit_rows": 10667,
+            "fit_seconds": 5.50982048700007,
+            "fold": 3,
+            "log_loss": 0.15293044599549319,
+            "macro_f1": 0.9616221008139714,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9617476092255766,
+            "mean": 0.9593123590659361,
+            "min": 0.9546221638852428,
+            "std": 0.004062828523393481
+          },
+          "balanced_accuracy": {
+            "max": 0.9615378996864301,
+            "mean": 0.9591460416375508,
+            "min": 0.9543707883932764,
+            "std": 0.004135492783839372
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 5.70420699000033,
+            "mean": 5.600193676000193,
+            "min": 5.50982048700007,
+            "std": 0.09790846692027971
+          },
+          "log_loss": {
+            "max": 0.16807248716009643,
+            "mean": 0.15757713219270372,
+            "min": 0.1517284634225215,
+            "std": 0.009109091471991774
+          },
+          "macro_f1": {
+            "max": 0.9616221008139714,
+            "mean": 0.9592231122884295,
+            "min": 0.9545570604279455,
+            "std": 0.004041457786185897
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "lightgbm",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.09299863159559378
+          },
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.08519089734666334
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.08414420684974094
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.0788527733795963
+          },
+          {
+            "feature": "yegvx",
+            "mean_normalized_importance": 0.07735823268026248
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.0738828795843033
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.07062114098951262
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.06528584423849253
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.06151657927821324
+          },
+          {
+            "feature": "xegvy",
+            "mean_normalized_importance": 0.061182115646261394
+          }
+        ]
+      },
+      {
+        "adjusted_score": 0.9519697248421791,
+        "config_id": "xgboost",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "elapsed_seconds": 11.701012939000066,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9531308586426697,
+            "balanced_accuracy": 0.9531611947746086,
+            "fit_rows": 10666,
+            "fit_seconds": 3.718006805999721,
+            "fold": 1,
+            "log_loss": 0.14918992031560474,
+            "macro_f1": 0.9530565584266507,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9512469529345584,
+            "balanced_accuracy": 0.9509703703724364,
+            "fit_rows": 10667,
+            "fit_seconds": 3.9000601190000452,
+            "fold": 2,
+            "log_loss": 0.15859497303960576,
+            "macro_f1": 0.9511362400661689,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9525595349709357,
+            "balanced_accuracy": 0.9522968891083856,
+            "fit_rows": 10667,
+            "fit_seconds": 3.569784986999821,
+            "fold": 3,
+            "log_loss": 0.15133829790037293,
+            "macro_f1": 0.9524528509255737,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9531308586426697,
+            "mean": 0.9523124488493879,
+            "min": 0.9512469529345584,
+            "std": 0.0009659522984390511
+          },
+          "balanced_accuracy": {
+            "max": 0.9531611947746086,
+            "mean": 0.9521428180851436,
+            "min": 0.9509703703724364,
+            "std": 0.0011035086317924589
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 3.9000601190000452,
+            "mean": 3.729283970666529,
+            "min": 3.569784986999821,
+            "std": 0.1654261059707117
+          },
+          "log_loss": {
+            "max": 0.15859497303960576,
+            "mean": 0.15304106375186113,
+            "min": 0.14918992031560474,
+            "std": 0.004928317445544226
+          },
+          "macro_f1": {
+            "max": 0.9530565584266507,
+            "mean": 0.9522152164727977,
+            "min": 0.9511362400661689,
+            "std": 0.0009819665224743966
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "xgboost",
+        "model_params": {},
+        "optimization": "xgboost",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.12523279599103684
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.11366146113028891
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.09175602238630177
+          },
+          {
+            "feature": "xegvy",
+            "mean_normalized_importance": 0.09086555383915541
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.08669290855422884
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.08648552162550578
+          },
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.08076813256169656
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.06870115526892308
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.06348597876866413
+          },
+          {
+            "feature": "x-bar",
+            "mean_normalized_importance": 0.05106829033197489
+          }
+        ]
+      }
+    ],
+    "ranking": [
+      {
+        "adjusted_score": 0.9620548959050822,
+        "elapsed_seconds": 3.515054191999752,
+        "mean": 0.9625115409407066,
+        "model": "extra_trees",
+        "std": 0.0018265801424975114
+      },
+      {
+        "adjusted_score": 0.958212747841883,
+        "elapsed_seconds": 19.643348112999774,
+        "mean": 0.9592231122884295,
+        "model": "lightgbm",
+        "std": 0.004041457786185897
+      },
+      {
+        "adjusted_score": 0.9535293874239539,
+        "elapsed_seconds": 14.439422036999986,
+        "mean": 0.9538062907288495,
+        "model": "hist_gradient_boosting",
+        "std": 0.0011076132195824903
+      },
+      {
+        "adjusted_score": 0.9519697248421791,
+        "elapsed_seconds": 11.701012939000066,
+        "mean": 0.9522152164727977,
+        "model": "xgboost",
+        "std": 0.0009819665224743966
+      },
+      {
+        "adjusted_score": 0.7662848933444952,
+        "elapsed_seconds": 2.9148080360000677,
+        "mean": 0.7671644257941104,
+        "model": "logistic_regression",
+        "std": 0.0035181297984605234
+      }
+    ],
+    "selected_metric_mean": 0.9625115409407066,
+    "selected_metric_std": 0.0018265801424975114,
+    "selected_model": "extra_trees",
+    "selection_rule": "Rank by mean training-CV macro-F1 - 0.25\u00d7fold std (higher is better), then runtime; identical folds (StratifiedKFold(3, shuffle, random_state=42) on training rows); default parameters."
+  },
+  "experiment_id": "EXP-059",
+  "holdout_policy": "Locked holdout = stratified random 20%; selection uses 3-fold stratified CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Boosted trees or extra trees clearly beat a linear multinomial model on 26 classes.",
+  "kind": "model_selection",
+  "primary_metric": "macro_f1",
+  "provenance": {
+    "data_sha256": {
+      "data/external/letter_recognition/letter.tsv.gz": "f8ffe4f9920dc63fb85b864cc1afffb66e45c6e302d175905fd7db04ba67b8c6"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which model family ranks best on identical training folds once fold variability is penalized?",
+  "schema_version": 2,
+  "setup_summary": "5 model families screened on the `raw` recipe with identical StratifiedKFold(3, shuffle, random_state=42) on training rows, ranked by mean - 0.25\u00d7std macro-F1: extra_trees 0.9625\u00b10.0018 (3.5s); lightgbm 0.9592\u00b10.0040 (19.6s); hist_gradient_boosting 0.9538\u00b10.0011 (14.4s); xgboost 0.9522\u00b10.0010 (11.7s); logistic_regression 0.7672\u00b10.0035 (2.9s). Selected: extra_trees.",
+  "source": "https://media.githubusercontent.com/media/EpistasisLab/pmlb/master/datasets/letter/letter.tsv.gz",
+  "started_at": "2026-10-03T07:06:21+00:00",
+  "status": "completed",
+  "task_type": "multiclass"
+}

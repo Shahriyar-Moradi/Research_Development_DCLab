@@ -1,0 +1,510 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-051-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.raw_feature_count",
+        "evidence.train_rows",
+        "evidence.holdout_rows",
+        "evidence.target_summary"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "credit_card_fraud has 284807 source rows and 30 raw columns; the locked holdout is last 56961 of 284807 rows by `Time` (56961 rows), leaving 227846 training rows with a training positive rate of 0.0018 (417 positives vs 227429 negatives)."
+    },
+    {
+      "claim_id": "EXP-051-C2",
+      "evidence": [
+        "evidence.feature_profiles",
+        "evidence.risk_features"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "PSI on feature distributions is a smoke check; it uses no holdout labels and does not prove production stability."
+      ],
+      "statement": "6 of 30 columns triggered missingness, identifier, near-constant, or train/holdout PSI>0.20 review rules (Time: train_holdout_feature_shift; V1: train_holdout_feature_shift; V3: train_holdout_feature_shift; V11: train_holdout_feature_shift; V25: train_holdout_feature_shift; V28: train_holdout_feature_shift)."
+    },
+    {
+      "claim_id": "EXP-051-C3",
+      "evidence": [
+        "evidence.target_summary",
+        "evidence.time_range",
+        "evidence.duplicate_feature_rows_train"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "V1-V28 are PCA components released already fitted on the full two-day extract (including the holdout period); this cannot be undone downstream."
+      ],
+      "statement": "Accuracy is misleading here: predicting 'not fraud' for every training row already scores 0.9982 accuracy, so ranking metrics (average precision primary) are required. Training covers 40.3 h and the time-ordered holdout the final 7.7 h; 840 training rows are exact feature duplicates."
+    }
+  ],
+  "completed_at": "2026-10-03T07:02:58+00:00",
+  "dataset": "credit_card_fraud",
+  "decision_time_rule": "Score each transaction at authorization time using only that transaction's own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature.",
+  "evidence": {
+    "column_roles": {
+      "Amount": "feature",
+      "Time": "blocked",
+      "V1": "feature",
+      "V10": "feature",
+      "V11": "feature",
+      "V12": "feature",
+      "V13": "feature",
+      "V14": "feature",
+      "V15": "feature",
+      "V16": "feature",
+      "V17": "feature",
+      "V18": "feature",
+      "V19": "feature",
+      "V2": "feature",
+      "V20": "feature",
+      "V21": "feature",
+      "V22": "feature",
+      "V23": "feature",
+      "V24": "feature",
+      "V25": "feature",
+      "V26": "feature",
+      "V27": "feature",
+      "V28": "feature",
+      "V3": "feature",
+      "V4": "feature",
+      "V5": "feature",
+      "V6": "feature",
+      "V7": "feature",
+      "V8": "feature",
+      "V9": "feature"
+    },
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "duplicate_feature_row_rate_train": 0.0036867006662394774,
+    "duplicate_feature_rows_train": 840,
+    "elapsed_seconds": 2.8017365969999446,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "Time",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "blocked",
+        "top_value_frequency": 0.00011411216347884097,
+        "train_vs_holdout_psi": 12.433500517585975,
+        "unique_count": 100874,
+        "unique_ratio": 0.4427288607217155
+      },
+      {
+        "dtype": "float64",
+        "feature": "V1",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.8235492239243873,
+        "unique_count": 221198,
+        "unique_ratio": 0.9708223975843333
+      },
+      {
+        "dtype": "float64",
+        "feature": "V2",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.014709666793617137,
+        "unique_count": 221200,
+        "unique_ratio": 0.9708311754430624
+      },
+      {
+        "dtype": "float64",
+        "feature": "V3",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.5717969850609681,
+        "unique_count": 221200,
+        "unique_ratio": 0.9708311754430624
+      },
+      {
+        "dtype": "float64",
+        "feature": "V4",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.11302155693553356,
+        "unique_count": 221197,
+        "unique_ratio": 0.9708180086549687
+      },
+      {
+        "dtype": "float64",
+        "feature": "V5",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.12217851755801258,
+        "unique_count": 221199,
+        "unique_ratio": 0.9708267865136978
+      },
+      {
+        "dtype": "float64",
+        "feature": "V6",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.04846290000589279,
+        "unique_count": 221197,
+        "unique_ratio": 0.9708180086549687
+      },
+      {
+        "dtype": "float64",
+        "feature": "V7",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.05396208932106032,
+        "unique_count": 221197,
+        "unique_ratio": 0.9708180086549687
+      },
+      {
+        "dtype": "float64",
+        "feature": "V8",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.03207091744125697,
+        "unique_count": 221186,
+        "unique_ratio": 0.9707697304319585
+      },
+      {
+        "dtype": "float64",
+        "feature": "V9",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.04904123367907677,
+        "unique_count": 221198,
+        "unique_ratio": 0.9708223975843333
+      },
+      {
+        "dtype": "float64",
+        "feature": "V10",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.025081202505783246,
+        "unique_count": 221191,
+        "unique_ratio": 0.9707916750787813
+      },
+      {
+        "dtype": "float64",
+        "feature": "V11",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.26686654960360495,
+        "unique_count": 221193,
+        "unique_ratio": 0.9708004529375104
+      },
+      {
+        "dtype": "float64",
+        "feature": "V12",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.15051470760269403,
+        "unique_count": 221198,
+        "unique_ratio": 0.9708223975843333
+      },
+      {
+        "dtype": "float64",
+        "feature": "V13",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.030220605482513888,
+        "unique_count": 221199,
+        "unique_ratio": 0.9708267865136978
+      },
+      {
+        "dtype": "float64",
+        "feature": "V14",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.060973631451055145,
+        "unique_count": 221195,
+        "unique_ratio": 0.9708092307962396
+      },
+      {
+        "dtype": "float64",
+        "feature": "V15",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.16581819769001654,
+        "unique_count": 221199,
+        "unique_ratio": 0.9708267865136978
+      },
+      {
+        "dtype": "float64",
+        "feature": "V16",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.008807285723809035,
+        "unique_count": 221188,
+        "unique_ratio": 0.9707785082906876
+      },
+      {
+        "dtype": "float64",
+        "feature": "V17",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.032068627768500474,
+        "unique_count": 221192,
+        "unique_ratio": 0.9707960640081459
+      },
+      {
+        "dtype": "float64",
+        "feature": "V18",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.021369954452290753,
+        "unique_count": 221198,
+        "unique_ratio": 0.9708223975843333
+      },
+      {
+        "dtype": "float64",
+        "feature": "V19",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.02609215655860855,
+        "unique_count": 221193,
+        "unique_ratio": 0.9708004529375104
+      },
+      {
+        "dtype": "float64",
+        "feature": "V20",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.04250516713367202,
+        "unique_count": 221180,
+        "unique_ratio": 0.970743396855771
+      },
+      {
+        "dtype": "float64",
+        "feature": "V21",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.07800104764586578,
+        "unique_count": 221176,
+        "unique_ratio": 0.9707258411383127
+      },
+      {
+        "dtype": "float64",
+        "feature": "V22",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.11901428856585777,
+        "unique_count": 221192,
+        "unique_ratio": 0.9707960640081459
+      },
+      {
+        "dtype": "float64",
+        "feature": "V23",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.10517006817383186,
+        "unique_count": 221167,
+        "unique_ratio": 0.9706863407740316
+      },
+      {
+        "dtype": "float64",
+        "feature": "V24",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.10574222854757594,
+        "unique_count": 221192,
+        "unique_ratio": 0.9707960640081459
+      },
+      {
+        "dtype": "float64",
+        "feature": "V25",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.21830084294066418,
+        "unique_count": 221188,
+        "unique_ratio": 0.9707785082906876
+      },
+      {
+        "dtype": "float64",
+        "feature": "V26",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.10674412126439084,
+        "unique_count": 221197,
+        "unique_ratio": 0.9708180086549687
+      },
+      {
+        "dtype": "float64",
+        "feature": "V27",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.03389406358389618,
+        "unique_count": 221161,
+        "unique_ratio": 0.9706600071978442
+      },
+      {
+        "dtype": "float64",
+        "feature": "V28",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.0003379475610719521,
+        "train_vs_holdout_psi": 0.4003143931037445,
+        "unique_count": 221130,
+        "unique_ratio": 0.9705239503875425
+      },
+      {
+        "dtype": "float64",
+        "feature": "Amount",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.04892339562687078,
+        "train_vs_holdout_psi": 0.013532473360857507,
+        "unique_count": 29865,
+        "unique_ratio": 0.13107537547290715
+      }
+    ],
+    "holdout_rows": 56961,
+    "holdout_split": "last 56961 of 284807 rows by `Time`",
+    "missing_cell_rate_train": 0.0,
+    "note": "Holdout feature distributions (never labels) are compared via PSI, as in model_building_50_v1.",
+    "raw_feature_count": 30,
+    "risk_features": {
+      "Time": [
+        "train_holdout_feature_shift"
+      ],
+      "V1": [
+        "train_holdout_feature_shift"
+      ],
+      "V11": [
+        "train_holdout_feature_shift"
+      ],
+      "V25": [
+        "train_holdout_feature_shift"
+      ],
+      "V28": [
+        "train_holdout_feature_shift"
+      ],
+      "V3": [
+        "train_holdout_feature_shift"
+      ]
+    },
+    "sampling": {
+      "fit_negative_fraction": 0.25,
+      "note": "All rows and all positives are used for validation and holdout scoring. Only model *fits* keep all positives plus a seeded 25% sample of negatives; scores are prior-corrected back to the true base rate before threshold and calibration metrics.",
+      "rows_used": 284807
+    },
+    "source_rows": 284807,
+    "target_summary": {
+      "imbalance_ratio_neg_per_pos": 545.3932853717026,
+      "majority_baseline_accuracy_train": 0.9981698164549739,
+      "negatives_train": 227429,
+      "positive_rate_train": 0.0018301835450260262,
+      "positives_train": 417
+    },
+    "time_range": {
+      "holdout_hours": 7.650833333333333,
+      "holdout_seconds": [
+        145249.0,
+        172792.0
+      ],
+      "train_hours": 40.346666666666664,
+      "train_seconds": [
+        0.0,
+        145248.0
+      ]
+    },
+    "train_rows": 227846
+  },
+  "experiment_id": "EXP-051",
+  "holdout_policy": "Locked holdout = last 20% of rows in `Time` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Extreme imbalance makes accuracy meaningless and requires ranking metrics and a time-aware split.",
+  "kind": "data_understanding",
+  "primary_metric": "average_precision",
+  "provenance": {
+    "data_sha256": {
+      "data/external/credit_card_fraud/creditcard.csv": "33a178be65174943a07d1736acf5898f6c8e1fa80950dbbe598c17eda968ec59"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, how is the target distributed, and which quality, identifier, time, or text risks must be resolved before modeling?",
+  "schema_version": 2,
+  "setup_summary": "Profiled 227846 training rows \u00d7 30 raw columns of credit_card_fraud (holdout: last 56961 of 284807 rows by `Time`); computed target summary, per-column missingness/uniqueness/PSI, duplicates, time range; 6 columns flagged for review.",
+  "source": "https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv",
+  "started_at": "2026-10-03T07:02:55+00:00",
+  "status": "completed",
+  "task_type": "binary_imbalanced"
+}

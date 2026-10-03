@@ -1,0 +1,1211 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-055-C1",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.holdout_primary_metric_ci",
+        "evidence.holdout_consumed",
+        "evidence.cv_selected_metric_mean"
+      ],
+      "kind": "fact",
+      "limitations": [
+        "CV models are fitted on part of the training rows while the final model uses all of them, so the holdout can legitimately beat the CV mean; a single holdout is one draw."
+      ],
+      "statement": "The preselected extra_trees/extra_trees_baseline on the `raw` recipe scored average precision (PR-AUC) 0.8139 on the once-consumed holdout (last 56961 of 284807 rows by `Time`; iid row bootstrap 95% interval 0.7317\u20130.8847); training-CV mean was 0.7858."
+    },
+    {
+      "claim_id": "EXP-055-C2",
+      "evidence": [
+        "evidence.tuning_decision",
+        "evidence.configuration_results",
+        "evidence.selection_rule"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Only a handful of explicit candidates were tried; this is a sanity check, not an exhaustive search."
+      ],
+      "statement": "Tuning rejected: best candidate extra_trees_C01 changed mean training-CV average precision (PR-AUC) by -0.0048 (required \u2265 0.0050), so extra_trees_baseline was used."
+    },
+    {
+      "claim_id": "EXP-055-C3",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.baselines"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Accuracy is uninformative on the holdout: the model's 0.9994 at threshold 0.5 compares with 0.9987 for always predicting 'not fraud', while average precision is 0.8139 vs 0.0013 for a random ranking (ROC-AUC 0.9891)."
+    },
+    {
+      "claim_id": "EXP-055-C4",
+      "evidence": [
+        "evidence.threshold_analysis"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "With only ~75 holdout frauds, precision/recall at a single threshold moves by several points per misclassified case."
+      ],
+      "statement": "A threshold of 0.2548 chosen on training out-of-fold scores to reach precision \u2265 0.90 (OOF recall 0.750) gives holdout precision 0.963 and recall 0.693 (52 of 75 frauds, 54 alerts); a holdout-chosen (oracle) threshold would reach recall 0.720 at precision \u2265 0.90. Precision at top-100 scores is 0.600."
+    },
+    {
+      "claim_id": "EXP-055-C5",
+      "evidence": [
+        "evidence.top_final_features",
+        "evidence.production_feature_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [],
+      "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+  ],
+  "completed_at": "2026-10-03T07:04:17+00:00",
+  "dataset": "credit_card_fraud",
+  "decision_time_rule": "Score each transaction at authorization time using only that transaction's own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature.",
+  "evidence": {
+    "baselines": {
+      "majority_class": {
+        "accuracy": 0.9986833096329067,
+        "average_precision_random_ranking": 0.0013166903670932743
+      }
+    },
+    "configuration_results": [
+      {
+        "config_id": "extra_trees_baseline",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 5.729754153000158,
+        "feature_count_mean": 29.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9990870946788153,
+            "average_precision": 0.7946653361054461,
+            "brier": 0.0006728612625364854,
+            "f1": 0.5517241379310345,
+            "fit_rows": 14359,
+            "fit_seconds": 0.6873019350000504,
+            "fold": 1,
+            "log_loss": 0.004175883820665242,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 1.0,
+            "precision_at_k_positives": 0.7976190476190477,
+            "precision_target": 0.9,
+            "recall": 0.38095238095238093,
+            "recall_at_precision_target": 0.7738095238095238,
+            "roc_auc": 0.9518395794768494,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9990168711925703,
+            "average_precision": 0.8003377978723752,
+            "brier": 0.0007428028057462137,
+            "f1": 0.7142857142857143,
+            "fit_rows": 28662,
+            "fit_seconds": 1.2694907230002173,
+            "fold": 2,
+            "log_loss": 0.003807468954904379,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.9090909090909091,
+            "precision_at_k_positives": 0.8067226890756303,
+            "precision_target": 0.9,
+            "recall": 0.5882352941176471,
+            "recall_at_precision_target": 0.6890756302521008,
+            "roc_auc": 0.985550615165316,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9993855444953564,
+            "average_precision": 0.7623566592997879,
+            "brier": 0.0004670586084130443,
+            "f1": 0.5679012345679012,
+            "fit_rows": 42991,
+            "fit_seconds": 1.9678841850000026,
+            "fold": 3,
+            "log_loss": 0.002879404676170863,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.9583333333333334,
+            "precision_at_k_positives": 0.7543859649122807,
+            "precision_target": 0.9,
+            "recall": 0.40350877192982454,
+            "recall_at_precision_target": 0.7192982456140351,
+            "roc_auc": 0.9632757910522121,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9993855444953564,
+            "mean": 0.9991631701222473,
+            "min": 0.9990168711925703,
+            "std": 0.00019575649635923716
+          },
+          "average_precision": {
+            "max": 0.8003377978723752,
+            "mean": 0.7857865977592032,
+            "min": 0.7623566592997879,
+            "std": 0.020488184833784204
+          },
+          "brier": {
+            "max": 0.0007428028057462137,
+            "mean": 0.0006275742255652478,
+            "min": 0.0004670586084130443,
+            "std": 0.00014334190726704503
+          },
+          "f1": {
+            "max": 0.7142857142857143,
+            "mean": 0.6113036955948833,
+            "min": 0.5517241379310345,
+            "std": 0.08955108455026453
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 1.9678841850000026,
+            "mean": 1.3082256143334234,
+            "min": 0.6873019350000504,
+            "std": 0.64116925893923
+          },
+          "log_loss": {
+            "max": 0.004175883820665242,
+            "mean": 0.0036209191505801614,
+            "min": 0.002879404676170863,
+            "std": 0.0006680682339007538
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 1.0,
+            "mean": 0.9558080808080809,
+            "min": 0.9090909090909091,
+            "std": 0.045507124472070976
+          },
+          "precision_at_k_positives": {
+            "max": 0.8067226890756303,
+            "mean": 0.7862425672023196,
+            "min": 0.7543859649122807,
+            "std": 0.027961605891682673
+          },
+          "recall": {
+            "max": 0.5882352941176471,
+            "mean": 0.4575654823332842,
+            "min": 0.38095238095238093,
+            "std": 0.11372399692809976
+          },
+          "recall_at_precision_target": {
+            "max": 0.7738095238095238,
+            "mean": 0.7273944665585533,
+            "min": 0.6890756302521008,
+            "std": 0.04294321569860615
+          },
+          "roc_auc": {
+            "max": 0.985550615165316,
+            "mean": 0.9668886618981257,
+            "min": 0.9518395794768494,
+            "std": 0.01714345672871159
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {},
+        "optimization": "extra_trees_baseline",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V17",
+            "mean_normalized_importance": 0.1790174466943674
+          },
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.13348532861818566
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.10595634897698349
+          },
+          {
+            "feature": "V16",
+            "mean_normalized_importance": 0.08821185214373646
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.07655449463383475
+          },
+          {
+            "feature": "V11",
+            "mean_normalized_importance": 0.06838706085326776
+          },
+          {
+            "feature": "V18",
+            "mean_normalized_importance": 0.053542433767349185
+          },
+          {
+            "feature": "V3",
+            "mean_normalized_importance": 0.05166820010947276
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.043985033530716026
+          },
+          {
+            "feature": "V9",
+            "mean_normalized_importance": 0.0312830839776557
+          }
+        ]
+      },
+      {
+        "config_id": "extra_trees_C01",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 8.76170186499985,
+        "feature_count_mean": 29.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9992626533944278,
+            "average_precision": 0.799956895859327,
+            "brier": 0.0006101253858392785,
+            "f1": 0.6666666666666666,
+            "fit_rows": 14359,
+            "fit_seconds": 1.1391427590001513,
+            "fold": 1,
+            "log_loss": 0.004118716586249084,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 1.0,
+            "precision_at_k_positives": 0.7976190476190477,
+            "precision_target": 0.9,
+            "recall": 0.5,
+            "recall_at_precision_target": 0.7738095238095238,
+            "roc_auc": 0.9499843856877456,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9990870946788153,
+            "average_precision": 0.7754866684586437,
+            "brier": 0.0007504481297370281,
+            "f1": 0.7475728155339806,
+            "fit_rows": 28662,
+            "fit_seconds": 1.9626797119999537,
+            "fold": 2,
+            "log_loss": 0.004165834758833362,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.8850574712643678,
+            "precision_at_k_positives": 0.8067226890756303,
+            "precision_target": 0.9,
+            "recall": 0.6470588235294118,
+            "recall_at_precision_target": 0.5966386554621849,
+            "roc_auc": 0.9779848253998479,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9994557679816014,
+            "average_precision": 0.7674090900515019,
+            "brier": 0.0004465399973982002,
+            "f1": 0.6352941176470588,
+            "fit_rows": 42991,
+            "fit_seconds": 3.110401372999604,
+            "fold": 3,
+            "log_loss": 0.0031733970344287855,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.9642857142857143,
+            "precision_at_k_positives": 0.7543859649122807,
+            "precision_target": 0.9,
+            "recall": 0.47368421052631576,
+            "recall_at_precision_target": 0.7543859649122807,
+            "roc_auc": 0.9437866730301081,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9994557679816014,
+            "mean": 0.9992685053516149,
+            "min": 0.9990870946788153,
+            "std": 0.00018440630439059026
+          },
+          "average_precision": {
+            "max": 0.799956895859327,
+            "mean": 0.7809508847898242,
+            "min": 0.7674090900515019,
+            "std": 0.016947954472780156
+          },
+          "brier": {
+            "max": 0.0007504481297370281,
+            "mean": 0.0006023711709915023,
+            "min": 0.0004465399973982002,
+            "std": 0.0001521023803605576
+          },
+          "f1": {
+            "max": 0.7475728155339806,
+            "mean": 0.683177866615902,
+            "min": 0.6352941176470588,
+            "std": 0.05793178136928284
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 3.110401372999604,
+            "mean": 2.070741281333236,
+            "min": 1.1391427590001513,
+            "std": 0.9900621737506387
+          },
+          "log_loss": {
+            "max": 0.004165834758833362,
+            "mean": 0.0038193161265037442,
+            "min": 0.0031733970344287855,
+            "std": 0.0005598782329016945
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 1.0,
+            "mean": 0.9497810618500274,
+            "min": 0.8850574712643678,
+            "std": 0.058828011480462815
+          },
+          "precision_at_k_positives": {
+            "max": 0.8067226890756303,
+            "mean": 0.7862425672023196,
+            "min": 0.7543859649122807,
+            "std": 0.027961605891682673
+          },
+          "recall": {
+            "max": 0.6470588235294118,
+            "mean": 0.5402476780185758,
+            "min": 0.47368421052631576,
+            "std": 0.09343230596484571
+          },
+          "recall_at_precision_target": {
+            "max": 0.7738095238095238,
+            "mean": 0.7082780480613299,
+            "min": 0.5966386554621849,
+            "std": 0.09716910077276716
+          },
+          "roc_auc": {
+            "max": 0.9779848253998479,
+            "mean": 0.9572519613725672,
+            "min": 0.9437866730301081,
+            "std": 0.018220637986276506
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": "sqrt",
+          "model__min_samples_leaf": 1,
+          "model__n_estimators": 500
+        },
+        "optimization": "extra_trees_C01",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V17",
+            "mean_normalized_importance": 0.15623432537196505
+          },
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.12703083564769288
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.10246200593871757
+          },
+          {
+            "feature": "V16",
+            "mean_normalized_importance": 0.08337211505308784
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.07418630176400938
+          },
+          {
+            "feature": "V11",
+            "mean_normalized_importance": 0.06905327668927853
+          },
+          {
+            "feature": "V18",
+            "mean_normalized_importance": 0.05116381724765013
+          },
+          {
+            "feature": "V3",
+            "mean_normalized_importance": 0.0496516783312097
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.04224974769909937
+          },
+          {
+            "feature": "V9",
+            "mean_normalized_importance": 0.03280680835836979
+          }
+        ]
+      },
+      {
+        "config_id": "extra_trees_C02",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 16.156760501000008,
+        "feature_count_mean": 29.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9993328768806727,
+            "average_precision": 0.7935327668167992,
+            "brier": 0.0005830992794655583,
+            "f1": 0.7076923076923077,
+            "fit_rows": 14359,
+            "fit_seconds": 1.8344327929999054,
+            "fold": 1,
+            "log_loss": 0.003969080001431427,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 1.0,
+            "precision_at_k_positives": 0.7738095238095238,
+            "precision_target": 0.9,
+            "recall": 0.5476190476190477,
+            "recall_at_precision_target": 0.7738095238095238,
+            "roc_auc": 0.9496795298459416,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9991397622934991,
+            "average_precision": 0.7897378318521157,
+            "brier": 0.0007142396056432722,
+            "f1": 0.7741935483870968,
+            "fit_rows": 28662,
+            "fit_seconds": 4.2961010609997174,
+            "fold": 2,
+            "log_loss": 0.0034910784308905224,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.8571428571428571,
+            "precision_at_k_positives": 0.7899159663865546,
+            "precision_target": 0.9,
+            "recall": 0.7058823529411765,
+            "recall_at_precision_target": 0.6218487394957983,
+            "roc_auc": 0.988779601070223,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7598532068516579,
+            "brier": 0.00041523247848192457,
+            "f1": 0.6818181818181818,
+            "fit_rows": 42991,
+            "fit_seconds": 7.785526878999917,
+            "fold": 3,
+            "log_loss": 0.002615195860627048,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.967741935483871,
+            "precision_at_k_positives": 0.7543859649122807,
+            "precision_target": 0.9,
+            "recall": 0.5263157894736842,
+            "recall_at_precision_target": 0.7192982456140351,
+            "roc_auc": 0.9693033326673918,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995084355962852,
+            "mean": 0.9993270249234857,
+            "min": 0.9991397622934991,
+            "std": 0.00018440630439059026
+          },
+          "average_precision": {
+            "max": 0.7935327668167992,
+            "mean": 0.7810412685068576,
+            "min": 0.7598532068516579,
+            "std": 0.01844724506193137
+          },
+          "brier": {
+            "max": 0.0007142396056432722,
+            "mean": 0.0005708571211969184,
+            "min": 0.00041523247848192457,
+            "std": 0.00014987901238207568
+          },
+          "f1": {
+            "max": 0.7741935483870968,
+            "mean": 0.7212346792991954,
+            "min": 0.6818181818181818,
+            "std": 0.04765342546700743
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 7.785526878999917,
+            "mean": 4.638686910999847,
+            "min": 1.8344327929999054,
+            "std": 2.990301657621069
+          },
+          "log_loss": {
+            "max": 0.003969080001431427,
+            "mean": 0.003358451430982999,
+            "min": 0.002615195860627048,
+            "std": 0.0006866170748741654
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 1.0,
+            "mean": 0.9416282642089094,
+            "min": 0.8571428571428571,
+            "std": 0.0749231852427478
+          },
+          "precision_at_k_positives": {
+            "max": 0.7899159663865546,
+            "mean": 0.772703818369453,
+            "min": 0.7543859649122807,
+            "std": 0.01779078945917318
+          },
+          "recall": {
+            "max": 0.7058823529411765,
+            "mean": 0.5932723966779694,
+            "min": 0.5263157894736842,
+            "std": 0.09810305239442377
+          },
+          "recall_at_precision_target": {
+            "max": 0.7738095238095238,
+            "mean": 0.704985502973119,
+            "min": 0.6218487394957983,
+            "std": 0.07698480982466263
+          },
+          "roc_auc": {
+            "max": 0.988779601070223,
+            "mean": 0.9692541545278521,
+            "min": 0.9496795298459416,
+            "std": 0.01955008200246295
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": 0.7,
+          "model__min_samples_leaf": 3,
+          "model__n_estimators": 500
+        },
+        "optimization": "extra_trees_C02",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V17",
+            "mean_normalized_importance": 0.2254355319543396
+          },
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.16191479458126928
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.13922178260625342
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.09517586877713258
+          },
+          {
+            "feature": "V16",
+            "mean_normalized_importance": 0.08892670196685659
+          },
+          {
+            "feature": "V11",
+            "mean_normalized_importance": 0.06937184668686697
+          },
+          {
+            "feature": "V18",
+            "mean_normalized_importance": 0.04161618541298614
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.03429175083371107
+          },
+          {
+            "feature": "V9",
+            "mean_normalized_importance": 0.02614879827880635
+          },
+          {
+            "feature": "V3",
+            "mean_normalized_importance": 0.022923695407608986
+          }
+        ]
+      },
+      {
+        "config_id": "extra_trees_C03",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 10.522233231999962,
+        "feature_count_mean": 29.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9993855444953564,
+            "average_precision": 0.803088603336804,
+            "brier": 0.00053215148482551,
+            "f1": 0.7368421052631579,
+            "fit_rows": 14359,
+            "fit_seconds": 1.1728232599998591,
+            "fold": 1,
+            "log_loss": 0.004904639645310583,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 1.0,
+            "precision_at_k_positives": 0.7976190476190477,
+            "precision_target": 0.9,
+            "recall": 0.5833333333333334,
+            "recall_at_precision_target": 0.7738095238095238,
+            "roc_auc": 0.9159740693576868,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9991046505503766,
+            "average_precision": 0.7509010501087713,
+            "brier": 0.0007649996537545614,
+            "f1": 0.7627906976744186,
+            "fit_rows": 28662,
+            "fit_seconds": 2.6859642609997536,
+            "fold": 2,
+            "log_loss": 0.004050389771290897,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.8541666666666666,
+            "precision_at_k_positives": 0.7815126050420168,
+            "precision_target": 0.9,
+            "recall": 0.6890756302521008,
+            "recall_at_precision_target": 0.08403361344537816,
+            "roc_auc": 0.9805344255150426,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9995962149540913,
+            "average_precision": 0.757716033773392,
+            "brier": 0.0004067810480890783,
+            "f1": 0.7526881720430108,
+            "fit_rows": 42991,
+            "fit_seconds": 4.661337237000225,
+            "fold": 3,
+            "log_loss": 0.0030712168760852372,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.9722222222222222,
+            "precision_at_k_positives": 0.7543859649122807,
+            "precision_target": 0.9,
+            "recall": 0.6140350877192983,
+            "recall_at_precision_target": 0.7368421052631579,
+            "roc_auc": 0.9502245702827291,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995962149540913,
+            "mean": 0.999362136666608,
+            "min": 0.9991046505503766,
+            "std": 0.00024661677879840376
+          },
+          "average_precision": {
+            "max": 0.803088603336804,
+            "mean": 0.7705685624063224,
+            "min": 0.7509010501087713,
+            "std": 0.0283685705874901
+          },
+          "brier": {
+            "max": 0.0007649996537545614,
+            "mean": 0.0005679773955563832,
+            "min": 0.0004067810480890783,
+            "std": 0.00018177668791955444
+          },
+          "f1": {
+            "max": 0.7627906976744186,
+            "mean": 0.7507736583268624,
+            "min": 0.7368421052631579,
+            "std": 0.01307980825962007
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 4.661337237000225,
+            "mean": 2.840041585999946,
+            "min": 1.1728232599998591,
+            "std": 1.7493533972560087
+          },
+          "log_loss": {
+            "max": 0.004904639645310583,
+            "mean": 0.004008748764228906,
+            "min": 0.0030712168760852372,
+            "std": 0.0009174204285824121
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 1.0,
+            "mean": 0.9421296296296297,
+            "min": 0.8541666666666666,
+            "std": 0.07743392909110063
+          },
+          "precision_at_k_positives": {
+            "max": 0.7976190476190477,
+            "mean": 0.7778392058577818,
+            "min": 0.7543859649122807,
+            "std": 0.02184937656450619
+          },
+          "recall": {
+            "max": 0.6890756302521008,
+            "mean": 0.6288146837682441,
+            "min": 0.5833333333333334,
+            "std": 0.05439839780675261
+          },
+          "recall_at_precision_target": {
+            "max": 0.7738095238095238,
+            "mean": 0.53156174750602,
+            "min": 0.08403361344537816,
+            "std": 0.38801123771141655
+          },
+          "roc_auc": {
+            "max": 0.9805344255150426,
+            "mean": 0.9489110217184861,
+            "min": 0.9159740693576868,
+            "std": 0.0323002160080103
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {
+          "model__max_features": 0.5,
+          "model__min_samples_leaf": 1,
+          "model__n_estimators": 400
+        },
+        "optimization": "extra_trees_C03",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V17",
+            "mean_normalized_importance": 0.19660021503219574
+          },
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.1411316458887155
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.12137767595913562
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.08906249025529178
+          },
+          {
+            "feature": "V16",
+            "mean_normalized_importance": 0.08190746907057234
+          },
+          {
+            "feature": "V11",
+            "mean_normalized_importance": 0.06458523297991631
+          },
+          {
+            "feature": "V18",
+            "mean_normalized_importance": 0.04233026787908637
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.03413798098195688
+          },
+          {
+            "feature": "V3",
+            "mean_normalized_importance": 0.03311703976081881
+          },
+          {
+            "feature": "V9",
+            "mean_normalized_importance": 0.02900719147503361
+          }
+        ]
+      }
+    ],
+    "cv_selected_metric_mean": 0.7857865977592032,
+    "cv_to_holdout_gap": 0.02813035611666126,
+    "elapsed_seconds": 47.81553724200012,
+    "feature_recipe": "raw",
+    "holdout_consumed": true,
+    "holdout_metrics": {
+      "accuracy": 0.9994031003669177,
+      "average_precision": 0.8139169538758645,
+      "brier": 0.0004967099469041328,
+      "f1": 0.7068965517241379,
+      "fit_seconds": 3.252570151999862,
+      "log_loss": 0.0025839921876153805,
+      "majority_baseline_accuracy": 0.9986833096329067,
+      "positive_rate": 0.0013166903670932743,
+      "precision": 1.0,
+      "precision_at_k_positives": 0.7866666666666666,
+      "precision_target": 0.9,
+      "recall": 0.5466666666666666,
+      "recall_at_precision_target": 0.72,
+      "roc_auc": 0.9890940946219926,
+      "threshold": 0.5
+    },
+    "holdout_primary_metric_ci": {
+      "draws": 400,
+      "high": 0.8846762948254099,
+      "low": 0.7317443316819401,
+      "median": 0.8177419364530352,
+      "method": "iid row bootstrap",
+      "point": 0.8139169538758645
+    },
+    "holdout_rows": 56961,
+    "holdout_split": "last 56961 of 284807 rows by `Time`",
+    "model": "extra_trees",
+    "optimization_search_space": [
+      {
+        "candidate_id": "extra_trees_C01",
+        "params": {
+          "model__max_features": "sqrt",
+          "model__min_samples_leaf": 1,
+          "model__n_estimators": 500
+        }
+      },
+      {
+        "candidate_id": "extra_trees_C02",
+        "params": {
+          "model__max_features": 0.7,
+          "model__min_samples_leaf": 3,
+          "model__n_estimators": 500
+        }
+      },
+      {
+        "candidate_id": "extra_trees_C03",
+        "params": {
+          "model__max_features": 0.5,
+          "model__min_samples_leaf": 1,
+          "model__n_estimators": 400
+        }
+      }
+    ],
+    "production_feature_rule": "Promote a feature only if it is decision-time available, stable across CV folds, obtainable in production, and monitored for missingness/drift \u2014 never from importance alone.",
+    "sampling": {
+      "fit_negative_fraction": 0.25,
+      "note": "All rows and all positives are used for validation and holdout scoring. Only model *fits* keep all positives plus a seeded 25% sample of negatives; scores are prior-corrected back to the true base rate before threshold and calibration metrics.",
+      "rows_used": 284807
+    },
+    "selected_model_params": {},
+    "selected_optimization": "extra_trees_baseline",
+    "selection_rule": "Evaluate 3 explicit parameter candidates on training CV (expanding-window TimeSeriesSplit(3) on time-ordered training rows); take the best by mean - 0.25\u00d7std and accept it only if its mean average precision (PR-AUC) beats the default by at least 0.005, otherwise keep the default configuration.",
+    "threshold_analysis": {
+      "holdout_at_training_threshold": {
+        "alerts": 54,
+        "precision": 0.9629629629629629,
+        "recall": 0.6933333333333334,
+        "threshold": 0.2548037645196345,
+        "true_positives": 52
+      },
+      "holdout_oracle_threshold_for_target": {
+        "note": "Diagnostic only: chosen on holdout labels, not usable for deployment.",
+        "precision": 0.9,
+        "reached": true,
+        "recall": 0.72,
+        "threshold": 0.22380575743556858
+      },
+      "holdout_positives": 75,
+      "holdout_precision_at_top_k": {
+        "100": 0.6,
+        "200": 0.32,
+        "25": 1.0,
+        "50": 1.0
+      },
+      "holdout_threshold_grid": [
+        {
+          "alerts": 91,
+          "precision": 0.6593406593406593,
+          "recall": 0.8,
+          "threshold": 0.05,
+          "true_positives": 60
+        },
+        {
+          "alerts": 75,
+          "precision": 0.7866666666666666,
+          "recall": 0.7866666666666666,
+          "threshold": 0.1,
+          "true_positives": 59
+        },
+        {
+          "alerts": 54,
+          "precision": 0.9629629629629629,
+          "recall": 0.6933333333333334,
+          "threshold": 0.25,
+          "true_positives": 52
+        },
+        {
+          "alerts": 41,
+          "precision": 1.0,
+          "recall": 0.5466666666666666,
+          "threshold": 0.5,
+          "true_positives": 41
+        },
+        {
+          "alerts": 23,
+          "precision": 1.0,
+          "recall": 0.30666666666666664,
+          "threshold": 0.75,
+          "true_positives": 23
+        },
+        {
+          "alerts": 1,
+          "precision": 1.0,
+          "recall": 0.013333333333333334,
+          "threshold": 0.9,
+          "true_positives": 1
+        }
+      ],
+      "precision_target": 0.9,
+      "probability_scale": "prior-corrected for fit-time negative subsampling (true base rate)",
+      "threshold_from_training_oof": {
+        "precision": 0.9027777777777778,
+        "reached": true,
+        "recall": 0.75,
+        "threshold": 0.2548037645196345
+      }
+    },
+    "top_final_features": [
+      {
+        "feature": "V17",
+        "normalized_importance": 0.17942041279481102
+      },
+      {
+        "feature": "V14",
+        "normalized_importance": 0.15513233875097593
+      },
+      {
+        "feature": "V12",
+        "normalized_importance": 0.10406360208695785
+      },
+      {
+        "feature": "V16",
+        "normalized_importance": 0.08865038530313901
+      },
+      {
+        "feature": "V10",
+        "normalized_importance": 0.08207501623766665
+      },
+      {
+        "feature": "V11",
+        "normalized_importance": 0.06523873825483871
+      },
+      {
+        "feature": "V18",
+        "normalized_importance": 0.04900165222599492
+      },
+      {
+        "feature": "V4",
+        "normalized_importance": 0.042992544988935844
+      },
+      {
+        "feature": "V3",
+        "normalized_importance": 0.041081417288919654
+      },
+      {
+        "feature": "V9",
+        "normalized_importance": 0.028474632066431946
+      },
+      {
+        "feature": "V7",
+        "normalized_importance": 0.026972023700768583
+      },
+      {
+        "feature": "V5",
+        "normalized_importance": 0.013629184851004159
+      },
+      {
+        "feature": "V2",
+        "normalized_importance": 0.013014337232618209
+      },
+      {
+        "feature": "V19",
+        "normalized_importance": 0.009977106718726283
+      },
+      {
+        "feature": "V21",
+        "normalized_importance": 0.00929221828728676
+      },
+      {
+        "feature": "V1",
+        "normalized_importance": 0.008768673118475527
+      },
+      {
+        "feature": "V6",
+        "normalized_importance": 0.008046162322092841
+      },
+      {
+        "feature": "V8",
+        "normalized_importance": 0.008041565117693897
+      },
+      {
+        "feature": "V22",
+        "normalized_importance": 0.00693160333437708
+      },
+      {
+        "feature": "V27",
+        "normalized_importance": 0.006745307152074259
+      }
+    ],
+    "train_rows": 227846,
+    "tuning_decision": {
+      "accepted": false,
+      "best_candidate": "extra_trees_C01",
+      "gain": -0.0048357129693790135,
+      "required_gain": 0.005,
+      "selected_config": "extra_trees_baseline"
+    }
+  },
+  "experiment_id": "EXP-055",
+  "feature_count": 29,
+  "holdout_policy": "Locked holdout = last 20% of rows in `Time` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "A frozen boosted model keeps average precision well above the prevalence baseline on the later time window, and a training-chosen threshold transfers approximately.",
+  "kind": "optimization_reliability",
+  "metrics": {
+    "accuracy": 0.9994031003669177,
+    "average_precision": 0.8139169538758645,
+    "brier": 0.0004967099469041328,
+    "f1": 0.7068965517241379,
+    "fit_seconds": 3.252570151999862,
+    "log_loss": 0.0025839921876153805,
+    "majority_baseline_accuracy": 0.9986833096329067,
+    "positive_rate": 0.0013166903670932743,
+    "precision": 1.0,
+    "precision_at_k_positives": 0.7866666666666666,
+    "precision_target": 0.9,
+    "recall": 0.5466666666666666,
+    "recall_at_precision_target": 0.72,
+    "roc_auc": 0.9890940946219926,
+    "threshold": 0.5
+  },
+  "mode": "safe",
+  "model_name": "extra_trees",
+  "optimization": "extra_trees_baseline",
+  "primary_metric": "average_precision",
+  "provenance": {
+    "data_sha256": {
+      "data/external/credit_card_fraud/creditcard.csv": "33a178be65174943a07d1736acf5898f6c8e1fa80950dbbe598c17eda968ec59"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Does a small explicit parameter search beat the default by a declared margin, and how does the frozen recipe perform on the locked holdout against naive baselines?",
+  "schema_version": 2,
+  "setup_summary": "Compared default extra_trees vs 3 explicit candidates on the `raw` recipe (expanding-window TimeSeriesSplit(3) on time-ordered training rows): extra_trees_baseline 0.7858\u00b10.0205; extra_trees_C01 0.7810\u00b10.0169; extra_trees_C02 0.7810\u00b10.0184; extra_trees_C03 0.7706\u00b10.0284; tuning rejected (gain -0.0048 vs required 0.0050). Final fit on 227846 training rows, scored once on the holdout (last 56961 of 284807 rows by `Time`): average precision (PR-AUC) 0.8139 [0.7317, 0.8847].",
+  "source": "https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv",
+  "started_at": "2026-10-03T07:03:30+00:00",
+  "status": "completed",
+  "task_type": "binary_imbalanced",
+  "test_rows": 56961,
+  "train_rows": 227846
+}

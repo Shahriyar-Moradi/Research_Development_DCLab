@@ -1,0 +1,342 @@
+{
+  "campaign_id": "agent_verification_v1",
+  "experiment_id": "VER-001",
+  "kind": "auditor_blind_replay",
+  "question": "Without being told, does the deterministic column auditor flag the leakage columns the R&D already confirmed?",
+  "completed_at": "2026-10-03T07:13:01+00:00",
+  "datasets": 7,
+  "known_leaks": 18,
+  "found": 11,
+  "recall": 0.6111,
+  "datasets_with_every_leak_found": 4,
+  "datasets_with_at_least_one_leak_found": 6,
+  "cases": [
+    {
+      "dataset": "bank_marketing",
+      "known_leaks": [
+        "duration"
+      ],
+      "found": [
+        "duration"
+      ],
+      "missed": [],
+      "recall": 1.0,
+      "flagged_total": 1,
+      "false_alarms": [],
+      "rank_of_known": {
+        "duration": 1
+      },
+      "top_flags": [
+        {
+          "column": "duration",
+          "risk_score": 2.025,
+          "signals": [
+            "name suggests a post-outcome value",
+            "single column separates the classes (AUC 0.806)"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "online_shoppers",
+      "known_leaks": [
+        "PageValues",
+        "Administrative",
+        "Administrative_Duration",
+        "Informational",
+        "Informational_Duration",
+        "ProductRelated",
+        "ProductRelated_Duration",
+        "BounceRates",
+        "ExitRates"
+      ],
+      "found": [
+        "PageValues",
+        "Administrative_Duration",
+        "Informational_Duration",
+        "ProductRelated_Duration"
+      ],
+      "missed": [
+        "Administrative",
+        "Informational",
+        "ProductRelated",
+        "BounceRates",
+        "ExitRates"
+      ],
+      "recall": 0.4444,
+      "flagged_total": 4,
+      "false_alarms": [],
+      "rank_of_known": {
+        "PageValues": 1,
+        "Administrative": 5,
+        "Administrative_Duration": 2,
+        "Informational": 9,
+        "Informational_Duration": 3,
+        "ProductRelated": 12,
+        "ProductRelated_Duration": 4,
+        "BounceRates": 6,
+        "ExitRates": 8
+      },
+      "top_flags": [
+        {
+          "column": "PageValues",
+          "risk_score": 1.253,
+          "signals": [
+            "single column separates the classes (AUC 0.863)"
+          ]
+        },
+        {
+          "column": "Administrative_Duration",
+          "risk_score": 1.0,
+          "signals": [
+            "name suggests a post-outcome value"
+          ]
+        },
+        {
+          "column": "Informational_Duration",
+          "risk_score": 1.0,
+          "signals": [
+            "name suggests a post-outcome value"
+          ]
+        },
+        {
+          "column": "ProductRelated_Duration",
+          "risk_score": 1.0,
+          "signals": [
+            "name suggests a post-outcome value"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "hyperack",
+      "known_leaks": [
+        "final_customer_fare",
+        "final_biker_fare"
+      ],
+      "found": [
+        "final_customer_fare",
+        "final_biker_fare"
+      ],
+      "missed": [],
+      "recall": 1.0,
+      "flagged_total": 4,
+      "false_alarms": [
+        "first_created_at",
+        "deliverey_category_id"
+      ],
+      "rank_of_known": {
+        "final_customer_fare": 1,
+        "final_biker_fare": 4
+      },
+      "top_flags": [
+        {
+          "column": "final_customer_fare",
+          "risk_score": 2.029,
+          "signals": [
+            "name suggests a post-outcome value",
+            "single column separates the classes (AUC 0.807)"
+          ]
+        },
+        {
+          "column": "first_created_at",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "deliverey_category_id",
+          "risk_score": 1.13,
+          "signals": [
+            "single column separates the classes (AUC 0.833)"
+          ]
+        },
+        {
+          "column": "final_biker_fare",
+          "risk_score": 1.0,
+          "signals": [
+            "name suggests a post-outcome value"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "telco_churn",
+      "known_leaks": [
+        "customerID"
+      ],
+      "found": [
+        "customerID"
+      ],
+      "missed": [],
+      "recall": 1.0,
+      "flagged_total": 2,
+      "false_alarms": [
+        "TotalCharges"
+      ],
+      "rank_of_known": {
+        "customerID": 2
+      },
+      "top_flags": [
+        {
+          "column": "TotalCharges",
+          "risk_score": 1.793,
+          "signals": [
+            "single column separates the classes (AUC 0.998)"
+          ]
+        },
+        {
+          "column": "customerID",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "credit_card_fraud",
+      "known_leaks": [
+        "Time"
+      ],
+      "found": [],
+      "missed": [
+        "Time"
+      ],
+      "recall": 0.0,
+      "flagged_total": 0,
+      "false_alarms": [],
+      "rank_of_known": {
+        "Time": 2
+      },
+      "top_flags": []
+    },
+    {
+      "dataset": "bike_sharing_daily",
+      "known_leaks": [
+        "casual",
+        "registered"
+      ],
+      "found": [
+        "casual",
+        "registered"
+      ],
+      "missed": [],
+      "recall": 1.0,
+      "flagged_total": 6,
+      "false_alarms": [
+        "cnt_2d_bfr",
+        "days_since_2011",
+        "dteday",
+        "instant"
+      ],
+      "rank_of_known": {
+        "casual": 2,
+        "registered": 1
+      },
+      "top_flags": [
+        {
+          "column": "registered",
+          "risk_score": 5.109999999999999,
+          "signals": [
+            "name suggests a post-outcome value",
+            "single column tracks the target (|Spearman| 0.927)",
+            "target = casual + registered on 100% of rows"
+          ]
+        },
+        {
+          "column": "casual",
+          "risk_score": 4.0,
+          "signals": [
+            "name suggests a post-outcome value",
+            "target = casual + registered on 100% of rows"
+          ]
+        },
+        {
+          "column": "cnt_2d_bfr",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (96% unique)"
+          ]
+        },
+        {
+          "column": "days_since_2011",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "dteday",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "instant",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ecommerce_clothing_reviews",
+      "known_leaks": [
+        "Rating",
+        "Positive Feedback Count"
+      ],
+      "found": [
+        "Rating"
+      ],
+      "missed": [
+        "Positive Feedback Count"
+      ],
+      "recall": 0.5,
+      "flagged_total": 4,
+      "false_alarms": [
+        "Title",
+        "Review Text",
+        "Unnamed: 0"
+      ],
+      "rank_of_known": {
+        "Rating": 1,
+        "Positive Feedback Count": 10
+      },
+      "top_flags": [
+        {
+          "column": "Rating",
+          "risk_score": 2.694,
+          "signals": [
+            "name suggests a post-outcome value",
+            "single column separates the classes (AUC 0.974)"
+          ]
+        },
+        {
+          "column": "Title",
+          "risk_score": 1.796,
+          "signals": [
+            "single column separates the classes (AUC 0.999)"
+          ]
+        },
+        {
+          "column": "Review Text",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "Unnamed: 0",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        }
+      ]
+    }
+  ]
+}

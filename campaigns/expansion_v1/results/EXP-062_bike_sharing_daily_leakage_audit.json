@@ -1,0 +1,672 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-062-C1",
+      "evidence": [
+        "evidence.detector_canary",
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The timeseries_regression leakage detector caught its synthetic canaries: {'exact_copy_detected': True, 'sum_identity_detected': True, 'passed': True}."
+    },
+    {
+      "claim_id": "EXP-062-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.policy_rationale",
+        "evidence.safe_vs_unsafe_training_cv",
+        "evidence.apparent_lift"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+      ],
+      "statement": "Declared decision-time exclusions for bike_sharing_daily: ['casual', 'registered']. Including them moves training-CV MAE (lightgbm, raw recipe) from 833.1\u00b1460.6 to 419.5\u00b1340.5, an apparent lift of +413.6 that would not exist in production. Per column: casual +40.8, registered +263.5. The identity rule independently found that casual + registered == cnt exactly on every training row."
+    },
+    {
+      "claim_id": "EXP-062-C3",
+      "evidence": [
+        "evidence.heuristic_review_candidates",
+        "evidence.top_univariate_signals",
+        "evidence.heuristic_rules"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "Strong signal alone is not leakage; e.g. legitimate lags or text sentiment are expected to be predictive."
+      ],
+      "statement": "Heuristics flagged 3 non-declared column(s) for human review: days_since_2011 (identifier_like), dteday (identifier_like), instant (identifier_like). Strongest single-feature signal: registered (0.887)."
+    },
+    {
+      "claim_id": "EXP-062-C4",
+      "evidence": [
+        "evidence.random_vs_time_cv"
+      ],
+      "kind": "risk",
+      "limitations": [],
+      "statement": "Random KFold(3) reports MAE 430.0\u00b136.9 for the same safe lightgbm recipe versus 833.1\u00b1460.6 with expanding-window time-ordered CV: random splits look 403.2 MAE better (1.94\u00d7 ratio) because they interpolate between neighbouring days and see future demand levels."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:40+00:00",
+  "dataset": "bike_sharing_daily",
+  "decision_time_rule": "Forecast day d's total rentals at the end of day d-2 (the horizon implied by the provided `cnt_2d_bfr` lag): calendar fields, the day's weather (treated as a forecast proxy), and rental counts from day d-2 or earlier are allowed; same-day casual/registered counts are not.",
+  "evidence": {
+    "apparent_lift": 413.6470138267618,
+    "apparent_lift_metric": "mae",
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "decision_time_contract": "Forecast day d's total rentals at the end of day d-2 (the horizon implied by the provided `cnt_2d_bfr` lag): calendar fields, the day's weather (treated as a forecast proxy), and rental counts from day d-2 or earlier are allowed; same-day casual/registered counts are not.",
+    "declared_leakage_features": [
+      "casual",
+      "registered"
+    ],
+    "detector_canary": {
+      "exact_copy_detected": true,
+      "passed": true,
+      "sum_identity_detected": true
+    },
+    "detector_canary_passed": true,
+    "elapsed_seconds": 1.5505059339998297,
+    "heuristic_review_candidates": [
+      {
+        "abs_spearman": 0.7922257580152832,
+        "binned_r2": 0.663759754631777,
+        "feature": "casual",
+        "reasons": [
+          "declared_post_outcome_or_contested",
+          "arithmetic_target_identity"
+        ],
+        "requires_human_decision_time_review": true,
+        "sums_to_target_with": [
+          "registered"
+        ],
+        "unique_ratio": 0.8539518900343642
+      },
+      {
+        "abs_spearman": 0.9274205584007287,
+        "binned_r2": 0.887362459391504,
+        "feature": "registered",
+        "reasons": [
+          "declared_post_outcome_or_contested",
+          "arithmetic_target_identity",
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "sums_to_target_with": [
+          "casual"
+        ],
+        "unique_ratio": 0.9415807560137457
+      },
+      {
+        "abs_spearman": 0.6481526021917617,
+        "binned_r2": 0.7757857080726245,
+        "feature": "days_since_2011",
+        "reasons": [
+          "identifier_like"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 1.0
+      },
+      {
+        "feature": "dteday",
+        "note": "high-cardinality non-numeric column; in-sample signal not meaningful",
+        "reasons": [
+          "identifier_like"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 1.0
+      },
+      {
+        "abs_spearman": 0.6481526021917617,
+        "binned_r2": 0.7757857080726245,
+        "feature": "instant",
+        "reasons": [
+          "identifier_like"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 1.0
+      }
+    ],
+    "heuristic_rules": {
+      "extreme_univariate_signal": 0.98,
+      "identifier_like": "unique_ratio >= 0.98 and non-numeric or integer-valued",
+      "rows_scanned": 582,
+      "signal_measure": "R\u00b2 of 20-quantile-bin target means (|Spearman| also reported); plus exact pairwise column-sum == target identity",
+      "strong_univariate_signal": 0.8
+    },
+    "identifier_exclusions": {
+      "dteday": "Calendar date key; used only to derive calendar and past-only lag features.",
+      "instant": "Row/time index (duplicates days_since_2011 + 1); not a predictive attribute."
+    },
+    "policy_rationale": "`casual`: Same-day count of casual riders; casual + registered == cnt exactly, so it is a post-outcome component of the target. `registered`: Same-day count of registered riders; casual + registered == cnt exactly, so it is a post-outcome component of the target.",
+    "random_vs_time_cv": {
+      "optimism_gap": 403.15553602175606,
+      "optimism_ratio": 1.9376046902150788,
+      "random_kfold": {
+        "config_id": "safe_random_kfold",
+        "cv": "KFold(3, shuffle) \u2014 ignores time order",
+        "elapsed_seconds": 0.34610612200003743,
+        "feature_count_mean": 37.0,
+        "fold_metrics": [
+          {
+            "bias": -32.26468053127016,
+            "fit_rows": 388,
+            "fit_seconds": 0.0701854609997099,
+            "fold": 1,
+            "mae": 464.9389984833441,
+            "mape": 0.166540082194979,
+            "r2": 0.8886645401437444,
+            "rmse": 619.5883863979424,
+            "validation_rows": 194
+          },
+          {
+            "bias": 20.07014407527609,
+            "fit_rows": 388,
+            "fit_seconds": 0.07547119799983193,
+            "fold": 2,
+            "mae": 391.46337738141375,
+            "mape": 0.1293486831938801,
+            "r2": 0.9012213933422069,
+            "rmse": 545.4715375073155,
+            "validation_rows": 194
+          },
+          {
+            "bias": 68.58568177057411,
+            "fit_rows": 388,
+            "fit_seconds": 0.07051969399981317,
+            "fold": 3,
+            "mae": 433.55129084293173,
+            "mape": 0.15069766544980348,
+            "r2": 0.8732268460816566,
+            "rmse": 619.0051488329123,
+            "validation_rows": 194
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 68.58568177057411,
+            "mean": 18.797048438193347,
+            "min": -32.26468053127016,
+            "std": 50.437233007761066
+          },
+          "fit_rows": {
+            "max": 388.0,
+            "mean": 388.0,
+            "min": 388.0,
+            "std": 0.0
+          },
+          "fit_seconds": {
+            "max": 0.07547119799983193,
+            "mean": 0.07205878433311834,
+            "min": 0.0701854609997099,
+            "std": 0.002959958310376989
+          },
+          "mae": {
+            "max": 464.9389984833441,
+            "mean": 429.9845555692298,
+            "min": 391.46337738141375,
+            "std": 36.86743718328018
+          },
+          "mape": {
+            "max": 0.166540082194979,
+            "mean": 0.14886214361288752,
+            "min": 0.1293486831938801,
+            "std": 0.018663517761265742
+          },
+          "r2": {
+            "max": 0.9012213933422069,
+            "mean": 0.8877042598558692,
+            "min": 0.8732268460816566,
+            "std": 0.014021956809028367
+          },
+          "rmse": {
+            "max": 619.5883863979424,
+            "mean": 594.6883575793901,
+            "min": 545.4715375073155,
+            "std": 42.62401406507295
+          },
+          "validation_rows": {
+            "max": 194.0,
+            "mean": 194.0,
+            "min": 194.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "safe_random_kfold",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.18410134671150233
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.17191442208829788
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.1707103879245754
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.15088273891626303
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.09911183189370038
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.08971364767785221
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.024278382582851216
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.018290113528482366
+          },
+          {
+            "feature": "weekday=SUN",
+            "mean_normalized_importance": 0.00982719847065227
+          },
+          {
+            "feature": "season=WINTER",
+            "mean_normalized_importance": 0.008521408886216062
+          }
+        ]
+      },
+      "time_ordered": {
+        "metric_mean": 833.1400915909859,
+        "metric_std": 460.63052115096013,
+        "protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows"
+      }
+    },
+    "safe_vs_unsafe_training_cv": {
+      "apparent_lift": 413.6470138267618,
+      "metric": "mae",
+      "model": "lightgbm",
+      "per_column": {
+        "casual": {
+          "apparent_lift": 40.750330790204316,
+          "metric_mean": 792.3897608007816
+        },
+        "registered": {
+          "apparent_lift": 263.47718439774326,
+          "metric_mean": 569.6629071932426
+        }
+      },
+      "recipe": "raw",
+      "safe": {
+        "config_id": "safe",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.28236539299996366,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 78.03916763763178,
+            "fit_rows": 147,
+            "fit_seconds": 0.023352378999788925,
+            "fold": 1,
+            "mae": 519.7687907566608,
+            "mape": 0.15034064476693576,
+            "r2": 0.21418228500544734,
+            "rmse": 714.3447174793844,
+            "validation_rows": 145
+          },
+          {
+            "bias": 229.80332989280146,
+            "fit_rows": 292,
+            "fit_seconds": 0.0707990119999522,
+            "fold": 2,
+            "mae": 617.6305003998532,
+            "mape": 0.27989674551083016,
+            "r2": 0.3406672896964288,
+            "rmse": 839.0566497990759,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1290.2198033750415,
+            "fit_rows": 437,
+            "fit_seconds": 0.09418531799974517,
+            "fold": 3,
+            "mae": 1362.0209836164438,
+            "mape": 0.21648901604082968,
+            "r2": -0.832056109491867,
+            "rmse": 1504.5766181801027,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 229.80332989280146,
+            "mean": -327.4591019482028,
+            "min": -1290.2198033750415,
+            "std": 837.2211275375087
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.09418531799974517,
+            "mean": 0.06277890299982876,
+            "min": 0.023352378999788925,
+            "std": 0.03609110587282241
+          },
+          "mae": {
+            "max": 1362.0209836164438,
+            "mean": 833.1400915909859,
+            "min": 519.7687907566608,
+            "std": 460.63052115096013
+          },
+          "mape": {
+            "max": 0.27989674551083016,
+            "mean": 0.21557546877286518,
+            "min": 0.15034064476693576,
+            "std": 0.06478288150776124
+          },
+          "r2": {
+            "max": 0.3406672896964288,
+            "mean": -0.0924021782633303,
+            "min": -0.832056109491867,
+            "std": 0.6436734945523942
+          },
+          "rmse": {
+            "max": 1504.5766181801027,
+            "mean": 1019.3259951528544,
+            "min": 714.3447174793844,
+            "std": 424.8404310761599
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "safe",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.19319663737420764
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.1722465168608002
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.1592741320627937
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.14098219918383004
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.10117215566806859
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.09394912000595
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.04124926191876203
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.022826103720167138
+          },
+          {
+            "feature": "weekday=SAT",
+            "mean_normalized_importance": 0.011704114230440377
+          },
+          {
+            "feature": "weekday=MON",
+            "mean_normalized_importance": 0.01131688132735222
+          }
+        ]
+      },
+      "unsafe": {
+        "config_id": "unsafe_all_blocked",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.2855698799999118,
+        "feature_count_mean": 35.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": -38.9384285041677,
+            "fit_rows": 147,
+            "fit_seconds": 0.028181013999983406,
+            "fold": 1,
+            "mae": 304.8545673733843,
+            "mape": 0.07537912718872827,
+            "r2": 0.7659328877644667,
+            "rmse": 389.86758559929297,
+            "validation_rows": 145
+          },
+          {
+            "bias": -28.14757866192962,
+            "fit_rows": 292,
+            "fit_seconds": 0.05449780800017834,
+            "fold": 2,
+            "mae": 151.09001943063788,
+            "mape": 0.05070923864113526,
+            "r2": 0.9521715047455315,
+            "rmse": 225.9864143509502,
+            "validation_rows": 145
+          },
+          {
+            "bias": -741.4979852531698,
+            "fit_rows": 437,
+            "fit_seconds": 0.07603935799988903,
+            "fold": 3,
+            "mae": 802.53464648865,
+            "mape": 0.11620848406825751,
+            "r2": 0.19440657669948003,
+            "rmse": 997.7066782026989,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [
+          "casual",
+          "registered"
+        ],
+        "metrics": {
+          "bias": {
+            "max": -28.14757866192962,
+            "mean": -269.52799747308904,
+            "min": -741.4979852531698,
+            "std": 408.77360804475455
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.07603935799988903,
+            "mean": 0.05290606000001693,
+            "min": 0.028181013999983406,
+            "std": 0.023968844754708958
+          },
+          "mae": {
+            "max": 802.53464648865,
+            "mean": 419.4930777642241,
+            "min": 151.09001943063788,
+            "std": 340.51654376720245
+          },
+          "mape": {
+            "max": 0.11620848406825751,
+            "mean": 0.08076561663270702,
+            "min": 0.05070923864113526,
+            "std": 0.033080182727399945
+          },
+          "r2": {
+            "max": 0.9521715047455315,
+            "mean": 0.6375036564031594,
+            "min": 0.19440657669948003,
+            "std": 0.39487019657756084
+          },
+          "rmse": {
+            "max": 997.7066782026989,
+            "mean": 537.853559384314,
+            "min": 225.9864143509502,
+            "std": 406.5869251927303
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "unsafe_all_blocked",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "registered",
+            "mean_normalized_importance": 0.23335810490118594
+          },
+          {
+            "feature": "casual",
+            "mean_normalized_importance": 0.18550845652026618
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.1055403586232071
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.09808786838088453
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.08837427010748783
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.08798247508746848
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.06728334894424594
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.047044436751991096
+          },
+          {
+            "feature": "weekday=SAT",
+            "mean_normalized_importance": 0.011350804868651915
+          },
+          {
+            "feature": "weather=MISTY",
+            "mean_normalized_importance": 0.009859141638405676
+          }
+        ]
+      }
+    },
+    "top_univariate_signals": [
+      {
+        "abs_spearman": 0.9274205584007287,
+        "binned_r2": 0.887362459391504,
+        "feature": "registered",
+        "signal": 0.887362459391504
+      },
+      {
+        "abs_spearman": 0.6481526021917617,
+        "binned_r2": 0.7757857080726245,
+        "feature": "instant",
+        "signal": 0.7757857080726245
+      },
+      {
+        "abs_spearman": 0.6481526021917617,
+        "binned_r2": 0.7757857080726245,
+        "feature": "days_since_2011",
+        "signal": 0.7757857080726245
+      },
+      {
+        "abs_spearman": 0.7922257580152832,
+        "binned_r2": 0.663759754631777,
+        "feature": "casual",
+        "signal": 0.663759754631777
+      },
+      {
+        "abs_spearman": 0.7866118052319643,
+        "binned_r2": 0.6403939180773133,
+        "feature": "cnt_2d_bfr",
+        "signal": 0.6403939180773133
+      },
+      {
+        "abs_spearman": 0.7028963900074984,
+        "binned_r2": 0.5409208131769576,
+        "feature": "atemp",
+        "signal": 0.5409208131769576
+      },
+      {
+        "abs_spearman": 0.6989814130212616,
+        "binned_r2": 0.5303447064668556,
+        "feature": "temp",
+        "signal": 0.5303447064668556
+      },
+      {
+        "binned_r2": 0.45154203694809913,
+        "feature": "mnth",
+        "signal": 0.45154203694809913
+      }
+    ],
+    "warning": "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+  },
+  "experiment_id": "EXP-062",
+  "holdout_policy": "Locked holdout = last 20% of rows in `dteday` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "casual + registered reconstruct cnt exactly; random KFold looks substantially better than time-ordered CV.",
+  "kind": "leakage_audit",
+  "primary_metric": "mae",
+  "provenance": {
+    "data_sha256": {
+      "data/external/bike_sharing_daily/bike.csv": "a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the decision-time contract, and how much would they inflate the primary metric if left in?",
+  "schema_version": 2,
+  "setup_summary": "Scanned 582 training rows with timeseries_regression heuristics (univariate signal, exact proxy/identity, name, uniqueness) and synthetic canaries; compared lightgbm on the raw recipe with vs without blocked ['casual', 'registered'] on expanding-window TimeSeriesSplit(3) on time-ordered training rows: MAE 833.1\u00b1460.6 safe vs 419.5\u00b1340.5 unsafe (apparent lift +413.6). Also compared random KFold(3) vs time-ordered CV for the safe recipe (MAE 430.0 vs 833.1).",
+  "source": "https://raw.githubusercontent.com/christophM/interpretable-ml-book/master/data/bike.csv",
+  "started_at": "2026-10-03T07:07:39+00:00",
+  "status": "completed",
+  "task_type": "timeseries_regression"
+}

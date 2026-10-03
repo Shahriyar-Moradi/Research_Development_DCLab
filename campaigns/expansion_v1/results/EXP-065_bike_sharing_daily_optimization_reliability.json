@@ -1,0 +1,887 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-065-C1",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.holdout_primary_metric_ci",
+        "evidence.holdout_consumed",
+        "evidence.cv_selected_metric_mean"
+      ],
+      "kind": "fact",
+      "limitations": [
+        "CV models are fitted on part of the training rows while the final model uses all of them, so the holdout can legitimately beat the CV mean; a single holdout is one draw."
+      ],
+      "statement": "The preselected xgboost/xgboost_C01 on the `raw` recipe scored MAE 680.0 on the once-consumed holdout (last 146 of 728 rows by `dteday`; moving-block bootstrap (block length 7) 95% interval 484.0\u2013890.1); training-CV mean was 749.9."
+    },
+    {
+      "claim_id": "EXP-065-C2",
+      "evidence": [
+        "evidence.tuning_decision",
+        "evidence.configuration_results",
+        "evidence.selection_rule"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Only a handful of explicit candidates were tried; this is a sanity check, not an exhaustive search."
+      ],
+      "statement": "Tuning accepted: best candidate xgboost_C01 changed mean training-CV MAE by +37.5354 (required \u2265 7.8740), so xgboost_C01 was used."
+    },
+    {
+      "claim_id": "EXP-065-C3",
+      "evidence": [
+        "evidence.holdout_metrics",
+        "evidence.baselines"
+      ],
+      "kind": "fact",
+      "limitations": [
+        "The holdout covers only ~5 months (late 2012, incl. the Hurricane Sandy period); one season is not a full-year test."
+      ],
+      "statement": "Holdout MAE 680.0 (RMSE 1017.5, MAPE 145.1%, bias +163.9) versus naive baselines: lag-2 (cnt_2d_bfr) MAE 1156.4, seasonal lag-7 1202.5, training mean 2269.5. Model minus lag-2 MAE = -476.5 (block-bootstrap 95% -731.8..-237.3)."
+    },
+    {
+      "claim_id": "EXP-065-C4",
+      "evidence": [
+        "evidence.top_final_features",
+        "evidence.production_feature_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [],
+      "statement": "Do not promote features from importance alone; require decision-time availability, cross-fold stability, production availability, and monitoring."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:47+00:00",
+  "dataset": "bike_sharing_daily",
+  "decision_time_rule": "Forecast day d's total rentals at the end of day d-2 (the horizon implied by the provided `cnt_2d_bfr` lag): calendar fields, the day's weather (treated as a forecast proxy), and rental counts from day d-2 or earlier are allowed; same-day casual/registered counts are not.",
+  "evidence": {
+    "baselines": {
+      "naive_lag2_cnt_2d_bfr": {
+        "bias": 66.85616438356165,
+        "mae": 1156.445205479452,
+        "mape": 2.698278639025101,
+        "model_minus_baseline_mae_ci": {
+          "draws": 400,
+          "high": -237.34766753732345,
+          "low": -731.7877206044656,
+          "median": -500.28054684155603,
+          "method": "moving-block bootstrap (block length 7)",
+          "point": -476.465335375642
+        },
+        "r2": 0.2520134803600652,
+        "rmse": 1623.82989484652
+      },
+      "seasonal_naive_lag7": {
+        "bias": 246.9931506849315,
+        "mae": 1202.527397260274,
+        "mape": 2.582697077737063,
+        "model_minus_baseline_mae_ci": {
+          "draws": 400,
+          "high": -366.94373854545705,
+          "low": -800.7813721539223,
+          "median": -555.2754842679794,
+          "method": "moving-block bootstrap (block length 7)",
+          "point": -522.5475271564641
+        },
+        "r2": 0.1156393524238456,
+        "rmse": 1765.6651759885367
+      },
+      "training_mean": {
+        "bias": -1712.1533210940072,
+        "mae": 2269.5440851103895,
+        "mape": 1.7808926998332697,
+        "model_minus_baseline_mae_ci": {
+          "draws": 400,
+          "high": -1161.4162273398183,
+          "low": -1984.4818230061376,
+          "median": -1600.8849219609656,
+          "method": "moving-block bootstrap (block length 7)",
+          "point": -1589.5642150065796
+        },
+        "r2": -0.8315684641652321,
+        "rmse": 2541.0032801496955
+      }
+    },
+    "configuration_results": [
+      {
+        "config_id": "xgboost_baseline",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.5127607019999232,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 106.38730637122845,
+            "fit_rows": 147,
+            "fit_seconds": 0.12150896100001773,
+            "fold": 1,
+            "mae": 476.3295443830819,
+            "mape": 0.13990918377671469,
+            "r2": 0.290612269633722,
+            "rmse": 678.7170610538366,
+            "validation_rows": 145
+          },
+          {
+            "bias": 347.10145558324353,
+            "fit_rows": 292,
+            "fit_seconds": 0.14348848600002384,
+            "fold": 2,
+            "mae": 638.7940673828125,
+            "mape": 0.3025450058434974,
+            "r2": 0.26228529222203956,
+            "rmse": 887.5303101394393,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1182.0382879849137,
+            "fit_rows": 437,
+            "fit_seconds": 0.13708218099964142,
+            "fold": 3,
+            "mae": 1247.0758688038793,
+            "mape": 0.20008671177719314,
+            "r2": -0.5765709172989253,
+            "rmse": 1395.7308525030405,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 347.10145558324353,
+            "mean": -242.84984201014723,
+            "min": -1182.0382879849137,
+            "std": 822.2177498674477
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.14348848600002384,
+            "mean": 0.134026542666561,
+            "min": 0.12150896100001773,
+            "std": 0.011303874292622695
+          },
+          "mae": {
+            "max": 1247.0758688038793,
+            "mean": 787.3998268565912,
+            "min": 476.3295443830819,
+            "std": 406.2945089016417
+          },
+          "mape": {
+            "max": 0.3025450058434974,
+            "mean": 0.21418030046580175,
+            "min": 0.13990918377671469,
+            "std": 0.08222879414430999
+          },
+          "r2": {
+            "max": 0.290612269633722,
+            "mean": -0.007891118481054579,
+            "min": -0.5765709172989253,
+            "std": 0.49269477326228145
+          },
+          "rmse": {
+            "max": 1395.7308525030405,
+            "mean": 987.3260745654388,
+            "min": 678.7170610538366,
+            "std": 368.7771552443533
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "xgboost",
+        "model_params": {},
+        "optimization": "xgboost_baseline",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.2189514629259944
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.1665914652421036
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.11572192201500375
+          },
+          {
+            "feature": "weather=MISTY",
+            "mean_normalized_importance": 0.11095795815823412
+          },
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.10545314945979865
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.09264248014974359
+          },
+          {
+            "feature": "weekday=WED",
+            "mean_normalized_importance": 0.01990042050273617
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.019453797871434437
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.0168742788937092
+          },
+          {
+            "feature": "weekday=MON",
+            "mean_normalized_importance": 0.014904689851171764
+          }
+        ]
+      },
+      {
+        "config_id": "xgboost_C01",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.43064608699978635,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 51.169482421875,
+            "fit_rows": 147,
+            "fit_seconds": 0.09594351599980655,
+            "fold": 1,
+            "mae": 469.3461392106681,
+            "mape": 0.13722860776937418,
+            "r2": 0.32628257732086463,
+            "rmse": 661.4329397947151,
+            "validation_rows": 145
+          },
+          {
+            "bias": 220.51915746228448,
+            "fit_rows": 292,
+            "fit_seconds": 0.11362771400035854,
+            "fold": 2,
+            "mae": 573.6551219019397,
+            "mape": 0.2643612739733876,
+            "r2": 0.409455519950657,
+            "rmse": 794.0818685671692,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1119.4567955280172,
+            "fit_rows": 437,
+            "fit_seconds": 0.12324705699984406,
+            "fold": 3,
+            "mae": 1206.5919652478449,
+            "mape": 0.19363450868944315,
+            "r2": -0.4970483119226601,
+            "rmse": 1360.0749164933313,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 220.51915746228448,
+            "mean": -282.5893852146192,
+            "min": -1119.4567955280172,
+            "std": 729.6780967951299
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.12324705699984406,
+            "mean": 0.11093942900000305,
+            "min": 0.09594351599980655,
+            "std": 0.013848862587502795
+          },
+          "mae": {
+            "max": 1206.5919652478449,
+            "mean": 749.8644087868175,
+            "min": 469.3461392106681,
+            "std": 398.9613221738013
+          },
+          "mape": {
+            "max": 0.2643612739733876,
+            "mean": 0.19840813014406833,
+            "min": 0.13722860776937418,
+            "std": 0.0637006224489158
+          },
+          "r2": {
+            "max": 0.409455519950657,
+            "mean": 0.07956326178295385,
+            "min": -0.4970483119226601,
+            "std": 0.5010889290284442
+          },
+          "rmse": {
+            "max": 1360.0749164933313,
+            "mean": 938.5299082850719,
+            "min": 661.4329397947151,
+            "std": 371.04457957918754
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "xgboost",
+        "model_params": {
+          "model__colsample_bytree": 0.8,
+          "model__learning_rate": 0.05,
+          "model__max_depth": 4,
+          "model__n_estimators": 500,
+          "model__subsample": 0.8
+        },
+        "optimization": "xgboost_C01",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.15225189567773692
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.147075070458219
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.11865862311787147
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.10564543587078912
+          },
+          {
+            "feature": "mnth=MAY",
+            "mean_normalized_importance": 0.08250361303878369
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.07341833361068266
+          },
+          {
+            "feature": "season=FALL",
+            "mean_normalized_importance": 0.0312808763527428
+          },
+          {
+            "feature": "weather=MISTY",
+            "mean_normalized_importance": 0.029502365675662903
+          },
+          {
+            "feature": "season=WINTER",
+            "mean_normalized_importance": 0.018514416872916422
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.017815422234437373
+          }
+        ]
+      },
+      {
+        "config_id": "xgboost_C02",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.6500581939999392,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 82.48133250269396,
+            "fit_rows": 147,
+            "fit_seconds": 0.13390497999989748,
+            "fold": 1,
+            "mae": 483.653857421875,
+            "mape": 0.14076587463628687,
+            "r2": 0.29225015278158817,
+            "rmse": 677.9330739622199,
+            "validation_rows": 145
+          },
+          {
+            "bias": 117.81136937634699,
+            "fit_rows": 292,
+            "fit_seconds": 0.19565216499995586,
+            "fold": 2,
+            "mae": 626.1957241716055,
+            "mape": 0.28217311419711444,
+            "r2": 0.3665118928318558,
+            "rmse": 822.447539385936,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1204.799124461207,
+            "fit_rows": 437,
+            "fit_seconds": 0.22177965099990615,
+            "fold": 3,
+            "mae": 1283.1814621497845,
+            "mape": 0.20995077738654191,
+            "r2": -0.6748776315722331,
+            "rmse": 1438.5881030382868,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 117.81136937634699,
+            "mean": -334.83547419405534,
+            "min": -1204.799124461207,
+            "std": 753.6176865400544
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.22177965099990615,
+            "mean": 0.18377893199991982,
+            "min": 0.13390497999989748,
+            "std": 0.04512449110233599
+          },
+          "mae": {
+            "max": 1283.1814621497845,
+            "mean": 797.6770145810883,
+            "min": 483.653857421875,
+            "std": 426.4568822294501
+          },
+          "mape": {
+            "max": 0.28217311419711444,
+            "mean": 0.21096325540664773,
+            "min": 0.14076587463628687,
+            "std": 0.07070905659008059
+          },
+          "r2": {
+            "max": 0.3665118928318558,
+            "mean": -0.005371861986263049,
+            "min": -0.6748776315722331,
+            "std": 0.5809967152579263
+          },
+          "rmse": {
+            "max": 1438.5881030382868,
+            "mean": 979.6562387954809,
+            "min": 677.9330739622199,
+            "std": 403.9615695734045
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "xgboost",
+        "model_params": {
+          "model__learning_rate": 0.1,
+          "model__max_depth": 8,
+          "model__min_child_weight": 1,
+          "model__n_estimators": 300
+        },
+        "optimization": "xgboost_C02",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.27281044475339683
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.21419427476702144
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.14683398751860113
+          },
+          {
+            "feature": "weather=MISTY",
+            "mean_normalized_importance": 0.07440163813819996
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.06399112315464825
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.05998939163562428
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.026061647637867207
+          },
+          {
+            "feature": "weekday=WED",
+            "mean_normalized_importance": 0.01967987743228725
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.01789860455096848
+          },
+          {
+            "feature": "holiday=N",
+            "mean_normalized_importance": 0.016293714562140484
+          }
+        ]
+      },
+      {
+        "config_id": "xgboost_C03",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.8967735910000556,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 93.25967807112069,
+            "fit_rows": 147,
+            "fit_seconds": 0.22410710899976038,
+            "fold": 1,
+            "mae": 478.5516668911638,
+            "mape": 0.13785321177157245,
+            "r2": 0.3106838693209598,
+            "rmse": 669.0462652815239,
+            "validation_rows": 145
+          },
+          {
+            "bias": 192.78798743938577,
+            "fit_rows": 292,
+            "fit_seconds": 0.2818963319996328,
+            "fold": 2,
+            "mae": 604.5412639749461,
+            "mape": 0.2775567498850906,
+            "r2": 0.37719188429271455,
+            "rmse": 815.4852386830439,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1199.0608836206898,
+            "fit_rows": 437,
+            "fit_seconds": 0.28677361300015036,
+            "fold": 3,
+            "mae": 1275.4754242995689,
+            "mape": 0.20538087419188364,
+            "r2": -0.6088689368247848,
+            "rmse": 1409.9550146568035,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 192.78798743938577,
+            "mean": -304.3377393700611,
+            "min": -1199.0608836206898,
+            "std": 776.4493542625461
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.28677361300015036,
+            "mean": 0.26425901799984786,
+            "min": 0.22410710899976038,
+            "std": 0.0348579806465174
+          },
+          "mae": {
+            "max": 1275.4754242995689,
+            "mean": 786.1894517218929,
+            "min": 478.5516668911638,
+            "std": 428.39107934724217
+          },
+          "mape": {
+            "max": 0.2775567498850906,
+            "mean": 0.2069302786161822,
+            "min": 0.13785321177157245,
+            "std": 0.06986465580614658
+          },
+          "r2": {
+            "max": 0.37719188429271455,
+            "mean": 0.026335605596296514,
+            "min": -0.6088689368247848,
+            "std": 0.5511074641557238
+          },
+          "rmse": {
+            "max": 1409.9550146568035,
+            "mean": 964.8288395404571,
+            "min": 669.0462652815239,
+            "std": 392.3825646776421
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "xgboost",
+        "model_params": {
+          "model__learning_rate": 0.03,
+          "model__max_depth": 6,
+          "model__n_estimators": 600,
+          "model__reg_lambda": 2.0
+        },
+        "optimization": "xgboost_C03",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.20513752570627916
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.18170702844234296
+          },
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.15817900525635742
+          },
+          {
+            "feature": "weather=MISTY",
+            "mean_normalized_importance": 0.09501206123990151
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.0884947276396505
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.08436631053076644
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.01733435727725066
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.016991811219715745
+          },
+          {
+            "feature": "weekday=WED",
+            "mean_normalized_importance": 0.013897326776283872
+          },
+          {
+            "feature": "season=FALL",
+            "mean_normalized_importance": 0.012190408659125152
+          }
+        ]
+      }
+    ],
+    "cv_selected_metric_mean": 749.8644087868175,
+    "cv_to_holdout_gap": 69.88453868300758,
+    "elapsed_seconds": 2.8279451280000103,
+    "feature_recipe": "raw",
+    "holdout_consumed": true,
+    "holdout_metrics": {
+      "bias": 163.92822600064213,
+      "fit_seconds": 0.17337905200020032,
+      "mae": 679.97987010381,
+      "mape": 1.4505146647177438,
+      "r2": 0.7063000679106259,
+      "rmse": 1017.5261286019968
+    },
+    "holdout_primary_metric_ci": {
+      "draws": 400,
+      "high": 890.0867533226534,
+      "low": 483.9578098662912,
+      "median": 649.948189513324,
+      "method": "moving-block bootstrap (block length 7)",
+      "point": 679.97987010381
+    },
+    "holdout_rows": 146,
+    "holdout_split": "last 146 of 728 rows by `dteday`",
+    "model": "xgboost",
+    "optimization_search_space": [
+      {
+        "candidate_id": "xgboost_C01",
+        "params": {
+          "model__colsample_bytree": 0.8,
+          "model__learning_rate": 0.05,
+          "model__max_depth": 4,
+          "model__n_estimators": 500,
+          "model__subsample": 0.8
+        }
+      },
+      {
+        "candidate_id": "xgboost_C02",
+        "params": {
+          "model__learning_rate": 0.1,
+          "model__max_depth": 8,
+          "model__min_child_weight": 1,
+          "model__n_estimators": 300
+        }
+      },
+      {
+        "candidate_id": "xgboost_C03",
+        "params": {
+          "model__learning_rate": 0.03,
+          "model__max_depth": 6,
+          "model__n_estimators": 600,
+          "model__reg_lambda": 2.0
+        }
+      }
+    ],
+    "production_feature_rule": "Promote a feature only if it is decision-time available, stable across CV folds, obtainable in production, and monitored for missingness/drift \u2014 never from importance alone.",
+    "sampling": {
+      "note": "No subsampling; 2011-03-10 is absent from the source file.",
+      "rows_used": 728
+    },
+    "selected_model_params": {
+      "model__colsample_bytree": 0.8,
+      "model__learning_rate": 0.05,
+      "model__max_depth": 4,
+      "model__n_estimators": 500,
+      "model__subsample": 0.8
+    },
+    "selected_optimization": "xgboost_C01",
+    "selection_rule": "Evaluate 3 explicit parameter candidates on training CV (expanding-window TimeSeriesSplit(3) on time-ordered training rows); take the best by mean + 0.25\u00d7std and accept it only if its mean MAE beats the default by at least 1% (relative), otherwise keep the default configuration.",
+    "top_final_features": [
+      {
+        "feature": "yr",
+        "normalized_importance": 0.2261023316639925
+      },
+      {
+        "feature": "days_since_2011",
+        "normalized_importance": 0.18874683756788266
+      },
+      {
+        "feature": "weather=BAD",
+        "normalized_importance": 0.12217106308682274
+      },
+      {
+        "feature": "atemp",
+        "normalized_importance": 0.09012328017084953
+      },
+      {
+        "feature": "season=FALL",
+        "normalized_importance": 0.053946970732563264
+      },
+      {
+        "feature": "weather=GOOD",
+        "normalized_importance": 0.05394255626395941
+      },
+      {
+        "feature": "temp",
+        "normalized_importance": 0.03393777152481649
+      },
+      {
+        "feature": "cnt_2d_bfr",
+        "normalized_importance": 0.02621869132875676
+      },
+      {
+        "feature": "hum",
+        "normalized_importance": 0.017748199658456802
+      },
+      {
+        "feature": "workday=N",
+        "normalized_importance": 0.01658095455495843
+      },
+      {
+        "feature": "season=WINTER",
+        "normalized_importance": 0.014991506507690988
+      },
+      {
+        "feature": "weather=MISTY",
+        "normalized_importance": 0.013609768521459783
+      },
+      {
+        "feature": "workday=Y",
+        "normalized_importance": 0.011996697479226786
+      },
+      {
+        "feature": "mnth=DEC",
+        "normalized_importance": 0.010504363084631683
+      },
+      {
+        "feature": "windspeed",
+        "normalized_importance": 0.010334137822506109
+      },
+      {
+        "feature": "weekday=SAT",
+        "normalized_importance": 0.010255416857694006
+      },
+      {
+        "feature": "holiday=Y",
+        "normalized_importance": 0.009816242424184852
+      },
+      {
+        "feature": "holiday=N",
+        "normalized_importance": 0.007104399436243954
+      },
+      {
+        "feature": "weekday=MON",
+        "normalized_importance": 0.007065958169135794
+      },
+      {
+        "feature": "weekday=SUN",
+        "normalized_importance": 0.0067961531123836615
+      }
+    ],
+    "train_rows": 582,
+    "tuning_decision": {
+      "accepted": true,
+      "best_candidate": "xgboost_C01",
+      "gain": 37.53541806977364,
+      "required_gain": 7.873998268565912,
+      "selected_config": "xgboost_C01"
+    }
+  },
+  "experiment_id": "EXP-065",
+  "feature_count": 37,
+  "holdout_policy": "Locked holdout = last 20% of rows in `dteday` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "The frozen model beats naive lag-2, seasonal lag-7, and training-mean baselines on the later holdout window.",
+  "kind": "optimization_reliability",
+  "metrics": {
+    "bias": 163.92822600064213,
+    "fit_seconds": 0.17337905200020032,
+    "mae": 679.97987010381,
+    "mape": 1.4505146647177438,
+    "r2": 0.7063000679106259,
+    "rmse": 1017.5261286019968
+  },
+  "mode": "safe",
+  "model_name": "xgboost",
+  "optimization": "xgboost_C01",
+  "primary_metric": "mae",
+  "provenance": {
+    "data_sha256": {
+      "data/external/bike_sharing_daily/bike.csv": "a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Does a small explicit parameter search beat the default by a declared margin, and how does the frozen recipe perform on the locked holdout against naive baselines?",
+  "schema_version": 2,
+  "setup_summary": "Compared default xgboost vs 3 explicit candidates on the `raw` recipe (expanding-window TimeSeriesSplit(3) on time-ordered training rows): xgboost_baseline 787.4\u00b1406.3; xgboost_C01 749.9\u00b1399.0; xgboost_C02 797.7\u00b1426.5; xgboost_C03 786.2\u00b1428.4; tuning accepted (gain +37.5354 vs required 7.8740). Final fit on 582 training rows, scored once on the holdout (last 146 of 728 rows by `dteday`): MAE 680.0 [484.0, 890.1].",
+  "source": "https://raw.githubusercontent.com/christophM/interpretable-ml-book/master/data/bike.csv",
+  "started_at": "2026-10-03T07:07:44+00:00",
+  "status": "completed",
+  "task_type": "timeseries_regression",
+  "test_rows": 146,
+  "train_rows": 582
+}

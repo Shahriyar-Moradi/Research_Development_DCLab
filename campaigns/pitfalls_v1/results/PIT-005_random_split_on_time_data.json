@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pitfalls_v1",
+  "experiment_id": "PIT-005",
+  "kind": "pitfall",
+  "pitfall": "random_split_on_time_data",
+  "dataset": "multiple",
+  "datasets": [
+    "hyperack"
+  ],
+  "question": "On data that arrives over time, how different is a random holdout from a train-on-past, test-on-future holdout?",
+  "hypothesis": "A random split mixes future rows into training, so it estimates interpolation and is usually more optimistic than a forward-in-time holdout.",
+  "setup_summary": "HyperAck orders (11,107 rows, 2022-06-29 to 2022-11-14), 11 leakage-safe features, LightGBM. Random = stratified 80/20 over 3 seeds; time-ordered = train on the first 80% by timestamp, test on the last 20% (from 2022-10-16).",
+  "evidence": {
+    "random_split_auc": {
+      "mean": 0.933246921054002,
+      "std": 0.006726452160254655,
+      "min": 0.9284616986929125,
+      "max": 0.9409377766494819
+    },
+    "time_ordered_auc": 0.9370889682493219,
+    "optimism_gap": -0.0038420471953198865,
+    "rows": 11107,
+    "time_range": [
+      "2022-06-29",
+      "2022-10-16",
+      "2022-11-14"
+    ],
+    "features": [
+      "deliverey_category_id",
+      "weekday",
+      "time_bucket",
+      "total_distance",
+      "sum_product",
+      "source_latitude",
+      "source_longitude",
+      "destination_latitude",
+      "destination_longitude",
+      "first_customer_fare",
+      "hour"
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "PIT-005-C1",
+      "kind": "fact",
+      "statement": "A random split reported ROC-AUC 0.9332; training on the past and testing on the last 20% of time gave 0.9371 (random minus time-ordered -0.0038). Here the random split was NOT optimistic: the process was stable enough over this window that a forward-in-time test scored as well or better.",
+      "evidence": [
+        "evidence.random_split_auc",
+        "evidence.time_ordered_auc"
+      ],
+      "limitations": [
+        "One dataset and one cut-off; the gap depends on how fast the process drifts."
+      ]
+    },
+    {
+      "claim_id": "PIT-005-C2",
+      "kind": "recommendation",
+      "statement": "When rows have timestamps and the model will score future rows, validate forward in time (TimeSeriesSplit or a time cut-off) and report that number; a random split answers a different question. Do not assume the direction of the gap: measure it, because a stable process can show none.",
+      "evidence": [
+        "evidence.optimism_gap"
+      ],
+      "limitations": [
+        "One dataset and one cut-off; the gap depends on how fast the process drifts."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-03T06:25:12+00:00",
+  "completed_at": "2026-10-03T06:25:13+00:00",
+  "elapsed_seconds": 0.99,
+  "provenance": {
+    "git_commit": "601868e1a11223c0eb969a90a85702f0636caff8",
+    "git_dirty": true,
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "executable": "/usr/bin/python3",
+    "random_state": [
+      11,
+      22,
+      33
+    ],
+    "packages": {
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0"
+    },
+    "data_sha256": {
+      "data/hyperack/hyper_ackt-dataset.csv": "937834153a0a047de4ed387a043894e6f9fde0e7db9dbc7cf280ecd599b4766b"
+    }
+  }
+}

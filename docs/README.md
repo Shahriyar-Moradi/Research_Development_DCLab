@@ -1,5 +1,17 @@
 # `docs/` — written reports and project context
 
+## Guides (start here)
+
+| Guide | For whom |
+|---|---|
+| [`guides/DCLAB_FIELD_NOTES.md`](guides/DCLAB_FIELD_NOTES.md) | Anyone. Plain-language lessons from all experiments, with the numbers |
+| [`guides/DCLAB_RND_INTEGRATION_PLAN.md`](guides/DCLAB_RND_INTEGRATION_PLAN.md) | Product and engineering. How the R&D reaches DCLab and how the agent is verified |
+| [`guides/AGENT_KNOWLEDGE_ARCHITECTURE.md`](guides/AGENT_KNOWLEDGE_ARCHITECTURE.md) | Agent builders. Retrieval vs fine-tuning vs tools, record design, usage patterns |
+| [`guides/NOTEBOOK_COPILOT.md`](guides/NOTEBOOK_COPILOT.md) | Data scientists. What the copilot flags, why, and with what proof |
+| [`guides/SFT_DATA_GUIDE.md`](guides/SFT_DATA_GUIDE.md) | ML engineers. Paired instructions, formats, training and evaluation |
+
+## Reports and context
+
 | File | What it is |
 |---|---|
 | [`reports/MASTER_4WAY_BENCHMARK_REPORT.md`](reports/MASTER_4WAY_BENCHMARK_REPORT.md) ([PDF](reports/MASTER_4WAY_BENCHMARK_REPORT.pdf)) | 4-quadrant benchmark (safe/unsafe × baseline/optimized), FT-Transformer vs GBDTs, General Pipeline |

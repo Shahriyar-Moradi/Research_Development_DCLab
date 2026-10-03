@@ -1,0 +1,1076 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-067-C1",
+      "evidence": [
+        "evidence.detector_canary",
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The text_tabular_binary leakage detector caught its synthetic canaries: {'exact_copy_detected': True, 'passed': True}."
+    },
+    {
+      "claim_id": "EXP-067-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.policy_rationale",
+        "evidence.safe_vs_unsafe_training_cv",
+        "evidence.apparent_lift"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+      ],
+      "statement": "Declared decision-time exclusions for ecommerce_clothing_reviews: ['Rating', 'Positive Feedback Count']. Including them moves training-CV ROC-AUC (logistic_regression, combined recipe) from 0.9424\u00b10.0033 to 0.9795\u00b10.0006, an apparent lift of +0.0371 that would not exist in production. Per column: Rating +0.0371, Positive Feedback Count +0.0001."
+    },
+    {
+      "claim_id": "EXP-067-C3",
+      "evidence": [
+        "evidence.heuristic_review_candidates",
+        "evidence.top_univariate_signals",
+        "evidence.heuristic_rules"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "Strong signal alone is not leakage; e.g. legitimate lags or text sentiment are expected to be predictive."
+      ],
+      "statement": "Heuristics flagged 1 non-declared column(s) for human review: Unnamed: 0 (identifier_like). Strongest single-feature signal: Rating (0.974)."
+    },
+    {
+      "claim_id": "EXP-067-C5",
+      "evidence": [
+        "evidence.tabular_only_safe_vs_unsafe",
+        "evidence.safe_vs_unsafe_training_cv"
+      ],
+      "kind": "risk",
+      "limitations": [],
+      "statement": "Without text the leak dominates: a tabular-only logistic model goes from ROC-AUC 0.5283\u00b10.0226 (safe) to 0.9742\u00b10.0008 with the blocked columns (apparent lift +0.4459); with text the lift shrinks to +0.0371 because the review text already expresses the same sentiment."
+    },
+    {
+      "claim_id": "EXP-067-C4",
+      "evidence": [
+        "evidence.rating_vs_target_train"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "In training rows the recommendation rate is 2.0% at Rating 1, 6.1% at Rating 2, 40.6% at Rating 3, 96.9% at Rating 4, 99.8% at Rating 5: the star rating almost restates the label, so any model given Rating mostly learns that rule."
+    }
+  ],
+  "completed_at": "2026-10-03T07:08:20+00:00",
+  "dataset": "ecommerce_clothing_reviews",
+  "decision_time_rule": "Predict the recommendation flag from the review title/text, reviewer age, and product taxonomy at submission time, for products not seen in training; the star rating (written in the same form as the recommendation) and helpful-vote counts (accrued after publication) are not available.",
+  "evidence": {
+    "apparent_lift": 0.037114484567807415,
+    "apparent_lift_metric": "roc_auc",
+    "cv_protocol": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+    "decision_time_contract": "Predict the recommendation flag from the review title/text, reviewer age, and product taxonomy at submission time, for products not seen in training; the star rating (written in the same form as the recommendation) and helpful-vote counts (accrued after publication) are not available.",
+    "declared_leakage_features": [
+      "Rating",
+      "Positive Feedback Count"
+    ],
+    "detector_canary": {
+      "exact_copy_detected": true,
+      "passed": true
+    },
+    "detector_canary_passed": true,
+    "elapsed_seconds": 31.641268370000034,
+    "heuristic_review_candidates": [
+      {
+        "feature": "Positive Feedback Count",
+        "reasons": [
+          "declared_post_outcome_or_contested"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.00393847463941668,
+        "univariate_auc": 0.5565054727658753
+      },
+      {
+        "feature": "Rating",
+        "reasons": [
+          "declared_post_outcome_or_contested",
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.0002661131513119378,
+        "univariate_auc": 0.9736047660542597
+      },
+      {
+        "feature": "Unnamed: 0",
+        "reasons": [
+          "identifier_like"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 1.0,
+        "univariate_auc": 0.5037929672648722
+      }
+    ],
+    "heuristic_rules": {
+      "extreme_univariate_signal": 0.98,
+      "identifier_like": "unique_ratio >= 0.98 and non-numeric or integer-valued",
+      "rows_scanned": 18789,
+      "signal_measure": "max(AUC, 1-AUC); categoricals via in-sample category positive rate",
+      "strong_univariate_signal": 0.9
+    },
+    "identifier_exclusions": {
+      "Clothing ID": "High-cardinality product identifier (1,206 values); used as the grouping key so holdout/CV products are unseen, never as a raw feature.",
+      "Unnamed: 0": "Row index written by the CSV export; carries no product or reviewer meaning."
+    },
+    "policy_rationale": "`Rating`: 1-5 star rating entered by the reviewer in the same submission as the recommendation flag; a post-outcome proxy of the target, not an input available before the reviewer states the outcome. `Positive Feedback Count`: Number of other shoppers who later marked the review helpful; it accrues after publication and is unavailable at submission time.",
+    "rating_vs_target_train": {
+      "recommend_rate_by_rating": {
+        "1": 0.019637462235649546,
+        "2": 0.06091772151898734,
+        "3": 0.4056066579062637,
+        "4": 0.9685116851168512,
+        "5": 0.9984783642415597
+      },
+      "rows_by_rating": {
+        "1": 662,
+        "2": 1264,
+        "3": 2283,
+        "4": 4065,
+        "5": 10515
+      }
+    },
+    "safe_vs_unsafe_training_cv": {
+      "apparent_lift": 0.037114484567807415,
+      "metric": "roc_auc",
+      "model": "logistic_regression",
+      "per_column": {
+        "Positive Feedback Count": {
+          "apparent_lift": 6.505033322545817e-05,
+          "metric_mean": 0.942455704894417
+        },
+        "Rating": {
+          "apparent_lift": 0.03710691366262442,
+          "metric_mean": 0.979497568223816
+        }
+      },
+      "recipe": "combined",
+      "safe": {
+        "config_id": "safe",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 7.589401641999757,
+        "feature_count_mean": 30036.666666666668,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9064495530012772,
+            "average_precision": 0.9866948019529809,
+            "brier": 0.07187171090414259,
+            "f1": 0.9442435775451951,
+            "fit_rows": 12525,
+            "fit_seconds": 0.32242633199984994,
+            "fold": 1,
+            "log_loss": 0.24643294355425444,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9259190147415562,
+            "precision_at_k_positives": 0.9421471558920598,
+            "precision_target": 0.9,
+            "recall": 0.963308095515434,
+            "recall_at_precision_target": 0.9800038827412153,
+            "roc_auc": 0.9432395911225814,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.9025870328968381,
+            "average_precision": 0.9853885794123285,
+            "brier": 0.07404341788556407,
+            "f1": 0.9416937488051997,
+            "fit_rows": 12527,
+            "fit_seconds": 0.2862359800001286,
+            "fold": 2,
+            "log_loss": 0.26096151147999264,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.9273343373493976,
+            "precision_at_k_positives": 0.941747572815534,
+            "precision_target": 0.9,
+            "recall": 0.9565048543689321,
+            "recall_at_precision_target": 0.9763106796116505,
+            "roc_auc": 0.9387086156317663,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.9134600031933579,
+            "average_precision": 0.986729118753592,
+            "brier": 0.06788430876431206,
+            "f1": 0.9482626956853761,
+            "fit_rows": 12526,
+            "fit_seconds": 0.30432343400025275,
+            "fold": 3,
+            "log_loss": 0.23760462293358908,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.9327699530516432,
+            "precision_at_k_positives": 0.9452533488642982,
+            "precision_target": 0.9,
+            "recall": 0.9642787808192584,
+            "recall_at_precision_target": 0.9801980198019802,
+            "roc_auc": 0.9452237569292266,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9134600031933579,
+            "mean": 0.907498863030491,
+            "min": 0.9025870328968381,
+            "std": 0.005511910686894973
+          },
+          "average_precision": {
+            "max": 0.986729118753592,
+            "mean": 0.9862708333729672,
+            "min": 0.9853885794123285,
+            "std": 0.0007642469816741017
+          },
+          "brier": {
+            "max": 0.07404341788556407,
+            "mean": 0.0712664791846729,
+            "min": 0.06788430876431206,
+            "std": 0.00312384144404955
+          },
+          "f1": {
+            "max": 0.9482626956853761,
+            "mean": 0.9447333406785904,
+            "min": 0.9416937488051997,
+            "std": 0.0033117467783285687
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.32242633199984994,
+            "mean": 0.3043285820000771,
+            "min": 0.2862359800001286,
+            "std": 0.018095176549079585
+          },
+          "log_loss": {
+            "max": 0.26096151147999264,
+            "mean": 0.24833302598927873,
+            "min": 0.23760462293358908,
+            "std": 0.011793803270666984
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.9327699530516432,
+            "mean": 0.9286744350475323,
+            "min": 0.9259190147415562,
+            "std": 0.0036167299197706064
+          },
+          "precision_at_k_positives": {
+            "max": 0.9452533488642982,
+            "mean": 0.9430493591906307,
+            "min": 0.941747572815534,
+            "std": 0.0019191390048629603
+          },
+          "recall": {
+            "max": 0.9642787808192584,
+            "mean": 0.9613639102345415,
+            "min": 0.9565048543689321,
+            "std": 0.004235962159722415
+          },
+          "recall_at_precision_target": {
+            "max": 0.9801980198019802,
+            "mean": 0.9788375273849487,
+            "min": 0.9763106796116505,
+            "std": 0.002190466172223839
+          },
+          "roc_auc": {
+            "max": 0.9452237569292266,
+            "mean": 0.9423906545611915,
+            "min": 0.9387086156317663,
+            "std": 0.003339503929540491
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "logistic_regression",
+        "model_params": {},
+        "optimization": "safe",
+        "recipe": "combined",
+        "stage": "combined",
+        "top_features": [
+          {
+            "feature": "w:love",
+            "mean_normalized_importance": 0.0005590972388526406
+          },
+          {
+            "feature": "w:disappointed",
+            "mean_normalized_importance": 0.0005484213635754111
+          },
+          {
+            "feature": "w:unflattering",
+            "mean_normalized_importance": 0.0005023924918524811
+          },
+          {
+            "feature": "w:great",
+            "mean_normalized_importance": 0.0004754946875965036
+          },
+          {
+            "feature": "w:not",
+            "mean_normalized_importance": 0.0004717596702246796
+          },
+          {
+            "feature": "w:huge",
+            "mean_normalized_importance": 0.00045978030074609894
+          },
+          {
+            "feature": "w:perfect",
+            "mean_normalized_importance": 0.0004461026219149963
+          },
+          {
+            "feature": "w:poor",
+            "mean_normalized_importance": 0.0004126418150094154
+          },
+          {
+            "feature": "w:to love",
+            "mean_normalized_importance": 0.00039911588825603694
+          },
+          {
+            "feature": "w:not flattering",
+            "mean_normalized_importance": 0.00038922955703628157
+          }
+        ]
+      },
+      "unsafe": {
+        "config_id": "unsafe_all_blocked",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 7.473078095999881,
+        "feature_count_mean": 30038.666666666668,
+        "fold_metrics": [
+          {
+            "accuracy": 0.939176245210728,
+            "average_precision": 0.9952709451088646,
+            "brier": 0.04362761813032078,
+            "f1": 0.9631848487776596,
+            "fit_rows": 12525,
+            "fit_seconds": 0.25519652200000564,
+            "fold": 1,
+            "log_loss": 0.15073438962485838,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9588303193535975,
+            "precision_at_k_positives": 0.9640846437584935,
+            "precision_target": 0.9,
+            "recall": 0.9675791108522617,
+            "recall_at_precision_target": 0.9951465734808775,
+            "roc_auc": 0.9799409146559178,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.9407537527946344,
+            "average_precision": 0.9952677794403693,
+            "brier": 0.04435218176009053,
+            "f1": 0.9641857322135341,
+            "fit_rows": 12527,
+            "fit_seconds": 0.2926331119997485,
+            "fold": 2,
+            "log_loss": 0.15827806755975002,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.958725283163755,
+            "precision_at_k_positives": 0.9646601941747572,
+            "precision_target": 0.9,
+            "recall": 0.9697087378640776,
+            "recall_at_precision_target": 0.9939805825242718,
+            "roc_auc": 0.9787743591534539,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.9437969024429187,
+            "average_precision": 0.9951419029829567,
+            "brier": 0.041275890162001665,
+            "f1": 0.9660559305689489,
+            "fit_rows": 12526,
+            "fit_seconds": 0.2820650300000125,
+            "fold": 3,
+            "log_loss": 0.1490881640573092,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.959762406591301,
+            "precision_at_k_positives": 0.9662201514269074,
+            "precision_target": 0.9,
+            "recall": 0.9724325373713842,
+            "recall_at_precision_target": 0.9955348476024073,
+            "roc_auc": 0.9798001435776248,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [
+          "Positive Feedback Count",
+          "Rating"
+        ],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9437969024429187,
+            "mean": 0.941242300149427,
+            "min": 0.939176245210728,
+            "std": 0.0023487501362970294
+          },
+          "average_precision": {
+            "max": 0.9952709451088646,
+            "mean": 0.9952268758440636,
+            "min": 0.9951419029829567,
+            "std": 7.360567714358938e-05
+          },
+          "brier": {
+            "max": 0.04435218176009053,
+            "mean": 0.04308523001747099,
+            "min": 0.041275890162001665,
+            "std": 0.0016082696129189917
+          },
+          "f1": {
+            "max": 0.9660559305689489,
+            "mean": 0.9644755038533809,
+            "min": 0.9631848487776596,
+            "std": 0.0014573103188795437
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.2926331119997485,
+            "mean": 0.2766315546665889,
+            "min": 0.25519652200000564,
+            "std": 0.01930068802792802
+          },
+          "log_loss": {
+            "max": 0.15827806755975002,
+            "mean": 0.15270020708063922,
+            "min": 0.1490881640573092,
+            "std": 0.00490019492450381
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.959762406591301,
+            "mean": 0.9591060030362178,
+            "min": 0.958725283163755,
+            "std": 0.0005708829745564965
+          },
+          "precision_at_k_positives": {
+            "max": 0.9662201514269074,
+            "mean": 0.9649883297867193,
+            "min": 0.9640846437584935,
+            "std": 0.0011049221625716646
+          },
+          "recall": {
+            "max": 0.9724325373713842,
+            "mean": 0.9699067953625745,
+            "min": 0.9675791108522617,
+            "std": 0.002432767420791329
+          },
+          "recall_at_precision_target": {
+            "max": 0.9955348476024073,
+            "mean": 0.9948873345358522,
+            "min": 0.9939805825242718,
+            "std": 0.0008089119891813143
+          },
+          "roc_auc": {
+            "max": 0.9799409146559178,
+            "mean": 0.979505139128999,
+            "min": 0.9787743591534539,
+            "std": 0.0006367759838546359
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "logistic_regression",
+        "model_params": {},
+        "optimization": "unsafe_all_blocked",
+        "recipe": "combined",
+        "stage": "combined",
+        "top_features": [
+          {
+            "feature": "Rating",
+            "mean_normalized_importance": 0.0032900464544993024
+          },
+          {
+            "feature": "w:unflattering",
+            "mean_normalized_importance": 0.000357690283807709
+          },
+          {
+            "feature": "Division Name=General Petite",
+            "mean_normalized_importance": 0.0003428870070413416
+          },
+          {
+            "feature": "w:disappointed",
+            "mean_normalized_importance": 0.00034272784756434935
+          },
+          {
+            "feature": "w:little",
+            "mean_normalized_importance": 0.000329325329446753
+          },
+          {
+            "feature": "w:nice",
+            "mean_normalized_importance": 0.0003200279741681104
+          },
+          {
+            "feature": "Division Name=General",
+            "mean_normalized_importance": 0.00031966748145372946
+          },
+          {
+            "feature": "w:not",
+            "mean_normalized_importance": 0.0003178707965418082
+          },
+          {
+            "feature": "w:huge",
+            "mean_normalized_importance": 0.00031355704547609127
+          },
+          {
+            "feature": "w:returning",
+            "mean_normalized_importance": 0.0003127626098143373
+          }
+        ]
+      }
+    },
+    "tabular_only_safe_vs_unsafe": {
+      "apparent_lift": 0.4459142621111334,
+      "safe": {
+        "config_id": "tabular_safe",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 0.41124354299972765,
+        "feature_count_mean": 32.666666666666664,
+        "fold_metrics": [
+          {
+            "accuracy": 0.8223180076628352,
+            "average_precision": 0.8432258675467084,
+            "brier": 0.14575173078395137,
+            "f1": 0.902496714848883,
+            "fit_rows": 12525,
+            "fit_seconds": 0.01953646399988429,
+            "fold": 1,
+            "log_loss": 0.4670009087819712,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.8223180076628352,
+            "precision_at_k_positives": 0.8274121529800039,
+            "precision_target": 0.9,
+            "recall": 1.0,
+            "recall_at_precision_target": 0.006988934187536401,
+            "roc_auc": 0.5444809345370877,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.8224209517725967,
+            "average_precision": 0.8249021802689556,
+            "brier": 0.14700394291958258,
+            "f1": 0.902558710129688,
+            "fit_rows": 12527,
+            "fit_seconds": 0.013244106999991345,
+            "fold": 2,
+            "log_loss": 0.470838975374726,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.8224209517725967,
+            "precision_at_k_positives": 0.8240776699029126,
+            "precision_target": 0.9,
+            "recall": 1.0,
+            "recall_at_precision_target": 0.0021359223300970874,
+            "roc_auc": 0.5024965076482504,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.8224493054446751,
+            "average_precision": 0.8389118908072116,
+            "brier": 0.1456464831881062,
+            "f1": 0.902575784124759,
+            "fit_rows": 12526,
+            "fit_seconds": 0.01273083600017344,
+            "fold": 3,
+            "log_loss": 0.46640047404992385,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.8224493054446751,
+            "precision_at_k_positives": 0.8250825082508251,
+            "precision_target": 0.9,
+            "recall": 1.0,
+            "recall_at_precision_target": 0.0009706853038245001,
+            "roc_auc": 0.5379350276331062,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "average_precision": {
+            "max": 0.8432258675467084,
+            "mean": 0.8356799795409585,
+            "min": 0.8249021802689556,
+            "std": 0.009579839074218327
+          },
+          "brier": {
+            "max": 0.14700394291958258,
+            "mean": 0.14613405229721338,
+            "min": 0.1456464831881062,
+            "std": 0.000755183113736131
+          },
+          "f1": {
+            "max": 0.902575784124759,
+            "mean": 0.9025437363677767,
+            "min": 0.902496714848883,
+            "std": 4.1607063777927495e-05
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.01953646399988429,
+            "mean": 0.015170469000016359,
+            "min": 0.01273083600017344,
+            "std": 0.0037897620022855467
+          },
+          "log_loss": {
+            "max": 0.470838975374726,
+            "mean": 0.46808011940220706,
+            "min": 0.46640047404992385,
+            "std": 0.002408027237115476
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision_at_k_positives": {
+            "max": 0.8274121529800039,
+            "mean": 0.825524110377914,
+            "min": 0.8240776699029126,
+            "std": 0.0017105419248995468
+          },
+          "recall": {
+            "max": 1.0,
+            "mean": 1.0,
+            "min": 1.0,
+            "std": 0.0
+          },
+          "recall_at_precision_target": {
+            "max": 0.006988934187536401,
+            "mean": 0.0033651806071526625,
+            "min": 0.0009706853038245001,
+            "std": 0.003191886094514827
+          },
+          "roc_auc": {
+            "max": 0.5444809345370877,
+            "mean": 0.528304156606148,
+            "min": 0.5024965076482504,
+            "std": 0.02258845463615112
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "logistic_regression",
+        "model_params": {},
+        "optimization": "tabular_safe",
+        "recipe": "tabular",
+        "stage": "tabular",
+        "top_features": [
+          {
+            "feature": "Division Name=__missing__",
+            "mean_normalized_importance": 0.08904714613906285
+          },
+          {
+            "feature": "Department Name=__missing__",
+            "mean_normalized_importance": 0.08904714613906285
+          },
+          {
+            "feature": "Class Name=__missing__",
+            "mean_normalized_importance": 0.08904714613906285
+          },
+          {
+            "feature": "Class Name=Casual bottoms",
+            "mean_normalized_importance": 0.06522845707815912
+          },
+          {
+            "feature": "Department Name=Bottoms",
+            "mean_normalized_importance": 0.056952637659948395
+          },
+          {
+            "feature": "Age",
+            "mean_normalized_importance": 0.05151976588859358
+          },
+          {
+            "feature": "Division Name=Initmates",
+            "mean_normalized_importance": 0.050440723341737444
+          },
+          {
+            "feature": "Class Name=Legwear",
+            "mean_normalized_importance": 0.047520586844828405
+          },
+          {
+            "feature": "Department Name=Trend",
+            "mean_normalized_importance": 0.03829116414558419
+          },
+          {
+            "feature": "Class Name=Trend",
+            "mean_normalized_importance": 0.03829116414558419
+          }
+        ]
+      },
+      "unsafe": {
+        "config_id": "tabular_unsafe",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 0.3901535210002294,
+        "feature_count_mean": 34.666666666666664,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9324712643678161,
+            "average_precision": 0.9935041657608721,
+            "brier": 0.04318747511869979,
+            "f1": 0.9581643754326971,
+            "fit_rows": 12525,
+            "fit_seconds": 0.0174685550000504,
+            "fold": 1,
+            "log_loss": 0.1441850461907919,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9766129032258064,
+            "precision_at_k_positives": 0.9557367501456028,
+            "precision_target": 0.9,
+            "recall": 0.9403999223451757,
+            "recall_at_precision_target": 0.9945641622985828,
+            "roc_auc": 0.9736300647664259,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.9366017246885979,
+            "average_precision": 0.9943748738465533,
+            "brier": 0.041386735750302064,
+            "f1": 0.9607513593672763,
+            "fit_rows": 12527,
+            "fit_seconds": 0.01757418300030622,
+            "fold": 2,
+            "log_loss": 0.140082216451001,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.97865055387714,
+            "precision_at_k_positives": 0.9578640776699029,
+            "precision_target": 0.9,
+            "recall": 0.943495145631068,
+            "recall_at_precision_target": 0.994757281553398,
+            "roc_auc": 0.9750737759307119,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.937250518920645,
+            "average_precision": 0.992974014493551,
+            "brier": 0.04140765349686258,
+            "f1": 0.9614894659480647,
+            "fit_rows": 12526,
+            "fit_seconds": 0.01626276799970583,
+            "fold": 3,
+            "log_loss": 0.1399463082326234,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.9707162643450732,
+            "precision_at_k_positives": 0.9594253543001359,
+            "precision_target": 0.9,
+            "recall": 0.9524364201125995,
+            "recall_at_precision_target": 0.9959231217239372,
+            "roc_auc": 0.9739514154547065,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [
+          "Positive Feedback Count",
+          "Rating"
+        ],
+        "metrics": {
+          "accuracy": {
+            "max": 0.937250518920645,
+            "mean": 0.9354411693256864,
+            "min": 0.9324712643678161,
+            "std": 0.002592389840084056
+          },
+          "average_precision": {
+            "max": 0.9943748738465533,
+            "mean": 0.9936176847003254,
+            "min": 0.992974014493551,
+            "std": 0.0007072953017901744
+          },
+          "brier": {
+            "max": 0.04318747511869979,
+            "mean": 0.04199395478862148,
+            "min": 0.041386735750302064,
+            "std": 0.0010336718394940304
+          },
+          "f1": {
+            "max": 0.9614894659480647,
+            "mean": 0.9601350669160128,
+            "min": 0.9581643754326971,
+            "std": 0.001746115409404653
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.01757418300030622,
+            "mean": 0.01710183533335415,
+            "min": 0.01626276799970583,
+            "std": 0.0007285703887794835
+          },
+          "log_loss": {
+            "max": 0.1441850461907919,
+            "mean": 0.14140452362480546,
+            "min": 0.1399463082326234,
+            "std": 0.0024089618232602996
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.97865055387714,
+            "mean": 0.9753265738160065,
+            "min": 0.9707162643450732,
+            "std": 0.0041205849229876525
+          },
+          "precision_at_k_positives": {
+            "max": 0.9594253543001359,
+            "mean": 0.9576753940385472,
+            "min": 0.9557367501456028,
+            "std": 0.001851526744815176
+          },
+          "recall": {
+            "max": 0.9524364201125995,
+            "mean": 0.9454438293629477,
+            "min": 0.9403999223451757,
+            "std": 0.0062503876552954425
+          },
+          "recall_at_precision_target": {
+            "max": 0.9959231217239372,
+            "mean": 0.9950815218586393,
+            "min": 0.9945641622985828,
+            "std": 0.0007352152824833578
+          },
+          "roc_auc": {
+            "max": 0.9750737759307119,
+            "mean": 0.9742184187172814,
+            "min": 0.9736300647664259,
+            "std": 0.0007579865026108506
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "logistic_regression",
+        "model_params": {},
+        "optimization": "tabular_unsafe",
+        "recipe": "tabular",
+        "stage": "tabular",
+        "top_features": [
+          {
+            "feature": "Rating",
+            "mean_normalized_importance": 0.44269811722901786
+          },
+          {
+            "feature": "Division Name=General",
+            "mean_normalized_importance": 0.050966343236833245
+          },
+          {
+            "feature": "Division Name=General Petite",
+            "mean_normalized_importance": 0.050228521959496925
+          },
+          {
+            "feature": "Positive Feedback Count",
+            "mean_normalized_importance": 0.04462117328817367
+          },
+          {
+            "feature": "Division Name=Initmates",
+            "mean_normalized_importance": 0.04295360553393927
+          },
+          {
+            "feature": "Department Name=Tops",
+            "mean_normalized_importance": 0.03082820237488571
+          },
+          {
+            "feature": "Department Name=Intimate",
+            "mean_normalized_importance": 0.030363854309203964
+          },
+          {
+            "feature": "Department Name=Bottoms",
+            "mean_normalized_importance": 0.024333606103826667
+          },
+          {
+            "feature": "Class Name=Outerwear",
+            "mean_normalized_importance": 0.023356731804198744
+          },
+          {
+            "feature": "Department Name=Jackets",
+            "mean_normalized_importance": 0.022751612234789016
+          }
+        ]
+      }
+    },
+    "top_univariate_signals": [
+      {
+        "feature": "Rating",
+        "signal": 0.9736047660542597,
+        "univariate_auc": 0.9736047660542597
+      },
+      {
+        "feature": "Positive Feedback Count",
+        "signal": 0.5565054727658753,
+        "univariate_auc": 0.5565054727658753
+      },
+      {
+        "auc_basis": "in-sample category positive rate",
+        "feature": "Class Name",
+        "signal": 0.5376808426857819,
+        "univariate_auc": 0.5376808426857819
+      },
+      {
+        "auc_basis": "in-sample category positive rate",
+        "feature": "Department Name",
+        "signal": 0.5287864975500804,
+        "univariate_auc": 0.5287864975500804
+      },
+      {
+        "feature": "Age",
+        "signal": 0.517295452093042,
+        "univariate_auc": 0.517295452093042
+      },
+      {
+        "auc_basis": "in-sample category positive rate",
+        "feature": "Division Name",
+        "signal": 0.515094255754342,
+        "univariate_auc": 0.515094255754342
+      },
+      {
+        "feature": "Clothing ID",
+        "signal": 0.5066967657088981,
+        "univariate_auc": 0.5066967657088981
+      },
+      {
+        "feature": "Unnamed: 0",
+        "signal": 0.5037929672648722,
+        "univariate_auc": 0.5037929672648722
+      }
+    ],
+    "warning": "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+  },
+  "experiment_id": "EXP-067",
+  "holdout_policy": "Locked holdout = one of 5 stratified group folds by `Clothing ID` (~20% of rows, no Clothing ID shared with training); selection uses 3-fold stratified group CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Rating nearly restates the recommendation label and would inflate ROC-AUC dramatically if left in.",
+  "kind": "leakage_audit",
+  "primary_metric": "roc_auc",
+  "provenance": {
+    "data_sha256": {
+      "data/external/ecommerce_clothing_reviews/Womens Clothing E-Commerce Reviews.csv": "bd93cc515747ad1f87b8bc863c9e40da758509e6db6506a96d06976e61e36ee0"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the decision-time contract, and how much would they inflate the primary metric if left in?",
+  "schema_version": 2,
+  "setup_summary": "Scanned 18789 training rows with text_tabular_binary heuristics (univariate signal, exact proxy/identity, name, uniqueness) and synthetic canaries; compared logistic_regression on the combined recipe with vs without blocked ['Rating', 'Positive Feedback Count'] on StratifiedGroupKFold(3) by `Clothing ID` on training rows: ROC-AUC 0.9424\u00b10.0033 safe vs 0.9795\u00b10.0006 unsafe (apparent lift +0.0371). Also tabular-only logistic safe vs unsafe: ROC-AUC 0.5283 vs 0.9742.",
+  "source": "https://raw.githubusercontent.com/AFAgarap/ecommerce-reviews-analysis/master/Womens%20Clothing%20E-Commerce%20Reviews.csv",
+  "started_at": "2026-10-03T07:07:48+00:00",
+  "status": "completed",
+  "task_type": "text_tabular_binary"
+}

@@ -1,0 +1,325 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-056-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.raw_feature_count",
+        "evidence.train_rows",
+        "evidence.holdout_rows",
+        "evidence.target_summary"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "letter_recognition has 20000 source rows and 16 raw columns; the locked holdout is stratified random 4000 of 20000 rows (4000 rows), leaving 16000 training rows with 26 classes with 587\u2013650 training rows each (max/min ratio 1.11)."
+    },
+    {
+      "claim_id": "EXP-056-C2",
+      "evidence": [
+        "evidence.feature_profiles",
+        "evidence.risk_features"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "PSI on feature distributions is a smoke check; it uses no holdout labels and does not prove production stability."
+      ],
+      "statement": "0 of 16 columns triggered missingness, identifier, near-constant, or train/holdout PSI>0.20 review rules (none)."
+    },
+    {
+      "claim_id": "EXP-056-C3",
+      "evidence": [
+        "evidence.duplicate_feature_rows_train",
+        "evidence.duplicate_feature_row_rate_train"
+      ],
+      "kind": "risk",
+      "limitations": [],
+      "statement": "926 training rows (5.79%) repeat an earlier feature vector exactly; with 16 small-integer features, identical vectors can fall on both sides of any random split and inflate scores."
+    }
+  ],
+  "completed_at": "2026-10-03T07:04:18+00:00",
+  "dataset": "letter_recognition",
+  "decision_time_rule": "All 16 shape statistics are computed from the glyph image itself before classification, so every column is decision-time available; no column is blocked.",
+  "evidence": {
+    "column_roles": {
+      "high": "feature",
+      "onpix": "feature",
+      "width": "feature",
+      "x-bar": "feature",
+      "x-box": "feature",
+      "x-ege": "feature",
+      "x2bar": "feature",
+      "x2ybr": "feature",
+      "xegvy": "feature",
+      "xy2br": "feature",
+      "xybar": "feature",
+      "y-bar": "feature",
+      "y-box": "feature",
+      "y-ege": "feature",
+      "y2bar": "feature",
+      "yegvx": "feature"
+    },
+    "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "duplicate_feature_row_rate_train": 0.057875,
+    "duplicate_feature_rows_train": 926,
+    "elapsed_seconds": 0.03883468599997286,
+    "feature_profiles": [
+      {
+        "dtype": "float64",
+        "feature": "x-box",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2223125,
+        "train_vs_holdout_psi": 0.0005859481076293634,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "y-box",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.134375,
+        "train_vs_holdout_psi": 0.0025918045215072333,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "width",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2128125,
+        "train_vs_holdout_psi": 0.0021559154345845025,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "high",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.183875,
+        "train_vs_holdout_psi": 0.0013914708679734044,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "onpix",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2094375,
+        "train_vs_holdout_psi": 0.0008210070964292375,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "x-bar",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.3,
+        "train_vs_holdout_psi": 0.00119944582502701,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "y-bar",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.3,
+        "train_vs_holdout_psi": 0.0008615521230999251,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "x2bar",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.1718125,
+        "train_vs_holdout_psi": 0.002391848138135567,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "y2bar",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.1621875,
+        "train_vs_holdout_psi": 0.000823201332082783,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "xybar",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2764375,
+        "train_vs_holdout_psi": 0.001251227555116767,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "x2ybr",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2813125,
+        "train_vs_holdout_psi": 0.0010647816776581341,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "xy2br",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.326625,
+        "train_vs_holdout_psi": 0.0017358261809872853,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "x-ege",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2371875,
+        "train_vs_holdout_psi": 0.0006957714699119299,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "xegvy",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.38225,
+        "train_vs_holdout_psi": 0.001289952769201176,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "y-ege",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.15475,
+        "train_vs_holdout_psi": 0.0009936138550191527,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      },
+      {
+        "dtype": "float64",
+        "feature": "yegvx",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.3994375,
+        "train_vs_holdout_psi": 0.0023471740517147476,
+        "unique_count": 16,
+        "unique_ratio": 0.001
+      }
+    ],
+    "holdout_rows": 4000,
+    "holdout_split": "stratified random 4000 of 20000 rows",
+    "missing_cell_rate_train": 0.0,
+    "note": "Holdout feature distributions (never labels) are compared via PSI, as in model_building_50_v1.",
+    "raw_feature_count": 16,
+    "risk_features": {},
+    "sampling": {
+      "note": "No subsampling.",
+      "rows_used": 20000
+    },
+    "source_rows": 20000,
+    "target_summary": {
+      "class_counts_train": {
+        "1": 631,
+        "10": 598,
+        "11": 591,
+        "12": 609,
+        "13": 634,
+        "14": 626,
+        "15": 603,
+        "16": 642,
+        "17": 626,
+        "18": 607,
+        "19": 598,
+        "2": 613,
+        "20": 637,
+        "21": 650,
+        "22": 611,
+        "23": 602,
+        "24": 630,
+        "25": 629,
+        "26": 587,
+        "3": 589,
+        "4": 644,
+        "5": 614,
+        "6": 620,
+        "7": 618,
+        "8": 587,
+        "9": 604
+      },
+      "classes": 26,
+      "imbalance_ratio_max_min": 1.1073253833049403,
+      "label_encoding": "PMLB integer targets mapped in sorted order to class_index 0..K-1",
+      "largest_class_count": 650,
+      "majority_baseline_accuracy_train": 0.040625,
+      "normalized_entropy": 0.9998669616729404,
+      "smallest_class_count": 587
+    },
+    "train_rows": 16000
+  },
+  "experiment_id": "EXP-056",
+  "holdout_policy": "Locked holdout = stratified random 20%; selection uses 3-fold stratified CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Classes are near-balanced, so macro-F1 and accuracy agree; duplicates are the main data risk.",
+  "kind": "data_understanding",
+  "primary_metric": "macro_f1",
+  "provenance": {
+    "data_sha256": {
+      "data/external/letter_recognition/letter.tsv.gz": "f8ffe4f9920dc63fb85b864cc1afffb66e45c6e302d175905fd7db04ba67b8c6"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, how is the target distributed, and which quality, identifier, time, or text risks must be resolved before modeling?",
+  "schema_version": 2,
+  "setup_summary": "Profiled 16000 training rows \u00d7 16 raw columns of letter_recognition (holdout: stratified random 4000 of 20000 rows); computed target summary, per-column missingness/uniqueness/PSI, duplicates; 0 columns flagged for review.",
+  "source": "https://media.githubusercontent.com/media/EpistasisLab/pmlb/master/datasets/letter/letter.tsv.gz",
+  "started_at": "2026-10-03T07:04:18+00:00",
+  "status": "completed",
+  "task_type": "multiclass"
+}

@@ -1,0 +1,266 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-066-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.raw_feature_count",
+        "evidence.train_rows",
+        "evidence.holdout_rows",
+        "evidence.target_summary"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "ecommerce_clothing_reviews has 23486 source rows and 10 raw columns; the locked holdout is 4697 rows from 256 `Clothing ID` groups never seen in training (first of 5 stratified group folds) (4697 rows), leaving 18789 training rows with a training positive rate of 0.8224 (15452 positives vs 3337 negatives)."
+    },
+    {
+      "claim_id": "EXP-066-C2",
+      "evidence": [
+        "evidence.feature_profiles",
+        "evidence.risk_features"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "PSI on feature distributions is a smoke check; it uses no holdout labels and does not prove production stability."
+      ],
+      "statement": "3 of 10 columns triggered missingness, identifier, near-constant, or train/holdout PSI>0.20 review rules (Unnamed: 0: identifier_like; Clothing ID: train_holdout_feature_shift; Title: missingness)."
+    },
+    {
+      "claim_id": "EXP-066-C3",
+      "evidence": [
+        "evidence.group_stats",
+        "evidence.text_stats"
+      ],
+      "kind": "risk",
+      "limitations": [],
+      "statement": "Reviews are concentrated by product: the largest of 950 training Clothing IDs holds 4.3% of training rows and the top 10 hold 27.8%, so random splits would leak product identity; Review Text is missing in 3.6% and Title in 16.3% of training rows (median review 59 words)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:48+00:00",
+  "dataset": "ecommerce_clothing_reviews",
+  "decision_time_rule": "Predict the recommendation flag from the review title/text, reviewer age, and product taxonomy at submission time, for products not seen in training; the star rating (written in the same form as the recommendation) and helpful-vote counts (accrued after publication) are not available.",
+  "evidence": {
+    "column_roles": {
+      "Age": "feature",
+      "Class Name": "feature",
+      "Clothing ID": "identifier",
+      "Department Name": "feature",
+      "Division Name": "feature",
+      "Positive Feedback Count": "blocked",
+      "Rating": "blocked",
+      "Review Text": "text",
+      "Title": "text",
+      "Unnamed: 0": "identifier"
+    },
+    "cv_protocol": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+    "duplicate_feature_row_rate_train": 0.008781733993293949,
+    "duplicate_feature_rows_train": 165,
+    "elapsed_seconds": 0.20823678999977346,
+    "feature_profiles": [
+      {
+        "dtype": "int64",
+        "feature": "Unnamed: 0",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "identifier_like"
+        ],
+        "role": "identifier",
+        "top_value_frequency": 5.322263026238757e-05,
+        "train_vs_holdout_psi": 0.025481306779599002,
+        "unique_count": 18789,
+        "unique_ratio": 1.0
+      },
+      {
+        "dtype": "int64",
+        "feature": "Clothing ID",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "identifier",
+        "top_value_frequency": 0.042897439991484376,
+        "train_vs_holdout_psi": 0.5204621536687287,
+        "unique_count": 950,
+        "unique_ratio": 0.050561498749268186
+      },
+      {
+        "dtype": "int64",
+        "feature": "Age",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.053861301825536216,
+        "train_vs_holdout_psi": 0.0018624293740341713,
+        "unique_count": 75,
+        "unique_ratio": 0.003991697269679068
+      },
+      {
+        "dtype": "object",
+        "feature": "Title",
+        "missing_rate": 0.16318058438448027,
+        "production_risks": [
+          "missingness"
+        ],
+        "role": "text",
+        "top_value_frequency": 0.16318058438448027,
+        "train_vs_holdout_psi": null,
+        "unique_count": 11428,
+        "unique_ratio": 0.6082282186385651
+      },
+      {
+        "dtype": "object",
+        "feature": "Review Text",
+        "missing_rate": 0.03587205279684922,
+        "production_risks": [],
+        "role": "text",
+        "top_value_frequency": 0.03587205279684922,
+        "train_vs_holdout_psi": null,
+        "unique_count": 18111,
+        "unique_ratio": 0.9639150566821012
+      },
+      {
+        "dtype": "int64",
+        "feature": "Rating",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "blocked",
+        "top_value_frequency": 0.5596359572090053,
+        "train_vs_holdout_psi": 0.0005408330939248265,
+        "unique_count": 5,
+        "unique_ratio": 0.0002661131513119378
+      },
+      {
+        "dtype": "int64",
+        "feature": "Positive Feedback Count",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "blocked",
+        "top_value_frequency": 0.4761296503273192,
+        "train_vs_holdout_psi": 3.337003701952859e-05,
+        "unique_count": 74,
+        "unique_ratio": 0.00393847463941668
+      },
+      {
+        "dtype": "object",
+        "feature": "Division Name",
+        "missing_rate": 0.00042578104209910054,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.5844377029112778,
+        "train_vs_holdout_psi": null,
+        "unique_count": 4,
+        "unique_ratio": 0.00021289052104955027
+      },
+      {
+        "dtype": "object",
+        "feature": "Department Name",
+        "missing_rate": 0.00042578104209910054,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.4765554313694183,
+        "train_vs_holdout_psi": null,
+        "unique_count": 7,
+        "unique_ratio": 0.00037255841183671295
+      },
+      {
+        "dtype": "object",
+        "feature": "Class Name",
+        "missing_rate": 0.00042578104209910054,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.2504656980147959,
+        "train_vs_holdout_psi": null,
+        "unique_count": 21,
+        "unique_ratio": 0.001117675235510139
+      }
+    ],
+    "group_stats": {
+      "holdout_groups": 256,
+      "largest_group_rows": 806,
+      "largest_group_share": 0.042897439991484376,
+      "median_rows_per_group": 2.0,
+      "singleton_groups": 378,
+      "top10_group_share": 0.27814146575123744,
+      "train_groups": 950
+    },
+    "holdout_rows": 4697,
+    "holdout_split": "4697 rows from 256 `Clothing ID` groups never seen in training (first of 5 stratified group folds)",
+    "missing_cell_rate_train": 0.02003299803076268,
+    "note": "Holdout feature distributions (never labels) are compared via PSI, as in model_building_50_v1.",
+    "raw_feature_count": 10,
+    "risk_features": {
+      "Clothing ID": [
+        "train_holdout_feature_shift"
+      ],
+      "Title": [
+        "missingness"
+      ],
+      "Unnamed: 0": [
+        "identifier_like"
+      ]
+    },
+    "sampling": {
+      "note": "No subsampling.",
+      "rows_used": 23486
+    },
+    "source_rows": 23486,
+    "target_summary": {
+      "imbalance_ratio_neg_per_pos": 0.21595909914574166,
+      "majority_baseline_accuracy_train": 0.8223960828144127,
+      "negatives_train": 3337,
+      "positive_rate_train": 0.8223960828144127,
+      "positives_train": 15452
+    },
+    "text_stats": {
+      "Review Text": {
+        "duplicate_nonmissing_rate": 0.0002760143527463428,
+        "max_words": 115,
+        "mean_words": 59.98327353022357,
+        "median_words": 59.0,
+        "missing_rate": 0.03587205279684922,
+        "p95_words": 101.0
+      },
+      "Title": {
+        "duplicate_nonmissing_rate": 0.27323029956115247,
+        "max_words": 12,
+        "mean_words": 3.3457355466514023,
+        "median_words": 3.0,
+        "missing_rate": 0.16318058438448027,
+        "p95_words": 7.0
+      }
+    },
+    "train_rows": 18789
+  },
+  "experiment_id": "EXP-066",
+  "holdout_policy": "Locked holdout = one of 5 stratified group folds by `Clothing ID` (~20% of rows, no Clothing ID shared with training); selection uses 3-fold stratified group CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Reviews concentrate on a few products and text is mostly present, so grouped evaluation and text features are both necessary.",
+  "kind": "data_understanding",
+  "primary_metric": "roc_auc",
+  "provenance": {
+    "data_sha256": {
+      "data/external/ecommerce_clothing_reviews/Womens Clothing E-Commerce Reviews.csv": "bd93cc515747ad1f87b8bc863c9e40da758509e6db6506a96d06976e61e36ee0"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, how is the target distributed, and which quality, identifier, time, or text risks must be resolved before modeling?",
+  "schema_version": 2,
+  "setup_summary": "Profiled 18789 training rows \u00d7 10 raw columns of ecommerce_clothing_reviews (holdout: 4697 rows from 256 `Clothing ID` groups never seen in training (first of 5 stratified group folds)); computed target summary, per-column missingness/uniqueness/PSI, duplicates, text length stats, group concentration; 3 columns flagged for review.",
+  "source": "https://raw.githubusercontent.com/AFAgarap/ecommerce-reviews-analysis/master/Womens%20Clothing%20E-Commerce%20Reviews.csv",
+  "started_at": "2026-10-03T07:07:48+00:00",
+  "status": "completed",
+  "task_type": "text_tabular_binary"
+}

@@ -15,10 +15,17 @@ HyperAck order-acceptance tabular classification R&D: feature engineering, leaka
 ├── requirements*.txt              ← ML env, agent env (3.12/3.13), CI env
 ├── data/                          ← raw project datasets (HyperAck, Telco)
 ├── external_data/                 ← cached public UCI datasets (parquet)
-├── docs/                          ← written reports (MD + PDF) and product context
+├── docs/                          ← reports, product context, and guides/ (start with DCLAB_FIELD_NOTES.md)
 ├── knowledge/                     ← GENERATED research memory (registry, KB, field guide)
-├── campaigns/                     ← evidence-first 50-experiment campaign
+├── campaigns/                     ← evidence-first campaigns: model_building_50_v1, expansion_v1,
+│                                    pitfalls_v1, agent_verification_v1
 ├── dclab_rnd/                     ← automation control plane + agentic research studio
+│   ├── evidence_index.py          ← self-contained, citable records + filter-then-rank retrieval
+│   ├── critic_gate.py             ← checks LLM critique against recomputed rules
+│   ├── pitfalls.py                ← measures what common notebook mistakes cost
+│   ├── tools.py                   ← agent tools (function calling + MCP)
+│   ├── copilot/                   ← notebook copilot: evidence-backed notes beside cells
+│   └── expansion/                 ← task-type expansion campaign (fraud, multiclass, time series, text)
 ├── general_pipeline/              ← unified 11-model tabular pipeline + external-dataset playbook
 ├── hyperack_exp/                  ← original 15-experiment ladder (includes unsafe final fares)
 ├── safe_leakage_exp/              ← same ladder without post-outcome features
@@ -30,7 +37,7 @@ HyperAck order-acceptance tabular classification R&D: feature engineering, leaka
 ├── tabular_transformers/          ← Telco churn with TabTransformer, FT-Transformer, SAINT
 ├── logistic_regression/           ← first Telco churn baselines (teaching notebooks)
 ├── notebooks/                     ← exploratory notebooks and their saved models
-├── sft/                           ← SLM roadmap and SFT corpus builder
+├── sft/                           ← SFT corpora (v1, v3), LoRA trainer, deterministic evaluator
 ├── scripts/                       ← utilities (PDF report generation)
 ├── tests/                         ← unit tests for the automation layer
 ├── .cursor/rules/                 ← persistent agent playbooks (tabular SOP, Persian RTL style)
@@ -69,6 +76,34 @@ Use the [research tracks index](research_tracks/README.md) to navigate the separ
 | Run the available software checks | `tests/` and CI instructions below | `make test` or `make agent-test` |
 
 Live agent runs need `OPENAI_API_KEY` in a private local `.env` or process environment. Never commit that key. Test success and development metrics are evidence about the tested cases; they do not guarantee correct behavior for every dataset or production use.
+
+---
+
+## Knowledge layer: from experiments to a trustworthy agent
+
+The R&D results are turned into something DCLab's agent and its users can act on, with proof. Start with the plain-language [field notes](docs/guides/DCLAB_FIELD_NOTES.md).
+
+| Piece | What it does | Guide |
+|---|---|---|
+| Evidence index | Every rule, workflow block, dataset, experiment, leakage case and measured pitfall as one self-contained, cited record; filter-then-rank search | [Agent knowledge architecture](docs/guides/AGENT_KNOWLEDGE_ARCHITECTURE.md) |
+| Agent tools | `search_evidence`, `get_record`, `plan_next_stage`, `review_notebook`, `review_code`, `audit_columns` for function calling or MCP | [Agent knowledge architecture](docs/guides/AGENT_KNOWLEDGE_ARCHITECTURE.md) |
+| Notebook copilot | Review notes beside notebook cells, each with a fix and "Show proof" | [Notebook copilot](docs/guides/NOTEBOOK_COPILOT.md) |
+| Pitfalls campaign | Measured cost of six common mistakes (wrong way vs right way) | [`campaigns/pitfalls_v1`](campaigns/pitfalls_v1/PITFALLS_REPORT.md) |
+| Expansion campaign | The five-stage workflow on imbalanced fraud, multiclass, time-series and text + tabular data | [`campaigns/expansion_v1`](campaigns/expansion_v1/CAMPAIGN_REPORT.md) |
+| Critic gate | Drops LLM critique that the recorded numbers disprove | [SFT data guide](docs/guides/SFT_DATA_GUIDE.md) |
+| SFT v3 | Self-contained (RAFT-style) training examples in chat, Alpaca and ShareGPT formats, plus a LoRA trainer and a deterministic evaluator | [SFT data guide](docs/guides/SFT_DATA_GUIDE.md) |
+| Verification | Blind replay of the leakage auditor on known leaks | [Integration plan](docs/guides/DCLAB_RND_INTEGRATION_PLAN.md) |
+
+```bash
+make knowledge          # rebuild evidence index + SFT v3 after new results
+make copilot-demo       # review the leaky demo notebook -> docs/copilot_demo.html
+python -m dclab_rnd.copilot review YOUR_NOTEBOOK.ipynb --html review.html
+python -m dclab_rnd.tools call search_evidence '{"query": "oversampling before split", "type": "pitfall"}'
+make verify-auditor     # blind leakage-auditor replay
+make critic-gate        # LLM critiques that the numbers disprove
+```
+
+How DCLab uses all of this now and in the next phase: [DCLab R&D integration plan](docs/guides/DCLAB_RND_INTEGRATION_PLAN.md).
 
 ---
 

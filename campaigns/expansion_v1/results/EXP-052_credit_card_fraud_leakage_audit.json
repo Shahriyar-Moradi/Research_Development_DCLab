@@ -1,0 +1,646 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-052-C1",
+      "evidence": [
+        "evidence.detector_canary",
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The binary_imbalanced leakage detector caught its synthetic canaries: {'exact_copy_detected': True, 'passed': True}."
+    },
+    {
+      "claim_id": "EXP-052-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.policy_rationale",
+        "evidence.safe_vs_unsafe_training_cv",
+        "evidence.apparent_lift"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+      ],
+      "statement": "Declared decision-time exclusions for credit_card_fraud: ['Time']. Including them moves training-CV average precision (PR-AUC) (lightgbm, raw recipe) from 0.7804\u00b10.0192 to 0.7763\u00b10.0180, i.e. no apparent lift (-0.0042); the exclusion rests on decision-time semantics, not on CV inflation."
+    },
+    {
+      "claim_id": "EXP-052-C3",
+      "evidence": [
+        "evidence.heuristic_review_candidates",
+        "evidence.top_univariate_signals",
+        "evidence.heuristic_rules"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "Strong signal alone is not leakage; e.g. legitimate lags or text sentiment are expected to be predictive."
+      ],
+      "statement": "Heuristics flagged 6 non-declared column(s) for human review: V10 (strong_univariate_signal), V11 (strong_univariate_signal), V12 (strong_univariate_signal), V14 (strong_univariate_signal), V3 (strong_univariate_signal), V4 (strong_univariate_signal). Strongest single-feature signal: V14 (0.954)."
+    },
+    {
+      "claim_id": "EXP-052-C4",
+      "evidence": [
+        "evidence.policy_rationale",
+        "evidence.decision_time_contract"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "The size of this effect cannot be measured from the released data."
+      ],
+      "statement": "V1-V28 were produced by a PCA the data publisher fitted on all 284,807 transactions, including the holdout period; this global fit is an irreducible look-ahead that no downstream split can remove."
+    }
+  ],
+  "completed_at": "2026-10-03T07:03:06+00:00",
+  "dataset": "credit_card_fraud",
+  "decision_time_rule": "Score each transaction at authorization time using only that transaction's own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature.",
+  "evidence": {
+    "apparent_lift": -0.004169282586139467,
+    "apparent_lift_metric": "average_precision",
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "decision_time_contract": "Score each transaction at authorization time using only that transaction's own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature.",
+    "declared_leakage_features": [
+      "Time"
+    ],
+    "detector_canary": {
+      "exact_copy_detected": true,
+      "passed": true
+    },
+    "detector_canary_passed": true,
+    "elapsed_seconds": 7.390733191999971,
+    "heuristic_review_candidates": [
+      {
+        "feature": "Time",
+        "reasons": [
+          "declared_post_outcome_or_contested"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.7724833333333333,
+        "univariate_auc": 0.5432197445937461
+      },
+      {
+        "feature": "V10",
+        "reasons": [
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.9869666666666667,
+        "univariate_auc": 0.9215700482134639
+      },
+      {
+        "feature": "V11",
+        "reasons": [
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.9869833333333333,
+        "univariate_auc": 0.9291227549774443
+      },
+      {
+        "feature": "V12",
+        "reasons": [
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.9869833333333333,
+        "univariate_auc": 0.9433592279505627
+      },
+      {
+        "feature": "V14",
+        "reasons": [
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.9869833333333333,
+        "univariate_auc": 0.9544529382361583
+      },
+      {
+        "feature": "V3",
+        "reasons": [
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.9869833333333333,
+        "univariate_auc": 0.9204207540366109
+      },
+      {
+        "feature": "V4",
+        "reasons": [
+          "strong_univariate_signal"
+        ],
+        "requires_human_decision_time_review": true,
+        "unique_ratio": 0.9869833333333333,
+        "univariate_auc": 0.9377663076366574
+      }
+    ],
+    "heuristic_rules": {
+      "extreme_univariate_signal": 0.98,
+      "identifier_like": "unique_ratio >= 0.98 and non-numeric or integer-valued",
+      "rows_scanned": 60000,
+      "signal_measure": "max(AUC, 1-AUC) of the raw column",
+      "strong_univariate_signal": 0.9
+    },
+    "identifier_exclusions": {},
+    "policy_rationale": "`Time`: Seconds elapsed since the first transaction in this two-day extract. It is a dataset-relative counter that grows without bound in production, so a model trained on it extrapolates outside its training range; only cyclic hour-of-day derived from it is decision-time safe.",
+    "safe_vs_unsafe_training_cv": {
+      "apparent_lift": -0.004169282586139467,
+      "metric": "average_precision",
+      "model": "lightgbm",
+      "recipe": "raw",
+      "safe": {
+        "config_id": "safe",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 3.014646741999968,
+        "feature_count_mean": 29.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9995259914678464,
+            "average_precision": 0.7961900870704218,
+            "brier": 0.00042551413272976093,
+            "f1": 0.8163265306122449,
+            "fit_rows": 14359,
+            "fit_seconds": 0.3872883459998775,
+            "fold": 1,
+            "log_loss": 0.0052035556516433,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 0.9523809523809523,
+            "precision_at_k_positives": 0.7857142857142857,
+            "precision_target": 0.9,
+            "recall": 0.7142857142857143,
+            "recall_at_precision_target": 0.7619047619047619,
+            "roc_auc": 0.9253809599160092,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9991397622934991,
+            "average_precision": 0.7861188789764809,
+            "brier": 0.000778442745452193,
+            "f1": 0.8,
+            "fit_rows": 28662,
+            "fit_seconds": 0.533119046000138,
+            "fold": 2,
+            "log_loss": 0.00716531025223987,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.7777777777777778,
+            "precision_at_k_positives": 0.8067226890756303,
+            "precision_target": 0.9,
+            "recall": 0.8235294117647058,
+            "recall_at_precision_target": 0.4117647058823529,
+            "roc_auc": 0.9730747828493489,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7590222874652567,
+            "brier": 0.0004079491649075228,
+            "f1": 0.7358490566037735,
+            "fit_rows": 42991,
+            "fit_seconds": 0.7638394049999988,
+            "fold": 3,
+            "log_loss": 0.003858507904789351,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.7959183673469388,
+            "precision_at_k_positives": 0.7368421052631579,
+            "precision_target": 0.9,
+            "recall": 0.6842105263157895,
+            "recall_at_precision_target": 0.6666666666666666,
+            "roc_auc": 0.9622273956013327,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995259914678464,
+            "mean": 0.9993913964525435,
+            "min": 0.9991397622934991,
+            "std": 0.00021809829127042397
+          },
+          "average_precision": {
+            "max": 0.7961900870704218,
+            "mean": 0.7804437511707198,
+            "min": 0.7590222874652567,
+            "std": 0.01922281557371918
+          },
+          "brier": {
+            "max": 0.000778442745452193,
+            "mean": 0.0005373020143631589,
+            "min": 0.0004079491649075228,
+            "std": 0.00020901859048004428
+          },
+          "f1": {
+            "max": 0.8163265306122449,
+            "mean": 0.7840585290720061,
+            "min": 0.7358490566037735,
+            "std": 0.04254120152519322
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 0.7638394049999988,
+            "mean": 0.5614155990000048,
+            "min": 0.3872883459998775,
+            "std": 0.18986362524792344
+          },
+          "log_loss": {
+            "max": 0.00716531025223987,
+            "mean": 0.00540912460289084,
+            "min": 0.003858507904789351,
+            "std": 0.0016629580230913305
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 0.9523809523809523,
+            "mean": 0.8420256991685564,
+            "min": 0.7777777777777778,
+            "std": 0.09599990458931833
+          },
+          "precision_at_k_positives": {
+            "max": 0.8067226890756303,
+            "mean": 0.7764263600176914,
+            "min": 0.7368421052631579,
+            "std": 0.03585419321783841
+          },
+          "recall": {
+            "max": 0.8235294117647058,
+            "mean": 0.7406752174554031,
+            "min": 0.6842105263157895,
+            "std": 0.07331263444208873
+          },
+          "recall_at_precision_target": {
+            "max": 0.7619047619047619,
+            "mean": 0.6134453781512604,
+            "min": 0.4117647058823529,
+            "std": 0.18103561492500309
+          },
+          "roc_auc": {
+            "max": 0.9730747828493489,
+            "mean": 0.9535610461222302,
+            "min": 0.9253809599160092,
+            "std": 0.025000087929238253
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "safe",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.06418965962669189
+          },
+          {
+            "feature": "Amount",
+            "mean_normalized_importance": 0.06296117491652259
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.06236590409077852
+          },
+          {
+            "feature": "V26",
+            "mean_normalized_importance": 0.05641616193047624
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.04858283772560031
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.03860110122519118
+          },
+          {
+            "feature": "V21",
+            "mean_normalized_importance": 0.035862545177451695
+          },
+          {
+            "feature": "V22",
+            "mean_normalized_importance": 0.03560907734296189
+          },
+          {
+            "feature": "V13",
+            "mean_normalized_importance": 0.0335964718341288
+          },
+          {
+            "feature": "V20",
+            "mean_normalized_importance": 0.032260298753781357
+          }
+        ]
+      },
+      "unsafe": {
+        "config_id": "unsafe_all_blocked",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 2.913977166999757,
+        "feature_count_mean": 30.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7796946672422943,
+            "brier": 0.0004610976777593075,
+            "f1": 0.8133333333333334,
+            "fit_rows": 14359,
+            "fit_seconds": 0.33492574399997466,
+            "fold": 1,
+            "log_loss": 0.005002138076113208,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 0.9242424242424242,
+            "precision_at_k_positives": 0.7619047619047619,
+            "precision_target": 0.9,
+            "recall": 0.7261904761904762,
+            "recall_at_precision_target": 0.7261904761904762,
+            "roc_auc": 0.9212408647901025,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9991397622934991,
+            "average_precision": 0.7923240217477047,
+            "brier": 0.0007947967223877619,
+            "f1": 0.8032128514056225,
+            "fit_rows": 28662,
+            "fit_seconds": 0.6020402819999617,
+            "fold": 2,
+            "log_loss": 0.007209339032798771,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.7692307692307693,
+            "precision_at_k_positives": 0.7899159663865546,
+            "precision_target": 0.9,
+            "recall": 0.8403361344537815,
+            "recall_at_precision_target": 0.40336134453781514,
+            "roc_auc": 0.9767407754770042,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9996313266972139,
+            "average_precision": 0.7568047167637423,
+            "brier": 0.0003520899415362688,
+            "f1": 0.7878787878787878,
+            "fit_rows": 42991,
+            "fit_seconds": 1.039253608999843,
+            "fold": 3,
+            "log_loss": 0.003926032211475277,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.9285714285714286,
+            "precision_at_k_positives": 0.7368421052631579,
+            "precision_target": 0.9,
+            "recall": 0.6842105263157895,
+            "recall_at_precision_target": 0.7017543859649122,
+            "roc_auc": 0.9421349222204958,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [
+          "Time"
+        ],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9996313266972139,
+            "mean": 0.999426508195666,
+            "min": 0.9991397622934991,
+            "std": 0.00025581822644023163
+          },
+          "average_precision": {
+            "max": 0.7923240217477047,
+            "mean": 0.7762744685845804,
+            "min": 0.7568047167637423,
+            "std": 0.01800495975501208
+          },
+          "brier": {
+            "max": 0.0007947967223877619,
+            "mean": 0.0005359947805611127,
+            "min": 0.0003520899415362688,
+            "std": 0.00023066101850779014
+          },
+          "f1": {
+            "max": 0.8133333333333334,
+            "mean": 0.8014749908725811,
+            "min": 0.7878787878787878,
+            "std": 0.01281595062797168
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 1.039253608999843,
+            "mean": 0.6587398783332598,
+            "min": 0.33492574399997466,
+            "std": 0.3555707644366834
+          },
+          "log_loss": {
+            "max": 0.007209339032798771,
+            "mean": 0.005379169773462419,
+            "min": 0.003926032211475277,
+            "std": 0.0016738102032016254
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 0.9285714285714286,
+            "mean": 0.874014874014874,
+            "min": 0.7692307692307693,
+            "std": 0.0907715072650819
+          },
+          "precision_at_k_positives": {
+            "max": 0.7899159663865546,
+            "mean": 0.7628876111848247,
+            "min": 0.7368421052631579,
+            "std": 0.026550577736970074
+          },
+          "recall": {
+            "max": 0.8403361344537815,
+            "mean": 0.7502457123200158,
+            "min": 0.6842105263157895,
+            "std": 0.08079475334482054
+          },
+          "recall_at_precision_target": {
+            "max": 0.7261904761904762,
+            "mean": 0.6104354022310678,
+            "min": 0.40336134453781514,
+            "std": 0.17974712696880413
+          },
+          "roc_auc": {
+            "max": 0.9767407754770042,
+            "mean": 0.9467055208292008,
+            "min": 0.9212408647901025,
+            "std": 0.028030836596415382
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "unsafe_all_blocked",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.0636957629735069
+          },
+          {
+            "feature": "Amount",
+            "mean_normalized_importance": 0.06307897084327556
+          },
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.06169909688414399
+          },
+          {
+            "feature": "V26",
+            "mean_normalized_importance": 0.05584450354381409
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.050620221638028234
+          },
+          {
+            "feature": "Time",
+            "mean_normalized_importance": 0.04510341416397334
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.03703945864721185
+          },
+          {
+            "feature": "V22",
+            "mean_normalized_importance": 0.03443911006440128
+          },
+          {
+            "feature": "V21",
+            "mean_normalized_importance": 0.03380851561036013
+          },
+          {
+            "feature": "V8",
+            "mean_normalized_importance": 0.03274239599482773
+          }
+        ]
+      }
+    },
+    "top_univariate_signals": [
+      {
+        "feature": "V14",
+        "signal": 0.9544529382361583,
+        "univariate_auc": 0.9544529382361583
+      },
+      {
+        "feature": "V12",
+        "signal": 0.9433592279505627,
+        "univariate_auc": 0.9433592279505627
+      },
+      {
+        "feature": "V4",
+        "signal": 0.9377663076366574,
+        "univariate_auc": 0.9377663076366574
+      },
+      {
+        "feature": "V11",
+        "signal": 0.9291227549774443,
+        "univariate_auc": 0.9291227549774443
+      },
+      {
+        "feature": "V10",
+        "signal": 0.9215700482134639,
+        "univariate_auc": 0.9215700482134639
+      },
+      {
+        "feature": "V3",
+        "signal": 0.9204207540366109,
+        "univariate_auc": 0.9204207540366109
+      },
+      {
+        "feature": "V9",
+        "signal": 0.8701427779718192,
+        "univariate_auc": 0.8701427779718192
+      },
+      {
+        "feature": "V2",
+        "signal": 0.8650170193470889,
+        "univariate_auc": 0.8650170193470889
+      }
+    ],
+    "warning": "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+  },
+  "experiment_id": "EXP-052",
+  "holdout_policy": "Locked holdout = last 20% of rows in `Time` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "The absolute Time counter is not a production feature; removing it costs little or nothing on time-ordered CV.",
+  "kind": "leakage_audit",
+  "primary_metric": "average_precision",
+  "provenance": {
+    "data_sha256": {
+      "data/external/credit_card_fraud/creditcard.csv": "33a178be65174943a07d1736acf5898f6c8e1fa80950dbbe598c17eda968ec59"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the decision-time contract, and how much would they inflate the primary metric if left in?",
+  "schema_version": 2,
+  "setup_summary": "Scanned 60000 training rows with binary_imbalanced heuristics (univariate signal, exact proxy/identity, name, uniqueness) and synthetic canaries; compared lightgbm on the raw recipe with vs without blocked ['Time'] on expanding-window TimeSeriesSplit(3) on time-ordered training rows: average precision (PR-AUC) 0.7804\u00b10.0192 safe vs 0.7763\u00b10.0180 unsafe (apparent lift -0.0042).",
+  "source": "https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv",
+  "started_at": "2026-10-03T07:02:58+00:00",
+  "status": "completed",
+  "task_type": "binary_imbalanced"
+}
