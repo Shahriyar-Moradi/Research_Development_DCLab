@@ -22,7 +22,7 @@ DCLab's users range from beginners to experts; the agent needs a clear model of 
 |---|---|
 | DS-001 | Does a train-only EDA checklist change the features people choose, versus EDA on all rows? |
 | DS-002 | Which data-quality checks (missingness patterns, duplicates, unit errors) catch the most real problems across the campaign datasets? |
-| DS-003 | Turn `research/churn-prediction/logistic_regression/pandas_numpy_intro.ipynb` into a graded learning path the copilot can follow |
+| DS-003 | Turn `research/churn-prediction/notebooks/pandas_numpy_intro.ipynb` into a graded learning path the copilot can follow |
 
 ## Candidate datasets
 

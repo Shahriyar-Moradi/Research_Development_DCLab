@@ -12,17 +12,17 @@ This file is generated from the repository's experiment JSON. Run `python -m dcl
 
 | Dataset | Model family | Experiment | ROC-AUC | F1 | Recall | Evidence |
 |---|---|---|---:|---:|---:|---|
-| adult | catboost | catboost | 0.9274 | 0.7046 | 0.6405 | `general_pipeline/results_external/adult__optimized__catboost.json` |
-| bank_marketing | lightgbm | baseline_lightgbm | 0.8029 | 0.3333 | 0.2329 | `research/tabular-classification/external_projects/bank_marketing_exp/results/ladder/02_safe_baseline_lightgbm.json` |
-| breast_cancer | lightgbm | fe_ratios | 1.0000 | 0.9630 | 0.9286 | `research/tabular-classification/external_projects/breast_cancer_exp/results/ladder/04_safe_fe_ratios.json` |
-| credit_default | ensemble | stacking_ensemble | 0.8005 | 0.4848 | 0.3706 | `research/tabular-classification/external_projects/credit_default_exp/results/ladder/13_safe_stacking_ensemble.json` |
-| german_credit | catboost | catboost | 0.8112 | 0.5962 | 0.5167 | `general_pipeline/results_external/german_credit__optimized__catboost.json` |
-| heart_disease | hist_gradient_boosting | hist_gradient_boosting | 0.9740 | 0.9153 | 0.9643 | `research/tabular-classification/external_projects/heart_disease_exp/results/ladder/10_safe_hist_gradient_boosting.json` |
-| hyperack | ensemble | softvote_etbag_lgbmwinner_xgb | 0.9455 | 0.8505 | 0.7784 | `research/tabular-classification/optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json` |
-| mushroom | catboost | catboost | 1.0000 | 1.0000 | 1.0000 | `general_pipeline/results_external/mushroom__baseline__catboost.json` |
-| online_shoppers | xgboost | tuned_xgboost | 0.7737 | 0.1212 | 0.0681 | `research/tabular-classification/external_projects/online_shoppers_exp/results/ladder/08_safe_tuned_xgboost.json` |
-| spambase | lightgbm | lightgbm | 0.9878 | 0.9350 | 0.9311 | `general_pipeline/results_external/spambase__baseline__lightgbm.json` |
-| wine_quality | extra_trees | extra_trees | 0.9160 | 0.8833 | 0.9149 | `general_pipeline/results_external/wine_quality__baseline__extra_trees.json` |
+| adult | catboost | catboost | 0.9274 | 0.7046 | 0.6405 | `research/tabular-classification/experiments/external_benchmark/results/adult__optimized__catboost.json` |
+| bank_marketing | lightgbm | baseline_lightgbm | 0.8029 | 0.3333 | 0.2329 | `research/tabular-classification/experiments/external_projects/bank_marketing_exp/results/ladder/02_safe_baseline_lightgbm.json` |
+| breast_cancer | lightgbm | fe_ratios | 1.0000 | 0.9630 | 0.9286 | `research/tabular-classification/experiments/external_projects/breast_cancer_exp/results/ladder/04_safe_fe_ratios.json` |
+| credit_default | ensemble | stacking_ensemble | 0.8005 | 0.4848 | 0.3706 | `research/tabular-classification/experiments/external_projects/credit_default_exp/results/ladder/13_safe_stacking_ensemble.json` |
+| german_credit | catboost | catboost | 0.8112 | 0.5962 | 0.5167 | `research/tabular-classification/experiments/external_benchmark/results/german_credit__optimized__catboost.json` |
+| heart_disease | hist_gradient_boosting | hist_gradient_boosting | 0.9740 | 0.9153 | 0.9643 | `research/tabular-classification/experiments/external_projects/heart_disease_exp/results/ladder/10_safe_hist_gradient_boosting.json` |
+| hyperack | ensemble | softvote_etbag_lgbmwinner_xgb | 0.9455 | 0.8505 | 0.7784 | `research/tabular-classification/experiments/optimized_safe_model/results/53_softvote_etbag_lgbmwinner_xgb.json` |
+| mushroom | catboost | catboost | 1.0000 | 1.0000 | 1.0000 | `research/tabular-classification/experiments/external_benchmark/results/mushroom__baseline__catboost.json` |
+| online_shoppers | xgboost | tuned_xgboost | 0.7737 | 0.1212 | 0.0681 | `research/tabular-classification/experiments/external_projects/online_shoppers_exp/results/ladder/08_safe_tuned_xgboost.json` |
+| spambase | lightgbm | lightgbm | 0.9878 | 0.9350 | 0.9311 | `research/tabular-classification/experiments/external_benchmark/results/spambase__baseline__lightgbm.json` |
+| wine_quality | extra_trees | extra_trees | 0.9160 | 0.8833 | 0.9149 | `research/tabular-classification/experiments/external_benchmark/results/wine_quality__baseline__extra_trees.json` |
 
 ## Cross-dataset model evidence
 

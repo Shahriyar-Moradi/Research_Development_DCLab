@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "research" / "llm-fine-tuning" / "sft"))
+sys.path.insert(0, str(ROOT / "research" / "llm-fine-tuning" / "experiments" / "sft"))
 
 from dclab_rnd import critic_gate, evidence_index, tools  # noqa: E402
 from dclab_rnd.copilot import review_notebook, review_source  # noqa: E402
@@ -114,7 +114,7 @@ class SFTv3Tests(unittest.TestCase):
     def test_committed_corpus_is_current(self):
         stale = [n for n, text in self.files.items()
                  if not (self.builder.OUT_DIR / n).exists() or (self.builder.OUT_DIR / n).read_text() != text]
-        self.assertEqual(stale, [], "run: python research/llm-fine-tuning/sft/build_sft_dataset_v3.py")
+        self.assertEqual(stale, [], "run: python research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py")
 
 
 class CopilotTests(unittest.TestCase):

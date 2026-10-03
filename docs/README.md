@@ -10,25 +10,15 @@
 | [`guides/NOTEBOOK_COPILOT.md`](guides/NOTEBOOK_COPILOT.md) | Data scientists. What the copilot flags, why, and with what proof |
 | [`guides/SFT_DATA_GUIDE.md`](guides/SFT_DATA_GUIDE.md) | ML engineers. Paired instructions, formats, training and evaluation |
 
-## Reports and context
+## Product context
 
 | File | What it is |
 |---|---|
-| [`reports/MASTER_4WAY_BENCHMARK_REPORT.md`](reports/MASTER_4WAY_BENCHMARK_REPORT.md) ([PDF](reports/MASTER_4WAY_BENCHMARK_REPORT.pdf)) | 4-quadrant benchmark (safe/unsafe × baseline/optimized), FT-Transformer vs GBDTs, General Pipeline |
-| [`reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md`](reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md) ([PDF](reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf)) | Full R&D lifecycle: leakage forensics, 25 vs 46 feature dilution, 83-experiment optimization ladder |
-| [`reports/EXTERNAL_MULTI_DATASET_REPORT.md`](reports/EXTERNAL_MULTI_DATASET_REPORT.md) | Cross-dataset benchmark on 10 public UCI tables |
 | [`DCLAB_MASTER_CONTEXT.md`](DCLAB_MASTER_CONTEXT.md) | DCLab product constitution and master context. The R&D repository is a supporting evidence subsystem of that product |
+| [`copilot_demo.html`](copilot_demo.html) | The notebook copilot's review of the leaky demo notebook (`make copilot-demo`) |
 
-Image links inside the reports are relative to `docs/reports/`, so they render on GitHub and
-in local Markdown viewers. Plots themselves stay next to the code that produced them
-(`research/tabular-classification/benchmark_outputs/`, `research/tabular-classification/optimized_safe_model/results/`, ...).
+## Where the research reports went
 
-Regenerate the lifecycle PDF from its Markdown source (needs `markdown-it-py` and Chrome):
+Written reports now live with the research idea they belong to, under `research/<idea>/reports/`. The tabular reports (master 4-way benchmark, classification and optimization lifecycle, external multi-dataset benchmark) are in [`research/tabular-classification/reports/`](../research/tabular-classification/reports/). Each idea's `INDEX.md` lists all of its reports.
 
-```bash
-make report-pdf
-# or: CHROME_BIN=/path/to/chrome python scripts/generate_pdf.py
-```
-
-Generated research memory (knowledge base, registry, field guide) lives in
-[`evidence/knowledge/`](../evidence/knowledge/) and is rebuilt by `make rd-sync` and `make master-guide`.
+Generated research memory (knowledge base, registry, field guide) lives in [`evidence/knowledge/`](../evidence/knowledge/) and is rebuilt by `make rd-sync` and `make master-guide`.

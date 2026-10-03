@@ -5,7 +5,7 @@
     make new-track NAME=graph-neural-networks TITLE="Graph neural networks" PREFIX=GNN
 
 Creates research/<name>/ with README.md (filled from the template), data.md and empty
-src/, notebooks/, results/ and reports/ folders. Never overwrites an existing track.
+experiments/, notebooks/, evaluation/ and reports/ folders. Never overwrites an existing track.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
               .replace("{track}", args.name.replace("-", "_"))
               .replace("{YYYY-MM-DD}", date.today().isoformat())
               .replace("**Status:** planned · active · paused · concluded", "**Status:** active"))
-    for folder in ("src", "notebooks", "results", "reports"):
+    for folder in ("experiments", "notebooks", "evaluation", "reports"):
         (target / folder).mkdir(parents=True, exist_ok=True)
         (target / folder / ".gitkeep").touch()
     existing = target / "README.md"

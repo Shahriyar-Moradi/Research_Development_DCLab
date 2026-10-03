@@ -8,7 +8,7 @@ Can a small open model, fine-tuned on DCLab's evidence, reason about model build
 
 ## What is here
 
-`sft/` contains:
+`experiments/sft/` contains:
 
 | File | Purpose |
 |---|---|
@@ -25,13 +25,13 @@ The full method is in [`docs/guides/SFT_DATA_GUIDE.md`](../../docs/guides/SFT_DA
 
 ```bash
 make sft-v3                      # rebuild the corpus from current evidence
-python research/llm-fine-tuning/sft/eval_sft.py score --reference   # sanity check: 1.0
+python research/llm-fine-tuning/experiments/sft/eval_sft.py score --reference   # sanity check: 1.0
 
 # On a GPU machine
 pip install "trl>=0.12" "peft>=0.13" "transformers>=4.46" datasets accelerate
-python research/llm-fine-tuning/sft/train_lora.py --model Qwen/Qwen2.5-1.5B-Instruct --out research/llm-fine-tuning/sft/runs/qwen15b
-python research/llm-fine-tuning/sft/eval_sft.py generate --model Qwen/Qwen2.5-1.5B-Instruct --adapter research/llm-fine-tuning/sft/runs/qwen15b --out preds.jsonl
-python research/llm-fine-tuning/sft/eval_sft.py score --predictions preds.jsonl
+python research/llm-fine-tuning/experiments/sft/train_lora.py --model Qwen/Qwen2.5-1.5B-Instruct --out research/llm-fine-tuning/experiments/sft/runs/qwen15b
+python research/llm-fine-tuning/experiments/sft/eval_sft.py generate --model Qwen/Qwen2.5-1.5B-Instruct --adapter research/llm-fine-tuning/experiments/sft/runs/qwen15b --out preds.jsonl
+python research/llm-fine-tuning/experiments/sft/eval_sft.py score --predictions preds.jsonl
 ```
 
 ## Next experiments
@@ -57,7 +57,7 @@ python research/llm-fine-tuning/sft/eval_sft.py score --predictions preds.jsonl
 
 - Rules, workflow blocks, and campaign records: [`../../evidence/knowledge/`](../../evidence/knowledge/) and [`../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl`](../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl)
 - Experiment-level claim memory: [`../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl`](../../evidence/campaigns/model_building_50_v1/agent_memory.jsonl)
-- SFT preparation: [`../llm-fine-tuning/sft/README.md`](../llm-fine-tuning/sft/README.md) and [`../llm-fine-tuning/sft/build_sft_dataset.py`](../llm-fine-tuning/sft/build_sft_dataset.py)
+- SFT preparation: [`../llm-fine-tuning/sft/README.md`](experiments/sft/README.md) and [`../llm-fine-tuning/sft/build_sft_dataset.py`](experiments/sft/build_sft_dataset.py)
 
 ### Suggested experiment
 

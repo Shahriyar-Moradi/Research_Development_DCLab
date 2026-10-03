@@ -11,13 +11,13 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-RESULTS_DIR = Path(__file__).resolve().parent / "results"
-OUTPUTS_DIR = ROOT / "research/tabular-classification/benchmark_outputs"
+RESULTS_DIR = Path(__file__).resolve().parents[1] / "research/tabular-classification/experiments/four_way_benchmark/results"
+OUTPUTS_DIR = ROOT / "research/tabular-classification/evaluation/benchmark_outputs"
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_all_results() -> pd.DataFrame:
-    """Load all JSON results from general_pipeline/results/."""
+    """Load all JSON results from research/tabular-classification/experiments/four_way_benchmark/results/."""
     records = []
     for f in sorted(RESULTS_DIR.glob("*.json")):
         try:

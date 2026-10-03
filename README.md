@@ -33,14 +33,15 @@ flowchart LR
 │   └── downloads/      (gitignored)          public data fetched by the expansion campaign, pinned SHA-256
 │
 ├── research/                                 ONE FOLDER PER IDEA (start here: research/README.md)
-│   ├── tabular-classification/               HyperAck + 10 public datasets, the most mature track
-│   ├── churn-prediction/                     Telco churn campaign, deep tabular models, baselines
-│   ├── tabular-foundation-models/            TabPFN benchmarks
-│   ├── llm-fine-tuning/                      SFT corpus, LoRA trainer, evaluator
-│   ├── ml-methodology/ · agentic-ml-copilot/ index pages for the campaigns and the copilot
-│   ├── evaluation-and-trust/ · workflow-model/ · workflow-actions/
-│   ├── graph-neural-networks/ · temporal-gnn/ · vision-scene-graphs/ · driving-maps/
-│   ├── time-series-forecasting/ · nlp-and-text/ · anomaly-and-fraud-detection/ · …   planned tracks
+│   ├── <idea>/                               every idea has the same shape:
+│   │   ├── README.md                         the idea: question, prediction contract, status, conclusions
+│   │   ├── INDEX.md                          GENERATED: champion(s), experiments, notebooks, evaluation, reports
+│   │   ├── experiments/                      experiment code + results/
+│   │   ├── notebooks/  evaluation/  reports/
+│   ├── tabular-classification/               HyperAck + 10 public datasets (most mature)
+│   ├── churn-prediction/ · tabular-foundation-models/ · llm-fine-tuning/ · agentic-ml-copilot/
+│   ├── ml-methodology/ · evaluation-and-trust/ · workflow-model/ · workflow-actions/
+│   ├── graph-neural-networks/ · temporal-gnn/ · vision-scene-graphs/ · driving-maps/ · …   planned
 │   └── _template/                            template for a new idea (`make new-track`)
 │
 ├── evidence/                                 WHAT WE MEASURED AND WHAT WE LEARNED
@@ -51,13 +52,13 @@ flowchart LR
 │                                             critic gate, copilot/, tools, expansion/, agentic/ (Research Studio)
 ├── general_pipeline/                         SHARED CODE: tabular modeling pipeline and feature playbook
 │
-├── docs/               guides/ · reports/    plain-language guides, written reports (MD + PDF)
+├── docs/               guides/               plain-language guides and product context
 ├── requirements/       base · ci · agent · agent.lock
 ├── scripts/            new research track, PDF report
 └── tests/              tests for the shared code and the evidence
 ```
 
-**Rules of thumb:** ideas live in `research/`; anything several ideas share lives at the root. Generated files in `evidence/knowledge/` are rebuilt by `make rd-sync` and `make knowledge`, never edited by hand. Do not rename files inside any `results/` folder, because the evidence registry finds them by path.
+**Rules of thumb:** ideas live in `research/`, and each idea's `INDEX.md` answers "what is the champion, which experiments, notebooks, evaluations and reports belong to it"; anything several ideas share lives at the root. Generated files in `evidence/knowledge/` are rebuilt by `make rd-sync` and `make knowledge`, never edited by hand. Do not rename files inside any `results/` folder, because the evidence registry finds them by path.
 
 ---
 
@@ -176,7 +177,7 @@ LangGraph runs the loop and NOOA specialist agents plan and critique. A determin
 
 ```bash
 make sft-v3                                                           # rebuild the corpus
-python research/llm-fine-tuning/sft/eval_sft.py score --reference     # sanity check
+python research/llm-fine-tuning/experiments/sft/eval_sft.py score --reference     # sanity check
 ```
 
 Guide: [SFT data guide](docs/guides/SFT_DATA_GUIDE.md). Training (`train_lora.py`) needs a GPU.

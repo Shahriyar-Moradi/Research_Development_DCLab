@@ -1,4 +1,4 @@
-"""Generate the executive PDF for docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md.
+"""Generate the executive PDF for research/tabular-classification/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md.
 
 Usage (from the repository root):
     python scripts/generate_pdf.py
@@ -19,7 +19,7 @@ from pathlib import Path
 from markdown_it import MarkdownIt
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORT_DIR = ROOT / "docs" / "reports"
+REPORT_DIR = ROOT / "research" / "tabular-classification" / "reports"
 MD_PATH = REPORT_DIR / "MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md"
 PDF_PATH = REPORT_DIR / "MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf"
 HTML_TEMP = REPORT_DIR / "_report_preview.html"
@@ -28,11 +28,11 @@ DEFAULT_CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chro
 # Base64 encode an image
 def encode_image(img_rel_path: str) -> str:
     # Markdown links are relative to the report file; fall back to repo-root
-    # relative paths and the research/tabular-classification/optimized_safe_model folder for older link styles.
+    # relative paths and the research/tabular-classification/experiments/optimized_safe_model folder for older link styles.
     candidates = (
         REPORT_DIR / img_rel_path,
         ROOT / img_rel_path,
-        ROOT / "research/tabular-classification/optimized_safe_model" / img_rel_path,
+        ROOT / "research/tabular-classification/experiments/optimized_safe_model" / img_rel_path,
     )
     img_path = next((c.resolve() for c in candidates if c.exists()), None)
     if img_path is not None:

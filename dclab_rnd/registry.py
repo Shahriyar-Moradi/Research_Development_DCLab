@@ -12,12 +12,12 @@ from typing import Any
 from .record import ExperimentRecord
 
 RESULT_GLOBS = (
-    "general_pipeline/results/*.json",
-    "general_pipeline/results_external/*.json",
-    "research/tabular-classification/hyperack_exp/results/*.json",
-    "research/tabular-classification/safe_leakage_exp/results/*.json",
-    "research/tabular-classification/optimized_safe_model/results/*.json",
-    "research/tabular-classification/external_projects/*_exp/results/ladder/*.json",
+    "research/tabular-classification/experiments/four_way_benchmark/results/*.json",
+    "research/tabular-classification/experiments/external_benchmark/results/*.json",
+    "research/tabular-classification/experiments/hyperack_exp/results/*.json",
+    "research/tabular-classification/experiments/safe_leakage_exp/results/*.json",
+    "research/tabular-classification/experiments/optimized_safe_model/results/*.json",
+    "research/tabular-classification/experiments/external_projects/*_exp/results/ladder/*.json",
     "evidence/campaigns/model_building_50_v1/results/*_optimization_reliability.json",
 )
 
@@ -107,17 +107,17 @@ def _family(*parts: Any) -> str:
 
 def _suite(path: Path) -> str:
     value = path.as_posix()
-    if value.startswith("general_pipeline/results_external/"):
+    if value.startswith("research/tabular-classification/experiments/external_benchmark/results/"):
         return "external_benchmark"
-    if value.startswith("general_pipeline/results/"):
+    if value.startswith("research/tabular-classification/experiments/four_way_benchmark/results/"):
         return "hyperack_4way"
-    if value.startswith("research/tabular-classification/hyperack_exp/results/"):
+    if value.startswith("research/tabular-classification/experiments/hyperack_exp/results/"):
         return "hyperack_initial"
-    if value.startswith("research/tabular-classification/safe_leakage_exp/results/"):
+    if value.startswith("research/tabular-classification/experiments/safe_leakage_exp/results/"):
         return "hyperack_safe"
-    if value.startswith("research/tabular-classification/optimized_safe_model/results/"):
+    if value.startswith("research/tabular-classification/experiments/optimized_safe_model/results/"):
         return "hyperack_optimized_safe"
-    if value.startswith("research/tabular-classification/external_projects/"):
+    if value.startswith("research/tabular-classification/experiments/external_projects/"):
         return "external_playbook"
     if value.startswith("evidence/campaigns/model_building_50_v1/"):
         return "model_building_50_v1"
@@ -127,7 +127,7 @@ def _suite(path: Path) -> str:
 def _dataset(path: Path, payload: dict[str, Any]) -> str:
     if payload.get("dataset"):
         return str(payload["dataset"])
-    match = re.search(r"research/tabular-classification/external_projects/([^/]+)_exp/", path.as_posix())
+    match = re.search(r"research/tabular-classification/experiments/external_projects/([^/]+)_exp/", path.as_posix())
     return match.group(1) if match else "hyperack"
 
 

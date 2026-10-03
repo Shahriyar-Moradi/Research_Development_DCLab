@@ -25,7 +25,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "research/tabular-classification/hyperack_exp"))
+sys.path.insert(0, str(ROOT / "research/tabular-classification/experiments/hyperack_exp"))
 
 from shared.protocol import evaluate  # noqa: E402
 from dclab_rnd.provenance import capture_provenance  # noqa: E402

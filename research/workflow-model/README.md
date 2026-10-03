@@ -13,4 +13,4 @@
 
 Before training a large model, establish a small held-out task set from ML workflow scenarios. Compare a base model with a workflow prompt, retrieved context, and an SFT model on stage selection, required-input recall, invalid transitions, leakage handling, evidence citation, and calibrated abstention. Split by complete dataset/problem family rather than by similar examples.
 
-Existing SOPs: [`../../evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](../../evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md). Training data preparation: [`../llm-fine-tuning/sft/README.md`](../llm-fine-tuning/sft/README.md). No charter or existing fine-tuning file proves that a model has acquired reliable autonomous workflow competence.
+Existing SOPs: [`../../evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](../../evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md). Training data preparation: [`../llm-fine-tuning/sft/README.md`](../llm-fine-tuning/experiments/sft/README.md). No charter or existing fine-tuning file proves that a model has acquired reliable autonomous workflow competence.

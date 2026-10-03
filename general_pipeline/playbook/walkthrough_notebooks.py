@@ -32,7 +32,7 @@ def _find_repo_root() -> Path:
 
 ROOT = _find_repo_root()
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "research/tabular-classification/hyperack_exp"))
+sys.path.insert(0, str(ROOT / "research/tabular-classification/experiments/hyperack_exp"))
 print("REPO ROOT:", ROOT)
 '''.strip()
 
@@ -571,10 +571,10 @@ else:
 
 Project artifacts:
 
-- `research/tabular-classification/external_projects/{key}_exp/FEATURE_ENGINEERING_REPORT.md`
-- `research/tabular-classification/external_projects/{key}_exp/OPTIMIZATION_REPORT.md`
-- `research/tabular-classification/external_projects/{key}_exp/COMPLETE_MASTER_REPORT.md`
-- `research/tabular-classification/external_projects/{key}_exp/notebooks/` (this walkthrough + ladder notebooks)
+- `research/tabular-classification/experiments/external_projects/{key}_exp/FEATURE_ENGINEERING_REPORT.md`
+- `research/tabular-classification/experiments/external_projects/{key}_exp/OPTIMIZATION_REPORT.md`
+- `research/tabular-classification/experiments/external_projects/{key}_exp/COMPLETE_MASTER_REPORT.md`
+- `research/tabular-classification/experiments/external_projects/{key}_exp/notebooks/` (this walkthrough + ladder notebooks)
 """))
 
     nb = nbf.v4.new_notebook()

@@ -22,7 +22,7 @@ MANIFEST_CANDIDATES = (ROOT / "research/evaluation-and-trust/notebook_cases_v1.j
 # Notebook paths recorded before the repository was reorganized map to their new homes.
 LEGACY_PATHS = (("part1_hyper_ack_classification.ipynb",
                  "research/tabular-classification/notebooks/part1_hyper_ack_classification.ipynb"),
-                ("Cluad_R&D_aritfacts_sptember22/", "research/agentic-ml-copilot/prototype_sept22/"))
+                ("Cluad_R&D_aritfacts_sptember22/", "research/agentic-ml-copilot/experiments/prototype_sept22/"))
 
 
 def resolve_path(relative: str) -> Path:

@@ -16,7 +16,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 ROOT = Path(__file__).resolve().parent.parent
-HYPERACK_DIR = ROOT / "research/tabular-classification/hyperack_exp"
+HYPERACK_DIR = ROOT / "research/tabular-classification/experiments/hyperack_exp"
 sys.path.insert(0, str(HYPERACK_DIR))
 sys.path.insert(0, str(ROOT))
 
@@ -25,7 +25,7 @@ from dclab_rnd.provenance import capture_provenance  # noqa: E402
 from general_pipeline.dataset import load_dataset  # noqa: E402
 from general_pipeline.models import MODEL_REGISTRY, get_model  # noqa: E402
 
-RESULTS_DIR = Path(__file__).resolve().parent / "results"
+RESULTS_DIR = Path(__file__).resolve().parents[1] / "research/tabular-classification/experiments/four_way_benchmark/results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -96,7 +96,7 @@ def run_experiment(
             ROOT,
             data_paths=[
                 ROOT / "data" / "project" / "hyperack" / "hyper_ackt-dataset.csv",
-                ROOT / "research/tabular-classification/hyperack_exp" / "results" / "split_indices.npz",
+                ROOT / "research/tabular-classification/experiments/hyperack_exp" / "results" / "split_indices.npz",
             ],
             random_state=42,
         ),

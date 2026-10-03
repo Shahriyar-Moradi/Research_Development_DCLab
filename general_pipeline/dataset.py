@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-HYPERACK_DIR = ROOT / "research/tabular-classification/hyperack_exp"
+HYPERACK_DIR = ROOT / "research/tabular-classification/experiments/hyperack_exp"
 sys.path.insert(0, str(HYPERACK_DIR))
 
 from shared.protocol import (  # noqa: E402

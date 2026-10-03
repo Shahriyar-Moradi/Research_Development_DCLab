@@ -49,7 +49,7 @@ def main() -> None:
         write_detailed_reports(key, df)
 
         # Update project README pointer
-        pdir = ROOT / "research/tabular-classification/external_projects" / f"{key}_exp"
+        pdir = ROOT / "research/tabular-classification/experiments/external_projects" / f"{key}_exp"
         readme = (pdir / "README.md").read_text() if (pdir / "README.md").exists() else ""
         extra = """
 
@@ -88,7 +88,7 @@ Reusable path to produce the same depth of analysis as HyperAck for any new tabu
    ```bash
    .venv/bin/python general_pipeline/playbook/run_playbook.py --dataset <key>
    ```
-5. **Read** in `research/tabular-classification/external_projects/<key>_exp/`:
+5. **Read** in `research/tabular-classification/experiments/external_projects/<key>_exp/`:
    - `FEATURE_ENGINEERING_REPORT.md`
    - `OPTIMIZATION_REPORT.md`
    - `COMPLETE_MASTER_REPORT.md`

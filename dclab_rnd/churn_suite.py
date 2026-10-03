@@ -9,7 +9,7 @@ from pathlib import Path
 from .agentic.catalog import ROOT
 from .agentic.worker import evaluate
 
-RESULTS = ROOT / "research/churn-prediction/churn_exp" / "results"
+RESULTS = ROOT / "research/churn-prediction/experiments/churn_exp" / "results"
 
 def feature(name, operation, inputs, rationale):
     return {"name": name, "operation": operation, "inputs": inputs, "rationale": rationale}
@@ -77,7 +77,7 @@ def run(repeats=2, max_rows=7043):
         m = item["metrics"]
         lines.append(f"| {rank} | {item['id']} | {item['title']} | {item['model']} | {m['roc_auc']:.4f} | {m['average_precision']:.4f} | {m['log_loss']:.4f} | {item['paired_auc_delta_vs_logistic']:+.4f} |")
     lines += ["", "## Protocol", "", "- `customerID` is excluded before modeling.", "- Blank `TotalCharges` at zero tenure becomes zero; all other missing numeric values are imputed inside each fold.", "- Categorical encoding, numeric imputation/scaling and derived features are fitted/executed inside each fold.", "- Exact duplicate allowed-input rows share a fold. The source has no verified household/account-history grouping or event-time split.", "- Every result includes OOF predictions, calibration, missing-input stress tests, sensitivity, data/code hashes and a replay recipe.", "", "## Interpretation", "", "The highest score is a candidate for independent temporal/external confirmation, not a universal best model. Prefer probability quality, robustness, operating constraints and stability—not ROC-AUC alone."]
-    (ROOT / "research/churn-prediction/churn_exp" / "CHURN_BENCHMARK.md").write_text("\n".join(lines) + "\n")
+    (ROOT / "research/churn-prediction/experiments/churn_exp" / "CHURN_BENCHMARK.md").write_text("\n".join(lines) + "\n")
     return summary
 
 def status():

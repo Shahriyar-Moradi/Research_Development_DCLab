@@ -28,7 +28,7 @@ def signal_for(cell, all_code, signal, copilot):
 
 def evaluate(manifest, root=ROOT):
     # Import the user-provided prototype from its existing location, without edits.
-    prototype = root / "research/agentic-ml-copilot/prototype_sept22"
+    prototype = root / "research/agentic-ml-copilot/experiments/prototype_sept22"
     sys.path.insert(0, str(prototype))
     import notebook_copilot as copilot
     from build_rag_index import RetrievalIndex, load_all

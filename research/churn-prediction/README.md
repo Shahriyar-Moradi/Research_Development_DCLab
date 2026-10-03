@@ -20,9 +20,9 @@ For a subscription business, which modeling choices give a reliable churn-risk r
 
 | Folder | What it is | Key result |
 |---|---|---|
-| `churn_exp/` | Fixed 15-experiment development campaign (2×3-fold, duplicate-grouped CV) | Logistic regression with charge features led: ROC-AUC 0.850, AP 0.671 ([benchmark](churn_exp/CHURN_BENCHMARK.md)) |
-| `tabular_transformers/` | TabTransformer, FT-Transformer and SAINT vs trees and logistic regression | Logistic regression 0.845 ≥ FT-Transformer 0.842 ≥ XGBoost 0.842 ≥ SAINT 0.842 ≥ TabTransformer 0.833 |
-| `logistic_regression/` | First baselines and a beginner pandas/NumPy notebook | Teaching material |
+| `experiments/churn_exp/` | Fixed 15-experiment development campaign (2×3-fold, duplicate-grouped CV) | Logistic regression with charge features led: ROC-AUC 0.850, AP 0.671 ([benchmark](experiments/churn_exp/CHURN_BENCHMARK.md)) |
+| `experiments/tabular_transformers/` | TabTransformer, FT-Transformer and SAINT vs trees and logistic regression | Logistic regression 0.845 ≥ FT-Transformer 0.842 ≥ XGBoost 0.842 ≥ SAINT 0.842 ≥ TabTransformer 0.833 |
+| `experiments/logistic_regression/` | First baselines and a beginner pandas/NumPy notebook | Teaching material |
 
 ## How to run
 
@@ -32,12 +32,12 @@ make churn-run
 make churn-status
 
 # Deep tabular models (extra dependencies)
-pip install -r research/churn-prediction/tabular_transformers/requirements-tabular-transformers.txt
-.venv/bin/python research/churn-prediction/tabular_transformers/tabular_transformer_churn.py
+pip install -r research/churn-prediction/experiments/tabular_transformers/requirements-tabular-transformers.txt
+.venv/bin/python research/churn-prediction/experiments/tabular_transformers/tabular_transformer_churn.py
 
 # Baseline script and its tests
-.venv/bin/python research/churn-prediction/logistic_regression/main.py
-.venv/bin/python -m unittest discover -s research/churn-prediction/logistic_regression -p 'test_model*.py'
+.venv/bin/python research/churn-prediction/experiments/logistic_regression/main.py
+.venv/bin/python -m unittest discover -s research/churn-prediction/experiments/logistic_regression -p 'test_model*.py'
 ```
 
 ## Conclusions so far

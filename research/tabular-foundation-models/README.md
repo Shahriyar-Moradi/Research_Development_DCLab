@@ -8,7 +8,7 @@ Can a pretrained tabular foundation model (TabPFN v2/v3) match or beat tuned gra
 
 ## What is here
 
-`tabpfn/` holds the training script, a benchmark against trees, sklearn models and lucidrains TabTransformer/FT-Transformer, the local TabPFN demo notebook, and `results/`.
+`experiments/tabpfn/` holds the training script, a benchmark against trees, sklearn models and lucidrains TabTransformer/FT-Transformer, the benchmark notebook, and `results/`. The standalone TabPFN demo notebook is in `notebooks/`.
 
 ## Results so far
 
@@ -25,7 +25,7 @@ Run from inside the folder; TabPFN v3 and thinking mode need `TABPFN_TOKEN` in t
 
 ```bash
 pip install -r requirements/base.txt   # includes tabpfn, tabpfn-client, tab-transformer-pytorch
-cd research/tabular-foundation-models/tabpfn
+cd research/tabular-foundation-models/experiments/tabpfn
 python train_tabpfn.py                              # TabPFN-2 when no token is set
 python train_tabpfn.py --version v3
 python benchmark_tabpfn.py                          # TabPFN vs trees / sklearn / TabTransformer

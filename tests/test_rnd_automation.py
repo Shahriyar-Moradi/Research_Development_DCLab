@@ -38,12 +38,12 @@ class RegistryTests(unittest.TestCase):
             }
             _write(
                 root,
-                "general_pipeline/results/safe_optimized_lightgbm.json",
+                "research/tabular-classification/experiments/four_way_benchmark/results/safe_optimized_lightgbm.json",
                 {**base, "mode": "safe"},
             )
             _write(
                 root,
-                "general_pipeline/results/unsafe_optimized_lightgbm.json",
+                "research/tabular-classification/experiments/four_way_benchmark/results/unsafe_optimized_lightgbm.json",
                 {**base, "mode": "unsafe", "metrics": {"roc_auc": 0.99}},
             )
 
@@ -72,12 +72,12 @@ class RegistryTests(unittest.TestCase):
             }
             _write(
                 root,
-                "research/tabular-classification/external_projects/sample_exp/results/ladder/06_safe_a.json",
+                "research/tabular-classification/experiments/external_projects/sample_exp/results/ladder/06_safe_a.json",
                 payload,
             )
             _write(
                 root,
-                "research/tabular-classification/external_projects/sample_exp/results/ladder/06_safe_b.json",
+                "research/tabular-classification/experiments/external_projects/sample_exp/results/ladder/06_safe_b.json",
                 payload,
             )
             _, issues = collect_registry(root)
@@ -90,7 +90,7 @@ class RegistryTests(unittest.TestCase):
             root = Path(tmp)
             _write(
                 root,
-                "general_pipeline/results/safe_baseline_xgboost.json",
+                "research/tabular-classification/experiments/four_way_benchmark/results/safe_baseline_xgboost.json",
                 {"model_name": "xgboost", "mode": "safe", "metrics": {"roc_auc": 1.2}},
             )
             _, issues = collect_registry(root)
@@ -101,7 +101,7 @@ class RegistryTests(unittest.TestCase):
             root = Path(tmp)
             _write(
                 root,
-                "research/tabular-classification/external_projects/sample_exp/results/ladder/04_safe_fe_ratios.json",
+                "research/tabular-classification/experiments/external_projects/sample_exp/results/ladder/04_safe_fe_ratios.json",
                 {
                     "dataset": "sample",
                     "exp_id": 4,
@@ -162,7 +162,7 @@ class EvidenceTests(unittest.TestCase):
                 for suffix, score in (("one", lgbm), ("two", lgbm - 0.01)):
                     _write(
                         root,
-                        f"general_pipeline/results_external/{dataset}__{suffix}__lightgbm.json",
+                        f"research/tabular-classification/experiments/external_benchmark/results/{dataset}__{suffix}__lightgbm.json",
                         {
                             "dataset": dataset,
                             "model_name": "lightgbm",
@@ -171,7 +171,7 @@ class EvidenceTests(unittest.TestCase):
                     )
                 _write(
                     root,
-                    f"general_pipeline/results_external/{dataset}__one__xgboost.json",
+                    f"research/tabular-classification/experiments/external_benchmark/results/{dataset}__one__xgboost.json",
                     {
                         "dataset": dataset,
                         "model_name": "xgboost",
@@ -190,7 +190,7 @@ class EvidenceTests(unittest.TestCase):
             root = Path(tmp)
             _write(
                 root,
-                "general_pipeline/results/safe_baseline_logistic_regression.json",
+                "research/tabular-classification/experiments/four_way_benchmark/results/safe_baseline_logistic_regression.json",
                 {
                     "model_name": "logistic_regression",
                     "mode": "safe",

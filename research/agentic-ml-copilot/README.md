@@ -18,7 +18,7 @@ This is DCLab's product thesis: replace the manual notebook loop with an agent t
 | Agent tools + MCP server | `dclab_rnd/tools.py` | [Architecture](../../docs/guides/AGENT_KNOWLEDGE_ARCHITECTURE.md) |
 | Notebook copilot | `dclab_rnd/copilot/` | [Copilot](../../docs/guides/NOTEBOOK_COPILOT.md) |
 | Notebook companion (cell-level advice with exact rule references, shared output contract for a VS Code extension) | `dclab_rnd/notebook_assist.py`, `notebook_assist_eval.py`, `notebook_eval.py` | Frozen development cases: `research/evaluation-and-trust/notebook_cases_v1.json` |
-| First prototypes (historical) | [`prototype_sept22/`](prototype_sept22/README.md) | |
+| First prototypes (historical) | [`prototype_sept22/`](experiments/prototype_sept22/README.md) | |
 | Critic gate | `dclab_rnd/critic_gate.py` | [SFT guide](../../docs/guides/SFT_DATA_GUIDE.md) |
 | Research Studio (LangGraph + NOOA agents, web UI) | `dclab_rnd/agentic/` | Main README |
 | Product plan and verification | | [Integration plan](../../docs/guides/DCLAB_RND_INTEGRATION_PLAN.md) |

@@ -32,7 +32,7 @@ class NotebookCompanionTests(unittest.TestCase):
         self.assertFalse(cells[26]["findings"][0]["proof"]["exact_analogous_experiment"])
 
     def test_churn_warning_is_conditional_and_citation_is_relevant(self):
-        report = reviewed("research/agentic-ml-copilot/prototype_sept22/demo_churn_model.ipynb")
+        report = reviewed("research/agentic-ml-copilot/experiments/prototype_sept22/demo_churn_model.ipynb")
         self.assertIsNone(report["dataset_inferred"])  # Demo filename does not prove Telco source identity.
         first = {f["kind"]: f for f in report["code_cells"][0]["findings"]}
         self.assertEqual(set(first), {"preprocessing_before_split", "prediction_time_availability", "unseeded_split"})
