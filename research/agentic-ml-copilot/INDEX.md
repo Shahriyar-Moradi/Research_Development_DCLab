@@ -32,7 +32,7 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 ## Reports and research notes
 
-- [experiments/prototype_sept22/](experiments/prototype_sept22): [DCLab_Agentic_Loop_RD_Verification_Plan.md](experiments/prototype_sept22/DCLab_Agentic_Loop_RD_Verification_Plan.md), [DCLab_RD_Operating_Model.md](experiments/prototype_sept22/DCLab_RD_Operating_Model.md), [DCLab_RD_Review_and_Roadmap.md](experiments/prototype_sept22/DCLab_RD_Review_and_Roadmap.md), [NOTEBOOK_COPILOT_SPEC.md](experiments/prototype_sept22/NOTEBOOK_COPILOT_SPEC.md), [SFT_DATA_GUIDE.md](experiments/prototype_sept22/SFT_DATA_GUIDE.md)
+- [experiments/prototype_sept22/](experiments/prototype_sept22): [DCLab_Agentic_Loop_RD_Verification_Plan.md](experiments/prototype_sept22/DCLab_Agentic_Loop_RD_Verification_Plan.md), [DCLab_RD_Operating_Model.md](experiments/prototype_sept22/DCLab_RD_Operating_Model.md), [NOTEBOOK_COPILOT_SPEC.md](experiments/prototype_sept22/NOTEBOOK_COPILOT_SPEC.md), [SFT_DATA_GUIDE.md](experiments/prototype_sept22/SFT_DATA_GUIDE.md)
 
 ## Related tracks
 

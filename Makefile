@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index clean
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -137,4 +137,7 @@ new-track:  ## scaffold research/NAME from the template: make new-track NAME=x T
 
 research-index:  ## regenerate research/<track>/INDEX.md and the track graph
 	$(PYTHON) scripts/build_research_index.py
+
+clean:  ## remove caches and empty folders (dry run; `make clean APPLY=1` to remove)
+	$(PYTHON) scripts/clean_workspace.py $(if $(APPLY),--apply,)
 

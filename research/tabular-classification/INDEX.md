@@ -49,7 +49,7 @@ Best deployment-eligible result per dataset from the evidence registry (leakage-
 
 ## Evaluation
 
-- [benchmark_outputs](evaluation/benchmark_outputs): 28 file(s)
+- [benchmark_outputs](evaluation/benchmark_outputs): 26 file(s)
 - Shared evaluation evidence: [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
 
 ## Reports and research notes

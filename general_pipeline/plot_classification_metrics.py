@@ -469,16 +469,6 @@ def main() -> None:
             outputs.append(p)
             print(f"Saved: {p}")
 
-    # Keep canonical filenames pointing to horizontal versions for report embeds
-    for src_suffix, dest in [
-        ("classification_metrics_2x2_grid_horizontal.png", "classification_metrics_2x2_grid.png"),
-        ("safe_optimized_4metrics_profile_horizontal.png", "safe_optimized_4metrics_profile.png"),
-    ]:
-        src = OUTPUTS_DIR / src_suffix
-        dest_path = OUTPUTS_DIR / dest
-        dest_path.write_bytes(src.read_bytes())
-        print(f"Synced canonical: {dest_path}")
-
     outputs.append(plot_pr_frontier(df))
     print(f"Saved: {outputs[-1]}")
     outputs.append(plot_heatmap(df))
