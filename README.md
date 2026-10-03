@@ -55,6 +55,21 @@ make help
 make test
 ```
 
+## DCLab R&D paths
+
+Use the [research tracks index](research_tracks/README.md) to navigate the separate ideas discussed for this lab. It links to existing tabular experiments, the agentic studio, SFT preparation, and separately labels workflow models, workflow-sized generation, computer-vision scene graphs, temporal GNNs, autonomous-driving maps, and cross-industry transfer as proposals.
+
+| Goal | Start with | Run or use |
+|---|---|---|
+| Launch the local research interface | Agentic Research Studio below | `make agent-serve`, then open `http://127.0.0.1:8765` |
+| Start a bounded HyperAck or churn agent run | Agentic Research Studio below | `make agent-hyperack` or `make agent-churn` |
+| Run deterministic tabular experiments | Automated R&D control plane below | `make rd-smoke`; read each suite's README first |
+| Read the data-science workflow guidance | [`knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](knowledge/MODEL_BUILDING_FIELD_GUIDE.md) | Follow its prediction contract, split, leakage, feature, and evaluation stages |
+| Use the SFT preparation workflow | [`sft/README.md`](sft/README.md) | Follow its commands and data-quality cautions |
+| Run the available software checks | `tests/` and CI instructions below | `make test` or `make agent-test` |
+
+Live agent runs need `OPENAI_API_KEY` in a private local `.env` or process environment. Never commit that key. Test success and development metrics are evidence about the tested cases; they do not guarantee correct behavior for every dataset or production use.
+
 ---
 
 ## Automated R&D control plane
