@@ -3,13 +3,13 @@
   "experiment_id": "VER-001",
   "kind": "auditor_blind_replay",
   "question": "Without being told, does the deterministic column auditor flag the leakage columns the R&D already confirmed?",
-  "completed_at": "2026-10-03T06:39:00+00:00",
-  "datasets": 4,
-  "known_leaks": 13,
-  "found": 8,
-  "recall": 0.6154,
-  "datasets_with_every_leak_found": 3,
-  "datasets_with_at_least_one_leak_found": 4,
+  "completed_at": "2026-10-03T07:13:01+00:00",
+  "datasets": 7,
+  "known_leaks": 18,
+  "found": 11,
+  "recall": 0.6111,
+  "datasets_with_every_leak_found": 4,
+  "datasets_with_at_least_one_leak_found": 6,
   "cases": [
     {
       "dataset": "bank_marketing",
@@ -188,6 +188,149 @@
         },
         {
           "column": "customerID",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "credit_card_fraud",
+      "known_leaks": [
+        "Time"
+      ],
+      "found": [],
+      "missed": [
+        "Time"
+      ],
+      "recall": 0.0,
+      "flagged_total": 0,
+      "false_alarms": [],
+      "rank_of_known": {
+        "Time": 2
+      },
+      "top_flags": []
+    },
+    {
+      "dataset": "bike_sharing_daily",
+      "known_leaks": [
+        "casual",
+        "registered"
+      ],
+      "found": [
+        "casual",
+        "registered"
+      ],
+      "missed": [],
+      "recall": 1.0,
+      "flagged_total": 6,
+      "false_alarms": [
+        "cnt_2d_bfr",
+        "days_since_2011",
+        "dteday",
+        "instant"
+      ],
+      "rank_of_known": {
+        "casual": 2,
+        "registered": 1
+      },
+      "top_flags": [
+        {
+          "column": "registered",
+          "risk_score": 5.109999999999999,
+          "signals": [
+            "name suggests a post-outcome value",
+            "single column tracks the target (|Spearman| 0.927)",
+            "target = casual + registered on 100% of rows"
+          ]
+        },
+        {
+          "column": "casual",
+          "risk_score": 4.0,
+          "signals": [
+            "name suggests a post-outcome value",
+            "target = casual + registered on 100% of rows"
+          ]
+        },
+        {
+          "column": "cnt_2d_bfr",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (96% unique)"
+          ]
+        },
+        {
+          "column": "days_since_2011",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "dteday",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "instant",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "ecommerce_clothing_reviews",
+      "known_leaks": [
+        "Rating",
+        "Positive Feedback Count"
+      ],
+      "found": [
+        "Rating"
+      ],
+      "missed": [
+        "Positive Feedback Count"
+      ],
+      "recall": 0.5,
+      "flagged_total": 4,
+      "false_alarms": [
+        "Title",
+        "Review Text",
+        "Unnamed: 0"
+      ],
+      "rank_of_known": {
+        "Rating": 1,
+        "Positive Feedback Count": 10
+      },
+      "top_flags": [
+        {
+          "column": "Rating",
+          "risk_score": 2.694,
+          "signals": [
+            "name suggests a post-outcome value",
+            "single column separates the classes (AUC 0.974)"
+          ]
+        },
+        {
+          "column": "Title",
+          "risk_score": 1.796,
+          "signals": [
+            "single column separates the classes (AUC 0.999)"
+          ]
+        },
+        {
+          "column": "Review Text",
+          "risk_score": 1.5,
+          "signals": [
+            "identifier-like (100% unique)"
+          ]
+        },
+        {
+          "column": "Unnamed: 0",
           "risk_score": 1.5,
           "signals": [
             "identifier-like (100% unique)"

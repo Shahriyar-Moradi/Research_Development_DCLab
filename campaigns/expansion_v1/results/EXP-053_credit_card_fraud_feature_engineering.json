@@ -1,0 +1,918 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-053-C1",
+      "evidence": [
+        "evidence.stage_results",
+        "evidence.selection_rule",
+        "evidence.selected_recipe"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "Recipes were compared with a single default-parameter model; a different family could rank them differently."
+      ],
+      "statement": "Use the `raw` recipe (V1-V28 + Amount (absolute Time blocked)) for credit_card_fraud: 0.7804\u00b10.0192 training-CV average precision (PR-AUC) with 29 features; the best recipe was `raw` at 0.7804."
+    },
+    {
+      "claim_id": "EXP-053-C2",
+      "evidence": [
+        "evidence.stage_results"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Recipe comparison (lightgbm, expanding-window TimeSeriesSplit(3) on time-ordered training rows): raw (29 feats, 0.7804\u00b10.0192); log_amount (30 feats, 0.7804\u00b10.0192); hour_of_day (32 feats, 0.7778\u00b10.0212); log_amount_hour (33 feats, 0.7778\u00b10.0212)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:03:17+00:00",
+  "dataset": "credit_card_fraud",
+  "decision_time_rule": "Score each transaction at authorization time using only that transaction's own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature.",
+  "evidence": {
+    "best_metric_mean": 0.7804437511707198,
+    "best_recipe": "raw",
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "elapsed_seconds": 11.464330296999833,
+    "reference_metric_mean": 0.7804437511707198,
+    "reference_recipe": "raw",
+    "selected_metric_mean": 0.7804437511707198,
+    "selected_recipe": "raw",
+    "selected_recipe_description": "V1-V28 + Amount (absolute Time blocked)",
+    "selected_stage": "raw",
+    "selected_vs_reference_gain": 0.0,
+    "selection_rule": "Choose the recipe with the fewest features (then fastest) whose mean training-CV average precision (PR-AUC) is within 0.005 of the best recipe; all recipes use lightgbm with default parameters on identical folds (expanding-window TimeSeriesSplit(3) on time-ordered training rows).",
+    "stage_model": "lightgbm",
+    "stage_results": [
+      {
+        "config_id": "raw",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "V1-V28 + Amount (absolute Time blocked)",
+        "elapsed_seconds": 2.829442573000051,
+        "feature_count_mean": 29.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9995259914678464,
+            "average_precision": 0.7961900870704218,
+            "brier": 0.00042551413272976093,
+            "f1": 0.8163265306122449,
+            "fit_rows": 14359,
+            "fit_seconds": 0.3724309369999901,
+            "fold": 1,
+            "log_loss": 0.0052035556516433,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 0.9523809523809523,
+            "precision_at_k_positives": 0.7857142857142857,
+            "precision_target": 0.9,
+            "recall": 0.7142857142857143,
+            "recall_at_precision_target": 0.7619047619047619,
+            "roc_auc": 0.9253809599160092,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9991397622934991,
+            "average_precision": 0.7861188789764809,
+            "brier": 0.000778442745452193,
+            "f1": 0.8,
+            "fit_rows": 28662,
+            "fit_seconds": 0.5551255919999676,
+            "fold": 2,
+            "log_loss": 0.00716531025223987,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.7777777777777778,
+            "precision_at_k_positives": 0.8067226890756303,
+            "precision_target": 0.9,
+            "recall": 0.8235294117647058,
+            "recall_at_precision_target": 0.4117647058823529,
+            "roc_auc": 0.9730747828493489,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7590222874652567,
+            "brier": 0.0004079491649075228,
+            "f1": 0.7358490566037735,
+            "fit_rows": 42991,
+            "fit_seconds": 0.8735372399996777,
+            "fold": 3,
+            "log_loss": 0.003858507904789351,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.7959183673469388,
+            "precision_at_k_positives": 0.7368421052631579,
+            "precision_target": 0.9,
+            "recall": 0.6842105263157895,
+            "recall_at_precision_target": 0.6666666666666666,
+            "roc_auc": 0.9622273956013327,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995259914678464,
+            "mean": 0.9993913964525435,
+            "min": 0.9991397622934991,
+            "std": 0.00021809829127042397
+          },
+          "average_precision": {
+            "max": 0.7961900870704218,
+            "mean": 0.7804437511707198,
+            "min": 0.7590222874652567,
+            "std": 0.01922281557371918
+          },
+          "brier": {
+            "max": 0.000778442745452193,
+            "mean": 0.0005373020143631589,
+            "min": 0.0004079491649075228,
+            "std": 0.00020901859048004428
+          },
+          "f1": {
+            "max": 0.8163265306122449,
+            "mean": 0.7840585290720061,
+            "min": 0.7358490566037735,
+            "std": 0.04254120152519322
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 0.8735372399996777,
+            "mean": 0.6003645896665452,
+            "min": 0.3724309369999901,
+            "std": 0.2535977265452337
+          },
+          "log_loss": {
+            "max": 0.00716531025223987,
+            "mean": 0.00540912460289084,
+            "min": 0.003858507904789351,
+            "std": 0.0016629580230913305
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 0.9523809523809523,
+            "mean": 0.8420256991685564,
+            "min": 0.7777777777777778,
+            "std": 0.09599990458931833
+          },
+          "precision_at_k_positives": {
+            "max": 0.8067226890756303,
+            "mean": 0.7764263600176914,
+            "min": 0.7368421052631579,
+            "std": 0.03585419321783841
+          },
+          "recall": {
+            "max": 0.8235294117647058,
+            "mean": 0.7406752174554031,
+            "min": 0.6842105263157895,
+            "std": 0.07331263444208873
+          },
+          "recall_at_precision_target": {
+            "max": 0.7619047619047619,
+            "mean": 0.6134453781512604,
+            "min": 0.4117647058823529,
+            "std": 0.18103561492500309
+          },
+          "roc_auc": {
+            "max": 0.9730747828493489,
+            "mean": 0.9535610461222302,
+            "min": 0.9253809599160092,
+            "std": 0.025000087929238253
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "raw",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.06418965962669189
+          },
+          {
+            "feature": "Amount",
+            "mean_normalized_importance": 0.06296117491652259
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.06236590409077852
+          },
+          {
+            "feature": "V26",
+            "mean_normalized_importance": 0.05641616193047624
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.04858283772560031
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.03860110122519118
+          },
+          {
+            "feature": "V21",
+            "mean_normalized_importance": 0.035862545177451695
+          },
+          {
+            "feature": "V22",
+            "mean_normalized_importance": 0.03560907734296189
+          },
+          {
+            "feature": "V13",
+            "mean_normalized_importance": 0.0335964718341288
+          },
+          {
+            "feature": "V20",
+            "mean_normalized_importance": 0.032260298753781357
+          }
+        ]
+      },
+      {
+        "config_id": "log_amount",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "raw + log1p(Amount)",
+        "elapsed_seconds": 2.6594864610001423,
+        "feature_count_mean": 30.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9995259914678464,
+            "average_precision": 0.7961900870704218,
+            "brier": 0.00042551413272976093,
+            "f1": 0.8163265306122449,
+            "fit_rows": 14359,
+            "fit_seconds": 0.332205803999841,
+            "fold": 1,
+            "log_loss": 0.0052035556516433,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 0.9523809523809523,
+            "precision_at_k_positives": 0.7857142857142857,
+            "precision_target": 0.9,
+            "recall": 0.7142857142857143,
+            "recall_at_precision_target": 0.7619047619047619,
+            "roc_auc": 0.9253809599160092,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9991397622934991,
+            "average_precision": 0.7861188789764809,
+            "brier": 0.000778442745452193,
+            "f1": 0.8,
+            "fit_rows": 28662,
+            "fit_seconds": 0.5894912310000109,
+            "fold": 2,
+            "log_loss": 0.00716531025223987,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.7777777777777778,
+            "precision_at_k_positives": 0.8067226890756303,
+            "precision_target": 0.9,
+            "recall": 0.8235294117647058,
+            "recall_at_precision_target": 0.4117647058823529,
+            "roc_auc": 0.9730747828493489,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7590222874652567,
+            "brier": 0.0004079491649075228,
+            "f1": 0.7358490566037735,
+            "fit_rows": 42991,
+            "fit_seconds": 0.7960930330000338,
+            "fold": 3,
+            "log_loss": 0.003858507904789351,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.7959183673469388,
+            "precision_at_k_positives": 0.7368421052631579,
+            "precision_target": 0.9,
+            "recall": 0.6842105263157895,
+            "recall_at_precision_target": 0.6666666666666666,
+            "roc_auc": 0.9622273956013327,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995259914678464,
+            "mean": 0.9993913964525435,
+            "min": 0.9991397622934991,
+            "std": 0.00021809829127042397
+          },
+          "average_precision": {
+            "max": 0.7961900870704218,
+            "mean": 0.7804437511707198,
+            "min": 0.7590222874652567,
+            "std": 0.01922281557371918
+          },
+          "brier": {
+            "max": 0.000778442745452193,
+            "mean": 0.0005373020143631589,
+            "min": 0.0004079491649075228,
+            "std": 0.00020901859048004428
+          },
+          "f1": {
+            "max": 0.8163265306122449,
+            "mean": 0.7840585290720061,
+            "min": 0.7358490566037735,
+            "std": 0.04254120152519322
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 0.7960930330000338,
+            "mean": 0.5725966893332952,
+            "min": 0.332205803999841,
+            "std": 0.23240462443971638
+          },
+          "log_loss": {
+            "max": 0.00716531025223987,
+            "mean": 0.00540912460289084,
+            "min": 0.003858507904789351,
+            "std": 0.0016629580230913305
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 0.9523809523809523,
+            "mean": 0.8420256991685564,
+            "min": 0.7777777777777778,
+            "std": 0.09599990458931833
+          },
+          "precision_at_k_positives": {
+            "max": 0.8067226890756303,
+            "mean": 0.7764263600176914,
+            "min": 0.7368421052631579,
+            "std": 0.03585419321783841
+          },
+          "recall": {
+            "max": 0.8235294117647058,
+            "mean": 0.7406752174554031,
+            "min": 0.6842105263157895,
+            "std": 0.07331263444208873
+          },
+          "recall_at_precision_target": {
+            "max": 0.7619047619047619,
+            "mean": 0.6134453781512604,
+            "min": 0.4117647058823529,
+            "std": 0.18103561492500309
+          },
+          "roc_auc": {
+            "max": 0.9730747828493489,
+            "mean": 0.9535610461222302,
+            "min": 0.9253809599160092,
+            "std": 0.025000087929238253
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "log_amount",
+        "recipe": "log_amount",
+        "stage": "log_amount",
+        "top_features": [
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.06418965962669189
+          },
+          {
+            "feature": "Amount",
+            "mean_normalized_importance": 0.06296117491652259
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.06236590409077852
+          },
+          {
+            "feature": "V26",
+            "mean_normalized_importance": 0.05641616193047624
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.04858283772560031
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.03860110122519118
+          },
+          {
+            "feature": "V21",
+            "mean_normalized_importance": 0.035862545177451695
+          },
+          {
+            "feature": "V22",
+            "mean_normalized_importance": 0.03560907734296189
+          },
+          {
+            "feature": "V13",
+            "mean_normalized_importance": 0.0335964718341288
+          },
+          {
+            "feature": "V20",
+            "mean_normalized_importance": 0.032260298753781357
+          }
+        ]
+      },
+      {
+        "config_id": "hour_of_day",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "raw + hour-of-day (and sin/cos) derived from Time",
+        "elapsed_seconds": 2.9156345230003353,
+        "feature_count_mean": 32.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7794255501160287,
+            "brier": 0.00045185464295435226,
+            "f1": 0.8108108108108109,
+            "fit_rows": 14359,
+            "fit_seconds": 0.33577662900006544,
+            "fold": 1,
+            "log_loss": 0.004919081994957202,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 0.9375,
+            "precision_at_k_positives": 0.7738095238095238,
+            "precision_target": 0.9,
+            "recall": 0.7142857142857143,
+            "recall_at_precision_target": 0.7261904761904762,
+            "roc_auc": 0.9255833599153394,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.999280209265989,
+            "average_precision": 0.7980787140732295,
+            "brier": 0.0006884830326991454,
+            "f1": 0.8298755186721992,
+            "fit_rows": 28662,
+            "fit_seconds": 0.586768353000025,
+            "fold": 2,
+            "log_loss": 0.006342890918193419,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.819672131147541,
+            "precision_at_k_positives": 0.8235294117647058,
+            "precision_target": 0.9,
+            "recall": 0.8403361344537815,
+            "recall_at_precision_target": 0.6470588235294118,
+            "roc_auc": 0.9701380710617873,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.999490879724724,
+            "average_precision": 0.7558597324775532,
+            "brier": 0.0004296821736110375,
+            "f1": 0.7339449541284404,
+            "fit_rows": 42991,
+            "fit_seconds": 0.9541523909997522,
+            "fold": 3,
+            "log_loss": 0.003927479003592559,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.7692307692307693,
+            "precision_at_k_positives": 0.7192982456140351,
+            "precision_target": 0.9,
+            "recall": 0.7017543859649122,
+            "recall_at_precision_target": 0.6666666666666666,
+            "roc_auc": 0.9619220182467978,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995084355962852,
+            "mean": 0.999426508195666,
+            "min": 0.999280209265989,
+            "std": 0.0001270023022431168
+          },
+          "average_precision": {
+            "max": 0.7980787140732295,
+            "mean": 0.7777879988889372,
+            "min": 0.7558597324775532,
+            "std": 0.021157074047703874
+          },
+          "brier": {
+            "max": 0.0006884830326991454,
+            "mean": 0.000523339949754845,
+            "min": 0.0004296821736110375,
+            "std": 0.0001434471435144531
+          },
+          "f1": {
+            "max": 0.8298755186721992,
+            "mean": 0.7915437612038169,
+            "min": 0.7339449541284404,
+            "std": 0.0507846699687991
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 0.9541523909997522,
+            "mean": 0.6255657909999476,
+            "min": 0.33577662900006544,
+            "std": 0.3110081617155597
+          },
+          "log_loss": {
+            "max": 0.006342890918193419,
+            "mean": 0.005063150638914393,
+            "min": 0.003927479003592559,
+            "std": 0.001214133645826396
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 0.9375,
+            "mean": 0.8421343001261034,
+            "min": 0.7692307692307693,
+            "std": 0.08635418508869895
+          },
+          "precision_at_k_positives": {
+            "max": 0.8235294117647058,
+            "mean": 0.7722123937294216,
+            "min": 0.7192982456140351,
+            "std": 0.052133934415616076
+          },
+          "recall": {
+            "max": 0.8403361344537815,
+            "mean": 0.7521254115681361,
+            "min": 0.7017543859649122,
+            "std": 0.07664924834189206
+          },
+          "recall_at_precision_target": {
+            "max": 0.7261904761904762,
+            "mean": 0.6799719887955181,
+            "min": 0.6470588235294118,
+            "std": 0.041209565769760474
+          },
+          "roc_auc": {
+            "max": 0.9701380710617873,
+            "mean": 0.9525478164079747,
+            "min": 0.9255833599153394,
+            "std": 0.02371048958630119
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "hour_of_day",
+        "recipe": "hour_of_day",
+        "stage": "hour_of_day",
+        "top_features": [
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.06433241712685024
+          },
+          {
+            "feature": "Amount",
+            "mean_normalized_importance": 0.06213734323513274
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.05741695752451067
+          },
+          {
+            "feature": "V26",
+            "mean_normalized_importance": 0.051835213045422546
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.04886365755783071
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.03942749075810822
+          },
+          {
+            "feature": "V22",
+            "mean_normalized_importance": 0.0361610569354845
+          },
+          {
+            "feature": "V21",
+            "mean_normalized_importance": 0.03491879229091279
+          },
+          {
+            "feature": "V8",
+            "mean_normalized_importance": 0.031073474873578782
+          },
+          {
+            "feature": "hour_sin",
+            "mean_normalized_importance": 0.03007180336566582
+          }
+        ]
+      },
+      {
+        "config_id": "log_amount_hour",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "raw + log1p(Amount) + hour-of-day",
+        "elapsed_seconds": 2.958648615999664,
+        "feature_count_mean": 33.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9995084355962852,
+            "average_precision": 0.7794255501160287,
+            "brier": 0.00045185464295435226,
+            "f1": 0.8108108108108109,
+            "fit_rows": 14359,
+            "fit_seconds": 0.3995293819998551,
+            "fold": 1,
+            "log_loss": 0.004919081994957202,
+            "majority_baseline_accuracy": 0.9985253067888555,
+            "positive_rate": 0.0014746932111444674,
+            "precision": 0.9375,
+            "precision_at_k_positives": 0.7738095238095238,
+            "precision_target": 0.9,
+            "recall": 0.7142857142857143,
+            "recall_at_precision_target": 0.7261904761904762,
+            "roc_auc": 0.9255833599153394,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.999280209265989,
+            "average_precision": 0.7980787140732295,
+            "brier": 0.0006884830326991454,
+            "f1": 0.8298755186721992,
+            "fit_rows": 28662,
+            "fit_seconds": 0.6461967899999763,
+            "fold": 2,
+            "log_loss": 0.006342890918193419,
+            "majority_baseline_accuracy": 0.997910851284212,
+            "positive_rate": 0.002089148715787995,
+            "precision": 0.819672131147541,
+            "precision_at_k_positives": 0.8235294117647058,
+            "precision_target": 0.9,
+            "recall": 0.8403361344537815,
+            "recall_at_precision_target": 0.6470588235294118,
+            "roc_auc": 0.9701380710617873,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          },
+          {
+            "accuracy": 0.999490879724724,
+            "average_precision": 0.7558597324775532,
+            "brier": 0.0004296821736110375,
+            "f1": 0.7339449541284404,
+            "fit_rows": 42991,
+            "fit_seconds": 0.9157152939997104,
+            "fold": 3,
+            "log_loss": 0.003927479003592559,
+            "majority_baseline_accuracy": 0.9989993153210092,
+            "positive_rate": 0.0010006846789908884,
+            "precision": 0.7692307692307693,
+            "precision_at_k_positives": 0.7192982456140351,
+            "precision_target": 0.9,
+            "recall": 0.7017543859649122,
+            "recall_at_precision_target": 0.6666666666666666,
+            "roc_auc": 0.9619220182467978,
+            "threshold": 0.5,
+            "validation_rows": 56961
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9995084355962852,
+            "mean": 0.999426508195666,
+            "min": 0.999280209265989,
+            "std": 0.0001270023022431168
+          },
+          "average_precision": {
+            "max": 0.7980787140732295,
+            "mean": 0.7777879988889372,
+            "min": 0.7558597324775532,
+            "std": 0.021157074047703874
+          },
+          "brier": {
+            "max": 0.0006884830326991454,
+            "mean": 0.000523339949754845,
+            "min": 0.0004296821736110375,
+            "std": 0.0001434471435144531
+          },
+          "f1": {
+            "max": 0.8298755186721992,
+            "mean": 0.7915437612038169,
+            "min": 0.7339449541284404,
+            "std": 0.0507846699687991
+          },
+          "fit_rows": {
+            "max": 42991.0,
+            "mean": 28670.666666666668,
+            "min": 14359.0,
+            "std": 14316.00196749544
+          },
+          "fit_seconds": {
+            "max": 0.9157152939997104,
+            "mean": 0.6538138219998473,
+            "min": 0.3995293819998551,
+            "std": 0.25817724206278503
+          },
+          "log_loss": {
+            "max": 0.006342890918193419,
+            "mean": 0.005063150638914393,
+            "min": 0.003927479003592559,
+            "std": 0.001214133645826396
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.9989993153210092,
+            "mean": 0.998478491131359,
+            "min": 0.997910851284212,
+            "std": 0.000545740111399501
+          },
+          "positive_rate": {
+            "max": 0.002089148715787995,
+            "mean": 0.001521508868641117,
+            "min": 0.0010006846789908884,
+            "std": 0.0005457401113994609
+          },
+          "precision": {
+            "max": 0.9375,
+            "mean": 0.8421343001261034,
+            "min": 0.7692307692307693,
+            "std": 0.08635418508869895
+          },
+          "precision_at_k_positives": {
+            "max": 0.8235294117647058,
+            "mean": 0.7722123937294216,
+            "min": 0.7192982456140351,
+            "std": 0.052133934415616076
+          },
+          "recall": {
+            "max": 0.8403361344537815,
+            "mean": 0.7521254115681361,
+            "min": 0.7017543859649122,
+            "std": 0.07664924834189206
+          },
+          "recall_at_precision_target": {
+            "max": 0.7261904761904762,
+            "mean": 0.6799719887955181,
+            "min": 0.6470588235294118,
+            "std": 0.041209565769760474
+          },
+          "roc_auc": {
+            "max": 0.9701380710617873,
+            "mean": 0.9525478164079747,
+            "min": 0.9255833599153394,
+            "std": 0.02371048958630119
+          },
+          "validation_rows": {
+            "max": 56961.0,
+            "mean": 56961.0,
+            "min": 56961.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "log_amount_hour",
+        "recipe": "log_amount_hour",
+        "stage": "log_amount_hour",
+        "top_features": [
+          {
+            "feature": "V14",
+            "mean_normalized_importance": 0.06433241712685024
+          },
+          {
+            "feature": "Amount",
+            "mean_normalized_importance": 0.06213734323513274
+          },
+          {
+            "feature": "V4",
+            "mean_normalized_importance": 0.05741695752451067
+          },
+          {
+            "feature": "V26",
+            "mean_normalized_importance": 0.051835213045422546
+          },
+          {
+            "feature": "V12",
+            "mean_normalized_importance": 0.04886365755783071
+          },
+          {
+            "feature": "V10",
+            "mean_normalized_importance": 0.03942749075810822
+          },
+          {
+            "feature": "V22",
+            "mean_normalized_importance": 0.0361610569354845
+          },
+          {
+            "feature": "V21",
+            "mean_normalized_importance": 0.03491879229091279
+          },
+          {
+            "feature": "V8",
+            "mean_normalized_importance": 0.031073474873578782
+          },
+          {
+            "feature": "hour_sin",
+            "mean_normalized_importance": 0.03007180336566582
+          }
+        ]
+      }
+    ]
+  },
+  "experiment_id": "EXP-053",
+  "holdout_policy": "Locked holdout = last 20% of rows in `Time` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Hour-of-day adds signal beyond the PCA components while log(Amount) is neutral for tree models.",
+  "kind": "feature_engineering",
+  "primary_metric": "average_precision",
+  "provenance": {
+    "data_sha256": {
+      "data/external/credit_card_fraud/creditcard.csv": "33a178be65174943a07d1736acf5898f6c8e1fa80950dbbe598c17eda968ec59"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which task-appropriate, train-fitted feature recipe gives the best primary metric for the fewest features?",
+  "schema_version": 2,
+  "setup_summary": "4 recipes compared with lightgbm on expanding-window TimeSeriesSplit(3) on time-ordered training rows: raw (29 feats, 0.7804\u00b10.0192); log_amount (30 feats, 0.7804\u00b10.0192); hour_of_day (32 feats, 0.7778\u00b10.0212); log_amount_hour (33 feats, 0.7778\u00b10.0212). Selected: raw.",
+  "source": "https://raw.githubusercontent.com/nsethi31/Kaggle-Data-Credit-Card-Fraud-Detection/master/creditcard.csv",
+  "started_at": "2026-10-03T07:03:06+00:00",
+  "status": "completed",
+  "task_type": "binary_imbalanced"
+}

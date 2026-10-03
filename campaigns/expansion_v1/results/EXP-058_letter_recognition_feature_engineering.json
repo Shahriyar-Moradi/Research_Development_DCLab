@@ -1,0 +1,606 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-058-C1",
+      "evidence": [
+        "evidence.stage_results",
+        "evidence.selection_rule",
+        "evidence.selected_recipe"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "Recipes were compared with a single default-parameter model; a different family could rank them differently."
+      ],
+      "statement": "Use the `raw` recipe (the 16 shape statistics) for letter_recognition: 0.9592\u00b10.0040 training-CV macro-F1 with 16 features; the best recipe was `ratios` at 0.9605."
+    },
+    {
+      "claim_id": "EXP-058-C2",
+      "evidence": [
+        "evidence.stage_results"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Recipe comparison (lightgbm, StratifiedKFold(3, shuffle, random_state=42) on training rows): raw (16 feats, 0.9592\u00b10.0040); ratios (24 feats, 0.9605\u00b10.0018); poly2 (136 feats, 0.9587\u00b10.0027); selected_mi (10 feats, 0.9479\u00b10.0025)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:06:21+00:00",
+  "dataset": "letter_recognition",
+  "decision_time_rule": "All 16 shape statistics are computed from the glyph image itself before classification, so every column is decision-time available; no column is blocked.",
+  "evidence": {
+    "best_metric_mean": 0.9604673049963809,
+    "best_recipe": "ratios",
+    "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "elapsed_seconds": 103.12478170800023,
+    "reference_metric_mean": 0.9592231122884295,
+    "reference_recipe": "raw",
+    "selected_metric_mean": 0.9592231122884295,
+    "selected_recipe": "raw",
+    "selected_recipe_description": "the 16 shape statistics",
+    "selected_stage": "raw",
+    "selected_vs_reference_gain": 0.0,
+    "selection_rule": "Choose the recipe with the fewest features (then fastest) whose mean training-CV macro-F1 is within 0.002 of the best recipe; all recipes use lightgbm with default parameters on identical folds (StratifiedKFold(3, shuffle, random_state=42) on training rows).",
+    "stage_model": "lightgbm",
+    "stage_results": [
+      {
+        "config_id": "raw",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "description": "the 16 shape statistics",
+        "elapsed_seconds": 19.27497574600011,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9615673040869891,
+            "balanced_accuracy": 0.9615378996864301,
+            "fit_rows": 10666,
+            "fit_seconds": 5.738740414999938,
+            "fold": 1,
+            "log_loss": 0.1517284634225215,
+            "macro_f1": 0.9614901756233714,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9546221638852428,
+            "balanced_accuracy": 0.9543707883932764,
+            "fit_rows": 10667,
+            "fit_seconds": 5.354242053999769,
+            "fold": 2,
+            "log_loss": 0.16807248716009643,
+            "macro_f1": 0.9545570604279455,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9617476092255766,
+            "balanced_accuracy": 0.961529436832946,
+            "fit_rows": 10667,
+            "fit_seconds": 5.309077240999613,
+            "fold": 3,
+            "log_loss": 0.15293044599549319,
+            "macro_f1": 0.9616221008139714,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9617476092255766,
+            "mean": 0.9593123590659361,
+            "min": 0.9546221638852428,
+            "std": 0.004062828523393481
+          },
+          "balanced_accuracy": {
+            "max": 0.9615378996864301,
+            "mean": 0.9591460416375508,
+            "min": 0.9543707883932764,
+            "std": 0.004135492783839372
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 5.738740414999938,
+            "mean": 5.46735323666644,
+            "min": 5.309077240999613,
+            "std": 0.23611060015636348
+          },
+          "log_loss": {
+            "max": 0.16807248716009643,
+            "mean": 0.15757713219270372,
+            "min": 0.1517284634225215,
+            "std": 0.009109091471991774
+          },
+          "macro_f1": {
+            "max": 0.9616221008139714,
+            "mean": 0.9592231122884295,
+            "min": 0.9545570604279455,
+            "std": 0.004041457786185897
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "raw",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.09299863159559378
+          },
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.08519089734666334
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.08414420684974094
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.0788527733795963
+          },
+          {
+            "feature": "yegvx",
+            "mean_normalized_importance": 0.07735823268026248
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.0738828795843033
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.07062114098951262
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.06528584423849253
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.06151657927821324
+          },
+          {
+            "feature": "xegvy",
+            "mean_normalized_importance": 0.061182115646261394
+          }
+        ]
+      },
+      {
+        "config_id": "ratios",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "description": "raw + 8 geometric ratios/differences (aspect, ink density, moments)",
+        "elapsed_seconds": 21.38380684499998,
+        "feature_count_mean": 24.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9623172103487064,
+            "balanced_accuracy": 0.9622639819907042,
+            "fit_rows": 10666,
+            "fit_seconds": 6.229309720999936,
+            "fold": 1,
+            "log_loss": 0.1518783471666914,
+            "macro_f1": 0.9622771584044515,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9606225389086818,
+            "balanced_accuracy": 0.9604196784213149,
+            "fit_rows": 10667,
+            "fit_seconds": 6.238945559000058,
+            "fold": 2,
+            "log_loss": 0.1664610788777143,
+            "macro_f1": 0.9605161135551668,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9587474217138571,
+            "balanced_accuracy": 0.9585331450288661,
+            "fit_rows": 10667,
+            "fit_seconds": 6.253875006000271,
+            "fold": 3,
+            "log_loss": 0.1569948209629489,
+            "macro_f1": 0.9586086430295244,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9623172103487064,
+            "mean": 0.9605623903237483,
+            "min": 0.9587474217138571,
+            "std": 0.0017856542536496317
+          },
+          "balanced_accuracy": {
+            "max": 0.9622639819907042,
+            "mean": 0.9604056018136283,
+            "min": 0.9585331450288661,
+            "std": 0.0018654583142266267
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 6.253875006000271,
+            "mean": 6.240710095333422,
+            "min": 6.229309720999936,
+            "std": 0.012377338087842027
+          },
+          "log_loss": {
+            "max": 0.1664610788777143,
+            "mean": 0.15844474900245153,
+            "min": 0.1518783471666914,
+            "std": 0.007398698164455701
+          },
+          "macro_f1": {
+            "max": 0.9622771584044515,
+            "mean": 0.9604673049963809,
+            "min": 0.9586086430295244,
+            "std": 0.001834744660866232
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "ratios",
+        "recipe": "ratios",
+        "stage": "ratios",
+        "top_features": [
+          {
+            "feature": "edge_ratio",
+            "mean_normalized_importance": 0.08563224150009933
+          },
+          {
+            "feature": "variance_ratio",
+            "mean_normalized_importance": 0.06805760188876535
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.059704988199143806
+          },
+          {
+            "feature": "ink_density",
+            "mean_normalized_importance": 0.05952258528578189
+          },
+          {
+            "feature": "edge_corr_ratio",
+            "mean_normalized_importance": 0.05705493425922448
+          },
+          {
+            "feature": "moment_ratio",
+            "mean_normalized_importance": 0.05359048353654864
+          },
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.05344745147711908
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.04960173563118592
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.04849522728504294
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.043967706464374944
+          }
+        ]
+      },
+      {
+        "config_id": "poly2",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "description": "raw + all 120 pairwise products",
+        "elapsed_seconds": 41.71622412700026,
+        "feature_count_mean": 136.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9615673040869891,
+            "balanced_accuracy": 0.9615048274832052,
+            "fit_rows": 10666,
+            "fit_seconds": 13.39001956400034,
+            "fold": 1,
+            "log_loss": 0.15979621678251923,
+            "macro_f1": 0.961544191466261,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9581848865554097,
+            "balanced_accuracy": 0.9579927820264801,
+            "fit_rows": 10667,
+            "fit_seconds": 13.431642833000296,
+            "fold": 2,
+            "log_loss": 0.1692144183397,
+            "macro_f1": 0.9581745302716769,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9564972810800675,
+            "balanced_accuracy": 0.956198096964227,
+            "fit_rows": 10667,
+            "fit_seconds": 12.472818018999988,
+            "fold": 3,
+            "log_loss": 0.1641704192610654,
+            "macro_f1": 0.9563051648318649,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9615673040869891,
+            "mean": 0.9587498239074886,
+            "min": 0.9564972810800675,
+            "std": 0.00258179181606674
+          },
+          "balanced_accuracy": {
+            "max": 0.9615048274832052,
+            "mean": 0.958565235491304,
+            "min": 0.956198096964227,
+            "std": 0.002699282205940219
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 13.431642833000296,
+            "mean": 13.098160138666875,
+            "min": 12.472818018999988,
+            "std": 0.541961898201956
+          },
+          "log_loss": {
+            "max": 0.1692144183397,
+            "mean": 0.1643936847944282,
+            "min": 0.15979621678251923,
+            "std": 0.0047130686146831515
+          },
+          "macro_f1": {
+            "max": 0.961544191466261,
+            "mean": 0.9586746288566009,
+            "min": 0.9563051648318649,
+            "std": 0.0026550751335810228
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "poly2",
+        "recipe": "poly2",
+        "stage": "poly2",
+        "top_features": [
+          {
+            "feature": "y-ege*yegvx",
+            "mean_normalized_importance": 0.02008125437773041
+          },
+          {
+            "feature": "xybar*y-ege",
+            "mean_normalized_importance": 0.018113184161266838
+          },
+          {
+            "feature": "x2bar*xybar",
+            "mean_normalized_importance": 0.01798164374740234
+          },
+          {
+            "feature": "y2bar*y-ege",
+            "mean_normalized_importance": 0.01708497416836023
+          },
+          {
+            "feature": "x2bar*yegvx",
+            "mean_normalized_importance": 0.015218119465760552
+          },
+          {
+            "feature": "y2bar*xy2br",
+            "mean_normalized_importance": 0.015168979840095312
+          },
+          {
+            "feature": "xy2br*x-ege",
+            "mean_normalized_importance": 0.014896718846786528
+          },
+          {
+            "feature": "y2bar*xybar",
+            "mean_normalized_importance": 0.014462997505247648
+          },
+          {
+            "feature": "x-ege*xegvy",
+            "mean_normalized_importance": 0.01426906609094799
+          },
+          {
+            "feature": "xybar*yegvx",
+            "mean_normalized_importance": 0.014107713202183653
+          }
+        ]
+      },
+      {
+        "config_id": "selected_mi",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "description": "top-10 raw features by fit-fold mutual information",
+        "elapsed_seconds": 20.706801584999994,
+        "feature_count_mean": 10.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9495688038995126,
+            "balanced_accuracy": 0.9495963320361874,
+            "fit_rows": 10666,
+            "fit_seconds": 5.113545500000328,
+            "fold": 1,
+            "log_loss": 0.22599178235663459,
+            "macro_f1": 0.9496363734054474,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9450590661916369,
+            "balanced_accuracy": 0.9448243645337369,
+            "fit_rows": 10667,
+            "fit_seconds": 4.973322649999773,
+            "fold": 2,
+            "log_loss": 0.229216374365938,
+            "macro_f1": 0.9449830280063808,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9491843240202512,
+            "balanced_accuracy": 0.9488811974045139,
+            "fit_rows": 10667,
+            "fit_seconds": 5.221618469000077,
+            "fold": 3,
+            "log_loss": 0.2281496487127459,
+            "macro_f1": 0.9490498869440261,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9495688038995126,
+            "mean": 0.9479373980371336,
+            "min": 0.9450590661916369,
+            "std": 0.0025001103683616275
+          },
+          "balanced_accuracy": {
+            "max": 0.9495963320361874,
+            "mean": 0.9477672979914793,
+            "min": 0.9448243645337369,
+            "std": 0.002573615625512107
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 5.221618469000077,
+            "mean": 5.1028288730000595,
+            "min": 4.973322649999773,
+            "std": 0.12449432920400498
+          },
+          "log_loss": {
+            "max": 0.229216374365938,
+            "mean": 0.22778593514510614,
+            "min": 0.22599178235663459,
+            "std": 0.0016427763317261978
+          },
+          "macro_f1": {
+            "max": 0.9496363734054474,
+            "mean": 0.9478897627852848,
+            "min": 0.9449830280063808,
+            "std": 0.002534328687941855
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "selected_mi",
+        "recipe": "selected_mi",
+        "stage": "selected_mi",
+        "top_features": [
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.12664171040754957
+          },
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.11879083653373156
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.110216623344448
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.10558059417600651
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.10131255952009044
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.09581389071446696
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.09300643299374793
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.08733670065829525
+          },
+          {
+            "feature": "xegvy",
+            "mean_normalized_importance": 0.08445756834469527
+          },
+          {
+            "feature": "x-bar",
+            "mean_normalized_importance": 0.0768430833069685
+          }
+        ]
+      }
+    ]
+  },
+  "experiment_id": "EXP-058",
+  "holdout_policy": "Locked holdout = stratified random 20%; selection uses 3-fold stratified CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Geometric ratios or pairwise products help shallow-signal classes more than feature selection does.",
+  "kind": "feature_engineering",
+  "primary_metric": "macro_f1",
+  "provenance": {
+    "data_sha256": {
+      "data/external/letter_recognition/letter.tsv.gz": "f8ffe4f9920dc63fb85b864cc1afffb66e45c6e302d175905fd7db04ba67b8c6"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which task-appropriate, train-fitted feature recipe gives the best primary metric for the fewest features?",
+  "schema_version": 2,
+  "setup_summary": "4 recipes compared with lightgbm on StratifiedKFold(3, shuffle, random_state=42) on training rows: raw (16 feats, 0.9592\u00b10.0040); ratios (24 feats, 0.9605\u00b10.0018); poly2 (136 feats, 0.9587\u00b10.0027); selected_mi (10 feats, 0.9479\u00b10.0025). Selected: raw.",
+  "source": "https://media.githubusercontent.com/media/EpistasisLab/pmlb/master/datasets/letter/letter.tsv.gz",
+  "started_at": "2026-10-03T07:04:38+00:00",
+  "status": "completed",
+  "task_type": "multiclass"
+}

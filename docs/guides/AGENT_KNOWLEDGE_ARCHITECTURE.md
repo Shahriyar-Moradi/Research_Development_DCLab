@@ -102,7 +102,7 @@ Fine-tune only after Patterns A to C work with a hosted model and you have a rea
 | Risk | Guard-rail in this repository |
 |---|---|
 | The critic is wrong but confident | `critic_gate` recomputes rules; 10 of 157 critic challenges were disproved and are excluded from training and memory |
-| A heuristic scan is mistaken for a safety proof | `audit_columns` flags review candidates only. The blind replay found 8 of 13 known leaks; the misses look like ordinary numbers, so the agent must always ask for the decision-time contract |
+| A heuristic scan is mistaken for a safety proof | `audit_columns` flags review candidates only. The blind replay found 11 of 18 known leaks across 7 datasets; the misses look like ordinary numbers, so the agent must always ask for the decision-time contract |
 | An optimization loop "improves" a score through leakage | The largest score jumps in the registry were leakage (+0.13 to +0.18 ROC-AUC). The loop may only act inside the validated menu, and any jump larger than the measured pitfall costs triggers a leakage audit |
 | Answers drift from evidence | Every answer cites record IDs; `get_record` lets anyone open the source file |
 | Stale knowledge | `make rd-check` fails CI when the index, the SFT corpus or the generated knowledge no longer match the result files |

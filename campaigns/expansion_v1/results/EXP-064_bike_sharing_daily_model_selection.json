@@ -1,0 +1,773 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-064-C1",
+      "evidence": [
+        "evidence.model_results",
+        "evidence.ranking",
+        "evidence.selection_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "A cross-validation leader is not a universal algorithm winner and has not yet seen the locked holdout."
+      ],
+      "statement": "xgboost is the training-CV model candidate for bike_sharing_daily on the `raw` recipe (787.4\u00b1406.3 MAE, adjusted 888.9735); runner-up ridge at 861.9\u00b1144.7."
+    },
+    {
+      "claim_id": "EXP-064-C2",
+      "evidence": [
+        "evidence.ranking"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Model screen ranking (mean\u00b1std, runtime for 3 folds): xgboost 787.4\u00b1406.3 (0.5s); ridge 861.9\u00b1144.7 (0.1s); lightgbm 833.1\u00b1460.6 (0.3s); hist_gradient_boosting 857.5\u00b1498.1 (0.4s); extra_trees 1,083\u00b1508.9 (1.4s)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:44+00:00",
+  "dataset": "bike_sharing_daily",
+  "decision_time_rule": "Forecast day d's total rentals at the end of day d-2 (the horizon implied by the provided `cnt_2d_bfr` lag): calendar fields, the day's weather (treated as a forecast proxy), and rental counts from day d-2 or earlier are allowed; same-day casual/registered counts are not.",
+  "evidence": {
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "elapsed_seconds": 2.6914254779999283,
+    "feature_recipe": "raw",
+    "model_results": [
+      {
+        "adjusted_score": 898.089153828115,
+        "config_id": "ridge",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.1107973769999262,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 956.3739291487069,
+            "fit_rows": 147,
+            "fit_seconds": 0.0028049359998476575,
+            "fold": 1,
+            "mae": 1010.9199959590517,
+            "mape": 0.28022836873201273,
+            "r2": -1.35324070264421,
+            "rmse": 1236.1754253206534,
+            "validation_rows": 145
+          },
+          {
+            "bias": 506.10307112068966,
+            "fit_rows": 292,
+            "fit_seconds": 0.0034441480001987657,
+            "fold": 2,
+            "mae": 721.9068426724137,
+            "mape": 0.3277133686314077,
+            "r2": 0.1721370235859131,
+            "rmse": 940.195575018283,
+            "validation_rows": 145
+          },
+          {
+            "bias": -342.91771787446123,
+            "fit_rows": 437,
+            "fit_seconds": 0.003521826999985933,
+            "fold": 3,
+            "mae": 852.9029111664871,
+            "mape": 0.1514648655983224,
+            "r2": 0.12113903663432513,
+            "rmse": 1042.0894772419585,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 956.3739291487069,
+            "mean": 373.1864274649784,
+            "min": -342.91771787446123,
+            "std": 659.7649745375763
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.003521826999985933,
+            "mean": 0.003256970333344119,
+            "min": 0.0028049359998476575,
+            "std": 0.0003933952030041497
+          },
+          "mae": {
+            "max": 1010.9199959590517,
+            "mean": 861.9099165993175,
+            "min": 721.9068426724137,
+            "std": 144.71694891518993
+          },
+          "mape": {
+            "max": 0.3277133686314077,
+            "mean": 0.25313553432058095,
+            "min": 0.1514648655983224,
+            "std": 0.09119429786277658
+          },
+          "r2": {
+            "max": 0.1721370235859131,
+            "mean": -0.3533215474746572,
+            "min": -1.35324070264421,
+            "std": 0.8663307314903025
+          },
+          "rmse": {
+            "max": 1236.1754253206534,
+            "mean": 1072.8201591936315,
+            "min": 940.195575018283,
+            "std": 150.36388880367707
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "ridge",
+        "model_params": {},
+        "optimization": "ridge",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.14572325993209104
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.10854226178887398
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.07214977184866007
+          },
+          {
+            "feature": "mnth=MAY",
+            "mean_normalized_importance": 0.0657984716628263
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.05860192862096412
+          },
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.05516802506548454
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.05236445934027201
+          },
+          {
+            "feature": "yr",
+            "mean_normalized_importance": 0.04511721954679321
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.041602862007781925
+          },
+          {
+            "feature": "mnth=FEB",
+            "mean_normalized_importance": 0.03554718083963231
+          }
+        ]
+      },
+      {
+        "adjusted_score": 1210.0951493327773,
+        "config_id": "extra_trees",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 1.3619760040000983,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": -422.5544367816085,
+            "fit_rows": 147,
+            "fit_seconds": 0.23337538500027222,
+            "fold": 1,
+            "mae": 698.3771839080457,
+            "mape": 0.176701210837819,
+            "r2": -0.07868483444212915,
+            "rmse": 836.9397914284375,
+            "validation_rows": 145
+          },
+          {
+            "bias": -493.09188122605315,
+            "fit_rows": 292,
+            "fit_seconds": 0.20998558300016157,
+            "fold": 2,
+            "mae": 890.3301524904211,
+            "mape": 0.31649559411654987,
+            "r2": -0.1680308915429134,
+            "rmse": 1116.7761667923758,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1622.5010237547895,
+            "fit_rows": 437,
+            "fit_seconds": 0.21803186599981927,
+            "fold": 3,
+            "mae": 1659.9250574712646,
+            "mape": 0.2578849129238745,
+            "r2": -1.6520273608432334,
+            "rmse": 1810.230689371553,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": -422.5544367816085,
+            "mean": -846.049113920817,
+            "min": -1622.5010237547895,
+            "std": 673.351363688235
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.23337538500027222,
+            "mean": 0.22046427800008436,
+            "min": 0.20998558300016157,
+            "std": 0.011883104834401243
+          },
+          "mae": {
+            "max": 1659.9250574712646,
+            "mean": 1082.877464623244,
+            "min": 698.3771839080457,
+            "std": 508.8707388381336
+          },
+          "mape": {
+            "max": 0.31649559411654987,
+            "mean": 0.25036057262608113,
+            "min": 0.176701210837819,
+            "std": 0.0702002790005704
+          },
+          "r2": {
+            "max": -0.07868483444212915,
+            "mean": -0.632914362276092,
+            "min": -1.6520273608432334,
+            "std": 0.8837076198416799
+          },
+          "rmse": {
+            "max": 1810.230689371553,
+            "mean": 1254.6488825307888,
+            "min": 836.9397914284375,
+            "std": 501.0792924413689
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "extra_trees",
+        "model_params": {},
+        "optimization": "extra_trees",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.20466897911629175
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.17118517343235676
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.1595729186044175
+          },
+          {
+            "feature": "season=WINTER",
+            "mean_normalized_importance": 0.11148371880048417
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.09128546799451087
+          },
+          {
+            "feature": "mnth=MAY",
+            "mean_normalized_importance": 0.05448292643629581
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.03463667571468096
+          },
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.027038616345107725
+          },
+          {
+            "feature": "mnth=APR",
+            "mean_normalized_importance": 0.01869485976521891
+          },
+          {
+            "feature": "yr",
+            "mean_normalized_importance": 0.01394702669856862
+          }
+        ]
+      },
+      {
+        "adjusted_score": 982.0159931212127,
+        "config_id": "hist_gradient_boosting",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.42676385999993727,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 119.07889469520967,
+            "fit_rows": 147,
+            "fit_seconds": 0.05775424700004805,
+            "fold": 1,
+            "mae": 516.228388851518,
+            "mape": 0.15011591416333564,
+            "r2": 0.21369300922301948,
+            "rmse": 714.5670700533334,
+            "validation_rows": 145
+          },
+          {
+            "bias": 269.0269153599877,
+            "fit_rows": 292,
+            "fit_seconds": 0.09272319599995171,
+            "fold": 2,
+            "mae": 627.2314881984065,
+            "mape": 0.28953514493381477,
+            "r2": 0.29801799188144074,
+            "rmse": 865.7688643393467,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1365.3840897557266,
+            "fit_rows": 437,
+            "fit_seconds": 0.12404315000003407,
+            "fold": 3,
+            "mae": 1429.036814330906,
+            "mape": 0.22605239904500904,
+            "r2": -1.0079511263769998,
+            "rmse": 1575.1484569592367,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 269.0269153599877,
+            "mean": -325.75942656684305,
+            "min": -1365.3840897557266,
+            "std": 903.4576262660418
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.12404315000003407,
+            "mean": 0.09150686433334461,
+            "min": 0.05775424700004805,
+            "std": 0.03316118608068448
+          },
+          "mae": {
+            "max": 1429.036814330906,
+            "mean": 857.4988971269436,
+            "min": 516.228388851518,
+            "std": 498.0683839770764
+          },
+          "mape": {
+            "max": 0.28953514493381477,
+            "mean": 0.22190115271405317,
+            "min": 0.15011591416333564,
+            "std": 0.0698022572108756
+          },
+          "r2": {
+            "max": 0.29801799188144074,
+            "mean": -0.16541337509084653,
+            "min": -1.0079511263769998,
+            "std": 0.730876236056305
+          },
+          "rmse": {
+            "max": 1575.1484569592367,
+            "mean": 1051.8281304506388,
+            "min": 714.5670700533334,
+            "std": 459.4710205786938
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "hist_gradient_boosting",
+        "model_params": {},
+        "optimization": "hist_gradient_boosting",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": []
+      },
+      {
+        "adjusted_score": 948.297721878726,
+        "config_id": "lightgbm",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.2625652810002066,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 78.03916763763178,
+            "fit_rows": 147,
+            "fit_seconds": 0.030560685000182275,
+            "fold": 1,
+            "mae": 519.7687907566608,
+            "mape": 0.15034064476693576,
+            "r2": 0.21418228500544734,
+            "rmse": 714.3447174793844,
+            "validation_rows": 145
+          },
+          {
+            "bias": 229.80332989280146,
+            "fit_rows": 292,
+            "fit_seconds": 0.057994229000087216,
+            "fold": 2,
+            "mae": 617.6305003998532,
+            "mape": 0.27989674551083016,
+            "r2": 0.3406672896964288,
+            "rmse": 839.0566497990759,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1290.2198033750415,
+            "fit_rows": 437,
+            "fit_seconds": 0.07716574400001264,
+            "fold": 3,
+            "mae": 1362.0209836164438,
+            "mape": 0.21648901604082968,
+            "r2": -0.832056109491867,
+            "rmse": 1504.5766181801027,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 229.80332989280146,
+            "mean": -327.4591019482028,
+            "min": -1290.2198033750415,
+            "std": 837.2211275375087
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.07716574400001264,
+            "mean": 0.055240219333427376,
+            "min": 0.030560685000182275,
+            "std": 0.02342426750247399
+          },
+          "mae": {
+            "max": 1362.0209836164438,
+            "mean": 833.1400915909859,
+            "min": 519.7687907566608,
+            "std": 460.63052115096013
+          },
+          "mape": {
+            "max": 0.27989674551083016,
+            "mean": 0.21557546877286518,
+            "min": 0.15034064476693576,
+            "std": 0.06478288150776124
+          },
+          "r2": {
+            "max": 0.3406672896964288,
+            "mean": -0.0924021782633303,
+            "min": -0.832056109491867,
+            "std": 0.6436734945523942
+          },
+          "rmse": {
+            "max": 1504.5766181801027,
+            "mean": 1019.3259951528544,
+            "min": 714.3447174793844,
+            "std": 424.8404310761599
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "lightgbm",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.19319663737420764
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.1722465168608002
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.1592741320627937
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.14098219918383004
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.10117215566806859
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.09394912000595
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.04124926191876203
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.022826103720167138
+          },
+          {
+            "feature": "weekday=SAT",
+            "mean_normalized_importance": 0.011704114230440377
+          },
+          {
+            "feature": "weekday=MON",
+            "mean_normalized_importance": 0.01131688132735222
+          }
+        ]
+      },
+      {
+        "adjusted_score": 888.9734540820016,
+        "config_id": "xgboost",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "elapsed_seconds": 0.5233127470000909,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 106.38730637122845,
+            "fit_rows": 147,
+            "fit_seconds": 0.11775014400018335,
+            "fold": 1,
+            "mae": 476.3295443830819,
+            "mape": 0.13990918377671469,
+            "r2": 0.290612269633722,
+            "rmse": 678.7170610538366,
+            "validation_rows": 145
+          },
+          {
+            "bias": 347.10145558324353,
+            "fit_rows": 292,
+            "fit_seconds": 0.14852222599984088,
+            "fold": 2,
+            "mae": 638.7940673828125,
+            "mape": 0.3025450058434974,
+            "r2": 0.26228529222203956,
+            "rmse": 887.5303101394393,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1182.0382879849137,
+            "fit_rows": 437,
+            "fit_seconds": 0.155910158000097,
+            "fold": 3,
+            "mae": 1247.0758688038793,
+            "mape": 0.20008671177719314,
+            "r2": -0.5765709172989253,
+            "rmse": 1395.7308525030405,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 347.10145558324353,
+            "mean": -242.84984201014723,
+            "min": -1182.0382879849137,
+            "std": 822.2177498674477
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.155910158000097,
+            "mean": 0.14072750933337375,
+            "min": 0.11775014400018335,
+            "std": 0.020238944464849862
+          },
+          "mae": {
+            "max": 1247.0758688038793,
+            "mean": 787.3998268565912,
+            "min": 476.3295443830819,
+            "std": 406.2945089016417
+          },
+          "mape": {
+            "max": 0.3025450058434974,
+            "mean": 0.21418030046580175,
+            "min": 0.13990918377671469,
+            "std": 0.08222879414430999
+          },
+          "r2": {
+            "max": 0.290612269633722,
+            "mean": -0.007891118481054579,
+            "min": -0.5765709172989253,
+            "std": 0.49269477326228145
+          },
+          "rmse": {
+            "max": 1395.7308525030405,
+            "mean": 987.3260745654388,
+            "min": 678.7170610538366,
+            "std": 368.7771552443533
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "xgboost",
+        "model_params": {},
+        "optimization": "xgboost",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.2189514629259944
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.1665914652421036
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.11572192201500375
+          },
+          {
+            "feature": "weather=MISTY",
+            "mean_normalized_importance": 0.11095795815823412
+          },
+          {
+            "feature": "weather=BAD",
+            "mean_normalized_importance": 0.10545314945979865
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.09264248014974359
+          },
+          {
+            "feature": "weekday=WED",
+            "mean_normalized_importance": 0.01990042050273617
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.019453797871434437
+          },
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.0168742788937092
+          },
+          {
+            "feature": "weekday=MON",
+            "mean_normalized_importance": 0.014904689851171764
+          }
+        ]
+      }
+    ],
+    "ranking": [
+      {
+        "adjusted_score": 888.9734540820016,
+        "elapsed_seconds": 0.5233127470000909,
+        "mean": 787.3998268565912,
+        "model": "xgboost",
+        "std": 406.2945089016417
+      },
+      {
+        "adjusted_score": 898.089153828115,
+        "elapsed_seconds": 0.1107973769999262,
+        "mean": 861.9099165993175,
+        "model": "ridge",
+        "std": 144.71694891518993
+      },
+      {
+        "adjusted_score": 948.297721878726,
+        "elapsed_seconds": 0.2625652810002066,
+        "mean": 833.1400915909859,
+        "model": "lightgbm",
+        "std": 460.63052115096013
+      },
+      {
+        "adjusted_score": 982.0159931212127,
+        "elapsed_seconds": 0.42676385999993727,
+        "mean": 857.4988971269436,
+        "model": "hist_gradient_boosting",
+        "std": 498.0683839770764
+      },
+      {
+        "adjusted_score": 1210.0951493327773,
+        "elapsed_seconds": 1.3619760040000983,
+        "mean": 1082.877464623244,
+        "model": "extra_trees",
+        "std": 508.8707388381336
+      }
+    ],
+    "selected_metric_mean": 787.3998268565912,
+    "selected_metric_std": 406.2945089016417,
+    "selected_model": "xgboost",
+    "selection_rule": "Rank by mean training-CV MAE + 0.25\u00d7fold std (lower is better), then runtime; identical folds (expanding-window TimeSeriesSplit(3) on time-ordered training rows); default parameters."
+  },
+  "experiment_id": "EXP-064",
+  "holdout_policy": "Locked holdout = last 20% of rows in `dteday` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "A model that can extrapolate the trend (linear) or uses level-relative lags beats pure trees on later periods.",
+  "kind": "model_selection",
+  "primary_metric": "mae",
+  "provenance": {
+    "data_sha256": {
+      "data/external/bike_sharing_daily/bike.csv": "a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which model family ranks best on identical training folds once fold variability is penalized?",
+  "schema_version": 2,
+  "setup_summary": "5 model families screened on the `raw` recipe with identical expanding-window TimeSeriesSplit(3) on time-ordered training rows, ranked by mean + 0.25\u00d7std MAE: xgboost 787.4\u00b1406.3 (0.5s); ridge 861.9\u00b1144.7 (0.1s); lightgbm 833.1\u00b1460.6 (0.3s); hist_gradient_boosting 857.5\u00b1498.1 (0.4s); extra_trees 1,083\u00b1508.9 (1.4s). Selected: xgboost.",
+  "source": "https://raw.githubusercontent.com/christophM/interpretable-ml-book/master/data/bike.csv",
+  "started_at": "2026-10-03T07:07:42+00:00",
+  "status": "completed",
+  "task_type": "timeseries_regression"
+}

@@ -65,6 +65,9 @@ KNOWN_DATASET_PATTERNS = {
     "telco_churn": r"Telco-Customer-Churn",
     "bank_marketing": r"bank_marketing|bank-full|bank-additional",
     "online_shoppers": r"online_shoppers",
+    "credit_card_fraud": r"creditcard\.csv|credit_card_fraud",
+    "bike_sharing_daily": r"bike_sharing|bike-sharing|\bbike\.csv",
+    "ecommerce_clothing_reviews": r"Clothing E-?Commerce Reviews|ecommerce_clothing_reviews",
 }
 
 

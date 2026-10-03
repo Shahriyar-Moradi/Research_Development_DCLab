@@ -144,6 +144,9 @@ def explain_experiment(result: dict[str, Any], ctx: dict[str, str], gate: dict[s
     interpretation = review.get("interpretation") if review and not gate["contradicted"] else ""
     if not interpretation:
         interpretation = (
+            "The holdout score is one draw on rows used exactly once; its interval, not the point value, is the "
+            "honest summary, and it is still benchmark evidence rather than production validation."
+            if result.get("kind") == "optimization_reliability" else
             "These are training-CV development numbers for one dataset; they support a provisional choice "
             "for the next stage, not a general or production claim."
         )
@@ -231,6 +234,9 @@ def leakage_judgments(result: dict[str, Any], ctx: dict[str, str]) -> list[dict[
     declared = ev.get("declared_leakage_features") or []
     candidates = [c for c in ev.get("heuristic_review_candidates") or [] if c.get("feature") not in declared]
     lift = (ev.get("safe_vs_unsafe_training_cv") or {}).get("apparent_auc_lift", ev.get("apparent_lift"))
+    metric_name = {"roc_auc": "ROC-AUC", "average_precision": "average precision", "macro_f1": "macro-F1",
+                   "mae": "MAE"}.get(result.get("primary_metric", "roc_auc"), result.get("primary_metric", "score"))
+    lower_better = result.get("primary_metric") in ("mae", "rmse", "log_loss", "brier")
     out = []
     for column in declared:
         user = (
@@ -238,7 +244,11 @@ def leakage_judgments(result: dict[str, Any], ctx: dict[str, str]) -> list[dict[
             "at the declared prediction moment?"
         )
         answer = _answer(
-            evidence=(f"Including the blocked column(s) changed the validation score by {lift:+.4f}." if isinstance(lift, (int, float)) else "The column is declared unavailable at decision time."),
+            evidence=(f"Including the blocked column(s) made the validation {metric_name} look better by {abs(lift):.4g}"
+                      + (" (lower is better for this metric)." if lower_better else ".")
+                      if isinstance(lift, (int, float)) and lift > 0 else
+                      f"Including the blocked column(s) did not improve validation {metric_name} (change {lift:+.4g}); it is excluded on decision-time grounds alone."
+                      if isinstance(lift, (int, float)) else "The column is declared unavailable at decision time."),
             interpretation=(ev.get("policy_rationale") or "The column is not available when the prediction is made.")
             + " A large score gain from such a column is the size of the illusion, not evidence of value.",
             decision=f"Exclude `{column}` from every deployable model and from feature engineering built on top of it.",

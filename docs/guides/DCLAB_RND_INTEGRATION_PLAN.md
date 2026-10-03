@@ -57,7 +57,7 @@ Every iteration writes a record with Goal, Change, Reason, Result and Cost. The 
 
 | Test | What it proves | Status |
 |---|---|---|
-| **Blind auditor replay** (`python -m dclab_rnd.tools verify-auditor`) | The auditor finds known leaks without being told | Implemented. Found 8 of 13 known leaks, at least one in every dataset. The misses are documented and drive the "always ask for the contract" rule |
+| **Blind auditor replay** (`python -m dclab_rnd.tools verify-auditor`) | The auditor finds known leaks without being told | Implemented. Found 11 of 18 known leaks across 7 datasets, at least one in 6 of them. The misses are documented and drive the "always ask for the contract" rule |
 | **Copilot demos** (`tests/test_knowledge_layer.py`) | Planted mistakes are caught, a clean notebook stays clean | Implemented, in CI |
 | **Critic gate** (`python -m dclab_rnd.critic_gate`) | LLM critique contradicted by numbers never reaches memory or training | Implemented: 10 of 157 challenges disproved |
 | **Campaign replay** | The loop, run on the 10 campaign datasets *without* their results, excludes the same leakage columns and lands within the campaign's holdout confidence interval | Next. Uses `campaigns/model_building_50_v1` as the answer key |

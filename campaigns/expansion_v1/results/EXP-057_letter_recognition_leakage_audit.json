@@ -1,0 +1,298 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-057-C1",
+      "evidence": [
+        "evidence.detector_canary",
+        "evidence.detector_canary_passed"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "The multiclass leakage detector caught its synthetic canaries: {'exact_copy_detected': True, 'passed': True}."
+    },
+    {
+      "claim_id": "EXP-057-C2",
+      "evidence": [
+        "evidence.declared_leakage_features",
+        "evidence.policy_rationale",
+        "evidence.safe_vs_unsafe_training_cv",
+        "evidence.apparent_lift"
+      ],
+      "kind": "decision",
+      "limitations": [
+        "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+      ],
+      "statement": "No column of letter_recognition is blocked under the decision-time contract; the safe lightgbm raw baseline scores 0.9592\u00b10.0040 training-CV macro-F1, apparent lift 0 by construction."
+    },
+    {
+      "claim_id": "EXP-057-C3",
+      "evidence": [
+        "evidence.heuristic_review_candidates",
+        "evidence.top_univariate_signals",
+        "evidence.heuristic_rules"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "Strong signal alone is not leakage; e.g. legitimate lags or text sentiment are expected to be predictive."
+      ],
+      "statement": "Heuristics flagged 0 non-declared column(s) for human review: none. Strongest single-feature signal: x-ege (0.192)."
+    },
+    {
+      "claim_id": "EXP-057-C4",
+      "evidence": [
+        "evidence.duplicate_contamination"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "Identical integer summaries may come from different source images; this is contamination risk, not proven label leakage."
+      ],
+      "statement": "1222 of 16000 CV validation rows have an identical feature vector in their fit fold; OOF accuracy is 1.0000 on those vs 0.9559 on unique rows, and 387 of 4000 holdout rows repeat a training feature vector, so scores are mildly optimistic for genuinely new glyphs."
+    }
+  ],
+  "completed_at": "2026-10-03T07:04:38+00:00",
+  "dataset": "letter_recognition",
+  "decision_time_rule": "All 16 shape statistics are computed from the glyph image itself before classification, so every column is decision-time available; no column is blocked.",
+  "evidence": {
+    "apparent_lift": 0.0,
+    "apparent_lift_metric": "macro_f1",
+    "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+    "decision_time_contract": "All 16 shape statistics are computed from the glyph image itself before classification, so every column is decision-time available; no column is blocked.",
+    "declared_leakage_features": [],
+    "detector_canary": {
+      "exact_copy_detected": true,
+      "passed": true
+    },
+    "detector_canary_passed": true,
+    "duplicate_contamination": {
+      "accuracy_on_duplicated_rows": 1.0,
+      "accuracy_on_unique_rows": 0.9559480308566789,
+      "holdout_rows": 4000,
+      "holdout_rows_whose_features_appear_in_training": 387,
+      "note": "Feature-vector overlap only; holdout labels are not read.",
+      "validation_rows_total": 16000,
+      "validation_rows_with_exact_duplicate_in_fit_fold": 1222
+    },
+    "elapsed_seconds": 19.86587304900013,
+    "heuristic_review_candidates": [],
+    "heuristic_rules": {
+      "extreme_univariate_signal": 0.9,
+      "identifier_like": "unique_ratio >= 0.98 and non-numeric or integer-valued",
+      "rows_scanned": 16000,
+      "signal_measure": "mutual information of the (20-quantile-binned) column / H(y)",
+      "strong_univariate_signal": 0.5
+    },
+    "identifier_exclusions": {},
+    "policy_rationale": "No column is blocked: All 16 shape statistics are computed from the glyph image itself before classification, so every column is decision-time available; no column is blocked.",
+    "safe_vs_unsafe_training_cv": {
+      "metric": "macro_f1",
+      "model": "lightgbm",
+      "recipe": "raw",
+      "safe": {
+        "config_id": "safe",
+        "cv": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "elapsed_seconds": 19.33188845800032,
+        "feature_count_mean": 16.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9615673040869891,
+            "balanced_accuracy": 0.9615378996864301,
+            "fit_rows": 10666,
+            "fit_seconds": 5.713277529000152,
+            "fold": 1,
+            "log_loss": 0.1517284634225215,
+            "macro_f1": 0.9614901756233714,
+            "validation_rows": 5334
+          },
+          {
+            "accuracy": 0.9546221638852428,
+            "balanced_accuracy": 0.9543707883932764,
+            "fit_rows": 10667,
+            "fit_seconds": 5.723700167000061,
+            "fold": 2,
+            "log_loss": 0.16807248716009643,
+            "macro_f1": 0.9545570604279455,
+            "validation_rows": 5333
+          },
+          {
+            "accuracy": 0.9617476092255766,
+            "balanced_accuracy": 0.961529436832946,
+            "fit_rows": 10667,
+            "fit_seconds": 5.111978070000077,
+            "fold": 3,
+            "log_loss": 0.15293044599549319,
+            "macro_f1": 0.9616221008139714,
+            "validation_rows": 5333
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9617476092255766,
+            "mean": 0.9593123590659361,
+            "min": 0.9546221638852428,
+            "std": 0.004062828523393481
+          },
+          "balanced_accuracy": {
+            "max": 0.9615378996864301,
+            "mean": 0.9591460416375508,
+            "min": 0.9543707883932764,
+            "std": 0.004135492783839372
+          },
+          "fit_rows": {
+            "max": 10667.0,
+            "mean": 10666.666666666666,
+            "min": 10666.0,
+            "std": 0.5773502691896258
+          },
+          "fit_seconds": {
+            "max": 5.723700167000061,
+            "mean": 5.516318588666763,
+            "min": 5.111978070000077,
+            "std": 0.35020793697809416
+          },
+          "log_loss": {
+            "max": 0.16807248716009643,
+            "mean": 0.15757713219270372,
+            "min": 0.1517284634225215,
+            "std": 0.009109091471991774
+          },
+          "macro_f1": {
+            "max": 0.9616221008139714,
+            "mean": 0.9592231122884295,
+            "min": 0.9545570604279455,
+            "std": 0.004041457786185897
+          },
+          "validation_rows": {
+            "max": 5334.0,
+            "mean": 5333.333333333333,
+            "min": 5333.0,
+            "std": 0.5773502691896257
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "safe",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "y-ege",
+            "mean_normalized_importance": 0.09299863159559378
+          },
+          {
+            "feature": "x-ege",
+            "mean_normalized_importance": 0.08519089734666334
+          },
+          {
+            "feature": "x2bar",
+            "mean_normalized_importance": 0.08414420684974094
+          },
+          {
+            "feature": "y2bar",
+            "mean_normalized_importance": 0.0788527733795963
+          },
+          {
+            "feature": "yegvx",
+            "mean_normalized_importance": 0.07735823268026248
+          },
+          {
+            "feature": "xybar",
+            "mean_normalized_importance": 0.0738828795843033
+          },
+          {
+            "feature": "xy2br",
+            "mean_normalized_importance": 0.07062114098951262
+          },
+          {
+            "feature": "x2ybr",
+            "mean_normalized_importance": 0.06528584423849253
+          },
+          {
+            "feature": "y-bar",
+            "mean_normalized_importance": 0.06151657927821324
+          },
+          {
+            "feature": "xegvy",
+            "mean_normalized_importance": 0.061182115646261394
+          }
+        ]
+      }
+    },
+    "top_univariate_signals": [
+      {
+        "feature": "x-ege",
+        "normalized_mutual_information": 0.19244911727317612,
+        "signal": 0.19244911727317612
+      },
+      {
+        "feature": "x2ybr",
+        "normalized_mutual_information": 0.18228939483286258,
+        "signal": 0.18228939483286258
+      },
+      {
+        "feature": "y-bar",
+        "normalized_mutual_information": 0.1727911857214663,
+        "signal": 0.1727911857214663
+      },
+      {
+        "feature": "xegvy",
+        "normalized_mutual_information": 0.1705579556891351,
+        "signal": 0.1705579556891351
+      },
+      {
+        "feature": "y-ege",
+        "normalized_mutual_information": 0.1610123944809218,
+        "signal": 0.1610123944809218
+      },
+      {
+        "feature": "xy2br",
+        "normalized_mutual_information": 0.16068097747996918,
+        "signal": 0.16068097747996918
+      },
+      {
+        "feature": "y2bar",
+        "normalized_mutual_information": 0.15489613806453167,
+        "signal": 0.15489613806453167
+      },
+      {
+        "feature": "x2bar",
+        "normalized_mutual_information": 0.1412649179749877,
+        "signal": 0.1412649179749877
+      }
+    ],
+    "warning": "Name, univariate-signal, identity, and uniqueness rules propose review; only decision-time semantics confirm leakage."
+  },
+  "experiment_id": "EXP-057",
+  "holdout_policy": "Locked holdout = stratified random 20%; selection uses 3-fold stratified CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "No decision-time violation exists, but exact duplicate feature vectors can make random-split scores optimistic.",
+  "kind": "leakage_audit",
+  "primary_metric": "macro_f1",
+  "provenance": {
+    "data_sha256": {
+      "data/external/letter_recognition/letter.tsv.gz": "f8ffe4f9920dc63fb85b864cc1afffb66e45c6e302d175905fd7db04ba67b8c6"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which columns violate the decision-time contract, and how much would they inflate the primary metric if left in?",
+  "schema_version": 2,
+  "setup_summary": "Scanned 16000 training rows with multiclass heuristics (univariate signal, exact proxy/identity, name, uniqueness) and synthetic canaries; no blocked columns; safe lightgbm raw baseline macro-F1 0.9592\u00b10.0040. Measured exact duplicate feature-vector contamination across CV folds and train/holdout.",
+  "source": "https://media.githubusercontent.com/media/EpistasisLab/pmlb/master/datasets/letter/letter.tsv.gz",
+  "started_at": "2026-10-03T07:04:18+00:00",
+  "status": "completed",
+  "task_type": "multiclass"
+}

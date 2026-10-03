@@ -1,0 +1,643 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-063-C1",
+      "evidence": [
+        "evidence.stage_results",
+        "evidence.selection_rule",
+        "evidence.selected_recipe"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "Recipes were compared with a single default-parameter model; a different family could rank them differently."
+      ],
+      "statement": "Use the `raw` recipe (provided calendar/weather columns + days_since_2011 + cnt_2d_bfr (one-hot categoricals)) for bike_sharing_daily: 833.1\u00b1460.6 training-CV MAE with 33 features; the best recipe was `raw` at 833.1."
+    },
+    {
+      "claim_id": "EXP-063-C2",
+      "evidence": [
+        "evidence.stage_results"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Recipe comparison (lightgbm, expanding-window TimeSeriesSplit(3) on time-ordered training rows): raw (33 feats, 833.1\u00b1460.6); calendar (38 feats, 836.7\u00b1445.4); calendar_lags (46 feats, 895.5\u00b1562.3); lags_compact (21 feats, 920.5\u00b1578.2)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:42+00:00",
+  "dataset": "bike_sharing_daily",
+  "decision_time_rule": "Forecast day d's total rentals at the end of day d-2 (the horizon implied by the provided `cnt_2d_bfr` lag): calendar fields, the day's weather (treated as a forecast proxy), and rental counts from day d-2 or earlier are allowed; same-day casual/registered counts are not.",
+  "evidence": {
+    "best_metric_mean": 833.1400915909859,
+    "best_recipe": "raw",
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "elapsed_seconds": 1.2583753649996652,
+    "lag_construction": "Lag/rolling features come from a daily-reindexed target series shifted by >= 2 days (value at d-2 or earlier); the missing day 2011-03-10 yields NaN rather than a row shift. Holdout rows may use counts from earlier holdout days, which are observed by forecast time under the 2-day-horizon contract.",
+    "reference_metric_mean": 833.1400915909859,
+    "reference_recipe": "raw",
+    "selected_metric_mean": 833.1400915909859,
+    "selected_recipe": "raw",
+    "selected_recipe_description": "provided calendar/weather columns + days_since_2011 + cnt_2d_bfr (one-hot categoricals)",
+    "selected_stage": "raw",
+    "selected_vs_reference_gain": 0.0,
+    "selection_rule": "Choose the recipe with the fewest features (then fastest) whose mean training-CV MAE is within 1% (relative) of the best recipe; all recipes use lightgbm with default parameters on identical folds (expanding-window TimeSeriesSplit(3) on time-ordered training rows).",
+    "stage_model": "lightgbm",
+    "stage_results": [
+      {
+        "config_id": "raw",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "provided calendar/weather columns + days_since_2011 + cnt_2d_bfr (one-hot categoricals)",
+        "elapsed_seconds": 0.2728287499999169,
+        "feature_count_mean": 33.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 78.03916763763178,
+            "fit_rows": 147,
+            "fit_seconds": 0.027326869000262377,
+            "fold": 1,
+            "mae": 519.7687907566608,
+            "mape": 0.15034064476693576,
+            "r2": 0.21418228500544734,
+            "rmse": 714.3447174793844,
+            "validation_rows": 145
+          },
+          {
+            "bias": 229.80332989280146,
+            "fit_rows": 292,
+            "fit_seconds": 0.05964558699997724,
+            "fold": 2,
+            "mae": 617.6305003998532,
+            "mape": 0.27989674551083016,
+            "r2": 0.3406672896964288,
+            "rmse": 839.0566497990759,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1290.2198033750415,
+            "fit_rows": 437,
+            "fit_seconds": 0.08757153299984566,
+            "fold": 3,
+            "mae": 1362.0209836164438,
+            "mape": 0.21648901604082968,
+            "r2": -0.832056109491867,
+            "rmse": 1504.5766181801027,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 229.80332989280146,
+            "mean": -327.4591019482028,
+            "min": -1290.2198033750415,
+            "std": 837.2211275375087
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.08757153299984566,
+            "mean": 0.05818132966669509,
+            "min": 0.027326869000262377,
+            "std": 0.03014901196157553
+          },
+          "mae": {
+            "max": 1362.0209836164438,
+            "mean": 833.1400915909859,
+            "min": 519.7687907566608,
+            "std": 460.63052115096013
+          },
+          "mape": {
+            "max": 0.27989674551083016,
+            "mean": 0.21557546877286518,
+            "min": 0.15034064476693576,
+            "std": 0.06478288150776124
+          },
+          "r2": {
+            "max": 0.3406672896964288,
+            "mean": -0.0924021782633303,
+            "min": -0.832056109491867,
+            "std": 0.6436734945523942
+          },
+          "rmse": {
+            "max": 1504.5766181801027,
+            "mean": 1019.3259951528544,
+            "min": 714.3447174793844,
+            "std": 424.8404310761599
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "raw",
+        "recipe": "raw",
+        "stage": "raw",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.19319663737420764
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.1722465168608002
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.1592741320627937
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.14098219918383004
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.10117215566806859
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.09394912000595
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.04124926191876203
+          },
+          {
+            "feature": "weather=GOOD",
+            "mean_normalized_importance": 0.022826103720167138
+          },
+          {
+            "feature": "weekday=SAT",
+            "mean_normalized_importance": 0.011704114230440377
+          },
+          {
+            "feature": "weekday=MON",
+            "mean_normalized_importance": 0.01131688132735222
+          }
+        ]
+      },
+      {
+        "config_id": "calendar",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "raw + day-of-year sin/cos, day-of-month, ISO week, weekend flag",
+        "elapsed_seconds": 0.3735224299998663,
+        "feature_count_mean": 38.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 8.724645419359776,
+            "fit_rows": 147,
+            "fit_seconds": 0.036576980000063486,
+            "fold": 1,
+            "mae": 547.272283393433,
+            "mape": 0.15501759688652647,
+            "r2": 0.179207423994041,
+            "rmse": 730.0685492463186,
+            "validation_rows": 145
+          },
+          {
+            "bias": 53.70995671402562,
+            "fit_rows": 292,
+            "fit_seconds": 0.05082806999962486,
+            "fold": 2,
+            "mae": 613.304197461985,
+            "mape": 0.263595050385817,
+            "r2": 0.3925422230620762,
+            "rmse": 805.3729164720505,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1262.7655852057994,
+            "fit_rows": 437,
+            "fit_seconds": 0.09873470799993811,
+            "fold": 3,
+            "mae": 1349.6705028225872,
+            "mape": 0.2147888158366312,
+            "r2": -0.8682999558016606,
+            "rmse": 1519.3863657388397,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 53.70995671402562,
+            "mean": -400.1103276908047,
+            "min": -1262.7655852057994,
+            "std": 747.4198883805312
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.09873470799993811,
+            "mean": 0.06204658599987548,
+            "min": 0.036576980000063486,
+            "std": 0.032562050203611394
+          },
+          "mae": {
+            "max": 1349.6705028225872,
+            "mean": 836.7489945593352,
+            "min": 547.272283393433,
+            "std": 445.42834288825424
+          },
+          "mape": {
+            "max": 0.263595050385817,
+            "mean": 0.21113382103632491,
+            "min": 0.15501759688652647,
+            "std": 0.05438092581356397
+          },
+          "r2": {
+            "max": 0.3925422230620762,
+            "mean": -0.09885010291518115,
+            "min": -0.8682999558016606,
+            "std": 0.6748464575024592
+          },
+          "rmse": {
+            "max": 1519.3863657388397,
+            "mean": 1018.2759438190697,
+            "min": 730.0685492463186,
+            "std": 435.6046695666547
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "calendar",
+        "recipe": "calendar",
+        "stage": "calendar",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.15950332858922062
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.13379565215006187
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.1232524955186212
+          },
+          {
+            "feature": "day_of_month",
+            "mean_normalized_importance": 0.08961769526831449
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.08329307554352659
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.07931143110870602
+          },
+          {
+            "feature": "temp",
+            "mean_normalized_importance": 0.07766297828424841
+          },
+          {
+            "feature": "doy_sin",
+            "mean_normalized_importance": 0.0711385166447171
+          },
+          {
+            "feature": "doy_cos",
+            "mean_normalized_importance": 0.047247224599030045
+          },
+          {
+            "feature": "workday=Y",
+            "mean_normalized_importance": 0.03349588495844139
+          }
+        ]
+      },
+      {
+        "config_id": "calendar_lags",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "calendar + past-only lags (3/7/14 days) and rolling means/std ending at d-2",
+        "elapsed_seconds": 0.3518826130002708,
+        "feature_count_mean": 46.333333333333336,
+        "fold_metrics": [
+          {
+            "bias": 62.04255121328788,
+            "fit_rows": 147,
+            "fit_seconds": 0.030836256999918987,
+            "fold": 1,
+            "mae": 528.7306693229779,
+            "mape": 0.15310941508709863,
+            "r2": 0.19013432828781207,
+            "rmse": 725.1927026513691,
+            "validation_rows": 145
+          },
+          {
+            "bias": 58.81485943130362,
+            "fit_rows": 292,
+            "fit_seconds": 0.061770503999923676,
+            "fold": 2,
+            "mae": 614.9317873269998,
+            "mape": 0.2726024916541162,
+            "r2": 0.3930574582950468,
+            "rmse": 805.0312922924941,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1486.6517568986008,
+            "fit_rows": 437,
+            "fit_seconds": 0.11688253200009058,
+            "fold": 3,
+            "mae": 1542.984433023205,
+            "mape": 0.2425190996183411,
+            "r2": -1.3560949916371996,
+            "rmse": 1706.2447229783115,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 62.04255121328788,
+            "mean": -455.2647820846698,
+            "min": -1486.6517568986008,
+            "std": 893.2087792674421
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.11688253200009058,
+            "mean": 0.06982976433331108,
+            "min": 0.030836256999918987,
+            "std": 0.04358559530615903
+          },
+          "mae": {
+            "max": 1542.984433023205,
+            "mean": 895.5489632243942,
+            "min": 528.7306693229779,
+            "std": 562.349690007464
+          },
+          "mape": {
+            "max": 0.2726024916541162,
+            "mean": 0.22274366878651863,
+            "min": 0.15310941508709863,
+            "std": 0.06215263136264568
+          },
+          "r2": {
+            "max": 0.3930574582950468,
+            "mean": -0.25763440168478025,
+            "min": -1.3560949916371996,
+            "std": 0.9566902319622304
+          },
+          "rmse": {
+            "max": 1706.2447229783115,
+            "mean": 1078.8229059740581,
+            "min": 725.1927026513691,
+            "std": 544.8276355313302
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "calendar_lags",
+        "recipe": "calendar_lags",
+        "stage": "calendar_lags",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.1109114208544163
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.08730756881519287
+          },
+          {
+            "feature": "past_lag2_over_roll28",
+            "mean_normalized_importance": 0.07557133104786298
+          },
+          {
+            "feature": "past_roll7_std",
+            "mean_normalized_importance": 0.06618048235994778
+          },
+          {
+            "feature": "past_lag3",
+            "mean_normalized_importance": 0.05838662108815662
+          },
+          {
+            "feature": "past_lag7",
+            "mean_normalized_importance": 0.05566492557631506
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.05486410359920932
+          },
+          {
+            "feature": "past_lag14",
+            "mean_normalized_importance": 0.054736312786338025
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.05410839554994531
+          },
+          {
+            "feature": "day_of_month",
+            "mean_normalized_importance": 0.053030993215037854
+          }
+        ]
+      },
+      {
+        "config_id": "lags_compact",
+        "cv": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+        "description": "weather + workday/holiday + trend + cnt_2d_bfr + past-only lags (no season/month one-hots)",
+        "elapsed_seconds": 0.25506149000011646,
+        "feature_count_mean": 21.0,
+        "fold_metrics": [
+          {
+            "bias": 117.29024588654555,
+            "fit_rows": 147,
+            "fit_seconds": 0.028446850000364066,
+            "fold": 1,
+            "mae": 536.2550091852929,
+            "mape": 0.15477352833297428,
+            "r2": 0.18835215987544374,
+            "rmse": 725.9901838512002,
+            "validation_rows": 145
+          },
+          {
+            "bias": 191.39718466023382,
+            "fit_rows": 292,
+            "fit_seconds": 0.05116658199995072,
+            "fold": 2,
+            "mae": 639.813908810602,
+            "mape": 0.2913352930086377,
+            "r2": 0.32005900910617413,
+            "rmse": 852.0686457157351,
+            "validation_rows": 145
+          },
+          {
+            "bias": -1527.087396375546,
+            "fit_rows": 437,
+            "fit_seconds": 0.10924607400011155,
+            "fold": 3,
+            "mae": 1585.461673340357,
+            "mape": 0.25071513789596045,
+            "r2": -1.434518601630257,
+            "rmse": 1734.4088136295356,
+            "validation_rows": 145
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "bias": {
+            "max": 191.39718466023382,
+            "mean": -406.13332194292224,
+            "min": -1527.087396375546,
+            "std": 971.4815939244176
+          },
+          "fit_rows": {
+            "max": 437.0,
+            "mean": 292.0,
+            "min": 147.0,
+            "std": 145.0
+          },
+          "fit_seconds": {
+            "max": 0.10924607400011155,
+            "mean": 0.06295316866680878,
+            "min": 0.028446850000364066,
+            "std": 0.04166918968112842
+          },
+          "mae": {
+            "max": 1585.461673340357,
+            "mean": 920.5101971120839,
+            "min": 536.2550091852929,
+            "std": 578.1880842135376
+          },
+          "mape": {
+            "max": 0.2913352930086377,
+            "mean": 0.23227465307919082,
+            "min": 0.15477352833297428,
+            "std": 0.07012358735148218
+          },
+          "r2": {
+            "max": 0.32005900910617413,
+            "mean": -0.30870247754954633,
+            "min": -1.434518601630257,
+            "std": 0.9772068012778344
+          },
+          "rmse": {
+            "max": 1734.4088136295356,
+            "mean": 1104.1558810654903,
+            "min": 725.9901838512002,
+            "std": 549.4433673188859
+          },
+          "validation_rows": {
+            "max": 145.0,
+            "mean": 145.0,
+            "min": 145.0,
+            "std": 0.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "lags_compact",
+        "recipe": "lags_compact",
+        "stage": "lags_compact",
+        "top_features": [
+          {
+            "feature": "hum",
+            "mean_normalized_importance": 0.1221668183017705
+          },
+          {
+            "feature": "windspeed",
+            "mean_normalized_importance": 0.09556040356447686
+          },
+          {
+            "feature": "past_lag2_over_roll28",
+            "mean_normalized_importance": 0.07802393828429158
+          },
+          {
+            "feature": "past_lag7",
+            "mean_normalized_importance": 0.0708555811010528
+          },
+          {
+            "feature": "days_since_2011",
+            "mean_normalized_importance": 0.07017928887722025
+          },
+          {
+            "feature": "cnt_2d_bfr",
+            "mean_normalized_importance": 0.0676072353079492
+          },
+          {
+            "feature": "past_lag3",
+            "mean_normalized_importance": 0.06677628008512092
+          },
+          {
+            "feature": "past_roll7_std",
+            "mean_normalized_importance": 0.06279421822388477
+          },
+          {
+            "feature": "past_lag14",
+            "mean_normalized_importance": 0.06123022594229116
+          },
+          {
+            "feature": "atemp",
+            "mean_normalized_importance": 0.05745048380589642
+          }
+        ]
+      }
+    ]
+  },
+  "experiment_id": "EXP-063",
+  "holdout_policy": "Locked holdout = last 20% of rows in `dteday` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Past-only lags and rolling means beat calendar-only features under time-ordered CV.",
+  "kind": "feature_engineering",
+  "primary_metric": "mae",
+  "provenance": {
+    "data_sha256": {
+      "data/external/bike_sharing_daily/bike.csv": "a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which task-appropriate, train-fitted feature recipe gives the best primary metric for the fewest features?",
+  "schema_version": 2,
+  "setup_summary": "4 recipes compared with lightgbm on expanding-window TimeSeriesSplit(3) on time-ordered training rows: raw (33 feats, 833.1\u00b1460.6); calendar (38 feats, 836.7\u00b1445.4); calendar_lags (46 feats, 895.5\u00b1562.3); lags_compact (21 feats, 920.5\u00b1578.2). Selected: raw.",
+  "source": "https://raw.githubusercontent.com/christophM/interpretable-ml-book/master/data/bike.csv",
+  "started_at": "2026-10-03T07:07:40+00:00",
+  "status": "completed",
+  "task_type": "timeseries_regression"
+}

@@ -1,0 +1,373 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-061-C1",
+      "evidence": [
+        "evidence.source_rows",
+        "evidence.raw_feature_count",
+        "evidence.train_rows",
+        "evidence.holdout_rows",
+        "evidence.target_summary"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "bike_sharing_daily has 728 source rows and 17 raw columns; the locked holdout is last 146 of 728 rows by `dteday` (146 rows), leaving 582 training rows with a training target mean of 4176 (std 1780, range 431\u20138362)."
+    },
+    {
+      "claim_id": "EXP-061-C2",
+      "evidence": [
+        "evidence.feature_profiles",
+        "evidence.risk_features"
+      ],
+      "kind": "risk",
+      "limitations": [
+        "PSI on feature distributions is a smoke check; it uses no holdout labels and does not prove production stability."
+      ],
+      "statement": "9 of 17 columns triggered missingness, identifier, near-constant, or train/holdout PSI>0.20 review rules (instant: identifier_like, train_holdout_feature_shift; dteday: identifier_like; temp: train_holdout_feature_shift; hum: train_holdout_feature_shift; windspeed: train_holdout_feature_shift; casual: train_holdout_feature_shift; registered: train_holdout_feature_shift; days_since_2011: identifier_like, train_holdout_feature_shift; cnt_2d_bfr: train_holdout_feature_shift)."
+    },
+    {
+      "claim_id": "EXP-061-C3",
+      "evidence": [
+        "evidence.time_range",
+        "evidence.target_summary"
+      ],
+      "kind": "fact",
+      "limitations": [
+        "The source `atemp` column is on an unusual scale (mean ~32) relative to `temp`; its derivation in this redistribution is undocumented."
+      ],
+      "statement": "Training spans 2011-01-03..2012-08-07 and the time-ordered holdout 2012-08-08..2012-12-31; missing calendar days: ['2011-03-10']. The target's coefficient of variation is 0.43 with a strong upward trend, so random splits would mix future demand levels into training."
+    }
+  ],
+  "completed_at": "2026-10-03T07:07:39+00:00",
+  "dataset": "bike_sharing_daily",
+  "decision_time_rule": "Forecast day d's total rentals at the end of day d-2 (the horizon implied by the provided `cnt_2d_bfr` lag): calendar fields, the day's weather (treated as a forecast proxy), and rental counts from day d-2 or earlier are allowed; same-day casual/registered counts are not.",
+  "evidence": {
+    "column_roles": {
+      "atemp": "feature",
+      "casual": "blocked",
+      "cnt_2d_bfr": "feature",
+      "days_since_2011": "feature",
+      "dteday": "identifier",
+      "holiday": "feature",
+      "hum": "feature",
+      "instant": "identifier",
+      "mnth": "feature",
+      "registered": "blocked",
+      "season": "feature",
+      "temp": "feature",
+      "weather": "feature",
+      "weekday": "feature",
+      "windspeed": "feature",
+      "workday": "feature",
+      "yr": "feature"
+    },
+    "cv_protocol": "expanding-window TimeSeriesSplit(3) on time-ordered training rows",
+    "duplicate_feature_row_rate_train": 0.0,
+    "duplicate_feature_rows_train": 0,
+    "elapsed_seconds": 0.021747493000020768,
+    "feature_profiles": [
+      {
+        "dtype": "int64",
+        "feature": "instant",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "identifier_like",
+          "train_holdout_feature_shift"
+        ],
+        "role": "identifier",
+        "top_value_frequency": 0.001718213058419244,
+        "train_vs_holdout_psi": 12.401236955524148,
+        "unique_count": 582,
+        "unique_ratio": 1.0
+      },
+      {
+        "dtype": "object",
+        "feature": "dteday",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "identifier_like"
+        ],
+        "role": "identifier",
+        "top_value_frequency": 0.001718213058419244,
+        "train_vs_holdout_psi": null,
+        "unique_count": 582,
+        "unique_ratio": 1.0
+      },
+      {
+        "dtype": "object",
+        "feature": "season",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.3161512027491409,
+        "train_vs_holdout_psi": null,
+        "unique_count": 4,
+        "unique_ratio": 0.006872852233676976
+      },
+      {
+        "dtype": "int64",
+        "feature": "yr",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.6219931271477663,
+        "train_vs_holdout_psi": null,
+        "unique_count": 2,
+        "unique_ratio": 0.003436426116838488
+      },
+      {
+        "dtype": "object",
+        "feature": "mnth",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.10652920962199312,
+        "train_vs_holdout_psi": null,
+        "unique_count": 12,
+        "unique_ratio": 0.020618556701030927
+      },
+      {
+        "dtype": "object",
+        "feature": "holiday",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.9725085910652921,
+        "train_vs_holdout_psi": null,
+        "unique_count": 2,
+        "unique_ratio": 0.003436426116838488
+      },
+      {
+        "dtype": "object",
+        "feature": "weekday",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.14432989690721648,
+        "train_vs_holdout_psi": null,
+        "unique_count": 7,
+        "unique_ratio": 0.012027491408934709
+      },
+      {
+        "dtype": "float64",
+        "feature": "temp",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.006872852233676976,
+        "train_vs_holdout_psi": 0.24832529659141148,
+        "unique_count": 430,
+        "unique_ratio": 0.738831615120275
+      },
+      {
+        "dtype": "float64",
+        "feature": "atemp",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.003436426116838488,
+        "train_vs_holdout_psi": 0.18513912827023343,
+        "unique_count": 555,
+        "unique_ratio": 0.9536082474226805
+      },
+      {
+        "dtype": "float64",
+        "feature": "hum",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.006872852233676976,
+        "train_vs_holdout_psi": 0.29269775429507316,
+        "unique_count": 501,
+        "unique_ratio": 0.8608247422680413
+      },
+      {
+        "dtype": "float64",
+        "feature": "windspeed",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.005154639175257732,
+        "train_vs_holdout_psi": 0.20168174080661294,
+        "unique_count": 529,
+        "unique_ratio": 0.9089347079037801
+      },
+      {
+        "dtype": "int64",
+        "feature": "casual",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "blocked",
+        "top_value_frequency": 0.006872852233676976,
+        "train_vs_holdout_psi": 0.3230191086016322,
+        "unique_count": 497,
+        "unique_ratio": 0.8539518900343642
+      },
+      {
+        "dtype": "int64",
+        "feature": "registered",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "blocked",
+        "top_value_frequency": 0.005154639175257732,
+        "train_vs_holdout_psi": 1.3384604006818632,
+        "unique_count": 548,
+        "unique_ratio": 0.9415807560137457
+      },
+      {
+        "dtype": "object",
+        "feature": "workday",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.6872852233676976,
+        "train_vs_holdout_psi": null,
+        "unique_count": 2,
+        "unique_ratio": 0.003436426116838488
+      },
+      {
+        "dtype": "object",
+        "feature": "weather",
+        "missing_rate": 0.0,
+        "production_risks": [],
+        "role": "feature",
+        "top_value_frequency": 0.647766323024055,
+        "train_vs_holdout_psi": null,
+        "unique_count": 3,
+        "unique_ratio": 0.005154639175257732
+      },
+      {
+        "dtype": "int64",
+        "feature": "days_since_2011",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "identifier_like",
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.001718213058419244,
+        "train_vs_holdout_psi": 12.401236955524148,
+        "unique_count": 582,
+        "unique_ratio": 1.0
+      },
+      {
+        "dtype": "int64",
+        "feature": "cnt_2d_bfr",
+        "missing_rate": 0.0,
+        "production_risks": [
+          "train_holdout_feature_shift"
+        ],
+        "role": "feature",
+        "top_value_frequency": 0.003436426116838488,
+        "train_vs_holdout_psi": 1.326422784299966,
+        "unique_count": 561,
+        "unique_ratio": 0.9639175257731959
+      }
+    ],
+    "holdout_rows": 146,
+    "holdout_split": "last 146 of 728 rows by `dteday`",
+    "missing_cell_rate_train": 0.0,
+    "note": "Holdout feature distributions (never labels) are compared via PSI, as in model_building_50_v1.",
+    "raw_feature_count": 17,
+    "risk_features": {
+      "casual": [
+        "train_holdout_feature_shift"
+      ],
+      "cnt_2d_bfr": [
+        "train_holdout_feature_shift"
+      ],
+      "days_since_2011": [
+        "identifier_like",
+        "train_holdout_feature_shift"
+      ],
+      "dteday": [
+        "identifier_like"
+      ],
+      "hum": [
+        "train_holdout_feature_shift"
+      ],
+      "instant": [
+        "identifier_like",
+        "train_holdout_feature_shift"
+      ],
+      "registered": [
+        "train_holdout_feature_shift"
+      ],
+      "temp": [
+        "train_holdout_feature_shift"
+      ],
+      "windspeed": [
+        "train_holdout_feature_shift"
+      ]
+    },
+    "sampling": {
+      "note": "No subsampling; 2011-03-10 is absent from the source file.",
+      "rows_used": 728
+    },
+    "source_rows": 728,
+    "target_summary": {
+      "coefficient_of_variation_train": 0.4262814832685838,
+      "max_train": 8362.0,
+      "mean_train": 4176.2302405498285,
+      "median_train": 4239.0,
+      "min_train": 431.0,
+      "std_train": 1780.2496214126954
+    },
+    "time_range": {
+      "holdout": [
+        "2012-08-08",
+        "2012-12-31"
+      ],
+      "missing_calendar_days": [
+        "2011-03-10"
+      ],
+      "train": [
+        "2011-01-03",
+        "2012-08-07"
+      ]
+    },
+    "train_rows": 582
+  },
+  "experiment_id": "EXP-061",
+  "holdout_policy": "Locked holdout = last 20% of rows in `dteday` order; recipe/model/parameter choices use only expanding-window 3-fold time-ordered CV on the earlier rows. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Daily demand trends upward and is seasonal, so time-ordered evaluation is mandatory.",
+  "kind": "data_understanding",
+  "primary_metric": "mae",
+  "provenance": {
+    "data_sha256": {
+      "data/external/bike_sharing_daily/bike.csv": "a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "What does the dataset contain, how is the target distributed, and which quality, identifier, time, or text risks must be resolved before modeling?",
+  "schema_version": 2,
+  "setup_summary": "Profiled 582 training rows \u00d7 17 raw columns of bike_sharing_daily (holdout: last 146 of 728 rows by `dteday`); computed target summary, per-column missingness/uniqueness/PSI, duplicates, time range; 9 columns flagged for review.",
+  "source": "https://raw.githubusercontent.com/christophM/interpretable-ml-book/master/data/bike.csv",
+  "started_at": "2026-10-03T07:07:39+00:00",
+  "status": "completed",
+  "task_type": "timeseries_regression"
+}

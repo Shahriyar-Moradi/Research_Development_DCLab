@@ -10,7 +10,7 @@ A company wants a computer to make a prediction before something happens. Will t
 
 The hard part is not getting a good-looking score. The hard part is getting a score that is **true**: one that holds when the model meets tomorrow's cases. Most mistakes in this field produce a beautiful score that is a lie. DCLab's R&D exists to learn, with measurements, which habits produce true scores.
 
-We studied this on 10 public datasets in a 50-experiment campaign, on 4 more datasets covering harder kinds of problems, on DCLab's own delivery data (83 experiments), on a customer-churn dataset, and in a set of experiments that measure common mistakes directly.
+We studied this on 10 public datasets in a 50-experiment campaign, on 4 more datasets covering harder kinds of problems (20 more experiments), on DCLab's own delivery data (83 experiments), on a customer-churn dataset, and in a set of experiments that measure common mistakes directly.
 
 ---
 
@@ -32,7 +32,7 @@ This is called **leakage**: information that would not be available at the real 
 
 **The rule we derived:** before looking at any score, write down the exact moment the prediction is made, and allow only information that exists at that moment. A suspiciously large improvement is a reason to look for cheating, not a reason to celebrate.
 
-**A warning we measured:** an automatic scanner cannot fully do this for you. Running our leakage scanner "blind", without telling it the answers, it found 8 of 13 known cheating columns (`campaigns/agent_verification_v1/VERIFICATION_REPORT.md`). The ones it missed look like ordinary numbers. Only a person who knows *when* each value is written can catch them.
+**A warning we measured:** an automatic scanner cannot fully do this for you. Running our leakage scanner "blind", without telling it the answers, it found 11 of 18 known cheating columns across 7 datasets (`campaigns/agent_verification_v1/VERIFICATION_REPORT.md`). The ones it missed look like ordinary numbers. Only a person who knows *when* each value is written can catch them.
 
 ---
 
@@ -86,6 +86,21 @@ After choosing a model, adjusting its settings ("tuning") improved cross-validat
 We asked a language model to critique every experiment. Many critiques were sharp. But when we recomputed each experiment's own selection rule from its numbers, 10 of the critic's 157 objections turned out to be **wrong**. Most came from one confusion: a feature recipe was literally *named* "selected", and the critic took that name for the recipe the rule had selected.
 
 **The rule:** language models propose and question; deterministic code computes and checks. Before an AI's opinion becomes memory or training data, check it against the numbers (`dclab_rnd/critic_gate.py`).
+
+---
+
+## Lesson 7: different problems need different scorecards
+
+The first campaign only asked yes/no questions. We then ran the same five-step workflow on four harder kinds of problem (`campaigns/expansion_v1/CAMPAIGN_REPORT.md`):
+
+| Problem | What we predicted | The trap | Honest result |
+|---|---|---|---|
+| **Rare events** (credit-card fraud, 0.17% fraud) | Is this transaction fraud? | Saying "never fraud" is already **99.87% accurate**, so accuracy is useless | The model found frauds well (average precision 0.81 vs 0.001 for guessing). Tuned to keep false alarms rare, it caught 52 of 75 frauds with 54 alerts |
+| **Many classes** (letter recognition, 26 letters) | Which letter is this? | Some test rows were exact copies of training rows and were always right | Macro-F1 0.975; repeated shapes inflate apparent accuracy |
+| **Forecasting over time** (daily bike rentals) | How many bikes will be rented? | Two columns, casual + registered riders, add up exactly to the answer | Testing on random days looked **twice as good** (error 430 bikes) as testing on future days (833). The honest forecast beat "same as two days ago" by 476 bikes a day |
+| **Text + numbers** (clothing reviews) | Will the reviewer recommend the item? | The star rating is written at the same moment as the recommendation | Without the text, the rating alone pushed the score from 0.53 to 0.97. With the rating removed, the review text did the real work: 0.946, versus 0.548 for the numbers alone |
+
+Two lessons from this round. First, pick the scorecard from the cost of mistakes: average precision for rare events, macro-F1 when every class matters, average error in real units for forecasts. Second, the forecasting result is the mirror image of Lesson 2's delivery result: there, testing on the future changed nothing; here, it halved the apparent quality. You only learn which world you are in by measuring both.
 
 ---
 

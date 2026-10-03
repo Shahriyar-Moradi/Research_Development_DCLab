@@ -2,7 +2,7 @@
 
 Without being told, does the deterministic column auditor flag the leakage columns the R&D already confirmed?
 
-The auditor ran with `blind=True` (no catalog, no precedents) on 4 datasets with 13 confirmed leakage columns. It flagged 8 of them (recall 62%).
+The auditor ran with `blind=True` (no catalog, no precedents) on 7 datasets with 18 confirmed leakage columns. It flagged 11 of them (recall 61%).
 
 | Dataset | Known leaks | Found | Missed | Other flags |
 |---|---|---|---|---|
@@ -10,6 +10,9 @@ The auditor ran with `blind=True` (no catalog, no precedents) on 4 datasets with
 | online_shoppers | 9 | PageValues, Administrative_Duration, Informational_Duration, ProductRelated_Duration | Administrative, Informational, ProductRelated, BounceRates, ExitRates | — |
 | hyperack | 2 | final_customer_fare, final_biker_fare | — | first_created_at, deliverey_category_id |
 | telco_churn | 1 | customerID | — | TotalCharges |
+| credit_card_fraud | 1 | — | Time | — |
+| bike_sharing_daily | 2 | casual, registered | — | cnt_2d_bfr, days_since_2011, dteday, instant |
+| ecommerce_clothing_reviews | 2 | Rating | Positive Feedback Count | Title, Review Text, Unnamed: 0 |
 
 ## How to read this
 

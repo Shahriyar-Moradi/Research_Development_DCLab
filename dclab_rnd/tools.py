@@ -320,10 +320,16 @@ def _verification_cases() -> list[dict[str, Any]]:
         from dclab_rnd.expansion import datasets as expansion
     except Exception:
         expansion = None
-    loader = getattr(expansion, "load_for_audit", None) if expansion else None
-    if callable(loader):
-        for case in loader():
-            cases.append(case)
+    if expansion is not None:
+        for key, spec in expansion.SPECS.items():
+            if not spec.blocked_features or not expansion.raw_path(ROOT, spec).exists():
+                continue  # only datasets with confirmed leaks that are already downloaded (never fetch here)
+            bundle = expansion.load_bundle(ROOT, key)
+            X, y = bundle.X_train, bundle.y_train
+            if not all(c in X.columns for c in spec.blocked_features):
+                continue
+            task = "regression" if spec.task_type.endswith("regression") else "classification"
+            cases.append({"dataset": key, "X": X, "y": y, "known": list(spec.blocked_features), "task": task})
     return cases
 
 

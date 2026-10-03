@@ -1,0 +1,1119 @@
+{
+  "campaign_id": "expansion_v1",
+  "claims": [
+    {
+      "claim_id": "EXP-069-C1",
+      "evidence": [
+        "evidence.model_results",
+        "evidence.ranking",
+        "evidence.selection_rule"
+      ],
+      "kind": "recommendation",
+      "limitations": [
+        "A cross-validation leader is not a universal algorithm winner and has not yet seen the locked holdout."
+      ],
+      "statement": "logistic_regression is the training-CV model candidate for ecommerce_clothing_reviews on the `tfidf_word` recipe (0.9431\u00b10.0033 ROC-AUC, adjusted 0.9423); runner-up lightgbm at 0.9433\u00b10.0058."
+    },
+    {
+      "claim_id": "EXP-069-C2",
+      "evidence": [
+        "evidence.ranking"
+      ],
+      "kind": "fact",
+      "limitations": [],
+      "statement": "Model screen ranking (mean\u00b1std, runtime for 3 folds): logistic_regression 0.9431\u00b10.0033 (6.7s); lightgbm 0.9433\u00b10.0058 (13.2s); linear_svm 0.9406\u00b10.0045 (6.6s); xgboost 0.9363\u00b10.0055 (25.4s); complement_nb 0.9257\u00b10.0024 (5.9s)."
+    }
+  ],
+  "completed_at": "2026-10-03T07:10:43+00:00",
+  "dataset": "ecommerce_clothing_reviews",
+  "decision_time_rule": "Predict the recommendation flag from the review title/text, reviewer age, and product taxonomy at submission time, for products not seen in training; the star rating (written in the same form as the recommendation) and helpful-vote counts (accrued after publication) are not available.",
+  "evidence": {
+    "cv_protocol": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+    "elapsed_seconds": 57.75489725399984,
+    "feature_recipe": "tfidf_word",
+    "model_results": [
+      {
+        "adjusted_score": 0.9423077269663795,
+        "config_id": "logistic_regression",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 6.70486393300007,
+        "feature_count_mean": 30000.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.909323116219668,
+            "average_precision": 0.9870462717029788,
+            "brier": 0.07067930238922464,
+            "f1": 0.9460178673256034,
+            "fit_rows": 12525,
+            "fit_seconds": 0.19611709399987376,
+            "fold": 1,
+            "log_loss": 0.24132644655336263,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9266430832247253,
+            "precision_at_k_positives": 0.9429237041351194,
+            "precision_target": 0.9,
+            "recall": 0.9662201514269074,
+            "recall_at_precision_target": 0.98058629392351,
+            "roc_auc": 0.945030693016979,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.9032258064516129,
+            "average_precision": 0.9854128549829695,
+            "brier": 0.07353788803099859,
+            "f1": 0.9421534936998854,
+            "fit_rows": 12527,
+            "fit_seconds": 0.2016592770000898,
+            "fold": 2,
+            "log_loss": 0.2591391027184463,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.9265865565152084,
+            "precision_at_k_positives": 0.941747572815534,
+            "precision_target": 0.9,
+            "recall": 0.958252427184466,
+            "recall_at_precision_target": 0.9770873786407767,
+            "roc_auc": 0.9393132290284277,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.9139390068657193,
+            "average_precision": 0.9866482673440196,
+            "brier": 0.06776829101266668,
+            "f1": 0.948563794255177,
+            "fit_rows": 12526,
+            "fit_seconds": 0.20456537099971683,
+            "fold": 3,
+            "log_loss": 0.2377221971296179,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.9328078078078078,
+            "precision_at_k_positives": 0.9458357600465929,
+            "precision_target": 0.9,
+            "recall": 0.9648611920015531,
+            "recall_at_precision_target": 0.9809745680450398,
+            "roc_auc": 0.9450617432670054,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9139390068657193,
+            "mean": 0.9088293098456667,
+            "min": 0.9032258064516129,
+            "std": 0.005373643952613121
+          },
+          "average_precision": {
+            "max": 0.9870462717029788,
+            "mean": 0.9863691313433226,
+            "min": 0.9854128549829695,
+            "std": 0.0008517336587603435
+          },
+          "brier": {
+            "max": 0.07353788803099859,
+            "mean": 0.07066182714429664,
+            "min": 0.06776829101266668,
+            "std": 0.0028848382063167907
+          },
+          "f1": {
+            "max": 0.948563794255177,
+            "mean": 0.9455783850935552,
+            "min": 0.9421534936998854,
+            "std": 0.003227668938492201
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.20456537099971683,
+            "mean": 0.20078058066656013,
+            "min": 0.19611709399987376,
+            "std": 0.004292135424405692
+          },
+          "log_loss": {
+            "max": 0.2591391027184463,
+            "mean": 0.24606258213380894,
+            "min": 0.2377221971296179,
+            "std": 0.011467091890600451
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.9328078078078078,
+            "mean": 0.9286791491825804,
+            "min": 0.9265865565152084,
+            "std": 0.0035756349575942533
+          },
+          "precision_at_k_positives": {
+            "max": 0.9458357600465929,
+            "mean": 0.9435023456657489,
+            "min": 0.941747572815534,
+            "std": 0.002104623060021674
+          },
+          "recall": {
+            "max": 0.9662201514269074,
+            "mean": 0.9631112568709755,
+            "min": 0.958252427184466,
+            "std": 0.004262377519861337
+          },
+          "recall_at_precision_target": {
+            "max": 0.9809745680450398,
+            "mean": 0.9795494135364421,
+            "min": 0.9770873786407767,
+            "std": 0.0021410046868160803
+          },
+          "roc_auc": {
+            "max": 0.9450617432670054,
+            "mean": 0.9431352217708039,
+            "min": 0.9393132290284277,
+            "std": 0.0033099792176975278
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "logistic_regression",
+        "model_params": {},
+        "optimization": "logistic_regression",
+        "recipe": "tfidf_word",
+        "stage": "tfidf_word",
+        "top_features": [
+          {
+            "feature": "w:disappointed",
+            "mean_normalized_importance": 0.0005499657548840407
+          },
+          {
+            "feature": "w:love",
+            "mean_normalized_importance": 0.0005417504295158992
+          },
+          {
+            "feature": "w:unflattering",
+            "mean_normalized_importance": 0.0005023007534825228
+          },
+          {
+            "feature": "w:not",
+            "mean_normalized_importance": 0.0004805995271283515
+          },
+          {
+            "feature": "w:huge",
+            "mean_normalized_importance": 0.00046543862347039005
+          },
+          {
+            "feature": "w:great",
+            "mean_normalized_importance": 0.0004518415003916178
+          },
+          {
+            "feature": "w:perfect",
+            "mean_normalized_importance": 0.00043927626238247154
+          },
+          {
+            "feature": "w:poor",
+            "mean_normalized_importance": 0.0004148129949188384
+          },
+          {
+            "feature": "w:to love",
+            "mean_normalized_importance": 0.00039735469158769834
+          },
+          {
+            "feature": "w:not flattering",
+            "mean_normalized_importance": 0.0003956292538707686
+          }
+        ]
+      },
+      {
+        "adjusted_score": 0.9395042103787993,
+        "config_id": "linear_svm",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 6.632737825999811,
+        "feature_count_mean": 30000.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9085249042145593,
+            "average_precision": 0.9863938896031339,
+            "brier": 0.10018722982015232,
+            "f1": 0.9453921662060422,
+            "fit_rows": 12525,
+            "fit_seconds": 0.11745294899992587,
+            "fold": 1,
+            "log_loss": 0.3575434394020563,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9284912017970798,
+            "precision_at_k_positives": 0.9411764705882353,
+            "precision_target": 0.9,
+            "recall": 0.9629198213939041,
+            "recall_at_precision_target": 0.9803921568627451,
+            "roc_auc": 0.9431297894336762,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.9040242733950814,
+            "average_precision": 0.9842091252661964,
+            "brier": 0.10372506511697693,
+            "f1": 0.9424825342138003,
+            "fit_rows": 12527,
+            "fit_seconds": 0.10522471800004496,
+            "fold": 2,
+            "log_loss": 0.3667166491029169,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.9292319305529345,
+            "precision_at_k_positives": 0.9403883495145631,
+            "precision_target": 0.9,
+            "recall": 0.9561165048543689,
+            "recall_at_precision_target": 0.976116504854369,
+            "roc_auc": 0.9354492910525949,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.9101069774868275,
+            "average_precision": 0.9861022890627301,
+            "brier": 0.10037844194739866,
+            "f1": 0.946181053436574,
+            "fit_rows": 12526,
+            "fit_seconds": 0.10560380700007954,
+            "fold": 3,
+            "log_loss": 0.35905143665271716,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.932015065913371,
+            "precision_at_k_positives": 0.9454474859250631,
+            "precision_target": 0.9,
+            "recall": 0.9607843137254902,
+            "recall_at_precision_target": 0.9809745680450398,
+            "roc_auc": 0.9432958292655333,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9101069774868275,
+            "mean": 0.9075520516988228,
+            "min": 0.9040242733950814,
+            "std": 0.0031558919151275316
+          },
+          "average_precision": {
+            "max": 0.9863938896031339,
+            "mean": 0.9855684346440201,
+            "min": 0.9842091252661964,
+            "std": 0.0011861910500718651
+          },
+          "brier": {
+            "max": 0.10372506511697693,
+            "mean": 0.10143024562817597,
+            "min": 0.10018722982015232,
+            "std": 0.0019896702953095136
+          },
+          "f1": {
+            "max": 0.946181053436574,
+            "mean": 0.9446852512854722,
+            "min": 0.9424825342138003,
+            "std": 0.001947962432645943
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.11745294899992587,
+            "mean": 0.10942715800001679,
+            "min": 0.10522471800004496,
+            "std": 0.006953122895372479
+          },
+          "log_loss": {
+            "max": 0.3667166491029169,
+            "mean": 0.3611038417192301,
+            "min": 0.3575434394020563,
+            "std": 0.0049189652338451064
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.932015065913371,
+            "mean": 0.9299127327544617,
+            "min": 0.9284912017970798,
+            "std": 0.0018579621378608698
+          },
+          "precision_at_k_positives": {
+            "max": 0.9454474859250631,
+            "mean": 0.9423374353426205,
+            "min": 0.9403883495145631,
+            "std": 0.0027220570669450233
+          },
+          "recall": {
+            "max": 0.9629198213939041,
+            "mean": 0.9599402133245878,
+            "min": 0.9561165048543689,
+            "std": 0.003479318625734196
+          },
+          "recall_at_precision_target": {
+            "max": 0.9809745680450398,
+            "mean": 0.9791610765873845,
+            "min": 0.976116504854369,
+            "std": 0.0026527087051585406
+          },
+          "roc_auc": {
+            "max": 0.9432958292655333,
+            "mean": 0.9406249699172683,
+            "min": 0.9354492910525949,
+            "std": 0.004483038153876217
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "linear_svm",
+        "model_params": {},
+        "optimization": "linear_svm",
+        "recipe": "tfidf_word",
+        "stage": "tfidf_word",
+        "top_features": [
+          {
+            "feature": "w:disappointed",
+            "mean_normalized_importance": 0.0005205787986145012
+          },
+          {
+            "feature": "w:unflattering",
+            "mean_normalized_importance": 0.00048502652195293985
+          },
+          {
+            "feature": "w:huge",
+            "mean_normalized_importance": 0.0004569266047195126
+          },
+          {
+            "feature": "w:not",
+            "mean_normalized_importance": 0.000449396972980743
+          },
+          {
+            "feature": "w:love",
+            "mean_normalized_importance": 0.0004324963483898781
+          },
+          {
+            "feature": "w:poor",
+            "mean_normalized_importance": 0.00040258071670517
+          },
+          {
+            "feature": "w:not flattering",
+            "mean_normalized_importance": 0.00039760946576991287
+          },
+          {
+            "feature": "w:to love",
+            "mean_normalized_importance": 0.0003728176747552524
+          },
+          {
+            "feature": "w:perfect",
+            "mean_normalized_importance": 0.00036414883498172944
+          },
+          {
+            "feature": "w:not too",
+            "mean_normalized_importance": 0.00036275439521378603
+          }
+        ]
+      },
+      {
+        "adjusted_score": 0.9250487030207217,
+        "config_id": "complement_nb",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 5.873881898000036,
+        "feature_count_mean": 30000.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.8813856960408685,
+            "average_precision": 0.9832824243772238,
+            "brier": 0.08532001322477892,
+            "f1": 0.9319285387081997,
+            "fit_rows": 12525,
+            "fit_seconds": 0.00923674800014851,
+            "fold": 1,
+            "log_loss": 0.2688937861133181,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.8823733518390007,
+            "precision_at_k_positives": 0.9202096680256261,
+            "precision_target": 0.9,
+            "recall": 0.9873810910502815,
+            "recall_at_precision_target": 0.9384585517375267,
+            "roc_auc": 0.9252604585018515,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.884062599808368,
+            "average_precision": 0.9826155367778177,
+            "brier": 0.08442024645358459,
+            "f1": 0.9329516069449575,
+            "fit_rows": 12527,
+            "fit_seconds": 0.008740682999814453,
+            "fold": 2,
+            "log_loss": 0.269214360240691,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.889573793589292,
+            "precision_at_k_positives": 0.9219417475728156,
+            "precision_target": 0.9,
+            "recall": 0.9807766990291262,
+            "recall_at_precision_target": 0.9372815533980583,
+            "roc_auc": 0.9234621429070335,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.8850391186332428,
+            "average_precision": 0.9828445458085002,
+            "brier": 0.0825564657632231,
+            "f1": 0.933957072096863,
+            "fit_rows": 12526,
+            "fit_seconds": 0.009313712999755808,
+            "fold": 3,
+            "log_loss": 0.2633166052444667,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.8852373500260824,
+            "precision_at_k_positives": 0.9268103280916327,
+            "precision_target": 0.9,
+            "recall": 0.988351776354106,
+            "recall_at_precision_target": 0.9419530188312949,
+            "roc_auc": 0.9282289078463497,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.8850391186332428,
+            "mean": 0.883495804827493,
+            "min": 0.8813856960408685,
+            "std": 0.0018915117161615817
+          },
+          "average_precision": {
+            "max": 0.9832824243772238,
+            "mean": 0.9829141689878472,
+            "min": 0.9826155367778177,
+            "std": 0.00033885145401371636
+          },
+          "brier": {
+            "max": 0.08532001322477892,
+            "mean": 0.08409890848052887,
+            "min": 0.0825564657632231,
+            "std": 0.001409518432927914
+          },
+          "f1": {
+            "max": 0.933957072096863,
+            "mean": 0.9329457392500067,
+            "min": 0.9319285387081997,
+            "std": 0.0010142794238342046
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 0.009313712999755808,
+            "mean": 0.009097047999906257,
+            "min": 0.008740682999814453,
+            "std": 0.00031101111356181667
+          },
+          "log_loss": {
+            "max": 0.269214360240691,
+            "mean": 0.2671415838661586,
+            "min": 0.2633166052444667,
+            "std": 0.0033164043835282315
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.889573793589292,
+            "mean": 0.8857281651514585,
+            "min": 0.8823733518390007,
+            "std": 0.003625226195054315
+          },
+          "precision_at_k_positives": {
+            "max": 0.9268103280916327,
+            "mean": 0.9229872478966915,
+            "min": 0.9202096680256261,
+            "std": 0.003422277242153519
+          },
+          "recall": {
+            "max": 0.988351776354106,
+            "mean": 0.9855031888111713,
+            "min": 0.9807766990291262,
+            "std": 0.004121933615986201
+          },
+          "recall_at_precision_target": {
+            "max": 0.9419530188312949,
+            "mean": 0.9392310413222934,
+            "min": 0.9372815533980583,
+            "std": 0.0024296506832075203
+          },
+          "roc_auc": {
+            "max": 0.9282289078463497,
+            "mean": 0.9256505030850782,
+            "min": 0.9234621429070335,
+            "std": 0.0024072002574260123
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "complement_nb",
+        "model_params": {},
+        "optimization": "complement_nb",
+        "recipe": "tfidf_word",
+        "stage": "tfidf_word",
+        "top_features": []
+      },
+      {
+        "adjusted_score": 0.9418984535746752,
+        "config_id": "lightgbm",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 13.156435640999916,
+        "feature_count_mean": 30000.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.8992656449553001,
+            "average_precision": 0.9860831054465794,
+            "brier": 0.07065865983088893,
+            "f1": 0.9401385067830377,
+            "fit_rows": 12525,
+            "fit_seconds": 2.333449042000211,
+            "fold": 1,
+            "log_loss": 0.22940091604616247,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9192949907235621,
+            "precision_at_k_positives": 0.9403999223451757,
+            "precision_target": 0.9,
+            "recall": 0.9619491360900796,
+            "recall_at_precision_target": 0.9765094156474471,
+            "roc_auc": 0.9425254876843322,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.8990737783455764,
+            "average_precision": 0.9854680513533833,
+            "brier": 0.07330669848043235,
+            "f1": 0.9397865853658537,
+            "fit_rows": 12527,
+            "fit_seconds": 2.4073629730000903,
+            "fold": 2,
+            "log_loss": 0.23789096179538782,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.9225589225589226,
+            "precision_at_k_positives": 0.9366990291262136,
+            "precision_target": 0.9,
+            "recall": 0.9576699029126213,
+            "recall_at_precision_target": 0.9741747572815534,
+            "roc_auc": 0.9380202731019067,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.9097876417052531,
+            "average_precision": 0.9877495029884011,
+            "brier": 0.06584849089341623,
+            "f1": 0.9462774555481601,
+            "fit_rows": 12526,
+            "fit_seconds": 2.347034714000074,
+            "fold": 3,
+            "log_loss": 0.21548311892226707,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.9273201639955274,
+            "precision_at_k_positives": 0.945641622985828,
+            "precision_target": 0.9,
+            "recall": 0.9660260143661425,
+            "recall_at_precision_target": 0.9796156086196856,
+            "roc_auc": 0.9494793216096895,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9097876417052531,
+            "mean": 0.9027090216687098,
+            "min": 0.8990737783455764,
+            "std": 0.006131015365768919
+          },
+          "average_precision": {
+            "max": 0.9877495029884011,
+            "mean": 0.9864335532627879,
+            "min": 0.9854680513533833,
+            "std": 0.0011804091005432674
+          },
+          "brier": {
+            "max": 0.07330669848043235,
+            "mean": 0.0699379497349125,
+            "min": 0.06584849089341623,
+            "std": 0.0037809763797976817
+          },
+          "f1": {
+            "max": 0.9462774555481601,
+            "mean": 0.9420675158990172,
+            "min": 0.9397865853658537,
+            "std": 0.003650158360679389
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 2.4073629730000903,
+            "mean": 2.3626155763334586,
+            "min": 2.333449042000211,
+            "std": 0.039343230068877556
+          },
+          "log_loss": {
+            "max": 0.23789096179538782,
+            "mean": 0.2275916655879391,
+            "min": 0.21548311892226707,
+            "std": 0.011312952575347127
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.9273201639955274,
+            "mean": 0.9230580257593374,
+            "min": 0.9192949907235621,
+            "std": 0.004035799736702095
+          },
+          "precision_at_k_positives": {
+            "max": 0.945641622985828,
+            "mean": 0.9409135248190724,
+            "min": 0.9366990291262136,
+            "std": 0.004493365872082736
+          },
+          "recall": {
+            "max": 0.9660260143661425,
+            "mean": 0.9618816844562813,
+            "min": 0.9576699029126213,
+            "std": 0.004178464065669787
+          },
+          "recall_at_precision_target": {
+            "max": 0.9796156086196856,
+            "mean": 0.976766593849562,
+            "min": 0.9741747572815534,
+            "std": 0.002729527668232322
+          },
+          "roc_auc": {
+            "max": 0.9494793216096895,
+            "mean": 0.9433416941319761,
+            "min": 0.9380202731019067,
+            "std": 0.005772962229203599
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "lightgbm",
+        "model_params": {},
+        "optimization": "lightgbm",
+        "recipe": "tfidf_word",
+        "stage": "tfidf_word",
+        "top_features": [
+          {
+            "feature": "w:not",
+            "mean_normalized_importance": 0.011481481481481481
+          },
+          {
+            "feature": "w:the",
+            "mean_normalized_importance": 0.008777777777777777
+          },
+          {
+            "feature": "w:love",
+            "mean_normalized_importance": 0.008666666666666668
+          },
+          {
+            "feature": "w:but",
+            "mean_normalized_importance": 0.00848148148148148
+          },
+          {
+            "feature": "w:disappointed",
+            "mean_normalized_importance": 0.007851851851851851
+          },
+          {
+            "feature": "w:great",
+            "mean_normalized_importance": 0.007851851851851851
+          },
+          {
+            "feature": "w:perfect",
+            "mean_normalized_importance": 0.007296296296296296
+          },
+          {
+            "feature": "w:too",
+            "mean_normalized_importance": 0.007148148148148149
+          },
+          {
+            "feature": "w:unflattering",
+            "mean_normalized_importance": 0.0070740740740740755
+          },
+          {
+            "feature": "w:little",
+            "mean_normalized_importance": 0.006740740740740741
+          }
+        ]
+      },
+      {
+        "adjusted_score": 0.9348838074609459,
+        "config_id": "xgboost",
+        "cv": "StratifiedGroupKFold(3) by `Clothing ID` on training rows",
+        "elapsed_seconds": 25.360509365000325,
+        "feature_count_mean": 30000.0,
+        "fold_metrics": [
+          {
+            "accuracy": 0.9008620689655172,
+            "average_precision": 0.9847922031384643,
+            "brier": 0.07253936228732209,
+            "f1": 0.9414316702819957,
+            "fit_rows": 12525,
+            "fit_seconds": 6.484993485999894,
+            "fold": 1,
+            "log_loss": 0.23591797681342236,
+            "majority_baseline_accuracy": 0.8223180076628352,
+            "positive_rate": 0.8223180076628352,
+            "precision": 0.9154438738077769,
+            "precision_at_k_positives": 0.9386526887982916,
+            "precision_target": 0.9,
+            "recall": 0.968938070277616,
+            "recall_at_precision_target": 0.9778683750728014,
+            "roc_auc": 0.9380611202074703,
+            "threshold": 0.5,
+            "validation_rows": 6264
+          },
+          {
+            "accuracy": 0.8891727882465665,
+            "average_precision": 0.9833359142723175,
+            "brier": 0.07723299442845144,
+            "f1": 0.9344417154732666,
+            "fit_rows": 12527,
+            "fit_seconds": 6.491861421999602,
+            "fold": 2,
+            "log_loss": 0.2501339620074538,
+            "majority_baseline_accuracy": 0.8224209517725967,
+            "positive_rate": 0.8224209517725967,
+            "precision": 0.9098601913171449,
+            "precision_at_k_positives": 0.9366990291262136,
+            "precision_target": 0.9,
+            "recall": 0.9603883495145631,
+            "recall_at_precision_target": 0.9704854368932039,
+            "roc_auc": 0.9300646085073687,
+            "threshold": 0.5,
+            "validation_rows": 6262
+          },
+          {
+            "accuracy": 0.8997285645856619,
+            "average_precision": 0.9851519844995638,
+            "brier": 0.07084411174474013,
+            "f1": 0.9407435365163238,
+            "fit_rows": 12526,
+            "fit_seconds": 6.641167779999705,
+            "fold": 3,
+            "log_loss": 0.23202896736458847,
+            "majority_baseline_accuracy": 0.8224493054446751,
+            "positive_rate": 0.8224493054446751,
+            "precision": 0.9151826693592804,
+            "precision_at_k_positives": 0.9419530188312949,
+            "precision_target": 0.9,
+            "recall": 0.9677732479130265,
+            "recall_at_precision_target": 0.978644923315861,
+            "roc_auc": 0.9406703524774822,
+            "threshold": 0.5,
+            "validation_rows": 6263
+          }
+        ],
+        "folds": 3,
+        "include_blocked": [],
+        "metrics": {
+          "accuracy": {
+            "max": 0.9008620689655172,
+            "mean": 0.8965878072659152,
+            "min": 0.8891727882465665,
+            "std": 0.006446556316186555
+          },
+          "average_precision": {
+            "max": 0.9851519844995638,
+            "mean": 0.9844267006367818,
+            "min": 0.9833359142723175,
+            "std": 0.0009616245767578312
+          },
+          "brier": {
+            "max": 0.07723299442845144,
+            "mean": 0.07353882282017123,
+            "min": 0.07084411174474013,
+            "std": 0.0033096293605325133
+          },
+          "f1": {
+            "max": 0.9414316702819957,
+            "mean": 0.938872307423862,
+            "min": 0.9344417154732666,
+            "std": 0.0038524006534075947
+          },
+          "fit_rows": {
+            "max": 12527.0,
+            "mean": 12526.0,
+            "min": 12525.0,
+            "std": 1.0
+          },
+          "fit_seconds": {
+            "max": 6.641167779999705,
+            "mean": 6.539340895999733,
+            "min": 6.484993485999894,
+            "std": 0.08825150347207558
+          },
+          "log_loss": {
+            "max": 0.2501339620074538,
+            "mean": 0.23936030206182154,
+            "min": 0.23202896736458847,
+            "std": 0.009530735023667926
+          },
+          "majority_baseline_accuracy": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "positive_rate": {
+            "max": 0.8224493054446751,
+            "mean": 0.822396088293369,
+            "min": 0.8223180076628352,
+            "std": 6.908995099501947e-05
+          },
+          "precision": {
+            "max": 0.9154438738077769,
+            "mean": 0.9134955781614007,
+            "min": 0.9098601913171449,
+            "std": 0.003151045076085056
+          },
+          "precision_at_k_positives": {
+            "max": 0.9419530188312949,
+            "mean": 0.9391015789186,
+            "min": 0.9366990291262136,
+            "std": 0.0026556032667471143
+          },
+          "recall": {
+            "max": 0.968938070277616,
+            "mean": 0.9656998892350686,
+            "min": 0.9603883495145631,
+            "std": 0.0046366521798753045
+          },
+          "recall_at_precision_target": {
+            "max": 0.978644923315861,
+            "mean": 0.9756662450939554,
+            "min": 0.9704854368932039,
+            "std": 0.004503480543222158
+          },
+          "roc_auc": {
+            "max": 0.9406703524774822,
+            "mean": 0.9362653603974405,
+            "min": 0.9300646085073687,
+            "std": 0.005526211745978314
+          },
+          "validation_rows": {
+            "max": 6264.0,
+            "mean": 6263.0,
+            "min": 6262.0,
+            "std": 1.0
+          }
+        },
+        "model": "xgboost",
+        "model_params": {},
+        "optimization": "xgboost",
+        "recipe": "tfidf_word",
+        "stage": "tfidf_word",
+        "top_features": [
+          {
+            "feature": "w:perfect",
+            "mean_normalized_importance": 0.014228363057148875
+          },
+          {
+            "feature": "w:cheap",
+            "mean_normalized_importance": 0.014041627316800842
+          },
+          {
+            "feature": "w:unflattering",
+            "mean_normalized_importance": 0.013579667762410997
+          },
+          {
+            "feature": "w:going back",
+            "mean_normalized_importance": 0.013491805834246029
+          },
+          {
+            "feature": "w:returning",
+            "mean_normalized_importance": 0.01265402616137
+          },
+          {
+            "feature": "w:disappointed",
+            "mean_normalized_importance": 0.012278534290442136
+          },
+          {
+            "feature": "w:wanted to",
+            "mean_normalized_importance": 0.011126613316053505
+          },
+          {
+            "feature": "w:to love",
+            "mean_normalized_importance": 0.010539551041560158
+          },
+          {
+            "feature": "w:poor",
+            "mean_normalized_importance": 0.01020629314879224
+          },
+          {
+            "feature": "w:not flattering",
+            "mean_normalized_importance": 0.008967091635594312
+          }
+        ]
+      }
+    ],
+    "ranking": [
+      {
+        "adjusted_score": 0.9423077269663795,
+        "elapsed_seconds": 6.70486393300007,
+        "mean": 0.9431352217708039,
+        "model": "logistic_regression",
+        "std": 0.0033099792176975278
+      },
+      {
+        "adjusted_score": 0.9418984535746752,
+        "elapsed_seconds": 13.156435640999916,
+        "mean": 0.9433416941319761,
+        "model": "lightgbm",
+        "std": 0.005772962229203599
+      },
+      {
+        "adjusted_score": 0.9395042103787993,
+        "elapsed_seconds": 6.632737825999811,
+        "mean": 0.9406249699172683,
+        "model": "linear_svm",
+        "std": 0.004483038153876217
+      },
+      {
+        "adjusted_score": 0.9348838074609459,
+        "elapsed_seconds": 25.360509365000325,
+        "mean": 0.9362653603974405,
+        "model": "xgboost",
+        "std": 0.005526211745978314
+      },
+      {
+        "adjusted_score": 0.9250487030207217,
+        "elapsed_seconds": 5.873881898000036,
+        "mean": 0.9256505030850782,
+        "model": "complement_nb",
+        "std": 0.0024072002574260123
+      }
+    ],
+    "selected_metric_mean": 0.9431352217708039,
+    "selected_metric_std": 0.0033099792176975278,
+    "selected_model": "logistic_regression",
+    "selection_rule": "Rank by mean training-CV ROC-AUC - 0.25\u00d7fold std (higher is better), then runtime; identical folds (StratifiedGroupKFold(3) by `Clothing ID` on training rows); default parameters.",
+    "sparse_tree_preselection": "lightgbm/xgboost receive the top 2000 chi2-ranked columns (SelectKBest fitted on each fit fold); linear models and naive Bayes receive the full sparse matrix."
+  },
+  "experiment_id": "EXP-069",
+  "holdout_policy": "Locked holdout = one of 5 stratified group folds by `Clothing ID` (~20% of rows, no Clothing ID shared with training); selection uses 3-fold stratified group CV on training rows only. The holdout is consumed once, in optimization_reliability.",
+  "hypothesis": "Linear models on sparse TF-IDF match or beat boosted trees on text.",
+  "kind": "model_selection",
+  "primary_metric": "roc_auc",
+  "provenance": {
+    "data_sha256": {
+      "data/external/ecommerce_clothing_reviews/Womens Clothing E-Commerce Reviews.csv": "bd93cc515747ad1f87b8bc863c9e40da758509e6db6506a96d06976e61e36ee0"
+    },
+    "executable": "/usr/bin/python3",
+    "git_commit": "d9c4c243a3b7076c7970d8ab0fb99075d3faef36",
+    "git_dirty": true,
+    "packages": {
+      "lightgbm": "4.7.0",
+      "numpy": "2.4.6",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "xgboost": "3.2.0"
+    },
+    "platform": "Linux-6.18.44-fc-v64-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "python_implementation": "CPython",
+    "random_state": 42
+  },
+  "question": "Which model family ranks best on identical training folds once fold variability is penalized?",
+  "schema_version": 2,
+  "setup_summary": "5 model families screened on the `tfidf_word` recipe with identical StratifiedGroupKFold(3) by `Clothing ID` on training rows, ranked by mean - 0.25\u00d7std ROC-AUC: logistic_regression 0.9431\u00b10.0033 (6.7s); lightgbm 0.9433\u00b10.0058 (13.2s); linear_svm 0.9406\u00b10.0045 (6.6s); xgboost 0.9363\u00b10.0055 (25.4s); complement_nb 0.9257\u00b10.0024 (5.9s). Selected: logistic_regression.",
+  "source": "https://raw.githubusercontent.com/AFAgarap/ecommerce-reviews-analysis/master/Womens%20Clothing%20E-Commerce%20Reviews.csv",
+  "started_at": "2026-10-03T07:09:45+00:00",
+  "status": "completed",
+  "task_type": "text_tabular_binary"
+}
