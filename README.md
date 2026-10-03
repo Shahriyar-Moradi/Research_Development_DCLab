@@ -17,7 +17,8 @@ New here? Read the plain-language [field notes](docs/guides/DCLAB_FIELD_NOTES.md
 │   ├── llm-fine-tuning/              SFT corpus, LoRA trainer, evaluator
 │   ├── ml-methodology/               index of the evidence campaigns
 │   ├── agentic-ml-copilot/           index of the copilot, agent tools, Research Studio
-│   ├── graph-neural-networks/ … mlops-and-deployment/   planned tracks
+│   ├── evaluation-and-trust/, workflow-model/, workflow-actions/   assistant evaluation and workflow models
+│   ├── graph-neural-networks/, temporal-gnn/, vision-scene-graphs/, driving-maps/, …   planned tracks
 │   └── _template/                    template for new tracks
 ├── campaigns/           ← cross-track evidence: 50-experiment workflow campaign, task-type
 │                          expansion, pitfalls, agent verification (one JSON per experiment)
