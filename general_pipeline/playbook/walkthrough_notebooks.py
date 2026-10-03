@@ -1,6 +1,6 @@
 """Generate part1-style classification walkthrough notebooks for each external project.
 
-Style mirrors `part1_hyper_ack_classification.ipynb`: short markdown section headers +
+Style mirrors `notebooks/part1_hyper_ack_classification.ipynb`: short markdown section headers +
 executable code for EDA, cleaning, visualization, FE, safe/unsafe baselines, and
 optimized models.
 """
@@ -65,7 +65,7 @@ def build_walkthrough(key: str) -> Path:
 | Has classic leakage | **{policy.has_leakage}** |
 | Policy | {policy.rationale} |
 
-This notebook follows the same teaching style as `part1_hyper_ack_classification.ipynb`:
+This notebook follows the same teaching style as `notebooks/part1_hyper_ack_classification.ipynb`:
 
 1. Load & explore data  
 2. Clean  

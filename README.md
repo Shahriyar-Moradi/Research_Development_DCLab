@@ -1,8 +1,59 @@
 # Research & Development — DCLab
 
-HyperAck order-acceptance tabular classification R&D: feature engineering, leakage-safe modeling, multi-algorithm optimization, and empirical playbooks for production-honest classifiers.
+HyperAck order-acceptance tabular classification R&D: feature engineering, leakage-safe modeling, multi-algorithm optimization, and empirical playbooks for production-honest classifiers. The same machinery is reused for Telco Churn and ten public UCI datasets.
 
-**Dataset:** 11,107 orders · locked stratified 80/20 split (seed 42) · primary metric **ROC-AUC**
+**Primary dataset:** 11,107 HyperAck orders · locked stratified 80/20 split (seed 42) · primary metric **ROC-AUC**
+
+---
+
+## Repository layout
+
+```
+.
+├── README.md                      ← this file
+├── Makefile                       ← every workflow has a make target (see `make help`)
+├── requirements*.txt              ← ML env, agent env (3.12/3.13), CI env
+├── data/                          ← raw project datasets (HyperAck, Telco)
+├── external_data/                 ← cached public UCI datasets (parquet)
+├── docs/                          ← written reports (MD + PDF) and product context
+├── knowledge/                     ← GENERATED research memory (registry, KB, field guide)
+├── campaigns/                     ← evidence-first 50-experiment campaign
+├── dclab_rnd/                     ← automation control plane + agentic research studio
+├── general_pipeline/              ← unified 11-model tabular pipeline + external-dataset playbook
+├── hyperack_exp/                  ← original 15-experiment ladder (includes unsafe final fares)
+├── safe_leakage_exp/              ← same ladder without post-outcome features
+├── optimized_safe_model/          ← 53 safe optimizations, champion ensembles
+├── external_projects/             ← HyperAck-style ladders for 10 public datasets
+├── churn_exp/                     ← fixed 15-experiment Telco Churn campaign
+├── benchmark_outputs/             ← 4-way benchmark plots and CSVs
+├── tabpfn/                        ← TabPFN / TabTransformer / FT-Transformer benchmark lab
+├── tabular_transformers/          ← Telco churn with TabTransformer, FT-Transformer, SAINT
+├── logistic_regression/           ← first Telco churn baselines (teaching notebooks)
+├── notebooks/                     ← exploratory notebooks and their saved models
+├── sft/                           ← SLM roadmap and SFT corpus builder
+├── scripts/                       ← utilities (PDF report generation)
+├── tests/                         ← unit tests for the automation layer
+├── .cursor/rules/                 ← persistent agent playbooks (tabular SOP, Persian RTL style)
+└── .github/workflows/             ← CI: tests, record validation, knowledge freshness
+```
+
+Every experiment suite keeps its own `results/` folder. Those folders are the **evidence
+registry**: `dclab_rnd` discovers them by path, so do not move or rename result files.
+
+## Quick start
+
+```bash
+# ML environment (experiments, control plane, tests)
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+# Agent environment (NOOA + LangGraph need Python 3.12/3.13; keep it separate)
+uv venv --python 3.13 .venv-agent
+uv pip install --python .venv-agent/bin/python -r requirements-agent.lock.txt
+
+# Secrets are read from .env (OPENAI_API_KEY, optional TABPFN_TOKEN); never commit it.
+make help
+make test
+```
 
 ---
 
@@ -36,9 +87,7 @@ Generated research memory:
 | [`knowledge/experiment_registry.csv`](knowledge/experiment_registry.csv) | Canonical machine-readable ledger of every run |
 | [`knowledge/DATA_QUALITY.md`](knowledge/DATA_QUALITY.md) | Duplicate, schema, metric, and regression findings |
 
-New runs created by the shared runners now include `schema_version` and reproducibility provenance: git commit/dirty state, Python and ML package versions, random seed, and SHA-256 hashes of source data. CI verifies the automation layer and refuses stale knowledge artifacts.
-
-The GitHub workflow also runs a daily evidence-health check at 01:15 UTC. Full training stays explicit through `dclab_rnd cycle`, preventing an accidental all-model/all-dataset compute run.
+New runs created by the shared runners include `schema_version` and reproducibility provenance: git commit/dirty state, Python and ML package versions, random seed, and SHA-256 hashes of source data. CI installs `requirements-ci.txt`, verifies the automation layer and refuses stale knowledge artifacts. The workflow also runs a daily evidence-health check at 01:15 UTC. Full training stays explicit through `dclab_rnd cycle`, preventing an accidental all-model/all-dataset compute run.
 
 ### Evidence-first 50-experiment campaign
 
@@ -97,22 +146,51 @@ The LLM is deliberately a critic and hypothesis generator. Deterministic code ow
 
 ### Agentic Research Studio
 
-The interactive research system turns the fixed campaign into an adaptive learning loop. LangGraph owns the durable loop; NVIDIA NOOA `PredictStrategy` specialists interpret goals, audit data, choose a bounded experiment, critique measured results, and select the next test. The OpenAI Responses API supplies the configured reasoning model. Generated Python is never executed: agents return a validated experiment language, and an isolated deterministic worker owns data access, preprocessing, training, and metrics.
+The interactive research system turns the fixed campaign into an adaptive learning loop. LangGraph owns the durable loop; NVIDIA NOOA `PredictStrategy` specialists interpret goals, audit data, choose a bounded experiment, critique measured results, and select the next test. The OpenAI Responses API supplies the configured reasoning model (default `gpt-5.6-terra`; raw dataset rows and API keys are never sent, and provider storage is disabled with `store=false`). Generated Python is never executed: agents return a validated experiment language, and an isolated deterministic worker owns data access, preprocessing, training, and metrics.
+
+The Studio keeps three evidence contexts separate: the open tabular lab (10 public datasets), **HyperAck**, and **Telco Churn**.
 
 ```bash
-# Python 3.12 or 3.13 is required by NOOA; keep it separate from the ML environment.
-uv venv --python 3.13 .venv-agent
-uv pip install --python .venv-agent/bin/python -r requirements-agent.lock.txt
-
 # OPENAI_API_KEY is read from the process or local .env; never enter it in the UI.
 make agent-test
 make agent-serve
 # Open http://127.0.0.1:8765
+
+# Launch live agentic follow-up research (uses OpenAI API calls).
+make agent-hyperack     # 4 experiments on HyperAck, 11,118 rows
+make agent-churn        # 4 experiments on Telco Churn, 7,043 rows
+
+# Re-run/read the fixed 15-experiment churn campaign (no LLM required).
+make churn-run
+make churn-status
 ```
 
 The UI supports 1–50-experiment budgets, selected public datasets, pause/resume, run history, input/output diagnostics, evidence-linked knowledge, and trajectory/recipe export. Current results are adaptive development CV. Exact duplicate input rows stay in one fold, preprocessing is fit inside each training fold, decision-time-blocked columns and their descendants are rejected, and source-column masking propagates through derived features. The system records data/code fingerprints, repeat-level metrics, OOF predictions, calibration, input sensitivity, missing-input stress, failures, counterevidence, theory, and reusable workflow blocks.
 
+HyperAck contains 83 historical experiments: 15 original, 15 leakage-safe and 53 optimized-safe. Its reported optimized-safe leader has ROC-AUC 0.9455. The 0.9793 historical ceiling is explicitly unsafe because it uses post-outcome final-fare features; new agentic HyperAck experiments block those fields. Telco Churn has a fixed, fully executed 15-experiment 2×3-fold development campaign under `churn_exp/results/` with its leaderboard in [`churn_exp/CHURN_BENCHMARK.md`](churn_exp/CHURN_BENCHMARK.md). These are adaptive development comparisons, not independent confirmation or production approval.
+
 Agent artifacts live under the ignored `agent_runs/` directory. A trajectory is explicitly marked `training_ready: false`: a human must verify claims, licenses, privacy and source-grouped train/evaluation separation before using it for model training. Promotion still requires fresh external confirmation and the DCLab Product Core lifecycle.
+
+### Model-building field guide and future LLM memory
+
+```bash
+# Deterministically rebuild the human and machine-readable synthesis.
+make master-guide
+
+# Run four typed advisory reviewers (default: gpt-5.6-terra), then include
+# their cited critiques in the guide. Requires OPENAI_API_KEY with credit.
+make master-review
+```
+
+The main entry point is [`knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](knowledge/MODEL_BUILDING_FIELD_GUIDE.md), also available inside the local UI under **Knowledge**. Machine consumers should use `knowledge/master_evidence_pack.json`, `knowledge/model_building_rules.jsonl`, and `knowledge/workflow_blocks.json`. Agent reviews remain advisory; deterministic measurements and repository evidence are authoritative. Reviewer lifecycle is recorded in `knowledge/gpt6_astra_master_review_status.json` (the filename is historical; the Makefile calls `guide_review` with `gpt-5.6-terra`).
+
+### SFT corpus for a small language model
+
+[`sft/`](sft/) holds the SLM roadmap review and `build_sft_dataset.py`, which merges the knowledge rules, workflow blocks, campaign claims and cleaned Studio traces into chat-format `sft/out/sft_train.jsonl` / `sft_val.jsonl`.
+
+```bash
+make sft-build
+```
 
 ---
 
@@ -134,17 +212,20 @@ Optimized safe champion      ──▶  ROC 0.9455   (exp 53 soft-vote ET+LGBM+X
 
 ---
 
-## Master report & playbook (start here)
+## Reports & playbook (start here)
 
 ### Full written reports
-Complete empirical evaluations across all experiments:
 
 | Report | Markdown | PDF | Focus |
 |---|---|---|---|
-| **Master 4-Way Quadrant Benchmark** | [`MASTER_4WAY_BENCHMARK_REPORT.md`](MASTER_4WAY_BENCHMARK_REPORT.md) | [`MASTER_4WAY_BENCHMARK_REPORT.pdf`](MASTER_4WAY_BENCHMARK_REPORT.pdf) | 4-quadrant benchmark, Tabular Transformer (FT-Transformer), General Pipeline |
-| **Comprehensive R&D Lifecycle** | [`MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md`](MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md) | [`MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf`](MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf) | Leakage forensics, 25 vs 46 FE dilution, 83-experiment optimization ladder |
+| **Master 4-Way Quadrant Benchmark** | [`docs/reports/MASTER_4WAY_BENCHMARK_REPORT.md`](docs/reports/MASTER_4WAY_BENCHMARK_REPORT.md) | [PDF](docs/reports/MASTER_4WAY_BENCHMARK_REPORT.pdf) | 4-quadrant benchmark, Tabular Transformer (FT-Transformer), General Pipeline |
+| **Comprehensive R&D Lifecycle** | [`docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md`](docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md) | [PDF](docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf) | Leakage forensics, 25 vs 46 FE dilution, 83-experiment optimization ladder |
+| **External multi-dataset benchmark** | [`docs/reports/EXTERNAL_MULTI_DATASET_REPORT.md`](docs/reports/EXTERNAL_MULTI_DATASET_REPORT.md) | — | 10 public UCI datasets through the general pipeline |
+
+Product-level context (roles, architecture, constitution) is in [`docs/DCLAB_MASTER_CONTEXT.md`](docs/DCLAB_MASTER_CONTEXT.md). Regenerate the lifecycle PDF with `make report-pdf`.
 
 ### General Tabular Pipeline (`general_pipeline/`)
+
 A unified, modular pipeline supporting 11 model architectures across Safe vs Unsafe regimes, with baseline and optimized hyperparameter factories:
 
 ```bash
@@ -156,18 +237,19 @@ A unified, modular pipeline supporting 11 model architectures across Safe vs Uns
 ```
 
 ### Cursor / agent playbook rule
+
 Persistent SOP for tabular classification in this repo (decision-time gate, FE ladder, algorithm search regions, optimization hierarchy, threshold calibration):
 
 - [`.cursor/rules/tabular-classification-playbook.mdc`](.cursor/rules/tabular-classification-playbook.mdc)
 
 **Always apply** for tabular classification / prediction work. Summary of the ladder:
 
-1. Baseline GBDT + first-order FE  
-2. Domain FE (time / pricing / geo) — keep lean; avoid feature dilution  
-3. `RandomizedSearchCV` (40–60 trials, train CV only)  
-4. Seed bagging (5–10 seeds)  
-5. Soft-vote / stack **ExtraTrees + LightGBM + XGBoost**  
-6. Post-hoc isotonic calibration + threshold sweep for recall  
+1. Baseline GBDT + first-order FE
+2. Domain FE (time / pricing / geo) — keep lean; avoid feature dilution
+3. `RandomizedSearchCV` (40–60 trials, train CV only)
+4. Seed bagging (5–10 seeds)
+5. Soft-vote / stack **ExtraTrees + LightGBM + XGBoost**
+6. Post-hoc isotonic calibration + threshold sweep for recall
 
 **Non-negotiable:** never deploy models that use post-outcome features (`final_customer_fare`, `final_biker_fare`, etc.).
 
@@ -180,12 +262,16 @@ Persistent SOP for tabular classification in this repo (decision-time gate, FE l
 | [`hyperack_exp/`](hyperack_exp/) | Original 15-exp ladder (includes unsafe final fares) | `results/`, [`FEATURE_ENGINEERING_REPORT.md`](hyperack_exp/FEATURE_ENGINEERING_REPORT.md), [`TOP_MODELS_TRAINING_REPORT.md`](hyperack_exp/TOP_MODELS_TRAINING_REPORT.md) |
 | [`safe_leakage_exp/`](safe_leakage_exp/) | Same strategies **without** final fares | [`SAFE_VS_UNSAFE_REPORT.md`](safe_leakage_exp/SAFE_VS_UNSAFE_REPORT.md), `results/safe_vs_unsafe_*.png` |
 | [`optimized_safe_model/`](optimized_safe_model/) | 53 safe optimizations: tune-all, recovery, ensembles | Champion **0.9455**, [`OPTIMIZED_VS_UNSAFE_BENCHMARK.md`](optimized_safe_model/OPTIMIZED_VS_UNSAFE_BENCHMARK.md), visual PNGs under `results/` |
+| [`external_projects/`](external_projects/) | HyperAck-style ladder, notebooks and reports for each of 10 UCI datasets | `<dataset>_exp/results/ladder/*.json`, per-project reports |
+| [`churn_exp/`](churn_exp/) | Fixed 15-experiment Telco Churn campaign | [`CHURN_BENCHMARK.md`](churn_exp/CHURN_BENCHMARK.md), `results/CHURN-*/` |
+| [`tabpfn/`](tabpfn/) | TabPFN v2/v3 vs trees, sklearn, TabTransformer and FT-Transformer on both project datasets | `results/benchmark.csv`, `tabpfn_classification.ipynb` |
+| [`tabular_transformers/`](tabular_transformers/) | Telco churn with TabTransformer, FT-Transformer and SAINT (PyTorch) | `outputs/`, `models/` |
+| [`logistic_regression/`](logistic_regression/) | First Telco churn baselines and pandas/numpy teaching notebooks | `models/` |
+| [`notebooks/`](notebooks/) | Exploratory HyperAck notebook (`part1_hyper_ack_classification.ipynb`) and its saved models | `models/*.joblib` |
 
 ### Quick run (optimized safe + visual vs unsafe)
 
 ```bash
-.venv/bin/pip install -r requirements.txt
-
 # Full tune-all (RandomizedSearchCV across LR/RF/ET/HGB/SVC/LGBM/XGB/CatBoost + ensembles)
 .venv/bin/python optimized_safe_model/run_tune_all_models.py
 
@@ -200,6 +286,15 @@ Safe vs unsafe baseline ladder:
 .venv/bin/python safe_leakage_exp/compare_safe_vs_unsafe.py
 ```
 
+TabPFN lab (run from inside `tabpfn/`; TabPFN-3 needs `TABPFN_TOKEN` in `.env`):
+
+```bash
+cd tabpfn
+python train_tabpfn.py                              # TabPFN-2 if no token
+python benchmark_tabpfn.py                          # TabPFN vs trees / sklearn / TabTransformer
+python benchmark_tabpfn.py --only-tab-transformer   # lucidrains TabTransformer + FTTransformer
+```
+
 ---
 
 ## Visual benchmarks
@@ -211,6 +306,7 @@ Safe vs unsafe baseline ladder:
 | Leakage ROC gap | `optimized_safe_model/results/optimized_vs_unsafe_roc_gap.png` |
 | Champions (unsafe / prev safe / optimized) | `optimized_safe_model/results/optimized_vs_unsafe_champions.png` |
 | Top optimized vs ceilings | `optimized_safe_model/results/optimized_top_vs_unsafe_ceiling.png` |
+| 4-way quadrant benchmark, external heatmaps | `benchmark_outputs/` |
 
 Interactive canvases (Cursor): `optimized-vs-unsafe-benchmark`, `safe-vs-unsafe-benchmark`, `optimized-safe-benchmark`.
 
@@ -229,74 +325,6 @@ Winning safe matrix: **25 features** (raw + cyclical time + fare/distance ratios
 
 ---
 
-## Repo layout
+## Remote
 
-```
-R&D/
-├── README.md                                          ← this file
-├── MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md   ← full report
-├── MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf
-├── generate_pdf.py
-├── .cursor/rules/tabular-classification-playbook.mdc  ← FE / train / tune SOP
-├── hyperack_exp/                                      ← unsafe + FE ladder
-├── safe_leakage_exp/                                  ← no final fares
-└── optimized_safe_model/                              ← tune-all + champion ensembles
-```
-
----
-
-## License / remote
-
-Remote: `git@github.com:Shahriyar-Moradi/Research_Development_DCLab.git`
-
-## First-class agentic research projects
-
-The local Research Studio now keeps three evidence contexts separate: the open
-tabular lab, HyperAck, and Telco Churn. It uses typed NVIDIA Object-Oriented
-Agents (NOOA), a durable LangGraph loop, and the OpenAI Responses API. The
-default LLM is `gpt-5.6-terra`; raw dataset rows and API keys are not sent to the
-LLM, and provider storage is disabled with `store=false`.
-
-### Run locally
-
-```bash
-# One-time environments must already be installed; load OPENAI_API_KEY from .env.
-.venv-agent/bin/python -m dclab_rnd.agentic serve
-# Open http://127.0.0.1:8765
-
-# Re-run/read the fixed 15-experiment churn campaign (no LLM required).
-.venv/bin/python -m dclab_rnd.churn_suite run
-.venv/bin/python -m dclab_rnd.churn_suite status
-
-# Launch live agentic follow-up research (uses OpenAI API calls).
-.venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4 --rows 11118
-.venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4 --rows 7043
-```
-
-HyperAck contains 83 historical experiments: 15 original, 15 leakage-safe and
-53 optimized-safe. Its reported optimized-safe leader has ROC-AUC 0.9455. The
-0.9793 historical ceiling is explicitly unsafe because it uses post-outcome
-final-fare features. New agentic HyperAck experiments block those fields.
-
-Telco Churn now has a fixed, fully executed 15-experiment 2×3-fold development
-campaign under `churn_exp/results/`. Its leaderboard and protocol are in
-`churn_exp/CHURN_BENCHMARK.md`. These are adaptive development comparisons—not
-independent confirmation, production approval, or a universal model ranking.
-
-### Model-building field guide and future LLM memory
-
-```bash
-# Deterministically rebuild the human and machine-readable synthesis.
-make master-guide
-
-# Run four typed advisory reviewers (default: gpt-5.6-terra), then include
-# their cited critiques in the guide. Requires OPENAI_API_KEY with credit.
-make master-review
-```
-
-The main entry point is [`knowledge/MODEL_BUILDING_FIELD_GUIDE.md`](knowledge/MODEL_BUILDING_FIELD_GUIDE.md), also available inside the local UI under **Knowledge**. Machine consumers should use `knowledge/master_evidence_pack.json`, `knowledge/model_building_rules.jsonl`, and `knowledge/workflow_blocks.json`. Agent reviews remain advisory; deterministic measurements and repository evidence are authoritative.
-
-Reviewer lifecycle is recorded in
-`knowledge/gpt6_astra_master_review_status.json` (filename is historical; the
-Makefile now calls `guide_review` with `gpt-5.6-terra`). Rerun
-`make master-review` when API credit is available.
+`git@github.com:Shahriyar-Moradi/Research_Development_DCLab.git`

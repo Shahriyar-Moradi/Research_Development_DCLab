@@ -15,7 +15,7 @@ classification/prediction problems, read
 1. Run `01_baseline_current.ipynb` through `15_full_fe_best_blend.ipynb`.
 2. Run `99_final_benchmark.ipynb`.
 
-Every experiment reads `../hyper_ackt-dataset.csv`, uses the same persisted
+Every experiment reads `../data/hyperack/hyper_ackt-dataset.csv`, uses the same persisted
 stratified 80/20 split (`results/split_indices.npz`), and writes one record to
 `results/`. Do not change the split file while comparing experiments.
 

@@ -268,7 +268,7 @@ All code, artifacts, and logs are organized in the workspace:
 
 | Artifact Type | Path | Purpose |
 |---|---|---|
-| **Master Report (Root)** | `MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md` | Complete analytical and empirical report. |
+| **Master Report** | `docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.md` | Complete analytical and empirical report. |
 | **Master Report (Folder)** | `optimized_safe_model/MASTER_REPORT.md` | Local copy inside the optimized folder. |
 | **Visual Canvas** | `.cursor/projects/.../canvases/optimized-vs-unsafe-benchmark.canvas.tsx` | Live interactive UI benchmark dashboard. |
 | **Safe Benchmark Canvas** | `.cursor/projects/.../canvases/safe-vs-unsafe-benchmark.canvas.tsx` | Prior safe vs unsafe visual canvas. |

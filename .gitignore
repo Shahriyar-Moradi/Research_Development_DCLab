@@ -1,11 +1,21 @@
+# Secrets / local config
 .env
+
+# Python environments and caches
 .venv/
 .venv-agent/
 .pytest_cache/
-agent_runs/
 __pycache__/
 *.pyc
-.DS_Store
 .ipynb_checkpoints/
+
+# OS / editor noise
+.DS_Store
+*.chat
+
+# Runtime artifacts
+agent_runs/
 lightning_logs/
-results/*.tabpfn_fit
+.pt_tmp/
+tabpfn/results/*.tabpfn_fit
+docs/reports/_report_preview.html

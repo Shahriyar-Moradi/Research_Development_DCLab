@@ -25,7 +25,7 @@ external_projects/<dataset>_exp/
 
 ### Main walkthrough notebook (`part1_*`)
 
-Same teaching style as `part1_hyper_ack_classification.ipynb`:
+Same teaching style as `notebooks/part1_hyper_ack_classification.ipynb`:
 
 1. Import → Load → EDA → Cleaning → Visualization  
 2. Safe vs Unsafe feature policy  

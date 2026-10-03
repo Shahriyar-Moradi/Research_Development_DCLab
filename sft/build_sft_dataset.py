@@ -28,9 +28,9 @@ These are complementary:
 
 Usage
 -----
-    python cluad_initial_reports/build_sft_dataset.py
-    python cluad_initial_reports/build_sft_dataset.py --out-dir sft_out
-    python cluad_initial_reports/build_sft_dataset.py --no-studio
+    python sft/build_sft_dataset.py
+    python sft/build_sft_dataset.py --out-dir sft/out
+    python sft/build_sft_dataset.py --no-studio
 """
 
 import argparse
@@ -246,7 +246,7 @@ def main():
         help="Agentic Research Studio clean SFT JSONL (from export-clean)",
     )
     parser.add_argument("--no-studio", action="store_true", help="Skip studio agentic examples")
-    parser.add_argument("--out-dir", type=Path, default=ROOT / "sft_out")
+    parser.add_argument("--out-dir", type=Path, default=ROOT / "sft" / "out")
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

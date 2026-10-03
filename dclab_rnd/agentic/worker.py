@@ -29,8 +29,8 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def source_paths(key, root=ROOT):
-    if key == "hyperack": return [root / "hyper_ackt-dataset.csv"]
-    if key == "telco_churn": return [root / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
+    if key == "hyperack": return [root / "data" / "hyperack" / "hyper_ackt-dataset.csv"]
+    if key == "telco_churn": return [root / "data" / "telco" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"]
     directory = root / "external_data" / key
     return [directory / "X.parquet", directory / "y.parquet", directory / "meta.json"]
 

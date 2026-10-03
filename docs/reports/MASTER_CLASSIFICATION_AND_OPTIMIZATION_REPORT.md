@@ -126,22 +126,22 @@ The figures below, automatically generated and saved under `optimized_safe_model
 ### 3.1 Unsafe vs. Optimized Safe: Side-by-Side Performance
 The side-by-side comparison across all matched experiments highlights the persistent ~0.037 ROC gap resulting from dropping final fares, while showing that model `12` achieved record-breaking recall:
 
-![Side by Side Benchmark](optimized_safe_model/results/optimized_vs_unsafe_side_by_side.png)
+![Side by Side Benchmark](../../optimized_safe_model/results/optimized_vs_unsafe_side_by_side.png)
 
 ### 3.2 The Leakage Cost: ROC-AUC Gap Breakdown
 This diagnostic isolates exactly how much artificial lift final fares contributed across model families. For almost all models, leakage accounted for between **0.032** and **0.041** ROC points:
 
-![Leakage ROC Gap](optimized_safe_model/results/optimized_vs_unsafe_roc_gap.png)
+![Leakage ROC Gap](../../optimized_safe_model/results/optimized_vs_unsafe_roc_gap.png)
 
 ### 3.3 The Three Champions: Unsafe vs. Previous Safe vs. Optimized Safe
 The milestone comparison comparing the Unsafe ceiling, the Previous Safe ceiling, and our newly trained Optimized Safe champion:
 
-![Champions Comparison](optimized_safe_model/results/optimized_vs_unsafe_champions.png)
+![Champions Comparison](../../optimized_safe_model/results/optimized_vs_unsafe_champions.png)
 
 ### 3.4 Top Optimized Safe Models vs. Safe & Unsafe Ceilings
 All top 12 optimized safe models plotted against the prior safe ceiling (brown dashed line at 0.9450) and the unsafe ceiling (red dashed line at 0.9793). Model `53` visibly surpasses the prior safe ceiling:
 
-![Top Optimized Models vs Ceilings](optimized_safe_model/results/optimized_top_vs_unsafe_ceiling.png)
+![Top Optimized Models vs Ceilings](../../optimized_safe_model/results/optimized_top_vs_unsafe_ceiling.png)
 
 ---
 

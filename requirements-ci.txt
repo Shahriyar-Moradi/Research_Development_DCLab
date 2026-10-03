@@ -1,0 +1,7 @@
+# Minimal dependencies for the automation layer and its unit tests.
+# `python -m dclab_rnd validate|sync|campaign verify` are pure stdlib; the
+# tests additionally exercise the deterministic ML worker.
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.5
+pyarrow>=15.0

@@ -14,7 +14,6 @@ from .campaign import (
     validate_campaign,
     write_manifest,
 )
-from .llm_review import DEFAULT_MODEL, run_llm_reviews
 from .cycle import build_cycle_command, run_cycle
 from .registry import collect_registry
 from .report import render_outputs, sync_outputs
@@ -108,8 +107,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     campaign_review.add_argument(
         "--model",
-        default=DEFAULT_MODEL,
-        help=f"OpenAI model (default: {DEFAULT_MODEL})",
+        default=None,
+        help="OpenAI model (default: the llm_review module default)",
     )
     campaign_review.add_argument(
         "--limit",
@@ -205,9 +204,12 @@ def main(argv: list[str] | None = None) -> int:
                 else [part.strip() for part in args.experiment.split(",") if part.strip()]
             )
             try:
+                # Imported lazily: the OpenAI client is only needed for reviews.
+                from .llm_review import DEFAULT_MODEL, run_llm_reviews
+
                 return run_llm_reviews(
                     root,
-                    model=args.model,
+                    model=args.model or DEFAULT_MODEL,
                     limit=args.limit,
                     experiment_ids=experiment_ids,
                     force=args.force,
