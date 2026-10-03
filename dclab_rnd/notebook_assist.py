@@ -14,8 +14,28 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RULES = ROOT / "knowledge/model_building_rules.jsonl"
-CLAIMS = ROOT / "campaigns/model_building_50_v1/agent_memory.jsonl"
+RULES = ROOT / "evidence/knowledge/model_building_rules.jsonl"
+CLAIMS = ROOT / "evidence/campaigns/model_building_50_v1/agent_memory.jsonl"
+# Frozen evaluation manifest: its new home, plus the pre-reorganization location.
+MANIFEST_CANDIDATES = (ROOT / "research/evaluation-and-trust/notebook_cases_v1.json",
+                       ROOT / "evaluation/notebook_cases_v1.json")
+# Notebook paths recorded before the repository was reorganized map to their new homes.
+LEGACY_PATHS = (("part1_hyper_ack_classification.ipynb",
+                 "research/tabular-classification/notebooks/part1_hyper_ack_classification.ipynb"),
+                ("Cluad_R&D_aritfacts_sptember22/", "research/agentic-ml-copilot/prototype_sept22/"))
+
+
+def resolve_path(relative: str) -> Path:
+    """Map a repository-relative path recorded before the reorganization to where it lives now."""
+    for old, new in LEGACY_PATHS:
+        if relative == old or (old.endswith("/") and relative.startswith(old)):
+            relative = new + relative[len(old):] if old.endswith("/") else new
+            break
+    return ROOT / relative
+
+
+def manifest_path() -> Path | None:
+    return next((p for p in MANIFEST_CANDIDATES if p.exists()), None)
 MODEL_NAMES = ("RandomForestClassifier", "LogisticRegression", "XGBClassifier", "LGBMClassifier",
                "CatBoostClassifier", "GradientBoostingClassifier", "SVC", "HistGradientBoostingClassifier")
 SUSPICIOUS_NAMES = {"duration", "cancellation_date", "final_customer_fare", "final_biker_fare",

@@ -23,7 +23,7 @@ This isn't a plan — it has already run. The `model_building_50_v1` campaign sh
 
 ## 2. The methodology, explained intuitively
 
-Every experiment follows the same eight-step spine (`knowledge/workflow_blocks.json`, `MODEL_BUILDING_WORKFLOW.md`):
+Every experiment follows the same eight-step spine (`evidence/knowledge/workflow_blocks.json`, `MODEL_BUILDING_WORKFLOW.md`):
 
 ```
 prediction contract
@@ -89,7 +89,7 @@ Each experiment doesn't just log a score — it logs structured claims with an e
 
 ## 4. The 22 rules, as a plain-language checklist
 
-The repo already distills its lessons into `knowledge/model_building_rules.jsonl` (22 rules with a statement, a reason, a failure signal, and a next test each). Read top-to-bottom, they *are* the "laws for future use cases" the brief asked for:
+The repo already distills its lessons into `evidence/knowledge/model_building_rules.jsonl` (22 rules with a statement, a reason, a failure signal, and a next test each). Read top-to-bottom, they *are* the "laws for future use cases" the brief asked for:
 
 | # | Stage | The law, in one line |
 |---:|---|---|
@@ -168,7 +168,7 @@ By source:
 
 That's from only the small subset of files pulled in this session — the full local repo (579 historical records, `master_evidence_pack.json`'s ~2,400 lines, plus the full campaign) will yield several times more. Concretely, to grow this further:
 
-1. **Run it against the full repo checkout**, not the excerpt used here — point `--claims` at `campaigns/model_building_50_v1/agent_memory.jsonl` and add a second pass over `knowledge/master_evidence_pack.json` (the same claim schema, at larger scale).
+1. **Run it against the full repo checkout**, not the excerpt used here — point `--claims` at `evidence/campaigns/model_building_50_v1/agent_memory.jsonl` and add a second pass over `evidence/knowledge/master_evidence_pack.json` (the same claim schema, at larger scale).
 2. **Add a "reasoning trace" variant per experiment**, following the repo's own mandated LLM answer format (`AGENT_CONTEXT.md`): observed evidence → interpretation/uncertainty → decision → risks → next falsifiable test. This is a five-part chain-of-thought structure already defined in the repo — turning each experiment's result JSON into one example in exactly that shape is the highest-value addition you can make next, because it teaches the *reasoning pattern*, not just facts.
 3. **Mix in negative/failed results** deliberately (the repo explicitly preserves them, `DCLAB-R21`) so the SLM learns "this didn't work, here's why" as often as "this worked."
 4. **Keep a held-out slice of examples the model never trains on**, and periodically ask it the same questions a human reviewer would, to check it isn't just memorizing phrasing.
@@ -187,4 +187,4 @@ That's from only the small subset of files pulled in this session — the full l
 
 ---
 
-*Sources reviewed for this document: `README.md`, `knowledge/KNOWLEDGE_BASE.md`, `knowledge/NEXT_EXPERIMENTS.md`, `knowledge/DATA_QUALITY.md`, `knowledge/MODEL_BUILDING_FIELD_GUIDE.md`, `knowledge/model_building_rules.jsonl`, `knowledge/workflow_blocks.json`, `campaigns/model_building_50_v1/AGENT_CONTEXT.md`, `campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`, `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `campaigns/model_building_50_v1/agent_memory.jsonl`, `.cursor/rules/tabular-classification-playbook.mdc`, all pulled live from the public repository at the time of writing.*
+*Sources reviewed for this document: `README.md`, `evidence/knowledge/KNOWLEDGE_BASE.md`, `evidence/knowledge/NEXT_EXPERIMENTS.md`, `evidence/knowledge/DATA_QUALITY.md`, `evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.md`, `evidence/knowledge/model_building_rules.jsonl`, `evidence/knowledge/workflow_blocks.json`, `evidence/campaigns/model_building_50_v1/AGENT_CONTEXT.md`, `evidence/campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`, `evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `evidence/campaigns/model_building_50_v1/agent_memory.jsonl`, `.cursor/rules/tabular-classification-playbook.mdc`, all pulled live from the public repository at the time of writing.*

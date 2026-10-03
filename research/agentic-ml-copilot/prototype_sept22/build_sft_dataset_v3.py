@@ -26,7 +26,7 @@ THE FIX
 Every example built here is self-contained. The user turn always
 includes, in plain language:
   1. A DATASET CARD — what this dataset is and what it predicts, pulled
-     from external_data/<name>/meta.json where available, plus a short
+     from data/public/<name>/meta.json where available, plus a short
      factual description of the well-known public dataset.
   2. A STAGE CARD — what this pipeline stage does methodologically and
      why it exists, derived from the repo's own workflow_blocks.json.
@@ -42,8 +42,8 @@ grounded in something the model can actually reason from.
 Usage
 -----
     python build_sft_dataset_v3.py \
-        --results-dir campaigns/model_building_50_v1/results \
-        --meta-dir external_data \
+        --results-dir evidence/campaigns/model_building_50_v1/results \
+        --meta-dir data/public \
         --out-dir sft_out_v3
 """
 
@@ -327,9 +327,9 @@ def dedup(examples):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--results-dir", type=Path, default=Path("campaigns/model_building_50_v1/results"))
-    parser.add_argument("--meta-dir", type=Path, default=Path("external_data"))
-    parser.add_argument("--out-dir", type=Path, default=Path("sft_out_v3"))
+    parser.add_argument("--results-dir", type=Path, default=Path("evidence/campaigns/model_building_50_v1/results"))
+    parser.add_argument("--meta-dir", type=Path, default=Path("data/public"))
+    parser.add_argument("--out-dir", type=Path, default=Path("research/llm-fine-tuning/sft/prototype_out_v3"))
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

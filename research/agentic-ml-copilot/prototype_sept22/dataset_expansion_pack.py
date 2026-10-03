@@ -3,11 +3,11 @@
 dataset_expansion_pack.py
 ==========================
 ADDITIVE. Does not touch, remove, or re-derive anything in your existing
-`external_data/` datasets (adult, bank_marketing, breast_cancer, ...). It
+`data/public/` datasets (adult, bank_marketing, breast_cancer, ...). It
 only adds four NEW datasets that plug into the same
-`external_data/<name>/{X.parquet, y.parquet, meta.json}` convention your
+`data/public/<name>/{X.parquet, y.parquet, meta.json}` convention your
 `dclab_rnd` pipeline already reads (see `provenance.data_sha256` paths in
-any existing result JSON, e.g. `external_data/adult/X.parquet`).
+any existing result JSON, e.g. `data/public/adult/X.parquet`).
 
 Once converted, a new dataset should run through the exact same commands
 you already use, e.g.:
@@ -39,7 +39,7 @@ sandbox cannot reach kaggle.com or huggingface.co):
 Then convert each with this script, e.g.:
 
     python dataset_expansion_pack.py --dataset credit_card_fraud \
-        --csv raw/creditcard.csv --out-dir external_data
+        --csv raw/creditcard.csv --out-dir data/public
 
 IMPORTANT — this script was built and smoke-tested against tiny
 HAND-WRITTEN samples that match each dataset's PUBLISHED column schema
@@ -183,7 +183,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dataset", required=True, choices=list(DATASET_SPECS), help="Dataset slug to convert.")
     parser.add_argument("--csv", required=True, type=Path, help="Path to the downloaded raw CSV.")
-    parser.add_argument("--out-dir", type=Path, default=Path("external_data"), help="Root external_data directory.")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/public"), help="Root data/public directory.")
     args = parser.parse_args()
 
     build_external_dataset(args.csv, args.dataset, args.out_dir)

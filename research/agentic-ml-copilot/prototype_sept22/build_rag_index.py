@@ -39,9 +39,9 @@ exact match filtered on dataset alone.
 
 Usage
 -----
-    python build_rag_index.py --rules knowledge/model_building_rules.jsonl \
-        --claims campaigns/model_building_50_v1/agent_memory.jsonl \
-        --blocks knowledge/workflow_blocks.json
+    python build_rag_index.py --rules evidence/knowledge/model_building_rules.jsonl \
+        --claims evidence/campaigns/model_building_50_v1/agent_memory.jsonl \
+        --blocks evidence/knowledge/workflow_blocks.json
 
 Then, in your own code:
     records = load_all(...)
@@ -159,9 +159,9 @@ def load_all(rules_path: Path, claims_path: Path, blocks_path: Path) -> list:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--rules", type=Path, default=Path("knowledge/model_building_rules.jsonl"))
-    parser.add_argument("--claims", type=Path, default=Path("campaigns/model_building_50_v1/agent_memory.jsonl"))
-    parser.add_argument("--blocks", type=Path, default=Path("knowledge/workflow_blocks.json"))
+    parser.add_argument("--rules", type=Path, default=Path("evidence/knowledge/model_building_rules.jsonl"))
+    parser.add_argument("--claims", type=Path, default=Path("evidence/campaigns/model_building_50_v1/agent_memory.jsonl"))
+    parser.add_argument("--blocks", type=Path, default=Path("evidence/knowledge/workflow_blocks.json"))
     args = parser.parse_args()
 
     records = load_all(args.rules, args.claims, args.blocks)

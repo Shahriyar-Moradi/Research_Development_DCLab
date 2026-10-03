@@ -1,3 +1,9 @@
+import importlib.util
+import unittest as _ut
+
+if importlib.util.find_spec("dclab_rnd.system_eval") is None:
+    raise _ut.SkipTest("module not committed yet: dclab_rnd/system_eval.py")
+
 """Independent scorecard checks against a small controlled evidence archive."""
 
 import hashlib

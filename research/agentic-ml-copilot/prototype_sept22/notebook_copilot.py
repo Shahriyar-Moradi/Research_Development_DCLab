@@ -33,9 +33,9 @@ additive tooling on top of it, not a fork of it).
 Usage
 -----
     python notebook_copilot.py --notebook path/to/notebook.ipynb \
-        --rules knowledge/model_building_rules.jsonl \
-        --claims campaigns/model_building_50_v1/agent_memory.jsonl \
-        --blocks knowledge/workflow_blocks.json
+        --rules evidence/knowledge/model_building_rules.jsonl \
+        --claims evidence/campaigns/model_building_50_v1/agent_memory.jsonl \
+        --blocks evidence/knowledge/workflow_blocks.json
 
 This is v0: a real, working, testable core — not the full IDE integration.
 See the accompanying NOTEBOOK_COPILOT_SPEC.md for the inline-comment UX,
@@ -183,9 +183,9 @@ def load_notebook_cells(path: Path) -> list[str]:
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--notebook", type=Path, required=True)
-    parser.add_argument("--rules", type=Path, default=Path("knowledge/model_building_rules.jsonl"))
-    parser.add_argument("--claims", type=Path, default=Path("campaigns/model_building_50_v1/agent_memory.jsonl"))
-    parser.add_argument("--blocks", type=Path, default=Path("knowledge/workflow_blocks.json"))
+    parser.add_argument("--rules", type=Path, default=Path("evidence/knowledge/model_building_rules.jsonl"))
+    parser.add_argument("--claims", type=Path, default=Path("evidence/campaigns/model_building_50_v1/agent_memory.jsonl"))
+    parser.add_argument("--blocks", type=Path, default=Path("evidence/knowledge/workflow_blocks.json"))
     args = parser.parse_args()
 
     records = load_all(args.rules, args.claims, args.blocks)

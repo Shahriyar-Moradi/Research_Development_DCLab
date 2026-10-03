@@ -14,7 +14,7 @@ Good for teaching facts and rules.
 What v2 adds
 ------------
 Reads the FULL per-experiment result files under
-`campaigns/model_building_50_v1/results/*.json` and extracts the genuine
+`evidence/campaigns/model_building_50_v1/results/*.json` and extracts the genuine
 five-part reasoning trace DCLab's own LLM critic already produced for each
 one (the `llm_review.review` block), in exactly the structure this repo's
 own `AGENT_CONTEXT.md` mandates:
@@ -35,7 +35,7 @@ claims-only example so no experiment's evidence is wasted.
 Usage
 -----
     python build_sft_dataset_v2.py \
-        --results-dir campaigns/model_building_50_v1/results \
+        --results-dir evidence/campaigns/model_building_50_v1/results \
         --out-dir sft_out_v2
 
 Re-run after every `make rd-campaign-review` pass, and after Round 2
@@ -185,8 +185,8 @@ def dedup(examples):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--results-dir", type=Path, default=Path("campaigns/model_building_50_v1/results"))
-    parser.add_argument("--out-dir", type=Path, default=Path("sft_out_v2"))
+    parser.add_argument("--results-dir", type=Path, default=Path("evidence/campaigns/model_building_50_v1/results"))
+    parser.add_argument("--out-dir", type=Path, default=Path("research/llm-fine-tuning/sft/prototype_out_v2"))
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

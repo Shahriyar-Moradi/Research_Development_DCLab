@@ -20,3 +20,13 @@
 ## Next useful study
 
 Run a blinded, reviewer-labeled pilot on HyperAck and churn notebooks. Report denominators and per-severity false positives/false negatives, citation precision, unsupported advice, task success, review time, and confidence intervals where sample size allows. Publish limitations and failures beside the score. Software tests are necessary, but are not evidence of real-world usefulness by themselves.
+
+## Notebook companion evaluation
+
+`dclab_rnd/notebook_assist_eval.py` scores the notebook companion, and `dclab_rnd/notebook_eval.py` scores the first prototype, against frozen, researcher-labelled development cases in `notebook_cases_v1.json` in this folder. Each case pins a notebook cell by SHA-256, so an edited cell is rejected instead of being silently re-scored. These are development cases, not a blinded generalization test.
+
+```bash
+python -m dclab_rnd.notebook_assist_eval --output /tmp/companion_eval.json
+python -m dclab_rnd.notebook_eval --output /tmp/prototype_eval.json
+```
+

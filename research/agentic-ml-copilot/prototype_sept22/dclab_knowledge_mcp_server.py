@@ -34,9 +34,9 @@ from mcp.server.mcpserver import MCPServer
 from build_rag_index import RetrievalIndex, load_all
 
 # Point these at your real repo paths when you deploy this for real.
-RULES_PATH = Path("knowledge/model_building_rules.jsonl")
-CLAIMS_PATH = Path("campaigns/model_building_50_v1/agent_memory.jsonl")
-BLOCKS_PATH = Path("knowledge/workflow_blocks.json")
+RULES_PATH = Path("evidence/knowledge/model_building_rules.jsonl")
+CLAIMS_PATH = Path("evidence/campaigns/model_building_50_v1/agent_memory.jsonl")
+BLOCKS_PATH = Path("evidence/knowledge/workflow_blocks.json")
 
 _records = load_all(RULES_PATH, CLAIMS_PATH, BLOCKS_PATH)
 _index = RetrievalIndex(_records)
@@ -48,7 +48,7 @@ server = MCPServer(name="dclab-knowledge")
 def get_rule(category: str, top_k: int = 3) -> str:
     """Return DCLab's evidence-based rule(s) for a model-building category,
     e.g. 'leakage', 'feature_engineering', 'model_selection', 'promotion',
-    'missingness'. Grounded in knowledge/model_building_rules.jsonl."""
+    'missingness'. Grounded in evidence/knowledge/model_building_rules.jsonl."""
     hits = _index.search(category, filters={"kind": "rule", "category": category}, k=top_k)
     if not hits:
         hits = _index.search(category, filters={"kind": "rule"}, k=top_k)
@@ -67,7 +67,7 @@ def get_workflow_block(stage: str) -> str:
 def retrieve_similar_experiment(dataset: str, stage: str, query: str, top_k: int = 3) -> str:
     """Retrieve the most relevant past DCLab experiment findings for a
     dataset + pipeline stage, ranked by relevance to `query`. Grounded in
-    campaigns/model_building_50_v1/agent_memory.jsonl."""
+    evidence/campaigns/model_building_50_v1/agent_memory.jsonl."""
     filters = {"kind": "experiment_claim"}
     if dataset:
         filters["dataset"] = dataset

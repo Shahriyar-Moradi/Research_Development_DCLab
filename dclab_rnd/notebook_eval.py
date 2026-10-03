@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .agentic.catalog import ROOT
+from .notebook_assist import MANIFEST_CANDIDATES, manifest_path, resolve_path
 
 
 def signal_for(cell, all_code, signal, copilot):
@@ -27,19 +28,19 @@ def signal_for(cell, all_code, signal, copilot):
 
 def evaluate(manifest, root=ROOT):
     # Import the user-provided prototype from its existing location, without edits.
-    prototype = root / "Cluad_R&D_aritfacts_sptember22"
+    prototype = root / "research/agentic-ml-copilot/prototype_sept22"
     sys.path.insert(0, str(prototype))
     import notebook_copilot as copilot
     from build_rag_index import RetrievalIndex, load_all
 
-    index = RetrievalIndex(load_all(root / "knowledge/model_building_rules.jsonl",
-                                    root / "campaigns/model_building_50_v1/agent_memory.jsonl",
-                                    root / "knowledge/workflow_blocks.json"))
+    index = RetrievalIndex(load_all(root / "evidence/knowledge/model_building_rules.jsonl",
+                                    root / "evidence/campaigns/model_building_50_v1/agent_memory.jsonl",
+                                    root / "evidence/knowledge/workflow_blocks.json"))
 
     notebooks = {}
     rows = []
     for case in manifest["cases"]:
-        path = root / case["notebook"]
+        path = resolve_path(case["notebook"]) if root == ROOT else root / case["notebook"]
         if path not in notebooks:
             cells = copilot.load_notebook_cells(path)
             notebooks[path] = (cells, "\n".join(cells))
@@ -68,7 +69,7 @@ def evaluate(manifest, root=ROOT):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", type=Path, default=ROOT / "evaluation/notebook_cases_v1.json")
+    parser.add_argument("--manifest", type=Path, default=manifest_path() or MANIFEST_CANDIDATES[0])
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():

@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from .notebook_assist import ROOT, review_document
+from .notebook_assist import MANIFEST_CANDIDATES, ROOT, manifest_path, resolve_path, review_document
 
 
 SIGNALS = {
@@ -20,7 +20,7 @@ def evaluate(manifest: dict):
     cached = {}
     rows = []
     for case in manifest["cases"]:
-        path = ROOT / case["notebook"]
+        path = resolve_path(case["notebook"])
         if path not in cached:
             document = json.loads(path.read_text(encoding="utf-8"))
             document["notebook_path"] = case["notebook"]
@@ -51,7 +51,7 @@ def evaluate(manifest: dict):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", type=Path, default=ROOT / "evaluation/notebook_cases_v1.json")
+    parser.add_argument("--manifest", type=Path, default=manifest_path() or MANIFEST_CANDIDATES[0])
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists():

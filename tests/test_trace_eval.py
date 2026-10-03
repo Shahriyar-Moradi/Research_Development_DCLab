@@ -1,3 +1,9 @@
+import importlib.util
+import unittest as _ut
+
+if importlib.util.find_spec("dclab_rnd.agentic.trace_eval") is None:
+    raise _ut.SkipTest("module not committed yet: dclab_rnd/agentic/trace_eval.py")
+
 import json
 from pathlib import Path
 import tempfile

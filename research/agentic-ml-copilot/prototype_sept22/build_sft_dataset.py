@@ -10,9 +10,9 @@ small language model (SLM) can actually be fine-tuned on.
 Why this exists
 ----------------
 The repo already produces excellent *retrieval* artifacts:
-  - knowledge/model_building_rules.jsonl   (methodological + empirical rules)
-  - knowledge/workflow_blocks.json         (reusable process flows)
-  - campaigns/model_building_50_v1/agent_memory.jsonl (per-experiment claims)
+  - evidence/knowledge/model_building_rules.jsonl   (methodological + empirical rules)
+  - evidence/knowledge/workflow_blocks.json         (reusable process flows)
+  - evidence/campaigns/model_building_50_v1/agent_memory.jsonl (per-experiment claims)
 
 These are great for RAG / an agent's long-term memory, but they are NOT yet
 in a shape a fine-tuning job expects: paired (question, answer) turns with no
@@ -34,9 +34,9 @@ This script:
 Usage
 -----
     python build_sft_dataset.py \
-        --rules knowledge/model_building_rules.jsonl \
-        --blocks knowledge/workflow_blocks.json \
-        --claims campaigns/model_building_50_v1/agent_memory.jsonl \
+        --rules evidence/knowledge/model_building_rules.jsonl \
+        --blocks evidence/knowledge/workflow_blocks.json \
+        --claims evidence/campaigns/model_building_50_v1/agent_memory.jsonl \
         --out-dir sft_out
 
 Run it from the root of the Research_Development_DCLab checkout, or pass
@@ -201,10 +201,10 @@ def dedup(examples):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rules", type=Path, default=Path("knowledge/model_building_rules.jsonl"))
-    parser.add_argument("--blocks", type=Path, default=Path("knowledge/workflow_blocks.json"))
-    parser.add_argument("--claims", type=Path, default=Path("campaigns/model_building_50_v1/agent_memory.jsonl"))
-    parser.add_argument("--out-dir", type=Path, default=Path("sft_out"))
+    parser.add_argument("--rules", type=Path, default=Path("evidence/knowledge/model_building_rules.jsonl"))
+    parser.add_argument("--blocks", type=Path, default=Path("evidence/knowledge/workflow_blocks.json"))
+    parser.add_argument("--claims", type=Path, default=Path("evidence/campaigns/model_building_50_v1/agent_memory.jsonl"))
+    parser.add_argument("--out-dir", type=Path, default=Path("research/llm-fine-tuning/sft/prototype_out"))
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

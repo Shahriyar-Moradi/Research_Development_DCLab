@@ -245,13 +245,13 @@ evidence = LeakageReviewEvidence(
 
 In `apps/api/app/services/lab_decision_ledger.py`, wherever a `LeakageReviewDecision` currently gets written to a ledger row, also persist `evidence.prior_registry_evidence` (the precedents that were *available*, whether or not the model's `evidence_field` pointed at them) alongside it. This is what turns "we looked something up once" into a real audit trail: for any production leakage decision, you can later answer "was DCLab's own prior research even consulted here, and did the model use it?" — without that, you can't tell the difference between "no precedent existed" and "a precedent existed and got ignored."
 
-**The actual feedback loop** (this is what makes the knowledge base grow instead of staying frozen at 50 experiments): periodically export ledger rows where a human later confirmed or corrected the decision, in the same shape as `agent_memory.jsonl`'s claims, and append them to `knowledge/agent_memory.jsonl`. Real production decisions become new precedents the same way the original 50 experiments did — same file, same format, same retrieval helper, no special-casing required.
+**The actual feedback loop** (this is what makes the knowledge base grow instead of staying frozen at 50 experiments): periodically export ledger rows where a human later confirmed or corrected the decision, in the same shape as `agent_memory.jsonl`'s claims, and append them to `evidence/knowledge/agent_memory.jsonl`. Real production decisions become new precedents the same way the original 50 experiments did — same file, same format, same retrieval helper, no special-casing required.
 
 ## STEP G — Verify (matching your own required style)
 
 1. **Positive case:** run the pipeline on a synthetic dataset with an obviously post-outcome column (e.g. a `duration`-like field). Confirm `prior_registry_evidence` in the logged evidence JSON is non-empty and contains a real `DCLAB-R0x` rule ID.
 2. **Citation case:** confirm at least one ledger row has `evidence_field: "prior_registry_evidence"` when the rationale plausibly needed it — read the `rationale` text to sanity-check it isn't fabricating a rule ID (it structurally can't, since `rd_knowledge.py` only ever returns real IDs from the loaded file).
-3. **Fail-closed case:** temporarily rename `knowledge/model_building_rules.jsonl` and confirm the full pipeline still completes end-to-end with `prior_registry_evidence: []` — no exception, no degraded UX elsewhere.
+3. **Fail-closed case:** temporarily rename `evidence/knowledge/model_building_rules.jsonl` and confirm the full pipeline still completes end-to-end with `prior_registry_evidence: []` — no exception, no degraded UX elsewhere.
 4. **Regression case:** confirm any decision still recorded under `prompt_version="leakage_review_v1"` is untouched — v1 stays byte-identical, exactly as its own docstring requires.
 
 ```bash
