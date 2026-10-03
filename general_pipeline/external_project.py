@@ -1,7 +1,7 @@
 """Per-dataset external project toolkit (HyperAck-style folder layout).
 
 Each project lives at:
-  external_projects/<dataset>_exp/
+  research/tabular-classification/external_projects/<dataset>_exp/
     README.md
     run_all.py
     data/                 -> symlink to ../../external_data/<dataset>
@@ -30,13 +30,13 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "hyperack_exp"))
+sys.path.insert(0, str(ROOT / "research/tabular-classification/hyperack_exp"))
 
 from shared.protocol import evaluate  # noqa: E402
 from general_pipeline.external_catalog import DATASET_CATALOG  # noqa: E402
 from general_pipeline.models import MODEL_REGISTRY, get_model  # noqa: E402
 
-PROJECTS_ROOT = ROOT / "external_projects"
+PROJECTS_ROOT = ROOT / "research/tabular-classification/external_projects"
 EXTERNAL_DATA = ROOT / "external_data"
 RANDOM_STATE = 42
 
@@ -164,7 +164,7 @@ HyperAck-style tabular classification project for **{spec.name}**.
 ## Run
 
 ```bash
-.venv/bin/python external_projects/{key}_exp/run_all.py
+.venv/bin/python research/tabular-classification/external_projects/{key}_exp/run_all.py
 # or from toolkit:
 .venv/bin/python general_pipeline/build_external_projects.py --dataset {key} --run
 ```
@@ -528,7 +528,7 @@ def write_master_report(key: str, df: pd.DataFrame) -> Path:
 
     md = f"""# {spec.name} — Master Benchmark Report
 
-HyperAck-style project folder: `external_projects/{key}_exp/`
+HyperAck-style project folder: `research/tabular-classification/external_projects/{key}_exp/`
 
 - **Source:** [{spec.url}]({spec.url})
 - **Description:** {spec.description}
@@ -557,7 +557,7 @@ HyperAck-style project folder: `external_projects/{key}_exp/`
 ## Reproduce
 
 ```bash
-.venv/bin/python external_projects/{key}_exp/run_all.py
+.venv/bin/python research/tabular-classification/external_projects/{key}_exp/run_all.py
 ```
 """
     path = pdir / "MASTER_BENCHMARK_REPORT.md"

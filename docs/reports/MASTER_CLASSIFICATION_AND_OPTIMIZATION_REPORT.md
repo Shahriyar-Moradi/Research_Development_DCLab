@@ -13,9 +13,9 @@
 
 This report documents the complete research, discovery, benchmarking, and optimization lifecycle for the HyperAck tabular classification challenge. Over 83 empirical experiments, we investigated:
 
-1. **The Unsafe Benchmark (`hyperack_exp/`, 15 experiments):** Initial models achieved apparent ROC-AUCs up to **0.9793** and recall of **0.9114**. However, forensic investigation proved this performance was driven by **target leakage**: the inclusion of post-outcome variables (`final_customer_fare` and `final_biker_fare`), which are determined *after* order dispatch and are impossible to observe at decision time.
-2. **The Safe Baseline Benchmark (`safe_leakage_exp/`, 15 experiments):** Dropping final fares established the true production ceiling. The best honest safe model achieved **0.9450 ROC-AUC** and **0.7707 recall** (`09 lightgbm_tuned`), revealing an average drop of **−0.0343 ROC-AUC** and **−0.1407 recall** across all models.
-3. **The Optimized Safe Suite (`optimized_safe_model/`, 53 experiments):** Through 6 iterative optimization phases—safe feature enrichment, class weighting, deep randomized search, Bayesian Optuna tuning, seed bagging, row bootstrap bagging, out-of-fold target encoding, feature ablation, and multi-algorithm stacking—we not only recovered the safe ceiling but **surpassed it**, reaching an all-time safe record of **0.9455 ROC-AUC** (`53 softvote_etbag_lgbmwinner_xgb`) and **0.9450 ROC-AUC with 0.8006 recall** (`51 stacking_top_tuned_models`).
+1. **The Unsafe Benchmark (`research/tabular-classification/hyperack_exp/`, 15 experiments):** Initial models achieved apparent ROC-AUCs up to **0.9793** and recall of **0.9114**. However, forensic investigation proved this performance was driven by **target leakage**: the inclusion of post-outcome variables (`final_customer_fare` and `final_biker_fare`), which are determined *after* order dispatch and are impossible to observe at decision time.
+2. **The Safe Baseline Benchmark (`research/tabular-classification/safe_leakage_exp/`, 15 experiments):** Dropping final fares established the true production ceiling. The best honest safe model achieved **0.9450 ROC-AUC** and **0.7707 recall** (`09 lightgbm_tuned`), revealing an average drop of **−0.0343 ROC-AUC** and **−0.1407 recall** across all models.
+3. **The Optimized Safe Suite (`research/tabular-classification/optimized_safe_model/`, 53 experiments):** Through 6 iterative optimization phases—safe feature enrichment, class weighting, deep randomized search, Bayesian Optuna tuning, seed bagging, row bootstrap bagging, out-of-fold target encoding, feature ablation, and multi-algorithm stacking—we not only recovered the safe ceiling but **surpassed it**, reaching an all-time safe record of **0.9455 ROC-AUC** (`53 softvote_etbag_lgbmwinner_xgb`) and **0.9450 ROC-AUC with 0.8006 recall** (`51 stacking_top_tuned_models`).
 4. **The Recall Frontier:** For business objectives where false negatives are cost-prohibitive, we implemented isotonic threshold calibration (`12 calibrated_recall_f1_safe`), unlocking **0.9374 recall** while preserving a **0.9375 ROC-AUC** without a single leaky variable.
 
 ```
@@ -107,7 +107,7 @@ The strongest and most robust model performance was achieved on this compact, hu
      $$\theta = \operatorname{arctan2}(\sin(\Delta \lambda)\cos(\phi_2), \cos(\phi_1)\sin(\phi_2) - \sin(\phi_1)\cos(\phi_2)\cos(\Delta \lambda))$$
 
 ### 2.2 Enriched Safe Features (46 Features) and the "Dilution Effect"
-In `optimized_safe_model/features.py`, we generated 21 additional safe features:
+In `research/tabular-classification/optimized_safe_model/features.py`, we generated 21 additional safe features:
 - **Interactions:** `fare * distance`, `fare * products`, `distance * products`, `fare * hour`, `category * hour`.
 - **Route Ratios:** `route_vs_reported = haversine_km / total_distance` (measuring road winding factor).
 - **Train-Only Geo Clusters:** 5-cluster KMeans fitted strictly on `train` spatial coordinates to prevent data leakage.
@@ -121,33 +121,33 @@ When training GBDTs on the 46-feature enriched set, test ROC-AUC dropped from **
 
 ## 3. Visual Benchmarking Across All Suites
 
-The figures below, automatically generated and saved under `optimized_safe_model/results/`, visually summarize the empirical landscape:
+The figures below, automatically generated and saved under `research/tabular-classification/optimized_safe_model/results/`, visually summarize the empirical landscape:
 
 ### 3.1 Unsafe vs. Optimized Safe: Side-by-Side Performance
 The side-by-side comparison across all matched experiments highlights the persistent ~0.037 ROC gap resulting from dropping final fares, while showing that model `12` achieved record-breaking recall:
 
-![Side by Side Benchmark](../../optimized_safe_model/results/optimized_vs_unsafe_side_by_side.png)
+![Side by Side Benchmark](../../research/tabular-classification/optimized_safe_model/results/optimized_vs_unsafe_side_by_side.png)
 
 ### 3.2 The Leakage Cost: ROC-AUC Gap Breakdown
 This diagnostic isolates exactly how much artificial lift final fares contributed across model families. For almost all models, leakage accounted for between **0.032** and **0.041** ROC points:
 
-![Leakage ROC Gap](../../optimized_safe_model/results/optimized_vs_unsafe_roc_gap.png)
+![Leakage ROC Gap](../../research/tabular-classification/optimized_safe_model/results/optimized_vs_unsafe_roc_gap.png)
 
 ### 3.3 The Three Champions: Unsafe vs. Previous Safe vs. Optimized Safe
 The milestone comparison comparing the Unsafe ceiling, the Previous Safe ceiling, and our newly trained Optimized Safe champion:
 
-![Champions Comparison](../../optimized_safe_model/results/optimized_vs_unsafe_champions.png)
+![Champions Comparison](../../research/tabular-classification/optimized_safe_model/results/optimized_vs_unsafe_champions.png)
 
 ### 3.4 Top Optimized Safe Models vs. Safe & Unsafe Ceilings
 All top 12 optimized safe models plotted against the prior safe ceiling (brown dashed line at 0.9450) and the unsafe ceiling (red dashed line at 0.9793). Model `53` visibly surpasses the prior safe ceiling:
 
-![Top Optimized Models vs Ceilings](../../optimized_safe_model/results/optimized_top_vs_unsafe_ceiling.png)
+![Top Optimized Models vs Ceilings](../../research/tabular-classification/optimized_safe_model/results/optimized_top_vs_unsafe_ceiling.png)
 
 ---
 
 ## 4. Comprehensive Optimization Evaluation & Empirical Lift
 
-Across 53 experiments in `optimized_safe_model/`, we systematically tested 10 distinct optimization methodologies. Below is the empirical assessment of each:
+Across 53 experiments in `research/tabular-classification/optimized_safe_model/`, we systematically tested 10 distinct optimization methodologies. Below is the empirical assessment of each:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -273,7 +273,7 @@ All code, artifacts, and logs are organized in the workspace:
 | **Safe Benchmark Canvas** | `.cursor/projects/.../canvases/safe-vs-unsafe-benchmark.canvas.tsx` | Prior safe vs unsafe visual canvas. |
 | **Optimized Safe Canvas** | `.cursor/projects/.../canvases/optimized-safe-benchmark.canvas.tsx` | Optimized safe progress dashboard. |
 | **Master Rule** | `.cursor/rules/tabular-classification-playbook.mdc` | Persistent AI coding rule for tabular tasks. |
-| **Optimized Suite Code**| `optimized_safe_model/run_tune_all_models.py` | Complete RandomizedSearchCV for all algorithms. |
-| **Champion Ensemble** | `optimized_safe_model/run_recovery2.py` (Exp 21, 51, 53) | Code reproducing the 0.9455 champion. |
-| **Visual Benchmarks** | `optimized_safe_model/benchmark_vs_unsafe.py` | Standalone script generating all comparison PNGs. |
-| **Comparison Data** | `optimized_safe_model/results/optimized_vs_unsafe_comparison.csv` | Full metric row-level export. |
+| **Optimized Suite Code**| `research/tabular-classification/optimized_safe_model/run_tune_all_models.py` | Complete RandomizedSearchCV for all algorithms. |
+| **Champion Ensemble** | `research/tabular-classification/optimized_safe_model/run_recovery2.py` (Exp 21, 51, 53) | Code reproducing the 0.9455 champion. |
+| **Visual Benchmarks** | `research/tabular-classification/optimized_safe_model/benchmark_vs_unsafe.py` | Standalone script generating all comparison PNGs. |
+| **Comparison Data** | `research/tabular-classification/optimized_safe_model/results/optimized_vs_unsafe_comparison.csv` | Full metric row-level export. |

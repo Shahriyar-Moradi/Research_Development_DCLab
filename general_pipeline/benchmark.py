@@ -12,7 +12,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
-OUTPUTS_DIR = ROOT / "benchmark_outputs"
+OUTPUTS_DIR = ROOT / "research/tabular-classification/benchmark_outputs"
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 

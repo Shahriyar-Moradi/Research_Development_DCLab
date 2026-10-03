@@ -10,7 +10,7 @@ import pandas as pd
 import seaborn as sns
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUTS_DIR = ROOT / "benchmark_outputs"
+OUTPUTS_DIR = ROOT / "research/tabular-classification/benchmark_outputs"
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 CSV_PATH = OUTPUTS_DIR / "complete_4way_benchmark.csv"
 

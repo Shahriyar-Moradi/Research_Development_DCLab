@@ -29,4 +29,4 @@ jobs:
       - name: Ensure evidence index and SFT v3 corpus are current
         run: |
           python -m dclab_rnd.evidence_index check
-          python sft/build_sft_dataset_v3.py --check
+          python research/llm-fine-tuning/sft/build_sft_dataset_v3.py --check

@@ -55,7 +55,7 @@ Two lessons hide in this table. First, "data leakage" is not one thing; some for
 
 ## Lesson 3: there is no single best algorithm
 
-People often ask, "which model is best?" Across our datasets the answer kept changing (`campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `churn_exp/CHURN_BENCHMARK.md`):
+People often ask, "which model is best?" Across our datasets the answer kept changing (`campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`):
 
 - In the controlled 10-dataset campaign, **Extra Trees** was the best candidate on 7 datasets, but LightGBM, histogram boosting and logistic regression each won one.
 - On customer churn, the simplest model, **logistic regression**, beat every boosted model (0.850).

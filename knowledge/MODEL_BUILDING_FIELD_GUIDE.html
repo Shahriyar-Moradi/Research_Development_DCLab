@@ -213,7 +213,7 @@
 <p><strong>Rule:</strong> Every generated feature needs explicit lineage, availability time, units, null behavior and a reproducible formula.</p>
 <p><strong>Why:</strong> A mathematically valid feature can still be unavailable, unstable or impossible to reproduce online.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code>, <code>churn_exp/results/CHURN-014/recipe.json</code></p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md</code>, <code>research/churn-prediction/churn_exp/results/CHURN-014/recipe.json</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R10 · Feature Reliability</h3>
 <p><strong>Rule:</strong> Importance is only a nomination signal; production reliability additionally requires availability, fold stability, coverage, missing-input resilience and drift monitoring.</p>
@@ -231,7 +231,7 @@
 <p><strong>Rule:</strong> Model missingness as an operational state: measure coverage, add indicators when justified, simulate absence, and define fallback behavior.</p>
 <p><strong>Why:</strong> A feature that disappears in production can dominate offline ranking yet make the system brittle.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>dclab_rnd/agentic/worker.py</code>, <code>churn_exp/results/CHURN-014/result.json</code></p>
+<p><strong>Evidence:</strong> <code>dclab_rnd/agentic/worker.py</code>, <code>research/churn-prediction/churn_exp/results/CHURN-014/result.json</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R13 · Model Selection</h3>
 <p><strong>Rule:</strong> There is no universal best tabular algorithm; screen a transparent linear baseline and several nonlinear families on identical folds.</p>
@@ -267,7 +267,7 @@
 <p><strong>Rule:</strong> Choose metrics and thresholds from the real decision cost; report ranking, probability quality and operating-point errors together.</p>
 <p><strong>Why:</strong> AUC does not specify calibration or the false-positive/false-negative tradeoff.</p>
 <p><strong>Confidence:</strong> high methodological. <strong>Exceptions:</strong> None; apply judgment to the prediction contract.</p>
-<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>churn_exp/CHURN_BENCHMARK.md</code></p>
+<p><strong>Evidence:</strong> <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code>, <code>research/churn-prediction/churn_exp/CHURN_BENCHMARK.md</code></p>
 <p><strong>Next test:</strong> Record the decision and test it on identical folds.</p>
 <h3>DCLAB-R19 · Generalization</h3>
 <p><strong>Rule:</strong> Use temporal, geographic, source-system and out-of-domain slices when those shifts exist.</p>
@@ -317,8 +317,8 @@
 <ul>
 <li>Controlled campaign: <code>campaigns/model_building_50_v1/CAMPAIGN_REPORT.md</code></li>
 <li>Historical registry: <code>knowledge/KNOWLEDGE_BASE.md</code> and <code>knowledge/evidence.json</code></li>
-<li>Churn campaign: <code>churn_exp/CHURN_BENCHMARK.md</code></li>
-<li>HyperAck safe report: <code>optimized_safe_model/OPTIMIZED_SAFE_REPORT.md</code></li>
+<li>Churn campaign: <code>research/churn-prediction/churn_exp/CHURN_BENCHMARK.md</code></li>
+<li>HyperAck safe report: <code>research/tabular-classification/optimized_safe_model/OPTIMIZED_SAFE_REPORT.md</code></li>
 <li>Machine rules: <code>knowledge/model_building_rules.jsonl</code></li>
 <li>Evidence pack: <code>knowledge/master_evidence_pack.json</code></li>
 <li>Typed GPT-6 Astra workflow: <code>dclab_rnd/agentic/guide_review.py</code> (advisory review appears when API credits are available)</li>

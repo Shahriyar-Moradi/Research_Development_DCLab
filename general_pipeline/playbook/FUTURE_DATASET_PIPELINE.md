@@ -13,7 +13,7 @@ Reusable path to produce the same depth of analysis as HyperAck for any new tabu
    ```bash
    .venv/bin/python general_pipeline/playbook/run_playbook.py --dataset <key>
    ```
-5. **Read** in `external_projects/<key>_exp/`:
+5. **Read** in `research/tabular-classification/external_projects/<key>_exp/`:
    - `FEATURE_ENGINEERING_REPORT.md`
    - `OPTIMIZATION_REPORT.md`
    - `COMPLETE_MASTER_REPORT.md`

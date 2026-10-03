@@ -28,11 +28,11 @@ DEFAULT_CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chro
 # Base64 encode an image
 def encode_image(img_rel_path: str) -> str:
     # Markdown links are relative to the report file; fall back to repo-root
-    # relative paths and the optimized_safe_model folder for older link styles.
+    # relative paths and the research/tabular-classification/optimized_safe_model folder for older link styles.
     candidates = (
         REPORT_DIR / img_rel_path,
         ROOT / img_rel_path,
-        ROOT / "optimized_safe_model" / img_rel_path,
+        ROOT / "research/tabular-classification/optimized_safe_model" / img_rel_path,
     )
     img_path = next((c.resolve() for c in candidates if c.exists()), None)
     if img_path is not None:

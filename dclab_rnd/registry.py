@@ -14,10 +14,10 @@ from .record import ExperimentRecord
 RESULT_GLOBS = (
     "general_pipeline/results/*.json",
     "general_pipeline/results_external/*.json",
-    "hyperack_exp/results/*.json",
-    "safe_leakage_exp/results/*.json",
-    "optimized_safe_model/results/*.json",
-    "external_projects/*_exp/results/ladder/*.json",
+    "research/tabular-classification/hyperack_exp/results/*.json",
+    "research/tabular-classification/safe_leakage_exp/results/*.json",
+    "research/tabular-classification/optimized_safe_model/results/*.json",
+    "research/tabular-classification/external_projects/*_exp/results/ladder/*.json",
     "campaigns/model_building_50_v1/results/*_optimization_reliability.json",
 )
 
@@ -111,13 +111,13 @@ def _suite(path: Path) -> str:
         return "external_benchmark"
     if value.startswith("general_pipeline/results/"):
         return "hyperack_4way"
-    if value.startswith("hyperack_exp/results/"):
+    if value.startswith("research/tabular-classification/hyperack_exp/results/"):
         return "hyperack_initial"
-    if value.startswith("safe_leakage_exp/results/"):
+    if value.startswith("research/tabular-classification/safe_leakage_exp/results/"):
         return "hyperack_safe"
-    if value.startswith("optimized_safe_model/results/"):
+    if value.startswith("research/tabular-classification/optimized_safe_model/results/"):
         return "hyperack_optimized_safe"
-    if value.startswith("external_projects/"):
+    if value.startswith("research/tabular-classification/external_projects/"):
         return "external_playbook"
     if value.startswith("campaigns/model_building_50_v1/"):
         return "model_building_50_v1"
@@ -127,7 +127,7 @@ def _suite(path: Path) -> str:
 def _dataset(path: Path, payload: dict[str, Any]) -> str:
     if payload.get("dataset"):
         return str(payload["dataset"])
-    match = re.search(r"external_projects/([^/]+)_exp/", path.as_posix())
+    match = re.search(r"research/tabular-classification/external_projects/([^/]+)_exp/", path.as_posix())
     return match.group(1) if match else "hyperack"
 
 

@@ -1,6 +1,6 @@
 """Generate part1-style classification walkthrough notebooks for each external project.
 
-Style mirrors `notebooks/part1_hyper_ack_classification.ipynb`: short markdown section headers +
+Style mirrors `research/tabular-classification/notebooks/part1_hyper_ack_classification.ipynb`: short markdown section headers +
 executable code for EDA, cleaning, visualization, FE, safe/unsafe baselines, and
 optimized models.
 """
@@ -32,7 +32,7 @@ def _find_repo_root() -> Path:
 
 ROOT = _find_repo_root()
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "hyperack_exp"))
+sys.path.insert(0, str(ROOT / "research/tabular-classification/hyperack_exp"))
 print("REPO ROOT:", ROOT)
 '''.strip()
 
@@ -65,7 +65,7 @@ def build_walkthrough(key: str) -> Path:
 | Has classic leakage | **{policy.has_leakage}** |
 | Policy | {policy.rationale} |
 
-This notebook follows the same teaching style as `notebooks/part1_hyper_ack_classification.ipynb`:
+This notebook follows the same teaching style as `research/tabular-classification/notebooks/part1_hyper_ack_classification.ipynb`:
 
 1. Load & explore data  
 2. Clean  
@@ -571,10 +571,10 @@ else:
 
 Project artifacts:
 
-- `external_projects/{key}_exp/FEATURE_ENGINEERING_REPORT.md`
-- `external_projects/{key}_exp/OPTIMIZATION_REPORT.md`
-- `external_projects/{key}_exp/COMPLETE_MASTER_REPORT.md`
-- `external_projects/{key}_exp/notebooks/` (this walkthrough + ladder notebooks)
+- `research/tabular-classification/external_projects/{key}_exp/FEATURE_ENGINEERING_REPORT.md`
+- `research/tabular-classification/external_projects/{key}_exp/OPTIMIZATION_REPORT.md`
+- `research/tabular-classification/external_projects/{key}_exp/COMPLETE_MASTER_REPORT.md`
+- `research/tabular-classification/external_projects/{key}_exp/notebooks/` (this walkthrough + ladder notebooks)
 """))
 
     nb = nbf.v4.new_notebook()

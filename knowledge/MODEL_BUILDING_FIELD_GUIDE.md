@@ -330,7 +330,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`, `churn_exp/results/CHURN-014/recipe.json`
+**Evidence:** `campaigns/model_building_50_v1/MODEL_BUILDING_WORKFLOW.md`, `research/churn-prediction/churn_exp/results/CHURN-014/recipe.json`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -366,7 +366,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `dclab_rnd/agentic/worker.py`, `churn_exp/results/CHURN-014/result.json`
+**Evidence:** `dclab_rnd/agentic/worker.py`, `research/churn-prediction/churn_exp/results/CHURN-014/result.json`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -438,7 +438,7 @@ observed result → narrow interpretation → limitations/counterexample → evi
 
 **Confidence:** high methodological. **Exceptions:** None; apply judgment to the prediction contract.
 
-**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `churn_exp/CHURN_BENCHMARK.md`
+**Evidence:** `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`, `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`
 
 **Next test:** Record the decision and test it on identical folds.
 
@@ -520,8 +520,8 @@ Each durable example should contain: problem contract, dataset fingerprint, spli
 
 - Controlled campaign: `campaigns/model_building_50_v1/CAMPAIGN_REPORT.md`
 - Historical registry: `knowledge/KNOWLEDGE_BASE.md` and `knowledge/evidence.json`
-- Churn campaign: `churn_exp/CHURN_BENCHMARK.md`
-- HyperAck safe report: `optimized_safe_model/OPTIMIZED_SAFE_REPORT.md`
+- Churn campaign: `research/churn-prediction/churn_exp/CHURN_BENCHMARK.md`
+- HyperAck safe report: `research/tabular-classification/optimized_safe_model/OPTIMIZED_SAFE_REPORT.md`
 - Machine rules: `knowledge/model_building_rules.jsonl`
 - Evidence pack: `knowledge/master_evidence_pack.json`
 - Typed GPT-6 Astra workflow: `dclab_rnd/agentic/guide_review.py` (advisory review appears when API credits are available)

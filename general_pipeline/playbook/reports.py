@@ -192,7 +192,7 @@ def write_detailed_reports(key: str, df: Optional[pd.DataFrame] = None) -> None:
 
     fe_report = f"""# {spec.name} — Feature Engineering & Selection Report
 
-**Project:** `external_projects/{key}_exp/`  
+**Project:** `research/tabular-classification/external_projects/{key}_exp/`  
 **Source:** [{spec.url}]({spec.url})  
 **Rows / features (raw):** {meta.get('n_rows')} / {meta.get('n_features')}  
 **Positive rate:** {meta.get('pos_rate', 0):.3f}  
@@ -397,7 +397,7 @@ Safe optimized champion      ──▶  {best_safe['roc_auc']:.4f}  ({best_safe[
 
 ```bash
 .venv/bin/python general_pipeline/playbook/run_playbook.py --dataset {key}
-.venv/bin/python external_projects/{key}_exp/run_all.py
+.venv/bin/python research/tabular-classification/external_projects/{key}_exp/run_all.py
 ```
 
 ## Future datasets

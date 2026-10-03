@@ -42,7 +42,7 @@ Protocol: stratified 80/20 split (seed 42); datasets >20k rows subsampled to 20k
 
 ## Per-dataset HyperAck-style projects + full playbook
 
-Each dataset has `external_projects/<key>_exp/` with:
+Each dataset has `research/tabular-classification/external_projects/<key>_exp/` with:
 
 - **15-step ladder** (baseline → FE → selection → RandomizedSearch → calibration → stacking/blend)
 - **Safe vs unsafe** (leakage drop where defined: Bank `duration`, Shoppers `PageValues`)
@@ -58,8 +58,8 @@ Reusable future-dataset pipeline: `general_pipeline/playbook/FUTURE_DATASET_PIPE
 
 ## Artifacts
 
-- Per-project: `external_projects/*_exp/`
-- Cross-dataset tables: `benchmark_outputs/external/`
+- Per-project: `research/tabular-classification/external_projects/*_exp/`
+- Cross-dataset tables: `research/tabular-classification/benchmark_outputs/external/`
 - Playbook code: `general_pipeline/playbook/`
 
 

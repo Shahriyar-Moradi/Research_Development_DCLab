@@ -18,7 +18,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "hyperack_exp"))
+sys.path.insert(0, str(ROOT / "research/tabular-classification/hyperack_exp"))
 
 from shared.protocol import evaluate  # noqa: E402
 from dclab_rnd.provenance import capture_provenance  # noqa: E402
@@ -27,7 +27,7 @@ from general_pipeline.external_dataset import list_available_datasets, load_exte
 from general_pipeline.models import get_model  # noqa: E402
 
 RESULTS_DIR = ROOT / "general_pipeline" / "results_external"
-OUTPUTS_DIR = ROOT / "benchmark_outputs" / "external"
+OUTPUTS_DIR = ROOT / "research/tabular-classification/benchmark_outputs" / "external"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 # Ensure output dir exists before any shell redirection (e.g. tee) from callers.

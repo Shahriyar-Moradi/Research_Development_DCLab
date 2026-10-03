@@ -34,7 +34,7 @@ The original notebook is never modified, and the code is never executed (static 
 
 [`examples/clean_bank_marketing.ipynb`](../../dclab_rnd/copilot/examples/clean_bank_marketing.ipynb) asks the same question carefully and gets **no** notes. Its honest result is ROC-AUC 0.804 and average precision 0.458. The gap between "96.7% accuracy" and that honest number is what the copilot exists to catch.
 
-On this repository's own notebooks, the copilot found a real problem in `notebooks/part1_hyper_ack_classification.ipynb`: it loads HyperAck data and never drops `final_customer_fare` and `final_biker_fare`, the post-outcome columns behind the historical 0.979 "unsafe" ceiling.
+On this repository's own notebooks, the copilot found a real problem in `research/tabular-classification/notebooks/part1_hyper_ack_classification.ipynb`: it loads HyperAck data and never drops `final_customer_fare` and `final_biker_fare`, the post-outcome columns behind the historical 0.979 "unsafe" ceiling.
 
 ## Detectors
 

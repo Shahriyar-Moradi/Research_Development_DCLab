@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -20,7 +20,7 @@ rd-check:  ## tests, record validation, stale-knowledge and campaign gates
 	$(PYTHON) -m dclab_rnd sync --check
 	$(PYTHON) -m dclab_rnd campaign verify
 	$(PYTHON) -m dclab_rnd.evidence_index check
-	$(PYTHON) sft/build_sft_dataset_v3.py --check
+	$(PYTHON) research/llm-fine-tuning/sft/build_sft_dataset_v3.py --check
 
 rd-status:  ## deployment-eligible champions
 	$(PYTHON) -m dclab_rnd status
@@ -93,8 +93,8 @@ master-review: master-guide  ## typed advisory reviewers, then rebuild the guide
 	$(AGENT_PYTHON) -m dclab_rnd.agentic.guide_review --model gpt-5.6-terra
 	$(PYTHON) -m dclab_rnd.master_review build
 
-sft-build:  ## build the SFT corpus into sft/out/
-	$(PYTHON) sft/build_sft_dataset.py --out-dir sft/out
+sft-build:  ## build the SFT corpus into research/llm-fine-tuning/sft/out/
+	$(PYTHON) research/llm-fine-tuning/sft/build_sft_dataset.py --out-dir research/llm-fine-tuning/sft/out
 
 report-pdf:  ## regenerate docs/reports/MASTER_CLASSIFICATION_AND_OPTIMIZATION_REPORT.pdf
 	$(PYTHON) scripts/generate_pdf.py
@@ -106,8 +106,8 @@ knowledge: index sft-v3  ## rebuild the evidence index and the SFT v3 corpus aft
 index:  ## rebuild knowledge/rag/records.jsonl
 	$(PYTHON) -m dclab_rnd.evidence_index build
 
-sft-v3:  ## rebuild the self-contained SFT v3 corpus into sft/out_v3/
-	$(PYTHON) sft/build_sft_dataset_v3.py
+sft-v3:  ## rebuild the self-contained SFT v3 corpus into research/llm-fine-tuning/sft/out_v3/
+	$(PYTHON) research/llm-fine-tuning/sft/build_sft_dataset_v3.py
 
 critic-gate:  ## show LLM critic challenges that the recorded numbers disprove
 	$(PYTHON) -m dclab_rnd.critic_gate
@@ -126,4 +126,10 @@ expansion:  ## run the task-type expansion campaign (downloads public data to da
 
 expansion-status:  ## expansion campaign progress
 	$(PYTHON) -m dclab_rnd.expansion status
+
+# --- Research tracks -------------------------------------------------------------
+
+new-track:  ## scaffold research/NAME from the template: make new-track NAME=x TITLE="X" PREFIX=X
+	@test -n "$(NAME)" || (echo 'usage: make new-track NAME=my-idea TITLE="My idea" PREFIX=MI' && exit 1)
+	$(PYTHON) scripts/new_research_track.py "$(NAME)" "$(or $(TITLE),$(NAME))" $(if $(PREFIX),--prefix $(PREFIX),)
 

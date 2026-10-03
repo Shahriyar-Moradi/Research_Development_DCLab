@@ -75,7 +75,7 @@ Because DCLab's product is itself exposed through MCP, the R&D tools and the pro
 
 This works now with any capable hosted model (the Studio's configured OpenAI model, or Claude).
 
-**Pattern A — grounded answer.** For a user question, call `search_evidence` with the dataset and stage filters you know, put the top 3 to 5 records in the prompt, and require the answer to cite record IDs. The system prompt in `sft/out_v3/MANIFEST.json` (`system_prompt`) is a good starting point. The five-part answer structure (Evidence, Interpretation, Decision, Risks, Next test) keeps answers checkable.
+**Pattern A — grounded answer.** For a user question, call `search_evidence` with the dataset and stage filters you know, put the top 3 to 5 records in the prompt, and require the answer to cite record IDs. The system prompt in `research/llm-fine-tuning/sft/out_v3/MANIFEST.json` (`system_prompt`) is a good starting point. The five-part answer structure (Evidence, Interpretation, Decision, Risks, Next test) keeps answers checkable.
 
 **Pattern B — the workflow loop.** A deterministic controller walks the five stages. At each stage:
 

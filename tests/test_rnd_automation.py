@@ -72,12 +72,12 @@ class RegistryTests(unittest.TestCase):
             }
             _write(
                 root,
-                "external_projects/sample_exp/results/ladder/06_safe_a.json",
+                "research/tabular-classification/external_projects/sample_exp/results/ladder/06_safe_a.json",
                 payload,
             )
             _write(
                 root,
-                "external_projects/sample_exp/results/ladder/06_safe_b.json",
+                "research/tabular-classification/external_projects/sample_exp/results/ladder/06_safe_b.json",
                 payload,
             )
             _, issues = collect_registry(root)
@@ -101,7 +101,7 @@ class RegistryTests(unittest.TestCase):
             root = Path(tmp)
             _write(
                 root,
-                "external_projects/sample_exp/results/ladder/04_safe_fe_ratios.json",
+                "research/tabular-classification/external_projects/sample_exp/results/ladder/04_safe_fe_ratios.json",
                 {
                     "dataset": "sample",
                     "exp_id": 4,

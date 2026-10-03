@@ -727,7 +727,7 @@ def _finding_records(root: Path) -> list[Record]:
                     "fair screen, and adaptive development CV is not independent confirmation."
                 ),
                 metadata={"dataset": "telco_churn", "stage": "model_selection"},
-                citations=["churn_exp/CHURN_BENCHMARK.md", "knowledge/master_evidence_pack.json"],
+                citations=["research/churn-prediction/churn_exp/CHURN_BENCHMARK.md", "knowledge/master_evidence_pack.json"],
             )
         )
     return out

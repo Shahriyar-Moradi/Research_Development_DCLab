@@ -6,7 +6,7 @@ This guide answers three questions:
 2. How do the DCLab R&D outputs become such examples?
 3. How does a fine-tuning job train on them directly, and how do we know it worked?
 
-Everything here is implemented in [`sft/`](../../sft/). Nothing in v1 was removed; v3 is added beside it.
+Everything here is implemented in [`research/llm-fine-tuning/sft/`](../../research/llm-fine-tuning/sft/). Nothing in v1 was removed; v3 is added beside it.
 
 ---
 
@@ -58,11 +58,11 @@ external_data/*/meta.json ──────┘
                                          │
               dclab_rnd.critic_gate ─────┤  drop critic claims that the numbers disprove
                                          ▼
-                       sft/build_sft_dataset_v3.py
+                       research/llm-fine-tuning/sft/build_sft_dataset_v3.py
                                          │
              dedupe · strip paths/hashes · dataset-grouped split · 3 formats
                                          ▼
-                                  sft/out_v3/
+                                  research/llm-fine-tuning/sft/out_v3/
 ```
 
 ### Task families
@@ -97,19 +97,19 @@ All three hold the same examples:
 Each line also has a `metadata` object (task, dataset, stage, experiment ID). Trainers ignore it, and the evaluator uses it.
 
 ```bash
-make sft-v3                     # rebuild sft/out_v3/ from current evidence
-python sft/build_sft_dataset_v3.py --check   # CI: fail if committed corpus is stale
+make sft-v3                     # rebuild research/llm-fine-tuning/sft/out_v3/ from current evidence
+python research/llm-fine-tuning/sft/build_sft_dataset_v3.py --check   # CI: fail if committed corpus is stale
 ```
 
 ---
 
 ## 3. Train on it directly
 
-[`sft/train_lora.py`](../../sft/train_lora.py) is a complete LoRA job with Hugging Face TRL:
+[`research/llm-fine-tuning/sft/train_lora.py`](../../research/llm-fine-tuning/sft/train_lora.py) is a complete LoRA job with Hugging Face TRL:
 
 ```bash
 pip install "trl>=0.12" "peft>=0.13" "transformers>=4.46" datasets accelerate
-python sft/train_lora.py --model Qwen/Qwen2.5-1.5B-Instruct --out sft/runs/qwen15b-dclab
+python research/llm-fine-tuning/sft/train_lora.py --model Qwen/Qwen2.5-1.5B-Instruct --out research/llm-fine-tuning/sft/runs/qwen15b-dclab
 ```
 
 Choices and why:
@@ -122,7 +122,7 @@ For a hosted model (for example OpenAI fine-tuning), upload `train.chat.jsonl` a
 
 ## 4. Know whether it worked
 
-[`sft/eval_sft.py`](../../sft/eval_sft.py) scores any model on the held-out datasets without an LLM judge, because most tasks have a checkable core:
+[`research/llm-fine-tuning/sft/eval_sft.py`](../../research/llm-fine-tuning/sft/eval_sft.py) scores any model on the held-out datasets without an LLM judge, because most tasks have a checkable core:
 
 | Task | Check |
 |---|---|
@@ -133,9 +133,9 @@ For a hosted model (for example OpenAI fine-tuning), upload `train.chat.jsonl` a
 | `critique_claim` | Raises gaps with severities |
 
 ```bash
-python sft/eval_sft.py score --reference          # sanity check: reference answers score 1.0
-python sft/eval_sft.py generate --model Qwen/Qwen2.5-1.5B-Instruct --adapter sft/runs/qwen15b-dclab --out preds.jsonl
-python sft/eval_sft.py score --predictions preds.jsonl
+python research/llm-fine-tuning/sft/eval_sft.py score --reference          # sanity check: reference answers score 1.0
+python research/llm-fine-tuning/sft/eval_sft.py generate --model Qwen/Qwen2.5-1.5B-Instruct --adapter research/llm-fine-tuning/sft/runs/qwen15b-dclab --out preds.jsonl
+python research/llm-fine-tuning/sft/eval_sft.py score --predictions preds.jsonl
 ```
 
 Score the base model first, then the adapter. Keep the adapter only if it beats the base model on the held-out datasets. A canned one-line answer scores about 0.14, so the check discriminates.

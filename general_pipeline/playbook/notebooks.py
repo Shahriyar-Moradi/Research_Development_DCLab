@@ -18,7 +18,7 @@ def _code(text: str):
     return nbf.v4.new_code_cell(text)
 
 
-# Robust when cwd is notebooks/, <key>_exp/, external_projects/, or repo root.
+# Robust when cwd is notebooks/, <key>_exp/, research/tabular-classification/external_projects/, or repo root.
 _FIND_ROOT = '''
 from pathlib import Path
 import sys
@@ -32,7 +32,7 @@ def _find_repo_root() -> Path:
         pass
     for start in starts:
         for p in [start, *start.parents]:
-            if (p / "general_pipeline").is_dir() and (p / "hyperack_exp").is_dir():
+            if (p / "general_pipeline").is_dir() and (p / "research/tabular-classification/hyperack_exp").is_dir():
                 return p
     raise RuntimeError(
         "Could not find repo root containing general_pipeline/. "
@@ -42,8 +42,8 @@ def _find_repo_root() -> Path:
 ROOT = _find_repo_root()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-if str(ROOT / "hyperack_exp") not in sys.path:
-    sys.path.insert(0, str(ROOT / "hyperack_exp"))
+if str(ROOT / "research/tabular-classification/hyperack_exp") not in sys.path:
+    sys.path.insert(0, str(ROOT / "research/tabular-classification/hyperack_exp"))
 print("REPO ROOT:", ROOT)
 '''.strip()
 
@@ -123,7 +123,7 @@ opt
     cells.append(_md("## 6. Regenerate detailed reports + figures"))
     cells.append(_code("""
 write_detailed_reports(KEY, df)
-print('Reports written to external_projects/%s_exp/' % KEY)
+print('Reports written to research/tabular-classification/external_projects/%s_exp/' % KEY)
 """))
 
     cells.append(_md("""## 7. Next steps for a new dataset
@@ -131,7 +131,7 @@ print('Reports written to external_projects/%s_exp/' % KEY)
 1. Add entry to `general_pipeline/external_catalog.py` and download.
 2. Define leakage in `general_pipeline/playbook/policy.py`.
 3. Run `python general_pipeline/playbook/run_playbook.py --dataset <key>`.
-4. Open the generated notebook and reports in `external_projects/<key>_exp/`.
+4. Open the generated notebook and reports in `research/tabular-classification/external_projects/<key>_exp/`.
 """))
 
     nb["cells"] = cells

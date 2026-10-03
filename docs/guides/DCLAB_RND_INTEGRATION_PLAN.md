@@ -14,7 +14,7 @@ DCLab's promise to data scientists and ML engineers is to do the notebook work a
 | Critic gate | `dclab_rnd/critic_gate.py` | Filters LLM critique before it becomes memory |
 | Notebook copilot | `dclab_rnd/copilot/` | Inline review with "Show proof" |
 | Agent tools + MCP server | `dclab_rnd/tools.py` | One tool surface for the product agent |
-| SFT v3 corpus + trainer + evaluator | `sft/` | A future small in-house model |
+| SFT v3 corpus + trainer + evaluator | `research/llm-fine-tuning/sft/` | A future small in-house model |
 | Blind auditor replay | `campaigns/agent_verification_v1/` | Regression test for leakage detection |
 
 ## Phase 1 — now: retrieval and tools with a hosted model
@@ -61,7 +61,7 @@ Every iteration writes a record with Goal, Change, Reason, Result and Cost. The 
 | **Copilot demos** (`tests/test_knowledge_layer.py`) | Planted mistakes are caught, a clean notebook stays clean | Implemented, in CI |
 | **Critic gate** (`python -m dclab_rnd.critic_gate`) | LLM critique contradicted by numbers never reaches memory or training | Implemented: 10 of 157 challenges disproved |
 | **Campaign replay** | The loop, run on the 10 campaign datasets *without* their results, excludes the same leakage columns and lands within the campaign's holdout confidence interval | Next. Uses `campaigns/model_building_50_v1` as the answer key |
-| **Red-team with unsafe data** | Given the "unsafe" ablation data, the loop flags the suspicious jump instead of reporting it as progress | Next. Uses the unsafe results already in `external_projects/*/results/ladder/` |
+| **Red-team with unsafe data** | Given the "unsafe" ablation data, the loop flags the suspicious jump instead of reporting it as progress | Next. Uses the unsafe results already in `research/tabular-classification/external_projects/*/results/ladder/` |
 | **Widening gate** | Each new capability (a new action, a new task type) is advertised only after a campaign validates it | Policy |
 
 ## What we can honestly claim
@@ -78,7 +78,7 @@ Every claim the product makes must be as checkable as its copilot notes.
 
 ## Phase 3 — later: a small in-house model
 
-When volume or deployment needs justify it, fine-tune a small model on `sft/out_v3/` with `sft/train_lora.py`, score it with `sft/eval_sft.py` against the base model on held-out datasets, and keep retrieval. See [SFT_DATA_GUIDE.md](SFT_DATA_GUIDE.md).
+When volume or deployment needs justify it, fine-tune a small model on `research/llm-fine-tuning/sft/out_v3/` with `research/llm-fine-tuning/sft/train_lora.py`, score it with `research/llm-fine-tuning/sft/eval_sft.py` against the base model on held-out datasets, and keep retrieval. See [SFT_DATA_GUIDE.md](SFT_DATA_GUIDE.md).
 
 ## Keeping it alive
 

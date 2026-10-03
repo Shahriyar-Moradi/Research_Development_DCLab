@@ -16,7 +16,7 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 ROOT = Path(__file__).resolve().parent.parent
-HYPERACK_DIR = ROOT / "hyperack_exp"
+HYPERACK_DIR = ROOT / "research/tabular-classification/hyperack_exp"
 sys.path.insert(0, str(HYPERACK_DIR))
 sys.path.insert(0, str(ROOT))
 
@@ -96,7 +96,7 @@ def run_experiment(
             ROOT,
             data_paths=[
                 ROOT / "data" / "hyperack" / "hyper_ackt-dataset.csv",
-                ROOT / "hyperack_exp" / "results" / "split_indices.npz",
+                ROOT / "research/tabular-classification/hyperack_exp" / "results" / "split_indices.npz",
             ],
             random_state=42,
         ),

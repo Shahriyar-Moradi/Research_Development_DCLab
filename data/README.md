@@ -1,12 +1,12 @@
 # `data/` — raw project datasets
 
 Local source tables used by the HyperAck and Telco Churn work. Public UCI benchmark
-tables live separately under [`external_data/`](../external_data/) as parquet caches.
+tables live separately under [`external_data/`](../external_data/) as parquet caches. Public data downloaded by the expansion campaign lands in `data/external/` (gitignored, re-fetched with pinned SHA-256).
 
 | Path | Rows | Target | Used by |
 |---|---:|---|---|
-| `hyperack/hyper_ackt-dataset.csv` | 11,118 | `hyper_ack` (0/1) | `hyperack_exp/`, `safe_leakage_exp/`, `optimized_safe_model/`, `general_pipeline/`, `dclab_rnd.agentic`, `tabpfn/`, `notebooks/` |
-| `telco/WA_Fn-UseC_-Telco-Customer-Churn.csv` | 7,043 | `Churn` (Yes/No) | `churn_exp/` (via `dclab_rnd.churn_suite`), `dclab_rnd.agentic`, `logistic_regression/`, `tabular_transformers/`, `tabpfn/` |
+| `hyperack/hyper_ackt-dataset.csv` | 11,118 | `hyper_ack` (0/1) | [`research/tabular-classification/`](../research/tabular-classification/), `general_pipeline/`, `dclab_rnd.agentic`, [`research/tabular-foundation-models/`](../research/tabular-foundation-models/) |
+| `telco/WA_Fn-UseC_-Telco-Customer-Churn.csv` | 7,043 | `Churn` (Yes/No) | [`research/churn-prediction/`](../research/churn-prediction/) (via `dclab_rnd.churn_suite`), `dclab_rnd.agentic`, [`research/tabular-foundation-models/`](../research/tabular-foundation-models/) |
 
 Rules:
 

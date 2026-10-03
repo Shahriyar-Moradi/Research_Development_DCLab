@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUTS_DIR = ROOT / "benchmark_outputs" / "external"
+OUTPUTS_DIR = ROOT / "research/tabular-classification/benchmark_outputs" / "external"
 CSV_PATH = OUTPUTS_DIR / "external_multidataset_benchmark.csv"
 
 

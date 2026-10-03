@@ -21,7 +21,7 @@
 
 Image links inside the reports are relative to `docs/reports/`, so they render on GitHub and
 in local Markdown viewers. Plots themselves stay next to the code that produced them
-(`benchmark_outputs/`, `optimized_safe_model/results/`, ...).
+(`research/tabular-classification/benchmark_outputs/`, `research/tabular-classification/optimized_safe_model/results/`, ...).
 
 Regenerate the lifecycle PDF from its Markdown source (needs `markdown-it-py` and Chrome):
 
