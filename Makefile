@@ -21,7 +21,7 @@ rd-check:  ## tests, record validation, stale-knowledge and campaign gates
 	$(PYTHON) -m dclab_rnd campaign verify
 	$(PYTHON) -m dclab_rnd.evidence_index check
 	$(PYTHON) research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check
-	$(PYTHON) scripts/build_research_index.py --check
+	$(PYTHON) -m dclab_rnd.research_map --check
 
 rd-status:  ## deployment-eligible champions
 	$(PYTHON) -m dclab_rnd status
@@ -60,7 +60,7 @@ agent-serve:  ## start the local Studio UI on http://127.0.0.1:8765
 	$(AGENT_PYTHON) -m dclab_rnd.agentic serve
 
 agent-test:  ## agentic tests (agent env) + deterministic worker tests (ML env)
-	$(AGENT_PYTHON) -m pytest tests/test_agentic.py -q
+	$(AGENT_PYTHON) -m pytest tests/test_agentic.py tests/test_research_map.py -q
 	$(PYTHON) -m unittest discover -s tests -p 'test_agentic_worker.py' -v
 
 agent-status:  ## list Studio runs
@@ -133,10 +133,10 @@ expansion-status:  ## expansion campaign progress
 new-track:  ## scaffold research/NAME from the template: make new-track NAME=x TITLE="X" PREFIX=X
 	@test -n "$(NAME)" || (echo 'usage: make new-track NAME=my-idea TITLE="My idea" PREFIX=MI' && exit 1)
 	$(PYTHON) scripts/new_research_track.py "$(NAME)" "$(or $(TITLE),$(NAME))" $(if $(PREFIX),--prefix $(PREFIX),)
-	$(PYTHON) scripts/build_research_index.py
+	$(PYTHON) -m dclab_rnd.research_map
 
 research-index:  ## regenerate research/<track>/INDEX.md and the track graph
-	$(PYTHON) scripts/build_research_index.py
+	$(PYTHON) -m dclab_rnd.research_map
 
 clean:  ## remove caches and empty folders (dry run; `make clean APPLY=1` to remove)
 	$(PYTHON) scripts/clean_workspace.py $(if $(APPLY),--apply,)

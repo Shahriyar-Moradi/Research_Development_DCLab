@@ -1,32 +1,15 @@
-/* No third-party scripts. Escape all user/model strings before DOM rendering. */
-const $ = id => document.getElementById(id);
-const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const number = value => Number.isFinite(value) ? value.toFixed(4) : '—';
-let config, runs = [], selected = null, currentView = 'research', selectedProject = 'general';
-const labels = {adult:'Adult income',bank_marketing:'Bank marketing',breast_cancer:'Breast cancer',heart_disease:'Heart disease',credit_default:'Credit default',german_credit:'German credit',mushroom:'Mushroom',spambase:'Spambase',online_shoppers:'Online shoppers',wine_quality:'Wine quality',hyperack:'HyperAck delivery acceptance',telco_churn:'Telco customer churn'};
-async function api(path, options = {}) {
-  const response = await fetch('/api' + path, {...options, headers: {'Content-Type':'application/json','X-DCLab-Token':config?.csrf || '', ...options.headers}});
-  const data = await response.json();
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
-  return data;
-}
-function notice(message) { $('notice').textContent = message; $('notice').classList.toggle('hidden', !message); }
-function view(name) {
-  currentView = name;
-  ['research','knowledge','recipes'].forEach(v => $(v+'-view').classList.toggle('hidden', v!==name));
-  document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b.dataset.view===name));
-  $('page-label').textContent = {research:'Research',knowledge:'Knowledge',recipes:'Recipes & traces'}[name];
-  if (name === 'knowledge') loadKnowledge();
-  if (name === 'recipes') renderRecipes();
-}
-function updateSettings() {
+/* Agent research: project picker, composer, run list and live run detail. */
+import {$, esc, number, state, labels, api, notice} from '../core.js';
+
+export function updateSettings() {
   const count = Number($('experiment-limit').value);
   $('settings-summary').textContent = `${count} experiments · ${$('repeats').value} × 3-fold CV`;
   $('budget-copy').textContent = `Up to ${5+2*count} API calls · 6,000 output tokens per call. Input tokens also incur API charges. No automatic purchase or unlimited loop.`;
 }
-function inferProject(run) { return run.config.project || config?.datasets.find(d=>run.config.datasets.includes(d.key))?.project || 'general'; }
+function inferProject(run) { return run.config.project || state.config?.datasets.find(d=>run.config.datasets.includes(d.key))?.project || 'general'; }
 function chooseProject(key) {
-  selectedProject=key;
+  const config = state.config;
+  state.project=key;
   document.querySelectorAll('[data-project]').forEach(b=>b.classList.toggle('active',b.dataset.project===key));
   const project=config.projects.find(p=>p.key===key), allowed=new Set(project.datasets);
   $('datasets').innerHTML=config.datasets.filter(d=>allowed.has(d.key)).map(d=>`<label class="dataset-option" title="${esc(d.decision)}"><input type="checkbox" value="${esc(d.key)}" ${d.key===project.default_dataset?'checked':''}>${esc(labels[d.key]||d.name)}</label>`).join('');
@@ -35,31 +18,37 @@ function chooseProject(key) {
   const scores=key==='hyperack'?`<span>Safe champion AUC ${number(campaign.safe_champion_auc)} · unsafe ceiling ${number(campaign.unsafe_ceiling_auc)} (post-outcome leakage)</span>`:key==='telco_churn'&&campaign.best?`<span>Current development leader: ${esc(campaign.best.title)} · AUC ${number(campaign.best.metrics?.roc_auc)}</span>`:'';
   $('project-summary').innerHTML=`<div><b>${esc(project.status)}</b><p>${esc(project.summary)}</p></div><div>${evidence}${scores}</div>`;
 }
-function renderProjects(){
-  $('projects').innerHTML=config.projects.map(p=>`<button type="button" class="project-option ${p.key===selectedProject?'active':''}" data-project="${esc(p.key)}"><span>${esc(p.name)}</span><small>${esc(p.status)}</small></button>`).join('');
+export function renderProjects(){
+  $('projects').innerHTML=state.config.projects.map(p=>`<button type="button" class="project-option ${p.key===state.project?'active':''}" data-project="${esc(p.key)}"><span>${esc(p.name)}</span><small>${esc(p.status)}</small></button>`).join('');
   document.querySelectorAll('[data-project]').forEach(b=>b.addEventListener('click',()=>chooseProject(b.dataset.project)));
-  chooseProject(selectedProject);
+  chooseProject(state.project);
 }
-function renderRuns() {
-  $('run-list').innerHTML = runs.length ? runs.slice(0,10).map(r=>`<button class="run-nav ${selected===r.id?'active':''}" data-run="${esc(r.id)}"><strong>${esc(r.config.goal)}</strong><small>${esc(r.config.datasets.map(d=>labels[d]||d).join(' · '))} · ${esc(r.status)}</small></button>`).join('') : '<p class="muted small">Your research runs will appear here.</p>';
-  document.querySelectorAll('[data-run]').forEach(b=>b.addEventListener('click',()=>selectRun(b.dataset.run)));
+export function renderRuns() {
+  const runs = state.runs;
+  $('run-list').innerHTML = runs.length ? runs.slice(0,10).map(r=>`<button class="run-nav ${state.selected===r.id?'active':''}" data-run="${esc(r.id)}"><strong>${esc(r.config.goal)}</strong><small>${esc(r.config.datasets.map(d=>labels[d]||d).join(' · '))} · ${esc(r.status)}</small></button>`).join('') : '<p class="muted small">Your research runs will appear here.</p>';
+  document.querySelectorAll('[data-run]').forEach(b=>b.addEventListener('click',()=>{location.hash='#run/'+b.dataset.run;}));
 }
-async function refresh() {
+export async function refreshRuns() {
   try {
-    runs = await api('/runs'); renderRuns();
-    if (selected && currentView === 'research') renderDetail(await api('/runs/'+selected));
-    if (currentView === 'recipes') renderRecipes();
+    state.runs = await api('/runs'); renderRuns();
+    if (state.selected && state.view === 'research') renderDetail(await api('/runs/'+state.selected));
   } catch(error) { notice(error.message); }
 }
-async function selectRun(id) {
-  selected=id; view('research');
+export function showComposer() {
+  state.selected=null;
+  $('composer').classList.remove('hidden');$('empty-state').classList.remove('hidden');$('run-detail').classList.add('hidden');
+  document.querySelector('#research-view .page-heading').classList.remove('hidden');renderRuns();
+}
+export async function showRun(id) {
+  state.selected=id;
   $('composer').classList.add('hidden'); $('empty-state').classList.add('hidden'); $('run-detail').classList.remove('hidden');
   document.querySelector('#research-view .page-heading').classList.add('hidden');
-  await refresh();
+  await refreshRuns();
 }
 function list(items) { return `<ul>${(items||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`; }
 function artifactLink(run,id,file,label) { return `<a href="/api/runs/${encodeURIComponent(run)}/trials/${encodeURIComponent(id.split(':').pop())}/${file}" download>${label} ↗</a>`; }
 function renderDetail(run) {
+  const config = state.config;
   const events=run.events, corrections=new Map(events.filter(e=>e.kind==='comparison_correction').map(e=>[e.payload.trial_id,e.payload]));
   const trials=[...new Map(events.filter(e=>e.kind==='trial').map(e=>[e.payload.id,e.payload])).values()];
   trials.forEach(t=>{if(corrections.has(t.id))t.paired_comparison=corrections.get(t.id).paired_comparison;});
@@ -84,39 +73,21 @@ function renderDetail(run) {
   $('pause')?.addEventListener('click',()=>control('pause'));
   $('resume')?.addEventListener('click',()=>control('resume'));
 }
-async function control(action) { try { await api(`/runs/${selected}/${action}`,{method:'POST'});await refresh(); }catch(e){notice(e.message);} }
-async function loadKnowledge() {
-  try {
-    const lessons=await api('/knowledge');
-    const guide=`<article class="card lesson guide-card"><span class="label">DCLAB MODEL-BUILDING FIELD GUIDE</span><h3>From raw data to reliable evidence.</h3><p>An outsider-readable synthesis of EDA, leakage, feature engineering, algorithms, optimization, reliability, agent roles, 22 evidence-linked rules, and 10 reusable workflow blocks.</p><a class="primary" href="/guide" target="_blank" rel="noopener">Open complete guide ↗</a></article>`;
-    $('knowledge-list').innerHTML=guide+(lessons.length?lessons.map(l=>`<article class="card lesson"><span class="label">PROVISIONAL FINDING · ${esc(l.datasets.map(d=>labels[d]).join(' / '))}</span><h3>${esc(l.claim)}</h3><p>${esc(l.scope)}</p><p><b>Counterevidence:</b> ${esc(l.counterevidence)}<br><b>Next test:</b> ${esc(l.follow_up)}</p><button class="secondary" data-run="${esc(l.run_id)}">Inspect ${l.evidence_ids.length} cited experiment${l.evidence_ids.length===1?'':'s'} ↗</button></article>`).join(''):'<div class="card empty-card"><h2>Evidence grows into knowledge.</h2><p>Finish a research run to see its critiqued, cited lessons here.</p></div>');
-    $('knowledge-list').querySelectorAll('[data-run]').forEach(b=>b.addEventListener('click',()=>selectRun(b.dataset.run)));
-  }catch(e){notice(e.message);}
+async function control(action) { try { await api(`/runs/${state.selected}/${action}`,{method:'POST'});await refreshRuns(); }catch(e){notice(e.message);} }
+
+export function initComposer() {
+  $('goal').value=state.config.default_goal;$('model').value=state.config.default_model;state.project=state.config.default_project;renderProjects();
+  $('runtime-copy').innerHTML=`<p><b>Active LLM:</b> ${esc(state.config.default_model)} · ${esc(state.config.frameworks.join(' · '))}</p>${Object.entries(state.config.commands).map(([name,command])=>`<div><span>${esc(name.replaceAll('_',' '))}</span><code>${esc(command)}</code></div>`).join('')}`;
+  if(!state.config.api_key_configured){$('start').disabled=true;$('key-notice').textContent='Set OPENAI_API_KEY in the server environment or .env, then restart. Never paste your key into the goal.';$('key-notice').classList.remove('hidden');}
+  ['experiment-limit','repeats'].forEach(id=>$(id).addEventListener('input',updateSettings));
+  $('new-run').addEventListener('click',()=>{location.hash='#research';showComposer();});
+  $('start').addEventListener('click',async()=>{
+    $('start').disabled=true;notice('');
+    try {
+      const datasets=[...document.querySelectorAll('#datasets input:checked')].map(i=>i.value);
+      if(!datasets.length)throw new Error('Choose at least one dataset.');
+      const result=await api('/runs',{method:'POST',body:JSON.stringify({project:state.project,goal:$('goal').value,datasets,model:$('model').value,max_experiments:Number($('experiment-limit').value),max_rows:Number($('row-limit').value),repeats:Number($('repeats').value),max_minutes:Number($('minutes').value)})});
+      location.hash='#run/'+result.id;
+    } catch(error){notice(error.message);} finally{$('start').disabled=!state.config.api_key_configured;}
+  });
 }
-function renderRecipes(){
-  $('recipe-list').innerHTML=runs.length?runs.map(r=>`<article class="card recipe-row"><div><h3>${esc(r.config.datasets.map(d=>labels[d]).join(' + '))}</h3><p>${esc(r.config.goal.slice(0,130))}</p><p>${esc(r.status)} · ${new Date(r.created).toLocaleDateString()} · source-grouped curation required</p></div><div class="actions"><button class="secondary" data-recipe="${esc(r.id)}">View recipes</button><a class="secondary" href="/api/runs/${esc(r.id)}/export">Export trajectory ↗</a></div></article>`).join(''):'<div class="card empty-card"><h2>A workflow worth repeating.</h2><p>Each completed experiment saves its configuration, code fingerprints and evaluation procedure.</p></div>';
-  document.querySelectorAll('[data-recipe]').forEach(b=>b.addEventListener('click',()=>selectRun(b.dataset.recipe)));
-}
-document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
-$('new-run').addEventListener('click',()=>{selected=null;view('research');$('composer').classList.remove('hidden');$('empty-state').classList.remove('hidden');$('run-detail').classList.add('hidden');document.querySelector('#research-view .page-heading').classList.remove('hidden');renderRuns();});
-['experiment-limit','repeats'].forEach(id=>$(id).addEventListener('input',updateSettings));
-$('start').addEventListener('click',async()=>{
-  $('start').disabled=true;notice('');
-  try {
-    const datasets=[...document.querySelectorAll('#datasets input:checked')].map(i=>i.value);
-    if(!datasets.length)throw new Error('Choose at least one dataset.');
-    const result=await api('/runs',{method:'POST',body:JSON.stringify({project:selectedProject,goal:$('goal').value,datasets,model:$('model').value,max_experiments:Number($('experiment-limit').value),max_rows:Number($('row-limit').value),repeats:Number($('repeats').value),max_minutes:Number($('minutes').value)})});
-    await selectRun(result.id);
-  } catch(error){notice(error.message);} finally{$('start').disabled=false;}
-});
-(async()=>{
-  try{
-    config=await api('/config');$('goal').value=config.default_goal;$('model').value=config.default_model;selectedProject=config.default_project;renderProjects();
-    $('runtime-copy').innerHTML=`<p><b>Active LLM:</b> ${esc(config.default_model)} · ${esc(config.frameworks.join(' · '))}</p>${Object.entries(config.commands).map(([name,command])=>`<div><span>${esc(name.replaceAll('_',' '))}</span><code>${esc(command)}</code></div>`).join('')}`;
-    $('connection').textContent=config.api_key_configured?'● OpenAI connected · key configured':'○ API key needed';
-    if(!config.api_key_configured){notice('Set OPENAI_API_KEY in the server environment or .env, then restart. Never paste your key into the goal.');$('start').disabled=true;}
-    await refresh();
-    const active=runs.find(r=>['running','queued'].includes(r.status));if(active)await selectRun(active.id);
-    setInterval(refresh,4000);
-  }catch(error){notice(error.message);$('connection').textContent='Connection unavailable';}
-})();

@@ -18,10 +18,14 @@ from .catalog import ROOT, catalog
 from .projects import project_catalog
 from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
-from .engine import run_research
+from .. import research_map
 
 load_dotenv(ROOT / ".env", override=False)
 STATIC = Path(__file__).with_name("static")
+
+def version(package):
+    try: return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError: return "not installed"
 
 def create_app(home=None):
     store = Store(Path(home or os.environ.get("DCLAB_AGENT_HOME", ROOT / "agent_runs")))
@@ -57,12 +61,13 @@ def create_app(home=None):
     def launch(run_id, resume=False):
         if any(not task.done() for task in tasks.values()):
             raise HTTPException(409, "One active research run at a time; pause it before starting another")
+        from .engine import run_research  # imported on first run: the map and history work without the agent stack
         task = asyncio.create_task(run_research(store, run_id, resume))
         tasks[run_id] = task
         task.add_done_callback(lambda _: tasks.pop(run_id, None))
     @app.get("/api/config")
     async def configuration():
-        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"), "default_project": "general", "projects": project_catalog(), "datasets": catalog(), "frameworks": [f"NOOA {importlib.metadata.version('nooa')} · typed Predict specialists", f"LangGraph {importlib.metadata.version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"], "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4", "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"}, "privacy": "Aggregate data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
+        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"), "default_project": "general", "projects": project_catalog(), "datasets": catalog(), "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"], "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4", "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"}, "privacy": "Aggregate data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
     @app.get("/api/runs")
     async def runs(): return store.list()
     @app.post("/api/runs", status_code=201)
@@ -106,6 +111,14 @@ def create_app(home=None):
         path = store.home / run_id / trial_id / filename
         if not path.is_file(): raise HTTPException(404, "Artifact is not available")
         return FileResponse(path, filename=filename)
+    @app.get("/api/research")
+    async def research():
+        """Every research idea with its champion, experiments, notebooks, evaluation, reports and relations."""
+        return research_map.research_map()
+    @app.get("/api/research/file")
+    async def research_file(path: str):
+        try: return research_map.preview(path)
+        except ValueError as error: raise HTTPException(404, str(error))
     @app.get("/api/knowledge")
     async def knowledge(): return store.knowledge()
     @app.get("/guide")

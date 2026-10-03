@@ -1,0 +1,83 @@
+/* Responsive rules for the shell and the studio views (loaded after the view styles). */
+@media (max-width: 1150px) {
+  main { padding: 0 30px; }
+  .sidebar { width: 240px; padding: 30px 18px; }
+  main { margin-left: 240px; }
+  .run-grid { grid-template-columns: 1fr; }
+  .timeline { display: grid; grid-template-columns: repeat(2, 1fr); }
+  h1 { font-size: 38px; }
+  .principles { gap: 20px; }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    position: static;
+    width: 100%;
+    padding: 16px 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    display: block;
+  }
+  .brand { font-size: 22px; }
+  .brandmark { width: 40px; height: 40px; }
+  .sidebar nav { display: flex; margin-top: 15px; gap: 8px; }
+  .nav {
+    padding: 10px;
+    font-size: 14px;
+    justify-content: center;
+    margin: 0;
+  }
+  .nav span,
+  .nav-group { display: none; }
+  .workspace-label,
+  .sidebar-section,
+  .sidebar-bottom { display: none; }
+  main { margin-left: 0; padding: 0 20px; }
+  header { height: 64px; font-size: 14px; }
+  .page-heading { margin-top: 30px; }
+  h1 { font-size: 34px; }
+  .composer { padding: 20px; }
+  .pill { display: none; }
+  .settings-grid { grid-template-columns: 1fr 1fr; }
+  .composer-footer {
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .composer-footer p {
+    max-width: 150px;
+    font-size: 13px;
+  }
+  .primary { white-space: nowrap; }
+  .principles {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .principles article {
+    border-left: 2px solid #dce8e2;
+    padding-left: 15px;
+  }
+  .principles article > span { float: right; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .run-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .settings summary span { font-size: 13px; }
+  .recipe-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  footer {
+    flex-wrap: wrap;
+    font-size: 13px;
+    gap: 7px;
+  }
+  .footer-note {
+    margin-left: 0;
+    width: 100%;
+  }
+  .timeline { display: block; }
+  .field-label span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+}

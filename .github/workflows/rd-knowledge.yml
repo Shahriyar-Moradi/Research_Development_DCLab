@@ -31,4 +31,4 @@ jobs:
           python -m dclab_rnd.evidence_index check
           python research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check
       - name: Ensure research index is current
-        run: python scripts/build_research_index.py --check
+        run: python -m dclab_rnd.research_map --check

@@ -11,7 +11,7 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 - `data/` — all datasets: `project/` (HyperAck, Telco), `public/` (10 UCI parquet), `downloads/` (gitignored).
 - `research/<track>/` — one folder per research idea, same shape everywhere: `README.md` (idea, contract, conclusions), generated `INDEX.md` (champion, experiments, notebooks, evaluation, reports), `experiments/`, `notebooks/`, `evaluation/`, `reports/`. Index: `research/README.md`. New idea: `make new-track NAME=... TITLE="..." PREFIX=...`.
 - `evidence/campaigns/` — immutable experiment results (one JSON each). `evidence/knowledge/` — GENERATED; never edit by hand.
-- `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `agentic/` (Research Studio).
+- `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `research_map.py` (track records → INDEX.md and the Studio map), `agentic/` (Research Studio; UI in `agentic/static/{css,js/views}`).
 - `general_pipeline/` — shared tabular pipeline imported by research scripts and `dclab_rnd`.
 - `docs/guides/` — field notes, integration plan, agent architecture, copilot, SFT guide.
 
