@@ -19,7 +19,11 @@ from .projects import project_catalog
 from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .. import research_map
-from ..studio import ProjectStore, agent as studio_agent, contract as studio_contract, data as studio_data, engine as studio_engine, export as studio_export
+from ..studio import ProjectStore, agent as studio_agent, contract as studio_contract, data as studio_data, engine as studio_engine, export as studio_export, sft as studio_sft
+from ..intern import Intern, SessionStore
+from ..intern import llm as intern_llm
+from ..intern.sessions import EXAMPLE_TASKS
+from ..intern.tools import Toolbox
 
 load_dotenv(ROOT / ".env", override=False)
 STATIC = Path(__file__).with_name("static")
@@ -33,6 +37,12 @@ def create_app(home=None):
     projects = ProjectStore(Path(os.environ.get("DCLAB_STUDIO_HOME") or (store.home / "projects")))
     tasks = {}
     jobs = {}
+    intern_sessions = SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
+    intern_jobs = {}
+    def intern():
+        cfg = intern_llm.settings()
+        client = intern_llm.ChatClient() if cfg["available"] else None
+        return Intern(intern_sessions, Toolbox(projects), client)
     csrf = secrets.token_urlsafe(32)
     @asynccontextmanager
     async def lifespan(app):
@@ -40,7 +50,7 @@ def create_app(home=None):
             if run["status"] in ("queued", "running", "pausing"):
                 store.update(run["id"], status="interrupted", phase="Server restarted; resume explicitly")
         yield
-        active = list(tasks.values()) + list(jobs.values())
+        active = list(tasks.values()) + list(jobs.values()) + list(intern_jobs.values())
         for task in active: task.cancel()
         if active: await asyncio.gather(*active, return_exceptions=True)
     app = FastAPI(title="DCLab Research Studio", lifespan=lifespan)
@@ -133,19 +143,8 @@ def create_app(home=None):
         if not p.get("data"): raise HTTPException(409, "Upload data first")
         return studio_data.load_table(projects.data_dir(p["id"]) / p["data"]["filename"])
     def attach_data(p, filename):
-        path = projects.data_dir(p["id"]) / filename
-        try: frame = studio_data.load_table(path)
-        except Exception as exc: path.unlink(missing_ok=True); raise HTTPException(400, f"Could not read the file as a table: {type(exc).__name__}")
-        if frame.shape[1] < 2 or len(frame) < 30: path.unlink(missing_ok=True); raise HTTPException(400, "The table needs at least 2 columns and 30 rows")
-        for old in projects.data_dir(p["id"]).iterdir():
-            if old.name != filename: old.unlink()
-        p = projects.get(p["id"])
-        p["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns], "sha256": studio_data.sha256(path), "profile": studio_data.profile_table(frame)}
-        p["contract"], p["proposal"] = None, None
-        projects.save(p)
-        projects.clear_stages(p["id"])
-        projects.log(p["id"], "data_attached", {"filename": filename, "rows": p["data"]["rows"], "columns": len(p["data"]["columns"])})
-        return projects.get(p["id"])
+        try: return studio_data.attach_data(projects, p["id"], filename)
+        except studio_data.DataError as exc: raise HTTPException(400, str(exc))
     async def run_job(project_id, stages):
         def work():
             for stage in stages:
@@ -216,13 +215,9 @@ def create_app(home=None):
     async def use_sample(project_id: str, request: Request):
         p = project(project_id)
         key = (await request.json()).get("key")
-        try: frame, suggestion = studio_data.load_sample(key)
+        try: await asyncio.to_thread(studio_data.use_sample, projects, project_id, key)
         except KeyError: raise HTTPException(404, "Unknown sample dataset")
-        name = f"{key}.csv"
-        frame.to_csv(projects.data_dir(project_id) / name, index=False)
-        p = attach_data(p, name)
-        p["suggestion"] = {**suggestion, "sample": key}
-        projects.save(p)
+        except studio_data.DataError as exc: raise HTTPException(400, str(exc))
         return with_records(projects.get(project_id))
     @app.post("/api/projects/{project_id}/contract/proposal")
     async def contract_proposal(project_id: str, request: Request):
@@ -299,6 +294,65 @@ def create_app(home=None):
     async def export_report(project_id: str):
         p = project(project_id)
         return Response(studio_export.report(p, projects.records(project_id)), media_type="text/markdown; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.md"'})
+    @app.get("/api/projects/{project_id}/export/sft")
+    async def export_sft(project_id: str):
+        p = project(project_id)
+        rows = studio_sft.examples_from_project(p, projects.records(project_id))
+        text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+        return Response(text, media_type="application/x-ndjson", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.sft.jsonl"'})
+    # ------------------------------------------------------------------ the intern
+    def session(session_id):
+        try: return intern_sessions.get(session_id)
+        except KeyError: raise HTTPException(404, "Session not found")
+    def public(s): return {k: v for k, v in s.items() if k != "messages"}
+    async def intern_job(session_id, fn):
+        try: await asyncio.to_thread(fn)
+        except Exception: pass  # recorded on the session
+        finally: intern_jobs.pop(session_id, None)
+    def start_intern_job(session_id, fn, wait):
+        if session_id in intern_jobs and not intern_jobs[session_id].done(): raise HTTPException(409, "This session is still working")
+        job = asyncio.create_task(intern_job(session_id, fn))
+        intern_jobs[session_id] = job
+        return job
+    @app.get("/api/intern")
+    async def intern_status():
+        cfg = intern_llm.settings()
+        return {**cfg, "mode": "llm" if cfg["available"] else "standard", "examples": EXAMPLE_TASKS,
+                "tools": Toolbox(projects).names(), "default_budget": {"max_steps": 24, "max_minutes": 20},
+                "note": ("The model plans and calls the tools; deterministic code runs every stage." if cfg["available"] else
+                         "No model is configured, so the intern follows the standard DCLab plan. Set OPENAI_API_KEY (and OPENAI_BASE_URL for the Hugging Face router or Ollama) to let a model plan.")}
+    @app.get("/api/intern/sessions")
+    async def intern_list(): return intern_sessions.list()
+    @app.post("/api/intern/sessions", status_code=201)
+    async def intern_start(request: Request, wait: bool = False):
+        body = await request.json()
+        task = str(body.get("task", "")).strip()
+        if len(task) < 8: raise HTTPException(422, "Describe the task in at least a sentence")
+        project_id = body.get("project_id") or None
+        if project_id: project(project_id)
+        agent = intern()
+        s = agent.start(task, body.get("budget") if isinstance(body.get("budget"), dict) else None, project_id)
+        job = start_intern_job(s["id"], lambda: agent.run(s["id"]), wait)
+        if wait: await job
+        return public(session(s["id"]))
+    @app.get("/api/intern/sessions/{session_id}")
+    async def intern_get(session_id: str): return public(session(session_id))
+    @app.post("/api/intern/sessions/{session_id}/message")
+    async def intern_message(session_id: str, request: Request, wait: bool = False):
+        s = session(session_id)
+        if s["status"] in ("queued", "running"): raise HTTPException(409, "Wait for the current turn to finish")
+        text = str((await request.json()).get("text", "")).strip()
+        if not text: raise HTTPException(422, "Say something")
+        agent = intern()
+        job = start_intern_job(session_id, lambda: agent.message(session_id, text), wait)
+        if wait: await job
+        return public(session(session_id))
+    @app.delete("/api/intern/sessions/{session_id}", status_code=204)
+    async def intern_delete(session_id: str):
+        session(session_id)
+        if session_id in intern_jobs and not intern_jobs[session_id].done(): raise HTTPException(409, "The session is still working")
+        intern_sessions.delete(session_id)
+        return Response(status_code=204)
     @app.get("/api/evidence/{record_id}")
     async def evidence_record(record_id: str):
         from ..tools import get_record

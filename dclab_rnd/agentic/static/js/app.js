@@ -1,15 +1,16 @@
 /* DCLab notebook entry point: hash router + boot.
-   Routes: #projects · #project/<id> · #map · #map/<idea> · #knowledge · #lab · #run/<id> */
+   Routes: #projects · #project/<id> · #intern · #intern/<session> · #intern/new/<project> · #map · #map/<idea> · #knowledge · #lab · #run/<id> */
 import {$, state, api, notice} from './core.js';
 import {initDrawer} from './drawer.js';
 import {initProjects, renderProjects, refreshProjects} from './views/projects.js';
 import {renderProject, leaveProject} from './views/project.js';
+import {renderIntern, leaveIntern} from './views/intern.js';
 import {initMap, renderMap} from './views/map.js';
 import {initComposer, refreshRuns, showComposer, showRun} from './views/runs.js';
 import {renderKnowledge} from './views/knowledge.js';
 
-const VIEWS = {projects: 'Projects', project: 'Projects', map: 'Research map', knowledge: 'Knowledge', research: 'Agent campaigns'};
-const SECTION = {projects: 'projects-view', project: 'project-view', map: 'map-view', knowledge: 'knowledge-view', research: 'research-view'};
+const VIEWS = {projects: 'Projects', project: 'Projects', intern: 'Intern', map: 'Research map', knowledge: 'Knowledge', research: 'Agent campaigns'};
+const SECTION = {projects: 'projects-view', project: 'project-view', intern: 'intern-view', map: 'map-view', knowledge: 'knowledge-view', research: 'research-view'};
 
 function show(name) {
   state.view = name;
@@ -21,10 +22,12 @@ function show(name) {
 }
 
 async function route() {
-  const [head, arg] = location.hash.replace(/^#/, '').split('/').map(decodeURIComponent);
+  const [head, arg, extra] = location.hash.replace(/^#/, '').split('/').map(decodeURIComponent);
   if (state.view === 'project' && head !== 'project') { leaveProject(); state.project = null; }
+  if (state.view === 'intern' && head !== 'intern') leaveIntern();
   if (head === 'run' && arg) { show('research'); await showRun(arg); return; }
   if (head === 'project' && arg) { show('project'); await renderProject(arg); return; }
+  if (head === 'intern') { show('intern'); await renderIntern(arg, extra); return; }
   if (head === 'lab') { show('research'); if (!state.selected) showComposer(); return; }
   const name = VIEWS[head] && head !== 'project' ? head : 'projects';
   show(name);

@@ -61,6 +61,7 @@ function render(full) {
         <div class="actions ws-actions"><button class="secondary" id="run-all" ${(!p.contract || busy(p)) ? 'disabled' : ''}>▶ Run every stage</button>
           <a class="secondary ${p.contract ? '' : 'disabled'}" href="/api/projects/${esc(p.id)}/export/notebook" ${p.contract ? '' : 'tabindex="-1"'}>Export notebook ↗</a>
           <a class="secondary" href="/api/projects/${esc(p.id)}/export/report">Export report ↗</a>
+          <a class="secondary" href="#intern/new/${esc(p.id)}">Hand to the intern ↗</a>
           <button class="secondary danger" id="delete-project">Delete</button></div></div>
       <div class="ws-layout"><aside class="card ws-rail" id="ws-rail"></aside><div class="ws-cells" id="ws-cells"></div><aside class="card ws-agent" id="ws-agent"></aside></div>`;
     $('run-all').addEventListener('click', () => act(`/projects/${p.id}/run`));
@@ -317,7 +318,7 @@ function renderReport() {
   const important = STAGES.flatMap(s => (p.records[s]?.notes || []).filter(n => n.severity !== 'info').map(n => ({...n, stage: s})));
   el.innerHTML = cellHead(7, 'report', 'approved') + `
     <div class="headline"><div><small>HOLDOUT ${esc(label(m).toUpperCase())}</small><strong>${num(ev.holdout_metrics[m])}</strong><span>95% ${num(ci.low)}–${num(ci.high)} · ${esc(ev.model)} on <code>${esc(ev.feature_recipe)}</code> · holdout used ${ev.holdout_uses_in_this_project}×</span></div>
-      <div class="actions"><a class="primary" href="/api/projects/${esc(p.id)}/export/notebook">Download notebook (.ipynb) ↗</a><a class="secondary" href="/api/projects/${esc(p.id)}/export/report">Download report (.md) ↗</a></div></div>
+      <div class="actions"><a class="primary" href="/api/projects/${esc(p.id)}/export/notebook">Download notebook (.ipynb) ↗</a><a class="secondary" href="/api/projects/${esc(p.id)}/export/report">Download report (.md) ↗</a><a class="secondary" href="/api/projects/${esc(p.id)}/export/sft" title="RAFT-style chat examples built from this project's records">Training examples (.jsonl) ↗</a></div></div>
     <p class="cell-lead">The notebook reproduces this workflow in plain scikit-learn: the contract, the split, the <code>${esc(ev.feature_recipe)}</code> recipe, <code>${esc(ev.model)}</code>${Object.keys(ev.selected_model_params).length ? ' with the accepted parameters' : ' with default parameters'}, the training-only folds and the once-only holdout.</p>
     ${important.length ? `<div class="notes"><div class="notes-head"><b>What to remember</b><small>${plural(important.length, 'warning')} across the stages</small></div>${important.map(n => `<div class="note ${sev(n.severity)}"><b>${esc(STEP_TITLES[n.stage])} · ${esc(n.title)}</b><p>${esc(n.text)}</p><div class="proof">${proofChips(n.proof)}</div></div>`).join('')}</div>` : ''}
     <p class="small muted">Research evidence is not production approval (DCLAB-R22): lineage, monitoring and a fresh confirmation come next.</p>`;

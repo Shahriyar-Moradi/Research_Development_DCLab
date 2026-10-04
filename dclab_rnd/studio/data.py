@@ -168,8 +168,24 @@ PUBLIC_GOALS = {
 }
 
 
+EXPANSION_INDUSTRY = {"credit_card_fraud": "fintech and banking", "letter_recognition": "general",
+                      "bike_sharing_daily": "logistics and delivery", "ecommerce_clothing_reviews": "retail and e-commerce"}
+EXPANSION_TASK = {"binary_imbalanced": "binary", "multiclass": "multiclass", "timeseries_regression": "regression", "text_tabular_binary": "binary"}
+
+
+def _expansion_specs():
+    from dclab_rnd.expansion import datasets as expansion
+
+    return expansion
+
+
 def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
-    """Datasets shipped with the repository, each with the contract the R&D already wrote for it."""
+    """Datasets the R&D already studied, each with the contract it wrote for them.
+
+    The ten UCI tables and the two project tables ship with the repository. The four
+    Kaggle/GitHub datasets of the expansion campaign (imbalanced fraud, multiclass,
+    time series, text + tabular) are fetched on first use with a pinned SHA-256.
+    """
     out = []
     for key, policy in DATASETS.items():
         if key in SAMPLE_META:
@@ -183,13 +199,23 @@ def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
             available = source.exists()
             name = key.replace("_", " ").capitalize()
             goal, industry = PUBLIC_GOALS.get(key, ""), "general"
-        out.append({"key": key, "name": name, "goal": goal, "industry": industry, "available": available,
-                    "blocked": policy["blocked"], "decision": policy["decision"], "task": "binary"})
+        out.append({"key": key, "name": name, "goal": goal, "industry": industry, "available": available, "source": "repository",
+                    "blocked": policy["blocked"], "decision": policy["decision"], "task": "binary", "rows": None})
+    expansion = _expansion_specs()
+    for key, spec in expansion.SPECS.items():
+        cached = expansion.raw_path(root, spec).exists()
+        out.append({"key": key, "name": spec.name, "goal": spec.description, "industry": EXPANSION_INDUSTRY.get(key, "general"),
+                    "available": True, "source": "cached" if cached else "download on first use (pinned SHA-256)",
+                    "blocked": list(spec.blocked_features), "decision": spec.decision_time_contract,
+                    "task": EXPANSION_TASK[spec.task_type], "task_type": spec.task_type, "rows": spec.source_rows, "url": spec.url})
     return out
 
 
 def load_sample(key: str, root: Path = ROOT) -> tuple[pd.DataFrame, dict[str, Any]]:
     """The sample table as one frame (target included) plus a suggested contract."""
+    expansion = _expansion_specs()
+    if key in expansion.SPECS:
+        return _load_expansion_sample(expansion, key, root)
     if key not in DATASETS:
         raise KeyError(key)
     policy = DATASETS[key]
@@ -216,3 +242,67 @@ def load_sample(key: str, root: Path = ROOT) -> tuple[pd.DataFrame, dict[str, An
         "prediction_moment": policy["decision"],
     }
     return frame, suggestion
+
+
+def _load_expansion_sample(expansion, key: str, root: Path) -> tuple[pd.DataFrame, dict[str, Any]]:
+    spec = expansion.SPECS[key]
+    bundle = expansion.load_bundle(root, key)  # downloads once, verifies the pinned hash, never subsamples here
+    frame = bundle.X.copy()
+    if bundle.class_labels:
+        frame[spec.target] = [bundle.class_labels[int(i)] for i in bundle.y]
+    else:
+        frame[spec.target] = bundle.y.to_numpy()
+    suggestion = {
+        "target": spec.target,
+        "task": EXPANSION_TASK[spec.task_type],
+        "forbidden": [{"column": c, "reason": r} for c, r in spec.blocked_features.items() if c in frame],
+        "identifiers": [c for c in spec.identifier_columns if c in frame and c != spec.time_column],
+        "time_column": spec.time_column if spec.time_column in frame else None,
+        "group_column": spec.group_column if spec.group_column in frame else None,
+        "text_columns": [c for c in spec.text_columns if c in frame],
+        "prediction_moment": spec.decision_time_contract,
+        "metric": spec.primary_metric,
+        "positive_label": "1" if EXPANSION_TASK[spec.task_type] == "binary" else None,
+    }
+    return frame, suggestion
+
+
+# ---------------------------------------------------------------------- attaching data to a project
+
+
+class DataError(ValueError):
+    """A table the notebook cannot use; the message is safe to show."""
+
+
+def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
+    """Register ``data/<filename>`` (already written) as the project's table and profile it."""
+    path = store.data_dir(project_id) / filename
+    try:
+        frame = load_table(path)
+    except Exception as exc:  # noqa: BLE001 — pandas raises many types; the file is simply not a table
+        path.unlink(missing_ok=True)
+        raise DataError(f"Could not read the file as a table: {type(exc).__name__}") from None
+    if frame.shape[1] < 2 or len(frame) < 30:
+        path.unlink(missing_ok=True)
+        raise DataError("The table needs at least 2 columns and 30 rows")
+    for old in store.data_dir(project_id).iterdir():
+        if old.name != filename:
+            old.unlink()
+    project = store.get(project_id)
+    project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
+                       "sha256": sha256(path), "profile": profile_table(frame)}
+    project["contract"], project["proposal"], project["suggestion"] = None, None, None
+    store.save(project)
+    store.clear_stages(project_id)
+    store.log(project_id, "data_attached", {"filename": filename, "rows": project["data"]["rows"], "columns": len(project["data"]["columns"])})
+    return store.get(project_id)
+
+
+def use_sample(store, project_id: str, key: str, root: Path = ROOT) -> dict[str, Any]:
+    """Copy a sample dataset into the project and remember the contract the R&D wrote for it."""
+    frame, suggestion = load_sample(key, root)
+    name = f"{key}.csv"
+    frame.to_csv(store.data_dir(project_id) / name, index=False)
+    project = attach_data(store, project_id, name)
+    project["suggestion"] = {**suggestion, "sample": key}
+    return store.save(project)

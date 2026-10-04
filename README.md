@@ -171,11 +171,11 @@ make notebook           # http://127.0.0.1:8765 in the ML environment (no LLM ne
 make agent-serve        # the same UI in the agent environment, with the LLM campaigns enabled
 ```
 
-The notebook is the product side of this repository: a data scientist brings a table and builds a model **stage by stage, with evidence, instead of writing the pipeline**. Cells are stages, not code.
+The notebook is the product side of this repository (the **Intern** page drives it from a chat; see below): a data scientist brings a table and builds a model **stage by stage, with evidence, instead of writing the pipeline**. Cells are stages, not code.
 
 | Step | What happens | Who decides |
 |---|---|---|
-| 0 · Data | Upload a CSV/TSV/Parquet, or start from a dataset the R&D already studied | you |
+| 0 · Data | Upload a CSV/TSV/Parquet, or start from one of 16 datasets the R&D already studied: 10 UCI tables, HyperAck, Telco, and the four Kaggle/GitHub sets of the expansion campaign (imbalanced fraud, 26-class letters, daily bike demand, clothing reviews with text) | you |
 | 1 · Prediction contract | Target, task, *the moment you predict*, forbidden columns, identifiers, time/group columns, metric. The agent audits the columns and proposes what to forbid, with proof | you, from the agent's proposal |
 | 2 · Understand the data | The holdout is locked first; training rows are profiled (missingness, identifiers, drift) | code |
 | 3 · Audit leakage | Heuristic review candidates, a detector self-test, and the measured safe-vs-unsafe score gap of the forbidden columns | code; you confirm or forbid columns |
@@ -189,6 +189,31 @@ Every stage writes a record in the same shape as a campaign result, and every ag
 Other pages: **Research map** (every research idea as a tree and a graph, with its champion, experiments, notebooks, evaluation and reports), **Knowledge** (the field guide and lessons from campaigns) and **Agent campaigns** (the LangGraph + NOOA research loop on curated datasets; needs the agent environment and `OPENAI_API_KEY`). Links are shareable: `#project/<id>`, `#map/churn-prediction`, `#run/<id>`.
 
 Code: `dclab_rnd/studio/` (projects, data, contract, engine, agent notes, export), API in `dclab_rnd/agentic/server.py`, UI in `dclab_rnd/agentic/static/` (`css/`, `js/views/*.js`; no third-party scripts, strict CSP). Projects live under the ignored `agent_runs/projects/`.
+
+### Use the intern (chat mode with tools and a budget)
+
+Like Hugging Face's [ML Intern](https://huggingface.co/docs/chat-ui/ml-intern/getting-started), the **Intern** page is a conversation that plans and runs ML work with tools under a compute budget. The differences are deliberate: it runs on this machine, its compute is the DCLab notebook engine, and every tool it can call is one the R&D already verified (evidence search, the column auditor, the prediction contract, the five stages, the notebook export). The model proposes and explains; deterministic code owns every split, metric and selection rule.
+
+```bash
+make notebook                       # then open http://127.0.0.1:8765/#intern
+```
+
+Describe the task ("Build a leakage-safe churn model on the Telco sample and tell me the honest score"), pick a budget (tool calls and minutes), and watch the plan, the tool calls and the report. The project it builds opens in the notebook; from any project, **Hand to the intern** continues it.
+
+| Setting (in `.env` or the environment) | Meaning |
+|---|---|
+| `OPENAI_API_KEY` | The key the model is called with. Never typed into the UI. |
+| `OPENAI_BASE_URL` | Any OpenAI-compatible endpoint. Hugging Face router: `https://router.huggingface.co/v1` with an `hf_…` key. Ollama: `http://127.0.0.1:11434/v1`. Default: OpenAI. |
+| `DCLAB_INTERN_MODEL` (or `OPENAI_MODEL`) | The model id, e.g. `gpt-5.6-terra`, `zai-org/GLM-5.3-Flash` on the router, `qwen2.5:7b` on Ollama. |
+| `DCLAB_INTERN_HOME` | Where sessions are kept (default `agent_runs/intern/`). |
+
+Without a key the intern still works: it follows the **standard plan** (pick the dataset the task names → create the project → write the contract from the R&D audit and suggestion → run the five stages → report), so the product is usable offline and every transcript has the same shape. Budgets are enforced on every tool call; new projects start in quick mode (3,000 rows).
+
+Where the code lives: `dclab_rnd/intern/` (`tools.py` the toolbox, `llm.py` the client, `loop.py` the budgeted loop and the standard plan, `sessions.py` storage), routes under `/api/intern` in `dclab_rnd/agentic/server.py`, UI in `static/js/views/intern.js`. Tests: `tests/test_intern.py` (a scripted model replays tool calls, so no key is needed).
+
+### The notebook as a data factory
+
+Every finished project is also training data. `GET /api/projects/<id>/export/sft` (the **Training examples** button in the report cell) and `python -m dclab_rnd.studio.sft --out projects.chat.jsonl` turn each completed stage into a RAFT-style example in the SFT v3 shape (dataset card + stage card + what the run did → a five-part answer that cites the record IDs behind it). Nothing is invented: every sentence comes from the stage record. Keep these in a separate file from the campaign corpus and review them before training, as [the SFT guide](docs/guides/SFT_DATA_GUIDE.md) describes.
 
 ### Build training data for a small model
 
