@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index clean
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index clean
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -56,11 +56,14 @@ rd-campaign-review:  ## run pending LLM critic reviews (needs OPENAI_API_KEY)
 
 # --- Agentic Research Studio (agent env, Python 3.12/3.13) ---------------------
 
-agent-serve:  ## start the local Studio UI on http://127.0.0.1:8765
+agent-serve:  ## start the web UI with the LLM campaigns enabled (agent environment)
 	$(AGENT_PYTHON) -m dclab_rnd.agentic serve
 
+notebook:  ## start the DCLab notebook UI on http://127.0.0.1:8765 (ML environment; no LLM needed)
+	$(PYTHON) -m uvicorn dclab_rnd.agentic.server:app --host 127.0.0.1 --port $${DCLAB_PORT:-8765}
+
 agent-test:  ## agentic tests (agent env) + deterministic worker tests (ML env)
-	$(AGENT_PYTHON) -m pytest tests/test_agentic.py tests/test_research_map.py -q
+	$(AGENT_PYTHON) -m pytest tests/test_agentic.py tests/test_research_map.py tests/test_studio.py -q
 	$(PYTHON) -m unittest discover -s tests -p 'test_agentic_worker.py' -v
 
 agent-status:  ## list Studio runs

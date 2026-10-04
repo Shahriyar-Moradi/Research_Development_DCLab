@@ -9,7 +9,7 @@ export function updateSettings() {
 function inferProject(run) { return run.config.project || state.config?.datasets.find(d=>run.config.datasets.includes(d.key))?.project || 'general'; }
 function chooseProject(key) {
   const config = state.config;
-  state.project=key;
+  state.campaignProject=key;
   document.querySelectorAll('[data-project]').forEach(b=>b.classList.toggle('active',b.dataset.project===key));
   const project=config.projects.find(p=>p.key===key), allowed=new Set(project.datasets);
   $('datasets').innerHTML=config.datasets.filter(d=>allowed.has(d.key)).map(d=>`<label class="dataset-option" title="${esc(d.decision)}"><input type="checkbox" value="${esc(d.key)}" ${d.key===project.default_dataset?'checked':''}>${esc(labels[d.key]||d.name)}</label>`).join('');
@@ -19,9 +19,9 @@ function chooseProject(key) {
   $('project-summary').innerHTML=`<div><b>${esc(project.status)}</b><p>${esc(project.summary)}</p></div><div>${evidence}${scores}</div>`;
 }
 export function renderProjects(){
-  $('projects').innerHTML=state.config.projects.map(p=>`<button type="button" class="project-option ${p.key===state.project?'active':''}" data-project="${esc(p.key)}"><span>${esc(p.name)}</span><small>${esc(p.status)}</small></button>`).join('');
+  $('projects').innerHTML=state.config.projects.map(p=>`<button type="button" class="project-option ${p.key===state.campaignProject?'active':''}" data-project="${esc(p.key)}"><span>${esc(p.name)}</span><small>${esc(p.status)}</small></button>`).join('');
   document.querySelectorAll('[data-project]').forEach(b=>b.addEventListener('click',()=>chooseProject(b.dataset.project)));
-  chooseProject(state.project);
+  chooseProject(state.campaignProject);
 }
 export function renderRuns() {
   const runs = state.runs;
@@ -76,7 +76,7 @@ function renderDetail(run) {
 async function control(action) { try { await api(`/runs/${state.selected}/${action}`,{method:'POST'});await refreshRuns(); }catch(e){notice(e.message);} }
 
 export function initComposer() {
-  $('goal').value=state.config.default_goal;$('model').value=state.config.default_model;state.project=state.config.default_project;renderProjects();
+  $('goal').value=state.config.default_goal;$('model').value=state.config.default_model;state.campaignProject=state.config.default_project;renderProjects();
   $('runtime-copy').innerHTML=`<p><b>Active LLM:</b> ${esc(state.config.default_model)} · ${esc(state.config.frameworks.join(' · '))}</p>${Object.entries(state.config.commands).map(([name,command])=>`<div><span>${esc(name.replaceAll('_',' '))}</span><code>${esc(command)}</code></div>`).join('')}`;
   if(!state.config.api_key_configured){$('start').disabled=true;$('key-notice').textContent='Set OPENAI_API_KEY in the server environment or .env, then restart. Never paste your key into the goal.';$('key-notice').classList.remove('hidden');}
   ['experiment-limit','repeats'].forEach(id=>$(id).addEventListener('input',updateSettings));
@@ -86,7 +86,7 @@ export function initComposer() {
     try {
       const datasets=[...document.querySelectorAll('#datasets input:checked')].map(i=>i.value);
       if(!datasets.length)throw new Error('Choose at least one dataset.');
-      const result=await api('/runs',{method:'POST',body:JSON.stringify({project:state.project,goal:$('goal').value,datasets,model:$('model').value,max_experiments:Number($('experiment-limit').value),max_rows:Number($('row-limit').value),repeats:Number($('repeats').value),max_minutes:Number($('minutes').value)})});
+      const result=await api('/runs',{method:'POST',body:JSON.stringify({project:state.campaignProject,goal:$('goal').value,datasets,model:$('model').value,max_experiments:Number($('experiment-limit').value),max_rows:Number($('row-limit').value),repeats:Number($('repeats').value),max_minutes:Number($('minutes').value)})});
       location.hash='#run/'+result.id;
     } catch(error){notice(error.message);} finally{$('start').disabled=!state.config.api_key_configured;}
   });

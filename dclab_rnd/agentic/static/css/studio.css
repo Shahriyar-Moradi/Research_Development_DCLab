@@ -393,3 +393,10 @@ td small {
   display: inline-block;
   margin-top: 8px;
 }
+
+/* lab layout: composer + recent campaigns */
+.lab-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+.lab-runs { padding: 14px; }
+.lab-runs .section-label { padding-left: 4px; }
+.section-title { margin: 6px 0 14px; }
+@media (max-width: 1150px) { .lab-grid { grid-template-columns: 1fr; } }

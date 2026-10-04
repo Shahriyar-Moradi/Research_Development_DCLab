@@ -1,23 +1,50 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DCLab · Research Studio</title><link rel="stylesheet" href="/static/css/base.css"><link rel="stylesheet" href="/static/css/layout.css"><link rel="stylesheet" href="/static/css/map.css"><link rel="stylesheet" href="/static/css/studio.css"><link rel="stylesheet" href="/static/css/responsive.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DCLab · Notebook</title><link rel="stylesheet" href="/static/css/base.css"><link rel="stylesheet" href="/static/css/layout.css"><link rel="stylesheet" href="/static/css/map.css"><link rel="stylesheet" href="/static/css/studio.css"><link rel="stylesheet" href="/static/css/notebook.css"><link rel="stylesheet" href="/static/css/responsive.css"></head>
 <body>
 <aside class="sidebar">
-  <a class="brand" href="/"><span class="brandmark">D<span>c</span></span><span>DCLab<small>RESEARCH STUDIO</small></span></a>
+  <a class="brand" href="#projects"><span class="brandmark">D<span>c</span></span><span>DCLab<small>NOTEBOOK</small></span></a>
   <nav aria-label="Main">
-    <div class="nav-group">EXPLORE</div>
-    <a class="nav active" href="#map" data-view="map"><span>◎</span> Research map</a>
+    <div class="nav-group">BUILD</div>
+    <a class="nav active" href="#projects" data-view="projects"><span>◧</span> Projects</a>
+    <div class="nav-group">LIBRARY</div>
+    <a class="nav" href="#map" data-view="map"><span>◎</span> Research map</a>
     <a class="nav" href="#knowledge" data-view="knowledge"><span>◇</span> Knowledge</a>
-    <div class="nav-group">RUN</div>
-    <a class="nav" href="#research" data-view="research"><span>◈</span> Agent research</a>
+    <div class="nav-group">LAB</div>
+    <a class="nav" href="#lab" data-view="research"><span>◈</span> Agent campaigns</a>
   </nav>
-  <div class="sidebar-section"><div class="section-label">RECENT RESEARCH <button id="new-run" aria-label="New research">+</button></div><div id="run-list"><p class="muted small">Your research runs will appear here.</p></div></div>
+  <div class="sidebar-section"><div class="section-label">RECENT PROJECTS <a href="#projects" aria-label="All projects">+</a></div><div id="project-list"><p class="muted small">No projects yet.</p></div></div>
   <div class="sidebar-bottom"><span class="live-dot"></span> Local workspace</div>
 </aside>
 <main>
-  <header><div class="breadcrumb">Workspace <span>/</span> <b id="page-label">Research map</b></div><div id="connection" class="connection">Connecting…</div></header>
+  <header><div class="breadcrumb">Workspace <span>/</span> <b id="page-label">Projects</b></div><div id="connection" class="connection">Connecting…</div></header>
   <div id="notice" class="notice hidden" role="alert"></div>
-  <section id="map-view" class="view">
+
+  <section id="projects-view" class="view">
+    <div class="page-heading"><div class="eyebrow">THE DCLAB NOTEBOOK</div><h1>Build a model you can trust,<br>without writing the pipeline.</h1><p>Bring a table. The agent runs the five DCLab stages on it, shows the evidence behind every step,<br>and asks you before each decision. You keep a notebook that reproduces the result.</p></div>
+    <div class="home-grid">
+      <div class="card new-project"><h2>Start a project</h2>
+        <label><b>Name</b><input id="project-name" placeholder="e.g. Customer churn, Q4" autocomplete="off"></label>
+        <label><b>Industry</b><select id="industry"></select></label>
+        <label><b>What should the model decide?</b><textarea id="project-goal" placeholder="One sentence: what is predicted, for whom, and what happens with the prediction."></textarea></label>
+        <button class="primary" id="create-project">Create project <span>↗</span></button></div>
+      <div class="card how"><h2>What happens next</h2>
+        <ol><li><span>0</span><div><b>Data.</b> Upload a table, or start from a dataset the R&D already studied.</div></li>
+        <li><span>1</span><div><b>Prediction contract.</b> Say when you predict and what is unknown then. The agent proposes what to forbid.</div></li>
+        <li><span>2</span><div><b>Understand the data.</b> The holdout is locked first; the training rows are profiled.</div></li>
+        <li><span>3</span><div><b>Audit leakage.</b> Measured: how much the forbidden columns would have inflated the score.</div></li>
+        <li><span>4</span><div><b>Feature ladder.</b> Recipes compared on identical folds; the smallest within tolerance wins.</div></li>
+        <li><span>5</span><div><b>Algorithm screen.</b> Five families, ranked with fold spread counted.</div></li>
+        <li><span>6</span><div><b>Tune and confirm.</b> A few explicit candidates, then the holdout, once.</div></li>
+        <li><span>7</span><div><b>Report and notebook.</b> Every decision with its proof, and runnable scikit-learn code.</div></li></ol></div>
+    </div>
+    <h2 class="section-title">Your projects</h2>
+    <div id="project-cards" class="project-cards"></div>
+  </section>
+
+  <section id="project-view" class="view hidden"></section>
+
+  <section id="map-view" class="view hidden">
     <div class="page-heading"><div class="eyebrow">RESEARCH MAP</div><h1>Every idea, and the<br>evidence behind it.</h1><p>Each research idea has the same shape: the idea, its champion, experiments, notebooks,<br>evaluation and reports. Pick one in the tree or the graph.</p></div>
     <div id="map-totals" class="map-totals"></div>
     <details class="card map-graph-card" open><summary><h2>How the ideas connect</h2><small>columns are themes · lines join related ideas</small></summary><div id="map-graph" class="map-graph"></div></details>
@@ -26,9 +53,12 @@
       <div id="map-detail" class="map-detail"></div>
     </div>
   </section>
+
   <section id="research-view" class="view hidden">
-    <div class="page-heading"><div class="eyebrow">AGENT RESEARCH</div><h1>Run a bounded research loop.</h1><p>Give the agents a goal and a dataset. They plan and critique; deterministic code trains and scores.<br>Every run is saved with its evidence and can be exported.</p></div>
+    <div class="page-heading"><div class="eyebrow">AGENT CAMPAIGNS</div><h1>Run a bounded research loop.</h1><p>Give the agents a goal and a curated dataset. They plan and critique; deterministic code trains and scores.<br>Every run is saved with its evidence and can be exported.</p></div>
     <p id="key-notice" class="notice hidden"></p>
+    <div class="lab-grid">
+    <div>
     <div id="composer" class="card composer">
       <div class="card-heading"><h2>What should we learn?</h2></div>
       <div class="field-label project-label">RESEARCH PROJECT <span>Evidence stays separated by context</span></div><div id="projects" class="project-options"></div><div id="project-summary" class="project-summary"></div>
@@ -45,10 +75,14 @@
       <details class="runtime"><summary>Local runtime & commands</summary><div id="runtime-copy"></div></details>
     </div>
     <section id="run-detail" class="hidden"></section>
+    </div>
+    <aside class="card lab-runs"><div class="section-label">RECENT CAMPAIGNS <button id="new-run" aria-label="New campaign">+</button></div><div id="run-list"><p class="muted small">Your campaign runs will appear here.</p></div></aside>
+    </div>
   </section>
+
   <section id="knowledge-view" class="view hidden"><div class="page-heading"><div class="eyebrow">COMPOUNDING RESEARCH MEMORY</div><h1>What we’re learning.</h1><p>Scoped findings, linked to experiments. Every claim stays provisional<br>until independent confirmation and human review.</p></div><div id="knowledge-list"></div></section>
   <footer>Research evidence ≠ production approval</footer>
 </main>
-<div id="preview" class="preview hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title"><div class="preview-panel card"><div class="preview-head"><div><b id="preview-title"></b><small id="preview-meta"></small></div><button type="button" id="preview-close" aria-label="Close preview">✕</button></div><div id="preview-body" class="preview-body"></div></div></div>
+<div id="preview" class="preview hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title"><div class="preview-panel card"><div class="preview-head"><div><b id="preview-title"></b><small id="preview-meta"></small></div><button type="button" id="preview-close" aria-label="Close">✕</button></div><div id="preview-body" class="preview-body"></div></div></div>
 <script type="module" src="/static/js/app.js"></script>
 </body></html>

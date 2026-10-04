@@ -2,6 +2,7 @@
    with the same seven sections everywhere: idea · champion · experiments · notebooks · evaluation · reports · related.
    Data comes from /api/research, the same records that generate research/<track>/INDEX.md. */
 import {$, esc, api, notice} from '../core.js';
+import {fileChip as file} from '../drawer.js';
 
 let map = null, filter = '';
 const SECTIONS = [
@@ -17,7 +18,6 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const stage = t => /^active/i.test(t.status) ? 'active' : /conclu/i.test(t.status) ? 'concluded' : /paus/i.test(t.status) ? 'paused' : 'planned';
 const stageLabel = t => t.status || 'idea · not started';
 const short = path => path.split('/').filter(Boolean).pop();
-const file = (path, label) => `<button type="button" class="file-chip ${path.endsWith('/') || !/\.[a-z0-9]+$/i.test(path) ? 'folder' : ''}" data-preview="${esc(path)}" title="${esc(path)}">${esc(label ?? short(path))}</button>`;
 const empty = text => `<p class="map-empty">${esc(text)}</p>`;
 
 async function load() {
@@ -138,33 +138,8 @@ function renderTrack(t) {
   $('map-detail').querySelectorAll('[data-jump]').forEach(b => b.addEventListener('click', () => $('sec-' + b.dataset.jump).scrollIntoView({behavior: 'smooth', block: 'start'})));
 }
 
-/* ---------- read-only file preview ---------- */
-async function openPreview(path) {
-  $('preview').classList.remove('hidden');
-  $('preview-title').textContent = path;
-  $('preview-body').innerHTML = '<p class="muted small">Loading…</p>';
-  try {
-    const f = await api('/research/file?path=' + encodeURIComponent(path.replace(/\/$/, '')));
-    $('preview-meta').textContent = f.kind === 'folder' ? `folder · ${plural(f.files, 'tracked file')}` : f.kind + (f.truncated ? ' · first 200 KB' : '');
-    $('preview-body').innerHTML = f.kind === 'folder'
-      ? `<div class="chips column">${f.entries.map(e => file(e, e.slice(f.path.length + 1))).join('')}</div>`
-      : `<pre>${esc(f.text)}</pre>`;
-  } catch (error) {
-    $('preview-meta').textContent = '';
-    $('preview-body').innerHTML = empty(error.message + '. Open it from the repository instead.');
-  }
-}
-function closePreview() { $('preview').classList.add('hidden'); }
-
 export function initMap() {
   $('map-search').addEventListener('input', e => { filter = e.target.value; if (map) renderTree(location.hash.split('/')[1]); });
-  document.addEventListener('click', e => {
-    const target = e.target.closest('[data-preview]');
-    if (target) { e.preventDefault(); openPreview(target.dataset.preview); }
-  });
-  $('preview-close').addEventListener('click', closePreview);
-  $('preview').addEventListener('click', e => { if (e.target === $('preview')) closePreview(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePreview(); });
 }
 
 export async function renderMap(trackName) {

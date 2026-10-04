@@ -825,7 +825,9 @@ def _derive(bundle: TaskBundle, name: str, frame: pd.DataFrame) -> pd.DataFrame:
         if {"onpix", "width", "high"} <= set(frame.columns):
             out["ink_density"] = frame["onpix"] / (frame["width"] * frame["high"] + 1.0)
     elif name == "poly2":
-        columns = [c for c in frame.columns if pd.api.types.is_numeric_dtype(frame[c])]
+        spec = bundle.spec
+        excluded = set(spec.blocked_features) | set(spec.identifier_columns) | set(spec.text_columns) | {spec.group_column, spec.time_column}
+        columns = [c for c in frame.columns if c not in excluded and pd.api.types.is_numeric_dtype(frame[c])]
         values = {}
         for i, a in enumerate(columns):
             for b in columns[i + 1 :]:
@@ -839,6 +841,16 @@ def _derive(bundle: TaskBundle, name: str, frame: pd.DataFrame) -> pd.DataFrame:
         out["day_of_month"] = stamp.dt.day.astype(float)
         out["week_of_year"] = stamp.dt.isocalendar().week.astype(float).to_numpy()
         out["is_weekend"] = (stamp.dt.dayofweek >= 5).astype(float)
+    elif name == "log_numeric":
+        # Generic single transform for user data: signed log1p of every numeric input column.
+        spec = bundle.spec
+        excluded = set(spec.blocked_features) | set(spec.identifier_columns) | set(spec.text_columns) | {spec.group_column, spec.time_column}
+        for column in frame.columns:
+            if column in excluded or not pd.api.types.is_numeric_dtype(frame[column]):
+                continue
+            values = pd.to_numeric(frame[column], errors="coerce")
+            if values.nunique() > 2:
+                out[f"log_{column}"] = np.sign(values) * np.log1p(values.abs())
     elif name == "past_lags":
         table = _lag_table(bundle)
         keys = frame[bundle.spec.time_column].astype(str)

@@ -49,7 +49,8 @@ flowchart LR
 │   └── knowledge/      GENERATED: registry, knowledge base, field guide, rules, rag/records.jsonl
 │
 ├── dclab_rnd/                                SHARED CODE: control plane, campaign engines, evidence index,
-│                                             critic gate, copilot/, tools, expansion/, agentic/ (Research Studio)
+│                                             critic gate, copilot/, tools, expansion/, studio/ (the notebook engine),
+│                                             agentic/ (API server, web UI, LLM campaigns)
 ├── general_pipeline/                         SHARED CODE: tabular modeling pipeline and feature playbook
 │
 ├── docs/               guides/               plain-language guides and product context
@@ -163,25 +164,31 @@ Guide: [Agent knowledge architecture](docs/guides/AGENT_KNOWLEDGE_ARCHITECTURE.m
 
 After any new result, run `make rd-sync` and `make knowledge` so the registry, evidence index and SFT corpus include it; `make rd-check` fails until you do.
 
-### Use the Research Studio (web UI)
+### Use the DCLab notebook (web UI)
 
 ```bash
-make agent-serve        # http://127.0.0.1:8765 (agent environment)
-make agent-hyperack     # 4 agent-chosen experiments on HyperAck
-make agent-churn        # 4 agent-chosen experiments on Telco churn
+make notebook           # http://127.0.0.1:8765 in the ML environment (no LLM needed)
+make agent-serve        # the same UI in the agent environment, with the LLM campaigns enabled
 ```
 
-The sidebar has two groups:
+The notebook is the product side of this repository: a data scientist brings a table and builds a model **stage by stage, with evidence, instead of writing the pipeline**. Cells are stages, not code.
 
-| Group | Page | What it shows |
+| Step | What happens | Who decides |
 |---|---|---|
-| Explore | **Research map** (start page) | Every research idea as a tree (by theme) and a graph (lines join related ideas). Each idea opens one page with the same seven sections: idea · champion · experiments · notebooks · evaluation · reports & research · related ideas. Click any file to read it in place. No API key needed. |
-| Explore | Knowledge | The field guide and the critiqued lessons from finished agent runs. |
-| Run | Agent research | Start an agent-led run, follow it live and export its trace (needs `OPENAI_API_KEY`). |
+| 0 · Data | Upload a CSV/TSV/Parquet, or start from a dataset the R&D already studied | you |
+| 1 · Prediction contract | Target, task, *the moment you predict*, forbidden columns, identifiers, time/group columns, metric. The agent audits the columns and proposes what to forbid, with proof | you, from the agent's proposal |
+| 2 · Understand the data | The holdout is locked first; training rows are profiled (missingness, identifiers, drift) | code |
+| 3 · Audit leakage | Heuristic review candidates, a detector self-test, and the measured safe-vs-unsafe score gap of the forbidden columns | code; you confirm or forbid columns |
+| 4 · Feature ladder | Recipes on identical folds; the smallest within tolerance wins | code; you can override |
+| 5 · Algorithm screen | Five model families, ranked with fold spread counted | code; you can override |
+| 6 · Tune and confirm | Explicit parameter candidates, then the holdout scored **once** (95% bootstrap interval) | code |
+| 7 · Report and notebook | A `.ipynb` that reproduces the approved workflow in plain scikit-learn, and a `.md` report with every decision and its proof | export |
 
-Pages have links you can share: `#map/churn-prediction`, `#run/<id>`, `#knowledge`. The map uses the same data as each `research/<track>/INDEX.md` (`python -m dclab_rnd.research_map --json`), so the two never disagree. Frontend code: `dclab_rnd/agentic/static/` with `css/` (base, layout, one file per view) and `js/` (`core.js`, `app.js` router, `views/*.js`); no third-party scripts, strict CSP.
+Every stage writes a record in the same shape as a campaign result, and every agent note names the rule it applies and the measured precedent behind it ("show proof" opens the record). Supported today: binary and multiclass classification and regression on tabular data (free-text columns for binary targets), with time-ordered, grouped or stratified splits. With `OPENAI_API_KEY` set and the `openai` package installed, an LLM adds an advisory critique per stage; without it, the agent is fully deterministic.
 
-LangGraph runs the loop and NOOA specialist agents plan and critique. A deterministic worker owns data, training and metrics, so generated code is never executed. Runs are saved under the ignored `agent_runs/` folder.
+Other pages: **Research map** (every research idea as a tree and a graph, with its champion, experiments, notebooks, evaluation and reports), **Knowledge** (the field guide and lessons from campaigns) and **Agent campaigns** (the LangGraph + NOOA research loop on curated datasets; needs the agent environment and `OPENAI_API_KEY`). Links are shareable: `#project/<id>`, `#map/churn-prediction`, `#run/<id>`.
+
+Code: `dclab_rnd/studio/` (projects, data, contract, engine, agent notes, export), API in `dclab_rnd/agentic/server.py`, UI in `dclab_rnd/agentic/static/` (`css/`, `js/views/*.js`; no third-party scripts, strict CSP). Projects live under the ignored `agent_runs/projects/`.
 
 ### Build training data for a small model
 

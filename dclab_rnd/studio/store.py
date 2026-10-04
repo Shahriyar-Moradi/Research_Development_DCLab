@@ -1,0 +1,149 @@
+"""Projects on disk: ``<home>/<project id>/`` holds project.json, data/, stages/ and activity.jsonl."""
+
+from __future__ import annotations
+
+import json
+import re
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+STAGE_KEYS = ("data", "leakage", "features", "models", "final")
+INDUSTRIES = (
+    "general", "fintech and banking", "insurance", "retail and e-commerce", "telecom", "logistics and delivery",
+    "health", "manufacturing", "energy", "marketing", "human resources", "public sector",
+)
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def safe_name(name: str, default: str = "data.csv") -> str:
+    name = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(name or default).name).strip("._") or default
+    return name[:120]
+
+
+class ProjectStore:
+    def __init__(self, home: Path):
+        self.home = Path(home)
+        self.home.mkdir(parents=True, exist_ok=True)
+
+    # ------------------------------------------------------------------ paths
+    def directory(self, project_id: str) -> Path:
+        if not re.fullmatch(r"[0-9a-f]{12}", project_id or ""):
+            raise KeyError(project_id)
+        return self.home / project_id
+
+    def data_dir(self, project_id: str) -> Path:
+        return self.directory(project_id) / "data"
+
+    def stage_path(self, project_id: str, stage: str) -> Path:
+        if stage not in STAGE_KEYS:
+            raise KeyError(stage)
+        return self.directory(project_id) / "stages" / f"{stage}.json"
+
+    # ------------------------------------------------------------------ CRUD
+    def create(self, name: str, industry: str = "general", goal: str = "") -> dict[str, Any]:
+        project_id = uuid.uuid4().hex[:12]
+        project = {
+            "id": project_id,
+            "name": (name or "Untitled project").strip()[:120],
+            "industry": industry if industry in INDUSTRIES else "general",
+            "goal": (goal or "").strip()[:4000],
+            "created": now(),
+            "updated": now(),
+            "data": None,
+            "contract": None,
+            "proposal": None,
+            "settings": {"max_rows": 20000, "quick": False},
+            "stages": {key: {"status": "pending"} for key in STAGE_KEYS},
+            "decisions": {},
+            "holdout_uses": 0,
+            "running": None,
+        }
+        directory = self.directory(project_id)
+        (directory / "data").mkdir(parents=True)
+        (directory / "stages").mkdir()
+        self.save(project)
+        self.log(project_id, "created", {"name": project["name"]})
+        return project
+
+    def get(self, project_id: str) -> dict[str, Any]:
+        path = self.directory(project_id) / "project.json"
+        if not path.exists():
+            raise KeyError(project_id)
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def save(self, project: dict[str, Any]) -> dict[str, Any]:
+        project["updated"] = now()
+        path = self.directory(project["id"]) / "project.json"
+        temp = path.with_suffix(".json.tmp")
+        temp.write_text(json.dumps(project, indent=2, ensure_ascii=False), encoding="utf-8")
+        temp.replace(path)
+        return project
+
+    def update(self, project_id: str, **values: Any) -> dict[str, Any]:
+        project = self.get(project_id)
+        project.update(values)
+        return self.save(project)
+
+    def list(self) -> list[dict[str, Any]]:
+        projects = []
+        for path in self.home.glob("*/project.json"):
+            try:
+                projects.append(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError):
+                continue
+        return sorted(projects, key=lambda p: p.get("updated", ""), reverse=True)
+
+    def delete(self, project_id: str) -> None:
+        import shutil
+
+        directory = self.directory(project_id)
+        if directory.exists():
+            shutil.rmtree(directory)
+
+    # ------------------------------------------------------------------ stages and activity
+    def write_stage(self, project_id: str, stage: str, record: dict[str, Any]) -> Path:
+        path = self.stage_path(project_id, stage)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(record, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+        return path
+
+    def read_stage(self, project_id: str, stage: str) -> dict[str, Any] | None:
+        path = self.stage_path(project_id, stage)
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+    def records(self, project_id: str) -> dict[str, dict[str, Any]]:
+        out = {}
+        for stage in STAGE_KEYS:
+            record = self.read_stage(project_id, stage)
+            if record:
+                out[stage] = record
+        return out
+
+    def clear_stages(self, project_id: str, from_stage: str = "data") -> None:
+        """Downstream results are invalid once the data or the contract changes."""
+        start = STAGE_KEYS.index(from_stage)
+        project = self.get(project_id)
+        for stage in STAGE_KEYS[start:]:
+            path = self.stage_path(project_id, stage)
+            if path.exists():
+                path.unlink()
+            project["stages"][stage] = {"status": "pending"}
+        project["decisions"] = {k: v for k, v in project["decisions"].items() if STAGE_KEYS.index(k) < start} if project["decisions"] else {}
+        self.save(project)
+
+    def log(self, project_id: str, kind: str, payload: Any) -> None:
+        line = json.dumps({"at": now(), "kind": kind, "payload": payload}, ensure_ascii=False)
+        with (self.directory(project_id) / "activity.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+
+    def activity(self, project_id: str, limit: int = 60) -> list[dict[str, Any]]:
+        path = self.directory(project_id) / "activity.jsonl"
+        if not path.exists():
+            return []
+        lines = path.read_text(encoding="utf-8").splitlines()
+        return [json.loads(line) for line in lines[-limit:] if line.strip()]

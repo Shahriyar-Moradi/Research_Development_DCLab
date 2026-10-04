@@ -332,12 +332,15 @@ def prepare_bundle(
 ) -> TaskBundle:
     """Create the locked holdout and training-only CV folds for ``spec``."""
     from sklearn.model_selection import (
+        GroupKFold,
+        KFold,
         StratifiedGroupKFold,
         StratifiedKFold,
         TimeSeriesSplit,
         train_test_split,
     )
 
+    regression = spec.task_type == "timeseries_regression"
     X = X.reset_index(drop=True)
     y = y.reset_index(drop=True)
     n = len(X)
@@ -354,14 +357,16 @@ def prepare_bundle(
         holdout_description = f"last {n_test} of {n} rows by `{spec.time_column}`"
     elif spec.split_strategy == "group":
         groups = X[spec.group_column].to_numpy()
-        outer = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-        train_idx, test_idx = next(outer.split(X, y, groups))
-        inner = StratifiedGroupKFold(n_splits=cv_folds, shuffle=True, random_state=RANDOM_STATE)
+        # Regression targets cannot be stratified: fall back to plain group folds.
+        outer_cls = GroupKFold if regression else StratifiedGroupKFold
+        outer_kw = {} if regression else {"shuffle": True, "random_state": RANDOM_STATE}
+        train_idx, test_idx = next(outer_cls(n_splits=5, **outer_kw).split(X, y, groups))
+        inner = outer_cls(n_splits=cv_folds, **outer_kw)
         cv_splits = [
             (a, b)
             for a, b in inner.split(train_idx, y.iloc[train_idx], groups[train_idx])
         ]
-        cv_description = f"StratifiedGroupKFold({cv_folds}) by `{spec.group_column}` on training rows"
+        cv_description = f"{outer_cls.__name__}({cv_folds}) by `{spec.group_column}` on training rows"
         holdout_description = (
             f"{len(test_idx)} rows from {len(np.unique(groups[test_idx]))} `{spec.group_column}` groups "
             "never seen in training (first of 5 stratified group folds)"
@@ -369,13 +374,14 @@ def prepare_bundle(
     else:
         indices = np.arange(n)
         train_idx, test_idx = train_test_split(
-            indices, test_size=HOLDOUT_FRACTION, stratify=y, random_state=RANDOM_STATE
+            indices, test_size=HOLDOUT_FRACTION, stratify=None if regression else y, random_state=RANDOM_STATE
         )
         train_idx, test_idx = np.sort(train_idx), np.sort(test_idx)
-        inner = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=RANDOM_STATE)
+        inner_cls = KFold if regression else StratifiedKFold
+        inner = inner_cls(n_splits=cv_folds, shuffle=True, random_state=RANDOM_STATE)
         cv_splits = [(a, b) for a, b in inner.split(train_idx, y.iloc[train_idx])]
-        cv_description = f"StratifiedKFold({cv_folds}, shuffle, random_state={RANDOM_STATE}) on training rows"
-        holdout_description = f"stratified random {len(test_idx)} of {n} rows"
+        cv_description = f"{inner_cls.__name__}({cv_folds}, shuffle, random_state={RANDOM_STATE}) on training rows"
+        holdout_description = f"{'random' if regression else 'stratified random'} {len(test_idx)} of {n} rows"
     return TaskBundle(
         spec=spec,
         X=X,
