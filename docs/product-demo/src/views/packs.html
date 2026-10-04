@@ -1,0 +1,95 @@
+<section class="view" id="view-packs" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Domain packs</div>
+      <h1>One workflow engine, many kinds of problems</h1>
+      <p class="lede">DCLab should not become one giant generic agent. It is one reliable engine with ten universal steps, and each pack maps those steps to a domain with its own rules, tools, metrics and validators.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn" id="pack-builder-btn" data-f="packs.builder">Build a pack</button></div>
+  </header>
+
+  <div class="grid g4" id="pack-cards" style="margin-bottom:14px"></div>
+
+  <div class="panel" data-tour="pack-map">
+    <div class="panel-head">
+      <div class="panel-title"><span class="eyebrow" id="pk-eyebrow"></span><h2 id="pk-title"></h2><span class="sub" id="pk-sub"></span></div>
+      <span class="pill" id="pk-maturity"></span>
+    </div>
+    <div class="table-wrap"><table class="data" id="pk-table"><thead><tr><th style="width:190px">Universal step</th><th>In this pack</th><th style="width:250px">What the validator checks</th></tr></thead><tbody></tbody></table></div>
+    <div class="panel-body grid g3" style="border-top:1px solid var(--line)">
+      <div class="stack tight"><div class="eyebrow">Pack rules (draft)</div><div id="pk-rules" class="small stack tight"></div></div>
+      <div class="stack tight"><div class="eyebrow">Tools it adds</div><div id="pk-tools" class="chips"></div></div>
+      <div class="stack tight"><div class="eyebrow">Metrics</div><div id="pk-metrics" class="small stack tight"></div></div>
+    </div>
+    <div class="panel-foot" id="pk-foot"></div>
+  </div>
+</section>
+<script>
+DC.view('packs', {
+  init(el) {
+    const { $, $$, esc, icon, chips } = DC;
+    const U = ['Objective contract', 'Source and lineage', 'Boundary (split)', 'Observation', 'Risk audit', 'Option generation', 'Controlled comparison', 'Optimization', 'Reliability challenge', 'Knowledge capture'];
+    const P = {
+      tabular: { f: 'packs.tabular', name: 'Tabular', ic: 'models', m: ['GA', 'ok'], sub: 'Binary, multiclass and regression on tables', ex: 'Term-deposit calls, HyperAck, letters',
+        steps: ['Prediction moment, target window, action, unit, costs', 'Snapshot hash, licence, time range', 'By time, group or stratified; holdout sealed', 'Train-only profile and risks', 'Availability matrix, heuristics, severity ablation', 'Feature ladder within a declared tolerance', 'Families on identical folds; declared rule', 'Paired tuning above a declared margin', 'Holdout once; calibration; slices; gate', 'Brief, lessons, examples, trajectory'],
+        checks: ['contract signed', 'hash recorded', 'unit and direction declared', 'no target-aware fit outside folds', 'forbidden columns blocked', 'tolerance declared before the run', 'same folds for all', 'margin declared', 'holdout read once', 'lessons reviewed'],
+        rules: ['DCLAB-R01 … DCLAB-R22 apply as written'], tools: ['propose_contract', 'run_stage', 'review_code', 'export_notebook'], metrics: ['ROC-AUC, average precision, Brier, ECE', 'Net value at the operating point'], foot: 'Built today: five stages cover WF-04 to WF-09; contract and split logic cover WF-01 to WF-03.' },
+      timeseries: { f: 'packs.timeseries', name: 'Time series', ic: 'trend', m: ['Beta', 'info'], sub: 'Forecasts with horizons and backtests', ex: 'Daily bike demand',
+        steps: ['Horizon, decision time, granularity, cost of under- and over-forecasting', 'Series lineage; late revisions recorded', 'Rolling-origin backtests; never shuffled', 'Seasonality and trend on the training window', 'Future covariates, revised values, same-day counts', 'Lags and rolling stats computed causally', 'Naive, seasonal naive, boosting, others on the same origins', 'Tuning on backtests only', 'Errors by horizon, holidays, regime shifts; block bootstrap', 'Brief with the baseline it beats'],
+        checks: ['horizon declared', 'revisions tracked', 'no row from the future in a fold', 'stats from the window only', 'covariates known at decision time', 'lags shifted', 'baselines always included', 'margin declared', 'block bootstrap', 'baseline gap reported'],
+        rules: ['TS-01 Always report the naive baseline next to the model', 'TS-02 Covariates must be known at forecast time', 'TS-03 Intervals use block bootstrap'], tools: ['backtest', 'lag_audit', 'seasonal_baseline'], metrics: ['MAE and RMSE against lag and seasonal baselines', 'Interval coverage per horizon'], foot: 'Evidence: bike demand MAE 680.0 against 1,156.4 for the lag-2 baseline (EXP-065); casual and registered were blocked (LEAK-bike_sharing_daily).' },
+      cv: { f: 'packs.cv', name: 'Computer vision', ic: 'image', m: ['Preview', 'warn'], sub: 'Detection and classification on images and frames', ex: 'Pedestrians at night and in rain',
+        steps: ['Task, classes, operating conditions, error costs', 'Licence, annotators, labelling guide version', 'By scene, camera or drive; near-duplicates grouped', 'Class balance, box sizes, conditions per split', 'Near-duplicate frames across splits; hints in file names', 'Data recipe and augmentation ladder', 'Detector families on identical splits', 'Input size and schedule above a margin', 'Slices: night, rain, occlusion, small objects', 'Failure gallery, lessons, examples'],
+        checks: ['conditions listed', 'guide version recorded', 'no drive in two splits', 'computed on train only', 'dedupe hash across splits', 'augmentations declared', 'same split for all', 'margin declared', 'every slice has an interval', 'failures reviewed'],
+        rules: ['CV-01 Split by drive or scene, never by frame', 'CV-02 Report every operating condition as its own slice', 'CV-03 Near-duplicate frames count as one'], tools: ['frame_dedupe', 'slice_eval', 'detector_screen', 'failure_gallery'], metrics: ['mAP@0.5 per slice', 'Miss rate at the operating threshold'], foot: 'First experiment: pedestrian detection under changing light and weather.' },
+      driving: { f: 'packs.driving', name: 'Driving perception', ic: 'car', m: ['Research', ''], sub: 'The operating domain (ODD) is the contract', ex: 'Night and rain, urban, 30–50 km/h',
+        steps: ['ODD: weather, light, road type, speed; safety metric', 'Sensor logs, calibration, labelling', 'By trip, route and time; geographic holdout', 'ODD coverage per split', 'Same route or adjacent time in train and test', 'Sensor and fusion choices', 'Detectors on identical trips', 'Latency-aware tuning', 'ODD slices, rare events, latency budget', 'Evidence for a safety case, never an approval'],
+        checks: ['ODD signed', 'calibration versions', 'routes disjoint', 'coverage gaps listed', 'route and time leakage', 'sensor set declared', 'identical trips', 'latency budget', 'rare-event recall', 'no deployment claim'],
+        rules: ['DRV-01 A benchmark result is never a safety claim', 'DRV-02 Out-of-ODD inputs must be detected, not guessed'], tools: ['odd_coverage', 'route_split', 'latency_probe'], metrics: ['Miss rate by distance and ODD slice', 'End-to-end latency'], foot: 'Safety-critical research. The pack produces evidence for a safety case; it never approves a vehicle.' },
+      maps: { f: 'packs.maps', name: 'Maps and road flow', ic: 'route', m: ['Research', ''], sub: 'Road graphs, speed and flow forecasts', ex: 'City segment speeds',
+        steps: ['Target per segment, horizon, decision time', 'Road graph version, sensor coverage', 'By time; held-out districts', 'Coverage and gaps per segment', 'Future incidents, neighbours\' future values', 'Graph neighbourhood and time lags', 'Seasonal baseline, boosting with graph features, temporal GNN', 'Tuning on backtests', 'Incidents, holidays, unseen segments', 'Lessons per road type'],
+        checks: ['graph version pinned', 'coverage map', 'districts disjoint', 'gaps listed', 'neighbour values lagged', 'graph features causal', 'same backtests', 'margin declared', 'unseen-segment slice', 'reviewed'],
+        rules: ['MAP-01 Neighbour features must be lagged like the target'], tools: ['graph_snapshot', 'district_split', 'gnn_screen'], metrics: ['MAE per segment and horizon', 'Error during incidents'], foot: 'Proposed in research/driving-maps and research/temporal-gnn. No experiments yet.' },
+      scene: { f: 'packs.scene', name: 'Scene graphs', ic: 'nodes', m: ['Research', ''], sub: 'Objects, relations and events in video', ex: 'Who hands what to whom',
+        steps: ['Objects, relations, events; when the system must know', 'Video licence, relation annotation guide', 'By video and scene', 'Relation frequencies', 'Same scene or adjacent clips across splits', 'Detector outputs, tracks, predicted graphs', 'A: video→VLM · B: pairwise classifier · C: temporal GNN · D: video + graph→VLM', 'Tuning on validation videos', 'Rare relations, occlusion; asks for evidence when unsure', 'Lessons and examples'],
+        checks: ['event moment declared', 'guide version', 'videos disjoint', 'train only', 'clip adjacency', 'track lineage', 'same videos for A–D', 'margin declared', 'uncertainty triggers evidence', 'reviewed'],
+        rules: ['SG-01 When uncertain, gather evidence instead of guessing a relation'], tools: ['track_objects', 'relation_eval', 'vlm_compare'], metrics: ['Relation recall@k', 'Event F1'], foot: 'Goal from the vision chats: a vision-language agent that keeps a temporal scene graph and gathers evidence when unsure.' },
+      llm: { f: 'packs.llm', name: 'LLM and SLM fine-tuning', ic: 'brain', m: ['Beta', 'info'], sub: 'Training data, LoRA runs, evaluation', ex: 'The DCLab policy model',
+        steps: ['Task, success metric, refusal behaviour', 'Data licence and provenance', 'By source and document; near-duplicates grouped', 'Lengths, task mix', 'Benchmark contamination; prompt near-duplicates', 'Data recipe ladder', 'Base models and LoRA ranks on the same eval', 'Hyperparameters on dev only', 'Held-out tasks, safety, regressions', 'Model card and lessons'],
+        checks: ['metric declared', 'licences', 'sources disjoint', 'train only', 'contamination scan', 'recipe declared', 'same eval', 'dev only', 'held-out tasks', 'card written'],
+        rules: ['LLM-01 Hold whole datasets out, not random examples', 'LLM-02 Facts that change stay in retrieval, not weights'], tools: ['build_sft', 'train_lora', 'eval_sft', 'contamination_scan'], metrics: ['Held-out task score', 'Judgment benchmark'], foot: 'Corpus v3 and train_lora.py exist; no run yet.' },
+      software: { f: 'packs.software', name: 'Software bug-fixing', ic: 'bug', m: ['Research', ''], sub: 'The first non-ML pack', ex: 'Fix an issue so the tests pass',
+        steps: ['Issue → what "fixed" means; acceptance tests', 'Repository, commit, issue link', 'By repository and time', 'Reproduce the bug', 'Fix visible in tests? flaky tests?', 'Candidate patches', 'Same test runs for every patch', 'Smallest diff that passes', 'Full regression suite, review', 'Lesson and example'],
+        checks: ['acceptance tests named', 'commit pinned', 'repos disjoint', 'failing test first', 'flakiness check', 'patches isolated', 'identical runs', 'diff size', 'full suite green', 'reviewed'],
+        rules: ['SW-01 Reproduce before fixing', 'SW-02 Never weaken a test to pass it'], tools: ['reproduce', 'run_tests', 'diff_review'], metrics: ['Tests passing', 'Reviewer acceptance'], foot: 'Proposed in research/cross-industry-workflows: the same ten steps outside machine learning.' },
+    };
+    let current = 'driving';
+    $('#pack-cards', el).innerHTML = Object.entries(P).map(([k, p]) => `<button type="button" class="pack-card" data-pack="${k}" data-f="${p.f}" aria-pressed="${k === current}"><span class="pc-top"><span class="pack-ic">${icon(p.ic)}</span><span class="pill ${p.m[1]}">${p.m[0]}</span></span><span class="pc-name">${esc(p.name)}</span><span class="pc-desc">${esc(p.sub)}</span><span class="pc-foot"><span class="tag">${esc(p.ex)}</span></span></button>`).join('');
+    function show(k) {
+      current = k; const p = P[k];
+      $$('[data-pack]', el).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pack === k)));
+      $('#pk-eyebrow', el).textContent = 'Pack · ' + p.name;
+      $('#pk-title', el).textContent = 'The ten steps, mapped';
+      $('#pk-sub', el).textContent = p.sub;
+      $('#pk-maturity', el).textContent = p.m[0]; $('#pk-maturity', el).className = 'pill ' + p.m[1];
+      $('#pk-table tbody', el).innerHTML = U.map((u, i) => `<tr><td><span class="tag">WF-${String(i + 1).padStart(2, '0')}</span> <b class="small">${u}</b></td><td>${esc(p.steps[i])}</td><td class="small muted">${esc(p.checks[i])}</td></tr>`).join('');
+      $('#pk-rules', el).innerHTML = p.rules.map(r => `<div>${DC.linkIds(r)}</div>`).join('');
+      $('#pk-tools', el).innerHTML = p.tools.map(t => `<span class="chip mono">${esc(t)}</span>`).join('');
+      $('#pk-metrics', el).innerHTML = p.metrics.map(m => `<div>${esc(m)}</div>`).join('');
+      $('#pk-foot', el).innerHTML = DC.linkIds(p.foot);
+      DC.hydrate(el);
+    }
+    el.addEventListener('click', e => { const b = e.target.closest('[data-pack]'); if (b) show(b.dataset.pack); });
+    show(current);
+    $('#pack-builder-btn', el).addEventListener('click', () => DC.modal.open({
+      eyebrow: '<span class="eyebrow">Pack builder</span>', title: 'Build a domain pack', confirm: 'Validate the pack',
+      html: `<p>A pack is a file the engine loads: ten step mappings, pack rules, validators, tools (any MCP server) and metrics. The engine refuses a pack whose validators do not cover every step.</p>
+        <div class="field"><label for="pb-name">Name</label><input id="pb-name" type="text" value="Insurance claims triage"></div>
+        <div class="field"><label for="pb-contract">WF-01 · what the contract must contain</label><textarea id="pb-contract" rows="2">Decision point (claim received), target (fraud found within 90 days), action (manual review), cost of a missed fraud vs a wasted review.</textarea></div>
+        <div class="field"><label for="pb-split">WF-03 · how to split</label><input id="pb-split" type="text" value="By policy holder and by month"></div>
+        <div class="field"><label for="pb-tools">Tools (MCP servers)</label><input id="pb-tools" type="text" value="claims-db (read-only), document-ocr"></div>`,
+      onConfirm: () => DC.toast('Pack checked: 10 of 10 steps mapped; 2 validators missing (WF-05, WF-09). Saved as a draft.'),
+    }));
+  },
+});
+</script>

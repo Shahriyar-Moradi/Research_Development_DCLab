@@ -1,0 +1,141 @@
+<section class="view" id="view-policy" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Policy model · the focused small model</div>
+      <h1>A small model that knows the ten steps</h1>
+      <p class="lede">Not a general chatbot. A fine-tuned open model (7–9B to start) that proposes the next move inside the graph, cites evidence, and knows when to stop and ask. Facts that change stay in the evidence index; the model learns the judgment.</p>
+    </div>
+    <div class="vh-actions"><span class="pill">phase 4</span><button type="button" class="btn" data-go="benchmark">See the benchmark it must pass</button></div>
+  </header>
+
+  <div class="panel" data-tour="policy-curriculum" style="margin-bottom:14px">
+    <div class="panel-head"><div class="panel-title"><h2>Curriculum</h2><span class="sub">Each stage needs the one before it. The graph's log is what turns stage 2 from an idea into data.</span></div></div>
+    <div class="panel-body grid g4">
+      <div class="inset stack tight" data-f="policy.sft"><div class="spread"><span class="eyebrow">Stage 1</span><span class="pill ok">data ready</span></div><b>Declarative SFT</b><span class="small muted">Rules, experiments, critiques and leakage judgments as question-answer pairs. 326 examples.</span></div>
+      <div class="inset stack tight" data-f="policy.traj"><div class="spread"><span class="eyebrow">Stage 2</span><span class="pill outline">needs the graph log</span></div><b>Trajectory SFT</b><span class="small muted">State → proposed move → evidence → validator result, from every project. Includes blocked moves and recoveries.</span></div>
+      <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 3</span><span class="pill outline">planned</span></div><b>Rejection sampling</b><span class="small muted">Sample several moves per state; keep the ones the validator accepts and the benchmark scores well.</span></div>
+      <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 4</span><span class="pill">research</span></div><b>Reinforcement learning</b><span class="small muted">Rewards from the validator and the benchmark: valid moves, leaks caught, correct citations, no unsafe action.</span></div>
+    </div>
+  </div>
+
+  <div class="grid g-3-1">
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><h2>Training data · SFT corpus v3</h2><span class="sub">Built from the evidence index; datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews</span></div><span class="pill ok">real</span></div>
+        <div class="panel-body grid g2">
+          <div id="sft-chart"></div>
+          <div class="stack tight small">
+            <div class="kv"><dt>Examples</dt><dd>326 · 260 train · 66 validation</dd><dt>Formats</dt><dd>chat (TRL messages), Alpaca, ShareGPT</dd><dt>Quality gates</dt><dd>147 critic challenges kept · 10 contradicted ones dropped</dd><dt>Answer shape</dt><dd>Evidence · Interpretation · Decision · Risks · Next test</dd></div>
+            <div class="inset" data-f="policy.projectsft"><b>From projects:</b> each finished project adds a contract example and one per stage. Term-deposit calls added 11.</div>
+          </div>
+        </div>
+        <div class="panel-body" style="border-top:1px solid var(--line)">
+          <div class="spread"><b class="small">A real training example</b><button type="button" class="link-btn small" id="sft-more">Show the full example</button></div>
+          <div id="sft-example" class="stack tight" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="policy.traj">
+        <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub">Move 15 of Term-deposit calls: the blocked holdout request, as the model will see it</span></div><span class="pill outline">format draft</span></div>
+        <div class="panel-body"><pre class="code" id="traj-json"></pre></div>
+        <div class="panel-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
+      </div>
+
+      <div class="panel" data-f="policy.review">
+        <div class="panel-head"><div class="panel-title"><h2>Expert review queue</h2><span class="sub">Reviewers label whether a move was right. Labels become training data and benchmark ground truth.</span></div><span class="pill warn" id="rq-count">3 to review</span></div>
+        <div class="list" id="review-queue"></div>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <div class="panel" data-f="policy.train">
+        <div class="panel-head"><h3>Training runs</h3><span class="pill outline">none run yet</span></div>
+        <div class="list small">
+          <div class="list-item"><div class="li-main"><span class="li-title">qwen2.5-1.5b · LoRA · corpus v3</span><span class="li-sub">Script ready: <code>sft/train_lora.py</code>. Teaches the answer format and the habit of reasoning from given evidence.</span></div><span class="pill ok">ready</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">open 8B · QLoRA · trajectories v0</span><span class="li-sub">A100 80 GB · about 2.1 h · €6.40 · waits for approval</span></div><span class="pill warn">approval</span></div>
+        </div>
+        <div class="panel-foot">Evaluation: <code>sft/eval_sft.py</code> on held-out datasets, then the judgment benchmark.</div>
+      </div>
+
+      <div class="panel" data-f="policy.deploy">
+        <div class="panel-head"><div class="panel-title"><h3>Deploy as the intern's model</h3><span class="sub">Served through any OpenAI-compatible endpoint</span></div></div>
+        <div class="panel-body stack tight small">
+          <div class="eyebrow">Gates before any traffic</div>
+          <ul class="plan-list">
+            <li><span class="pi"></span><span>Valid moves ≥ 98% on suites A–E</span></li>
+            <li><span class="pi"></span><span>Zero unsafe actions</span></li>
+            <li><span class="pi"></span><span>Leaks caught ≥ the general LLM</span></li>
+            <li><span class="pi"></span><span>Citations correct ≥ 95%</span></li>
+          </ul>
+          <div class="field"><label for="ab">Share of intern sessions</label><input type="range" id="ab" min="0" max="100" value="0" disabled><span class="hint">Locked at 0% until the gates pass. Then 10%, compared with the general model on the same tasks.</span></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="policy.ladder">
+        <div class="panel-head"><div class="panel-title"><h3>Cost ladder</h3><span class="sub">The cheapest tier that can decide, decides</span></div><span class="pill outline">sample</span></div>
+        <div class="panel-body stack tight small">
+          <div class="inset stack tight"><div class="spread"><b>1 · Typed classifier</b><span class="mono">~2 ms · €0</span></div><span class="muted">Is this column an ID, a timestamp, a target proxy? Answers with a type and a confidence.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>2 · NOOA structured call</b><span class="mono">~1 s</span></div><span class="muted">Fill one contract field from evidence references, without re-sending the whole conversation.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>3 · Full model</b><span class="mono">~6 s</span></div><span class="muted">Plan, explain, ask the owner. The policy model takes this tier once it passes the gates.</span></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="policy.macro">
+        <div class="panel-head"><h3>Macro-actions ("cake")</h3><span class="pill">research</span></div>
+        <div class="panel-body small stack tight">
+          <p>Can two compatible steps be generated as one unit, for about 200 tokens instead of 400, without losing correctness?</p>
+          <p class="muted">Test: same benchmark cases, single-step vs merged-step actions; compare valid-move rate, tokens and recovery after errors.</p>
+          <span class="mono xs">research/workflow-actions</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+<script>
+DC.view('policy', {
+  init(el) {
+    const { $, esc, chip, charts, codeBlock, toast } = DC;
+    const S = window.DEMO_SFT || {};
+    const by = (S.manifest && S.manifest.by_task) || {};
+    const names = { critique_claim: 'critique a claim', grounded_qa: 'grounded Q&A', explain_experiment: 'explain an experiment', apply_selection_rule: 'apply a selection rule', leakage_judgment: 'leakage judgment', rule_reasoning: 'rule reasoning', workflow_steps: 'workflow steps' };
+    $('#sft-chart', el).innerHTML = charts.barsH(Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: names[k] || k, value: v, valueText: String(v), cls: k === 'leakage_judgment' || k === 'workflow_steps' ? 'proof' : '' })),
+      { width: 360, labelW: 140, valW: 30, min: 0, max: 80, rowH: 24, ticks: [0, 40, 80], tickFmt: v => v, aria: 'Examples per task' });
+    let full = false;
+    function ex() {
+      const msgs = (S.example && S.example.messages) || [];
+      $('#sft-example', el).innerHTML = msgs.map(m => {
+        const t = full ? m.content : m.content.slice(0, m.role === 'assistant' ? 700 : 360) + (m.content.length > (m.role === 'assistant' ? 700 : 360) ? '…' : '');
+        return `<div class="inset small"><div class="eyebrow ${m.role === 'assistant' ? 'accent' : ''}" style="margin-bottom:4px">${esc(m.role)}</div><div style="white-space:pre-wrap;overflow-wrap:anywhere">${DC.linkIds(t)}</div></div>`;
+      }).join('') || '<div class="empty">Example not available.</div>';
+      $('#sft-more', el).textContent = full ? 'Show less' : 'Show the full example';
+      DC.hydrate(el);
+    }
+    $('#sft-more', el).addEventListener('click', () => { full = !full; ex(); });
+    ex();
+    $('#traj-json', el).replaceWith(Object.assign(document.createElement('div'), { innerHTML: codeBlock(`{
+  "project": "term-deposit-calls", "move": 15, "contract": "v2",
+  "state": {"node": "WF-07", "done": ["WF-01", "WF-02", "WF-03", "WF-04", "WF-05", "WF-06"],
+            "holdout": "sealed", "evidence": ["EXP-009"]},
+  "proposal": {"by": "intern", "move": "open_holdout",
+               "reason": "compare extra_trees with lightgbm"},
+  "validator": {"valid": false, "edge": "WF-07 -> WF-09 does not exist",
+                "rules": ["DCLAB-R17"], "precedent": "PIT-006"},
+  "next": {"move": "proceed", "node": "WF-08", "tool": "tune", "result": "kept C02"}
+}`) }).firstChild);
+    const RQ = [
+      ['HyperAck · WF-05', 'Intern kept deliverey_category_id as an input after the auditor flagged it.', 'Strong signal, plausibly known at order time. Was keeping it with a flag right?'],
+      ['Card fraud · WF-08', 'Intern rejected tuning: gain −0.0048 against a required +0.0050.', 'Was the margin right for PR-AUC on 0.17% positives?'],
+      ['Telco churn · WF-07', 'Intern proposed reopening the contract after the critic\'s note.', 'Should it have asked the owner first?'],
+    ];
+    let left = RQ.length;
+    $('#review-queue', el).innerHTML = RQ.map(([where, what, q], i) => `<div class="list-item" data-rq="${i}"><div class="li-main"><span class="li-sub">${esc(where)}</span><span class="li-title">${esc(what)}</span><span class="small muted">${esc(q)}</span></div><div class="li-side"><div class="decide"><button type="button" data-rv="right">Right</button><button type="button" data-rv="edit">Edit</button><button type="button" data-rv="wrong">Wrong</button></div></div></div>`).join('');
+    $('#review-queue', el).addEventListener('click', e => {
+      const b = e.target.closest('[data-rv]'); if (!b) return;
+      const item = b.closest('[data-rq]'); if (item.dataset.done) return;
+      item.dataset.done = '1'; item.style.opacity = '.55'; b.setAttribute('aria-pressed', 'true');
+      left--; $('#rq-count', el).textContent = left ? `${left} to review` : 'all reviewed'; $('#rq-count', el).className = 'pill ' + (left ? 'warn' : 'ok');
+      toast(b.dataset.rv === 'edit' ? 'Opened for editing. Your corrected move becomes the training target.' : 'Label saved. It becomes training data and benchmark ground truth.');
+    });
+  },
+});
+</script>

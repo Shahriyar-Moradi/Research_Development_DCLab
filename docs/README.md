@@ -16,6 +16,7 @@
 |---|---|
 | [`DCLAB_MASTER_CONTEXT.md`](DCLAB_MASTER_CONTEXT.md) | DCLab product constitution and master context. The R&D repository is a supporting evidence subsystem of that product |
 | [`copilot_demo.html`](copilot_demo.html) | The notebook copilot's review of the leaky demo notebook (`make copilot-demo`) |
+| [`product-demo/`](product-demo/) | Clickable demo of the final DCLab R&D product with a blueprint of what exists and what is missing (`make product-demo`) |
 
 ## Where the research reports went
 

@@ -1,0 +1,50 @@
+{
+ "example": {
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are DCLab's senior data-science and ML-engineering assistant. Reason only from the evidence given in the conversation. Structure answers as: Evidence (what was measured), Interpretation (what it means and how uncertain it is), Decision (what to do now), Risks (what is missing or could be wrong), and Next test (the smallest falsifiable experiment). Never claim production readiness from benchmark evidence alone."
+   },
+   {
+    "role": "user",
+    "content": "### Dataset\nDataset `credit_card_fraud`: Credit Card Fraud Detection (ULB / Kaggle). Two days of September-2013 European card transactions (28 PCA components V1-V28, Amount, elapsed Time) used to predict whether a transaction is fraudulent (Class=1, 0.17% of rows). Facts: task type binary_imbalanced, 284,807 rows, 30 features, positive rate 0.2%. Decision-time contract: Score each transaction at authorization time using only that transaction's own attributes (V1-V28, Amount, and time-of-day derived from its timestamp); the dataset-relative elapsed `Time` counter itself is not a production feature. Blocked (post-outcome or forbidden) columns: Time.\n\n### Stage\nStage: Leakage audit (WF-05). Decide which columns would NOT exist at the declared prediction moment (semantic availability), add heuristic review candidates (very high single-feature predictive power, identifier-like uniqueness, suspicious names), and measure a safe-vs-unsafe ablation on identical folds. A large score gap shows how much a leak would inflate the result; only decision-time semantics can confirm the leak. Question: Which columns violate the decision-time contract, and how much would they inflate the primary metric if left in? Hypothesis: The absolute Time counter is not a production feature; removing it costs little or nothing on time-ordered CV.\n\n### What this run compared\nScanned 60000 training rows with binary_imbalanced heuristics (univariate signal, exact proxy/identity, name, uniqueness) and synthetic canaries; compared lightgbm on the raw recipe with vs without blocked ['Time'] on expanding-window TimeSeriesSplit(3) on time-ordered training rows: average precision (PR-AUC) 0.7804±0.0192 safe vs 0.7763±0.0180 unsafe (apparent lift -0.0042).\n\nShould `Time` be used as an input to a model that will be deployed at the declared prediction moment?"
+   },
+   {
+    "role": "assistant",
+    "content": "**Evidence.** Including the blocked column(s) did not improve validation average precision (change -0.004169); it is excluded on decision-time grounds alone.\n\n**Interpretation.** `Time`: Seconds elapsed since the first transaction in this two-day extract. It is a dataset-relative counter that grows without bound in production, so a model trained on it extrapolates outside its training range; only cyclic hour-of-day derived from it is decision-time safe. A large score gain from such a column is the size of the illusion, not evidence of value.\n\n**Decision.** Exclude `Time` from every deployable model and from feature engineering built on top of it.\n\n**Risks.** Columns derived from it (ratios, interactions, aggregates) carry the same leak and must be removed too; confirm with the data owner when the value is written.\n\n**Next test.** Get a data-dictionary entry with the creation timestamp of the column and check a production-like request trace to confirm it is absent at scoring time."
+   }
+  ],
+  "metadata": {
+   "task": "leakage_judgment",
+   "experiment_id": "EXP-052",
+   "campaign": "expansion_v1",
+   "dataset": "credit_card_fraud",
+   "stage": "leakage_audit",
+   "task_type": "binary_imbalanced",
+   "column": "Time",
+   "label": "exclude"
+  }
+ },
+ "manifest": {
+  "total": 326,
+  "train": 260,
+  "val": 66,
+  "by_task": {
+   "apply_selection_rule": 42,
+   "critique_claim": 80,
+   "explain_experiment": 70,
+   "grounded_qa": 79,
+   "leakage_judgment": 23,
+   "rule_reasoning": 22,
+   "workflow_steps": 10
+  },
+  "validation_policy": "datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews; dataset-free examples use a 12% hash split",
+  "quality_gates": {
+   "duplicates_removed": 0,
+   "rejected_by_path_or_hash_or_length": 0,
+   "contradicted_challenges_dropped": 10,
+   "challenges_kept": 147
+  },
+  "seed": 20260918
+ }
+}

@@ -1,0 +1,123 @@
+<section class="view" id="view-models" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · WF-07 and WF-08</div>
+      <h1>Algorithm screen and conservative tuning</h1>
+      <p class="lede">Five families, identical folds, one rule declared before the run. The leader is a candidate, not a winner, and tuning stays only if it clears a margin set in advance.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" id="override-btn" data-f="models.override">Choose a different model…</button>
+      <span class="pill ok">extra_trees · C02 locked</span>
+    </div>
+  </header>
+
+  <div class="grid g-3-1">
+    <div class="stack">
+      <div class="panel" data-f="models.screen" data-tour="screen">
+        <div class="panel-head"><div class="panel-title"><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds on 3,200 training rows · 38 features · ROC-AUC</span></div>${chip:EXP-009}</div>
+        <div class="table-wrap"><table class="data compact" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num">Mean − k×spread</th><th class="num">Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
+        <div class="panel-body"><div id="screen-chart"></div></div>
+      </div>
+
+      <div class="panel" data-f="models.rule">
+        <div class="panel-head"><div class="panel-title"><h2>The selection rule</h2><span class="sub">Declared in the protocol before the screen ran: rank by mean minus a quarter of the fold spread, then by runtime.</span></div></div>
+        <div class="panel-body stack tight">
+          <div class="row"><label for="kpen" class="small strong" style="color:var(--ink)">Spread penalty k</label><input type="range" id="kpen" min="0" max="1" step="0.05" value="0.25" style="flex:1;min-width:160px"><span class="mono small" id="kpen-val">0.25</span></div>
+          <div id="rule-out"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="models.folds">
+        <div class="panel-head"><div class="panel-title"><h2>Fold by fold</h2><span class="sub">The same three folds for every family, so differences are paired.</span></div><span class="pill outline">fold points shown as mean ± spread</span></div>
+        <div class="panel-body"><div id="fold-chart"></div><p class="xs muted">The records store mean and spread; the product draws the stored fold scores. Bars mark the means.</p></div>
+      </div>
+
+      <div class="panel" data-f="models.tuning">
+        <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub">Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div>${chip:EXP-010}</div>
+        <div class="panel-body grid g2">
+          <div id="tune-chart"></div>
+          <div class="stack tight small">
+            <div class="inset stack tight">
+              <div class="spread"><span>Baseline (defaults)</span><b class="mono">0.7288</b></div>
+              <div class="spread"><span>Best candidate C02</span><b class="mono">0.7523</b></div>
+              <div class="spread"><span>Gain</span><b class="mono" style="color:var(--ok)">+0.0235</b></div>
+              <div class="spread"><span>Declared margin</span><b class="mono">0.0050</b></div>
+              <div class="spread"><span>Decision</span><span class="pill ok">keep C02</span></div>
+            </div>
+            <div class="callout warn"><span class="ic">${icon:alert}</span><span>The critic asked for the baseline and the candidate on the same folds, side by side. The product now stores paired fold scores for every tuning claim, so the gain can carry its own interval ${chip:DCLAB-R16}.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <div class="panel" data-f="models.ops">
+        <div class="panel-head"><div class="panel-title"><h3>Cost to run</h3><span class="sub">Fit time from the screen; scoring cost estimated</span></div></div>
+        <div class="table-wrap"><table class="data compact"><thead><tr><th>Family</th><th class="num">Fit (3 folds)</th><th class="num">Score 10k rows</th></tr></thead><tbody>
+          <tr><td>logistic_regression</td><td class="num mono">0.6 s</td><td class="num mono">~0.02 s</td></tr>
+          <tr class="selected"><td>extra_trees</td><td class="num mono">2.0 s</td><td class="num mono">~0.4 s</td></tr>
+          <tr><td>hist_gradient_boosting</td><td class="num mono">1.2 s</td><td class="num mono">~0.05 s</td></tr>
+          <tr><td>lightgbm</td><td class="num mono">0.8 s</td><td class="num mono">~0.05 s</td></tr>
+          <tr><td>xgboost</td><td class="num mono">0.8 s</td><td class="num mono">~0.06 s</td></tr>
+        </tbody></table></div>
+        <div class="panel-foot">Monthly scoring of 20,000 clients costs seconds for any of them. Runtime only breaks ties here.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><h3>Across the R&amp;D datasets</h3><span class="sub">Why one default family is not enough</span></div>${chip:FINDING-model-families}</div>
+        <div class="panel-body"><div id="family-chart"></div><p class="xs muted">Mean rank over 11 datasets (lower is better) and wins. Winners differ by dataset.</p></div>
+      </div>
+
+      <div class="panel" data-f="models.foundation">
+        <div class="panel-head"><h3>Tabular foundation models</h3><span class="pill">research</span></div>
+        <div class="panel-body small stack tight">
+          <p>TabPFN joins the screen once its results pass a leakage-safe rerun on HyperAck. Until then it is shown in the research map, not offered here.</p>
+          <a class="link-btn small" href="#lab">See the track in the research map →</a>
+        </div>
+      </div>
+
+      <div class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R13} No universal best algorithm; screen several families.</div><div>${chip:DCLAB-R14} Judge by mean, stability, probabilities and runtime, not ROC-AUC alone.</div><div>${chip:DCLAB-R15} Tune only after data, features, metric and family are locked.</div></div></div>
+    </aside>
+  </div>
+</section>
+<script>
+DC.view('models', {
+  init(el) {
+    const { $, esc, chip, icon, charts, toast } = DC;
+    el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    const F = [['logistic_regression', 0.7189, 0.0301, 0.6], ['extra_trees', 0.7288, 0.0295, 2.0], ['hist_gradient_boosting', 0.7123, 0.0147, 1.2], ['lightgbm', 0.7172, 0.0165, 0.8], ['xgboost', 0.7047, 0.0235, 0.8]];
+    function rank(k) { return F.map(f => ({ name: f[0], mean: f[1], sd: f[2], t: f[3], score: f[1] - k * f[2] })).sort((a, b) => b.score - a.score || a.t - b.t); }
+    function draw() {
+      const k = Number($('#kpen', el).value);
+      $('#kpen-val', el).textContent = k.toFixed(2);
+      const r = rank(k);
+      $('#screen-table tbody', el).innerHTML = r.map((f, i) => `<tr class="${i === 0 ? 'selected' : ''}"><td><span class="cell-main">${f.name}</span>${i === 0 ? ' <span class="pill accent">selected</span>' : ''}</td><td class="num mono">${f.mean.toFixed(4)}</td><td class="num mono">±${f.sd.toFixed(4)}</td><td class="num mono">${f.score.toFixed(4)}</td><td class="num mono">${f.t.toFixed(1)} s</td><td>${i + 1}</td></tr>`).join('');
+      $('#screen-chart', el).innerHTML = charts.barsH(F.map(f => ({ label: f[0], value: f[1], lo: f[1] - f[2], hi: f[1] + f[2], valueText: `${f[1].toFixed(4)} ± ${f[2].toFixed(4)}`, cls: f[0] === r[0].name ? '' : 'soft', strong: f[0] === r[0].name })),
+        { width: 640, labelW: 160, valW: 128, min: 0.66, max: 0.77, rowH: 30, ticks: [0.66, 0.69, 0.72, 0.75], tickFmt: v => v.toFixed(2), aria: 'Mean ROC-AUC with fold spread' });
+      const declared = Math.abs(k - 0.25) < 1e-9;
+      $('#rule-out', el).innerHTML = `<div class="callout ${declared ? 'ok' : 'warn'}"><span class="ic">${icon(declared ? 'check' : 'alert')}</span><span>${declared
+        ? `With the declared k = 0.25 the rule selects <b>extra_trees</b> (0.7288 − 0.25 × 0.0295 = ${(0.7288 - 0.25 * 0.0295).toFixed(4)}). The runner-up, lightgbm, is kept for the reliability step.`
+        : `With k = ${k.toFixed(2)} the rule would select <b>${r[0].name}</b>${r[0].name !== 'extra_trees' ? ', a different model' : ''}. The penalty is part of the protocol; changing it after the screen is a protocol change with a written reason.`}</span></div>`;
+      DC.hydrate(el);
+    }
+    $('#kpen', el).addEventListener('input', draw);
+    draw();
+    $('#fold-chart', el).innerHTML = charts.folds(F.map(f => ({ label: f[0], folds: [f[1] - f[2], f[1], f[1] + f[2]], mean: f[1], strong: f[0] === 'extra_trees' })), { width: 640, labelW: 160, min: 0.66, max: 0.78, aria: 'Fold scores per family' });
+    $('#tune-chart', el).innerHTML = charts.barsH([
+      { label: 'baseline', value: 0.7288, valueText: '0.7288', cls: 'muted' }, { label: 'C01', value: 0.7430, valueText: '0.7430', cls: 'soft' },
+      { label: 'C02 · kept', value: 0.7523, valueText: '0.7523', strong: true }, { label: 'C03', value: 0.7383, valueText: '0.7383', cls: 'soft' },
+    ], { width: 380, labelW: 84, valW: 56, min: 0.70, max: 0.76, rowH: 28, ref: 0.7338, refLabel: 'baseline + margin', ticks: [0.70, 0.72, 0.74, 0.76], tickFmt: v => v.toFixed(2), aria: 'Tuning candidates' });
+    $('#family-chart', el).innerHTML = charts.barsH([
+      { label: 'lightgbm', value: 2.55, valueText: '2.55 · 3 wins' }, { label: 'xgboost', value: 3.55, valueText: '3.55 · 1 win' }, { label: 'ensemble', value: 3.64, valueText: '3.64 · 2 wins' },
+      { label: 'hist_gb', value: 4.36, valueText: '4.36 · 1 win' }, { label: 'extra_trees', value: 4.55, valueText: '4.55 · 1 win' }, { label: 'logistic', value: 7.64, valueText: '7.64 · 0 wins', cls: 'muted' },
+    ], { width: 340, labelW: 82, valW: 92, min: 0, max: 8, rowH: 24, ticks: [0, 2, 4, 6, 8], tickFmt: v => v, aria: 'Mean rank across datasets' });
+    $('#override-btn', el).addEventListener('click', () => DC.modal.open({
+      eyebrow: '<span class="eyebrow">Override the rule</span>', title: 'Choose a different model', confirm: 'Log the override',
+      html: `<p>The rule picked <b>extra_trees</b>. You can choose another candidate; the log records your reason, and the brief says the choice was made by a person.</p>
+        <div class="field"><label for="ov-model">Model</label><select id="ov-model"><option>lightgbm · 0.7172 ± 0.0165 · faster scoring</option><option>logistic_regression · 0.7189 ± 0.0301 · easiest to explain</option></select></div>
+        <div class="field"><label for="ov-why">Reason (required)</label><textarea id="ov-why">The call centre wants reasons per client; a linear model is easier to explain and is within the fold spread of the leader.</textarea></div>`,
+      onConfirm: m => { if (!$('#ov-why', m).value.trim()) { toast('Write a reason first.', { ok: false }); return false; } toast('Override logged. The holdout is already used, so the new model needs fresh data or a new split for its estimate. The brief will say so.'); },
+    }));
+  },
+});
+</script>

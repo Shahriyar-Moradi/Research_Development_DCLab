@@ -6,6 +6,8 @@ This file gives every Claude Code session (cloud or local) the context it needs.
 
 The research arm of DCLab. It measures how to build ML models that are *right* (leakage-safe, honestly evaluated) and turns the evidence into tools: an evidence index, a notebook copilot, agent tools, and SFT data for a future small model. The owner prefers answers in clear English **and** Persian.
 
+**Naming:** when the owner says "DCLab" in a conversation about this repository, it means the DCLab R&D project and the product growing out of it (the agentic notebook, the intern, the evidence library, the policy model). It does not mean DCLab's main product. The product vision and a clickable demo of the final product live in `docs/product-demo/`.
+
 ## Map
 
 - `data/` — all datasets: `project/` (HyperAck, Telco), `public/` (10 UCI parquet), `downloads/` (gitignored).
@@ -25,6 +27,7 @@ make knowledge   # rebuild the evidence index and SFT v3 corpus after new result
 make research-index   # regenerate every research/<track>/INDEX.md (champions, file maps)
 make notebook         # the web UI (DCLab notebook, intern, research map, knowledge) + the MCP endpoint /mcp
 make chat-ui          # Hugging Face Chat UI locally with DCLab as an MCP server (make chat-ui-intern: ML Intern mode)
+make product-demo     # rebuild docs/product-demo/index.html, the clickable demo of the final product (sources in docs/product-demo/src/)
 python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a notebook
 ```
 
@@ -35,7 +38,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 1. **Leakage is the top risk.** Never use information unavailable at the prediction moment (`final_customer_fare`, `final_biker_fare`, `duration`, `casual`/`registered`, `Rating`, IDs). Write the prediction contract before looking at scores.
 2. Fit every preprocessing, selection, resampling and encoding step inside training folds only. Use the holdout once.
 3. Do not edit or rename files under any `results/` folder; the registry finds them by path. Rerun into new files instead.
-4. Generated files (`evidence/knowledge/**`, `research/*/INDEX.md`, `research/llm-fine-tuning/experiments/sft/out_v3/**`, campaign reports and `agent_memory.jsonl`) are rebuilt by commands, not edited.
+4. Generated files (`evidence/knowledge/**`, `research/*/INDEX.md`, `research/llm-fine-tuning/experiments/sft/out_v3/**`, `docs/product-demo/index.html`, campaign reports and `agent_memory.jsonl`) are rebuilt by commands, not edited.
 5. LLM critique is advisory. Deterministic code owns splits, metrics and selection rules (`dclab_rnd/critic_gate.py` checks critiques against the numbers).
 6. Report results with their uncertainty and limits. Never call a model production-ready from benchmark evidence alone.
 7. Shared code stays at the repository root so `python -m dclab_rnd` and `import general_pipeline` work without installation.

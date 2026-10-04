@@ -1,0 +1,134 @@
+<section class="view" id="view-compute" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Compute and jobs</div>
+      <h1>Where the work runs, what it costs, how to rerun it</h1>
+      <p class="lede">Small tabular work runs on this machine. Code from the intern runs in a sandbox. Vision and fine-tuning go to GPU jobs. Every run leaves a record that is enough to reproduce it.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn" data-toast="In the product: pick hardware, image and data snapshot; the graph decides whether the job may start.">New job</button></div>
+  </header>
+
+  <div class="panel" style="margin-bottom:14px">
+    <div class="kpi-strip">
+      <div class="kpi"><span class="label">Running</span><span class="value">1</span><span class="delta">GPU · A10G</span></div>
+      <div class="kpi"><span class="label">Waiting for approval</span><span class="value" style="color:var(--warn)">1</span><span class="delta">over the €5 per-job cap</span></div>
+      <div class="kpi"><span class="label">GPU hours this month</span><span class="value">1.6</span><span class="delta">of 20 included</span></div>
+      <div class="kpi"><span class="label">Spend this month</span><span class="value">€18.40</span><span class="delta">cap €60 · alert at 80%</span></div>
+    </div>
+  </div>
+
+  <div class="grid g4" style="margin-bottom:14px">
+    <div class="panel" data-f="compute.local"><div class="panel-body stack tight"><div class="spread"><b>This machine</b><span class="pill ok">ready</span></div><span class="small muted">8 CPU cores · tabular stages, evidence index, notebook export. Free.</span></div></div>
+    <div class="panel" data-f="compute.sandbox"><div class="panel-body stack tight"><div class="spread"><b>Sandboxes</b><span class="pill ok">1 active</span></div><span class="small muted">One per project. No secrets, read-only data, network limited to the Hub and Kaggle.</span></div></div>
+    <div class="panel" data-f="compute.gpu"><div class="panel-body stack tight"><div class="spread"><b>Hugging Face Jobs</b><span class="pill ok">connected</span></div><span class="small muted">T4 · L4 · A10G · A100 · H100. Billed to the workspace account.</span></div></div>
+    <div class="panel"><div class="panel-body stack tight"><div class="spread"><b>Your cluster</b><span class="pill outline">not set up</span></div><span class="small muted">Kubernetes or Slurm with a service account. For data that cannot leave.</span></div></div>
+  </div>
+
+  <div class="grid g-3-1">
+    <div class="stack">
+      <div class="panel" data-tour="jobs">
+        <div class="panel-head"><div class="panel-title"><h2>Jobs</h2><span class="sub">Click a row for logs, metrics and the reproducibility record</span></div><span class="pill outline">sample jobs</span></div>
+        <div class="table-wrap"><table class="data compact clickable" id="jobs-table"><thead><tr><th>Job</th><th>Project · task</th><th>Hardware</th><th>Status</th><th class="num">Time</th><th class="num">Cost</th><th>Started by</th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="panel" id="job-detail">
+        <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="jd-eyebrow"></span><h3 id="jd-title"></h3></div><div class="row" id="jd-actions"></div></div>
+        <div class="tabs" data-tabs="jd" role="tablist">
+          <button type="button" class="tab" data-tab="logs" role="tab" aria-selected="true">Logs</button>
+          <button type="button" class="tab" data-tab="metrics" role="tab" aria-selected="false">Metrics</button>
+          <button type="button" class="tab" data-tab="artifacts" role="tab" aria-selected="false">Artifacts</button>
+          <button type="button" class="tab" data-tab="repro" role="tab" aria-selected="false">Reproduce</button>
+        </div>
+        <div class="panel-body">
+          <div data-tab-panel="jd:logs"><pre class="term" id="jd-logs"></pre></div>
+          <div data-tab-panel="jd:metrics" hidden><div id="jd-metrics"></div></div>
+          <div data-tab-panel="jd:artifacts" hidden><div id="jd-artifacts"></div></div>
+          <div data-tab-panel="jd:repro" hidden data-f="compute.repro"><div id="jd-repro"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <div class="panel" data-f="compute.spend">
+        <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub">October · €18.40 of €60</span></div></div>
+        <div class="panel-body"><div id="spend-chart"></div></div>
+        <div class="panel-foot">Jobs above €5 wait for the owner. The intern sees its remaining budget before every call.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Approval needed</h3><span class="pill warn">1</span></div>
+        <div class="panel-body small stack tight">
+          <p><b>QLoRA on trajectories v0</b> · A100 80 GB · estimated 2.1 h · <b>€6.40</b></p>
+          <p class="muted">Above the per-job cap. Requested by Shahriyar for the policy model.</p>
+          <div class="row"><button type="button" class="btn sm primary" data-toast="Approved. The job starts when an A100 is free; spend alerts stay on.">Approve</button><button type="button" class="btn sm" data-toast="Declined. The request stays in the log with your reason.">Decline</button></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+<script>
+DC.view('compute', {
+  init(el) {
+    const { $, $$, esc, charts, chip } = DC;
+    const JOBS = [
+      { id: 'job-80c1', proj: 'Pedestrians at night and in rain', task: 'detector screen · 3 families', hw: 'A10G 24 GB', st: ['running 41%', 'accent'], time: '18 min', cost: '€0.62', by: 'AV', kind: 'gpu' },
+      { id: 'job-81d9', proj: 'Policy model', task: 'QLoRA on trajectories v0', hw: 'A100 80 GB', st: ['needs approval', 'warn'], time: '—', cost: 'est. €6.40', by: 'SM', kind: 'queued' },
+      { id: 'sbx-41c', proj: 'HyperAck', task: 'calendar features (intern)', hw: 'sandbox 2 vCPU', st: ['done', 'ok'], time: '3.1 s', cost: '€0.00', by: 'AI', kind: 'sandbox' },
+      { id: 'job-7e02', proj: 'Card fraud screening', task: 'final fit on 227,846 rows', hw: 'CPU 8 vCPU', st: ['done', 'ok'], time: '6 min', cost: '€0.09', by: 'AI', kind: 'cpu' },
+      { id: 'local-3a', proj: 'Term-deposit calls', task: 'WF-02 → WF-09', hw: 'this machine', st: ['done', 'ok'], time: '54 s', cost: '€0', by: 'AI', kind: 'local' },
+    ];
+    const WHO = { AV: 'b', SM: '', AI: 'ai' };
+    const tbody = $('#jobs-table tbody', el);
+    tbody.innerHTML = JOBS.map((j, i) => `<tr data-i="${i}" class="${i === 0 ? 'selected' : ''}"><td class="mono small">${j.id}</td><td><div class="cell-main">${esc(j.proj)}</div><div class="cell-sub">${esc(j.task)}</div></td><td class="small">${esc(j.hw)}</td><td><span class="pill ${j.st[1]}">${esc(j.st[0])}</span></td><td class="num mono">${j.time}</td><td class="num mono">${j.cost}</td><td><span class="avatar sm ${WHO[j.by]}">${j.by}</span></td></tr>`).join('');
+    const LOGS = {
+      gpu: `<span class="t-dim">12:01:04</span> pull image dclab/vision:0.3 <span class="t-dim">sha256:4e1f…a90c</span>
+<span class="t-dim">12:01:31</span> snapshot ped-night-rain v1 · 18,420 frames · 212 drives
+<span class="t-dim">12:01:31</span> split by drive: train 170 · val 21 · test 21 <span class="t-acc">(sealed)</span>
+<span class="t-dim">12:01:33</span> contract ODD v1: night · rain · urban · 30–50 km/h
+<span class="t-dim">12:01:33</span> forbidden inputs: frame index, drive id, GPS time
+<span class="t-dim">12:02:10</span> screen 1/3 detector-s   epoch  6/15  loss 1.84  val mAP@0.5 0.512
+<span class="t-dim">12:09:44</span> screen 1/3 detector-s   epoch 15/15  loss 1.31  val mAP@0.5 0.604 <span class="t-ok">✓</span>
+<span class="t-dim">12:10:02</span> screen 2/3 detector-m   epoch  4/15  loss 1.97  val mAP@0.5 0.488
+<span class="t-warn">12:10:02</span> note: 3 val drives have no rain frames; slice "rain" uses 11 drives
+<span class="t-dim">12:18:40</span> screen 2/3 detector-m   epoch 10/15  loss 1.42  val mAP@0.5 0.611 <span class="t-acc">▍</span>`,
+      queued: `<span class="t-warn">waiting</span> estimated cost €6.40 is above the €5 per-job cap
+<span class="t-dim">plan</span> base model: open 8B instruct · QLoRA r=16 · 2 epochs
+<span class="t-dim">data</span> trajectories v0 (412 moves from 19 projects) + SFT corpus v3 (260 train · 66 val)
+<span class="t-dim">eval</span> judgment benchmark suites A–C after training`,
+      sandbox: `<span class="t-dim">15:14:02</span> sandbox sbx-41c · image dclab/tabular:0.9 · 2 vCPU · no network · data read-only
+<span class="t-dim">15:14:02</span> exec cell (5 lines) from the intern
+<span class="t-ok">15:14:05</span> 3 features added: hour_sin, hour_cos, is_weekend
+<span class="t-dim">15:14:05</span> exit 0 · 3.1 s · no files written outside /work`,
+      cpu: `<span class="t-dim">09:41:10</span> refit extra_trees_baseline on 227,846 training rows (time-ordered)
+<span class="t-dim">09:47:02</span> holdout: last 56,961 rows by Time · scored once
+<span class="t-ok">09:47:03</span> average precision 0.8139 [0.7317, 0.8847]`,
+      local: `<span class="t-dim">11:40:12</span> WF-08 → WF-09 gate: owner approval ✓
+<span class="t-ok">11:41:06</span> holdout ROC-AUC 0.7718 [0.7126, 0.8290] · Brier 0.0870 · ECE 0.0272`,
+    };
+    function show(i) {
+      const j = JOBS[i];
+      $$('tr', tbody).forEach(r => r.classList.toggle('selected', Number(r.dataset.i) === i));
+      $('#jd-eyebrow', el).textContent = `${j.id} · ${j.hw}`;
+      $('#jd-title', el).textContent = `${j.proj} · ${j.task}`;
+      $('#jd-actions', el).innerHTML = j.kind === 'gpu' ? '<button type="button" class="btn sm danger" data-toast="Stop requested. Checkpoints so far are kept as artifacts.">Stop</button><button type="button" class="btn sm" data-toast="In the product: reruns with the same seed, image and snapshot.">Rerun same seed</button>' : '<button type="button" class="btn sm" data-toast="In the product: reruns with the same seed, image and snapshot.">Rerun same seed</button>';
+      $('#jd-logs', el).innerHTML = LOGS[j.kind];
+      $('#jd-metrics', el).innerHTML = j.kind === 'gpu'
+        ? charts.line([
+            { pts: [[1, 0.21], [3, 0.38], [6, 0.512], [9, 0.57], [12, 0.596], [15, 0.604]], endLabel: 'detector-s 0.604' },
+            { pts: [[1, 0.18], [4, 0.488], [7, 0.56], [10, 0.611]], cls: 's2', endLabel: 'detector-m 0.611' },
+          ], { width: 640, height: 230, xMin: 1, xMax: 15, yMin: 0, yMax: 0.7, xLabel: 'epoch', yLabel: 'val mAP@0.5', xTicks: [1, 5, 10, 15], yTicks: [0, 0.2, 0.4, 0.6], yFmt: v => v.toFixed(1), aria: 'Validation mAP per epoch' }) + '<p class="xs muted">Sample curves. Validation drives only; the test drives stay sealed until WF-09.</p>'
+        : `<div class="empty">No time series for this run. Its record holds the final numbers${j.kind === 'cpu' ? ' ' + chip('EXP-055') : j.kind === 'local' ? ' ' + chip('EXP-010') : ''}.</div>`;
+      $('#jd-artifacts', el).innerHTML = j.kind === 'gpu'
+        ? '<div class="list small"><div class="list-item"><code>checkpoints/detector-s/best.pt</code><span class="li-side">94 MB</span></div><div class="list-item"><code>eval/val_by_slice.json</code><span class="li-side">night · rain · occlusion</span></div><div class="list-item"><code>samples/failures_rain.png</code><span class="li-side">24 frames</span></div></div>'
+        : '<div class="list small"><div class="list-item"><code>record.json</code><span class="li-side">stage record with evidence</span></div><div class="list-item"><code>notebook.ipynb</code><span class="li-side">runnable export</span></div></div>';
+      $('#jd-repro', el).innerHTML = `<dl class="kv small"><dt>Seed</dt><dd class="mono">42</dd><dt>Data snapshot</dt><dd class="mono">${j.kind === 'gpu' ? 'ped-night-rain v1 · sha256 77ab…1f02' : j.kind === 'local' ? 'bank_marketing · sha256 9c1e…4b07' : 'sha256 3d90…c2e1'}</dd><dt>Contract</dt><dd>${j.kind === 'gpu' ? 'ODD v1' : 'v2 (signed)'}</dd><dt>Image</dt><dd class="mono">${j.kind === 'gpu' ? 'dclab/vision:0.3@sha256:4e1f…a90c' : 'dclab/tabular:0.9@sha256:b20e…77d1'}</dd><dt>Lockfile</dt><dd class="mono">requirements/agent.lock.txt · sha256 51c4…e8a0</dd><dt>Code</dt><dd class="mono">git 8175dea</dd><dt>Command</dt><dd class="mono" style="overflow-wrap:anywhere">dclab run --project ${j.proj.toLowerCase().replace(/[^a-z]+/g, '-')} --stage ${j.kind === 'gpu' ? 'WF-07' : 'all'} --seed 42</dd></dl>`;
+      DC.hydrate(el);
+    }
+    tbody.addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) show(Number(tr.dataset.i)); });
+    show(0);
+    $('#spend-chart', el).innerHTML = charts.barsH([
+      { label: 'Pedestrians (GPU)', value: 9.8, valueText: '€9.80' }, { label: 'Term-deposit calls', value: 3.1, valueText: '€3.10' },
+      { label: 'HyperAck', value: 2.6, valueText: '€2.60' }, { label: 'Card fraud', value: 1.9, valueText: '€1.90' }, { label: 'Model calls (intern)', value: 1.0, valueText: '€1.00', cls: 'proof' },
+    ], { width: 320, labelW: 124, valW: 50, min: 0, max: 12, rowH: 26, ticks: [0, 4, 8, 12], tickFmt: v => '€' + v, aria: 'Spend by project' });
+  },
+});
+</script>

@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index clean
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo product-demo verify-auditor expansion expansion-status new-track research-index clean
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -22,6 +22,7 @@ rd-check:  ## tests, record validation, stale-knowledge and campaign gates
 	$(PYTHON) -m dclab_rnd.evidence_index check
 	$(PYTHON) research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check
 	$(PYTHON) -m dclab_rnd.research_map --check
+	$(PYTHON) docs/product-demo/build.py --check
 
 rd-status:  ## deployment-eligible champions
 	$(PYTHON) -m dclab_rnd status
@@ -130,6 +131,9 @@ pitfalls:  ## re-measure the six common notebook mistakes (evidence/campaigns/pi
 
 copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.html
 	$(PYTHON) -m dclab_rnd.copilot review dclab_rnd/copilot/examples/leaky_bank_marketing.ipynb --html docs/copilot_demo.html > /dev/null
+
+product-demo:  ## rebuild docs/product-demo/index.html, the clickable demo of the final product (REFRESH=1 re-extracts the evidence)
+	$(PYTHON) docs/product-demo/build.py $(if $(REFRESH),--refresh,)
 
 verify-auditor:  ## blind replay of the leakage auditor on datasets with known leaks
 	$(PYTHON) -m dclab_rnd.tools verify-auditor

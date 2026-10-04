@@ -1,0 +1,130 @@
+<section class="view" id="view-integrations" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Integrations</div>
+      <h1>Use DCLab from wherever you already work</h1>
+      <p class="lede">The same tools, graph and evidence behind every door: Hugging Face Chat UI and its ML Intern mode, any MCP client, VS Code, the REST API and the command line.</p>
+    </div>
+  </header>
+
+  <div class="grid g-3-1">
+    <div class="stack">
+      <div class="panel" data-f="int.mcp" data-tour="mcp">
+        <div class="panel-head"><div class="panel-title"><h2>MCP endpoint</h2><span class="sub">Streamable HTTP, stateless, JSON responses. Deterministic code owns every split, metric and selection rule; the client's model only proposes.</span></div><span class="pill ok">built · tested</span></div>
+        <div class="panel-body stack">
+          <div class="row"><code class="inset" style="flex:1;min-width:220px" id="mcp-url">http://127.0.0.1:8765/mcp</code><button type="button" class="btn sm" data-copy="#mcp-url" data-copy-label="Endpoint">Copy</button><span class="small muted">or standalone: <code>python -m dclab_rnd.mcp_server --port 8777</code></span></div>
+          <div class="tabs" data-tabs="mcpcfg" role="tablist">
+            <button type="button" class="tab" data-tab="chatui" role="tab" aria-selected="true">Chat UI</button>
+            <button type="button" class="tab" data-tab="claude" role="tab" aria-selected="false">Claude Code</button>
+            <button type="button" class="tab" data-tab="generic" role="tab" aria-selected="false">Any MCP client</button>
+          </div>
+          <div data-tab-panel="mcpcfg:chatui"><pre class="code" id="cfg-chatui">MCP_SERVERS=[{"name": "DCLab notebook", "url": "http://127.0.0.1:8765/mcp"}]
+MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy="#cfg-chatui" data-copy-label="Config" style="margin-top:6px">Copy</button></div>
+          <div data-tab-panel="mcpcfg:claude" hidden><pre class="code" id="cfg-claude">claude mcp add --transport http dclab http://127.0.0.1:8765/mcp</pre><button type="button" class="btn sm" data-copy="#cfg-claude" data-copy-label="Command" style="margin-top:6px">Copy</button></div>
+          <div data-tab-panel="mcpcfg:generic" hidden><pre class="code" id="cfg-generic">{"mcpServers": {"dclab": {"type": "http", "url": "http://127.0.0.1:8765/mcp"}}}</pre><button type="button" class="btn sm" data-copy="#cfg-generic" data-copy-label="Config" style="margin-top:6px">Copy</button></div>
+          <div class="table-wrap"><table class="data compact" id="tool-table"><thead><tr><th>Tool</th><th>What it does</th><th>Group</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="int.vscode">
+        <div class="panel-head"><div class="panel-title"><h2>VS Code companion</h2><span class="sub">The notebook companion inside the editor: findings beside the cell, proof one click away</span></div><span class="pill warn">engine built · extension planned</span></div>
+        <div class="panel-body">
+          <div class="vs-frame">
+            <div class="vs-title"><i></i><i></i><i></i><span>first-pass.ipynb — bank-marketing — Visual Studio Code</span></div>
+            <div class="vs-body">
+              <div class="vs-act"></div>
+              <div style="padding:10px;min-width:0" class="stack tight">
+                <div class="small muted mono">[3]</div>
+                <pre class="code" data-py data-hl="2,3">
+# call length is the strongest predictor, keep it
+features = ["age", "balance", "duration", "campaign", "pdays", "previous", "job", "month"]
+df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
+                <div class="callout bad small"><span class="ic">${icon:alert}</span><span><b>DCLab · high:</b> <code>duration</code> is known only after the call ends. Training CV 0.7130 → 0.8972 with it ${chip:LEAK-bank_marketing}. <a href="#notebook">Quick fix</a> · <a href="#notebook">Explain</a></span></div>
+              </div>
+              <div class="vs-side">
+                <b>DCLab</b>
+                <div class="row"><span class="sev high">3 high</span><span class="sev medium">3 medium</span></div>
+                <div class="small">Contract: <b>Term-deposit calls v2</b></div>
+                <div class="small muted">Findings follow the active cell. Nothing is changed without your click; every quick fix shows a diff first.</div>
+                <a class="btn sm" href="#notebook">Open in DCLab</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="int.api">
+        <div class="panel-head"><div class="panel-title"><h2>REST API</h2><span class="sub">The routes the web app uses today</span></div><span class="pill ok">built</span></div>
+        <div class="table-wrap"><table class="data compact"><tbody>
+          <tr><td class="mono small">GET · POST /api/projects</td><td class="small">list and create projects</td></tr>
+          <tr><td class="mono small">PUT /api/projects/{id}/data · POST …/data/sample</td><td class="small">attach a table or a studied sample</td></tr>
+          <tr><td class="mono small">POST …/contract/proposal · PUT …/contract</td><td class="small">propose and save the prediction contract</td></tr>
+          <tr><td class="mono small">POST …/stages/{stage}/run · …/approve · …/run</td><td class="small">run a stage, approve it, or run everything left</td></tr>
+          <tr><td class="mono small">POST /api/projects/{id}/ask</td><td class="small">ask the project; answers cite records</td></tr>
+          <tr><td class="mono small">GET …/export/notebook · report · sft</td><td class="small">.ipynb, Markdown report, training examples</td></tr>
+          <tr><td class="mono small">GET · POST /api/intern/sessions · …/message</td><td class="small">intern sessions with a budget</td></tr>
+          <tr><td class="mono small">GET /api/evidence/{record_id} · /api/knowledge</td><td class="small">evidence records and the knowledge view</td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+
+    <aside class="stack">
+      <div class="panel" data-f="int.chatui">
+        <div class="panel-head"><div class="panel-title"><h3>Hugging Face Chat UI</h3><span class="sub">Local, with ML Intern mode</span></div><span class="pill ok">built · tested</span></div>
+        <div class="panel-body stack tight small">
+          <pre class="term"><span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp on :8765</span>
+<span class="t-dim">$</span> make chat-ui-intern   <span class="t-dim"># Chat UI on :5173</span></pre>
+          <p>Plain mode offered the 18 DCLab tools; ML Intern mode offered 32, the DCLab ones plus plan, research, sandbox and Trackio tools. A tool-capable model built a heart-disease project end to end over MCP.</p>
+          <p class="muted">Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.</p>
+        </div>
+      </div>
+
+      <div class="panel" data-f="int.cli">
+        <div class="panel-head"><h3>Command line</h3><span class="pill ok">built</span></div>
+        <div class="panel-body stack tight">
+          <pre class="term"><span class="t-dim">$</span> python -m dclab_rnd status
+<span class="t-dim">$</span> python -m dclab_rnd.copilot review NOTEBOOK.ipynb
+<span class="t-dim">$</span> make rd-check     <span class="t-dim"># tests + evidence + freshness</span>
+<span class="t-dim">$</span> make knowledge    <span class="t-dim"># evidence index + SFT corpus</span></pre>
+        </div>
+      </div>
+
+      <div class="panel" data-f="int.connectors">
+        <div class="panel-head"><h3>Data connectors</h3></div>
+        <div class="list small">
+          <div class="list-item"><div class="li-main"><span class="li-title">Kaggle</span><span class="li-sub">four named datasets download today</span></div><span class="pill warn">partial</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">Hugging Face Hub</span><span class="li-sub">datasets by ID, revision and split</span></div><span class="pill warn">partial</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">S3 · GCS</span><span class="li-sub">read-only bucket and prefix</span></div><span class="pill outline">planned</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">Postgres · BigQuery · Snowflake</span><span class="li-sub">read-only role and a saved query</span></div><span class="pill outline">planned</span></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="int.github">
+        <div class="panel-head"><h3>GitHub</h3><span class="pill outline">planned</span></div>
+        <div class="panel-body small">A finished project opens a pull request with the notebook, the report, the contract and the record IDs, so code review sees the proof next to the code.</div>
+      </div>
+    </aside>
+  </div>
+</section>
+<script>
+DC.view('integrations', {
+  init(el) {
+    const { $, esc, chip, icon } = DC;
+    el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    const T = [
+      ['search_evidence', 'Filter-then-rank search over rules, workflows, datasets, experiments, precedents, pitfalls and findings', 'evidence'],
+      ['get_record', 'Return one full evidence record by ID', 'evidence'], ['get_rules', 'List the model-building rules, optionally one category', 'evidence'],
+      ['plan_next_stage', 'The next stage, its method, its rules and precedents for this dataset', 'evidence'], ['review_code', 'Static methodology review of one cell or script', 'evidence'],
+      ['list_samples', 'Datasets the R&D studied, with their contracts', 'project'], ['create_project', 'Create a notebook project', 'project'],
+      ['use_sample', 'Load a studied dataset with its profile and contract suggestion', 'project'], ['describe_data', 'Rows, columns, candidates for target, time, ID and text', 'project'],
+      ['propose_contract', 'Audit columns for a target and propose a contract with proof', 'project'], ['set_contract', 'Save the contract; clears earlier stage results', 'project'],
+      ['set_settings', 'How many rows the stages use', 'project'], ['run_stage', 'Run one stage; stages run in order', 'project'],
+      ['run_all', 'Run the remaining stages; the final one uses the holdout once', 'project'], ['approve_stage', 'Approve a stage, optionally choosing another option', 'project'],
+      ['get_results', 'Records of the finished stages', 'project'], ['ask_project', 'Ask the project; answers cite records', 'project'],
+      ['export_notebook', 'Write the runnable notebook and the report', 'project'],
+    ];
+    $('#tool-table tbody', el).innerHTML = T.map(([n, d, g]) => `<tr><td class="mono small">${n}</td><td class="small">${esc(d)}</td><td><span class="pill ${g === 'evidence' ? 'proof' : 'accent'}">${g}</span></td></tr>`).join('');
+    DC.hydrate(el);
+  },
+});
+</script>
