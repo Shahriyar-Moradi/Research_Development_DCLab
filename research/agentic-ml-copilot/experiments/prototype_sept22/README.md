@@ -1,14 +1,11 @@
 # Prototype pack (September 22)
 
-The first round of agent-assisted R&D prototypes, kept as a historical record. Each idea here was later rebuilt and tested in the shared code; use the maintained version for new work.
+What is left of the first round of agent-assisted R&D prototypes. Everything else from that round was rebuilt in the shared code and removed from here; Git history keeps the originals.
 
-| Prototype file | What it explored | Maintained version |
+| File | Why it is still here | Maintained version |
 |---|---|---|
-| `notebook_copilot.py`, `grounded_review.py`, `demo_churn_model.ipynb` | Notebook review with cited rules | `dclab_rnd/copilot/` and `dclab_rnd/notebook_assist.py` |
-| `build_rag_index.py`, `dclab_knowledge_mcp_server.py` | TF-IDF retrieval over rules and claims; an MCP server | `dclab_rnd/evidence_index.py`, `dclab_rnd/tools.py` |
-| `build_sft_dataset*.py`, `sft_*_v3_sample.jsonl`, `SFT_DATA_GUIDE.md` | Paired instruction data, versions 1 to 3 (the v1 samples and the roadmap review live in `research/llm-fine-tuning/experiments/sft/`) | `research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py` |
-| `dataset_expansion_pack.py` | Adapters for fraud, multiclass, time-series and text data | `dclab_rnd/expansion/` |
-| `dclab_studio.html` | First "dclab notebook" UI concept | `docs/copilot_demo.html` and the Research Studio (`dclab_rnd/agentic/`) |
-| `*.md` reviews and plans | Roadmap, architecture, verification and integration notes | `docs/guides/` |
+| `notebook_copilot.py`, `build_rag_index.py` | `dclab_rnd/notebook_eval.py` imports them to score this first prototype on the frozen notebook cases, so the new copilot can be compared with it | `dclab_rnd/copilot/`, `dclab_rnd/evidence_index.py` |
+| `demo_churn_model.ipynb` | Test notebook used by `tests/test_notebook_assist.py` | `dclab_rnd/notebook_assist.py` |
+| `dclab_studio.html` | First sketch of the "dclab notebook" UI, the starting point for the agentic notebook | `docs/copilot_demo.html`, the Research Studio (`dclab_rnd/agentic/`) |
 
-`dclab_rnd/notebook_eval.py` still imports `notebook_copilot.py` and `build_rag_index.py` from here to score this prototype on the frozen notebook cases, so keep those two files in place. Script defaults assume you run them from the repository root.
+The plans, guides and SFT builders that used to live here are now in `docs/guides/` and `research/llm-fine-tuning/experiments/sft/`. Script defaults assume you run them from the repository root.

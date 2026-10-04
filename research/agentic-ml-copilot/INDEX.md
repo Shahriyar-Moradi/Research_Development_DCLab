@@ -14,7 +14,7 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 | Experiment | Result files | Notebooks | Scripts | Entry point |
 |---|---:|---:|---:|---|
-| [prototype_sept22](experiments/prototype_sept22) | 0 | 1 | 9 | [README.md](experiments/prototype_sept22/README.md) |
+| [prototype_sept22](experiments/prototype_sept22) | 0 | 1 | 2 | [README.md](experiments/prototype_sept22/README.md) |
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
@@ -32,7 +32,7 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 ## Reports and research notes
 
-- [experiments/prototype_sept22/](experiments/prototype_sept22): [DCLab_Agentic_Loop_RD_Verification_Plan.md](experiments/prototype_sept22/DCLab_Agentic_Loop_RD_Verification_Plan.md), [DCLab_RD_Operating_Model.md](experiments/prototype_sept22/DCLab_RD_Operating_Model.md), [NOTEBOOK_COPILOT_SPEC.md](experiments/prototype_sept22/NOTEBOOK_COPILOT_SPEC.md), [SFT_DATA_GUIDE.md](experiments/prototype_sept22/SFT_DATA_GUIDE.md)
+Research notes live in [README.md](README.md) until there is enough material for `reports/`.
 
 ## Related tracks
 
