@@ -177,8 +177,7 @@ The sidebar has two groups:
 |---|---|---|
 | Explore | **Research map** (start page) | Every research idea as a tree (by theme) and a graph (lines join related ideas). Each idea opens one page with the same seven sections: idea · champion · experiments · notebooks · evaluation · reports & research · related ideas. Click any file to read it in place. No API key needed. |
 | Explore | Knowledge | The field guide and the critiqued lessons from finished agent runs. |
-| Run | Agent research | Start an agent-led run and follow it live (needs `OPENAI_API_KEY`). |
-| Run | Recipes & traces | Replayable recipes and exportable trajectories of every run. |
+| Run | Agent research | Start an agent-led run, follow it live and export its trace (needs `OPENAI_API_KEY`). |
 
 Pages have links you can share: `#map/churn-prediction`, `#run/<id>`, `#knowledge`. The map uses the same data as each `research/<track>/INDEX.md` (`python -m dclab_rnd.research_map --json`), so the two never disagree. Frontend code: `dclab_rnd/agentic/static/` with `css/` (base, layout, one file per view) and `js/` (`core.js`, `app.js` router, `views/*.js`); no third-party scripts, strict CSP.
 

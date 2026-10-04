@@ -1,12 +1,11 @@
 /* Research Studio entry point: hash router + boot.
-   Routes: #map · #map/<idea> · #research · #run/<id> · #knowledge · #recipes */
+   Routes: #map · #map/<idea> · #research · #run/<id> · #knowledge */
 import {$, state, api, notice} from './core.js';
 import {initMap, renderMap} from './views/map.js';
 import {initComposer, refreshRuns, showComposer, showRun} from './views/runs.js';
 import {renderKnowledge} from './views/knowledge.js';
-import {renderRecipes} from './views/recipes.js';
 
-const VIEWS = {map: 'Research map', research: 'Agent research', knowledge: 'Knowledge', recipes: 'Recipes & traces'};
+const VIEWS = {map: 'Research map', research: 'Agent research', knowledge: 'Knowledge'};
 
 function show(name) {
   state.view = name;
@@ -24,13 +23,11 @@ async function route() {
   if (name === 'map') await renderMap(arg);
   if (name === 'research' && !state.selected) showComposer();
   if (name === 'knowledge') await renderKnowledge();
-  if (name === 'recipes') renderRecipes();
 }
 
 async function tick() {
   if (!state.config) return;
   await refreshRuns();
-  if (state.view === 'recipes') renderRecipes();
 }
 
 (async () => {

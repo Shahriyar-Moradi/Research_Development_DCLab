@@ -36,12 +36,12 @@ export async function refreshRuns() {
 }
 export function showComposer() {
   state.selected=null;
-  $('composer').classList.remove('hidden');$('empty-state').classList.remove('hidden');$('run-detail').classList.add('hidden');
+  $('composer').classList.remove('hidden');$('run-detail').classList.add('hidden');
   document.querySelector('#research-view .page-heading').classList.remove('hidden');renderRuns();
 }
 export async function showRun(id) {
   state.selected=id;
-  $('composer').classList.add('hidden'); $('empty-state').classList.add('hidden'); $('run-detail').classList.remove('hidden');
+  $('composer').classList.add('hidden'); $('run-detail').classList.remove('hidden');
   document.querySelector('#research-view .page-heading').classList.add('hidden');
   await refreshRuns();
 }
