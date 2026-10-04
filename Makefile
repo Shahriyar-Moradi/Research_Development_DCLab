@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index clean
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo verify-auditor expansion expansion-status new-track research-index clean
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -61,6 +61,15 @@ agent-serve:  ## start the web UI with the LLM campaigns enabled (agent environm
 
 notebook:  ## start the DCLab notebook UI on http://127.0.0.1:8765 (ML environment; no LLM needed)
 	$(PYTHON) -m uvicorn dclab_rnd.agentic.server:app --host 127.0.0.1 --port $${DCLAB_PORT:-8765}
+
+chat-ui:  ## run Hugging Face Chat UI locally with the DCLab notebook as an MCP server (needs Node 20+)
+	$(PYTHON) scripts/chat_ui.py
+
+chat-ui-intern:  ## the same with ML Intern mode compiled in (needs a Hugging Face OAuth app for Jobs)
+	$(PYTHON) scripts/chat_ui.py --ml-intern
+
+mcp-serve:  ## the DCLab tools as a standalone MCP server on http://127.0.0.1:8777/mcp
+	$(PYTHON) -m dclab_rnd.mcp_server
 
 agent-test:  ## agentic tests (agent env) + deterministic worker tests (ML env)
 	$(AGENT_PYTHON) -m pytest tests/test_agentic.py tests/test_research_map.py tests/test_studio.py -q

@@ -26,6 +26,10 @@ export async function renderIntern(arg, extra) {
     <div class="page-heading"><div class="eyebrow">THE DCLAB INTERN</div><h1>Describe the task.<br>The intern runs the notebook.</h1>
       <p>A chat mode with tools and a budget, like Hugging Face's ML Intern, but the compute is the DCLab notebook on this machine:<br>every tool it can call is one the R&D already verified, and the model never owns a split, a metric or a selection rule.</p></div>
     <div class="intern-status card"><span class="live-dot"></span><b>${status.mode === 'llm' ? `Model: ${esc(status.model)} via ${esc(status.endpoint)}` : 'No model configured · standard plan'}</b><span>${esc(status.note)}</span></div>
+    ${status.mcp_url ? `<div class="card chatui"><div class="eyebrow">PREFER HUGGINGCHAT'S INTERFACE?</div>
+      <p>Hugging Face's <a href="https://github.com/huggingface/chat-ui" target="_blank" rel="noopener">Chat UI</a> runs locally with the DCLab notebook attached as an MCP server, so its ML Intern mode (or any tool-capable model) can create projects, write contracts, run the stages and export notebooks here.
+      Run <code>${esc(status.chat_ui.command)}</code> (or <code>${esc(status.chat_ui.intern_command)}</code> for ML Intern mode) in a second terminal, then open <a href="${esc(status.chat_ui.intern_url)}" target="_blank" rel="noopener">${esc(status.chat_ui.intern_url)}</a>.
+      MCP endpoint: <code>${esc(status.mcp_url)}</code> · tools: ${status.tools.length}.</p></div>` : ''}
     <div class="intern-layout">
       <aside class="card intern-list"><div class="section-label">SESSIONS <a href="#intern" aria-label="New session">+</a></div><div id="intern-sessions"></div></aside>
       <div id="intern-main"></div>

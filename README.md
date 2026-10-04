@@ -69,7 +69,7 @@ flowchart LR
 git clone git@github.com:Shahriyar-Moradi/Research_Development_DCLab.git
 cd Research_Development_DCLab
 
-# 1) ML environment: experiments, campaigns, copilot, tests (Python 3.10+)
+# 1) ML environment: experiments, campaigns, copilot, tests, the notebook UI (Python 3.10+)
 python -m venv .venv
 .venv/bin/pip install -r requirements/base.txt pyarrow catboost
 
@@ -78,8 +78,10 @@ uv venv --python 3.13 .venv-agent
 uv pip install --python .venv-agent/bin/python -r requirements/agent.lock.txt
 
 # 3) Secrets go in a local .env file (never committed)
-#    OPENAI_API_KEY=...     for LLM critic reviews and the Research Studio
+#    OPENAI_API_KEY=...     for LLM critic reviews, the intern and Chat UI (an hf_… token works with the Hugging Face router)
+#    OPENAI_BASE_URL=...    optional: https://router.huggingface.co/v1, http://127.0.0.1:11434/v1 (Ollama), …
 #    TABPFN_TOKEN=...       for TabPFN v3 (optional)
+#    OPENID_CLIENT_ID=... / OPENID_CLIENT_SECRET=...   optional: Hugging Face sign-in for Chat UI's ML Intern mode
 ```
 
 CI uses only `requirements/ci.txt` (numpy, pandas, scikit-learn, pyarrow). That is enough for the tests, the evidence checks, the copilot, the agent tools and the evidence index.
@@ -210,6 +212,29 @@ Describe the task ("Build a leakage-safe churn model on the Telco sample and tel
 Without a key the intern still works: it follows the **standard plan** (pick the dataset the task names → create the project → write the contract from the R&D audit and suggestion → run the five stages → report), so the product is usable offline and every transcript has the same shape. Budgets are enforced on every tool call; new projects start in quick mode (3,000 rows).
 
 Where the code lives: `dclab_rnd/intern/` (`tools.py` the toolbox, `llm.py` the client, `loop.py` the budgeted loop and the standard plan, `sessions.py` storage), routes under `/api/intern` in `dclab_rnd/agentic/server.py`, UI in `static/js/views/intern.js`. Tests: `tests/test_intern.py` (a scripted model replays tool calls, so no key is needed).
+
+### Use Hugging Face Chat UI and ML Intern with DCLab
+
+The same tools are also an **MCP server**: the notebook serves them at `http://127.0.0.1:8765/mcp` (or standalone with `make mcp-serve`). That lets Hugging Face's own [Chat UI](https://github.com/huggingface/chat-ui), the app behind HuggingChat and its ML Intern mode, drive DCLab. In a Chat UI conversation the model sees all 18 DCLab tools next to its own, so "build a leakage-safe churn model on the Telco sample" creates a real project here, writes the contract, runs the five stages and exports the notebook.
+
+```bash
+make notebook            # terminal 1: DCLab (also serves /mcp)
+make chat-ui             # terminal 2: clones Chat UI into .chat-ui/, writes its .env.local, runs it → http://localhost:5173/
+make chat-ui-intern      # or the same with ML Intern mode compiled in → http://localhost:5173/?mode=ml-intern
+```
+
+`scripts/chat_ui.py` writes Chat UI's `.env.local` from this repository's `.env`, so keys live in one place:
+
+| From `.env` | Becomes in Chat UI |
+|---|---|
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL` (default the Hugging Face router) | the model endpoint |
+| always | `MCP_SERVERS=[{"name": "DCLab notebook", "url": "http://127.0.0.1:8765/mcp"}]` |
+| `--ml-intern` | `ML_ASSISTANT_MODE=true` and `ML_ASSISTANT_MODELS` (default GLM-5.3-Flash and Kimi-K3; override with `DCLAB_CHAT_UI_MODELS`) |
+| `OPENID_CLIENT_ID`, `OPENID_CLIENT_SECRET` | Hugging Face sign-in, `MCP_FORWARD_HF_USER_TOKEN=true` |
+
+Needs Node.js 20+. For ML Intern's Hub Jobs and sandboxes, create the OAuth app described in [Chat UI's guide](https://github.com/huggingface/chat-ui/blob/main/docs/source/ml-intern/local-development.md) (redirect `http://localhost:5173/login/callback`; scopes `openid profile inference-api read-mcp read-billing jobs`), sign in, and set a compute budget in the status bar: Hub Jobs bill your Hugging Face credits. The DCLab tools themselves run on your machine and cost nothing.
+
+Verified end to end with the real Chat UI: in plain mode the model was offered the 18 DCLab tools; in ML Intern mode 32 tools (DCLab's 18 plus ML Intern's planning, research, sandbox, Trackio and file tools); it called `list_samples` over MCP and answered from DCLab's reply. The Hub's own Jobs tools join after you sign in. Note that the ML Intern GitHub repository is archived; the mode now lives inside Chat UI, which is what this uses.
 
 ### The notebook as a data factory
 

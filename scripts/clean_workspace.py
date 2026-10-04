@@ -9,7 +9,7 @@ removes that clutter and the folders it leaves empty.
     python scripts/clean_workspace.py --apply    # remove it
     make clean / make clean APPLY=1
 
-Never removes: tracked files, `.git`, `.env`, virtual environments (`.venv*`),
+Never removes: tracked files, `.git`, `.env`, virtual environments (`.venv*`), the Chat UI clone (`.chat-ui/`),
 `data/` (including `data/downloads/`), `agent_runs/` or training runs. Other
 untracked files are only listed, so you decide what happens to them.
 """
@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 JUNK_DIRS = {"__pycache__", ".ipynb_checkpoints", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 JUNK_FILES = {".DS_Store", "Thumbs.db"}
 JUNK_SUFFIXES = (".pyc", ".pyo")
-PROTECTED = {".git", ".venv", ".venv-agent", "data", "agent_runs", "node_modules", ".env"}
+PROTECTED = {".git", ".venv", ".venv-agent", "data", "agent_runs", "node_modules", ".env", ".chat-ui"}
 
 
 def protected(path: Path) -> bool:

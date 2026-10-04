@@ -11,7 +11,7 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 - `data/` — all datasets: `project/` (HyperAck, Telco), `public/` (10 UCI parquet), `downloads/` (gitignored).
 - `research/<track>/` — one folder per research idea, same shape everywhere: `README.md` (idea, contract, conclusions), generated `INDEX.md` (champion, experiments, notebooks, evaluation, reports), `experiments/`, `notebooks/`, `evaluation/`, `reports/`. Index: `research/README.md`. New idea: `make new-track NAME=... TITLE="..." PREFIX=...`.
 - `evidence/campaigns/` — immutable experiment results (one JSON each). `evidence/knowledge/` — GENERATED; never edit by hand.
-- `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `research_map.py` (track records → INDEX.md and the map page), `studio/` (the DCLab notebook: projects, contract, five-stage engine on user data, evidence-cited notes, .ipynb export), `agentic/` (API server + web UI in `agentic/static/{css,js/views}`, and the LLM campaign loop), `intern/` (chat mode with tools and a budget over the notebook; standard plan when no model is configured), `studio/sft.py` (finished projects → SFT examples).
+- `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `research_map.py` (track records → INDEX.md and the map page), `studio/` (the DCLab notebook: projects, contract, five-stage engine on user data, evidence-cited notes, .ipynb export), `agentic/` (API server + web UI in `agentic/static/{css,js/views}`, and the LLM campaign loop), `intern/` (chat mode with tools and a budget over the notebook; standard plan when no model is configured), `studio/sft.py` (finished projects → SFT examples), `mcp_server.py` (the toolbox as an MCP server at `/mcp`, for Hugging Face Chat UI / ML Intern).
 - `general_pipeline/` — shared tabular pipeline imported by research scripts and `dclab_rnd`.
 - `docs/guides/` — field notes, integration plan, agent architecture, copilot, SFT guide.
 
@@ -23,7 +23,8 @@ make rd-check    # tests + evidence validation + freshness of all generated file
 make rd-sync     # rebuild the registry and knowledge base after new results
 make knowledge   # rebuild the evidence index and SFT v3 corpus after new results
 make research-index   # regenerate every research/<track>/INDEX.md (champions, file maps)
-make notebook         # the web UI (DCLab notebook, research map, knowledge) without the agent environment
+make notebook         # the web UI (DCLab notebook, intern, research map, knowledge) + the MCP endpoint /mcp
+make chat-ui          # Hugging Face Chat UI locally with DCLab as an MCP server (make chat-ui-intern: ML Intern mode)
 python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a notebook
 ```
 

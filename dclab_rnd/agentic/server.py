@@ -24,6 +24,7 @@ from ..intern import Intern, SessionStore
 from ..intern import llm as intern_llm
 from ..intern.sessions import EXAMPLE_TASKS
 from ..intern.tools import Toolbox
+from .. import mcp_server
 
 load_dotenv(ROOT / ".env", override=False)
 STATIC = Path(__file__).with_name("static")
@@ -44,21 +45,27 @@ def create_app(home=None):
         client = intern_llm.ChatClient() if cfg["available"] else None
         return Intern(intern_sessions, Toolbox(projects), client)
     csrf = secrets.token_urlsafe(32)
+    mcp = mcp_server.session_manager(Toolbox(projects)) if mcp_server.available() else None
     @asynccontextmanager
     async def lifespan(app):
         for run in store.list():
             if run["status"] in ("queued", "running", "pausing"):
                 store.update(run["id"], status="interrupted", phase="Server restarted; resume explicitly")
-        yield
+        if mcp is None:
+            yield
+        else:
+            async with mcp.run():  # the MCP transport lives as long as the server
+                yield
         active = list(tasks.values()) + list(jobs.values()) + list(intern_jobs.values())
         for task in active: task.cancel()
         if active: await asyncio.gather(*active, return_exceptions=True)
-    app = FastAPI(title="DCLab Research Studio", lifespan=lifespan)
+    app = FastAPI(title="DCLab notebook", lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
     app.state.store, app.state.tasks, app.state.projects = store, tasks, projects
     @app.middleware("http")
     async def protect(request: Request, call_next):
-        if request.method not in ("GET", "HEAD", "OPTIONS"):
+        # /mcp is JSON-RPC for local MCP clients (Chat UI, Claude Desktop…); the host check still applies to it.
+        if request.method not in ("GET", "HEAD", "OPTIONS") and not request.url.path.startswith("/mcp"):
             token = request.headers.get("x-dclab-token", "")
             if not secrets.compare_digest(token, csrf):
                 return JSONResponse({"detail": "Missing local UI request token"}, status_code=403)
@@ -315,9 +322,11 @@ def create_app(home=None):
         intern_jobs[session_id] = job
         return job
     @app.get("/api/intern")
-    async def intern_status():
+    async def intern_status(request: Request):
         cfg = intern_llm.settings()
         return {**cfg, "mode": "llm" if cfg["available"] else "standard", "examples": EXAMPLE_TASKS,
+                "mcp_url": (str(request.base_url).rstrip("/") + "/mcp") if mcp is not None else None,
+                "chat_ui": {"command": "make chat-ui", "intern_command": "make chat-ui-intern", "url": "http://localhost:5173/", "intern_url": "http://localhost:5173/?mode=ml-intern"},
                 "tools": Toolbox(projects).names(), "default_budget": {"max_steps": 24, "max_minutes": 20},
                 "note": ("The model plans and calls the tools; deterministic code runs every stage." if cfg["available"] else
                          "No model is configured, so the intern follows the standard DCLab plan. Set OPENAI_API_KEY (and OPENAI_BASE_URL for the Hugging Face router or Ollama) to let a model plan.")}
@@ -370,6 +379,8 @@ def create_app(home=None):
     async def index(): return FileResponse(STATIC / "index.html")
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon(): return Response(status_code=204)
+    if mcp is not None:
+        app.mount("/mcp", app=mcp.handle_request, name="mcp")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     return app
 
