@@ -50,7 +50,8 @@ class Solution(BaseModel):
         if self.target in names or self.target in self.identifiers or self.target in self.text_columns:
             raise ValueError("The target cannot also be forbidden, an identifier or a text column")
         if self.time_column and self.time_column in names:
-            raise ValueError("The time column orders the split; it is excluded from the model automatically, not forbidden")
+            raise ValueError("The time column orders the split and is kept out of the model automatically, so it cannot also be "
+                             "forbidden: untick it under Forbidden, or choose another time column")
         if self.metric and self.metric not in {m for m, _ in METRICS[self.task]}:
             raise ValueError(f"Metric {self.metric!r} does not fit a {self.task} task")
         if len(names) != len(self.forbidden):
@@ -91,15 +92,19 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
     audit = tools._audit_frame(X, y, task="regression" if task == "regression" else "classification", blind=False)
     identifiers = [name for name, c in columns.items() if name != target and (c["id_like"] or (c["name_id_like"] and c["unique_ratio"] > 0.5))]
     group_candidates = [name for name, c in columns.items() if name != target and c["name_id_like"] and 0.005 < c["unique_ratio"] < 0.5 and c["kind"] != "numeric"]
+    time_candidates = [name for name in profile["time_candidates"] if name != target]
     forbidden = []
     for row in audit["flagged"]:
         name = row["column"]
         if name in identifiers:
             continue
+        # A timestamp is unique on most rows; that makes it the time key, not a leakage candidate. It stays flagged
+        # when the audit has any other signal against it (then it should not order the split either).
+        if name in time_candidates and all(s.startswith("identifier-like") for s in row["signals"]):
+            continue
         proof = [s.split("precedent ")[-1] for s in row["signals"] if "precedent" in s]
         forbidden.append({"column": name, "reason": "; ".join(row["signals"]), "risk_score": row["risk_score"],
                           "proof": proof + ["DCLAB-R04", "DCLAB-R05"]})
-    time_candidates = [name for name in profile["time_candidates"] if name != target]
     text_columns = [name for name in profile["text_candidates"] if name != target]
     positive_rate = detected.get("positive_rate")
     return {

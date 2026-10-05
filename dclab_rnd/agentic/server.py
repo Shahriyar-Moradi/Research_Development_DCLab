@@ -71,7 +71,7 @@ def create_app(home=None):
         if active: await asyncio.gather(*active, return_exceptions=True)
     app = FastAPI(title="DCLab notebook", lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
-    app.state.store, app.state.tasks, app.state.projects = store, tasks, projects
+    app.state.store, app.state.tasks, app.state.projects, app.state.drafts = store, tasks, projects, drafts
     @app.middleware("http")
     async def protect(request: Request, call_next):
         # /mcp is JSON-RPC for local MCP clients (Chat UI, Claude Desktop…); the host check still applies to it.
@@ -219,6 +219,7 @@ def create_app(home=None):
             settings = body["settings"]
             if "max_rows" in settings: p["settings"]["max_rows"] = max(200, min(int(settings["max_rows"]), 200000))
             if "quick" in settings: p["settings"]["quick"] = bool(settings["quick"])
+            if "folds" in settings: p["settings"]["folds"] = max(studio_engine.FOLD_CAPS[0], min(int(settings["folds"]), studio_engine.FOLD_CAPS[1]))
         changed = {}
         if isinstance(body.get("policy"), dict):  # which gates wait for a person; the invariants hold either way
             named = {studio_graph.LEGACY_POLICY.get(k, k): v for k, v in body["policy"].items()}
@@ -260,11 +261,11 @@ def create_app(home=None):
         frame = load_frame(p)
         try: proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], str(body.get("target", "")), body.get("task"))
         except ValueError as exc: raise HTTPException(422, str(exc))
-        if p.get("suggestion"):
+        if p.get("suggestion"):  # a studied sample carries the R&D's whole solution; a draft-built project only what the chat established
             known = {f["column"] for f in proposal["forbidden"]}
-            proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in p["suggestion"]["forbidden"] if f["column"] not in known] + proposal["forbidden"]
-            proposal["identifiers"] = sorted(set(proposal["identifiers"]) | set(p["suggestion"].get("identifiers", [])))
-            proposal["prediction_moment_hint"] = p["suggestion"]["prediction_moment"]
+            proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in p["suggestion"].get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
+            proposal["identifiers"] = sorted(set(proposal["identifiers"]) | set(p["suggestion"].get("identifiers") or []))
+            if p["suggestion"].get("prediction_moment"): proposal["prediction_moment_hint"] = p["suggestion"]["prediction_moment"]
             if p["suggestion"].get("time_column"): proposal["time_candidates"] = [p["suggestion"]["time_column"]] + [c for c in proposal["time_candidates"] if c != p["suggestion"]["time_column"]]
         p["proposal"] = proposal
         projects.save(p)

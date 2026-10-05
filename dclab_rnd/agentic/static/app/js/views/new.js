@@ -67,7 +67,7 @@ DC.view('new', {
     /* ---------- step 2: data ---------- */
     function drawAssets() {
       const d = W.draft, list = $('#wz-assets', el);
-      list.innerHTML = (d.assets || []).map(a => `<div class="list-item panel"><div class="li-main"><span class="li-title">${esc(a.name)}${a.synthetic ? ' <span class="pill warn">synthetic</span>' : ''}</span><span class="li-sub">${a.status === 'ready' ? `${fmtN(a.rows)} rows · ${fmtN(a.columns)} columns${a.format ? ' · read as ' + esc(a.format.replace('_', ' ')) : ''}` : a.status === 'failed' ? esc(a.error || 'failed') : 'Processing: ' + esc(a.status)}</span></div><span class="pill ${a.status === 'ready' ? 'ok' : a.status === 'failed' ? 'bad' : 'accent'}">${esc(a.status)}</span></div>`).join('');
+      list.innerHTML = (d.assets || []).map(a => `<div class="list-item panel"><div class="li-main"><span class="li-title">${esc(a.name)}${a.synthetic ? ' <span class="pill warn">synthetic</span>' : ''}</span><span class="li-sub">${a.status === 'ready' ? `${fmtN(a.rows)} rows · ${fmtN(a.columns)} columns${a.format ? ' · read as ' + esc(a.format.replace('_', ' ')) : ''}${a.template ? ' · built-in template, not designed from the description' : ''}` : a.status === 'failed' ? esc(a.error || 'failed') : 'Processing: ' + esc(a.status)}</span></div><span class="pill ${a.status === 'ready' ? 'ok' : a.status === 'failed' ? 'bad' : 'accent'}">${esc(a.status)}</span></div>`).join('');
       const ready = (d.assets || []).find(a => a.id === d.active_asset && a.status === 'ready');
       $('#wz-data-next', el).disabled = !ready;
       $('#wz-data-summary', el).hidden = !ready;
@@ -97,9 +97,10 @@ DC.view('new', {
       const tr = e.target.closest('tr[data-sample]'); if (!tr || !W.draft || e.target.closest('[data-record]')) return;
       try { await api(`/drafts/${W.draft.id}/data/sample`, { method: 'POST', body: { key: tr.dataset.sample } }); refresh(); } catch (err) { toast(err.message, { ok: false }); }
     });
+    DC.synthetic.setup($('#wz-syn-template-field', el));
     $('#wz-syn-go', el).addEventListener('click', async () => {
       if (!W.draft) return;
-      try { await api(`/drafts/${W.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#wz-syn-prompt', el).value || W.draft.problem, rows: Number($('#wz-syn-rows', el).value) } }); toast('Designing the synthetic data…'); }
+      try { await api(`/drafts/${W.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#wz-syn-prompt', el).value || W.draft.problem, rows: Number($('#wz-syn-rows', el).value), template: DC.synthetic.chosen($('#wz-syn-template-field', el)) } }); toast('Generating the synthetic data…'); }
       catch (e) { toast(e.message, { ok: false }); }
     });
     el.addEventListener('click', async e => {
@@ -139,23 +140,27 @@ DC.view('new', {
     function enterSolution() {
       const cols = columns().map(c => c.name);
       const u = W.draft.understanding || {}, sol = W.draft.solution, cands = ((W.draft.analysis || {}).profile || {}).target_candidates || [];
-      const pick = sol ? sol.target : cols.includes(u.target) ? u.target : cands[0] || '';
+      const own = (((W.draft.assets || []).find(a => a.id === W.draft.active_asset) || {}).suggestion || {}).target;  // a sample or a synthetic table knows its outcome
+      const pick = sol ? sol.target : cols.includes(u.target) ? u.target : cols.includes(own) ? own : cands[0] || '';
+      if (W.proposalFor !== W.draft.id) { W.proposal = null; W.proposalFor = W.draft.id; }  // never show another draft's audit
       $('#wz-target', el).innerHTML = '<option value="">choose the outcome column</option>' + cols.map(c => `<option ${c === pick ? 'selected' : ''}>${esc(c)}</option>`).join('');
       if (sol) { W.proposal = W.draft.proposal || W.proposal; drawSheet(sol); }
-      else if (pick) propose();
+      else if (pick) propose(false);
       else $('#wz-sheet', el).innerHTML = '<div class="empty">Choose the outcome column, then DCLab audits every other column against the prediction moment.</div>';
     }
-    async function propose() {
+    /* keepTask: the user set the Task box and asked for the audit again. Otherwise the task is detected from the
+       target, so a task chosen for another column (or another draft) is never forced onto this one. */
+    async function propose(keepTask) {
       const target = $('#wz-target', el).value; if (!target) return;
       $('#wz-sol-status', el).textContent = 'Auditing the columns…';
       try {
-        W.proposal = await api(`/drafts/${W.draft.id}/solution/proposal`, { method: 'POST', body: { target, task: $('#wz-task', el).value || undefined } });
+        W.proposal = await api(`/drafts/${W.draft.id}/solution/proposal`, { method: 'POST', body: { target, task: (keepTask === true && $('#wz-task', el).value) || undefined } });
         $('#wz-sol-status', el).textContent = '';
         drawSheet(null);
       } catch (e) { $('#wz-sol-status', el).textContent = e.message; }
     }
-    $('#wz-propose', el).addEventListener('click', propose);
-    $('#wz-target', el).addEventListener('change', propose);
+    $('#wz-propose', el).addEventListener('click', () => propose(true));
+    $('#wz-target', el).addEventListener('change', () => propose(false));
     function drawSheet(saved) {
       const p = W.proposal || {}, cols = columns().map(c => c.name).filter(c => c !== (saved ? saved.target : p.target));
       const forb = saved ? saved.forbidden : (p.forbidden || []).map(f => ({ column: f.column, reason: f.reason }));
@@ -167,7 +172,7 @@ DC.view('new', {
       const sel = (id, opts, cur) => `<select id="${id}" data-style="width:auto;min-width:180px"><option value="">none</option>${opts.map(o => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
       $('#wz-sheet', el).innerHTML = `
         <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>${esc(saved ? saved.target : p.target)}</code> · ${esc(task || '')}${(saved ? saved.positive_label : p.positive_label) != null ? ` · positive label <code>${esc(saved ? saved.positive_label : p.positive_label)}</code>` : ''}${p.detected && p.detected.note ? `<div class="small muted">${esc(p.detected.note)}</div>` : ''}</span><span></span></div>
-        <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val"><textarea id="wz-moment" rows="2">${esc(saved ? saved.prediction_moment : p.prediction_moment_hint || '')}</textarea><div class="small muted">Anything written after this moment must stay out of the model.</div></span>${chip('DCLAB-R01')}</div>
+        <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val"><textarea id="wz-moment" rows="2" placeholder="For example: when the order is created, before dispatch.">${esc(saved ? saved.prediction_moment : p.prediction_moment || '')}</textarea><div class="small muted">${!saved && !p.prediction_moment && p.prediction_moment_hint ? esc(p.prediction_moment_hint) + ' ' : ''}Anything written after this moment must stay out of the model.</div></span>${chip('DCLAB-R01')}</div>
         <div class="cs-row"><span class="cs-key">Forbidden</span><span class="cs-val stack tight">${flagged.length ? flagged.map(f => `<label class="check"><input type="checkbox" data-forbid="${esc(f.column)}" data-reason="${esc(f.reason || '')}" ${forbSet.has(f.column) ? 'checked' : ''}><span><code>${esc(f.column)}</code> <span class="muted small">${esc(f.reason || '')}</span> ${(f.proof || []).map(id => chip(id)).join('')}</span></label>`).join('') : '<span class="muted">The audit flagged no column. That is a heuristic scan, not proof: confirm against the prediction moment.</span>'}</span><span class="ev-list">${chip('DCLAB-R04')}</span></div>
         <div class="cs-row"><span class="cs-key">Identifiers</span><span class="cs-val">${cols.filter(c => ids.has(c) || columns().find(x => x.name === c && (x.id_like || x.name_id_like))).map(c => `<label class="check"><input type="checkbox" data-ident="${esc(c)}" ${ids.has(c) ? 'checked' : ''}><code>${esc(c)}</code></label>`).join('') || '<span class="muted">None found.</span>'}</span><span class="pill outline">never a feature</span></div>
         <div class="cs-row"><span class="cs-key">Time column</span><span class="cs-val">${sel('wz-time', cols, saved ? saved.time_column : (p.time_candidates || [])[0])} <span class="small muted">orders the split; nothing from the future enters a fold</span></span>${chip('PIT-005')}</div>
@@ -191,6 +196,7 @@ DC.view('new', {
         text_columns: p.text_columns || [], metric: ($('#wz-metric', el) || {}).value || null, notes: '',
       };
       if (body.task !== 'binary') body.positive_label = null;
+      if (body.prediction_moment.trim().length < 12) { toast('Write the prediction moment first: when is the prediction made, and what is known then?', { ok: false }); ($('#wz-moment', el) || {}).focus?.(); return; }
       try { W.draft = await api(`/drafts/${W.draft.id}/solution`, { method: 'PUT', body }); drawSheet(W.draft.solution); show(4); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       catch (e) { toast(e.message, { ok: false }); }
     });
@@ -211,9 +217,11 @@ DC.view('new', {
     /* ---------- step 4: split and budget ---------- */
     function enterSettings() {
       const sol = W.draft.solution || {}, rows = ((W.draft.analysis || {}).summary || {}).rows || 0, st = W.draft.settings || {};
-      const split = st.split || (sol.time_column ? 'time' : sol.group_column ? 'group' : 'stratified');
-      $$('#wz-split button', el).forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.v === split)); b.disabled = (b.dataset.v === 'time' && !sol.time_column) || (b.dataset.v === 'group' && !sol.group_column); });
-      $('#wz-split-hint', el).textContent = sol.time_column ? `Time column ${sol.time_column}: the holdout is the latest period.` : sol.group_column ? `Group column ${sol.group_column}: a group never lands on both sides.` : 'No time or group column in the solution, so stratified random is the honest choice. The brief will say so.';
+      /* The solution decides the split (engine.split_for), so the control shows it and offers nothing the run would not do. */
+      const split = sol.time_column ? 'time' : sol.group_column ? 'group' : 'stratified';
+      $$('#wz-split button', el).forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.v === split)); b.disabled = b.dataset.v !== split; });
+      const change = ' To change the split, change that column in the Solution draft step.';
+      $('#wz-split-hint', el).textContent = sol.time_column ? `Time column ${sol.time_column}: the holdout is the latest period.${change}` : sol.group_column ? `Group column ${sol.group_column}: a group never lands on both sides.${change}` : 'No time or group column in the solution, so stratified random is the honest choice. The brief will say so. To split by time or by group, name that column in the Solution draft step.';
       const quick = Math.min(3000, rows), full = Math.min(rows, 200000);
       $('#new-rows', el).innerHTML = `<option value="quick" ${st.quick !== false ? 'selected' : ''}>Quick · ${fmtN(quick)} rows</option><option value="full" ${st.quick === false ? 'selected' : ''}>Full · ${fmtN(full)} rows${rows > 200000 ? ' (cap)' : ''}</option>`;
       if (st.folds) $('#new-folds', el).value = String(st.folds);
@@ -223,7 +231,7 @@ DC.view('new', {
     }
     $('#wz-settings-next', el).addEventListener('click', async () => {
       const rows = ((W.draft.analysis || {}).summary || {}).rows || 20000, quick = $('#new-rows', el).value === 'quick';
-      const body = { split: ($('#wz-split button[aria-pressed="true"]', el) || {}).dataset?.v || 'stratified', quick, max_rows: Math.max(200, Math.min(rows, 200000)), folds: Number($('#new-folds', el).value),
+      const body = { quick, max_rows: Math.max(200, Math.min(rows, 200000)), folds: Number($('#new-folds', el).value),
         where: 'local', budget: { calls: Number($('#b-calls', el).value), minutes: Number($('#b-min', el).value), eur: Number($('#b-eur', el).value) }, ask_over_eur: $('#b-ask', el).checked };
       try { W.draft = await api(`/drafts/${W.draft.id}/settings`, { method: 'PUT', body }); show(5); window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { toast(e.message, { ok: false }); }
     });
@@ -237,7 +245,7 @@ DC.view('new', {
         <dt>Pack</dt><dd>${esc(pack.name || '—')}${sol ? ' · ' + esc(sol.task) : ''}</dd>
         <dt>Data</dt><dd>${a.name ? esc(a.name) + ` · ${fmtN(a.rows)} rows` + (a.synthetic ? ' · <span class="pill warn">synthetic</span>' : '') : '<span class="pill warn">no data</span>'}</dd>
         <dt>Solution</dt><dd>${sol ? `target <code>${esc(sol.target)}</code> · ${sol.forbidden.length} forbidden · metric ${esc(sol.metric || 'default')}` : '<span class="pill warn">not accepted yet</span>'}</dd>
-        <dt>Split</dt><dd>${esc(st.split || 'stratified')} · holdout sealed · ${st.folds || 3} folds · ${st.quick === false ? 'full rows' : 'quick mode'}</dd>
+        <dt>Split</dt><dd>${esc({ time: 'by time', group: 'by group', stratified: 'stratified random' }[st.split] || 'stratified random')} · holdout sealed · ${st.folds || 3} folds · ${st.quick === false ? 'full rows' : 'quick mode'}</dd>
         <dt>Budget</dt><dd>${st.budget ? `${st.budget.max_steps} tool calls · ${st.budget.max_minutes} minutes · €${st.budget.eur}` : '—'}</dd>`;
       const ready = !!(sol && a.status === 'ready');
       $('#wz-go-notebook', el).disabled = !ready; $('#wz-go-intern', el).disabled = !ready;

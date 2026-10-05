@@ -157,6 +157,13 @@ class EngineTests(unittest.TestCase):
         self.assertIn(export.SYNTHETIC_NOTE, nb["cells"][0]["source"])
         self.assertIn(export.SYNTHETIC_NOTE, export.report(synthetic, records))
         self.assertEqual(export._read_code("t.tsv"), "pd.read_csv('t.tsv', sep='\\t', low_memory=False)")
+        # the notebook reproduces the folds the stages recorded, then the project's setting, then 3
+        self.assertRegex(json.dumps(export.notebook(project, records)), r"cv = \w+\(n_splits=3\b")  # what these stages recorded
+        five = {**records, "data": {**records["data"], "evidence": {**records["data"]["evidence"], "cv_protocol": "StratifiedKFold(5, shuffle, random_state=42) on training rows"}}}
+        self.assertEqual(export._folds(project, {k: v for k, v in five.items() if k == "data"}), 5)
+        self.assertEqual(export._folds({"settings": {"folds": 4}}, {}), 4)
+        self.assertEqual(export._folds({}, {"data": {"evidence": {"cv_protocol": "expanding-window TimeSeriesSplit(6) on time-ordered training rows"}}}), 6)
+        self.assertIn("TimeSeriesSplit(n_splits=6)", export._split_code("t", None, False, {}, 6))
 
     def test_answers_cite_project_facts_and_evidence(self):
         answer = agent.answer("is final_refund_amount a leak?", self.store.get(self.project["id"]), self.store.records(self.project["id"]), "binary_imbalanced")

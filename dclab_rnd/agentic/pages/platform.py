@@ -272,7 +272,7 @@ def limits(projects) -> dict[str, Any]:
         "intern_session": {"defaults": dict(DEFAULT_BUDGET), "caps": {k: list(v) for k, v in INTERN_CAPS.items()}, "enforced": True,
                            "note": "The intern stops when either the tool calls or the minutes run out."},
         "draft_settings": {"defaults": DRAFT_DEFAULTS, "caps": {k: list(v) for k, v in DRAFT_CAPS.items()},
-                           "note": "Set in the new-project wizard and saved with the project. Rows and quick mode reach the stages; the call, minute and euro budgets are stored with the project but nothing meters spend yet."},
+                           "note": "Set in the new-project wizard and saved with the project. Rows, quick mode and folds reach the stages; the split follows the solution's time or group column. The call, minute and euro budgets are stored with the project but nothing meters spend yet."},
         "rows": {"quick": QUICK_ROWS, "caps": list(DRAFT_CAPS["max_rows"])},
         "spend": {"tracked": False, "note": "No GPU job or model spend is metered yet, so per-job, per-project and workspace caps are not enforced."},
         "upload_max_bytes": UPLOAD_MAX_BYTES, "connector_max_bytes": connectors.MAX_BYTES,

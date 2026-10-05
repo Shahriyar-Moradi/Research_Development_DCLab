@@ -305,6 +305,50 @@ class TemplateTests(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, f"pydantic not installed: {MISSING}")
+class TemplateChoiceTests(unittest.TestCase):
+    def test_catalog_lists_every_template_without_the_synthetic_suffix(self):
+        catalog = syn.template_catalog()
+        self.assertEqual([t["key"] for t in catalog], list(syn.TEMPLATES))
+        self.assertTrue(all("(synthetic)" not in t["name"] and t["target"] and t["task"] for t in catalog))
+
+    def test_a_chosen_template_keeps_the_row_count_and_says_who_chose(self):
+        spec, info = syn.from_template("fraud", 999_999_999)
+        self.assertEqual((spec.rows, info), (syn.MAX_ROWS, {"source": "template", "template": "fraud", "chosen_by": "user"}))
+        self.assertIsNot(spec, syn.TEMPLATES["fraud"])
+        with self.assertRaises(KeyError):
+            syn.from_template("nope")
+
+    def test_the_note_says_when_rows_do_not_follow_the_description(self):
+        spec, info = syn.spec_from_model(None, "gym members and weekly workouts", {"problem": "Predict which members cancel next month"}, 300)
+        self.assertEqual(info["template"], "churn")  # the problem sentence counts too: "weekly" alone would read as demand
+        note = syn.template_note(spec, info)
+        self.assertIn("No model is configured", note)
+        self.assertIn("does not follow", note)
+        self.assertIn("as you chose", syn.template_note(*syn.from_template("demand")))
+        self.assertIn("did not return a usable table design", syn.template_note(spec, {**info, "fallback_reason": "bad JSON"}))
+        self.assertIsNone(syn.template_note(spec, {"source": "model"}))
+
+    def test_a_unique_timestamp_is_the_time_key_not_a_forbidden_candidate(self):
+        from dclab_rnd.studio import data, solution
+
+        spec, _ = syn.from_template("fraud", 1500)
+        frame = syn.generate(spec)
+        stamps = [c.name for c in spec.columns if c.type == "datetime"]
+        self.assertTrue(stamps)
+        proposal = solution.propose(frame, data.profile_table(frame), spec.target.name)
+        self.assertEqual(proposal["time_candidates"][:1], stamps[:1])
+        self.assertNotIn(stamps[0], {f["column"] for f in proposal["forbidden"]})
+        # so the wizard's defaults (first time candidate, every flagged column ticked) save without an error
+        solution.Solution(target=spec.target.name, task=proposal["task"], positive_label=str(proposal["positive_label"]),
+                          prediction_moment="At authorisation time, before the payment is approved.",
+                          forbidden=[{"column": f["column"], "reason": f["reason"]} for f in proposal["forbidden"]],
+                          identifiers=proposal["identifiers"], time_column=proposal["time_candidates"][0], metric=proposal["metric"])
+        with self.assertRaises(ValueError) as caught:
+            solution.Solution(target=spec.target.name, task="binary", positive_label="1", prediction_moment="At authorisation time, before approval.",
+                              forbidden=[{"column": stamps[0], "reason": "x"}], time_column=stamps[0])
+        self.assertIn("untick it under Forbidden", str(caught.exception))
+
+
 class SpecFromModelTests(unittest.TestCase):
     def test_no_client_uses_template(self):
         spec, info = syn.spec_from_model(None, "predict loan default", rows=1234)

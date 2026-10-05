@@ -147,6 +147,7 @@
             <div data-tab-panel="hsrc:synthetic" hidden>
               <div class="stack tight">
                 <div class="field"><label for="home-syn-prompt">Describe the data to simulate</label><textarea id="home-syn-prompt" placeholder="For example: 20,000 telecom customers with tenure, monthly charges, contract type and support calls; about 25% leave within 90 days."></textarea><span class="hint">No real rows are needed or sent. The conversation so far is used as context.</span></div>
+                <div class="field" id="home-syn-template-field" hidden><label for="home-syn-template">Template</label><select id="home-syn-template"></select><span class="hint"></span></div>
                 <div class="row"><label class="small" for="home-syn-rows">Rows</label><select id="home-syn-rows" data-style="width:auto"><option value="2000">2,000</option><option value="5000" selected>5,000</option><option value="20000">20,000</option><option value="100000">100,000</option></select><button type="button" class="btn sm primary" id="home-syn-go">Generate synthetic data</button></div>
                 <div class="callout warn"><span class="ic">${icon:alert}</span><span>Synthetic data is labelled synthetic everywhere: in the project, the notebook and the brief. Use it to design and test the solution, not to report real performance.</span></div>
               </div>
@@ -339,6 +340,7 @@
             <div data-tab-panel="wsrc:synthetic" hidden>
               <div class="stack tight">
                 <div class="field"><label for="wz-syn-prompt">Describe the data to simulate</label><textarea id="wz-syn-prompt" placeholder="For example: 20,000 telecom customers with tenure, monthly charges, contract type and support calls; about 25% leave within 90 days."></textarea></div>
+                <div class="field" id="wz-syn-template-field" hidden><label for="wz-syn-template">Template</label><select id="wz-syn-template"></select><span class="hint"></span></div>
                 <div class="row"><label class="small" for="wz-syn-rows">Rows</label><select id="wz-syn-rows" data-style="width:auto"><option value="2000">2,000</option><option value="5000" selected>5,000</option><option value="20000">20,000</option><option value="100000">100,000</option></select><button type="button" class="btn sm primary" id="wz-syn-go">Generate synthetic data</button></div>
                 <div class="callout warn"><span class="ic">${icon:alert}</span><span>Synthetic data is labelled synthetic everywhere. Use it to design and test the solution, not to report real performance.</span></div>
               </div>

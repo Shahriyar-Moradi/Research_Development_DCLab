@@ -14,9 +14,11 @@ Every message and change is written to the draft and emitted as an event for the
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 import secrets
+import threading
 from typing import Any, Callable
 
 from . import pack as packs
@@ -38,7 +40,8 @@ Rules: never invent numbers or claim a model will perform well; never ask for pa
 is descriptive only. Use tools: ask_user to ask (with 2-4 short options when natural), record to store an answer
 you understood, set_pack when the problem clearly fits another domain pack, propose_workflow to replace the
 workflow (every step tied to a block WF-01..WF-10, in order; keep WF-01, WF-03, WF-05, WF-09), request_data to
-offer upload / connect / simulate. Reply to the user in plain English, 1-3 sentences."""
+offer upload / connect / simulate, and simulate_data only after the user asked for simulated data (describe the
+table they need; it is generated and labelled synthetic). Reply to the user in plain English, 1-3 sentences."""
 
 TOOLS = [
     {"type": "function", "function": {"name": "ask_user", "description": "Ask the user one short question.", "parameters": {
@@ -56,7 +59,29 @@ TOOLS = [
         "required": ["nodes"]}}},
     {"type": "function", "function": {"name": "request_data", "description": "Offer the user ways to bring data.", "parameters": {
         "type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
+    {"type": "function", "function": {"name": "simulate_data", "description": "Generate a synthetic table. Only after the user asked for simulated data.", "parameters": {
+        "type": "object", "properties": {"description": {"type": "string", "description": "The table to simulate: rows, columns, the outcome and its rate."},
+                                         "rows": {"type": "integer"}}, "required": ["description"]}}},
 ]
+
+
+_TURNS: dict[tuple[str, str], threading.RLock] = {}
+_TURNS_GUARD = threading.Lock()
+
+
+def turn(method):
+    """One agent turn at a time per draft. The data pipeline ("your data is ready") and the user's messages run in
+    different threads; without this a message that lands between two steps of the other turn is read against a
+    question that was just withdrawn, and the answer ends up in the notes. Re-entrant: a reply that starts a
+    simulation runs the pipeline, and its data-ready turn, in the same thread."""
+    @functools.wraps(method)
+    def locked(self, draft_id: str, *args: Any, **kwargs: Any):
+        key = (str(self.store.home), draft_id)
+        with _TURNS_GUARD:
+            lock = _TURNS.setdefault(key, threading.RLock())
+        with lock:
+            return method(self, draft_id, *args, **kwargs)
+    return locked
 
 
 def moment_options(pack: str | None) -> list[str]:
@@ -130,6 +155,7 @@ class HomeAgent:
         self.store.emit(draft_id, "status", {"pack": {"key": key, "source": source, "why": why}})
 
     # ------------------------------------------------------------------ entry points
+    @turn
     def start(self, draft_id: str) -> None:
         """A new draft with a problem sentence: restate it, pick the pack, draw the workflow, ask the first question."""
         draft = self.store.get(draft_id)
@@ -145,6 +171,7 @@ class HomeAgent:
         self.refresh_workflow(draft_id)
         self.next_turn(draft_id, opening=True)
 
+    @turn
     def data_ready(self, draft_id: str, asset: dict[str, Any]) -> None:
         """The table is analysed: describe it briefly, update the pack from data signals and the workflow, ask about the outcome."""
         draft = self.store.get(draft_id)
@@ -170,10 +197,12 @@ class HomeAgent:
         if not pending:
             self.next_turn(draft_id)
 
+    @turn
     def data_failed(self, draft_id: str, asset: dict[str, Any], error: str) -> None:
         self.say(draft_id, f"I could not use {asset.get('name', 'that file')}: {error}", kind="text", severity="warning")
         self.refresh_workflow(draft_id)
 
+    @turn
     def reply(self, draft_id: str, text: str) -> None:
         """A user message: store it, then let the model (or the script) answer."""
         text = text.strip()[:2000]
@@ -229,6 +258,12 @@ class HomeAgent:
         key = (draft.get("pack") or {}).get("key")
         has_data = any(a.get("status") in ("ready", "queued", "structuring", "cleaning", "analysing") for a in draft["assets"])
         candidates = ((draft.get("analysis") or {}).get("profile") or {}).get("target_candidates") or []
+        # a studied sample or a synthetic table knows its own outcome column: offer it first
+        active = next((a for a in draft["assets"] if a.get("id") == draft.get("active_asset")), None) or {}
+        known = (active.get("suggestion") or {}).get("target")
+        columns = {c.get("name") for c in ((draft.get("analysis") or {}).get("columns") or [])}
+        if known and (known in candidates or known in columns):
+            candidates = [known] + [c for c in candidates if c != known]
         asked = {q["field"] for q in draft["questions"] if not q.get("superseded")}
         if "target" not in u and "target" not in asked:
             if candidates:
@@ -300,7 +335,8 @@ class HomeAgent:
                 break
             for call in calls:
                 result = self.run_tool(draft_id, call["name"], call.get("arguments") or {})
-                asked = asked or call["name"] == "ask_user"
+                # a question waits for the user; a simulation ends the turn too (the data pipeline speaks next)
+                asked = asked or call["name"] == "ask_user" or bool(result.get("simulating"))
                 messages.append({"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)[:4000]})
             if asked:
                 break
@@ -366,6 +402,17 @@ class HomeAgent:
             self.say(draft_id, str(args.get("text", ""))[:400] or "You can upload a sample, connect a source, or ask me to simulate data.",
                      kind="text", actions=["upload", "connect", "simulate"])
             return {"offered": True}
+        if name == "simulate_data":
+            draft = self.store.get(draft_id)
+            if any(a.get("status") in ("queued", "structuring", "cleaning", "analysing") for a in draft["assets"]):
+                return {"error": "Data is already being prepared; wait for it."}
+            self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
+            try:
+                rows = max(100, min(int(args.get("rows") or 5000), 200_000))
+            except (TypeError, ValueError):
+                rows = 5000
+            self.on_request(draft_id, "simulate", {"prompt": (draft["problem"] + " " + str(args.get("description", ""))[:2000]).strip(), "rows": rows})
+            return {"simulating": True, "rows": rows}
         return {"error": f"unknown tool {name}"}
 
 

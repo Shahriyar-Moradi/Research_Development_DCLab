@@ -332,10 +332,11 @@ DC.view('home', {
       try { await api(`/drafts/${S.draft.id}/data/sample`, { method: 'POST', body: { key: tr.dataset.sample } }); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       catch (err) { toast(err.message, { ok: false }); }
     });
+    DC.synthetic.setup($('#home-syn-template-field', el));
     $('#home-syn-go', el).addEventListener('click', async () => {
       try { await ensureDraft(); } catch (e) { return; }
       try {
-        await api(`/drafts/${S.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#home-syn-prompt', el).value || S.draft.problem, rows: Number($('#home-syn-rows', el).value) } });
+        await api(`/drafts/${S.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#home-syn-prompt', el).value || S.draft.problem, rows: Number($('#home-syn-rows', el).value), template: DC.synthetic.chosen($('#home-syn-template-field', el)) } });
         $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) { toast(err.message, { ok: false }); }
     });

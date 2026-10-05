@@ -691,6 +691,33 @@ def template_for(prompt: str) -> tuple[str, SyntheticSpec]:
     return key, TEMPLATES[key].model_copy(deep=True)
 
 
+def template_catalog() -> list[dict[str, Any]]:
+    """The built-in templates as the Synthetic tab lists them."""
+    return [{"key": key, "name": spec.name.replace(" (synthetic)", ""), "description": spec.description, "columns": len(spec.columns),
+             "target": spec.target.name if spec.target else None, "task": spec.target.type if spec.target else None}
+            for key, spec in TEMPLATES.items()]
+
+
+def from_template(key: str, rows: int = 5000) -> tuple[SyntheticSpec, dict[str, Any]]:
+    """The template the user picked, with their row count. Raises KeyError for an unknown key."""
+    return TEMPLATES[key].model_copy(deep=True, update={"rows": _clamp_rows(rows)}), {"source": "template", "template": key, "chosen_by": "user"}
+
+
+def template_note(spec: SyntheticSpec, info: dict[str, Any]) -> str | None:
+    """What to tell the user when the rows come from a template instead of a table designed from their words."""
+    if info.get("source") != "template":
+        return None
+    name = spec.name.replace(" (synthetic)", "")
+    if info.get("chosen_by") == "user":
+        return f'Synthetic data from the built-in "{name}" template, as you chose.'
+    if info.get("fallback_reason"):
+        return (f'The model did not return a usable table design, so this is the built-in "{name}" template, picked from the words in '
+                "your description. It does not follow the description's details.")
+    return (f'No model is configured, so this is the built-in "{name}" template, picked from the words in your description. '
+            "It does not follow the description's details. You can pick another template in the Synthetic tab; with a model, "
+            "DCLab designs the table from your words.")
+
+
 # --------------------------------------------------------------------------------------- the model
 
 SYSTEM_PROMPT = """You design a synthetic table for DCLab. The user cannot share their real data, so DCLab \
@@ -797,8 +824,10 @@ def spec_from_model(client: Any, prompt: str, context: dict | None = None, rows:
     overrides whatever the model wrote.
     """
     rows = _clamp_rows(rows)
+    # a template is picked from the description and the problem sentence together: "weekly workouts" alone reads as demand
+    words = f"{prompt or ''} {(context or {}).get('problem') or ''}"
     if client is None:
-        key, spec = template_for(prompt)
+        key, spec = template_for(words)
         return spec.model_copy(update={"rows": rows}), {"source": "template", "template": key}
 
     request = f"Problem: {(prompt or '').strip()[:4000]}"
@@ -822,10 +851,10 @@ def spec_from_model(client: Any, prompt: str, context: dict | None = None, rows:
             messages = [*messages, {"role": "assistant", "content": content[:8000]},
                         {"role": "user", "content": f"That spec was not valid: {reason}. Reply with the corrected JSON object only."}]
 
-    key, spec = template_for(prompt)
+    key, spec = template_for(words)
     return spec.model_copy(update={"rows": rows}), {"source": "template", "template": key, "attempts": 2,
                                                      "fallback_reason": f"The model did not return a valid spec after one retry: {reason}"}
 
 
 __all__ = ["ColumnSpec", "TargetSpec", "SyntheticSpec", "LABELS", "TEMPLATES", "generate", "describe", "save", "template_for",
-           "spec_from_model", "problems"]
+           "template_catalog", "from_template", "template_note", "spec_from_model", "problems"]

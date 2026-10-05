@@ -8,6 +8,7 @@ parameters, and the same once-only holdout.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,19 @@ def _cell(kind: str, source: str) -> dict[str, Any]:
 
 SYNTHETIC_NOTE = ("**Synthetic data.** These rows were generated from a prompt, not collected. The scores below test the method "
                   "on simulated data and say nothing about real cases.")
+
+
+def _folds(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> int:
+    """Training folds the notebook must reproduce: what the stages recorded (``cv_protocol``, e.g.
+    ``StratifiedKFold(5, shuffle, …)``), else the project's setting, else 3."""
+    for stage in ("final", "models", "features", "leakage", "data"):
+        found = re.search(r"\((\d+)[,)]", str((records.get(stage, {}).get("evidence") or {}).get("cv_protocol") or ""))
+        if found:
+            return int(found.group(1))
+    try:
+        return max(2, min(int((project.get("settings") or {}).get("folds") or 3), 10))
+    except (TypeError, ValueError):
+        return 3
 
 
 def _read_code(filename: str) -> str:
@@ -106,7 +120,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
               + _target_code(task, solution)
               + f"X = frame.drop(columns=[TARGET] + [c for c in DROP if c in frame])\nprint(X.shape, y.value_counts(normalize=True).round(3).to_dict() if y.nunique() < 20 else y.describe())"),
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
-        _cell("code", _split_code(time_column, group_column, regression, data)),
+        _cell("code", _split_code(time_column, group_column, regression, data, _folds(project, records))),
         _cell("markdown", f"## 3. Feature recipe `{recipe}`\n\n{features.get('rule', '')}\n\nEvery statistic (imputation, scaling, one-hot categories) is learned inside the training folds only."),
         _cell("code", _recipe_code(recipe, time_column, codes, encode_codes)),
         _cell("markdown", f"## 4. Model `{family}`\n\n{models.get('rule', '')}\n\n"
@@ -139,22 +153,22 @@ def _split_text(time_column: str | None, group_column: str | None, regression: b
     return "A random holdout" + ("" if regression else ", stratified on the target") + ", with the training folds drawn only from the remaining rows."
 
 
-def _split_code(time_column: str | None, group_column: str | None, regression: bool, data: dict[str, Any]) -> str:
+def _split_code(time_column: str | None, group_column: str | None, regression: bool, data: dict[str, Any], folds: int = 3) -> str:
     if time_column:
         return (f"order = np.argsort(pd.to_datetime(frame[{time_column!r}], errors='coerce').to_numpy().astype('int64') if frame[{time_column!r}].dtype == object else frame[{time_column!r}].to_numpy(), kind='stable')\n"
                 "X, y = X.iloc[order].reset_index(drop=True), y.iloc[order].reset_index(drop=True)\n"
                 "n_test = int(round(0.2 * len(X)))\nX_train, X_test = X.iloc[:-n_test], X.iloc[-n_test:]\ny_train, y_test = y.iloc[:-n_test], y.iloc[-n_test:]\n"
-                "from sklearn.model_selection import TimeSeriesSplit\ncv = TimeSeriesSplit(n_splits=3)\ncv_groups = None")
+                f"from sklearn.model_selection import TimeSeriesSplit\ncv = TimeSeriesSplit(n_splits={folds})\ncv_groups = None")
     if group_column:
         kf = "GroupKFold" if regression else "StratifiedGroupKFold"
         return (f"from sklearn.model_selection import {kf}\ngroups = frame[{group_column!r}].to_numpy()\n"
                 f"train_idx, test_idx = next({kf}(n_splits=5{'' if regression else ', shuffle=True, random_state=RANDOM_STATE'}).split(X, y, groups))\n"
                 "X_train, X_test, y_train, y_test = X.iloc[train_idx], X.iloc[test_idx], y.iloc[train_idx], y.iloc[test_idx]\n"
-                f"cv = {kf}(n_splits=3{'' if regression else ', shuffle=True, random_state=RANDOM_STATE'})\ncv_groups = groups[train_idx]")
+                f"cv = {kf}(n_splits={folds}{'' if regression else ', shuffle=True, random_state=RANDOM_STATE'})\ncv_groups = groups[train_idx]")
     kf = "KFold" if regression else "StratifiedKFold"
     return (f"from sklearn.model_selection import train_test_split, {kf}\n"
             f"X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, {'' if regression else 'stratify=y, '}random_state=RANDOM_STATE)\n"
-            f"cv = {kf}(n_splits=3, shuffle=True, random_state=RANDOM_STATE)\ncv_groups = None")
+            f"cv = {kf}(n_splits={folds}, shuffle=True, random_state=RANDOM_STATE)\ncv_groups = None")
 
 
 def _recipe_code(recipe: str, time_column: str | None, codes: list[str], encode_codes: bool = True) -> str:

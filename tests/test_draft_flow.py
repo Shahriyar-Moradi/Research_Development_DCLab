@@ -131,6 +131,67 @@ class AgentTests(unittest.TestCase):
         rejected = [e for e in self.store.events(d["id"]) if e["kind"] == "workflow" and e["data"].get("rejected")]
         self.assertTrue(rejected)
 
+    def test_a_message_waits_for_the_data_ready_turn_to_finish(self):
+        """The answer to "which column?" must meet the question asked with the columns, not the gap before it."""
+        import threading
+
+        d = self.store.create("Predict which customers cancel")
+        agent = HomeAgent(self.store, None)
+        agent.start(d["id"])  # asks for the outcome before any data exists
+
+        def with_data(x):
+            x["assets"] = [{"id": "a1", "name": "c.csv", "status": "ready"}]
+            x["active_asset"] = "a1"
+            x["analysis"] = {"summary": {"rows": 10, "columns": 2}, "columns": [{"name": "left"}, {"name": "plan"}], "profile": {"target_candidates": ["left", "plan"]}}
+        self.store.update(d["id"], with_data)
+        in_gap, release = threading.Event(), threading.Event()
+        original = agent.next_turn
+
+        def slow_next_turn(draft_id, opening=False):  # the old question is withdrawn, the new one not asked yet
+            in_gap.set()
+            release.wait(5)
+            return original(draft_id, opening)
+        agent.next_turn = slow_next_turn
+        ready = threading.Thread(target=agent.data_ready, args=(d["id"], {"id": "a1"}))
+        ready.start()
+        self.assertTrue(in_gap.wait(5))
+        answer = threading.Thread(target=HomeAgent(self.store, None).reply, args=(d["id"], "left"))
+        answer.start()
+        answer.join(0.3)
+        self.assertTrue(answer.is_alive())  # the message waits instead of landing in the notes
+        release.set()
+        ready.join(5)
+        answer.join(5)
+        draft = self.store.get(d["id"])
+        self.assertEqual(draft["understanding"].get("target"), "left")
+        self.assertNotIn("notes", draft["understanding"])
+
+    def test_a_source_that_knows_its_outcome_column_is_offered_first(self):
+        d = self.store.create("Forecast daily unit sales per store")
+
+        def with_data(x):
+            x["assets"] = [{"id": "a1", "name": "Synthetic · Daily store demand (synthetic)", "status": "ready", "synthetic": True, "suggestion": {"target": "units_sold"}}]
+            x["active_asset"] = "a1"
+            x["analysis"] = {"summary": {"rows": 10, "columns": 4}, "columns": [{"name": n} for n in ("unit_price", "store", "promotion", "units_sold")],
+                             "profile": {"target_candidates": ["unit_price", "store", "promotion", "units_sold"]}}
+        self.store.update(d["id"], with_data)
+        HomeAgent(self.store, None).next_turn(d["id"])
+        question = self.store.get(d["id"])["questions"][-1]
+        self.assertEqual((question["field"], question["options"][0]), ("target", "units_sold"))
+        self.assertEqual(len(question["options"]), 4)  # three columns and "Something else"
+
+    def test_the_model_can_start_a_simulation_and_the_turn_ends_there(self):
+        asked = []
+        d = self.store.create("Predict which customers cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        client = ScriptedClient([("simulate_data", {"description": "5,000 subscribers with tenure and plan; 20% cancel", "rows": 999999}),
+                                 ("ask_user", {"field": "action", "question": "never reached"})])
+        HomeAgent(self.store, client, on_request=lambda did, what, args: asked.append((what, args))).reply(d["id"], "Please simulate the data")
+        self.assertEqual([(w, a["rows"]) for w, a in asked], [("simulate", 200000)])  # capped
+        self.assertIn("20% cancel", asked[0][1]["prompt"])
+        self.assertEqual(client.i, 1)  # the second scripted call was never requested
+        self.assertIn("labelled synthetic", self.store.get(d["id"])["messages"][-1]["text"])
+
     def test_streaming_client_sends_token_chunks_then_the_message_replaces_them(self):
         class Streaming:
             def stream(self, messages, tools=None, max_tokens=1800, on_text=None):
@@ -211,6 +272,32 @@ class BooleanFeatureTests(unittest.TestCase):
         record = engine.execute(store, pid, "data", "human")
         rate = record["evidence"]["target_summary"]["positive_rate_train"]
         self.assertTrue(0.15 < rate < 0.6, rate)  # True was read as the positive class, not "nothing is positive"
+        self.assertIn("StratifiedKFold(3,", json.dumps(record))  # no choice made: three folds
+
+    def test_the_wizard_folds_reach_the_cross_validation_and_the_solution_decides_the_split(self):
+        import numpy as np
+        import pandas as pd
+        from dclab_rnd.studio import ProjectStore, data, engine
+
+        self.assertEqual([engine.cv_folds({"settings": s}) for s in ({}, {"folds": 5}, {"folds": 99}, {"folds": 1}, {"folds": "x"})], [3, 5, 10, 2, 3])
+        self.assertEqual([engine.split_for(s) for s in ({}, {"group_column": "g"}, {"time_column": "t", "group_column": "g"})], ["stratified", "group", "time"])
+        rng = np.random.default_rng(5)
+        n = 400
+        frame = pd.DataFrame({"tenure": rng.integers(1, 72, n), "charges": rng.normal(60, 20, n).round(2), "plan": rng.choice(["a", "b", "c"], n)})
+        frame["churned"] = (rng.random(n) < 0.15 + 0.004 * frame["tenure"]).astype(int)
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        pid = store.create("folds", "general", "who leaves")["id"]
+        frame.to_parquet(store.data_dir(pid) / "t.parquet", index=False)
+        data.attach_data(store, pid, "t.parquet")
+        project = store.get(pid)
+        project["solution"] = {"target": "churned", "task": "binary", "positive_label": "1", "prediction_moment": "At the monthly snapshot of each customer.",
+                               "forbidden": [], "identifiers": [], "time_column": None, "group_column": None, "text_columns": [], "metric": "roc_auc", "notes": ""}
+        project["settings"].update(quick=True, folds=5)
+        store.save(project)
+        record = engine.execute(store, pid, "data", "human")
+        text = json.dumps(record)
+        self.assertIn("StratifiedKFold(5,", text)
+        self.assertNotIn("StratifiedKFold(3,", text)
 
 
 class ApiTests(unittest.TestCase):
@@ -258,14 +345,17 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(proposal.status_code, 200, proposal.text)
         prop = proposal.json()
         self.assertIn("duration", {f["column"] for f in prop["forbidden"]})  # the R&D's own solution for bank_marketing
+        self.assertEqual(prop["prediction_moment"], ready["suggestion"]["prediction_moment"])  # a real moment: the sample's own
+        self.assertTrue(prop["prediction_moment_hint"].startswith("Describe the moment"))  # guidance, never a value
         solution = {"target": y, "task": prop["task"], "positive_label": str(prop["positive_label"]) if prop["task"] == "binary" else None,
                     "prediction_moment": "Immediately before the marketing call is placed.",
                     "forbidden": [{"column": "duration", "reason": "known only after the call"}], "identifiers": [], "time_column": None,
                     "group_column": None, "text_columns": [], "metric": prop["metric"], "notes": ""}
         self.assertEqual(c.put(f"/api/drafts/{d['id']}/solution", json={**solution, "target": "nope"}, headers=self.h).status_code, 422)
         self.assertEqual(c.put(f"/api/drafts/{d['id']}/solution", json=solution, headers=self.h).status_code, 200)
-        settings = c.put(f"/api/drafts/{d['id']}/settings", json={"split": "stratified", "quick": True, "max_rows": 999999, "budget": {"calls": 500}}, headers=self.h).json()["settings"]
+        settings = c.put(f"/api/drafts/{d['id']}/settings", json={"split": "time", "folds": 5, "quick": True, "max_rows": 999999, "budget": {"calls": 500}}, headers=self.h).json()["settings"]
         self.assertEqual((settings["max_rows"], settings["budget"]["max_steps"]), (200000, 80))  # clamped
+        self.assertEqual(settings["split"], "stratified")  # the solution names no time column, so "time" cannot be what runs
         project = c.post(f"/api/drafts/{d['id']}/build", json={}, headers=self.h)
         self.assertEqual(project.status_code, 201, project.text)
         p = project.json()
@@ -274,11 +364,31 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(p["draft"]["id"], d["id"])
         self.assertEqual(p["solution"]["forbidden"][0]["column"], "duration")
         self.assertEqual(p["budget"]["max_steps"], 80)
+        self.assertEqual((p["settings"]["folds"], p["draft"]["settings"]["split"]), (5, "stratified"))
+        again = c.post(f"/api/projects/{p['id']}/solution/proposal", json={"target": y}, headers=self.h)  # the Solution page's "audit again"
+        self.assertEqual(again.status_code, 200, again.text)
+        patched = c.patch(f"/api/projects/{p['id']}", json={"settings": {"folds": 40}}, headers=self.h).json()
+        self.assertEqual(patched["settings"]["folds"], 10)  # capped
         moves = c.get(f"/api/projects/{p['id']}").json()["transitions"]
         self.assertEqual([(m["move"], m["status"]) for m in moves], [("set_solution", "allowed")])
         self.assertEqual(self.draft(d["id"])["status"], "built")
         ws = c.get("/api/workspace").json()
         self.assertEqual(ws["stats"]["projects"], 1)
+
+    def test_a_project_built_from_an_upload_can_be_audited_again(self):
+        """Its suggestion holds only what the chat established (no forbidden list), which once crashed the proposal route."""
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "Predict which customers cancel next month"}, headers=self.h).json()
+        rows = "tenure,plan,charges,left\n" + "\n".join(f"{i % 60},{'ab'[i % 2]},{20 + i % 70},{int(i % 5 == 0)}" for i in range(300))
+        self.assertEqual(c.put(f"/api/drafts/{d['id']}/data?filename=c.csv", content=rows.encode(), headers=self.h).status_code, 200)
+        wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
+        wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "left"}, headers=self.h).status_code == 202)
+        wait(lambda: self.draft(d["id"])["understanding"].get("target") == "left")
+        p = c.post(f"/api/drafts/{d['id']}/build", json={}, headers=self.h).json()
+        self.assertEqual(p["suggestion"], {"target": "left"})
+        proposal = c.post(f"/api/projects/{p['id']}/solution/proposal", json={"target": "left"}, headers=self.h)
+        self.assertEqual(proposal.status_code, 200, proposal.text)
+        self.assertEqual(proposal.json()["task"], "binary")
 
     def test_upload_and_events_stream(self):
         c = self.client
@@ -296,6 +406,32 @@ class ApiTests(unittest.TestCase):
                     break
         self.assertTrue(any(line.startswith("event: chat") for line in lines))
         self.assertTrue(any(line.startswith("id: ") for line in lines))
+
+    def test_synthetic_templates_are_listed_chosen_and_explained(self):
+        c = self.client
+        listing = c.get("/api/synthetic/templates").json()
+        self.assertFalse(listing["model"])  # no key in this test environment
+        keys = [t["key"] for t in listing["templates"]]
+        self.assertIn("fraud", keys)
+        self.assertTrue(all(t["name"] and "(synthetic)" not in t["name"] and t["columns"] > 3 for t in listing["templates"]))
+        d = c.post("/api/drafts", json={"problem": "Predict which members of a fitness app will cancel next month"}, headers=self.h).json()
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/data/synthetic", json={"template": "nope"}, headers=self.h).status_code, 422)
+        # no template named: keywords pick one, and the user is told it does not follow the description
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/data/synthetic", json={"prompt": "gym members and weekly workouts", "rows": 300}, headers=self.h).status_code, 202)
+        first = wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] in ("ready", "failed")), None))
+        self.assertEqual((first["status"], first["template"], first["spec_source"]), ("ready", "churn", "template"))
+        self.assertEqual(first["suggestion"], {"target": "churned"})  # the generator knows its outcome column
+        self.assertIn("No model is configured", first["template_note"])
+        fresh = c.post(f"/api/drafts/{d['id']}/solution/proposal", headers=self.h).json()
+        self.assertIsNone(fresh["prediction_moment"])  # nobody stated the moment yet, so there is no value to prefill
+        self.assertIn("does not follow", first["template_note"])
+        # a template the user picked
+        wait(lambda: c.post(f"/api/drafts/{d['id']}/data/synthetic", json={"template": "fraud", "rows": 300}, headers=self.h).status_code == 202)
+        second = wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a.get("template") == "fraud" and a["status"] in ("ready", "failed")), None))
+        self.assertEqual((second["status"], second["synthetic"], second["rows"]), ("ready", True, 300))
+        self.assertIn("as you chose", second["template_note"])
+        notes = [e["data"]["note"] for e in self.client.app.state.drafts.events(d["id"]) if e["kind"] == "status" and e["data"].get("note")]
+        self.assertEqual(sum("template" in n for n in notes), 2)
 
     def test_synthetic_data_is_labelled(self):
         c = self.client

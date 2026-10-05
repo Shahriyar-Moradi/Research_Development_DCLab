@@ -42,6 +42,24 @@ STAGES: list[dict[str, str]] = [
 ]
 STAGE_BY_KEY = {s["key"]: s for s in STAGES}
 QUICK_ROWS = 3000
+DEFAULT_FOLDS, FOLD_CAPS = 3, (2, 10)
+
+
+def cv_folds(project: dict[str, Any]) -> int:
+    """Training folds for this project: the wizard's choice (project settings), 3 when none was made."""
+    try:
+        folds = int((project.get("settings") or {}).get("folds") or DEFAULT_FOLDS)
+    except (TypeError, ValueError):
+        folds = DEFAULT_FOLDS
+    return max(FOLD_CAPS[0], min(folds, FOLD_CAPS[1]))
+
+
+def split_for(solution: Any) -> str:
+    """The split the engine uses. The solution decides it, not a setting: a declared time column means the holdout
+    is the latest period (DCLAB-R02); otherwise a declared group column keeps each group on one side; otherwise
+    a stratified random split. ``solution`` is a Solution or its dict."""
+    get = solution.get if isinstance(solution, dict) else lambda key: getattr(solution, key, None)
+    return "time" if get("time_column") else "group" if get("group_column") else "stratified"
 _BUNDLES: dict[tuple[str, str, str], Any] = {}
 
 
@@ -159,7 +177,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
 
     positive_rate = float(y.mean()) if solution.task == "binary" else None
     metric = solution.resolved_metric(positive_rate)
-    split = "time" if time_column else "group" if solution.group_column else "stratified"
+    split = split_for(solution)
     regression = solution.task == "regression"
     spec = ds.DatasetSpec(
         key=f"project_{project['id']}", name=project["name"], task_type=task_type, primary_metric=metric,
@@ -173,7 +191,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
                   "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression},
     )
     bundle = ds.prepare_bundle(spec, X, y, data_paths=[path], source_rows=source_rows, sampling=sampling,
-                               class_labels=class_labels, cv_folds=3)
+                               class_labels=class_labels, cv_folds=cv_folds(project))
     # Numeric columns that stand for categories get no log or product feature (DCLAB-R11). Decided once,
     # on training rows: the declaration when there is one, otherwise the conservative heuristic.
     features = [c for c, role in roles.items() if role == "feature"]
@@ -401,8 +419,9 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
     if spec.split_strategy == "time":
         from sklearn.model_selection import KFold
 
-        random_splits = list(KFold(n_splits=3, shuffle=True, random_state=ds.RANDOM_STATE).split(np.arange(len(X_tr))))
-        random_cv = rn.cross_validate(bundle, recipe, audit_model, splits=random_splits, config_id="safe_random_kfold", split_label="KFold(3, shuffle) — ignores time order")
+        folds = len(bundle.cv_splits)  # the same number of folds as the time-ordered protocol it is compared with
+        random_splits = list(KFold(n_splits=folds, shuffle=True, random_state=ds.RANDOM_STATE).split(np.arange(len(X_tr))))
+        random_cv = rn.cross_validate(bundle, recipe, audit_model, splits=random_splits, config_id="safe_random_kfold", split_label=f"KFold({folds}, shuffle) — ignores time order")
         gap = rn.oriented_gain(rn._mean(random_cv, metric), rn._mean(safe, metric), higher)
         evidence["random_vs_time_cv"] = {"time_ordered": {"metric_mean": rn._mean(safe, metric), "protocol": bundle.cv_description},
                                          "random_kfold": random_cv, "optimism_gap": gap}

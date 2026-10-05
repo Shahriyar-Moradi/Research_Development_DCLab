@@ -894,6 +894,25 @@
     if (pill) pill.textContent = isSample ? 'Sample data · Demo' : 'Your data';
   }
 
+  /* ---------------- synthetic templates (the Synthetic tabs of Home and the wizard) ----------------
+     Without a model the rows come from a built-in template, so the tab shows a template choice and says so.
+     With a model the field stays hidden: the table is designed from the description. */
+  const synthetic = {
+    _load: null,
+    templates() { return this._load || (this._load = api('/synthetic/templates').catch(() => { this._load = null; return null; })); },
+    async setup(field) {
+      const info = await this.templates();
+      if (!field || !info || info.model || !(info.templates || []).length) return;
+      const select = $('select', field);
+      select.innerHTML = '<option value="">Closest to my description</option>' + info.templates.map(t => `<option value="${esc(t.key)}">${esc(t.name)}${t.target ? ' · predicts ' + esc(t.target) : ''}</option>`).join('');
+      const about = () => { const t = info.templates.find(x => x.key === select.value); $('.hint', field).textContent = t ? `${t.description} ${t.columns} columns.` : 'No model is configured, so the rows come from a built-in template, not from your description. With a model, DCLab designs the table from your words.'; };
+      select.addEventListener('change', about);
+      about();
+      field.hidden = false;
+    },
+    chosen(field) { return field && !field.hidden ? ($('select', field).value || null) : null; },
+  };
+
   /* ---------------- data connectors (Home and the wizard share them) ----------------
      Credentials and connection strings live on the server; the page only names a configured connection. */
   const connectors = {
@@ -996,6 +1015,6 @@
     loadRecords();
   }
 
-  window.DC = { loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

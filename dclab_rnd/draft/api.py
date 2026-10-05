@@ -9,7 +9,8 @@
     POST   /api/drafts/{id}/pack {key}        the user picks a pack (wins over detection)
     PUT    /api/drafts/{id}/data?filename=    upload a file (raw body), processed in the background
     POST   /api/drafts/{id}/data/sample {key} a dataset the R&D already studied
-    POST   /api/drafts/{id}/data/synthetic {prompt?, rows?}  simulated rows, labelled synthetic
+    POST   /api/drafts/{id}/data/synthetic {prompt?, rows?, template?}  simulated rows, labelled synthetic
+    GET    /api/synthetic/templates           the built-in templates, and whether a model designs the table instead
     GET    /api/connectors                    what each data connector can do on this server (no secrets)
     POST   /api/connectors/kaggle/search {query, page?}       Kaggle datasets
     POST   /api/drafts/{id}/data/kaggle {ref, file?}           a Kaggle dataset (largest table, or one file)
@@ -20,7 +21,7 @@
     PATCH  /api/drafts/{id} {problem}         edit the problem sentence (wizard step 1)
     POST   /api/drafts/{id}/solution/proposal {target, task?}  the column audit on the cleaned table (step 3)
     PUT    /api/drafts/{id}/solution          accept the solution draft (validated like a project's solution)
-    PUT    /api/drafts/{id}/settings          split, rows, folds, where it runs, budget (step 4)
+    PUT    /api/drafts/{id}/settings          rows, folds, where it runs, budget (step 4); the split follows the solution
     POST   /api/drafts/{id}/build             turn the draft into a project; returns the project
 """
 
@@ -70,23 +71,32 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     def requests(draft_id: str, what: str, args: dict[str, Any]) -> None:
         """The agent asked for something that runs in the background (today: simulate data)."""
         if what == "simulate":
-            simulate(draft_id, args.get("prompt", ""), int(args.get("rows", 5000)))
+            simulate(draft_id, args.get("prompt", ""), int(args.get("rows") or 5000))
 
     def process(draft_id: str, asset_id: str) -> None:
         client = client_factory()
         pipeline.run(drafts, draft_id, asset_id, HomeAgent(drafts, client, on_request=lambda did, what, a: requests(did, what, a)), client)
 
-    def simulate(draft_id: str, prompt: str, rows: int) -> dict[str, Any]:
+    def simulate(draft_id: str, prompt: str, rows: int, template: str | None = None) -> dict[str, Any]:
         from . import synthetic
 
         draft = drafts.get(draft_id)
-        context = {"problem": draft["problem"], "understanding": draft.get("understanding") or {}, "pack": (draft.get("pack") or {}).get("key")}
-        drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Designing a synthetic dataset from the conversation"})
-        spec, info = synthetic.spec_from_model(client_factory(), prompt or draft["problem"], context, rows)
+        if template:  # the user picked a built-in template in the Synthetic tab
+            drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Generating synthetic data from the template you chose"})
+            spec, info = synthetic.from_template(template, rows)
+        else:
+            context = {"problem": draft["problem"], "understanding": draft.get("understanding") or {}, "pack": (draft.get("pack") or {}).get("key")}
+            drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Designing a synthetic dataset from the conversation"})
+            spec, info = synthetic.spec_from_model(client_factory(), prompt or draft["problem"], context, rows)
+        note = synthetic.template_note(spec, info)
+        if note:  # never let template rows pass for a table designed from the user's description
+            drafts.emit(draft_id, "status", {"note": note})
         frame = synthetic.generate(spec)
         saved = synthetic.save(frame, spec, drafts.data_dir(draft_id))
         asset = pipeline.new_asset(drafts, draft_id, "synthetic", f"Synthetic · {spec.name}", Path(saved["path"]).name,
-                                   synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name)
+                                   synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name,
+                                   **({"suggestion": {"target": spec.target.name}} if spec.target else {}),  # the generator knows its outcome column
+                                   **({"template": info["template"], "template_note": note} if info.get("template") else {}))
         pipeline.run(drafts, draft_id, asset["id"], agent(), client_factory())
         return asset
 
@@ -173,12 +183,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
             proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in hint.get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
             proposal["identifiers"] = sorted(set(proposal["identifiers"]) | set(hint.get("identifiers") or []))
             if hint.get("prediction_moment"):
-                proposal["prediction_moment_hint"] = hint["prediction_moment"]
+                proposal["prediction_moment"] = hint["prediction_moment"]
             if hint.get("time_column"):
                 proposal["time_candidates"] = [hint["time_column"]] + [c for c in proposal["time_candidates"] if c != hint["time_column"]]
         moment = (draft.get("understanding") or {}).get("prediction_moment")
         if moment:
-            proposal["prediction_moment_hint"] = moment
+            proposal["prediction_moment"] = moment
+        # "prediction_moment" is a real moment (the chat's answer, or the studied sample's own); when it is missing the
+        # page shows "prediction_moment_hint" as guidance only, so an instruction is never saved as the moment (DCLAB-R01)
+        proposal.setdefault("prediction_moment", None)
         drafts.update(draft_id, lambda d: d.update(proposal=proposal))
         return proposal
 
@@ -193,7 +206,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
             solution = studio_solution.Solution(**(await json_body(request)))
             solution.check_columns([str(c) for c in frame.columns])
         except ValidationError as exc:
-            raise HTTPException(422, "; ".join(e["msg"] for e in exc.errors())) from None
+            raise HTTPException(422, "; ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors())) from None
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         value = solution.model_dump()
@@ -201,17 +214,20 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         def put(d):
             d["solution"] = value
             d.setdefault("understanding", {}).update(target=value["target"], prediction_moment=value["prediction_moment"])
+            if d.get("settings"):
+                d["settings"]["split"] = split_of(d)
         drafts.update(draft_id, put)
         HomeAgent(drafts, None).refresh_workflow(draft_id)
         return drafts.get(draft_id)
 
     @app.put("/api/drafts/{draft_id}/settings")
     async def draft_settings(draft_id: str, request: Request):
-        get(draft_id)
+        draft = get(draft_id)
         body = await json_body(request)
         budget = body.get("budget") or {}
         settings = {
-            "split": body.get("split") if body.get("split") in ("stratified", "time", "group") else "stratified",
+            # the solution decides the split (engine.split_for), so the stored value is what will run, whatever was sent
+            "split": split_of(draft),
             "quick": bool(body.get("quick", True)),
             "max_rows": max(200, min(int(body.get("max_rows") or 20000), 200000)),
             "folds": max(2, min(int(body.get("folds") or 3), 10)),
@@ -282,9 +298,21 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     async def synthetic_data(draft_id: str, request: Request):
         get(draft_id)
         body = await json_body(request)
+        from . import synthetic
+
         rows = max(100, min(int(body.get("rows") or 5000), 200_000))
-        background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows)
-        return {"accepted": True, "rows": rows}
+        template = body.get("template") or None
+        if template is not None and template not in synthetic.TEMPLATES:
+            raise HTTPException(422, "Unknown template")
+        background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows, template)
+        return {"accepted": True, "rows": rows, "template": template}
+
+    @app.get("/api/synthetic/templates")
+    async def synthetic_templates():
+        """The built-in synthetic tables, and whether a model is configured to design one from a description instead."""
+        from . import synthetic
+
+        return {"model": client_factory() is not None, "templates": synthetic.template_catalog()}
 
     # ------------------------------------------------------------------ data connectors (dclab_rnd/connectors)
     # Each import downloads into the draft's data folder in a worker thread, then registers the file as an
@@ -425,6 +453,13 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         return await asyncio.to_thread(build_project, drafts, projects, draft_id)
 
 
+def split_of(draft: dict[str, Any]) -> str:
+    """The split the engine will use for this draft's solution (stratified until a solution names a time or group column)."""
+    from ..studio import engine as studio_engine
+
+    return studio_engine.split_for(draft.get("solution") or {})
+
+
 def _suggestion(policy: dict[str, Any] | None) -> dict[str, Any] | None:
     if not policy:
         return None
@@ -458,8 +493,8 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             suggestion.setdefault("prediction_moment", u["prediction_moment"])
         project["suggestion"] = suggestion or None
     if draft.get("settings"):
-        st = draft["settings"]
-        project["settings"] = {**project.get("settings", {}), "quick": st["quick"], "max_rows": st["max_rows"]}
+        st = draft["settings"] = {**draft["settings"], "split": split_of(draft)}  # the copy kept with the project says what runs
+        project["settings"] = {**project.get("settings", {}), "quick": st["quick"], "max_rows": st["max_rows"], "folds": st.get("folds", 3)}
         project["budget"] = st["budget"]
     project["draft"] = {"id": draft_id, "problem": draft["problem"], "pack": draft.get("pack"), "understanding": u, "settings": draft.get("settings"),
                         "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
