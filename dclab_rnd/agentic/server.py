@@ -19,7 +19,7 @@ from .projects import project_catalog
 from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .. import research_map
-from ..studio import ProjectStore, agent as studio_agent, contract as studio_contract, data as studio_data, engine as studio_engine, export as studio_export, sft as studio_sft
+from ..studio import ProjectStore, agent as studio_agent, contract as studio_contract, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, sft as studio_sft
 from ..intern import Intern, SessionStore
 from ..intern import llm as intern_llm
 from ..intern.sessions import EXAMPLE_TASKS
@@ -145,17 +145,25 @@ def create_app(home=None):
         try: return projects.get(project_id)
         except KeyError: raise HTTPException(404, "Project not found")
     def with_records(p):
-        return {**p, "records": projects.records(p["id"]), "activity": projects.activity(p["id"]), "stage_meta": studio_engine.STAGES}
+        return {**p, "records": projects.records(p["id"]), "activity": projects.activity(p["id"]), "stage_meta": studio_engine.STAGES,
+                "graph": studio_graph.describe(p), "transitions": projects.transitions(p["id"], 40)}
+    def validate(p, move, **args):
+        """The workflow graph checks a person's move before anything starts; a refused move is logged and returned as 409."""
+        verdict = studio_graph.check(p, move, "human", **args)
+        if not verdict.allowed:
+            studio_graph.log(projects, p["id"], verdict, p)
+            raise HTTPException(409, verdict.message)
+        return verdict
     def load_frame(p):
         if not p.get("data"): raise HTTPException(409, "Upload data first")
         return studio_data.load_table(projects.data_dir(p["id"]) / p["data"]["filename"])
     def attach_data(p, filename):
         try: return studio_data.attach_data(projects, p["id"], filename)
         except studio_data.DataError as exc: raise HTTPException(400, str(exc))
-    async def run_job(project_id, stages):
+    async def run_job(project_id, stages, reuse_reason=None):
         def work():
             for stage in stages:
-                studio_engine.execute(projects, project_id, stage)
+                studio_engine.execute(projects, project_id, stage, reuse_reason=reuse_reason if stage == "final" else None)
         try: await asyncio.to_thread(work)
         except Exception: pass  # the failure is recorded on the project by the engine
         finally:
@@ -165,13 +173,13 @@ def create_app(home=None):
                 if p["stages"][stage].get("status") == "queued": p["stages"][stage] = {"status": "pending"}
             p["running"] = None
             projects.save(p)
-    def start_job(project_id, stages, wait):
+    def start_job(project_id, stages, wait, reuse_reason=None):
         if project_id in jobs and not jobs[project_id].done(): raise HTTPException(409, "This project is already running a stage")
         p = projects.get(project_id)
         for stage in stages: p["stages"][stage] = {"status": "queued"}
         p["running"] = stages[0]
         projects.save(p)
-        job = asyncio.create_task(run_job(project_id, stages))
+        job = asyncio.create_task(run_job(project_id, stages, reuse_reason))
         jobs[project_id] = job
         return job
     @app.get("/api/studio")
@@ -201,6 +209,8 @@ def create_app(home=None):
             settings = body["settings"]
             if "max_rows" in settings: p["settings"]["max_rows"] = max(200, min(int(settings["max_rows"]), 200000))
             if "quick" in settings: p["settings"]["quick"] = bool(settings["quick"])
+        if isinstance(body.get("policy"), dict):  # which gates wait for a person; the invariants hold either way
+            p["policy"] = {**(p.get("policy") or {}), **{k: bool(v) for k, v in body["policy"].items() if k in studio_graph.DEFAULT_POLICY}}
         projects.save(p)
         return with_records(projects.get(project_id))
     @app.delete("/api/projects/{project_id}", status_code=204)
@@ -251,6 +261,9 @@ def create_app(home=None):
             contract.check_columns(p["data"]["columns"] if p.get("data") else [])
         except Exception as exc: raise HTTPException(422, str(exc).split("\n")[0][:400] if "validation error" not in str(exc) else "; ".join(line.strip() for line in str(exc).split("\n")[1:] if line.strip() and not line.strip().startswith("For further"))[:600])
         changed = p.get("contract") != contract.model_dump()
+        if changed:
+            verdict = validate(p, "set_contract", target=contract.target)
+            studio_graph.log(projects, project_id, verdict, p, outcome="done: contract saved")
         p["contract"] = contract.model_dump()
         projects.save(p)
         if changed:
@@ -258,11 +271,12 @@ def create_app(home=None):
             projects.log(project_id, "contract_saved", {"target": contract.target, "task": contract.task, "forbidden": [f.column for f in contract.forbidden]})
         return with_records(projects.get(project_id))
     @app.post("/api/projects/{project_id}/stages/{stage}/run")
-    async def run_stage(project_id: str, stage: str, wait: bool = False):
+    async def run_stage(project_id: str, stage: str, wait: bool = False, reuse_reason: str = ""):
         p = project(project_id)
         if stage not in studio_engine.STAGE_BY_KEY: raise HTTPException(404, "Unknown stage")
         if not p.get("contract"): raise HTTPException(409, "Save the prediction contract first")
-        job = start_job(project_id, [stage], wait)
+        validate(p, "run_stage", stage=stage, reuse_reason=reuse_reason)
+        job = start_job(project_id, [stage], wait, reuse_reason or None)
         if wait: await job
         return with_records(projects.get(project_id))
     @app.post("/api/projects/{project_id}/run")
@@ -271,6 +285,7 @@ def create_app(home=None):
         if not p.get("contract"): raise HTTPException(409, "Save the prediction contract first")
         if start not in studio_engine.STAGE_BY_KEY: raise HTTPException(404, "Unknown stage")
         keys = list(studio_engine.STAGE_BY_KEY)
+        validate(p, "run_stage", stage=start)
         job = start_job(project_id, keys[keys.index(start):], wait)
         if wait: await job
         return with_records(projects.get(project_id))
@@ -280,6 +295,25 @@ def create_app(home=None):
         body = await request.json() if int(request.headers.get("content-length", "0") or 0) else {}
         try: studio_engine.approve(projects, project_id, stage, (body or {}).get("choice"))
         except (ValueError, KeyError) as exc: raise HTTPException(409, str(exc))
+        return with_records(projects.get(project_id))
+    @app.get("/api/projects/{project_id}/graph")
+    async def project_graph(project_id: str):
+        p = project(project_id)
+        return {**studio_graph.describe(p), "transitions": projects.transitions(project_id)}
+    @app.post("/api/projects/{project_id}/graph/check")
+    async def check_move(project_id: str, request: Request):
+        p = project(project_id)
+        body = await request.json()
+        move = str(body.pop("move", ""))
+        actor = "agent" if body.pop("actor", "human") == "agent" else "human"
+        args = {k: body[k] for k in ("stage", "choice", "gate", "reuse_reason") if k in body}
+        return studio_graph.check(p, move, actor, **args).to_dict()
+    @app.post("/api/projects/{project_id}/approvals")
+    async def approve_gate(project_id: str, request: Request):
+        project(project_id)
+        body = await request.json()
+        try: studio_graph.approve_gate(projects, project_id, str(body.get("gate", "")), "owner", str(body.get("reason", "")))
+        except studio_graph.GraphBlocked as exc: raise HTTPException(409, str(exc))
         return with_records(projects.get(project_id))
     @app.post("/api/projects/{project_id}/ask")
     async def ask_agent(project_id: str, request: Request):
@@ -295,6 +329,7 @@ def create_app(home=None):
     async def export_notebook(project_id: str):
         p = project(project_id)
         if not p.get("contract"): raise HTTPException(409, "Nothing to export yet")
+        studio_graph.capture(projects, project_id, "human")
         text = studio_export.dumps_notebook(studio_export.notebook(p, projects.records(project_id)))
         return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})
     @app.get("/api/projects/{project_id}/export/report")

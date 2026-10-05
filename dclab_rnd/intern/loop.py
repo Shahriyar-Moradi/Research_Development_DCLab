@@ -24,6 +24,7 @@ Rules you never break:
 3. Report numbers with their uncertainty (fold std, the 95% interval) and name the rule or precedent record IDs behind each claim (search_evidence / get_record).
 4. Never claim production readiness, causality or fairness from benchmark evidence.
 5. Stay inside the budget: prefer quick mode first; use run_all when the contract is settled.
+6. Every project move passes the workflow graph's validator. If a tool returns a blocked or needs_approval verdict, do not work around it: explain it, and ask the owner when a person must decide. get_graph shows where the project is and which moves are allowed.
 Start by writing a short plan with write_plan. When the work is done, call finish with a report for the person: what was built, the honest score with its interval, the leakage findings, the decisions and their proof, what to do next. Keep every message concise."""
 
 SAMPLE_HINTS = [

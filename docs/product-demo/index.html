@@ -2916,9 +2916,9 @@ window.FEATURES = [
   { id: 'new.handoff', view: 'new', name: 'Start in the notebook or hand to the intern', status: 'built', phase: 'Now', where: 'views/project.js "Hand to the intern"', note: '' },
 
   // ---- project workflow graph
-  { id: 'proj.graph', view: 'project', name: 'Workflow graph WF-01…WF-10 with allowed moves', status: 'todo', phase: 'P1', where: 'today: studio/engine.py runs 5 stages in a fixed order', note: 'The LLM proposes a move; the graph decides if the move exists.' },
-  { id: 'proj.validator', view: 'project', name: 'Transition validator (edge, prerequisites, evidence IDs, approvals)', status: 'todo', phase: 'P1', where: '', note: 'Deterministic. Every proposal is checked before it runs.' },
-  { id: 'proj.log', view: 'project', name: 'Transition log: every move with who, why and evidence', status: 'partial', phase: 'P1', where: 'studio/store.py log / activity', note: 'An activity log exists; typed transitions do not.' },
+  { id: 'proj.graph', view: 'project', name: 'Workflow graph WF-01…WF-10 with allowed moves', status: 'built', phase: 'P1', where: 'dclab_rnd/studio/graph.py · Graph tab in views/project.js', note: 'The LLM proposes a move; the graph decides if the move exists. Revisit edges are listed; free reopening of earlier steps is next.' },
+  { id: 'proj.validator', view: 'project', name: 'Transition validator (edge, prerequisites, evidence IDs, approvals)', status: 'partial', phase: 'P1', where: 'graph.check() · engine, intern tools and API all call it', note: 'Edges, prerequisites, gates, holdout reuse and actor rules are enforced. Checking evidence IDs cited by a proposal is not yet.' },
+  { id: 'proj.log', view: 'project', name: 'Transition log: every move with who, why and evidence', status: 'built', phase: 'P1', where: 'transitions.jsonl per project · store.transition()', note: 'Actor, move, state string, verdict, failed checks, rules, evidence and outcome.' },
   { id: 'proj.replay', view: 'project', name: 'Replay a project step by step', status: 'todo', phase: 'P1', where: '', note: 'The same log becomes trajectory training data for the policy model.' },
   { id: 'proj.stages', view: 'project', name: 'Stage runs with prerequisites ("run X first")', status: 'built', phase: 'Now', where: 'studio/engine.py execute', note: '' },
   { id: 'proj.approvals', view: 'project', name: 'Approve a stage or choose another option', status: 'built', phase: 'Now', where: 'studio/engine.py approve', note: '' },
@@ -3036,7 +3036,7 @@ window.FEATURES = [
   // ---- policy model
   { id: 'policy.sft', view: 'policy', name: 'SFT corpus v3 (326 examples, 7 tasks)', status: 'built', phase: 'Now', where: 'research/llm-fine-tuning/experiments/sft/out_v3', note: '' },
   { id: 'policy.projectsft', view: 'policy', name: 'Training examples from finished projects', status: 'built', phase: 'Now', where: 'studio/sft.py', note: '' },
-  { id: 'policy.traj', view: 'policy', name: 'Graph trajectories (state → move → evidence)', status: 'todo', phase: 'P4', where: '', note: 'Needs the transition log from P1.' },
+  { id: 'policy.traj', view: 'policy', name: 'Graph trajectories (state → move → evidence)', status: 'todo', phase: 'P4', where: '', note: 'The P1 transition log now records every move; the exporter to training records is next.' },
   { id: 'policy.review', view: 'policy', name: 'Expert review queue for decisions', status: 'todo', phase: 'P4', where: '', note: '' },
   { id: 'policy.train', view: 'policy', name: 'Training runs (LoRA / QLoRA)', status: 'partial', phase: 'P4', where: 'sft/train_lora.py', note: 'Script ready; no run yet.' },
   { id: 'policy.eval', view: 'policy', name: 'Evaluation against the benchmark', status: 'partial', phase: 'P4', where: 'sft/eval_sft.py', note: '' },

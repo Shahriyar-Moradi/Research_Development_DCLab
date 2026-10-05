@@ -190,7 +190,9 @@ Every stage writes a record in the same shape as a campaign result, and every ag
 
 Other pages: **Research map** (every research idea as a tree and a graph, with its champion, experiments, notebooks, evaluation and reports), **Knowledge** (the field guide and lessons from campaigns) and **Agent campaigns** (the LangGraph + NOOA research loop on curated datasets; needs the agent environment and `OPENAI_API_KEY`). Links are shareable: `#project/<id>`, `#map/churn-prediction`, `#run/<id>`.
 
-Code: `dclab_rnd/studio/` (projects, data, contract, engine, agent notes, export), API in `dclab_rnd/agentic/server.py`, UI in `dclab_rnd/agentic/static/` (`css/`, `js/views/*.js`; no third-party scripts, strict CSP). Projects live under the ignored `agent_runs/projects/`.
+**The workflow graph.** Each project walks ten steps (WF-01 contract … WF-10 knowledge capture). Before any move runs, from you, the intern or the API, deterministic code in `dclab_rnd/studio/graph.py` checks it and returns *allowed*, *blocked* or *needs a person*, with the failed checks, the DCLab rules and the evidence behind the answer. The rules that always hold: no skipping a step, only a person approves a gate, the agent never reuses the holdout or changes an earlier choice after the holdout was used, and a person who reruns the final stage writes a reason (kept in the evidence). Two optional gates, set per project in the **Graph** tab: sign the contract before the data stage, and approve before the intern opens the holdout. Every verdict and its outcome is appended to the project's `transitions.jsonl`: the audit trail, and the trajectory data the policy model will learn from. API: `GET /api/projects/<id>/graph`, `POST …/graph/check`, `POST …/approvals`.
+
+Code: `dclab_rnd/studio/` (projects, data, contract, engine, workflow graph, agent notes, export), API in `dclab_rnd/agentic/server.py`, UI in `dclab_rnd/agentic/static/` (`css/`, `js/views/*.js`; no third-party scripts, strict CSP). Projects live under the ignored `agent_runs/projects/`.
 
 ### Use the intern (chat mode with tools and a budget)
 

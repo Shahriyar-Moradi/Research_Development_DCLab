@@ -238,3 +238,21 @@ code.path { font-size: 13px; color: #426157; }
 .chatui .eyebrow { margin-bottom: 6px; }
 .chatui p { margin: 0; font-size: 14.5px; color: #4d5e6c; line-height: 1.65; }
 .chatui code { font-size: 13px; background: #f3f6f5; padding: 1px 6px; border-radius: 4px; color: #426157; }
+
+/* workflow graph tab */
+.gnodes, .gmoves { list-style: none; padding: 0; margin: 8px 0 14px; }
+.gnode { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; font-size: 13.5px; color: #93a0aa; }
+.gnode .gid { font-family: ui-monospace, monospace; font-size: 11.5px; min-width: 44px; }
+.gnode small { display: block; font-size: 12px; }
+.gnode.done { color: #35485a; }
+.gnode.current, .gnode.running { color: var(--teal); }
+.gnode.waiting { color: #a86a00; }
+.gnode.failed { color: #b42318; }
+.gate { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 0; font-size: 13.5px; }
+.gate small { display: block; color: #6b7784; font-size: 12px; }
+.policy { display: flex; gap: 6px; align-items: flex-start; font-size: 12.5px; color: #4d5e6c; margin: 6px 0; }
+.gmove { border-left: 3px solid var(--teal); padding: 4px 0 6px 8px; margin-bottom: 6px; font-size: 13px; }
+.gmove.blocked { border-left-color: #b42318; }
+.gmove.needs_approval { border-left-color: #a86a00; }
+.gmove .verdict { font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px; margin-left: 6px; color: #6b7784; }
+.gmove small { display: block; color: #6b7784; font-size: 12px; overflow-wrap: anywhere; }

@@ -239,12 +239,19 @@ function renderStage(key) {
   else if (status === 'failed') body += `<p class="map-empty">${esc(p.stages[key].error)}</p>`;
   if (record) body += stageBody(key, record) + decisionBlock(key, record) + notesBlock(record);
   el.innerHTML = cellHead(no, key, status, tools) + body;
-  el.querySelector('[data-run]')?.addEventListener('click', () => act(`/projects/${p.id}/stages/${key}/run`));
+  el.querySelector('[data-run]')?.addEventListener('click', () => runStage(key));
   el.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
     const choice = el.querySelector('input[name="choice-' + key + '"]:checked')?.value;
     await act(`/projects/${p.id}/stages/${key}/approve`, {method: 'POST', body: JSON.stringify(choice ? {choice} : {})});
-    if (b.dataset.approve === 'next' && STAGES[STAGES.indexOf(key) + 1]) await act(`/projects/${p.id}/stages/${STAGES[STAGES.indexOf(key) + 1]}/run`);
+    if (b.dataset.approve === 'next' && STAGES[STAGES.indexOf(key) + 1]) await runStage(STAGES[STAGES.indexOf(key) + 1]);
   }));
+}
+/* After the holdout was used, the graph lets a person run the final stage again only with a reason (PIT-006). */
+async function runStage(key) {
+  const p = current;
+  if (key !== 'final' || !p.holdout_uses) return act(`/projects/${p.id}/stages/${key}/run`);
+  const reason = prompt(`The holdout was already used ${p.holdout_uses}×. Running again makes it a less honest test (PIT-006).\nWhy run it again? The reason is kept in the evidence and the move log.`);
+  if (reason?.trim()) return act(`/projects/${p.id}/stages/final/run?reuse_reason=${encodeURIComponent(reason.trim())}`);
 }
 const tiles = items => `<div class="tiles">${items.map(([k, v, s]) => `<div class="tile"><small>${esc(k)}</small><strong>${esc(v)}</strong>${s ? `<span>${esc(s)}</span>` : ''}</div>`).join('')}</div>`;
 const table = (head, rows) => `<div class="table-wrap"><table><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
@@ -332,17 +339,43 @@ function renderAgent() {
   notes.sort((a, b) => (order[a.severity] ?? 2) - (order[b.severity] ?? 2));
   const counts = {high: notes.filter(n => n.severity === 'high').length, warning: notes.filter(n => n.severity === 'warning').length};
   el.innerHTML = `<div class="agent-head"><span class="live-dot"></span><b>Agent</b><small>${p.contract ? (busy(p) ? `running ${esc(p.running || '')}…` : 'evidence first, cited') : 'waiting for the contract'}</small></div>
-    <div class="agent-tabs">${[['notes', `Notes${notes.length ? ` · ${notes.length}` : ''}`], ['ask', 'Ask'], ['activity', 'Activity']].map(([k, l]) => `<button type="button" class="${agentTab === k ? 'active' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>
+    <div class="agent-tabs">${[['notes', `Notes${notes.length ? ` · ${notes.length}` : ''}`], ['graph', 'Graph'], ['ask', 'Ask'], ['activity', 'Activity']].map(([k, l]) => `<button type="button" class="${agentTab === k ? 'active' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>
     <div class="agent-body">${agentTab === 'notes' ? (notes.length ? `<p class="small muted">${counts.high} high · ${counts.warning} warning · ${notes.length - counts.high - counts.warning} info</p>` + notes.map(n => `<div class="note ${sev(n.severity)}"><small>${esc(STEP_TITLES[n.stage])}</small><b>${esc(n.title)}</b><p>${esc(n.text)}</p><div class="proof">${proofChips(n.proof)}</div></div>`).join('')
         : '<p class="small muted">Notes appear here as stages complete. Each one names the DCLab rule it applies and the measured precedent behind it.</p>')
+      : agentTab === 'graph' ? graphHtml(p)
       : agentTab === 'ask' ? `<div class="ask"><textarea id="ask-input" rows="2" placeholder="Ask about this project or the evidence: is X a leak? which model? why this recipe?"></textarea><button class="primary small-btn" id="ask-send">Ask</button></div>
         ${questions.map(q => `<div class="qa"><b>${esc(q.question)}</b><p>${esc(q.answer)}</p>${q.llm_answer ? `<p class="llm">${esc(q.llm_answer)} <span class="badge">LLM · advisory</span></p>` : ''}<div class="proof">${proofChips(q.proof)}</div></div>`).join('') || '<p class="small muted">Answers come from this project\'s results and the R&D evidence index; proofs are clickable.</p>'}`
       : `<ol class="timeline">${(p.activity || []).slice().reverse().map(a => `<li>${esc(a.kind.replaceAll('_', ' '))}${a.payload?.stage ? ` · ${esc(a.payload.stage)}` : ''}${a.payload?.error ? `<small>${esc(a.payload.error)}</small>` : ''}<small>${new Date(a.at).toLocaleString([], {hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'})}</small></li>`).join('') || '<li>Nothing yet</li>'}</ol>`}</div>`;
   el.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { agentTab = b.dataset.tab; renderAgent(); }));
+  el.querySelectorAll('[data-gate]').forEach(b => b.addEventListener('click', () => {
+    const reason = prompt(b.dataset.gate === 'contract' ? 'Sign the contract as it is now. Any note for the log?' : 'Allow the agent to open the holdout once. Why now?');
+    if (reason !== null) act(`/projects/${p.id}/approvals`, {method: 'POST', body: JSON.stringify({gate: b.dataset.gate, reason})});
+  }));
+  el.querySelectorAll('[data-policy]').forEach(b => b.addEventListener('change', () =>
+    act(`/projects/${p.id}`, {method: 'PATCH', body: JSON.stringify({policy: {[b.dataset.policy]: b.checked}})})));
   $('ask-send')?.addEventListener('click', async () => {
     const question = $('ask-input').value.trim(); if (!question) return;
     $('ask-send').disabled = true;
     try { questions.unshift(await api(`/projects/${p.id}/ask`, {method: 'POST', body: JSON.stringify({question})})); renderAgent(); }
     catch (error) { notice(error.message); $('ask-send').disabled = false; }
   });
+}
+
+/* ---------------------------------------------------------------- workflow graph */
+const NODE_STATE = {done: 'done', current: 'next', waiting: 'waits for you', running: 'running', failed: 'failed', todo: ''};
+const VERDICT = {allowed: 'ok', blocked: 'blocked', needs_approval: 'needs you'};
+const POLICY_LABEL = {require_contract_signoff: 'The contract needs my signature before the data stage', require_holdout_approval: 'The intern needs my approval before it opens the holdout'};
+function graphHtml(p) {
+  const g = p.graph;
+  if (!g) return '<p class="small muted">No graph for this project.</p>';
+  const nodes = g.nodes.map(n => `<li class="gnode ${esc(n.state)}" title="${esc((n.rules || []).join(' · '))}"><span class="gid">${esc(n.id)}</span><span><b>${esc(n.name)}</b>${NODE_STATE[n.state] ? `<small>${esc(NODE_STATE[n.state])}</small>` : ''}</span></li>`).join('');
+  const gates = g.gates.map(x => `<div class="gate"><div><b>${x.gate === 'contract' ? 'Contract signature' : 'Holdout approval'}</b><small>${esc(x.what)}</small></div>
+    ${x.approved ? '<span class="badge">approved</span>' : `<button class="secondary small-btn" data-gate="${esc(x.gate)}" ${x.gate === 'contract' && !p.contract ? 'disabled' : ''}>Approve</button>`}</div>`).join('');
+  const policy = Object.entries(g.policy).map(([k, v]) => `<label class="policy"><input type="checkbox" data-policy="${esc(k)}" ${v ? 'checked' : ''}> ${esc(POLICY_LABEL[k] || k)}</label>`).join('');
+  const log = (p.transitions || []).slice().reverse().map(t => `<li class="gmove ${esc(t.status)}"><b>${esc(t.actor)} · ${esc(t.move.replaceAll('_', ' '))}${t.args?.stage ? ` ${esc(t.args.stage)}` : t.args?.gate ? ` ${esc(t.args.gate)}` : ''}</b>
+    <span class="verdict">${esc(VERDICT[t.status] || t.status)}</span><small>${esc(t.outcome || t.message || '')}</small><small class="mono">${esc(t.state)} · ${new Date(t.at).toLocaleString([], {hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'})}</small></li>`).join('');
+  return `<p class="small muted">Ten steps. Every move by you or the intern is checked by deterministic code before it runs, and logged. Holdout used ${g.holdout_uses}×.</p>
+    <ol class="gnodes">${nodes}</ol>
+    <div class="notes-head"><b>Gates</b><small>only a person approves</small></div>${gates}${policy}
+    <div class="notes-head"><b>Move log</b><small>state · ${esc(g.state)}</small></div><ol class="gmoves">${log || '<li class="small muted">No moves yet.</li>'}</ol>`;
 }

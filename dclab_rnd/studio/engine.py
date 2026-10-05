@@ -8,6 +8,7 @@ record has the same shape as a campaign result and the agent can cite like with 
 
 from __future__ import annotations
 
+import copy
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,7 +20,7 @@ import pandas as pd
 from dclab_rnd.expansion import datasets as ds
 from dclab_rnd.expansion import runner as rn
 
-from . import agent
+from . import agent, graph
 from .contract import Contract
 from .data import column_kind, load_table, sha256
 from .store import STAGE_KEYS, ProjectStore
@@ -561,14 +562,35 @@ def chosen(record: dict[str, Any] | None, fallback_key: str) -> str | None:
     return decision.get("chosen") or record["evidence"].get(fallback_key)
 
 
-def execute(store: ProjectStore, project_id: str, stage: str) -> dict[str, Any]:
-    """Run one stage now (blocking) and write its record. Raises on a missing prerequisite."""
+def execute(store: ProjectStore, project_id: str, stage: str, actor: str = "human", reuse_reason: str | None = None) -> dict[str, Any]:
+    """Run one stage now (blocking) and write its record.
+
+    The move is validated by the workflow graph first and logged either way; a move the
+    graph does not allow raises ``graph.GraphBlocked`` with the verdict.
+    """
     project = store.get(project_id)
+    verdict = graph.check(project, "run_stage", actor, stage=stage, reuse_reason=reuse_reason)
+    if not verdict.allowed:
+        graph.log(store, project_id, verdict, project)
+        raise graph.GraphBlocked(verdict)
+    state_before = copy.deepcopy(project)  # the state the move was proposed in, for the log
     index = STAGE_KEYS.index(stage)
-    if index:
-        previous = STAGE_KEYS[index - 1]
-        if project["stages"][previous].get("status") not in ("completed", "approved"):
-            raise ValueError(f"Run `{previous}` first")
+    later = [s for s in STAGE_KEYS[index + 1:] if project["stages"][s].get("status") in ("completed", "approved")]
+    if stage != "final" and project["stages"][stage].get("status") in ("completed", "approved") and later:
+        store.clear_stages(project_id, STAGE_KEYS[index + 1])  # a rerun makes every later result stale
+        project = store.get(project_id)
+    if stage == "final" and actor == "agent":
+        graph.consume_holdout_approval(project)
+    try:
+        record = _execute(store, project_id, stage, project, reuse_reason)
+    except Exception as exc:
+        graph.log(store, project_id, verdict, state_before, outcome=f"failed: {type(exc).__name__}: {str(exc)[:200]}")
+        raise
+    graph.log(store, project_id, verdict, state_before, outcome="done: " + record["setup_summary"][:200])
+    return record
+
+
+def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None) -> dict[str, Any]:
     p = prepare(store, project)
     meta = STAGE_BY_KEY[stage]
     eid = f"PRJ-{project_id[:6]}-{stage}"
@@ -600,6 +622,8 @@ def execute(store: ProjectStore, project_id: str, stage: str) -> dict[str, Any]:
             project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
             evidence, claims, summary = stage_final(p, eid, recipe, family)
             evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
+            if reuse_reason:
+                evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
             decision = {"kind": "final", "selected": evidence["selected_optimization"], "chosen": evidence["selected_optimization"], "rule": evidence["selection_rule"], "options": []}
         elapsed = time.perf_counter() - clock
         evidence["elapsed_seconds"] = float(elapsed)
@@ -641,9 +665,13 @@ def run_all(store: ProjectStore, project_id: str, start: str = "data") -> list[s
     return done
 
 
-def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None = None) -> dict[str, Any]:
-    """Human sign-off on a stage, optionally overriding the deterministic choice; downstream results are cleared."""
+def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None = None, actor: str = "human") -> dict[str, Any]:
+    """Sign-off on a stage, optionally overriding the deterministic choice; downstream results are cleared."""
     project = store.get(project_id)
+    verdict = graph.check(project, "approve_stage", actor, stage=stage, choice=choice)
+    graph.log(store, project_id, verdict, project)
+    if not verdict.allowed:
+        raise graph.GraphBlocked(verdict)
     record = store.read_stage(project_id, stage)
     if not record or project["stages"][stage].get("status") not in ("completed", "approved"):
         raise ValueError("Only a completed stage can be approved")

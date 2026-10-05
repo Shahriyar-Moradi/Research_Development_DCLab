@@ -120,8 +120,19 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(project["stages"]["models"]["status"], "approved")
         self.assertEqual(project["stages"]["final"]["status"], "pending")
         self.assertTrue(self.store.read_stage(self.project["id"], "models")["decision"]["overridden"])
+        from dclab_rnd.studio import graph
+        with self.assertRaises(graph.GraphBlocked) as blocked:  # the holdout was used once already
+            engine.execute(self.store, self.project["id"], "final")
+        self.assertEqual(blocked.exception.verdict.status, "needs_approval")
+        with self.assertRaises(graph.GraphBlocked) as agent:  # the intern may never reuse it
+            engine.execute(self.store, self.project["id"], "final", actor="agent", reuse_reason="want a better score")
+        self.assertEqual(agent.exception.verdict.status, "blocked")
         with fast_profile():
-            record = engine.execute(self.store, self.project["id"], "final")
+            record = engine.execute(self.store, self.project["id"], "final", reuse_reason="the owner chose a more explainable model")
+        self.assertEqual(record["evidence"]["holdout_reuse_reason"], "the owner chose a more explainable model")
+        statuses = [t["status"] for t in self.store.transitions(self.project["id"])]
+        self.assertIn("needs_approval", statuses)
+        self.assertIn("blocked", statuses)
         self.assertEqual(record["evidence"]["model"], other)
         self.assertEqual(record["evidence"]["holdout_uses_in_this_project"], 2)
         self.assertTrue(any(n["severity"] == "high" and "used 2 times" in n["title"] for n in record["notes"]))

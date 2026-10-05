@@ -4,6 +4,11 @@ Every tool is deterministic and bounded. The model can look things up, create a
 project, load a sample or describe uploaded data, propose and set a prediction
 contract, run the five stages, approve a choice and export the notebook. It cannot
 run arbitrary code, reach the network or touch files outside the project home.
+
+Every project move the intern makes (run a stage, save a contract, approve a choice,
+export) is checked by the workflow graph's validator as the actor "agent" and logged.
+A blocked move comes back as an error with the verdict: which check failed, which rule
+applies, and whether a person can unblock it.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from dclab_rnd.studio import contract as studio_contract
 from dclab_rnd.studio import data as studio_data
 from dclab_rnd.studio import engine as studio_engine
 from dclab_rnd.studio import export as studio_export
+from dclab_rnd.studio import graph as studio_graph
 from dclab_rnd.studio.store import INDUSTRIES, STAGE_KEYS, ProjectStore
 
 EVIDENCE_TOOLS = ("search_evidence", "get_record", "get_rules", "plan_next_stage", "review_code")
@@ -93,6 +99,8 @@ class Toolbox:
             return fn(**arguments)
         except KeyError as exc:
             return {"error": f"Not found: {exc}"}
+        except studio_graph.GraphBlocked as exc:
+            return blocked(exc.verdict)
         except (ValueError, studio_data.DataError) as exc:
             return {"error": str(exc)[:600]}
 
@@ -124,6 +132,11 @@ class Toolbox:
         self._add("get_results", self.get_results, {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id"], "Return the records of the finished stages (or one stage).")
         self._add("ask_project", self.ask_project, {**pid, "question": S}, ["project_id", "question"], "Ask the deterministic project agent a question; it answers from the project's own results and the evidence index.")
         self._add("export_notebook", self.export_notebook, pid, ["project_id"], "Write the runnable scikit-learn notebook and the markdown report for the project; returns their download paths.")
+        self._add("get_graph", self.get_graph, pid, ["project_id"],
+                  "The project's workflow graph: the ten steps WF-01…WF-10 with their state, the current step, which moves are allowed now and why not, the gates, and the last transitions.")
+        self._add("check_move", self.check_move, {**pid, "move": {**S, "enum": list(studio_graph.MOVES)}, "stage": {**S, "enum": list(STAGE_KEYS)},
+                  "choice": S, "gate": {**S, "enum": list(studio_graph.GATES)}}, ["project_id", "move"],
+                  "Ask the validator whether a move would be allowed right now, without doing it. Returns the checks, the rules and the side effects.")
 
     def list_samples(self) -> dict[str, Any]:
         return {"samples": [{k: s[k] for k in ("key", "name", "task", "goal", "industry", "source", "rows", "blocked")} for s in studio_data.sample_catalog() if s["available"]]}
@@ -168,6 +181,10 @@ class Toolbox:
         fields = {k: v for k, v in fields.items() if v not in (None, "", [])}
         contract = studio_contract.Contract(**fields)
         contract.check_columns(project["data"]["columns"])
+        verdict = studio_graph.check(project, "set_contract", "agent", target=contract.target)
+        studio_graph.log(self.projects, project_id, verdict, project)
+        if not verdict.allowed:
+            return blocked(verdict)
         project["contract"] = contract.model_dump()
         self.projects.save(project)
         self.projects.clear_stages(project_id)
@@ -186,7 +203,9 @@ class Toolbox:
     def run_stage(self, project_id: str, stage: str) -> dict[str, Any]:
         self.projects.get(project_id)
         try:
-            record = studio_engine.execute(self.projects, project_id, stage)
+            record = studio_engine.execute(self.projects, project_id, stage, actor="agent")
+        except studio_graph.GraphBlocked as exc:
+            return blocked(exc.verdict)
         except Exception as exc:  # noqa: BLE001 — the failure is the tool result
             return {"error": f"{stage} failed: {type(exc).__name__}: {str(exc)[:400]}"}
         return compact_record(record)
@@ -205,7 +224,7 @@ class Toolbox:
         return out
 
     def approve_stage(self, project_id: str, stage: str, choice: str | None = None) -> dict[str, Any]:
-        project = studio_engine.approve(self.projects, project_id, stage, choice)
+        project = studio_engine.approve(self.projects, project_id, stage, choice, actor="agent")
         return {"stage": stage, "status": project["stages"][stage]["status"], "choice": choice, "stages": {k: v.get("status") for k, v in project["stages"].items()}}
 
     def get_results(self, project_id: str, stage: str | None = None) -> dict[str, Any]:
@@ -224,15 +243,35 @@ class Toolbox:
 
     def export_notebook(self, project_id: str) -> dict[str, Any]:
         project = self.projects.get(project_id)
-        if not project.get("contract"):
-            return {"error": "Nothing to export: the project has no contract yet"}
+        if not studio_graph.check(project, "capture", "agent").allowed:
+            studio_graph.capture(self.projects, project_id, "agent")  # logs the blocked move and raises
         records = self.projects.records(project_id)
         folder = self.projects.directory(project_id) / "exports"
         folder.mkdir(exist_ok=True)
         (folder / "notebook.ipynb").write_text(studio_export.dumps_notebook(studio_export.notebook(project, records)), encoding="utf-8")
         (folder / "report.md").write_text(studio_export.report(project, records), encoding="utf-8")
+        studio_graph.capture(self.projects, project_id, "agent")
         return {"notebook": f"/api/projects/{project_id}/export/notebook", "report": f"/api/projects/{project_id}/export/report",
                 "files": [str(folder / "notebook.ipynb"), str(folder / "report.md")], "project_url": f"#project/{project_id}"}
+
+
+    def get_graph(self, project_id: str) -> dict[str, Any]:
+        project = self.projects.get(project_id)
+        view = studio_graph.describe(project, "agent")
+        view["nodes"] = [{k: n[k] for k in ("id", "name", "state", "rules")} for n in view["nodes"]]
+        view["recent_transitions"] = [{k: t.get(k) for k in ("at", "actor", "move", "args", "status", "message", "outcome")} for t in self.projects.transitions(project_id, 8)]
+        return view
+
+    def check_move(self, project_id: str, move: str, stage: str | None = None, choice: str | None = None, gate: str | None = None) -> dict[str, Any]:
+        project = self.projects.get(project_id)
+        return studio_graph.check(project, move, "agent", stage=stage, choice=choice, gate=gate).to_dict()
+
+
+def blocked(verdict: "studio_graph.Verdict") -> dict[str, Any]:
+    """A move the graph did not allow, in the shape the intern reads."""
+    return {"error": verdict.message, "status": verdict.status,
+            "failed_checks": [c for c in verdict.checks if not c["ok"]], "rules": verdict.rules, "evidence": verdict.evidence,
+            "next": "Ask the owner: a person can approve this." if verdict.status == "needs_approval" else "Choose an allowed move (get_graph lists them)."}
 
 
 def summarize(result: Any, chars: int = 360) -> str:

@@ -1,4 +1,4 @@
-"""Projects on disk: ``<home>/<project id>/`` holds project.json, data/, stages/ and activity.jsonl."""
+"""Projects on disk: ``<home>/<project id>/`` holds project.json, data/, stages/, activity.jsonl and transitions.jsonl."""
 
 from __future__ import annotations
 
@@ -143,6 +143,19 @@ class ProjectStore:
 
     def activity(self, project_id: str, limit: int = 60) -> list[dict[str, Any]]:
         path = self.directory(project_id) / "activity.jsonl"
+        if not path.exists():
+            return []
+        lines = path.read_text(encoding="utf-8").splitlines()
+        return [json.loads(line) for line in lines[-limit:] if line.strip()]
+
+    # ------------------------------------------------------------------ the workflow graph's transition log
+    def transition(self, project_id: str, entry: dict[str, Any]) -> None:
+        """Append one validated move (allowed or not). Written by ``graph.log``; never edited."""
+        with (self.directory(project_id) / "transitions.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+
+    def transitions(self, project_id: str, limit: int = 200) -> list[dict[str, Any]]:
+        path = self.directory(project_id) / "transitions.jsonl"
         if not path.exists():
             return []
         lines = path.read_text(encoding="utf-8").splitlines()
