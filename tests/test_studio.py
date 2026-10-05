@@ -149,6 +149,14 @@ class EngineTests(unittest.TestCase):
         report = export.report(project, records)
         self.assertIn("final_refund_amount", report)
         self.assertIn("DCLAB-R22", report)
+        self.assertNotIn("Synthetic data", report + json.dumps(nb))
+        # the data file is read by its type, and synthetic data says so in both exports
+        synthetic = {**project, "data": {**project["data"], "filename": "sim.parquet", "synthetic": True}}
+        nb = export.notebook(synthetic, records)
+        self.assertIn("frame = pd.read_parquet('sim.parquet')", json.dumps(nb))
+        self.assertIn(export.SYNTHETIC_NOTE, nb["cells"][0]["source"])
+        self.assertIn(export.SYNTHETIC_NOTE, export.report(synthetic, records))
+        self.assertEqual(export._read_code("t.tsv"), "pd.read_csv('t.tsv', sep='\\t', low_memory=False)")
 
     def test_answers_cite_project_facts_and_evidence(self):
         answer = agent.answer("is final_refund_amount a leak?", self.store.get(self.project["id"]), self.store.records(self.project["id"]), "binary_imbalanced")

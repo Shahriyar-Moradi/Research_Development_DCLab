@@ -8,6 +8,7 @@ parameters, and the same once-only holdout.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from .store import STAGE_KEYS
@@ -43,6 +44,24 @@ def _cell(kind: str, source: str) -> dict[str, Any]:
     return cell
 
 
+SYNTHETIC_NOTE = ("**Synthetic data.** These rows were generated from a prompt, not collected. The scores below test the method "
+                  "on simulated data and say nothing about real cases.")
+
+
+def _read_code(filename: str) -> str:
+    """The pandas call that loads the project's data file, by type, the same way ``data.load_table`` does."""
+    suffix = Path(filename).suffix.lower()
+    if suffix == ".parquet":
+        return f"pd.read_parquet({filename!r})"
+    if suffix in (".tsv", ".tab"):
+        return f"pd.read_csv({filename!r}, sep='\\t', low_memory=False)"
+    if suffix in (".xlsx", ".xls"):
+        return f"pd.read_excel({filename!r})"
+    if suffix == ".json":
+        return f"pd.read_json({filename!r})"
+    return f"pd.read_csv({filename!r}, low_memory=False)"
+
+
 def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dict[str, Any]:
     solution = project["solution"] or {}
     data = project["data"] or {}
@@ -71,7 +90,8 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     cells = [
         _cell("markdown", f"# {project['name']}\n\n"
               f"**Goal.** {project.get('goal') or '—'}\n\n"
-              f"**Solution draft.** Target `{solution.get('target')}` ({task}). {solution.get('prediction_moment', '')}\n\n"
+              + (SYNTHETIC_NOTE + "\n\n" if data.get("synthetic") else "")
+              + f"**Solution draft.** Target `{solution.get('target')}` ({task}). {solution.get('prediction_moment', '')}\n\n"
               + (f"**Forbidden at prediction time:** " + ", ".join(f"`{c}`" for c in forbidden) + "\n\n" if forbidden else "")
               + (f"**Identifiers (never features):** " + ", ".join(f"`{c}`" for c in identifiers) + "\n\n" if identifiers else "")
               + f"**Metric.** {metric}\n\n"
@@ -81,7 +101,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
               "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\n"
               f"from sklearn.metrics import {metric_import}\n{import_line}\n\nRANDOM_STATE = 42"),
         _cell("markdown", "## 1. Load the data and apply the solution\n\nColumns unknown at the prediction moment and identifiers are removed before anything else happens."),
-        _cell("code", f"frame = pd.read_csv({data.get('filename', 'data.csv')!r})  # the project's data file\n"
+        _cell("code", f"frame = {_read_code(data.get('filename', 'data.csv'))}  # the project's data file\n"
               f"TARGET = {solution.get('target')!r}\nDROP = {drop!r}\n"
               + _target_code(task, solution)
               + f"X = frame.drop(columns=[TARGET] + [c for c in DROP if c in frame])\nprint(X.shape, y.value_counts(normalize=True).round(3).to_dict() if y.nunique() < 20 else y.describe())"),
@@ -202,6 +222,7 @@ def report(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> str:
     solution = project.get("solution") or {}
     lines = [f"# {project['name']}", "", f"*Industry:* {project.get('industry', 'general')} · *Created:* {project.get('created', '')[:10]}", "",
              f"**Goal.** {project.get('goal') or '—'}", "",
+             *([SYNTHETIC_NOTE, ""] if (project.get("data") or {}).get("synthetic") else []),
              "## Solution draft", "",
              f"| Item | Value |", "|---|---|", f"| Target | `{solution.get('target')}` ({solution.get('task')}) |",
              f"| Prediction moment | {solution.get('prediction_moment', '')} |",
