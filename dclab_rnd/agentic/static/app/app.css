@@ -960,6 +960,8 @@ body:not([data-role="admin"]) .admin-only { display: none !important; }
 @media (max-width: 1100px) { .search-btn > span { display: none; } .search-btn { flex: 0 0 auto; width: 40px; padding: 0 12px; } .search-btn kbd { display: none; } }
 @media (max-width: 960px) { .crumbs > span { display: none; } }
 @media (max-width: 640px) { .top-avatar { display: none; } .role-pick .dot { display: none; } .role-pick { padding-left: 10px; } .top-actions { gap: 6px; } }
+/* On a phone the breadcrumb may shrink (its text already ellipsizes), so a long page name never pushes the actions past the edge. */
+@media (max-width: 640px) { .crumbs { flex: 0 1 auto; } .top-actions { flex: 0 0 auto; } }
 
 /* ---------- three-column work layout (intern, compute) ---------- */
 .g-3col { display: grid; gap: 20px; grid-template-columns: 240px minmax(0, 1fr) 320px; align-items: start; }
