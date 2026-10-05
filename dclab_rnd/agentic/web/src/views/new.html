@@ -432,7 +432,7 @@ DC.view('new', {
           const s = await api('/intern/sessions', { method: 'POST', body: { task: W.draft.problem, project_id: project.id, budget: st.budget ? { max_steps: st.budget.max_steps, max_minutes: st.budget.max_minutes } : undefined } });
           DC.state.internSession = s.id;
           toast('Handed to the intern with its budget. It asks before anything only you can decide.');
-          location.href = '/classic#intern/' + s.id;
+          location.hash = 'intern';
         } else {
           toast('Project created with its data, solution and settings. Run the stages from the workflow.');
           location.hash = 'project';

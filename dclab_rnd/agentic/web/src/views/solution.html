@@ -1,6 +1,6 @@
 <section class="view" id="view-solution" hidden>
   <header class="vh">
-    <div class="vh-text">
+    <div class="vh-text" id="sol-head">
       <div class="eyebrow accent">Term-deposit calls · WF-01 to WF-03</div>
       <h1>Solution draft <span class="pill ok" data-f="solution.signoff">v2 · signed by Shahriyar · Sep 27</span></h1>
       <p class="lede">Written before anyone looks at a score. Leakage, the metric and the split follow from it.</p>
@@ -11,14 +11,14 @@
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="sol-stats">
       <div class="stat"><span class="v bad">duration</span><span class="l">forbidden · known only after the call ends</span></div>
       <div class="stat"><span class="v warn">2 <small>open</small></span><span class="l">questions only the owner can answer · <button type="button" class="link-btn" data-pane-go="owner">See them →</button></span></div>
       <div class="stat"><span class="v">2,000 <small>calls a month</small></span><span class="l">capacity · €8 per call · €110 per subscription</span></div>
       <div class="stat"><span class="v">800 <small>rows</small></span><span class="l">holdout sealed until WF-09 · 3,200 training rows in 3 folds</span></div>
     </div>
 
-    <div class="panel" data-f="solution.fields">
+    <div class="panel" data-f="solution.fields" id="sol-fields">
       <div class="panel-head"><div class="panel-title"><h2>The solution</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-toast="In the product: edit opens a new draft version; signing it reruns only the steps that depend on what changed.">Edit as v3</button></div>
       <div class="solution-sheet">
         <div class="cs-row"><span class="cs-key">Question</span><span class="cs-val">Which clients are most likely to subscribe if we call them in the next campaign?</span><span></span></div>
@@ -39,7 +39,7 @@
 
   <div class="pane" data-pane="owner" data-label="Owner questions" data-count="2">
     <div class="grid g2">
-      <div class="panel" data-f="solution.worksheet">
+      <div class="panel" data-f="solution.worksheet" id="sol-worksheet">
         <div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill warn">2 open</span></div>
         <div class="list">
           <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Is campaign counted before or after the call being predicted?</span><span class="li-sub">Until answered, campaign stays in with a warning and a with/without comparison.</span><div class="row"><button type="button" class="btn sm" data-toast="Recorded: counted before the call. campaign becomes a normal input in v3.">Before</button><button type="button" class="btn sm" data-toast="Recorded: includes this call. campaign moves to forbidden in v3; dependent steps rerun.">Includes this call</button></div></div></div>
@@ -50,7 +50,7 @@
         <div class="panel-foot">Other projects: HyperAck and Telco churn each wait on one answer.</div>
       </div>
       <div class="stack">
-        <div class="panel">
+        <div class="panel" id="sol-signoff">
           <div class="panel-head"><h3>Sign-off</h3></div>
           <div class="panel-body small"><div class="stack tight">
             <div class="row"><span class="avatar sm">SM</span><span><b>Shahriyar</b> signed v2 · Sep 27, 09:21</span></div>
@@ -76,7 +76,7 @@
   <div class="pane" data-pane="timeline" data-label="Known when">
     <div class="panel" data-f="solution.timeline" data-tour="timeline">
       <div class="panel-head"><div class="panel-title"><h2>What is known when</h2><span class="sub">Each column is placed at the moment its value is written. Anything to the right of the line cannot be an input.</span></div></div>
-      <div class="panel-body">
+      <div class="panel-body" id="sol-timeline-body">
         <div class="moment-line">
           <div class="ml-track">
             <div class="ml-phase"><span class="ml-name">Client profile</span><span class="ml-when">long before</span><div class="ml-cols"><span class="ml-col">age</span><span class="ml-col">job</span><span class="ml-col">marital</span><span class="ml-col">education</span></div></div>
@@ -94,7 +94,7 @@
   </div>
 
   <div class="pane" data-pane="costs" data-label="Costs & metric">
-    <div class="panel" data-f="solution.costs" data-tour="costs">
+    <div class="panel" data-f="solution.costs" data-tour="costs" id="sol-costs">
       <div class="panel-head"><div class="panel-title"><h2>Costs decide the metric</h2><span class="sub">The owner enters the money. DCLab turns it into the call volume and cut-off, instead of optimizing ROC-AUC alone.</span></div><span class="pill proof">uses holdout ROC-AUC 0.7718</span></div>
       <div class="panel-body grid g2">
         <div class="stack">
@@ -116,7 +116,7 @@
   </div>
 
   <div class="pane" data-pane="data" data-label="Data & split">
-    <div class="grid g2">
+    <div class="grid g2" id="sol-data">
       <div class="panel" data-f="solution.lineage">
         <div class="panel-head"><div class="panel-title"><h2>Source and lineage</h2><span class="sub">WF-02</span></div><span class="pill ok">passed</span></div>
         <div class="panel-body small">
@@ -150,51 +150,437 @@
 <script>
 DC.view('solution', {
   init(el) {
-    const { $, chip, icon, charts, binormal, int } = DC;
+    const { $, esc, chip, icon, charts, binormal, int, fmt, pct } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    /* Sample mode keeps the markup above; real mode writes the open project into the same panels and restores them on the way back. */
+    const SNAP = ['sol-head', 'sol-stats', 'sol-fields', 'sol-worksheet', 'sol-signoff', 'sol-timeline-body', 'sol-costs', 'sol-data'];
+    const SAMPLE = Object.fromEntries(SNAP.map(id => [id, $('#' + id, el).innerHTML]));
+    let real = null, mode = 'sample', stopPoll = null;
+
+    /* ---------- the cost tool: one drawing, fed by the sample bank or by the project's holdout ---------- */
     const B = DEMO.bank;
-    const models = [binormal(B.holdoutLo, B.positive), binormal(B.holdoutAuc, B.positive), binormal(B.holdoutHi, B.positive)];
+    const SAMPLE_CALC = {
+      models: [binormal(B.holdoutLo, B.positive), binormal(B.holdoutAuc, B.positive), binormal(B.holdoutHi, B.positive)], positive: B.positive,
+      d: { cost: 8, value: 110, pool: 20000, cap: 2000, minPool: 1000 },
+      w: { unit: 'call', units: 'calls', aUnit: 'a call', made: 'calls made', hit: 'subscribers', hits: 'subscriptions', random: 'Calling at random reaches', act: 'call' },
+    };
+    let calc = SAMPLE_CALC;
     function value(model, calls, pool, cost, val) { if (calls <= 0) return { net: 0, subs: 0, prec: 0 }; const r = model.atFraction(Math.min(1, calls / pool)); const subs = calls * r.precision; return { net: subs * val - calls * cost, subs, prec: r.precision }; }
     function draw() {
-      const cost = Math.max(0.5, +$('#c-cost', el).value || 8), val = Math.max(1, +$('#c-value', el).value || 110);
-      const pool = Math.max(1000, +$('#c-pool', el).value || 20000), cap = Math.max(1, Math.min(pool, +$('#c-cap', el).value || 2000));
+      if (!$('#c-chart', el) || !$('#c-cost', el)) return;
+      const C = calc, w = C.w, models = C.models;
+      const cost = Math.max(0.5, +$('#c-cost', el).value || C.d.cost), val = Math.max(1, +$('#c-value', el).value || C.d.value);
+      const pool = Math.max(C.d.minPool, +$('#c-pool', el).value || C.d.pool), cap = Math.max(1, Math.min(pool, +$('#c-cap', el).value || C.d.cap));
       const steps = 40, xs = Array.from({ length: steps + 1 }, (_, i) => Math.round(pool * i / steps));
       const mid = xs.map(c => [c, value(models[1], c, pool, cost, val).net / 1000]);
       const lo = xs.map(c => [c, value(models[0], c, pool, cost, val).net / 1000]);
       const hi = xs.map(c => [c, value(models[2], c, pool, cost, val).net / 1000]);
-      const rnd = xs.map(c => [c, (c * B.positive * val - c * cost) / 1000]);
+      const rnd = xs.map(c => [c, (c * C.positive * val - c * cost) / 1000]);
       let best = xs[0], bestNet = -Infinity;
-      for (let c = 0; c <= pool; c += Math.max(50, Math.round(pool / 400))) { const n = value(models[1], c, pool, cost, val).net; if (n > bestNet) { bestNet = n; best = c; } }
+      for (let c = 0; c <= pool; c += Math.max(C.d.minPool >= 1000 ? 50 : 1, Math.round(pool / 400))) { const n = value(models[1], c, pool, cost, val).net; if (n > bestNet) { bestNet = n; best = c; } }
       const atCap = value(models[1], cap, pool, cost, val), atCapLo = value(models[0], cap, pool, cost, val), atCapHi = value(models[2], cap, pool, cost, val);
       const breakeven = cost / val;
       const ys = mid.concat(lo, hi, rnd).map(p => p[1]);
       $('#c-chart', el).innerHTML = charts.line([
         { pts: rnd, cls: 's3' }, { pts: mid },
-      ], { width: 520, height: 230, range: [lo, hi], yMin: Math.min(0, ...ys), yMax: Math.max(...ys) * 1.05, xLabel: 'calls made', yLabel: 'net value (€ thousand)', xFmt: v => v >= 1000 ? (v / 1000) + 'k' : v, yFmt: v => Math.round(v), markers: [{ x: cap, label: 'capacity ' + int(cap) }], points: [{ x: best, y: bestNet / 1000, label: 'best ' + int(best) }] });
+      ], { width: 520, height: 230, range: [lo, hi], yMin: Math.min(0, ...ys), yMax: Math.max(...ys) * 1.05, xLabel: w.made, yLabel: 'net value (€ thousand)', xFmt: v => v >= 1000 ? (v / 1000) + 'k' : v, yFmt: v => Math.round(v), markers: [{ x: cap, label: 'capacity ' + int(cap) }], points: [{ x: best, y: bestNet / 1000, label: 'best ' + int(best) }] });
       $('#c-out', el).innerHTML = `
         <div class="spread"><span>Break-even hit rate</span><b class="mono">${(breakeven * 100).toFixed(1)}%</b></div>
-        <div class="spread"><span>Calling at random reaches</span><b class="mono">${(B.positive * 100).toFixed(1)}% subscribers</b></div>
-        <div class="spread"><span>At capacity (${int(cap)} calls), hit rate</span><b class="mono">${(atCap.prec * 100).toFixed(1)}% <span class="muted">[${(atCapLo.prec * 100).toFixed(0)}–${(atCapHi.prec * 100).toFixed(0)}%]</span></b></div>
-        <div class="spread"><span>Expected subscriptions</span><b class="mono">${int(Math.round(atCap.subs))} <span class="muted">[${int(Math.round(atCapLo.subs))}–${int(Math.round(atCapHi.subs))}]</span></b></div>
+        <div class="spread"><span>${w.random}</span><b class="mono">${(C.positive * 100).toFixed(1)}% ${w.hit}</b></div>
+        <div class="spread"><span>At capacity (${int(cap)} ${w.units}), hit rate</span><b class="mono">${(atCap.prec * 100).toFixed(1)}% <span class="muted">[${(atCapLo.prec * 100).toFixed(0)}–${(atCapHi.prec * 100).toFixed(0)}%]</span></b></div>
+        <div class="spread"><span>Expected ${w.hits}</span><b class="mono">${int(Math.round(atCap.subs))} <span class="muted">[${int(Math.round(atCapLo.subs))}–${int(Math.round(atCapHi.subs))}]</span></b></div>
         <div class="spread"><span>Expected net value</span><b class="mono">€${int(Math.round(atCap.net))}</b></div>
-        <div class="spread"><span>Volume with the best value</span><b class="mono">${int(best)} calls</b></div>
-        <div class="${best > cap ? 'callout info' : 'callout ok'}" data-style="margin-top:4px"><span class="ic">${icon('info')}</span><span>${best > cap ? `Capacity is the limit: more calls would still pay while the hit rate stays above ${(breakeven * 100).toFixed(1)}%. Recommendation: <b>call the top ${int(cap)}</b>.` : `Recommendation: <b>call the top ${int(best)}</b>; beyond that a call costs more than it earns.`}</span></div>`;
+        <div class="spread"><span>Volume with the best value</span><b class="mono">${int(best)} ${w.units}</b></div>
+        <div class="${best > cap ? 'callout info' : 'callout ok'}" data-style="margin-top:4px"><span class="ic">${icon('info')}</span><span>${best > cap ? `Capacity is the limit: more ${w.units} would still pay while the hit rate stays above ${(breakeven * 100).toFixed(1)}%. Recommendation: <b>${w.act} the top ${int(cap)}</b>.` : `Recommendation: <b>${w.act} the top ${int(best)}</b>; beyond that ${w.aUnit} costs more than it earns.`}</span></div>`;
     }
-    ['#c-cost', '#c-value', '#c-pool', '#c-cap'].forEach(s => $(s, el).addEventListener('input', draw));
+    function drawSampleSplit() {
+      $('#split-chart', el).innerHTML = charts.barsH([
+        { label: 'Source rows', value: 45211, valueText: '45,211', cls: 'muted' },
+        { label: 'Analyzed (quick)', value: 4000, valueText: '4,000' },
+        { label: 'Training · 3 folds', value: 3200, valueText: '3,200', cls: 'soft' },
+        { label: 'Holdout · sealed', value: 800, valueText: '800', cls: 'proof' },
+      ], { width: 420, labelW: 128, valW: 60, min: 0, max: 46000, rowH: 26, ticks: [0, 15000, 30000, 45000], tickFmt: v => v ? (v / 1000) + 'k' : '0', aria: 'Rows in each split' });
+    }
+    function sampleHistory() {
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Solution</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
+        html: `<div class="timeline">
+          <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed by Shahriyar · Sep 27 09:21</span><span class="tl-meta">+ capacity 2,000 calls · + €8 per call · + €110 per subscription · metric changed from ROC-AUC to net value at capacity</span></div></div>
+          <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's solution for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
+        </div><p class="small muted">Each version is immutable. Results always say which solution version they were produced under.</p>`,
+      });
+    }
     draw();
-    $('#split-chart', el).innerHTML = charts.barsH([
-      { label: 'Source rows', value: 45211, valueText: '45,211', cls: 'muted' },
-      { label: 'Analyzed (quick)', value: 4000, valueText: '4,000' },
-      { label: 'Training · 3 folds', value: 3200, valueText: '3,200', cls: 'soft' },
-      { label: 'Holdout · sealed', value: 800, valueText: '800', cls: 'proof' },
-    ], { width: 420, labelW: 128, valW: 60, min: 0, max: 46000, rowH: 26, ticks: [0, 15000, 30000, 45000], tickFmt: v => v ? (v / 1000) + 'k' : '0', aria: 'Rows in each split' });
-    $('#solution-history', el).addEventListener('click', () => DC.modal.open({
-      eyebrow: '<span class="eyebrow">Solution</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
-      html: `<div class="timeline">
-        <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed by Shahriyar · Sep 27 09:21</span><span class="tl-meta">+ capacity 2,000 calls · + €8 per call · + €110 per subscription · metric changed from ROC-AUC to net value at capacity</span></div></div>
-        <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's solution for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
-      </div><p class="small muted">Each version is immutable. Results always say which solution version they were produced under.</p>`,
-    }));
+    drawSampleSplit();
+
+    /* ---------- real project: facts derived from the solution, the draft and the stage records ---------- */
+    const STAGES = ['data', 'leakage', 'features', 'models', 'final'];
+    const isDone = (p, s) => ['completed', 'approved'].includes(((p.stages || {})[s] || {}).status);
+    const busy = p => !!p.running || Object.values(p.stages || {}).some(s => s && (s.status === 'queued' || s.status === 'running'));
+    const rc = id => (DC.REC[id] ? chip(id) : '');
+    const ML = { roc_auc: 'ROC-AUC', average_precision: 'average precision', macro_f1: 'macro-F1', mae: 'MAE', rmse: 'RMSE', r2: 'R²' };
+    const mlabel = m => ML[m] || (m ? String(m).replace(/_/g, ' ') : '—');
+    const when = at => { const d = new Date(at); return at && !isNaN(d) ? d.toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : ''; };
+    const code = c => `<code>${esc(c)}</code>`;
+    const ASK = /\bask\b|owner|unclear|unsure|confirm|\?/i;
+    const WIN = /\b\d+\s*(?:hours?|days?|weeks?|months?|quarters?|years?)\b/i;
+    const MONEY = /[€$£]\s?\d|\d\s?(?:€|£|eur\b|euros?\b|usd\b|dollars?\b)/i;
+    const RS = { suspicious_name: 'name', strong_univariate_signal: 'strong signal', extreme_univariate_signal: 'extreme signal', exact_target_proxy: 'exact copy of the target', arithmetic_target_identity: 'sums to the target', identifier_like: 'unique per row', declared_post_outcome_or_contested: 'declared' };
+    const reasonText = f => (f.reasons || []).map(r => RS[r] || r.replace(/_/g, ' ')).join(' · ') + (f.univariate_auc != null ? ` · AUC ${fmt(f.univariate_auc, 3)}` : '');
+
+    function runBox(p, stage, what) {
+      const st = ((p.stages || {})[stage] || {}).status || 'pending';
+      if (st === 'queued' || st === 'running') return `<div class="empty">Running the ${esc(stage)} stage… this page updates when it finishes.</div>`;
+      const prev = STAGES[STAGES.indexOf(stage) - 1];
+      const ready = prev ? isDone(p, prev) : !!p.solution;
+      const move = ((p.graph || {}).moves || []).find(m => m.move === 'run_stage' && m.stage === stage);
+      const allowed = ready && !busy(p) && (!move || move.status === 'allowed');
+      const failed = st === 'failed' ? `<span class="small">The last run failed: ${esc((p.stages[stage] || {}).error || 'unknown error')}</span>` : '';
+      const action = allowed ? `<span><button type="button" class="btn sm primary" data-run-stage="${esc(stage)}">${icon('play')}Run the ${esc(stage)} stage${st === 'failed' ? ' again' : ''}</button></span>`
+        : !ready ? `<span class="xs">${prev ? `Run the ${esc(prev)} stage first.` : 'Save the solution first.'}</span>` : move && move.message && move.status !== 'allowed' ? `<span class="xs">${esc(move.message)}</span>` : '';
+      return `<div class="empty stack tight"><span>${what}</span>${failed}${action}</div>`;
+    }
+    function facts(p) {
+      const sol = p.solution || {}, R = p.records || {}, prof = ((p.data || {}).profile || {}).columns || [];
+      const ev = s => (R[s] ? R[s].evidence || {} : null);
+      const forb = sol.forbidden || [];
+      const lev = ev('leakage');
+      return {
+        sol, R, prof, dev: ev('data'), lev, fev: ev('features'), fin: ev('final'), forb,
+        askF: forb.filter(f => ASK.test(f.reason || '')), hardF: forb.filter(f => !ASK.test(f.reason || '')),
+        flagged: lev ? (lev.heuristic_review_candidates || []).filter(f => !(f.reasons || []).includes('declared_post_outcome_or_contested')) : [],
+        metric: (R.final || R.models || R.features || R.leakage || R.data || {}).primary_metric || sol.metric,
+        u: (p.draft || {}).understanding || {},
+        leakIds: R.leakage ? [...new Set((R.leakage.notes || []).flatMap(n => n.proof || []).filter(id => /^(LEAK|FINDING)-/.test(id) && DC.REC[id]))].slice(0, 2) : [],
+      };
+    }
+    function windowPhrase(p, F) {
+      for (const [from, t] of [['the solution notes', F.sol.notes], ['the goal', p.goal], ['the chat', F.u.notes], ['the prediction moment', F.sol.prediction_moment]]) {
+        const m = t && String(t).match(WIN);
+        if (m) return { text: m[0], from };
+      }
+      return null;
+    }
+    function moneyText(F) { for (const t of [F.u.costs, F.u.action, F.u.notes, F.sol.notes]) if (t && MONEY.test(t)) return t; return null; }
+    function unitText(p, F) {
+      const id = (F.sol.identifiers || [])[0], c = F.prof.find(x => x.name === id);
+      let t = id ? (c && c.unique_ratio >= 0.999 ? `One ${code(id)}: each appears on exactly one row` : `One row; ${code(id)} repeats across rows`) : 'One row of the table (no identifier declared)';
+      if (F.sol.group_column) t += ` · grouped by ${code(F.sol.group_column)}`;
+      return t;
+    }
+    function ownerQuestions(p, F) {
+      const { sol, u } = F, q = [], prof = (p.data || {}).profile || {};
+      const target = sol.target || u.target;
+      q.push({ done: !!target, title: 'What should the model predict?', sub: target ? `${code(target)}${sol.positive_label ? ' = ' + code(sol.positive_label) : ''} · ${esc(sol.task || 'task not set')}` : 'No target saved in the solution yet.' });
+      q.push({ done: !!sol.prediction_moment, title: 'When is the prediction made, and what is known then?', sub: sol.prediction_moment ? esc(sol.prediction_moment) : 'Anything written after this moment must stay out of the model.', chips: sol.prediction_moment ? [] : ['DCLAB-R01'] });
+      const win = windowPhrase(p, F);
+      q.push(win ? { done: true, title: 'How long is the outcome window?', sub: `${esc(win.text)} · read from ${win.from}` }
+        : { done: false, title: 'How long is the outcome window?', sub: 'Not written down. The target only means something with a window, for example "leaves within 90 days".', chips: ['DCLAB-R01'] });
+      if (u.action) q.push({ done: true, title: 'What happens with each prediction?', sub: esc(u.action) });
+      const money = moneyText(F);
+      q.push(money ? { done: true, title: 'What does a wrong prediction cost?', sub: esc(money) }
+        : { done: false, title: 'What does a wrong prediction cost?', sub: `No amounts yet, so the metric stays ${esc(mlabel(F.metric))} and the cut-off is not chosen from money.`, chips: ['DCLAB-R18'] });
+      F.askF.forEach(f => q.push({ done: false, title: `Is ${code(f.column)} known at the prediction moment?`, sub: `${esc(f.reason || '')} Kept out of the model until answered.` }));
+      F.flagged.forEach(f => q.push({ done: false, title: `Is ${code(f.feature)} written before the prediction moment?`, sub: `The leakage scan flagged it (${esc(reasonText(f))}). It stays an input; a flag starts a review, it does not prove a leak.`, chips: ['DCLAB-R05'] }));
+      const ids = new Set(sol.identifiers || []);
+      (prof.id_candidates || []).filter(c => !ids.has(c) && c !== sol.target).forEach(c => q.push({ done: false, title: `Is ${code(c)} an identifier?`, sub: 'Nearly unique per row. If it is a key, declare it so it is never used as an input.', chips: ['DCLAB-R04'] }));
+      if (!sol.time_column) (prof.time_candidates || []).forEach(c => q.push({ done: false, title: `Should the split follow ${code(c)}?`, sub: 'It looks like a time column. With a time order, the holdout can be strictly later than training.', chips: ['DCLAB-R02'] }));
+      return q;
+    }
+
+    function headReal(p) {
+      const gate = ((p.graph || {}).gates || []).find(g => g.gate === 'solution') || {};
+      const so = p.signoff;
+      const pill = !p.solution ? '<span class="pill warn" data-f="solution.signoff">not written yet</span>'
+        : gate.approved && so ? `<span class="pill ok" data-f="solution.signoff">signed by ${esc(so.by || 'the owner')} · ${esc(when(so.at).split(',')[0])}</span>`
+          : '<span class="pill outline" data-f="solution.signoff">saved · not signed</span>';
+      return `<div class="eyebrow accent">${esc(p.name)} · WF-01 to WF-03</div>
+        <h1>Solution draft ${pill}</h1>
+        <p class="lede">Written before anyone looks at a score. Leakage, the metric and the split follow from it.</p>`;
+    }
+    function statsReal(p, F, qs) {
+      const { forb, dev } = F, open = qs.filter(q => !q.done).length, used = +p.holdout_uses || 0;
+      const folds = dev ? (String(dev.cv_protocol || '').match(/\((\d+)/) || [])[1] : '';
+      const money = moneyText(F);
+      return (forb.length
+        ? `<div class="stat"><span class="v bad">${forb.length === 1 ? esc(forb[0].column) : forb.length + ' <small>forbidden</small>'}</span><span class="l">${forb.length === 1 ? 'forbidden · ' + esc(forb[0].reason || 'not known at the prediction moment') : 'forbidden · ' + esc(forb.map(f => f.column).join(', '))}</span></div>`
+        : '<div class="stat"><span class="v ok">none</span><span class="l">forbidden · no column is marked unknown at the prediction moment</span></div>')
+        + `<div class="stat"><span class="v ${open ? 'warn' : 'ok'}">${open} <small>open</small></span><span class="l">questions only the owner can answer · <button type="button" class="link-btn" data-pane-go="owner">See them →</button></span></div>`
+        + `<div class="stat"><span class="v">${esc(mlabel(F.metric))}</span><span class="l">primary metric · ${money ? 'costs: ' + esc(money) : 'no error costs given yet'} · <button type="button" class="link-btn" data-pane-go="costs">Costs →</button></span></div>`
+        + (dev ? `<div class="stat"><span class="v">${int(dev.holdout_rows)} <small>rows</small></span><span class="l">holdout ${used ? 'opened ' + (used === 1 ? 'once' : used + ' times') + ' in the final stage' : 'sealed until the final stage'} · ${int(dev.train_rows)} training rows${folds ? ' in ' + folds + ' folds' : ''}</span></div>`
+          : '<div class="stat"><span class="v">—</span><span class="l">no split yet · the data stage seals the holdout · <button type="button" class="link-btn" data-pane-go="data">Data →</button></span></div>');
+    }
+    function sheetReal(p, F, qs) {
+      const { sol, dev, u } = F;
+      const head = `<div class="panel-head"><div class="panel-title"><h2>The solution</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><a class="btn sm" href="/classic#project/${esc(p.id)}">Edit in the notebook</a></div>`;
+      if (!p.solution) return head + `<div class="empty">No solution saved for this project yet. Write the target and the prediction moment first ${rc('DCLAB-R01')}.</div>`;
+      const row = (k, v, side) => `<div class="cs-row"><span class="cs-key">${k}</span><span class="cs-val">${v}</span>${side || '<span></span>'}</div>`;
+      const ts = dev && dev.target_summary, win = windowPhrase(p, F);
+      const asks = [...F.askF.map(f => `${code(f.column)}: ${esc(f.reason || 'known when?')} Kept out until answered.`), ...F.flagged.map(f => `${code(f.feature)}: flagged by the leakage scan (${esc(reasonText(f))}). Kept as an input until the owner says when it is written.`)];
+      const tgt = [sol.time_column ? `time column ${code(sol.time_column)}` : 'no time column', sol.group_column ? `grouped by ${code(sol.group_column)}` : 'no group column', (sol.text_columns || []).length ? 'text: ' + sol.text_columns.map(code).join(', ') : 'no text'];
+      const also = { binary: 'Average precision (ranking) · Brier and log loss (probabilities) · precision and recall at the cut-off', multiclass: 'Accuracy and per-class scores next to macro-F1', regression: 'RMSE and R² next to MAE' }[sol.task] || '—';
+      const ids = sol.identifiers || [];
+      return head + `<div class="solution-sheet">
+        ${row('Question', esc(p.goal || (p.draft || {}).problem || '—'))}
+        ${row('Unit of prediction', unitText(p, F))}
+        ${row('Target', `${code(sol.target)} · ${esc(sol.task)}${sol.positive_label ? ` · positive label ${code(sol.positive_label)}` : ''}${ts && ts.positive_rate_train != null ? ' · base rate ' + pct(ts.positive_rate_train) : ''}`)}
+        ${row('Prediction moment', esc(sol.prediction_moment || '—'), rc('DCLAB-R01'))}
+        ${row('Outcome window', win ? `${esc(win.text)}, read from ${win.from}` : 'Not written down yet', win ? '<span class="pill outline">from the text</span>' : '<span class="pill warn">open</span>')}
+        ${row('Action', u.action ? esc(u.action) : 'Not written down yet', u.action ? '<span class="pill outline">from the chat</span>' : '<span class="pill warn">open</span>')}
+        ${row('Forbidden inputs', F.hardF.length ? F.hardF.map(f => `${code(f.column)}: ${esc(f.reason || 'not known at the prediction moment')}`).join('<br>') : 'None. No column is marked unknown at the prediction moment.', `<span class="ev-list">${rc('DCLAB-R04')}${F.leakIds.map(rc).join('')}</span>`)}
+        ${row('Needs the owner', asks.length ? asks.join('<br>') : 'No column waits for the owner.', asks.length ? '<span class="pill warn">open</span>' : '<span class="pill ok">nothing open</span>')}
+        ${row('Identifiers', ids.length ? ids.map(code).join(', ') + ' · never used as inputs' : 'None. Repeated entities cannot be kept on one side of the split.', ids.length ? '' : '<span class="pill outline">risk logged</span>')}
+        ${row('Time · group · text', tgt.join(' · '), rc('DCLAB-R02'))}
+        ${row('Primary metric', esc(mlabel(F.metric)), rc('DCLAB-R18'))}
+        ${row('Also reported', esc(also), rc('DCLAB-R14'))}
+        ${sol.notes ? row('Notes', esc(sol.notes)) : ''}
+      </div>`;
+    }
+    function worksheetReal(p, qs) {
+      const open = qs.filter(q => !q.done).length;
+      const items = qs.filter(q => !q.done).concat(qs.filter(q => q.done));
+      return `<div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill ${open ? 'warn' : 'ok'}">${open ? open + ' open' : 'all answered'}</span></div>
+        <div class="list">${items.map(q => `<div class="list-item"><span class="pill ${q.done ? 'ok' : 'warn'}">${q.done ? 'done' : 'open'}</span><div class="li-main"><span class="li-title">${q.title}</span><span class="li-sub">${q.sub}${(q.chips || []).length ? ' ' + q.chips.map(rc).join('') : ''}</span></div></div>`).join('')}</div>
+        <div class="panel-foot">Answers go into the solution. Saving a changed solution reruns the stages that depend on it. <a href="/classic#project/${esc(p.id)}">Edit the solution</a></div>`;
+    }
+    const versionsOf = p => (p.transitions || []).filter(t => t.move === 'set_solution' && t.status === 'allowed');
+    function versionItems(p) {
+      const v = versionsOf(p);
+      return v.map((t, i) => ({ n: i + 1, t })).reverse().map(({ n, t }, i) => `<div class="tl-item"><span class="tl-mark ${i === 0 ? 'ok' : ''}">${n}</span><div class="tl-body"><span class="tl-title">v${n} · saved by ${t.actor === 'agent' ? 'the intern' : 'you'} · ${esc(when(t.at))}</span><span class="tl-meta">${esc((t.outcome || '').replace(/^done:\s*/, '') || (t.args && t.args.target ? 'target ' + t.args.target : ''))}</span></div></div>`).join('');
+    }
+    function signoffReal(p) {
+      const gate = ((p.graph || {}).gates || []).find(g => g.gate === 'solution') || {};
+      const so = p.signoff, signed = !!(so && gate.approved), stale = !!(so && !gate.approved);
+      const items = versionItems(p);
+      return `<div class="panel-head"><h3>Sign-off</h3></div>
+        <div class="panel-body small"><div class="stack tight">
+          ${signed ? `<div class="row"><span class="pill ok">signed</span><span><b>${esc(so.by || 'owner')}</b> signed this version · ${esc(when(so.at))}</span></div>`
+            : `<div class="row"><span class="pill ${stale ? 'warn' : 'outline'}">${stale ? 'signature outdated' : 'not signed'}</span>${p.solution ? '<button type="button" class="btn sm" data-sign-solution="1">Sign this version</button>' : ''}</div>`}
+          <div class="muted">${gate.required ? 'This project requires the signature before WF-04 can run.' : 'This project does not require a signature before WF-04; signing records who agreed to this version.'} Later edits create a new version and rerun only the steps they affect.</div>
+          ${items ? `<div class="timeline" data-style="margin-top:6px">${items}</div>` : '<div class="muted">No saved version in the log yet.</div>'}
+        </div></div>`;
+    }
+    function timelineReal(p, F) {
+      const { sol, prof } = F;
+      if (!prof.length) return '<div class="empty">No data attached yet, so there are no columns to place.</div>';
+      const roles = (F.dev && F.dev.column_roles) || {};
+      const forbMap = Object.fromEntries(F.forb.map(f => [f.column, f]));
+      const flagged = new Set(F.flagged.map(f => f.feature)), ids = new Set(sol.identifiers || []), texts = new Set(sol.text_columns || []);
+      const ph = { id: [], num: [], cat: [], special: [], ask: [], after: [] };
+      prof.forEach(c => {
+        const n = c.name, f = forbMap[n];
+        if (n === sol.target) return;
+        if (f) (ASK.test(f.reason || '') ? ph.ask : ph.after).push(n);
+        else if (ids.has(n) || roles[n] === 'identifier') ph.id.push(n);
+        else if (n === sol.time_column || n === sol.group_column || texts.has(n) || ['time', 'group', 'text'].includes(roles[n])) ph.special.push(n);
+        else if (flagged.has(n)) ph.ask.push(n);
+        else (c.kind === 'numeric' ? ph.num : ph.cat).push(n);
+      });
+      const cols = list => list.length ? `<div class="ml-cols">${list.map(n => `<span class="ml-col">${esc(n)}</span>`).join('')}</div>` : '<span class="xs faint">none</span>';
+      const phase = (cls, name, w, list, extra = '') => `<div class="ml-phase ${cls}"><span class="ml-name">${name}</span><span class="ml-when">${w}</span>${cols(list)}${extra}</div>`;
+      const outcome = `<span class="ml-name" data-style="margin-top:6px;color:var(--proof)">Outcome</span><div class="ml-cols"><span class="ml-col" data-style="background:var(--proof-soft);color:var(--proof)">${esc(sol.target || '?')}</span></div>`;
+      const lr = F.R.leakage, cmp = F.lev && F.lev.safe_vs_unsafe_training_cv, m = (cmp && cmp.metric) || F.metric;
+      const mean = r => r && r.metrics && r.metrics[m] ? r.metrics[m].mean : null;
+      let callout;
+      if (!lr) callout = runBox(p, 'leakage', 'Not measured for this project yet: run the leakage stage to see how much a forbidden column would inflate the score.');
+      else if (cmp && cmp.unsafe) {
+        const lift = F.lev.apparent_lift || 0, cls = lift > 0.02 ? 'bad' : 'info', names = F.lev.declared_leakage_features.map(code).join(', ');
+        callout = `<div class="callout ${cls}" data-style="margin-top:12px"><span class="ic">${icon(cls === 'bad' ? 'alert' : 'info')}</span><span><b>Why this matters.</b> With ${names}, training-CV ${esc(mlabel(m))} moves from ${fmt(mean(cmp.safe))} to ${fmt(mean(cmp.unsafe))} (${lift >= 0 ? '+' : ''}${fmt(lift)}) on identical folds. ${lift > 0.02 ? 'The model would look better than it is and fail on the first real list' : 'The score barely changes; the exclusion still stands because the solution says the value is not known at the moment'} ${F.leakIds.map(rc).join('')}${rc('DCLAB-R06')}.</span></div>`;
+      } else {
+        const top = (F.lev.top_univariate_signals || [])[0], canary = (F.lev.detector_canary || {}).passed;
+        callout = `<div class="callout info" data-style="margin-top:12px"><span class="ic">${icon('info')}</span><span><b>Nothing is forbidden yet</b>, so only the outcome sits after the line. The leakage stage scanned ${int((F.lev.heuristic_rules || {}).rows_scanned || 0)} training rows: ${F.flagged.length ? F.flagged.length + ' column(s) flagged for review' : 'no heuristic flag'}${top ? `, strongest single column ${code(top.feature)} (${fmt(top.signal, 3)})` : ''}, canary ${canary ? 'caught' : 'missed'}. A strong signal alone does not prove a leak ${rc('DCLAB-R05')}.</span></div>`;
+      }
+      return `<div class="moment-line">
+          <div class="ml-track">
+            ${phase('', 'Identifiers', 'keys, never inputs', ph.id)}
+            ${phase('', 'Number inputs', 'known at the moment', ph.num)}
+            ${phase('', 'Category inputs', 'known at the moment', ph.cat)}
+            ${phase('', 'Time · group · text', 'special handling', ph.special)}
+            ${phase('p-ask', 'Ask the owner', ph.ask.length ? 'written when?' : 'nothing open', ph.ask)}
+            ${phase('p-after', 'After the moment', 'forbidden', ph.after, outcome)}
+          </div>
+          <div class="ml-moment" data-style="left:calc(83.33% + 1px)"><span>Prediction moment</span></div>
+        </div>
+        <div class="small" data-style="margin-top:12px"><b>Prediction moment:</b> ${esc(sol.prediction_moment || 'not written yet')} ${rc('DCLAB-R01')}</div>
+        ${callout}`;
+    }
+    function costsReal(p, F) {
+      const { fin, sol, u, R } = F;
+      const auc = fin && fin.holdout_metrics ? fin.holdout_metrics.roc_auc : null;
+      const owner = u.costs || u.action;
+      const ownerBox = `<div class="inset small stack tight"><div class="spread"><span>Primary metric in the solution</span><b>${esc(mlabel(F.metric))}</b></div>${owner ? `<div><span class="muted">The owner on what happens with each prediction:</span> “${esc(owner)}”</div>` : '<div class="muted">The owner has not described the action or its costs yet.</div>'}</div>`;
+      const head = pill => `<div class="panel-head"><div class="panel-title"><h2>Costs decide the metric</h2><span class="sub">The owner enters the money. DCLab turns it into the volume and cut-off, instead of optimizing ${esc(mlabel(F.metric))} alone.</span></div>${pill}</div>`;
+      if (sol.task && sol.task !== 'binary') return { html: head('') + `<div class="panel-body stack">${ownerBox}<div class="empty">The value curve is for yes/no outcomes. This project is a ${esc(sol.task)} task scored by ${esc(mlabel(F.metric))}.</div></div>` };
+      if (auc == null) return { html: head('<span class="pill outline">no holdout score yet</span>') + `<div class="panel-body stack">${ownerBox}${runBox(p, 'final', 'Not measured for this project yet: the value curve needs the holdout ROC-AUC from the final stage.')}</div>` };
+      const ci = R.final.primary_metric === 'roc_auc' ? fin.holdout_primary_metric_ci : null;
+      const pos = fin.holdout_metrics.positive_rate != null ? fin.holdout_metrics.positive_rate : ((F.dev || {}).target_summary || {}).positive_rate_train || 0.5;
+      const clamp = a => Math.min(0.999, Math.max(0.501, a));
+      const rows = (p.data && p.data.rows) || fin.holdout_rows || 1000;
+      const d = { cost: 10, value: 100, pool: rows, cap: Math.max(1, Math.round(rows / 100) * 10), minPool: 10 };
+      const target = sol.target ? `${sol.target} = ${sol.positive_label || 'positive'}` : 'positive';
+      const c = {
+        models: [binormal(clamp(ci ? ci.low : auc), pos), binormal(clamp(auc), pos), binormal(clamp(ci ? ci.high : auc), pos)], positive: pos, d,
+        w: { unit: 'action', units: 'actions', aUnit: 'an action', made: 'cases acted on', hit: `positive (${esc(target)})`, hits: 'true positives', random: 'Acting at random reaches', act: 'act on' },
+      };
+      return { calc: c, html: head(`<span class="pill proof">uses holdout ROC-AUC ${fmt(auc)}</span>`) + `<div class="panel-body grid g2">
+        <div class="stack">
+          ${ownerBox}
+          <div class="grid g2">
+            <div class="field"><label for="c-cost">Cost of acting on one case (€)</label><input id="c-cost" type="number" min="0" step="1" value="${d.cost}"></div>
+            <div class="field"><label for="c-value">Value of one true positive (€)</label><input id="c-value" type="number" min="1" step="5" value="${d.value}"></div>
+            <div class="field"><label for="c-pool">Cases in the next round</label><input id="c-pool" type="number" min="10" step="100" value="${d.pool}"></div>
+            <div class="field"><label for="c-cap">Cases the team can act on</label><input id="c-cap" type="number" min="1" step="10" value="${d.cap}"></div>
+          </div>
+          <div class="inset small stack tight" id="c-out"></div>
+        </div>
+        <div class="stack tight">
+          <div id="c-chart"></div>
+          <div class="legend"><span><i></i>net value, model ranking</span>${ci ? '<span><i class="sq" data-style="background:var(--accent-soft)"></i>likely range</span>' : ''}<span><i class="s3"></i>acting at random</span><span><i class="bad"></i>capacity</span></div>
+          <p class="xs muted">Estimated from the holdout ROC-AUC ${fmt(auc)} with a binormal ranking model, base rate ${pct(pos)} (holdout). ${ci ? `The band shows the 95% interval of the holdout ROC-AUC (${fmt(ci.low)}–${fmt(ci.high)}, ${esc(ci.method || 'bootstrap')}).` : `No interval was recorded for ROC-AUC (the primary metric is ${esc(mlabel(R.final.primary_metric))}), so no band is drawn.`} The euro amounts and volumes are examples to replace: no costs are stored for this project yet.</p>
+        </div>
+      </div>` };
+    }
+    function dataReal(p, F) {
+      const d = p.data || {}, { dev, sol } = F;
+      const sha = d.sha256 || ((F.R.data || {}).provenance || {}).data_sha256 || '';
+      const cleaning = (p.draft || {}).cleaning_log || [];
+      const nCols = ((d.profile || {}).column_count) || (d.columns || []).length;
+      const risks = dev ? Object.entries(dev.risk_features || {}) : [];
+      const codes = (F.fev && F.fev.category_code_columns) || [];
+      const callouts = [];
+      if (risks.length) callouts.push(`<div class="callout warn" data-style="margin-top:10px"><span class="ic">${icon('alert')}</span><span>${risks.length} column(s) triggered a review rule: ${risks.slice(0, 6).map(([c, r]) => `${code(c)} (${esc([].concat(r).join(', ').replace(/_/g, ' '))})`).join(', ')} ${rc('DCLAB-R12')}.</span></div>`);
+      if (codes.length) callouts.push(`<div class="callout warn" data-style="margin-top:10px"><span class="ic">${icon('alert')}</span><span>${codes.slice(0, 8).map(code).join(', ')}${codes.length > 8 ? ` and ${codes.length - 8} more` : ''} are whole-number codes treated as categories. Their order means nothing; production encoders need the same mapping ${rc('DCLAB-R11')}.</span></div>`);
+      if (dev && !risks.length) callouts.push(`<div class="callout ok" data-style="margin-top:10px"><span class="ic">${icon('check')}</span><span>No column triggered a review rule (missing above 5%, identifier-like, near-constant, or train/holdout PSI above 0.20).</span></div>`);
+      const lineage = `<div class="panel" data-f="solution.lineage">
+        <div class="panel-head"><div class="panel-title"><h2>Source and lineage</h2><span class="sub">WF-02</span></div>${dev ? '<span class="pill ok">passed</span>' : '<span class="pill outline">not profiled yet</span>'}</div>
+        <div class="panel-body small">
+          ${p.data ? `<dl class="kv">
+            <dt>Source</dt><dd>${esc(d.filename || '—')}${d.synthetic ? ' · <span class="pill warn">synthetic</span>' : ''}</dd>
+            <dt>Snapshot</dt><dd class="mono">${sha ? `sha256 ${esc(sha.slice(0, 4))}…${esc(sha.slice(-4))}` : '—'}</dd>
+            <dt>Rows · columns</dt><dd>${int(d.rows || 0)} · ${Math.max(0, nCols - 1)} columns + target${dev ? ` · ${int(dev.usable_feature_count)} usable inputs` : ''}</dd>
+            <dt>Time range</dt><dd>${sol.time_column ? `Ordered by ${code(sol.time_column)}` : 'No time column declared, so the rows carry no order'}</dd>
+            <dt>Transformations</dt><dd>${cleaning.length ? cleaning.map(c => `${esc(c.title)}${(c.columns || []).length ? ` (${c.columns.length} columns)` : ''}`).join(' · ') : 'None logged'}</dd>
+            ${dev ? `<dt>Missing cells</dt><dd>${pct(dev.missing_cell_rate_train, 2)} of training cells</dd>` : ''}
+          </dl>${callouts.join('')}` : '<div class="empty">No data attached to this project yet.</div>'}
+        </div>
+      </div>`;
+      const used = +p.holdout_uses || 0;
+      let body;
+      if (!dev) body = runBox(p, 'data', 'Not split yet: the data stage seals the holdout before anything is learned.');
+      else {
+        const folds = (String(dev.cv_protocol || '').match(/\((\d+)/) || [])[1] || '';
+        const smp = dev.sampling || {}, src = dev.source_rows || d.rows || 0, rowsUsed = smp.rows_used || (dev.train_rows + dev.holdout_rows);
+        const tf = v => v >= 1000 ? (v / 1000) + 'k' : String(v);
+        const chart = charts.barsH([
+          { label: 'Source rows', value: src, valueText: int(src), cls: 'muted' },
+          { label: (p.settings || {}).quick ? 'Analyzed (quick)' : 'Analyzed', value: rowsUsed, valueText: int(rowsUsed) },
+          { label: `Training${folds ? ' · ' + folds + ' folds' : ''}`, value: dev.train_rows, valueText: int(dev.train_rows), cls: 'soft' },
+          { label: used ? 'Holdout · opened' : 'Holdout · sealed', value: dev.holdout_rows, valueText: int(dev.holdout_rows), cls: 'proof' },
+        ], { width: 420, labelW: 128, valW: 60, min: 0, max: src * 1.04, rowH: 26, tickFmt: tf, aria: 'Rows in each split' });
+        const idc = (sol.identifiers || [])[0], ic = F.prof.find(x => x.name === idc);
+        const dup = dev.duplicate_feature_rows_train || 0;
+        body = `<div class="stack tight">
+          <div id="split-chart">${chart}</div>
+          <dl class="kv">
+            <dt>Unit</dt><dd>${unitText(p, F)}</dd>
+            <dt>Direction</dt><dd>${sol.time_column ? `Time order on ${code(sol.time_column)}: the holdout is the latest rows` : sol.group_column ? `Grouped by ${code(sol.group_column)}: a group never spans the split` : 'No time order declared: ' + esc(dev.holdout_split)}</dd>
+            <dt>Folds</dt><dd>${esc(dev.cv_protocol || '—')}</dd>
+            <dt>Holdout</dt><dd>${int(dev.holdout_rows)} rows, ${used ? `opened ${used === 1 ? 'once' : used + ' times'} in the final stage` : 'sealed until the final stage, opened once'}</dd>
+            ${smp.rule ? `<dt>Sampling</dt><dd>${esc(smp.rule)}</dd>` : ''}
+          </dl>
+          <div class="row" data-f="solution.checks">${dup ? `<span class="pill warn">${int(dup)} training rows repeat another row's inputs</span>` : '<span class="pill ok">0 exact duplicates in the training rows</span>'}${idc ? (ic && ic.unique_ratio >= 0.999 ? `<span class="pill ok">one row per ${esc(idc)}</span>` : sol.group_column ? '' : `<span class="pill warn">${esc(idc)} repeats: not grouped</span>`) : '<span class="pill warn">repeat entities: cannot check</span>'}</div>
+        </div>`;
+      }
+      const split = `<div class="panel" data-f="solution.split">
+        <div class="panel-head"><div class="panel-title"><h2>Split design</h2><span class="sub">WF-03</span></div>${dev ? (used ? '<span class="pill proof">holdout opened once</span>' : '<span class="pill accent">holdout sealed</span>') : '<span class="pill outline">not split yet</span>'}</div>
+        <div class="panel-body small">${body}</div>
+      </div>`;
+      return lineage + split;
+    }
+
+    function renderReal(p) {
+      const keep = mode === 'real' && real && real.id === p.id ? ['c-cost', 'c-value', 'c-pool', 'c-cap'].map(id => ($('#' + id, el) || {}).value) : null;
+      real = p; mode = 'real';
+      const F = facts(p), qs = ownerQuestions(p, F);
+      $('#sol-head', el).innerHTML = headReal(p);
+      $('#sol-stats', el).innerHTML = statsReal(p, F, qs);
+      $('#sol-fields', el).innerHTML = sheetReal(p, F, qs);
+      $('#sol-worksheet', el).innerHTML = worksheetReal(p, qs);
+      $('#sol-signoff', el).innerHTML = signoffReal(p);
+      $('#sol-timeline-body', el).innerHTML = timelineReal(p, F);
+      const cost = costsReal(p, F);
+      $('#sol-costs', el).innerHTML = cost.html;
+      $('#sol-data', el).innerHTML = dataReal(p, F);
+      const n = DC.$('.ptab[data-ptab="owner"] .n', el);
+      if (n) n.textContent = String(qs.filter(q => !q.done).length);
+      if (cost.calc) {
+        calc = cost.calc;
+        if (keep) ['c-cost', 'c-value', 'c-pool', 'c-cap'].forEach((id, i) => { if (keep[i] != null && $('#' + id, el)) $('#' + id, el).value = keep[i]; });
+        draw();
+      }
+      DC.hydrate(el);
+      if (busy(p)) watch();
+    }
+    function restoreSample() {
+      if (stopPoll) { stopPoll(); stopPoll = null; }
+      real = null;
+      if (mode === 'sample') return;
+      mode = 'sample';
+      SNAP.forEach(id => { $('#' + id, el).innerHTML = SAMPLE[id]; });
+      const n = DC.$('.ptab[data-ptab="owner"] .n', el);
+      if (n) n.textContent = '2';
+      calc = SAMPLE_CALC; draw(); drawSampleSplit();
+      DC.hydrate(el);
+    }
+    function watch() {
+      if (stopPoll) return;
+      stopPoll = DC.poll(async () => {
+        if (DC.state.view !== 'solution' || mode !== 'real') { stopPoll = null; return true; }
+        const p = await DC.currentProject.get(true);
+        if (!p) { stopPoll = null; return true; }
+        const still = busy(p);
+        if (!still) stopPoll = null;
+        renderReal(p);
+        return !still;
+      }, 1500);
+    }
+    function historyReal(p) {
+      const items = versionItems(p);
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Solution</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
+        html: items ? `<div class="timeline">${items}</div><p class="small muted">Saving a changed solution clears the stage results that depended on the earlier version. The project log keeps every version.</p>`
+          : '<p class="muted">No saved version in the project log yet.</p>',
+      });
+    }
+
+    $('#solution-history', el).addEventListener('click', () => (mode === 'real' && real ? historyReal(real) : sampleHistory()));
+    el.addEventListener('input', e => { if (e.target.closest('#c-cost, #c-value, #c-pool, #c-cap')) draw(); });
+    el.addEventListener('click', async e => {
+      const run = e.target.closest('[data-run-stage]');
+      if (run && real) {
+        run.disabled = true;
+        try { await DC.api(`/projects/${real.id}/stages/${run.dataset.runStage}/run`, { method: 'POST' }); DC.toast(`Started the ${run.dataset.runStage} stage. This page updates when it finishes.`); }
+        catch (err) { DC.toast(err.message, { ok: false }); }
+        DC.currentProject.clear(); watch();
+        return;
+      }
+      const sign = e.target.closest('[data-sign-solution]');
+      if (sign && real) {
+        sign.disabled = true;
+        try { await DC.api(`/projects/${real.id}/approvals`, { method: 'POST', body: { gate: 'solution', reason: 'Signed on the Solution page' } }); DC.toast('Signed. The log records who signed which version.'); }
+        catch (err) { DC.toast(err.message, { ok: false }); }
+        const p = await DC.currentProject.get(true);
+        if (p) renderReal(p);
+      }
+    });
+    this.renderReal = renderReal;
+    this.restoreSample = restoreSample;
+  },
+  async enter(el) {
+    let p = null;
+    try { p = await DC.currentProject.get(); } catch (e) { console.warn('solution: could not load the project', e); }
+    DC.markSample(!p);
+    if (p) this.renderReal(p); else this.restoreSample();
   },
 });
 </script>

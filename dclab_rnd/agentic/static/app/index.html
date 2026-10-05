@@ -514,7 +514,7 @@
 </section>
 <section class="view" id="view-solution" hidden>
   <header class="vh">
-    <div class="vh-text">
+    <div class="vh-text" id="sol-head">
       <div class="eyebrow accent">Term-deposit calls · WF-01 to WF-03</div>
       <h1>Solution draft <span class="pill ok" data-f="solution.signoff">v2 · signed by Shahriyar · Sep 27</span></h1>
       <p class="lede">Written before anyone looks at a score. Leakage, the metric and the split follow from it.</p>
@@ -525,14 +525,14 @@
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="sol-stats">
       <div class="stat"><span class="v bad">duration</span><span class="l">forbidden · known only after the call ends</span></div>
       <div class="stat"><span class="v warn">2 <small>open</small></span><span class="l">questions only the owner can answer · <button type="button" class="link-btn" data-pane-go="owner">See them →</button></span></div>
       <div class="stat"><span class="v">2,000 <small>calls a month</small></span><span class="l">capacity · €8 per call · €110 per subscription</span></div>
       <div class="stat"><span class="v">800 <small>rows</small></span><span class="l">holdout sealed until WF-09 · 3,200 training rows in 3 folds</span></div>
     </div>
 
-    <div class="panel" data-f="solution.fields">
+    <div class="panel" data-f="solution.fields" id="sol-fields">
       <div class="panel-head"><div class="panel-title"><h2>The solution</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-toast="In the product: edit opens a new draft version; signing it reruns only the steps that depend on what changed.">Edit as v3</button></div>
       <div class="solution-sheet">
         <div class="cs-row"><span class="cs-key">Question</span><span class="cs-val">Which clients are most likely to subscribe if we call them in the next campaign?</span><span></span></div>
@@ -553,7 +553,7 @@
 
   <div class="pane" data-pane="owner" data-label="Owner questions" data-count="2">
     <div class="grid g2">
-      <div class="panel" data-f="solution.worksheet">
+      <div class="panel" data-f="solution.worksheet" id="sol-worksheet">
         <div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill warn">2 open</span></div>
         <div class="list">
           <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Is campaign counted before or after the call being predicted?</span><span class="li-sub">Until answered, campaign stays in with a warning and a with/without comparison.</span><div class="row"><button type="button" class="btn sm" data-toast="Recorded: counted before the call. campaign becomes a normal input in v3.">Before</button><button type="button" class="btn sm" data-toast="Recorded: includes this call. campaign moves to forbidden in v3; dependent steps rerun.">Includes this call</button></div></div></div>
@@ -564,7 +564,7 @@
         <div class="panel-foot">Other projects: HyperAck and Telco churn each wait on one answer.</div>
       </div>
       <div class="stack">
-        <div class="panel">
+        <div class="panel" id="sol-signoff">
           <div class="panel-head"><h3>Sign-off</h3></div>
           <div class="panel-body small"><div class="stack tight">
             <div class="row"><span class="avatar sm">SM</span><span><b>Shahriyar</b> signed v2 · Sep 27, 09:21</span></div>
@@ -590,7 +590,7 @@
   <div class="pane" data-pane="timeline" data-label="Known when">
     <div class="panel" data-f="solution.timeline" data-tour="timeline">
       <div class="panel-head"><div class="panel-title"><h2>What is known when</h2><span class="sub">Each column is placed at the moment its value is written. Anything to the right of the line cannot be an input.</span></div></div>
-      <div class="panel-body">
+      <div class="panel-body" id="sol-timeline-body">
         <div class="moment-line">
           <div class="ml-track">
             <div class="ml-phase"><span class="ml-name">Client profile</span><span class="ml-when">long before</span><div class="ml-cols"><span class="ml-col">age</span><span class="ml-col">job</span><span class="ml-col">marital</span><span class="ml-col">education</span></div></div>
@@ -608,7 +608,7 @@
   </div>
 
   <div class="pane" data-pane="costs" data-label="Costs & metric">
-    <div class="panel" data-f="solution.costs" data-tour="costs">
+    <div class="panel" data-f="solution.costs" data-tour="costs" id="sol-costs">
       <div class="panel-head"><div class="panel-title"><h2>Costs decide the metric</h2><span class="sub">The owner enters the money. DCLab turns it into the call volume and cut-off, instead of optimizing ROC-AUC alone.</span></div><span class="pill proof">uses holdout ROC-AUC 0.7718</span></div>
       <div class="panel-body grid g2">
         <div class="stack">
@@ -630,7 +630,7 @@
   </div>
 
   <div class="pane" data-pane="data" data-label="Data & split">
-    <div class="grid g2">
+    <div class="grid g2" id="sol-data">
       <div class="panel" data-f="solution.lineage">
         <div class="panel-head"><div class="panel-title"><h2>Source and lineage</h2><span class="sub">WF-02</span></div><span class="pill ok">passed</span></div>
         <div class="panel-body small">
@@ -664,18 +664,19 @@
 <section class="view" id="view-notebook" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Term-deposit calls · notebook</div>
+      <div class="eyebrow accent" id="nb-eyebrow">Term-deposit calls · notebook</div>
       <h1>Notebook</h1>
       <p class="lede">Write code the way you always do. The companion reads every cell against the solution and the evidence, and says what would change the score and how to fix it.</p>
     </div>
     <div class="vh-actions">
       <button type="button" class="btn" data-f="nb.openin" data-toast="In the product: open this notebook in VS Code, Jupyter or Colab with the companion attached.">Open in…</button>
-      <button type="button" class="btn" data-f="nb.export" data-toast="In the product: downloads the .ipynb, the Markdown report and the training examples. Downloads are blocked inside this demo.">Export</button>
+      <button type="button" class="btn" id="nb-export-sample" data-f="nb.export" data-toast="In the product: downloads the .ipynb, the Markdown report and the training examples. Downloads are blocked inside this demo.">Export</button>
+      <a class="btn" id="nb-export-real" href="#notebook" download hidden>Download .ipynb</a>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="nb-stats">
       <div class="stat"><span class="v bad">0.9689</span><span class="l">accuracy the first-pass notebook prints · inflated by leaks</span></div>
       <div class="stat"><span class="v ok">0.7577</span><span class="l">honest ROC-AUC after the fixes · 9,043 untouched test rows</span></div>
       <div class="stat"><span class="v">10 <small>findings</small></span><span class="l">real copilot output for first-pass.ipynb · 3 high</span></div>
@@ -685,16 +686,16 @@
     <div class="grid g-side">
       <div class="panel" data-f="nb.review">
         <div class="nb-toolbar">
-          <span class="small strong">first-pass.ipynb</span><span class="pill bad" id="nb-count">10</span>
+          <span class="small strong" id="nb-file">first-pass.ipynb</span><span class="pill bad" id="nb-count">10</span>
           <button type="button" class="btn sm" id="nb-runall"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Run all</button>
           <button type="button" class="btn sm proof" id="nb-fixall">Apply all safe fixes</button>
           <button type="button" class="btn sm ghost" id="nb-reset">Reset demo</button>
           <div class="seg" data-seg="drive" role="group" aria-label="Who drives"><button type="button" data-v="me" aria-pressed="true">I drive</button><button type="button" data-v="intern" aria-pressed="false">Intern drives</button></div>
-          <span class="kernel" data-f="nb.cells"><span class="dot ok"></span>Python 3.12 · sandbox · 2 vCPU · idle</span>
+          <span class="kernel" data-f="nb.cells" id="nb-kernel"><span class="dot ok"></span>Python 3.12 · sandbox · 2 vCPU · idle</span>
         </div>
         <div class="callout bad" id="nb-banner" data-style="margin:12px 12px 0"><span class="ic">${icon:alert}</span><span id="nb-banner-text"></span></div>
         <div class="cells" id="nb-cells"></div>
-        <div data-style="padding:0 12px 12px" class="stack tight">
+        <div data-style="padding:0 12px 12px" class="stack tight" id="nb-agent">
           <div class="agent-cell" data-f="nb.agentcells">
             <div class="row"><span class="pack-ic" data-style="width:26px;height:26px">${icon:spark}</span><b>Ask the agent to write the next cell</b><span class="pill outline">you accept or reject</span></div>
             <div class="row"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button></div>
@@ -705,13 +706,13 @@
 
       <aside class="companion" data-f="nb.companion" data-tour="nb-companion">
         <div class="panel">
-          <div class="panel-head"><div class="panel-title"><h3>Companion</h3><span class="sub">Real copilot output for this notebook</span></div><span class="row" id="sev-counts"></span></div>
+          <div class="panel-head"><div class="panel-title"><h3>Companion</h3><span class="sub" id="nb-comp-sub">Real copilot output for this notebook</span></div><span class="row" id="sev-counts"></span></div>
           <div class="panel-body tight stack tight" id="findings"></div>
         </div>
         <div class="panel" data-f="nb.ask">
           <div class="panel-head"><h3>Ask about this notebook</h3></div>
           <div class="panel-body tight stack tight">
-            <div class="chips"><button type="button" class="chip" data-q="why">Why is 0.9689 wrong?</button><button type="button" class="chip" data-q="smote">Can I use SMOTE?</button><button type="button" class="chip" data-q="campaign">Is campaign safe?</button></div>
+            <div class="chips" id="nb-ask-chips"><button type="button" class="chip" data-q="why">Why is 0.9689 wrong?</button><button type="button" class="chip" data-q="smote">Can I use SMOTE?</button><button type="button" class="chip" data-q="campaign">Is campaign safe?</button></div>
             <div id="nb-answer" class="small"></div>
           </div>
         </div>
@@ -720,7 +721,7 @@
   </div>
 
   <div class="pane" data-pane="outline" data-label="Outline & variables">
-    <p class="pane-intro">Every cell of first-pass.ipynb with its open findings, and the variables the last run left in memory. Click a cell to jump to it.</p>
+    <p class="pane-intro" id="nb-outline-intro">Every cell of first-pass.ipynb with its open findings, and the variables the last run left in memory. Click a cell to jump to it.</p>
     <div class="grid g2">
       <div class="panel">
         <div class="panel-head"><h3>Outline</h3></div>
@@ -728,15 +729,15 @@
       </div>
       <div class="panel" data-f="nb.vars">
         <div class="panel-head"><h3>Variables</h3></div>
-        <div class="panel-body small"><dl class="kv" id="nb-vars"></dl></div>
+        <div class="panel-body small"><dl class="kv" id="nb-vars"></dl><div class="empty" id="nb-vars-empty" hidden></div></div>
       </div>
     </div>
   </div>
 
   <div class="pane" data-pane="precedents" data-label="Precedents" data-count="4">
     <div class="panel" data-f="nb.precedent">
-      <div class="panel-head"><div class="panel-title"><h3>Someone hit this before</h3><span class="sub">Measured precedents behind the companion's findings</span></div></div>
-      <div class="list small">
+      <div class="panel-head"><div class="panel-title"><h3>Someone hit this before</h3><span class="sub" id="nb-prec-sub">Measured precedents behind the companion's findings</span></div></div>
+      <div class="list small" id="nb-prec-list">
         <div class="list-item"><div class="li-main"><span class="li-title">duration in bank marketing</span><span class="li-sub">Training-CV ROC-AUC 0.7130 without it, 0.8972 with it.</span></div>${chip:LEAK-bank_marketing}</div>
         <div class="list-item"><div class="li-main"><span class="li-title">Oversampling before the split</span><span class="li-sub">Up to +0.3003 ROC-AUC of pure inflation (online_shoppers 0.9019 reported, 0.6016 honest).</span></div>${chip:PIT-003}</div>
         <div class="list-item"><div class="li-main"><span class="li-title">Target encoding before the split</span><span class="li-sub">customerID on Telco: 1.0000 reported, 0.8160 honest.</span></div>${chip:PIT-004}</div>
@@ -747,8 +748,8 @@
 
   <div class="pane" data-pane="clean" data-label="Clean version">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title"><h3>What makes term-deposit.ipynb clean</h3><span class="sub">Built by DCLab from the signed solution</span></div><span class="pill ok">clean</span></div>
-      <div class="panel-body small grid g2">
+      <div class="panel-head"><div class="panel-title"><h3 id="nb-clean-title">What makes term-deposit.ipynb clean</h3><span class="sub" id="nb-clean-sub">Built by DCLab from the signed solution</span></div><span class="pill ok" id="nb-clean-pill">clean</span></div>
+      <div class="panel-body small grid g2" id="nb-clean-checks">
         <div class="row top"><span class="cell-flag ok">✓</span><span>The solution is loaded and enforced; a forbidden column raises an error.</span></div>
         <div class="row top"><span class="cell-flag ok">✓</span><span>Every transform lives in one Pipeline, fitted inside each fold.</span></div>
         <div class="row top"><span class="cell-flag ok">✓</span><span>The holdout is read in one cell, once, at the end.</span></div>
@@ -756,22 +757,22 @@
       </div>
     </div>
     <div class="panel">
-      <div class="nb-toolbar"><span class="small strong">term-deposit.ipynb · every cell links to its record</span><span class="kernel"><span class="dot ok"></span>reproducible · seed 42 · snapshot 9c1e…4b07</span></div>
+      <div class="nb-toolbar"><span class="small strong" id="nb-pipe-label">term-deposit.ipynb · every cell links to its record</span><span class="kernel" id="nb-pipe-kernel"><span class="dot ok"></span>reproducible · seed 42 · snapshot 9c1e…4b07</span></div>
       <div class="cells" id="pipe-cells"></div>
     </div>
   </div>
 
   <div class="pane" data-pane="stages" data-label="Stage cells">
     <div class="panel" data-f="nb.stagecells">
-      <div class="panel-head"><div class="panel-title"><h3>What the notebook looks like in the repository today</h3><span class="sub">Five stage cells (data, leakage, features, models, final). Each runs deterministic code and writes a record with notes that cite evidence.</span></div><span class="pill ok">exists</span></div>
+      <div class="panel-head"><div class="panel-title"><h3>What the notebook looks like in the repository today</h3><span class="sub" id="nb-stage-sub">Five stage cells (data, leakage, features, models, final). Each runs deterministic code and writes a record with notes that cite evidence.</span></div><span class="pill ok" id="nb-stage-pill">exists</span></div>
       <div class="panel-body grid g5" id="stage-cards"></div>
-      <div class="panel-foot">The Overview notebook adds live code cells, the companion beside each cell, one-click fixes and agent-written cells. The stage engine stays underneath.</div>
+      <div class="panel-foot" id="nb-stage-foot">The Overview notebook adds live code cells, the companion beside each cell, one-click fixes and agent-written cells. The stage engine stays underneath.</div>
     </div>
   </div>
 </section>
 <section class="view" id="view-audit" hidden>
   <header class="vh">
-    <div class="vh-text">
+    <div class="vh-text" id="aud-head">
       <div class="eyebrow accent">Term-deposit calls · WF-04 to WF-06</div>
       <h1>Leakage &amp; features <span class="pill ok">WF-05 · WF-06 done · Sep 28</span></h1>
       <p class="lede">A column is judged by when its value is written, not by its name or its score. The solution decides; an ablation on identical folds measures how much a leak would have lied.</p>
@@ -779,7 +780,7 @@
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="aud-stats">
       <div class="stat"><span class="v">16</span><span class="l">columns audited against solution v2</span></div>
       <div class="stat"><span class="v bad">1 <small>forbidden</small></span><span class="l">duration · written after the call · the only heuristic flag (AUC 0.812)</span></div>
       <div class="stat"><span class="v warn">1 <small>open</small></span><span class="l">campaign · waiting on the owner: counted when?</span><div class="row"><button type="button" class="link-btn small" data-pane-go="leaks">See the question →</button></div></div>
@@ -789,12 +790,12 @@
     <div class="panel" data-f="audit.matrix">
       <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the solution.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
       <div class="table-wrap"><table class="data compact" id="avail-table"><thead><tr><th>Column</th><th>Written when</th><th>Known at the moment?</th><th>Heuristic flag</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
+      <div class="panel-foot" id="aud-matrix-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="leaks" data-label="Leak checks">
-    <div class="grid g2">
+    <div class="grid g2" id="aud-leaks">
       <div class="panel" data-f="audit.ablation" data-tour="ablation">
         <div class="panel-head"><div class="panel-title"><h3>How much the leak lies</h3><span class="sub">Safe vs with duration, identical folds</span></div></div>
         <div class="panel-body stack tight">
@@ -816,7 +817,7 @@
   </div>
 
   <div class="pane" data-pane="data" data-label="Data look">
-    <div class="panel" data-f="audit.eda">
+    <div class="panel" data-f="audit.eda" id="aud-eda">
       <div class="panel-head"><div class="panel-title"><h2>Train-only look at the data</h2><span class="sub">Subscription rate on the 36,168 training rows only. Patterns here are questions, never promoted features.</span></div><span class="pill outline">computed from the repository data</span></div>
       <div class="panel-body grid g3">
         <div class="stack tight"><b class="small">By month of the call</b><div id="eda-month"></div><span class="xs muted">March, September, October and December reach 45–51%, on few rows each.</span></div>
@@ -828,7 +829,7 @@
   </div>
 
   <div class="pane" data-pane="ladder" data-label="Feature ladder">
-    <div class="panel" data-f="audit.ladder">
+    <div class="panel" data-f="audit.ladder" id="aud-ladder">
       <div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">Six recipes, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${chip:EXP-008}</div>
       <div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ROC-AUC</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
       <div class="panel-body stack tight">
@@ -836,14 +837,14 @@
         <div id="tol-out"></div>
       </div>
     </div>
-    <div class="panel" data-f="audit.lineage">
+    <div class="panel" data-f="audit.lineage" id="aud-lineage">
       <div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>
       <div class="list small" id="lineage-list"></div>
     </div>
   </div>
 
   <div class="pane" data-pane="critic" data-label="Critic review" data-count="5">
-    <div class="panel" data-f="audit.critic">
+    <div class="panel" data-f="audit.critic" id="aud-critic">
       <div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">An LLM critic challenges every claim. The gate keeps a challenge only if it agrees with the recorded numbers.</span></div>${chip:DCLAB-R20}</div>
       <div class="list" id="critic-list"></div>
     </div>
@@ -852,9 +853,9 @@
 <section class="view" id="view-models" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow">Term-deposit calls · WF-07 and WF-08</div>
-      <h1>Models <span class="pill ok">extra_trees · C02 locked</span></h1>
-      <p class="lede">Five families on identical folds, ranked by a rule declared before the run. Tuning stays only if it clears a margin set in advance.</p>
+      <div class="eyebrow" id="mo-eyebrow" data-slot>Term-deposit calls · WF-07 and WF-08</div>
+      <h1 id="mo-title" data-slot>Models <span class="pill ok">extra_trees · C02 locked</span></h1>
+      <p class="lede" id="mo-lede" data-slot>Five families on identical folds, ranked by a rule declared before the run. Tuning stays only if it clears a margin set in advance.</p>
     </div>
     <div class="vh-actions">
       <button type="button" class="btn" id="override-btn" data-f="models.override">Choose a different model…</button>
@@ -862,7 +863,7 @@
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="mo-stats" data-slot>
       <div class="stat"><span class="v">extra_trees</span><span class="l">selected by the declared rule · runner-up lightgbm</span></div>
       <div class="stat"><span class="v">0.7288 <small>± 0.0295</small></span><span class="l">mean CV ROC-AUC on 3 folds · 3,200 training rows</span></div>
       <div class="stat"><span class="v ok">+0.0235</span><span class="l">gain from tuning candidate C02 · declared margin 0.0050</span></div>
@@ -870,32 +871,32 @@
     </div>
 
     <div class="panel" data-f="models.screen" data-tour="screen">
-      <div class="panel-head"><div class="panel-title"><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds · 38 features · ranked by mean − 0.25 × fold spread, then runtime</span></div>${chip:EXP-009}</div>
-      <div class="table-wrap"><table class="data" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num">Mean − k×spread</th><th class="num">Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-head"><div class="panel-title" id="mo-screen-title" data-slot><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds · 38 features · ranked by mean − 0.25 × fold spread, then runtime</span></div><span class="ev-list" id="mo-screen-ev" data-slot>${chip:EXP-009}</span></div>
+      <div class="table-wrap"><table class="data" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num" id="mo-adj-th" data-slot>Mean − k×spread</th><th class="num" id="mo-fit-th" data-slot>Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
       <div class="panel-body"><div id="screen-chart"></div></div>
     </div>
   </div>
 
   <div class="pane" data-pane="rule" data-label="Selection rule">
     <div class="panel" data-f="models.rule">
-      <div class="panel-head"><div class="panel-title"><h2>The selection rule</h2><span class="sub">Declared in the protocol before the screen ran: rank by mean minus a quarter of the fold spread, then by runtime.</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>The selection rule</h2><span class="sub" id="mo-rule-sub" data-slot>Declared in the protocol before the screen ran: rank by mean minus a quarter of the fold spread, then by runtime.</span></div></div>
       <div class="panel-body stack tight">
         <div class="row"><label for="kpen" class="small strong" data-style="color:var(--ink)">Spread penalty k</label><input type="range" id="kpen" min="0" max="1" step="0.05" value="0.25" data-style="flex:1;min-width:160px"><span class="mono small" id="kpen-val">0.25</span></div>
         <div id="rule-out"></div>
       </div>
     </div>
     <div class="panel" data-f="models.folds">
-      <div class="panel-head"><div class="panel-title"><h2>Fold by fold</h2><span class="sub">The same three folds for every family, so differences are paired.</span></div><span class="pill outline">mean ± spread</span></div>
-      <div class="panel-body"><div id="fold-chart"></div><p class="xs muted">The records store mean and spread; the product draws the stored fold scores. Bars mark the means.</p></div>
+      <div class="panel-head"><div class="panel-title"><h2>Fold by fold</h2><span class="sub" id="mo-fold-sub" data-slot>The same three folds for every family, so differences are paired.</span></div><span class="pill outline" id="mo-fold-pill" data-slot>mean ± spread</span></div>
+      <div class="panel-body"><div id="fold-chart" data-slot></div><p class="xs muted" id="mo-fold-note" data-slot>The records store mean and spread; the product draws the stored fold scores. Bars mark the means.</p></div>
     </div>
   </div>
 
   <div class="pane" data-pane="tuning" data-label="Tuning">
     <div class="panel" data-f="models.tuning">
-      <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub">Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div>${chip:EXP-010}</div>
+      <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub" id="mo-tune-sub" data-slot>Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div><span class="ev-list" id="mo-tune-ev" data-slot>${chip:EXP-010}</span></div>
       <div class="panel-body grid g2">
-        <div id="tune-chart"></div>
-        <div class="stack tight small">
+        <div id="tune-chart" data-slot></div>
+        <div class="stack tight small" id="mo-tune-side" data-slot>
           <div class="inset stack tight">
             <div class="spread"><span>Baseline (defaults)</span><b class="mono">0.7288</b></div>
             <div class="spread"><span>Best candidate C02</span><b class="mono">0.7523</b></div>
@@ -912,15 +913,15 @@
   <div class="pane" data-pane="context" data-label="Cost & context">
     <div class="grid g2">
       <div class="panel" data-f="models.ops">
-        <div class="panel-head"><div class="panel-title"><h3>Cost to run</h3><span class="sub">Fit time from the screen; scoring cost estimated</span></div></div>
-        <div class="table-wrap"><table class="data compact"><thead><tr><th>Family</th><th class="num">Fit (3 folds)</th><th class="num">Score 10k rows</th></tr></thead><tbody>
+        <div class="panel-head"><div class="panel-title" id="mo-cost-title" data-slot><h3>Cost to run</h3><span class="sub">Fit time from the screen; scoring cost estimated</span></div></div>
+        <div class="table-wrap" id="mo-cost-table" data-slot><table class="data compact"><thead><tr><th>Family</th><th class="num">Fit (3 folds)</th><th class="num">Score 10k rows</th></tr></thead><tbody>
           <tr><td>logistic_regression</td><td class="num mono">0.6 s</td><td class="num mono">~0.02 s</td></tr>
           <tr class="selected"><td>extra_trees</td><td class="num mono">2.0 s</td><td class="num mono">~0.4 s</td></tr>
           <tr><td>hist_gradient_boosting</td><td class="num mono">1.2 s</td><td class="num mono">~0.05 s</td></tr>
           <tr><td>lightgbm</td><td class="num mono">0.8 s</td><td class="num mono">~0.05 s</td></tr>
           <tr><td>xgboost</td><td class="num mono">0.8 s</td><td class="num mono">~0.06 s</td></tr>
         </tbody></table></div>
-        <div class="panel-foot">Monthly scoring of 20,000 clients costs seconds for any of them. Runtime only breaks ties here.</div>
+        <div class="panel-foot" id="mo-cost-foot" data-slot>Monthly scoring of 20,000 clients costs seconds for any of them. Runtime only breaks ties here.</div>
       </div>
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><h3>Across the R&amp;D datasets</h3><span class="sub">Why one default family is not enough</span></div>${chip:FINDING-model-families}</div>
@@ -940,14 +941,14 @@
 <section class="view" id="view-reliability" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Term-deposit calls · WF-09</div>
-      <h1>Reliability &amp; holdout <span class="pill ok">holdout used once · Oct 2</span></h1>
+      <div class="eyebrow accent" id="rl-eyebrow" data-slot>Term-deposit calls · WF-09</div>
+      <h1 id="rl-title" data-slot>Reliability &amp; holdout <span class="pill ok">holdout used once · Oct 2</span></h1>
       <p class="lede">The holdout opens once, after every choice is locked. Then the result is attacked from every side, and what survives goes into the brief with its limits.</p>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="rl-stats" data-slot>
       <div class="stat"><span class="v">0.7718</span><span class="l">holdout ROC-AUC · 95% interval 0.7126–0.8290 · 800 untouched rows</span></div>
       <div class="stat"><span class="v">0.3915</span><span class="l">average precision · at cut-off 0.5: precision 0.5652, recall 0.1383</span></div>
       <div class="stat"><span class="v">0.0870</span><span class="l">Brier score · calibration error (ECE) 0.0272</span></div>
@@ -955,36 +956,36 @@
     </div>
 
     <div class="panel" data-f="rel.holdout" data-tour="holdout">
-      <div class="panel-head"><div class="panel-title"><h2>Holdout result</h2><span class="sub">extra_trees · C02 · ratios recipe · 800 untouched rows · bootstrap 95% interval</span></div>${chip:EXP-010}</div>
+      <div class="panel-head"><div class="panel-title"><h2>Holdout result</h2><span class="sub" id="rl-holdout-sub" data-slot>extra_trees · C02 · ratios recipe · 800 untouched rows · bootstrap 95% interval</span></div><span class="ev-list" id="rl-holdout-ev" data-slot>${chip:EXP-010}</span></div>
       <div class="panel-body">
         <div class="row top" data-style="gap:22px;flex-wrap:wrap">
-          <div class="stamp" data-f="rel.seal"><span>Opened once</span><b>Oct 2</b><span>by Shahriyar</span></div>
+          <div class="stamp" data-f="rel.seal" id="rl-stamp" data-slot><span>Opened once</span><b>Oct 2</b><span>by Shahriyar</span></div>
           <div class="stack tight" data-style="flex:1;min-width:240px">
-            <div id="holdout-ci"></div>
+            <div id="holdout-ci" data-slot></div>
           </div>
         </div>
       </div>
-      <div class="panel-foot bar"><span>Seal record: solution v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" data-style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
+      <div class="panel-foot bar"><span id="rl-seal-text" data-slot>Seal record: solution v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" data-style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
     </div>
   </div>
 
   <div class="pane" data-pane="points" data-label="Operating points">
     <div class="panel" data-f="rel.threshold">
-      <div class="panel-head"><div class="panel-title"><h2>Operating points</h2><span class="sub">What calling the top share of clients would mean. One real point from the holdout, the rest from the holdout's ranking quality.</span></div></div>
-      <div class="table-wrap"><table class="data compact" id="op-table"><thead><tr><th>Call the top</th><th class="num">Calls per 20,000</th><th class="num">Hit rate (precision)</th><th class="num">Share of all subscribers reached</th><th>Note</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-foot">Rows marked estimated come from a binormal fit to ROC-AUC 0.7718; at the real cut-off it predicts 55% hit rate for the top 2.5%, against 56.5% measured. The product reads these straight from the holdout predictions.</div>
+      <div class="panel-head"><div class="panel-title"><h2>Operating points</h2><span class="sub" id="rl-points-sub" data-slot>What calling the top share of clients would mean. One real point from the holdout, the rest from the holdout's ranking quality.</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="op-table"><thead><tr id="rl-op-head" data-slot><th>Call the top</th><th class="num">Calls per 20,000</th><th class="num">Hit rate (precision)</th><th class="num">Share of all subscribers reached</th><th>Note</th></tr></thead><tbody data-slot></tbody></table></div>
+      <div class="panel-foot" id="rl-op-foot" data-slot>Rows marked estimated come from a binormal fit to ROC-AUC 0.7718; at the real cut-off it predicts 55% hit rate for the top 2.5%, against 56.5% measured. The product reads these straight from the holdout predictions.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="probabilities" data-label="Calibration &amp; slices">
     <div class="grid g2">
       <div class="panel" data-f="rel.calibration">
-        <div class="panel-head"><div class="panel-title"><h3>Calibration</h3><span class="sub">Do 30% scores subscribe 30% of the time?</span></div><span class="pill outline">curve is a sample shape</span></div>
-        <div class="panel-body"><div id="calib-chart"></div><p class="xs muted">Brier 0.0870 and ECE 0.0272 are measured ${chip:EXP-010}. The curve shape is drawn to match them.</p></div>
+        <div class="panel-head"><div class="panel-title"><h3>Calibration</h3><span class="sub" id="rl-calib-sub" data-slot>Do 30% scores subscribe 30% of the time?</span></div><span class="pill outline" id="rl-calib-pill" data-slot>curve is a sample shape</span></div>
+        <div class="panel-body"><div id="calib-chart" data-slot></div><p class="xs muted" id="rl-calib-note" data-slot>Brier 0.0870 and ECE 0.0272 are measured ${chip:EXP-010}. The curve shape is drawn to match them.</p></div>
       </div>
       <div class="panel" data-f="rel.slices">
-        <div class="panel-head"><div class="panel-title"><h3>Slices</h3><span class="sub">ROC-AUC by group, with intervals</span></div><span class="pill outline">sample numbers</span></div>
-        <div class="panel-body"><div id="slice-chart"></div><p class="xs muted">Slices with fewer than 100 holdout rows show as "not enough rows" in the brief. Over-60s and past successes are about 20–30 rows each here.</p></div>
+        <div class="panel-head"><div class="panel-title"><h3>Slices</h3><span class="sub" id="rl-slice-sub" data-slot>ROC-AUC by group, with intervals</span></div><span class="pill outline" id="rl-slice-pill" data-slot>sample numbers</span></div>
+        <div class="panel-body"><div id="slice-chart" data-slot></div><p class="xs muted" id="rl-slice-note" data-slot>Slices with fewer than 100 holdout rows show as "not enough rows" in the brief. Over-60s and past successes are about 20–30 rows each here.</p></div>
       </div>
     </div>
   </div>
@@ -992,15 +993,15 @@
   <div class="pane" data-pane="stress" data-label="Shift &amp; missing">
     <div class="grid g2">
       <div class="panel" data-f="rel.shift">
-        <div class="panel-head"><h3>Shift over time</h3><span class="pill warn">cannot test yet</span></div>
-        <div class="panel-body small stack tight">
+        <div class="panel-head"><h3 id="rl-shift-h" data-slot>Shift over time</h3><span class="pill warn" id="rl-shift-pill" data-slot>cannot test yet</span></div>
+        <div class="panel-body small stack tight" id="rl-shift-body" data-slot>
           <p>The table has month and day but no year, so no forward-in-time test is possible. The owner was asked for the real call dates.</p>
           <p class="muted">On HyperAck, where dates exist, a forward-in-time test scored 0.9371 against 0.9332 for a random split. Time can help or hurt; it has to be measured ${chip:PIT-005}.</p>
         </div>
       </div>
       <div class="panel" data-f="rel.missing">
-        <div class="panel-head"><h3>Missing inputs</h3><span class="pill outline">scheduled</span></div>
-        <div class="panel-body small stack tight">
+        <div class="panel-head"><h3>Missing inputs</h3><span class="pill outline" id="rl-miss-pill" data-slot>scheduled</span></div>
+        <div class="panel-body small stack tight" id="rl-miss-body" data-slot>
           <p>What if <code>poutcome</code> is unknown for new clients? 81.8% of training rows were never contacted before, so the model already sees this state often.</p>
           <p class="muted">The simulation masks poutcome, previous and pdays on the holdout predictions and reports the drop with an interval ${chip:DCLAB-R12}.</p>
         </div>
@@ -1011,9 +1012,9 @@
   <div class="pane" data-pane="gate" data-label="Production gate">
     <div class="grid g2">
       <div class="panel" data-f="rel.gate" data-tour="gate">
-        <div class="panel-head"><div class="panel-title"><h3>Production gate</h3><span class="sub">Research evidence is not production approval</span></div><span class="pill warn">2 of 6</span></div>
+        <div class="panel-head"><div class="panel-title"><h3>Production gate</h3><span class="sub">Research evidence is not production approval</span></div><span class="pill warn" id="rl-gate-pill" data-slot>2 of 6</span></div>
         <div class="panel-body stack tight">
-          <ul class="plan-list">
+          <ul class="plan-list" id="rl-gate-list" data-slot>
             <li class="done"><span class="pi">✓</span><span>Provenance recorded: snapshot hash, licence, solution version</span></li>
             <li class="done"><span class="pi">✓</span><span>Leakage-safe solution signed and enforced</span></li>
             <li class="blocked"><span class="pi">!</span><span>Independent confirmation on fresh campaign data</span></li>
@@ -1021,13 +1022,13 @@
             <li class="blocked"><span class="pi">!</span><span>Monitoring plan: drift, calibration and hit rate per week</span></li>
             <li class="blocked"><span class="pi">!</span><span>Shadow test with the call centre for one campaign</span></li>
           </ul>
-          <div class="callout warn"><span class="ic">${icon:info}</span><span><b>Research result.</b> Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span></div>
+          <div class="callout warn" id="rl-gate-callout" data-slot><span class="ic">${icon:info}</span><span><b>Research result.</b> Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span></div>
         </div>
       </div>
       <div class="stack">
   <div class="panel">
-        <div class="panel-head"><h3>What the critic said</h3>${chip:EXP-010}</div>
-        <div class="panel-body small stack tight">
+        <div class="panel-head" id="rl-critic-head" data-slot><h3>What the critic said</h3>${chip:EXP-010}</div>
+        <div class="panel-body small stack tight" id="rl-critic-body" data-slot>
           <p>“Treat the holdout score as a consumed, descriptive result only. Do not approve feature promotion without separate decision-time and production-availability review.”</p>
           <p class="muted">Kept by the gate: it agrees with the numbers. It is why the production gate lists feature solutions.</p>
         </div>
@@ -1040,18 +1041,19 @@
 <section class="view" id="view-brief" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Term-deposit calls · WF-10 · for the business</div>
-      <h1>Decision brief <span class="pill warn">waiting for Reza</span></h1>
+      <div class="eyebrow accent" id="brief-eyebrow">Term-deposit calls · WF-10 · for the business</div>
+      <h1>Decision brief <span class="pill warn" id="brief-status">waiting for Reza</span></h1>
       <p class="lede">One page for the people who decide: the value with its range, what we refused to use, and what is not proven yet.</p>
     </div>
     <div class="vh-actions">
-      <button type="button" class="btn" data-f="brief.share" data-copy="https://dclab.local/p/term-deposit-calls/brief/v1" data-copy-label="Link">Copy link</button>
-      <button type="button" class="btn" data-toast="In the product: exports the brief as PDF or slides. Downloads are blocked inside this demo.">Export</button>
+      <button type="button" class="btn" id="brief-copy" data-f="brief.share" data-copy="https://dclab.local/p/term-deposit-calls/brief/v1" data-copy-label="Link">Copy link</button>
+      <button type="button" class="btn" id="brief-export-sample" data-toast="In the product: exports the brief as PDF or slides. Downloads are blocked inside this demo.">Export</button>
+      <a class="btn" id="brief-export-real" href="#brief" download hidden>Export report (.md)</a>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="brief-stats">
       <div class="stat"><span class="v">0.77 <small>0.71–0.83</small></span><span class="l">ROC-AUC on 800 clients the model never saw · a useful ranking, not a precise one</span></div>
       <div class="stat"><span class="v ok">~780</span><span class="l">subscriptions expected from the top 2,000 calls · likely 620–960 · about 230 at random</span></div>
       <div class="stat"><span class="v ok">€70,000</span><span class="l">net value next month · €9,700 calling at random · €8 a call, €110 a subscription</span><div class="row"><button type="button" class="link-btn small" data-pane-go="value">Try other volumes →</button></div></div>
@@ -1059,7 +1061,7 @@
     </div>
 
     <article class="panel" data-f="brief.summary" data-tour="brief-summary">
-      <div class="panel-head"><div class="panel-title"><span class="eyebrow">Brief v1 · Oct 3 · prepared by the intern, reviewed by Ava</span></div><div class="seg" data-seg="lang" id="brief-lang" role="group" aria-label="Language" data-f="brief.fa"><button type="button" data-v="en" aria-pressed="true">English</button><button type="button" data-v="fa" aria-pressed="false">فارسی</button></div></div>
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="brief-version">Brief v1 · Oct 3 · prepared by the intern, reviewed by Ava</span></div><div class="seg" data-seg="lang" id="brief-lang" role="group" aria-label="Language" data-f="brief.fa"><button type="button" data-v="en" aria-pressed="true">English</button><button type="button" data-v="fa" aria-pressed="false">فارسی</button></div></div>
       <div class="panel-body">
         <div class="doc" id="brief-en">
           <h2>Call the 2,000 clients most likely to subscribe</h2>
@@ -1092,34 +1094,36 @@
           <p>تأیید یک پایلوت در یک کمپین: با ۲٬۰۰۰ مشتری برتر مدل تماس بگیریم و هم‌زمان با ۲۰۰ مشتری تصادفی به‌عنوان گروه کنترل، و سپس نرخ موفقیت دو گروه را مقایسه کنیم.</p>
         </div>
       </div>
-      <div class="panel-foot dev-only">Every number in this brief links to its record: ${chip:EXP-010} ${chip:EXP-007} ${chip:LEAK-bank_marketing}</div>
+      <div class="panel-foot dev-only" id="brief-foot">Every number in this brief links to its record: ${chip:EXP-010} ${chip:EXP-007} ${chip:LEAK-bank_marketing}</div>
     </article>
   <div class="panel biz-only">
-        <div class="panel-body small stack tight"><div class="eyebrow">Reading the numbers</div><p><b>ROC-AUC 0.77</b> means the model puts a real subscriber above a non-subscriber 77 times out of 100. Random guessing gives 50.</p><p><b>Hit rate</b> is the share of called clients who subscribe.</p></div>
+        <div class="panel-body small stack tight" id="brief-reading"><div class="eyebrow">Reading the numbers</div><p><b>ROC-AUC 0.77</b> means the model puts a real subscriber above a non-subscriber 77 times out of 100. Random guessing gives 50.</p><p><b>Hit rate</b> is the share of called clients who subscribe.</p></div>
       </div>
   </div>
 
   <div class="pane" data-pane="value" data-label="Value calculator">
     <div class="panel" data-f="brief.value" data-tour="value">
-      <div class="panel-head"><div class="panel-title"><h2>Choose the call volume</h2><span class="sub">Expected result for 20,000 clients. The band is the range that comes from the holdout's interval.</span></div></div>
-      <div class="panel-body grid g2">
+      <div class="panel-head"><div class="panel-title"><h2 id="v-title">Choose the call volume</h2><span class="sub" id="v-sub">Expected result for 20,000 clients. The band is the range that comes from the holdout's interval.</span></div></div>
+      <div class="panel-body grid g2" id="v-body">
         <div class="stack">
-          <div class="field"><label for="v-calls">Calls next month: <b id="v-calls-out">2,000</b></label><input type="range" id="v-calls" min="250" max="10000" step="250" value="2000"></div>
+          <div class="field"><label for="v-calls"><span id="v-calls-label">Calls next month</span>: <b id="v-calls-out">2,000</b></label><input type="range" id="v-calls" min="250" max="10000" step="250" value="2000"></div>
           <div class="grid g2">
-            <div class="field"><label for="v-cost">Cost per call (€)</label><input type="number" id="v-cost" value="8" min="1"></div>
-            <div class="field"><label for="v-val">Value per subscription (€)</label><input type="number" id="v-val" value="110" min="1"></div>
+            <div class="field"><label for="v-cost" id="v-cost-label">Cost per call (€)</label><input type="number" id="v-cost" value="8" min="1"></div>
+            <div class="field"><label for="v-val" id="v-val-label">Value per subscription (€)</label><input type="number" id="v-val" value="110" min="1"></div>
           </div>
+          <span class="xs muted" id="v-hint" hidden></span>
           <div class="kpi-strip panel flat" id="v-kpis"></div>
         </div>
-        <div class="stack tight"><div id="v-chart"></div><div class="legend"><span><i></i>model ranking</span><span><i class="s3"></i>random calls</span><span><i class="sq" data-style="background:var(--accent-soft)"></i>likely range</span></div></div>
+        <div class="stack tight"><div id="v-chart"></div><div class="legend"><span><i></i>model ranking</span><span><i class="s3"></i><span id="v-legend-rnd">random calls</span></span><span><i class="sq" data-style="background:var(--accent-soft)"></i>likely range</span></div></div>
       </div>
+      <div class="empty" id="v-empty" hidden></div>
     </div>
   </div>
 
   <div class="pane" data-pane="risks" data-label="Risks" data-count="5">
     <div class="panel" data-f="brief.risks">
-      <div class="panel-head"><div class="panel-title"><h2>Risks and what we will do about them</h2></div></div>
-      <div class="table-wrap"><table class="data"><thead><tr><th>Risk</th><th>Why it matters</th><th>What we do</th></tr></thead><tbody>
+      <div class="panel-head"><div class="panel-title"><h2>Risks and what we will do about them</h2><span class="sub" id="risks-sub" hidden></span></div></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Risk</th><th>Why it matters</th><th>What we do</th></tr></thead><tbody id="brief-risks">
         <tr><td class="strong">Small test set</td><td>800 clients give a wide range (0.71–0.83)</td><td>The pilot's random control group measures the real lift</td></tr>
         <tr><td class="strong">No year in the data</td><td>March, September, October and December look excellent on very few calls</td><td>Owner asked for real call dates; seasonal effects are reported, not trusted</td></tr>
         <tr><td class="strong">Repeat clients</td><td>The same client may appear in training and test</td><td>Ask for a client ID in the next extract and re-split by client</td></tr>
@@ -1132,18 +1136,19 @@
   <div class="pane" data-pane="signoff" data-label="Sign-off &amp; lessons">
     <div class="grid g2">
       <div class="panel" data-f="brief.signoff">
-        <div class="panel-head"><h3>Sign-off</h3><span class="pill warn">pending</span></div>
-        <div class="panel-body stack tight small">
+        <div class="panel-head"><h3>Sign-off</h3><span class="pill warn" id="so-pill">pending</span></div>
+        <div class="panel-body stack tight small" id="so-sample">
           <div class="msg"><span class="avatar sm c">RZ</span><div class="msg-body"><span class="who">Reza <span>Oct 4, 10:05</span></span><div class="bubble" data-style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px">Is €8 the full cost of a call? With follow-up time it is closer to €11.</div></div></div>
           <div class="msg"><span class="avatar sm">SM</span><div class="msg-body"><span class="who">Shahriyar <span>Oct 4, 11:20</span></span><div class="bubble" data-style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px">At €11 a call still pays above a 10% hit rate. The top 2,000 hit about 39%, so the recommendation holds. Try it in the calculator.</div></div></div>
           <label class="sr-only" for="so-comment">Comment</label><textarea id="so-comment" rows="2" placeholder="Add a comment for the team"></textarea>
           <div class="row"><button type="button" class="btn primary" id="so-approve">Approve the pilot</button><button type="button" class="btn" data-toast="Changes requested. The intern drafts v2 of the brief and notifies Ava.">Request changes</button></div>
           <span class="xs muted">Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span>
         </div>
+        <div class="panel-body stack tight small" id="so-real" hidden></div>
       </div>
       <div class="panel" data-f="brief.capture">
-        <div class="panel-head"><div class="panel-title"><h3>What this project taught DCLab</h3><span class="sub">WF-10 · knowledge capture</span></div></div>
-        <div class="list small">
+        <div class="panel-head"><div class="panel-title"><h3>What this project taught DCLab</h3><span class="sub" id="cap-sub">WF-10 · knowledge capture</span></div></div>
+        <div class="list small" id="cap-list">
           <div class="list-item"><span class="pill ok">accepted</span><div class="li-main"><span>Rare months carry very high subscription rates on few rows; without a year, seasonality cannot be checked.</span></div></div>
           <div class="list-item"><span class="pill ok">accepted</span><div class="li-main"><span>Logs of factorized category codes reached the top features; restore raw labels before generating features.</span></div></div>
           <div class="list-item"><span class="pill warn">scope</span><div class="li-main"><span>class_weight="balanced" doubled the Brier score in a teammate notebook. Sent back: a different split, so not comparable yet.</span></div></div>
@@ -1183,7 +1188,7 @@
     <div class="grid g-side">
       <div class="panel" data-f="intern.session" data-tour="intern-thread">
         <div class="panel-head">
-          <div class="panel-title"><span class="eyebrow" id="sess-mode">open model · via Hugging Face router</span><h2>HyperAck: an acceptance model we can trust</h2></div>
+          <div class="panel-title"><span class="eyebrow" id="sess-mode">open model · via Hugging Face router</span><h2 id="sess-title">HyperAck: an acceptance model we can trust</h2></div>
           <div class="row"><span class="pill warn" id="sess-status">paused · waiting for you</span><button type="button" class="btn sm" id="sess-replay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>Replay</button></div>
         </div>
         <div class="panel-body"><div class="thread" id="thread"></div></div>
@@ -1191,7 +1196,7 @@
           <div class="composer">
             <label class="sr-only" for="intern-follow">Follow-up</label>
             <textarea id="intern-follow" rows="2" placeholder="Give the next instruction, or type / for commands"></textarea>
-            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/solution">/solution</button><button type="button" class="chip" data-cmd="/audit">/audit</button><button type="button" class="chip" data-cmd="/brief">/brief</button><button type="button" class="chip" data-cmd="/stop">/stop</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
+            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/solution">/solution</button><button type="button" class="chip" data-cmd="/audit">/audit</button><button type="button" class="chip" data-cmd="/brief">/brief</button><button type="button" class="chip" data-cmd="/stop">/stop</button><button type="button" class="chip" data-cmd="/new" id="intern-new-cmd" hidden>/new</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
           </div>
         </div>
       </div>

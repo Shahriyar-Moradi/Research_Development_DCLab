@@ -137,7 +137,13 @@
   }
 
   /* The sidebar's project group follows the project that is open on the project pages. */
+  /* A sidebar count ("" hides it): pages set their own once they know the real number. */
+  function setNavCount(id, text) {
+    const c = $(`#nav [data-nav="${id}"] .count`);
+    if (c) c.textContent = text == null ? '' : String(text);
+  }
   function setProjectLabel(name) {
+    setNavCount('notebook', '');  // the sample's "10 findings" does not belong to a real project
     const label = $$('#nav .nav-label').find(l => l.textContent.startsWith('Project'));
     if (label) label.textContent = 'Project · ' + (name || 'none');
     PROJECT_VIEWS.forEach(v => { if (VIEW_META[v]) VIEW_META[v].crumbs = [name || 'Project']; });
@@ -974,6 +980,6 @@
     if (bpOn) setBlueprint(true);
   }
 
-  window.DC = { currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

@@ -1,6 +1,6 @@
 <section class="view" id="view-audit" hidden>
   <header class="vh">
-    <div class="vh-text">
+    <div class="vh-text" id="aud-head">
       <div class="eyebrow accent">Term-deposit calls · WF-04 to WF-06</div>
       <h1>Leakage &amp; features <span class="pill ok">WF-05 · WF-06 done · Sep 28</span></h1>
       <p class="lede">A column is judged by when its value is written, not by its name or its score. The solution decides; an ablation on identical folds measures how much a leak would have lied.</p>
@@ -8,7 +8,7 @@
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="aud-stats">
       <div class="stat"><span class="v">16</span><span class="l">columns audited against solution v2</span></div>
       <div class="stat"><span class="v bad">1 <small>forbidden</small></span><span class="l">duration · written after the call · the only heuristic flag (AUC 0.812)</span></div>
       <div class="stat"><span class="v warn">1 <small>open</small></span><span class="l">campaign · waiting on the owner: counted when?</span><div class="row"><button type="button" class="link-btn small" data-pane-go="leaks">See the question →</button></div></div>
@@ -18,12 +18,12 @@
     <div class="panel" data-f="audit.matrix">
       <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the solution.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
       <div class="table-wrap"><table class="data compact" id="avail-table"><thead><tr><th>Column</th><th>Written when</th><th>Known at the moment?</th><th>Heuristic flag</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
+      <div class="panel-foot" id="aud-matrix-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="leaks" data-label="Leak checks">
-    <div class="grid g2">
+    <div class="grid g2" id="aud-leaks">
       <div class="panel" data-f="audit.ablation" data-tour="ablation">
         <div class="panel-head"><div class="panel-title"><h3>How much the leak lies</h3><span class="sub">Safe vs with duration, identical folds</span></div></div>
         <div class="panel-body stack tight">
@@ -45,7 +45,7 @@
   </div>
 
   <div class="pane" data-pane="data" data-label="Data look">
-    <div class="panel" data-f="audit.eda">
+    <div class="panel" data-f="audit.eda" id="aud-eda">
       <div class="panel-head"><div class="panel-title"><h2>Train-only look at the data</h2><span class="sub">Subscription rate on the 36,168 training rows only. Patterns here are questions, never promoted features.</span></div><span class="pill outline">computed from the repository data</span></div>
       <div class="panel-body grid g3">
         <div class="stack tight"><b class="small">By month of the call</b><div id="eda-month"></div><span class="xs muted">March, September, October and December reach 45–51%, on few rows each.</span></div>
@@ -57,7 +57,7 @@
   </div>
 
   <div class="pane" data-pane="ladder" data-label="Feature ladder">
-    <div class="panel" data-f="audit.ladder">
+    <div class="panel" data-f="audit.ladder" id="aud-ladder">
       <div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">Six recipes, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${chip:EXP-008}</div>
       <div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ROC-AUC</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
       <div class="panel-body stack tight">
@@ -65,14 +65,14 @@
         <div id="tol-out"></div>
       </div>
     </div>
-    <div class="panel" data-f="audit.lineage">
+    <div class="panel" data-f="audit.lineage" id="aud-lineage">
       <div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>
       <div class="list small" id="lineage-list"></div>
     </div>
   </div>
 
   <div class="pane" data-pane="critic" data-label="Critic review" data-count="5">
-    <div class="panel" data-f="audit.critic">
+    <div class="panel" data-f="audit.critic" id="aud-critic">
       <div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">An LLM critic challenges every claim. The gate keeps a challenge only if it agrees with the recorded numbers.</span></div>${chip:DCLAB-R20}</div>
       <div class="list" id="critic-list"></div>
     </div>
@@ -81,8 +81,14 @@
 <script>
 DC.view('audit', {
   init(el) {
-    const { $, esc, chip, chips, charts, icon } = DC;
+    const { $, esc, chip, chips, charts, icon, fmt, pct, int } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id));
+    /* Sample mode keeps the markup above; real mode writes the open project into the same panels and restores them on the way back. */
+    const SNAP = ['aud-head', 'aud-stats', 'aud-matrix-foot', 'aud-leaks', 'aud-eda', 'aud-ladder', 'aud-lineage', 'aud-critic'];
+    const SAMPLE = Object.fromEntries(SNAP.map(id => [id, $('#' + id, el).innerHTML]));
+    let real = null, mode = 'sample', stopPoll = null, LAD = null;
+
+    /* ---------- sample: the term-deposit project ---------- */
     const COLS = [
       ['age', 'client profile', 'yes', '', 'allowed'], ['job', 'client profile', 'yes', '', 'allowed'], ['marital', 'client profile', 'yes', '', 'allowed'], ['education', 'client profile', 'yes', '', 'allowed'],
       ['default', 'account state', 'yes', '', 'allowed'], ['balance', 'account state', 'yes', '', 'allowed'], ['housing', 'account state', 'yes', '', 'allowed'], ['loan', 'account state', 'yes', '', 'allowed'],
@@ -92,15 +98,6 @@ DC.view('audit', {
     ];
     const known = { yes: '<span class="yes">✓ yes</span>', no: '<span class="pill bad">no · after</span>', ask: '<span class="pill warn">unclear</span>' };
     const verdict = v => v === 'forbidden' ? '<span class="pill bad">forbidden</span>' : v === 'ask owner' ? '<span class="pill warn">ask owner</span>' : `<span class="pill ok">${esc(v)}</span>`;
-    $('#avail-table tbody', el).innerHTML = COLS.map(([c, w, k, f, v]) => `<tr class="${v === 'forbidden' ? 'selected' : ''}"><td><code>${c}</code></td><td class="small">${esc(w)}</td><td>${known[k]}</td><td class="small">${f ? `<span class="pill warn">${esc(f)}</span> ${chip('LEAK-bank_marketing')}` : '<span class="faint">none</span>'}</td><td>${verdict(v)}</td></tr>`).join('');
-
-    $('#ablation-chart', el).innerHTML = charts.barsH([
-      { label: 'Safe (3,200 rows)', value: 0.7130, valueText: '0.7130', cls: '' },
-      { label: 'With duration', value: 0.8972, valueText: '0.8972', cls: 'bad' },
-      { label: 'Safe (full rows)', value: 0.8029, valueText: '0.8029', cls: '' },
-      { label: 'With duration', value: 0.9357, valueText: '0.9357', cls: 'bad' },
-    ], { width: 340, labelW: 112, valW: 52, min: 0.5, max: 1.0, rowH: 28, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], tickFmt: v => v.toFixed(1), aria: 'ROC-AUC with and without duration' });
-
     const CRIT = [
       ['EXP-007', 'high', 'Calling duration a decision-time exclusion is plausible but not proven here; the evidence only shows a declared exclusion and a CV lift.', 'kept', 'Agrees with the numbers. Resolved by the solution: the call length is written when the call ends (timeline on the solution page).'],
       ['EXP-007', 'high', 'The +0.1842 AUC lift is not sufficient to label a feature as leakage or proxy; predictive lift can arise from legitimate signal.', 'kept', 'Agrees with the numbers and with DCLAB-R06. The lift is shown as severity only.'],
@@ -108,22 +105,14 @@ DC.view('audit', {
       ['EXP-008', 'high', 'The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.', 'dropped', 'Contradicted by the numbers. The chosen recipe is ratios (0.7172, the best mean). 0.7029 belongs to a different recipe that happens to be named "selected".'],
       ['EXP-008', 'high', 'Higher training-CV ROC-AUC is treated as sufficient evidence; the improvement may be within sampling noise.', 'kept', 'Agrees with the numbers: +0.0042 against a fold spread of ±0.0129 to ±0.0165. Next test: 5×2 repeated CV before trusting the ladder.'],
     ];
-    $('#critic-list', el).innerHTML = CRIT.map(([ev, sev, txt, gate, why]) => `<div class="list-item"><span class="sev ${sev}">${sev}</span><div class="li-main"><span class="small" data-style="color:var(--ink-2)">“${esc(txt)}”</span><span class="row small"><span class="pill ${gate === 'kept' ? 'ok' : 'bad'}">${gate === 'kept' ? 'kept' : 'dropped by the gate'}</span><span class="muted">${DC.linkIds(why)}</span></span></div>${chip(ev)}</div>`).join('');
-
-    const pct = v => (v * 100).toFixed(0) + '%';
-    $('#eda-month', el).innerHTML = charts.vbars([
-      ['J', 0.102], ['F', 0.168], ['M', 0.509], ['A', 0.196], ['M', 0.067], ['J', 0.104], ['J', 0.093], ['A', 0.109], ['S', 0.452], ['O', 0.438], ['N', 0.101], ['D', 0.472],
-    ].map(([l, v]) => ({ label: l, value: v, cls: v > 0.3 ? 'proof' : '' })), { width: 300, height: 140, max: 0.6, yFmt: pct, aria: 'Subscription rate by month' });
-    $('#eda-pout', el).innerHTML = charts.barsH([
-      { label: 'never contacted', value: 0.092, valueText: '9.2% · 29,589' }, { label: 'failure', value: 0.123, valueText: '12.3% · 3,889' },
-      { label: 'other', value: 0.165, valueText: '16.5% · 1,485' }, { label: 'success', value: 0.647, valueText: '64.7% · 1,205', cls: 'proof' },
-    ], { width: 300, labelW: 98, valW: 92, min: 0, max: 0.7, rowH: 26, ticks: [0, 0.35, 0.7], tickFmt: pct, aria: 'Subscription rate by previous outcome' });
-    $('#eda-age', el).innerHTML = charts.barsH([
-      { label: '18–30', value: 0.164, valueText: '16.4%' }, { label: '31–40', value: 0.102, valueText: '10.2%' }, { label: '41–50', value: 0.091, valueText: '9.1%' },
-      { label: '51–60', value: 0.099, valueText: '9.9%' }, { label: '61+', value: 0.421, valueText: '42.1%', cls: 'proof' },
-    ], { width: 300, labelW: 60, valW: 52, min: 0, max: 0.5, rowH: 24, ticks: [0, 0.25, 0.5], tickFmt: pct, aria: 'Subscription rate by age band' });
-
     const LADDER = [['raw', 15, 0.7130, 0.0129], ['logs', 23, 0.7130, 0.0129], ['ratios', 38, 0.7172, 0.0165], ['interactions', 46, 0.7136, 0.0169], ['full_fe', 51, 0.7130, 0.0216], ['selected', 25, 0.7029, 0.0106]];
+    const LIN = [
+      ['poutcome', 'outcome of the previous campaign', 'known before this campaign', 'ok', 'Category code · fine for trees'],
+      ['log1p_poutcome', 'log of the poutcome code', 'known before', 'bad', 'A log of a category code has no meaning. Restore the raw labels and one-hot or target-encode inside folds.'],
+      ['month', 'month of the scheduled call', 'known at scheduling', 'warn', 'Strong seasonality on few rows; no year, so drift cannot be tested.'],
+      ['log1p_month', 'log of the month code', 'known at scheduling', 'bad', 'Same problem: the codes follow first appearance in the file, not the calendar.'],
+      ['housing', 'housing loan', 'known at the snapshot', 'ok', 'Binary state · fine'],
+    ];
     function drawLadder() {
       const tol = Number($('#tol', el).value);
       $('#tol-val', el).textContent = tol.toFixed(4);
@@ -137,19 +126,374 @@ DC.view('audit', {
         : `With ${tol.toFixed(4)} the rule would pick <b>${pick[0]}</b> (${pick[1]} features). Changing the tolerance after seeing the results is logged as a protocol change and needs a reason ${chip('DCLAB-R07')}.`}</span></div>`;
       DC.hydrate(el);
     }
-    $('#tol', el).addEventListener('input', drawLadder);
-    drawLadder();
+    function drawSample() {
+      $('#avail-table tbody', el).innerHTML = COLS.map(([c, w, k, f, v]) => `<tr class="${v === 'forbidden' ? 'selected' : ''}"><td><code>${c}</code></td><td class="small">${esc(w)}</td><td>${known[k]}</td><td class="small">${f ? `<span class="pill warn">${esc(f)}</span> ${chip('LEAK-bank_marketing')}` : '<span class="faint">none</span>'}</td><td>${verdict(v)}</td></tr>`).join('');
+      $('#ablation-chart', el).innerHTML = charts.barsH([
+        { label: 'Safe (3,200 rows)', value: 0.7130, valueText: '0.7130', cls: '' },
+        { label: 'With duration', value: 0.8972, valueText: '0.8972', cls: 'bad' },
+        { label: 'Safe (full rows)', value: 0.8029, valueText: '0.8029', cls: '' },
+        { label: 'With duration', value: 0.9357, valueText: '0.9357', cls: 'bad' },
+      ], { width: 340, labelW: 112, valW: 52, min: 0.5, max: 1.0, rowH: 28, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], tickFmt: v => v.toFixed(1), aria: 'ROC-AUC with and without duration' });
+      $('#critic-list', el).innerHTML = CRIT.map(([ev, sev, txt, gate, why]) => `<div class="list-item"><span class="sev ${sev}">${sev}</span><div class="li-main"><span class="small" data-style="color:var(--ink-2)">“${esc(txt)}”</span><span class="row small"><span class="pill ${gate === 'kept' ? 'ok' : 'bad'}">${gate === 'kept' ? 'kept' : 'dropped by the gate'}</span><span class="muted">${DC.linkIds(why)}</span></span></div>${chip(ev)}</div>`).join('');
+      const p0 = v => (v * 100).toFixed(0) + '%';
+      $('#eda-month', el).innerHTML = charts.vbars([
+        ['J', 0.102], ['F', 0.168], ['M', 0.509], ['A', 0.196], ['M', 0.067], ['J', 0.104], ['J', 0.093], ['A', 0.109], ['S', 0.452], ['O', 0.438], ['N', 0.101], ['D', 0.472],
+      ].map(([l, v]) => ({ label: l, value: v, cls: v > 0.3 ? 'proof' : '' })), { width: 300, height: 140, max: 0.6, yFmt: p0, aria: 'Subscription rate by month' });
+      $('#eda-pout', el).innerHTML = charts.barsH([
+        { label: 'never contacted', value: 0.092, valueText: '9.2% · 29,589' }, { label: 'failure', value: 0.123, valueText: '12.3% · 3,889' },
+        { label: 'other', value: 0.165, valueText: '16.5% · 1,485' }, { label: 'success', value: 0.647, valueText: '64.7% · 1,205', cls: 'proof' },
+      ], { width: 300, labelW: 98, valW: 92, min: 0, max: 0.7, rowH: 26, ticks: [0, 0.35, 0.7], tickFmt: p0, aria: 'Subscription rate by previous outcome' });
+      $('#eda-age', el).innerHTML = charts.barsH([
+        { label: '18–30', value: 0.164, valueText: '16.4%' }, { label: '31–40', value: 0.102, valueText: '10.2%' }, { label: '41–50', value: 0.091, valueText: '9.1%' },
+        { label: '51–60', value: 0.099, valueText: '9.9%' }, { label: '61+', value: 0.421, valueText: '42.1%', cls: 'proof' },
+      ], { width: 300, labelW: 60, valW: 52, min: 0, max: 0.5, rowH: 24, ticks: [0, 0.25, 0.5], tickFmt: p0, aria: 'Subscription rate by age band' });
+      drawLadder();
+      $('#lineage-list', el).innerHTML = LIN.map(([n, src, when, st, note]) => `<div class="list-item"><div class="li-main"><span class="li-title"><code>${n}</code></span><span class="li-sub">${esc(src)} · ${esc(when)}</span><span class="xs" data-style="color:var(--${st === 'ok' ? 'muted' : st})">${esc(note)}</span></div><span class="pill ${st}">${st === 'ok' ? 'clean' : st === 'bad' ? 'fix' : 'watch'}</span></div>`).join('') +
+        `<div class="list-item"><div class="li-main"><span class="xs muted">Top features come from the final model ${chip('EXP-010')}. Importance only nominates; a feature is promoted when its availability, stability and meaning check out ${chip('DCLAB-R10')} ${chip('DCLAB-R11')}.</span></div></div>`;
+      DC.hydrate(el);
+    }
+    drawSample();
 
-    const LIN = [
-      ['poutcome', 'outcome of the previous campaign', 'known before this campaign', 'ok', 'Category code · fine for trees'],
-      ['log1p_poutcome', 'log of the poutcome code', 'known before', 'bad', 'A log of a category code has no meaning. Restore the raw labels and one-hot or target-encode inside folds.'],
-      ['month', 'month of the scheduled call', 'known at scheduling', 'warn', 'Strong seasonality on few rows; no year, so drift cannot be tested.'],
-      ['log1p_month', 'log of the month code', 'known at scheduling', 'bad', 'Same problem: the codes follow first appearance in the file, not the calendar.'],
-      ['housing', 'housing loan', 'known at the snapshot', 'ok', 'Binary state · fine'],
-    ];
-    $('#lineage-list', el).innerHTML = LIN.map(([n, src, when, st, note]) => `<div class="list-item"><div class="li-main"><span class="li-title"><code>${n}</code></span><span class="li-sub">${esc(src)} · ${esc(when)}</span><span class="xs" data-style="color:var(--${st === 'ok' ? 'muted' : st})">${esc(note)}</span></div><span class="pill ${st}">${st === 'ok' ? 'clean' : st === 'bad' ? 'fix' : 'watch'}</span></div>`).join('') +
-      `<div class="list-item"><div class="li-main"><span class="xs muted">Top features come from the final model ${chip('EXP-010')}. Importance only nominates; a feature is promoted when its availability, stability and meaning check out ${chip('DCLAB-R10')} ${chip('DCLAB-R11')}.</span></div></div>`;
-    DC.hydrate(el);
+    /* ---------- real project: the solution plus the data, leakage, features and final records ---------- */
+    const STAGES = ['data', 'leakage', 'features', 'models', 'final'];
+    const isDone = (p, s) => ['completed', 'approved'].includes(((p.stages || {})[s] || {}).status);
+    const busy = p => !!p.running || Object.values(p.stages || {}).some(s => s && (s.status === 'queued' || s.status === 'running'));
+    const rc = id => (DC.REC[id] ? chip(id) : '');
+    const ML = { roc_auc: 'ROC-AUC', average_precision: 'average precision', macro_f1: 'macro-F1', mae: 'MAE', rmse: 'RMSE', r2: 'R²' };
+    const LOWER = new Set(['mae', 'rmse', 'log_loss', 'brier']);
+    const mlabel = m => ML[m] || (m ? String(m).replace(/_/g, ' ') : '—');
+    const code = c => `<code>${esc(c)}</code>`;
+    const short = (s, n = 16) => (String(s).length > n ? String(s).slice(0, n - 1) + '…' : String(s));
+    const signed = v => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
+    const ASK = /\bask\b|owner|unclear|unsure|confirm|\?/i;
+    const RS = { suspicious_name: 'name', strong_univariate_signal: 'strong signal', extreme_univariate_signal: 'extreme signal', exact_target_proxy: 'exact copy of the target', arithmetic_target_identity: 'sums to the target', identifier_like: 'unique per row', declared_post_outcome_or_contested: 'declared' };
+    const reasonText = f => (f.reasons || []).map(r => RS[r] || r.replace(/_/g, ' ')).join(' · ') + (f.univariate_auc != null ? ` · AUC ${fmt(f.univariate_auc, 3)}` : '');
+    const day = at => { const d = new Date(at); return at && !isNaN(d) ? d.toLocaleString('en-US', { month: 'short', day: '2-digit' }) : ''; };
+
+    function runBox(p, stage, what) {
+      const st = ((p.stages || {})[stage] || {}).status || 'pending';
+      if (st === 'queued' || st === 'running') return `<div class="empty">Running the ${esc(stage)} stage… this page updates when it finishes.</div>`;
+      const prev = STAGES[STAGES.indexOf(stage) - 1];
+      const ready = prev ? isDone(p, prev) : !!p.solution;
+      const move = ((p.graph || {}).moves || []).find(m => m.move === 'run_stage' && m.stage === stage);
+      const allowed = ready && !busy(p) && (!move || move.status === 'allowed');
+      const failed = st === 'failed' ? `<span class="small">The last run failed: ${esc((p.stages[stage] || {}).error || 'unknown error')}</span>` : '';
+      const action = allowed ? `<span><button type="button" class="btn sm primary" data-run-stage="${esc(stage)}">${icon('play')}Run the ${esc(stage)} stage${st === 'failed' ? ' again' : ''}</button></span>`
+        : !ready ? `<span class="xs">${prev ? `Run the ${esc(prev)} stage first.` : 'Save the solution first.'}</span>` : move && move.message && move.status !== 'allowed' ? `<span class="xs">${esc(move.message)}</span>` : '';
+      return `<div class="empty stack tight"><span>${what}</span>${failed}${action}</div>`;
+    }
+    function facts(p) {
+      const sol = p.solution || {}, R = p.records || {}, prof = ((p.data || {}).profile || {}).columns || [];
+      const ev = s => (R[s] ? R[s].evidence || {} : null);
+      const forb = sol.forbidden || [], lev = ev('leakage');
+      return {
+        sol, R, prof, dev: ev('data'), lev, fev: ev('features'), fin: ev('final'), forb,
+        askF: forb.filter(f => ASK.test(f.reason || '')),
+        flagged: lev ? (lev.heuristic_review_candidates || []).filter(f => !(f.reasons || []).includes('declared_post_outcome_or_contested')) : [],
+        cand: lev ? Object.fromEntries((lev.heuristic_review_candidates || []).map(f => [f.feature, f])) : {},
+        metric: (R.final || R.models || R.features || R.leakage || R.data || {}).primary_metric || sol.metric,
+        leakIds: R.leakage ? [...new Set((R.leakage.notes || []).flatMap(n => n.proof || []).filter(id => /^(LEAK|FINDING)-/.test(id) && DC.REC[id]))].slice(0, 2) : [],
+      };
+    }
+
+    function headReal(p) {
+      const L = isDone(p, 'leakage'), Fe = isDone(p, 'features');
+      const at = ((p.stages || {}).features || {}).finished || ((p.stages || {}).leakage || {}).finished;
+      const pill = L && Fe ? `<span class="pill ok">WF-05 · WF-06 done · ${esc(day(at))}</span>` : L ? '<span class="pill warn">WF-05 done · WF-06 open</span>' : '<span class="pill outline">WF-05 · WF-06 not run yet</span>';
+      return `<div class="eyebrow accent">${esc(p.name)} · WF-04 to WF-06</div>
+        <h1>Leakage &amp; features ${pill}</h1>
+        <p class="lede">A column is judged by when its value is written, not by its name or its score. The solution decides; an ablation on identical folds measures how much a leak would have lied.</p>`;
+    }
+    function statsReal(p, F) {
+      const { lev, dev, forb, flagged, askF } = F;
+      const roles = dev ? dev.column_roles || {} : null;
+      const audited = roles ? Object.keys(roles).length : Math.max(0, F.prof.length - (F.sol.target ? 1 : 0));
+      const inputs = roles ? Object.values(roles).filter(r => r === 'feature').length : null;
+      const declared = lev ? lev.declared_leakage_features || [] : forb.map(f => f.column);
+      const flags = lev ? (flagged.length ? `${flagged.length} other heuristic flag${flagged.length === 1 ? '' : 's'}` : 'no other heuristic flag') : 'not audited yet';
+      const open = [...askF.map(f => f.column), ...flagged.map(f => f.feature)];
+      const can = lev && lev.detector_canary;
+      return `<div class="stat"><span class="v">${audited}</span><span class="l">${lev ? 'columns audited against the solution' : 'columns to audit · the leakage stage has not run'}${inputs != null ? ` · ${inputs} used as inputs` : ''}</span></div>`
+        + (declared.length ? `<div class="stat"><span class="v bad">${declared.length} <small>forbidden</small></span><span class="l">${esc(declared.join(', '))} · ${flags}</span></div>`
+          : `<div class="stat"><span class="v">0 <small>forbidden</small></span><span class="l">none declared in the solution · ${lev ? (flagged.length ? `${flagged.length} heuristic flag${flagged.length === 1 ? '' : 's'}` : 'no heuristic flag') : 'not audited yet'}</span></div>`)
+        + `<div class="stat"><span class="v ${open.length ? 'warn' : 'ok'}">${open.length} <small>open</small></span><span class="l">${open.length ? esc(open.slice(0, 3).join(', ')) + (open.length > 3 ? '…' : '') + ' · waiting on the owner: written when?' : 'no column waits for the owner'}</span><div class="row"><button type="button" class="link-btn small" data-pane-go="leaks">See the checks →</button></div></div>`
+        + (!lev ? '<div class="stat"><span class="v">—</span><span class="l">synthetic canary · runs with the leakage stage</span></div>'
+          : can && can.passed ? '<div class="stat"><span class="v ok">caught</span><span class="l">synthetic canary · the detector is awake</span></div>'
+            : '<div class="stat"><span class="v bad">missed</span><span class="l">synthetic canary · treat the heuristic flags as incomplete</span></div>');
+    }
+    function matrixReal(p, F) {
+      const { sol, prof, cand } = F;
+      if (!prof.length) return { rows: '<tr><td colspan="5"><div class="empty">No data attached to this project yet.</div></td></tr>', foot: 'Attach data to audit its columns.' };
+      const roles = (F.dev && F.dev.column_roles) || {};
+      const forbMap = Object.fromEntries(F.forb.map(f => [f.column, f]));
+      const ids = new Set(sol.identifiers || []), texts = new Set(sol.text_columns || []);
+      const rows = prof.map(c => {
+        const n = c.name, f = forbMap[n], k = cand[n], ask = f && ASK.test(f.reason || '');
+        const role = roles[n] || (ids.has(n) ? 'identifier' : n === sol.time_column ? 'time' : n === sol.group_column ? 'group' : texts.has(n) ? 'text' : 'feature');
+        const flag = k ? `<span class="pill warn">${esc(reasonText(k))}</span>${f ? ' ' + F.leakIds.map(rc).join('') : ''}` : '<span class="faint">none</span>';
+        if (n === sol.target) return `<tr><td><code>${esc(n)}</code></td><td class="small">the outcome being predicted</td><td><span class="pill proof">outcome</span></td><td class="small"><span class="faint">—</span></td><td><span class="pill proof">target</span></td></tr>`;
+        const written = f ? (ask ? 'unclear · ' : 'after the prediction moment · ') + esc(f.reason || '') : role === 'identifier' ? 'a key, never an input' : role === 'time' ? 'time column · orders the split' : role === 'group' ? 'group key · keeps groups together' : role === 'text' ? 'free text' : `${esc(c.kind)} input · not marked forbidden`;
+        const kn = f ? (ask ? known.ask : known.no) : k ? '<span class="pill warn">review</span>' : known.yes;
+        const vd = f ? verdict(ask ? 'ask owner' : 'forbidden') : role === 'identifier' ? '<span class="pill outline">identifier · excluded</span>' : k ? '<span class="pill warn">review</span>' : verdict(role === 'feature' ? 'allowed' : 'allowed · ' + role);
+        return `<tr class="${f && !ask ? 'selected' : ''}"><td><code>${esc(n)}</code></td><td class="small">${written}</td><td>${kn}</td><td class="small">${flag}</td><td>${vd}</td></tr>`;
+      }).join('');
+      const flaggedNames = F.flagged.map(f => code(f.feature));
+      const foot = F.lev
+        ? `Heuristics flagged ${flaggedNames.length ? flaggedNames.length + ' column' + (flaggedNames.length === 1 ? '' : 's') + ' beyond the solution: ' + flaggedNames.join(', ') : 'no column beyond the solution'}. A missing flag never means safe: only the prediction moment (“${esc(sol.prediction_moment || 'not written yet')}”) decides ${rc('DCLAB-R05')}.`
+        : `Verdicts come from the solution. Heuristic flags appear after the leakage stage ${rc('DCLAB-R05')}. ${runBox(p, 'leakage', 'The heuristic scan has not run for this project yet.')}`;
+      return { rows, foot };
+    }
+    function leaksReal(p, F) {
+      const { lev, dev } = F;
+      const declared = lev ? lev.declared_leakage_features || [] : F.forb.map(f => f.column);
+      const sub = declared.length ? `Safe vs with ${esc(short(declared.join(', '), 28))}, identical folds` : 'Safe baseline, identical folds';
+      let left;
+      if (!lev) left = runBox(p, 'leakage', 'Not measured for this project yet: run the leakage stage.');
+      else {
+        const cmp = lev.safe_vs_unsafe_training_cv || {}, m = cmp.metric || F.metric;
+        const st = r => (r && r.metrics && r.metrics[m]) || null;
+        const s = st(cmp.safe), u = st(cmp.unsafe), train = dev ? dev.train_rows : (lev.heuristic_rules || {}).rows_scanned;
+        if (!s) left = '<div class="empty">The leakage record has no safe baseline score.</div>';
+        else {
+          const items = [{ label: `Safe (${int(train || 0)} rows)`, value: s.mean, valueText: fmt(s.mean), lo: s.mean - s.std, hi: s.mean + s.std }];
+          if (u) items.push({ label: short('With ' + (declared.length === 1 ? declared[0] : declared.length + ' columns')), value: u.mean, valueText: fmt(u.mean), cls: 'bad', lo: u.mean - u.std, hi: u.mean + u.std });
+          Object.entries(cmp.per_column || {}).forEach(([c, v]) => items.push({ label: short('Only ' + c), value: v.metric_mean, valueText: fmt(v.metric_mean), cls: 'bad' }));
+          const bounded = !LOWER.has(m) && m !== 'r2';
+          const lows = items.map(i => (i.lo != null ? i.lo : i.value)), highs = items.map(i => (i.hi != null ? i.hi : i.value));
+          const min = bounded ? Math.max(0, Math.floor((Math.min(...lows) - 0.05) * 10) / 10) : 0, max = bounded ? 1 : Math.max(...highs) * 1.1;
+          const ticks = bounded ? Array.from({ length: Math.round((max - min) * 10) + 1 }, (_, i) => +(min + i / 10).toFixed(1)) : undefined;
+          const chart = charts.barsH(items, { width: 340, labelW: 112, valW: 52, min, max, rowH: 28, ticks, tickFmt: v => (bounded ? v.toFixed(1) : String(+v.toFixed(2))), aria: `${mlabel(m)} with and without the forbidden columns` });
+          const folds = ((cmp.safe || {}).fold_metrics || []).map(f => f[m]).filter(v => v != null);
+          const rvt = lev.random_vs_time_cv;
+          left = `<div id="ablation-chart">${chart}</div>
+            ${u ? `<div class="small">Training CV on ${int(train || 0)} rows (${esc(cmp.model)}, ${esc(cmp.recipe)} recipe): <b class="mono">${fmt(s.mean)} → ${fmt(u.mean)}</b> (${signed(lev.apparent_lift || 0)}) ${F.leakIds.map(rc).join('')}</div>`
+              : `<div class="small">Training CV on ${int(train || 0)} rows (${esc(cmp.model)}, ${esc(cmp.recipe)} recipe): <b class="mono">${fmt(s.mean)} ± ${fmt(s.std)}</b>${folds.length ? ` · folds ${folds.map(v => fmt(v)).join(' · ')}` : ''}</div>
+                 <div class="small muted">No column is forbidden, so there is no unsafe run to compare: the apparent lift is 0 by construction.</div>`}
+            ${Object.keys(cmp.per_column || {}).length ? `<div class="small">Per column: ${Object.entries(cmp.per_column).map(([c, v]) => `${code(c)} ${signed(v.apparent_lift)}`).join(' · ')}</div>` : ''}
+            ${rvt ? `<div class="small">Random KFold would report <b class="mono">${fmt(st(rvt.random_kfold) ? st(rvt.random_kfold).mean : null)}</b> against <b class="mono">${fmt((rvt.time_ordered || {}).metric_mean)}</b> time-ordered: ${signed(rvt.optimism_gap || 0)} of optimism a random split would hide.</div>` : ''}
+            <div class="rule-quote">A large safe-versus-unsafe gap shows how bad a leak would be. It is not the proof. The proof is when the value is written, measured against the prediction moment ${rc('DCLAB-R06')}.</div>`;
+        }
+      }
+      const open = [...F.askF.map(f => ({ col: f.column, why: f.reason || 'Written when?', kind: 'stays out of the model' })),
+        ...F.flagged.map(f => ({ col: f.feature, why: 'Flagged: ' + reasonText(f), kind: 'stays an input with a warning' }))];
+      const top = lev ? (lev.top_univariate_signals || []).slice(0, 6) : [];
+      const rules = lev ? lev.heuristic_rules || {} : {};
+      const strong = rules.strong_univariate_signal;
+      const sig = top.length ? charts.barsH(top.map(t => ({ label: short(t.feature), value: t.signal, valueText: fmt(t.signal, 3), cls: strong != null && t.signal >= strong ? 'bad' : '' })),
+        { width: 340, labelW: 112, valW: 52, min: top.every(t => t.signal >= 0.5) ? 0.5 : 0, max: 1, rowH: 24, ref: strong, refLabel: strong != null ? 'review' : '', tickFmt: v => v.toFixed(1), aria: 'Strongest single-column signals' }) : '';
+      const basis = top.some(t => t.auc_basis) ? 'Categories are scored by their in-sample positive rate. ' : '';
+      const moment = F.sol.prediction_moment || 'the prediction moment';
+      const right = `<div class="panel" data-f="audit.verdict">
+        <div class="panel-head"><h3>${open.length ? 'Open question for the owner' : 'No open question'}</h3>${open.length ? `<span class="pill warn">${esc(short(open[0].col, 20))}${open.length > 1 ? ' +' + (open.length - 1) : ''}</span>` : '<span class="pill ok">nothing waits</span>'}</div>
+        <div class="panel-body small stack tight">
+          ${open.map(o => `<p>${code(o.col)} · ${esc(o.why)}${/[.?!]$/.test(o.why.trim()) ? '' : '.'} If its value is written after “${esc(moment)}”, the model learns from the future. Until the owner answers, it ${o.kind}.</p>`).join('')}
+          ${!open.length && lev ? `<p>No column waits on the owner. A single column is flagged for review at a signal of ${strong != null ? fmt(strong, 2) : '—'}${F.forb.length ? '; no column outside the solution\'s forbidden list got there' : '; none got there'}.</p>` : ''}
+          ${top.length ? `<div class="eyebrow">Strongest single columns</div><div>${sig}</div><div class="xs muted">${basis}A strong signal alone is not a leak: a real driver is expected to be predictive ${rc('DCLAB-R05')}.</div>` : ''}
+          ${!lev ? '<div class="xs muted">The single-column scan and the synthetic canary run with the leakage stage.</div>' : ''}
+          ${open.length ? '<a class="btn sm" href="#solution/owner">Answer in the owner worksheet</a>' : ''}
+        </div>
+      </div>`;
+      return `<div class="panel" data-f="audit.ablation" data-tour="ablation">
+          <div class="panel-head"><div class="panel-title"><h3>How much the leak lies</h3><span class="sub">${sub}</span></div></div>
+          <div class="panel-body stack tight">${left}</div>
+        </div>${right}`;
+    }
+    function edaReal(p, F) {
+      const { dev, sol } = F;
+      const head = `<div class="panel-head"><div class="panel-title"><h2>Train-only look at the data</h2><span class="sub">${dev ? `Profiles of the ${int(dev.train_rows)} training rows only; the holdout's labels stay sealed.` : 'Profiles of the training rows only.'} Patterns here are questions, never promoted features.</span></div><span class="pill outline">${dev ? 'computed by the data stage' : 'not computed yet'}</span></div>`;
+      if (!dev) return head + `<div class="panel-body">${runBox(p, 'data', 'Not measured for this project yet: run the data stage.')}</div>`;
+      const ts = dev.target_summary || {}, p0 = v => (v * 100).toFixed(0) + '%';
+      const profs = (dev.feature_profiles || []).filter(f => f.role === 'feature');
+      let c1, n1;
+      if (ts.positives_train != null) {
+        const tot = ts.positives_train + ts.negatives_train;
+        c1 = charts.barsH([
+          { label: short(`${sol.target || 'target'} = ${ts.positive_label != null ? ts.positive_label : 'yes'}`, 14), value: ts.positives_train / tot, valueText: `${pct(ts.positive_rate_train)} · ${int(ts.positives_train)}`, cls: 'proof' },
+          { label: 'the rest', value: ts.negatives_train / tot, valueText: `${pct(1 - ts.positive_rate_train)} · ${int(ts.negatives_train)}` },
+        ], { width: 300, labelW: 98, valW: 92, min: 0, max: 1, rowH: 26, ticks: [0, 0.5, 1], tickFmt: p0, aria: 'Outcome balance in the training rows' });
+        n1 = `Predicting the majority class already scores ${pct(ts.majority_baseline_accuracy_train)} accuracy, so accuracy alone cannot judge this model.`;
+      } else {
+        const kv = Object.entries(ts).filter(([, v]) => typeof v === 'number').slice(0, 6);
+        c1 = kv.length ? `<dl class="kv">${kv.map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="mono">${Math.abs(v) < 10 ? fmt(v, 3) : int(Math.round(v))}</dd>`).join('')}</dl>` : '<span class="faint">No target summary recorded.</span>';
+        n1 = 'Summary of the target on the training rows.';
+      }
+      const tops = profs.slice().sort((a, b) => b.top_value_frequency - a.top_value_frequency).slice(0, 5);
+      const c2 = tops.length ? charts.barsH(tops.map(f => ({ label: short(f.feature, 14), value: f.top_value_frequency, valueText: pct(f.top_value_frequency), cls: f.top_value_frequency > 0.95 ? 'proof' : '' })),
+        { width: 300, labelW: 98, valW: 52, min: 0, max: 1, rowH: 24, ticks: [0, 0.5, 1], tickFmt: p0, aria: 'Share of the most common value per column' }) : '<span class="faint">No input profiles.</span>';
+      const n2 = tops.length ? `${code(tops[0].feature)} holds one value on ${pct(tops[0].top_value_frequency)} of rows.${tops[0].top_value_frequency > 0.95 ? ' A near-constant column carries little signal.' : ''}` : '';
+      const psi = profs.filter(f => f.train_vs_holdout_psi != null).sort((a, b) => b.train_vs_holdout_psi - a.train_vs_holdout_psi).slice(0, 5);
+      let c3, n3, t3;
+      if (psi.length) {
+        const mx = Math.max(0.25, psi[0].train_vs_holdout_psi * 1.1);
+        t3 = 'Train vs holdout drift (PSI)';
+        c3 = charts.barsH(psi.map(f => ({ label: short(f.feature, 14), value: f.train_vs_holdout_psi, valueText: fmt(f.train_vs_holdout_psi, 3), cls: f.train_vs_holdout_psi > 0.2 ? 'bad' : '' })),
+          { width: 300, labelW: 98, valW: 52, min: 0, max: mx, rowH: 24, ref: 0.2, refLabel: '0.20', tickFmt: v => v.toFixed(2), aria: 'Population stability between training and holdout inputs' });
+        n3 = `Largest: ${code(psi[0].feature)} at ${fmt(psi[0].train_vs_holdout_psi, 3)}. Above 0.20 is flagged. Input distributions only; no holdout labels are read.`;
+      } else {
+        const miss = profs.slice().sort((a, b) => b.missing_rate - a.missing_rate).slice(0, 5);
+        t3 = 'Missing values by column';
+        c3 = miss.length ? charts.barsH(miss.map(f => ({ label: short(f.feature, 14), value: f.missing_rate, valueText: pct(f.missing_rate, 2) })), { width: 300, labelW: 98, valW: 52, min: 0, max: Math.max(0.05, miss[0].missing_rate * 1.1), rowH: 24, tickFmt: p0, aria: 'Missing share per column' }) : '';
+        n3 = 'No drift score was recorded for these inputs.';
+      }
+      const dup = dev.duplicate_feature_rows_train || 0, risks = Object.keys(dev.risk_features || {});
+      return head + `<div class="panel-body grid g3">
+          <div class="stack tight"><b class="small">Outcome in the training rows</b><div>${c1}</div><span class="xs muted">${n1}</span></div>
+          <div class="stack tight"><b class="small">Most common value per column</b><div>${c2}</div><span class="xs muted">${n2}</span></div>
+          <div class="stack tight"><b class="small">${t3}</b><div>${c3}</div><span class="xs muted">${n3}</span></div>
+        </div>
+        <div class="panel-foot"><span class="pill ${dup ? 'warn' : 'ok'}">${dup ? int(dup) + ' repeated input rows' : 'no repeated input rows'}</span> Missing cells: ${pct(dev.missing_cell_rate_train, 2)} of training cells. ${risks.length ? `Review rules fired on ${risks.map(code).join(', ')}.` : 'No column triggered a review rule.'} Missing values are a state to model, not only to fill ${rc('DCLAB-R12')}; every imputer and encoder is fitted inside the training folds ${rc('DCLAB-R03')}.</div>`;
+    }
+    function ladderReal(p, F) {
+      const r = F.R.features;
+      const head = n => `<div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">${n ? n + ' recipes' : 'Recipes'}, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${rc('DCLAB-R07')}</div>`;
+      if (!r) { LAD = null; return head(0) + `<div class="panel-body">${runBox(p, 'features', 'Not measured for this project yet: run the features stage.')}</div>`; }
+      const ev = r.evidence || {}, m = r.primary_metric || F.metric, dec = r.decision || {};
+      const opts = (dec.options && dec.options.length ? dec.options : (ev.stage_results || []).map(x => ({ id: x.recipe, label: x.recipe, description: x.description, features: x.feature_count_mean, mean: (x.metrics[m] || {}).mean, std: (x.metrics[m] || {}).std, elapsed_seconds: x.elapsed_seconds })))
+        .filter(o => o.mean != null);
+      if (!opts.length) { LAD = null; return head(0) + '<div class="empty">The features record lists no recipe scores.</div>'; }
+      const rule = ev.selection_rule || dec.rule || '';
+      const rel = /\(relative\)/.test(rule), mt = rule.match(rel ? /within ([\d.]+)%/ : /within ([\d.]+) of/);
+      const tol = mt ? (rel ? +mt[1] / 100 : +mt[1]) : 0.002;
+      const max = rel ? 0.05 : Math.max(0.01, tol * 5), step = rel ? 0.0025 : max / 20;
+      LAD = { opts, m, higher: !LOWER.has(m), tol, rel, selected: ev.selected_recipe || dec.selected, chosen: dec.chosen || ev.selected_recipe, ref: ev.reference_recipe };
+      return head(opts.length) + `<div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ${esc(mlabel(m))}</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
+        <div class="panel-body stack tight">
+          <div class="row"><label for="tol" class="small strong" data-style="color:var(--ink)">Declared tolerance</label><input type="range" id="tol" min="0" max="${max}" step="${step}" value="${tol}" data-style="flex:1;min-width:160px"><span class="mono small" id="tol-val"></span></div>
+          <div id="tol-out"></div>
+          <div class="xs muted">Rule recorded by the stage: ${esc(rule)}</div>
+        </div>`;
+    }
+    function drawRealLadder() {
+      const L = LAD;
+      if (!L || !$('#tol', el)) return;
+      const tol = Number($('#tol', el).value);
+      const show = v => (L.rel ? (v * 100).toFixed(2) + '%' : v.toFixed(4));
+      $('#tol-val', el).textContent = show(tol);
+      const means = L.opts.map(o => o.mean), best = L.higher ? Math.max(...means) : Math.min(...means);
+      const slack = L.rel ? Math.abs(best) * tol : tol;
+      const ok = L.opts.filter(o => (L.higher ? o.mean >= best - slack - 1e-12 : o.mean <= best + slack + 1e-12));
+      const pick = ok.reduce((a, b) => (b.features < a.features || (b.features === a.features && (b.elapsed_seconds || 0) < (a.elapsed_seconds || 0)) ? b : a));
+      $('#ladder-table tbody', el).innerHTML = L.opts.map(o => `<tr class="${o === pick ? 'selected' : ''}"><td><span class="cell-main">${esc(o.label || o.id)}</span>${o === pick ? ' <span class="pill accent">chosen</span>' : ''}${o.description ? `<div class="cell-sub">${esc(o.description)}</div>` : ''}</td><td class="num">${int(Math.round(o.features || 0))}</td><td class="num mono">${fmt(o.mean)}</td><td class="num mono">±${fmt(o.std)}</td><td>${ok.includes(o) ? '<span class="yes">✓</span>' : '<span class="no">—</span>'}</td></tr>`).join('');
+      const declared = Math.abs(tol - L.tol) < 1e-9;
+      const refO = L.opts.find(o => o.id === L.ref) || L.opts[0];
+      const gain = L.higher ? pick.mean - refO.mean : refO.mean - pick.mean;
+      const spread = Math.max(...L.opts.map(o => o.std || 0));
+      $('#tol-out', el).innerHTML = `<div class="callout ${declared ? 'info' : 'warn'}"><span class="ic">${icon(declared ? 'info' : 'alert')}</span><span>${declared
+        ? `With the declared ${show(L.tol)} the rule picks <b>${esc(pick.label || pick.id)}</b> (${int(Math.round(pick.features || 0))} features, ${signed(gain)} over ${esc(refO.label || refO.id)})${pick.id === L.selected ? ', which is what the stage recorded' : `; the stage recorded <b>${esc(L.selected)}</b>`}.${L.chosen && L.chosen !== L.selected ? ` You approved <b>${esc(L.chosen)}</b> instead.` : ''} ${pick !== refO && Math.abs(gain) < spread ? 'The gain is smaller than the fold spread, so the ladder cannot separate these recipes.' : ''}`
+        : `With ${show(tol)} the rule would pick <b>${esc(pick.label || pick.id)}</b> (${int(Math.round(pick.features || 0))} features). Changing the tolerance after seeing the results is logged as a protocol change and needs a reason ${rc('DCLAB-R07')}.`}</span></div>`;
+      DC.hydrate(el);
+    }
+    function lineageReal(p, F) {
+      const fin = F.fin, fe = F.R.features;
+      let feats = [], src = '';
+      if (fin && (fin.top_final_features || []).length) { feats = fin.top_final_features.map(t => ({ f: t.feature, imp: t.normalized_importance })); src = `the final model (${esc(fin.model)}, ${esc(fin.feature_recipe)} recipe)`; }
+      else if (fe) {
+        const ev = fe.evidence || {}, sel = (ev.stage_results || []).find(r => r.recipe === ev.selected_recipe) || {};
+        feats = (sel.top_features || []).map(t => ({ f: t.feature, imp: t.mean_normalized_importance }));
+        src = `the ${esc(ev.selected_recipe)} recipe in the features stage; the final stage has not run`;
+      }
+      const head = '<div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>';
+      if (!feats.length) return head + `<div class="panel-body">${runBox(p, fe ? 'final' : 'features', 'Not measured for this project yet: lineage needs a fitted model.')}</div>`;
+      const kinds = Object.fromEntries(F.prof.map(c => [c.name, c.kind]));
+      const names = F.prof.map(c => c.name).sort((a, b) => b.length - a.length);
+      const codes = new Set((F.fev && F.fev.category_code_columns) || []), forb = new Set(F.forb.map(f => f.column)), flagged = new Set(F.flagged.map(f => f.feature));
+      const dprof = Object.fromEntries(((F.dev || {}).feature_profiles || []).map(x => [x.feature, x]));
+      const parse = n => {
+        const eq = n.indexOf('=');
+        if (eq > 0 && kinds[n.slice(0, eq)]) return { base: [n.slice(0, eq)], how: `category ${code(n.slice(0, eq))} = ${esc(n.slice(eq + 1))}, one-hot fitted per fold`, op: 'onehot' };
+        if (kinds[n]) return { base: [n], how: `${esc(kinds[n])} input as given`, op: 'raw' };
+        const parts = n.split('*');
+        if (parts.length > 1 && parts.every(x => kinds[x])) return { base: parts, how: 'product of ' + parts.map(code).join(' and '), op: 'arith' };
+        const base = names.filter(c => n.includes(c)).slice(0, 2);
+        return { base, how: base.length ? 'derived from ' + base.map(code).join(', ') : 'derived feature', op: 'derived' };
+      };
+      const items = feats.slice(0, 6).map(({ f, imp }) => {
+        const x = parse(f);
+        let st = 'ok', note = 'Source column not forbidden and not flagged for review';
+        const risky = x.base.map(b => dprof[b]).filter(Boolean).find(d => (d.production_risks || []).length || (d.train_vs_holdout_psi || 0) > 0.2 || d.missing_rate > 0.05);
+        if (x.base.some(b => forb.has(b))) { st = 'bad'; note = 'Built from a forbidden column: it should not be in the model. Rerun from the leakage stage.'; }
+        else if (x.op !== 'onehot' && x.op !== 'raw' && x.base.some(b => codes.has(b))) { st = 'bad'; note = 'Arithmetic on a category code has no meaning. Encode the category inside the folds instead.'; }
+        else if (x.base.some(b => flagged.has(b))) { st = 'warn'; note = 'Its source column was flagged by the leakage scan and waits for the owner.'; }
+        else if (risky) { st = 'warn'; note = (risky.production_risks || []).length ? 'Production risk: ' + risky.production_risks.join(', ').replace(/_/g, ' ') : (risky.train_vs_holdout_psi || 0) > 0.2 ? `Drifts between training and holdout (PSI ${fmt(risky.train_vs_holdout_psi, 3)}).` : `Missing on ${pct(risky.missing_rate)} of training rows.`; }
+        return `<div class="list-item"><div class="li-main"><span class="li-title"><code>${esc(f)}</code> <span class="xs muted">${imp != null ? pct(imp) + ' of importance' : ''}</span></span><span class="li-sub">${x.how} · ${x.base.some(b => forb.has(b)) ? 'written after the moment' : 'known at the moment'}</span><span class="xs" data-style="color:var(--${st === 'ok' ? 'muted' : st})">${esc(note)}</span></div><span class="pill ${st}">${st === 'ok' ? 'clean' : st === 'bad' ? 'fix' : 'watch'}</span></div>`;
+      }).join('');
+      return head + `<div class="list small" id="lineage-list">${items}<div class="list-item"><div class="li-main"><span class="xs muted">Top features come from ${src}. Importance only nominates; a feature is promoted when its availability, stability and meaning check out ${rc('DCLAB-R10')} ${rc('DCLAB-R11')}.</span></div></div></div>`;
+    }
+    function criticReal(p, F) {
+      const notes = STAGES.flatMap(s => ((F.R[s] || {}).notes || []).map(n => Object.assign({ stage: s }, n)));
+      const crit = notes.filter(n => ['warning', 'high', 'critical'].includes(n.severity) || n.source === 'llm');
+      const ran = STAGES.filter(s => F.R[s]).length;
+      const head = `<div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">Warnings each stage wrote from its recorded numbers. An LLM critique, when configured, stays advisory.</span></div>${rc('DCLAB-R20')}</div>`;
+      if (!ran) return { n: 0, html: head + `<div class="panel-body">${runBox(p, 'data', 'No stage has run yet, so there is nothing to review.')}</div>` };
+      if (!crit.length) return { n: 0, html: head + `<div class="empty">No warning or critical note in this project's ${ran} completed stage${ran === 1 ? '' : 's'}. ${notes.length} information note${notes.length === 1 ? ' was' : 's were'} written; the Notebook shows them next to each stage.</div>` };
+      const SEV = { critical: 'high', high: 'high', warning: 'medium' };
+      return {
+        n: crit.length,
+        html: head + `<div class="list" id="critic-list">${crit.map(n => `<div class="list-item"><span class="sev ${n.source === 'llm' ? 'low' : SEV[n.severity] || 'info'}">${n.source === 'llm' ? 'advisory' : esc(n.severity)}</span><div class="li-main"><span class="small" data-style="color:var(--ink-2)"><b>${esc(n.title)}${/[.?!:]$/.test(n.title || '') ? '' : '.'}</b> ${DC.linkIds(n.text || '')}</span><span class="row small"><span class="pill outline">${esc(n.stage)} stage</span>${n.action ? `<span class="muted">Next: ${esc(n.action)}</span>` : ''}</span></div>${chips((n.proof || []).filter(id => DC.REC[id]).slice(0, 3))}</div>`).join('')}</div>`,
+      };
+    }
+
+    function renderReal(p) {
+      const keepTol = mode === 'real' && real && real.id === p.id && $('#tol', el) ? $('#tol', el).value : null;
+      real = p; mode = 'real';
+      const F = facts(p);
+      $('#aud-head', el).innerHTML = headReal(p);
+      $('#aud-stats', el).innerHTML = statsReal(p, F);
+      const mx = matrixReal(p, F);
+      $('#avail-table tbody', el).innerHTML = mx.rows;
+      $('#aud-matrix-foot', el).innerHTML = mx.foot;
+      $('#aud-leaks', el).innerHTML = leaksReal(p, F);
+      $('#aud-eda', el).innerHTML = edaReal(p, F);
+      $('#aud-ladder', el).innerHTML = ladderReal(p, F);
+      if (LAD) { if (keepTol != null && $('#tol', el)) $('#tol', el).value = keepTol; drawRealLadder(); }
+      $('#aud-lineage', el).innerHTML = lineageReal(p, F);
+      const cr = criticReal(p, F);
+      $('#aud-critic', el).innerHTML = cr.html;
+      const n = $('.ptab[data-ptab="critic"] .n', el);
+      if (n) n.textContent = String(cr.n);
+      DC.hydrate(el);
+      if (busy(p)) watch();
+    }
+    function restoreSample() {
+      if (stopPoll) { stopPoll(); stopPoll = null; }
+      real = null; LAD = null;
+      if (mode === 'sample') return;
+      mode = 'sample';
+      SNAP.forEach(id => { $('#' + id, el).innerHTML = SAMPLE[id]; });
+      const n = $('.ptab[data-ptab="critic"] .n', el);
+      if (n) n.textContent = '5';
+      drawSample();
+    }
+    function watch() {
+      if (stopPoll) return;
+      stopPoll = DC.poll(async () => {
+        if (DC.state.view !== 'audit' || mode !== 'real') { stopPoll = null; return true; }
+        const p = await DC.currentProject.get(true);
+        if (!p) { stopPoll = null; return true; }
+        const still = busy(p);
+        if (!still) stopPoll = null;
+        renderReal(p);
+        return !still;
+      }, 1500);
+    }
+
+    el.addEventListener('input', e => { if (e.target.id === 'tol') (mode === 'real' ? drawRealLadder() : drawLadder()); });
+    el.addEventListener('click', async e => {
+      const run = e.target.closest('[data-run-stage]');
+      if (!run || !real) return;
+      run.disabled = true;
+      try { await DC.api(`/projects/${real.id}/stages/${run.dataset.runStage}/run`, { method: 'POST' }); DC.toast(`Started the ${run.dataset.runStage} stage. This page updates when it finishes.`); }
+      catch (err) { DC.toast(err.message, { ok: false }); }
+      DC.currentProject.clear(); watch();
+    });
+    this.renderReal = renderReal;
+    this.restoreSample = restoreSample;
+  },
+  async enter(el) {
+    let p = null;
+    try { p = await DC.currentProject.get(); } catch (e) { console.warn('audit: could not load the project', e); }
+    DC.markSample(!p);
+    if (p) this.renderReal(p); else this.restoreSample();
   },
 });
 </script>

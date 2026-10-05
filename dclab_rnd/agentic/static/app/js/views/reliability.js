@@ -1,7 +1,8 @@
 DC.view('reliability', {
   init(el) {
-    const { $, chip, icon, charts, binormal, int } = DC;
+    const { $, $$, esc, chip, icon, charts, binormal, int } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    /* ---------- sample mode (no real project open): the term-deposit demo, unchanged ---------- */
     const B = DEMO.bank;
     $('#holdout-ci', el).innerHTML = charts.barsH([{ label: 'holdout ROC-AUC', value: B.holdoutAuc, lo: B.holdoutLo, hi: B.holdoutHi, valueText: '0.7718', strong: true }, { label: 'training CV (C02)', value: 0.7523, valueText: '0.7523', cls: 'soft' }],
       { width: 520, labelW: 120, valW: 56, min: 0.5, max: 0.9, rowH: 26, ref: 0.5, ticks: [0.5, 0.6, 0.7, 0.8, 0.9], tickFmt: v => v.toFixed(1), aria: 'Holdout ROC-AUC with interval' });
@@ -18,13 +19,256 @@ DC.view('reliability', {
       { label: 'age 61+', value: 0.70, lo: 0.42, hi: 0.94, valueText: 'not enough rows', cls: 'muted' },
       { label: 'past success', value: 0.66, lo: 0.40, hi: 0.90, valueText: 'not enough rows', cls: 'muted' },
     ], { width: 380, labelW: 120, valW: 104, min: 0.4, max: 1.0, rowH: 26, ref: 0.7718, ticks: [0.4, 0.6, 0.8, 1.0], tickFmt: v => v.toFixed(1), aria: 'ROC-AUC by slice' });
-    $('#seal-preview', el).addEventListener('click', () => DC.modal.open({
+    const sampleSeal = () => DC.modal.open({
       eyebrow: '<span class="eyebrow">WF-09 · holdout</span>', title: 'Open the holdout, once', confirm: 'Already used for this project', confirmDisabled: true,
       html: `<p>This reads 800 rows nobody has used. The number you get is final for this project: it cannot be used to choose or tune anything afterwards ${chip('PIT-006')}.</p>
         <ul class="plan-list"><li class="done"><span class="pi">✓</span><span>Solution v2 is signed</span></li><li class="done"><span class="pi">✓</span><span>Feature recipe locked: ratios</span></li><li class="done"><span class="pi">✓</span><span>Model locked: extra_trees C02</span></li><li class="done"><span class="pi">✓</span><span>Tuning decided on training folds only</span></li><li class="done"><span class="pi">✓</span><span>No earlier read of these rows</span></li></ul>
         <div class="field"><label for="seal-type">Type the project name to confirm</label><input id="seal-type" type="text" value="Term-deposit calls" disabled></div>
         <div class="callout info"><span class="ic">${icon('info')}</span><span>In this demo the holdout was opened on Oct 2. The dialog is shown read-only.</span></div>`,
-    }));
+    });
+    let real = null;  // the open real project; null in sample mode
+    $('#seal-preview', el).addEventListener('click', () => (real ? realSeal(real) : sampleSeal()));
     DC.hydrate(el);
+    // every element real mode rewrites, as the sample left it
+    const SLOTS = $$('[data-slot]', el).map(n => [n, n.innerHTML, n.className]);
+    this.restoreSample = () => { real = null; SLOTS.forEach(([n, html, cls]) => { n.innerHTML = html; n.className = cls; }); DC.hydrate(el); };
+
+    /* ---------- real mode: the open project's final, data and leakage records ---------- */
+    const LABEL = { roc_auc: 'ROC-AUC', average_precision: 'average precision', macro_f1: 'macro-F1', mae: 'MAE', rmse: 'RMSE', r2: 'R²', accuracy: 'accuracy', balanced_accuracy: 'balanced accuracy', log_loss: 'log loss', brier: 'Brier score', mape: 'MAPE', bias: 'mean error' };
+    const LOWER = new Set(['mae', 'rmse', 'mape', 'log_loss', 'brier']);
+    const UNIT = new Set(['roc_auc', 'average_precision', 'macro_f1', 'accuracy', 'balanced_accuracy', 'f1', 'precision', 'recall']);
+    const ok = v => v != null && isFinite(v);
+    const num = (v, d) => { if (!ok(v)) return '—'; const a = Math.abs(v); const dd = d != null ? d : a >= 1000 ? 0 : a >= 100 ? 1 : a >= 10 ? 2 : 4; return Number(v).toLocaleString('en-US', { minimumFractionDigits: dd, maximumFractionDigits: dd }); };
+    const signed = v => (ok(v) ? (v >= 0 ? '+' : '−') + num(Math.abs(v)) : '—');
+    const pc = (v, d = 1) => (ok(v) ? (v * 100).toFixed(d) + '%' : '—');
+    const empty = text => `<div class="empty">${esc(text)}</div>`;
+    const evChips = (rec, n = 2, prefer = []) => {
+      const rank = id => (prefer.includes(id) ? prefer.indexOf(id) : prefer.length);
+      return [...new Set(((rec && rec.notes) || []).flatMap(x => x.proof || []))].filter(id => DC.REC[id]).map((id, i) => [id, rank(id), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).slice(0, n).map(x => chip(x[0])).join('');
+    };
+    const signedSolution = p => !!(((p.graph || {}).gates || []).find(g => g.gate === 'solution') || {}).approved;
+    const day = at => { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+    const binary = t => /binary/.test(t || '');
+    function scale(vals, unit, pad = 0.2, parts = 4) {
+      const v = vals.filter(ok);
+      let lo = Math.min(...v), hi = Math.max(...v);
+      const span = hi - lo || Math.abs(hi) * 0.1 || 0.01;
+      lo -= span * pad; hi += span * pad;
+      if (unit) { lo = Math.max(0, lo); hi = Math.min(1, hi); }
+      const raw = (hi - lo) / parts, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+      const step = (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag;
+      const min = +(Math.floor(lo / step + 1e-9) * step).toFixed(10), max = +(Math.ceil(hi / step - 1e-9) * step).toFixed(10);
+      const ticks = []; for (let t = min; t <= max + step * 1e-6; t += step) ticks.push(+t.toFixed(10));
+      const dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+      return { min, max, ticks, fmt: t => t.toFixed(dec) };
+    }
+    function stageNote(p, stage, what) {
+      const st = ((p.stages || {})[stage] || {}).status || 'pending', running = p.running && (p.running.stage || p.running);
+      if (running === stage || st === 'running' || st === 'queued') return `The ${stage} stage is running now. This page fills in when it finishes.`;
+      if (st === 'failed') return `The ${stage} stage failed. Run it again from the Workflow page${what ? ' to see ' + what : ''}.`;
+      if (stage === 'final' && Number(p.holdout_uses) > 0) return 'The earlier holdout result was cleared by a later change; running the final stage again reuses the holdout and needs a written reason.';
+      return `Not measured for this project yet: run the ${stage} stage${what ? ' to see ' + what : ''}.`;
+    }
+    function baselineFor(fe, metric) {
+      const b = fe.baselines || {}, mc = b.majority_class || {};
+      if (metric === 'roc_auc') return { v: ok(mc.roc_auc) ? mc.roc_auc : 0.5, name: 'no-skill ranking' };
+      if (metric === 'average_precision') return { v: mc.average_precision_random_ranking, name: 'random ranking' };
+      if (ok(mc[metric])) return { v: mc[metric], name: 'majority-class baseline' };
+      const tm = b.training_mean || {};
+      return ok(tm[metric]) ? { v: tm[metric], name: 'always predicting the training mean' } : { v: null, name: '' };
+    }
+    function build(p) {
+      const R = p.records || {}, f = R.final, fe = f && f.evidence;
+      const metric = (f && f.primary_metric) || (p.solution || {}).metric || (R.models && R.models.primary_metric) || 'roc_auc';
+      const task = (f && f.task_type) || (R.models && R.models.task_type) || (p.solution || {}).task || '';
+      const td = fe && fe.tuning_decision;
+      const cfg = td ? String(td.selected_config || '').replace(fe.model + '_', '') : '';
+      const opened = (p.transitions || []).filter(t => t.move === 'run_stage' && (t.args || {}).stage === 'final' && /^done/.test(t.outcome || '')).pop();
+      return { p, R, f, fe, metric, label: LABEL[metric] || metric, unit: UNIT.has(metric), higher: !LOWER.has(metric), task, binary: binary(task),
+        uses: Number(p.holdout_uses) || 0, cfg: cfg === 'baseline' ? 'defaults' : cfg, opened, gate: gate(p, fe, task) };
+    }
+    /* The production gate from the project itself (DCLAB-R22): what is recorded, what is missing. */
+    function gate(p, fe, task) {
+      const R = p.records || {}, le = R.leakage && R.leakage.evidence, sol = p.solution || {}, uses = Number(p.holdout_uses) || 0;
+      const prov = ((R.final || R.models || R.features || R.leakage || R.data) || {}).provenance || {};
+      const items = [];
+      items.push(prov.data_sha256 ? ['done', `Provenance recorded: data hash ${prov.data_sha256.slice(0, 12)}…${prov.sampling && prov.sampling.rule ? ', ' + prov.sampling.rule : ''}`] : ['todo', 'Provenance: recorded when the stages run (data hash, sampling rule)']);
+      if (!le) items.push(['todo', 'Leakage audit: not run yet']);
+      else items.push([le.detector_canary_passed || (le.detector_canary || {}).passed ? 'done' : 'blocked', le.detector_canary_passed || (le.detector_canary || {}).passed ? 'Leakage audit ran and caught its planted leak (canary)' : 'Leakage audit: the planted leak (canary) was not caught']);
+      const forb = [...new Set([...(sol.forbidden || []).map(x => (x && x.column) || x), ...(sol.identifiers || []), ...((le && le.declared_leakage_features) || [])].filter(Boolean))];
+      if (!fe) items.push(['todo', `No forbidden or identifier column in the model: checked when the final model is fitted${forb.length ? ' (' + forb.length + ' excluded)' : ''}`]);
+      else {
+        const sel = (fe.configuration_results || []).find(c => c.config_id === (fe.tuning_decision || {}).selected_config) || {};
+        const used = (fe.top_final_features || []).map(x => String(x.feature).split('=')[0]);
+        const hit = [...new Set([...used.filter(c => forb.includes(c)), ...(sel.include_blocked || [])])];
+        items.push(hit.length ? ['blocked', `Forbidden or identifier columns reached the model: ${hit.join(', ')}`]
+          : ['done', `No forbidden or identifier column in the model${forb.length ? ' (' + forb.join(', ') + ' excluded)' : ''}`]);
+      }
+      items.push(uses === 1 && fe ? ['done', 'Holdout used once, after every choice was locked'] : uses > 1 ? ['blocked', `Holdout used ${uses} times: later scores on it are optimistic (PIT-006)`] : uses === 1 ? ['blocked', 'Holdout used once, but the result was cleared by a later change'] : ['todo', 'Holdout used once: not opened yet']);
+      const ci = fe && fe.holdout_primary_metric_ci;
+      items.push(ci && ok(ci.low) && ok(ci.high) ? ['done', `Interval reported: 95% ${num(ci.low)}–${num(ci.high)} (${ci.method || 'bootstrap'}${ci.draws ? ', ' + ci.draws + ' draws' : ''})`] : ['todo', 'Interval reported: comes with the holdout result']);
+      if (binary(task) || !task) {
+        const bins = (fe && fe.calibration_bins) || [];
+        items.push(bins.length ? ['done', `Calibration measured: ${bins.length} bins, Brier ${num((fe.holdout_metrics || {}).brier)}`] : ['todo', 'Calibration measured: comes with the holdout result']);
+      }
+      items.push(['blocked', 'Independent confirmation on fresh data: not recorded']);
+      items.push(['blocked', 'Monitoring, fairness/privacy and rollback review: not recorded']);
+      items.push(fe && fe.production_approved === true ? ['done', 'Production approval recorded'] : ['blocked', 'Production approval: not given (production_approved is false) · research result, not production']);
+      return { items, done: items.filter(i => i[0] === 'done').length, total: items.length };
+    }
+    const gateHtml = G => G.items.map(([st, text]) => `<li class="${st === 'todo' ? '' : st}"><span class="pi">${st === 'done' ? '✓' : st === 'blocked' ? '!' : ''}</span><span>${DC.linkIds(text)}</span></li>`).join('');
+
+    function paint(V) {
+      const { p, fe, f } = V;
+      const hm = (fe && fe.holdout_metrics) || {}, ci = (fe && fe.holdout_primary_metric_ci) || {};
+      $('#rl-eyebrow', el).textContent = `${p.name} · WF-09`;
+      const pill = fe ? (V.uses > 1 ? `<span class="pill warn">holdout used ${V.uses} times</span>` : `<span class="pill ok">holdout used once · ${esc(day(f.completed_at))}</span>`)
+        : V.uses ? `<span class="pill warn">holdout used · result cleared</span>` : '<span class="pill outline">holdout sealed · not opened</span>';
+      $('#rl-title', el).innerHTML = `Reliability &amp; holdout ${pill}`;
+      // overview cards
+      const gateCard = `<div class="stat"><span class="v warn">${V.gate.done} <small>of ${V.gate.total}</small></span><span class="l">production gate checks done · research evidence is not production approval</span><div class="row"><button type="button" class="link-btn small" data-pane-go="gate">See the gate →</button></div></div>`;
+      if (!fe) {
+        const note = stageNote(p, 'final');
+        $('#rl-stats', el).innerHTML = `<div class="stat"><span class="v">—</span><span class="l">holdout ${esc(V.label)} · ${esc(note.replace(/^./, c => c.toLowerCase()))}</span></div>
+          <div class="stat"><span class="v">—</span><span class="l">second metric on the holdout</span></div><div class="stat"><span class="v">—</span><span class="l">probability quality on the holdout</span></div>${gateCard}`;
+      } else {
+        const cards = [`<div class="stat"><span class="v">${num(hm[V.metric])}</span><span class="l">holdout ${esc(V.label)} · 95% interval ${num(ci.low)}–${num(ci.high)} · ${int(fe.holdout_rows)} untouched rows</span></div>`];
+        if (V.binary) {
+          const other = V.metric === 'average_precision' ? 'roc_auc' : 'average_precision';
+          const bins = fe.calibration_bins || [], n = bins.reduce((s, b) => s + b.count, 0);
+          const ece = n ? bins.reduce((s, b) => s + b.count * Math.abs(b.predicted - b.observed), 0) / n : null;
+          cards.push(`<div class="stat"><span class="v">${num(hm[other])}</span><span class="l">${LABEL[other]} · at cut-off ${hm.threshold != null ? hm.threshold : 0.5}: precision ${num(hm.precision)}, recall ${num(hm.recall)}</span></div>`);
+          cards.push(`<div class="stat"><span class="v">${num(hm.brier)}</span><span class="l">Brier score${ok(ece) ? ` · calibration error (ECE, ${bins.length} bins) ${num(ece)}` : ` · log loss ${num(hm.log_loss)}`}</span></div>`);
+        } else if (/multiclass/.test(V.task)) {
+          const base = baselineFor(fe, V.metric);
+          cards.push(`<div class="stat"><span class="v">${num(hm.balanced_accuracy)}</span><span class="l">balanced accuracy · accuracy ${num(hm.accuracy)}</span></div>`);
+          cards.push(`<div class="stat"><span class="v">${num(hm.log_loss)}</span><span class="l">log loss (lower is better)${ok(base.v) ? ` · ${esc(base.name)} ${esc(V.label)} ${num(base.v)}` : ''}</span></div>`);
+        } else {
+          const second = V.metric === 'mae' ? 'rmse' : 'mae', base = baselineFor(fe, V.metric);
+          cards.push(`<div class="stat"><span class="v">${num(hm[second])}</span><span class="l">${LABEL[second]} · R² ${num(hm.r2)} · mean error ${num(hm.bias)}</span></div>`);
+          cards.push(`<div class="stat"><span class="v">${num(base.v)}</span><span class="l">${esc(V.label)} when ${esc(base.name || 'using a trivial baseline')} · the model's is ${num(hm[V.metric])}</span></div>`);
+        }
+        $('#rl-stats', el).innerHTML = cards.join('') + gateCard;
+      }
+      // holdout result
+      $('#rl-holdout-sub', el).textContent = fe ? `${fe.model} · ${V.cfg} · ${fe.feature_recipe} recipe · ${int(fe.holdout_rows)} untouched rows · ${ci.method || 'bootstrap'} 95% interval` : 'Opens once, after the recipe, the model and its tuning are locked';
+      $('#rl-holdout-ev', el).innerHTML = evChips(f, 2, ['DCLAB-R17', 'DCLAB-R18']) || chip('DCLAB-R17');
+      const who = V.opened ? (V.opened.actor === 'agent' ? 'by the intern' : 'by you') : '';
+      const stamp = $('#rl-stamp', el);
+      if (fe) { stamp.className = 'stamp' + (V.uses > 1 ? ' broken' : ''); stamp.innerHTML = `<span>${V.uses > 1 ? 'Opened ' + V.uses + '×' : 'Opened once'}</span><b>${esc(day(f.completed_at))}</b><span>${esc(who)}</span>`; }
+      else { stamp.className = 'stamp sealed'; stamp.innerHTML = `<span>${V.uses ? 'Used' : 'Sealed'}</span><b>${V.uses ? V.uses + '×' : '—'}</b><span>${V.uses ? 'result cleared' : 'not opened'}</span>`; }
+      if (fe && ok(hm[V.metric])) {
+        const base = baselineFor(fe, V.metric), cv = fe.cv_selected_metric_mean;
+        const sc = scale([ci.low, ci.high, hm[V.metric], cv, base.v], V.unit, 0.1);
+        const short = { roc_auc: 'ROC-AUC', average_precision: 'avg precision' }[V.metric] || V.label;
+        $('#holdout-ci', el).innerHTML = charts.barsH([{ label: `holdout ${short}`, value: hm[V.metric], lo: ci.low, hi: ci.high, valueText: num(hm[V.metric]), strong: true }, { label: `training CV (${V.cfg})`, value: cv, valueText: num(cv), cls: 'soft' }],
+          { width: 520, labelW: 140, valW: 60, min: sc.min, max: sc.max, rowH: 26, ref: ok(base.v) ? base.v : undefined, ticks: sc.ticks, tickFmt: sc.fmt, aria: `Holdout ${V.label} with interval` })
+          + `<p class="xs muted">Holdout minus training CV: ${signed(fe.cv_to_holdout_gap)}${V.higher ? '' : ' (positive means the holdout error is lower)'}.${ok(base.v) ? ` The line marks ${esc(base.name)} (${num(base.v)}).` : ''}</p>`;
+      } else $('#holdout-ci', el).innerHTML = empty(stageNote(p, 'final', 'the holdout result'));
+      const signed_ = signedSolution(p);
+      const td = fe && fe.tuning_decision;
+      $('#rl-seal-text', el).textContent = fe ? `Seal record: solution ${signed_ ? 'signed' : 'saved (not signed)'} · recipe ${fe.feature_recipe} and model ${fe.model} locked · tuning decided on training folds (${td && td.accepted ? V.cfg + ' kept' : 'defaults kept'}) · ${V.uses === 1 ? `first read of these ${int(fe.holdout_rows)} rows` : `read ${V.uses} times`}.`
+        : `Seal record: ${V.uses ? `the holdout was read ${V.uses === 1 ? 'once' : V.uses + ' times'}; that result was cleared by a later change` : 'the holdout has not been read'}.`;
+      paintPoints(V); paintProbabilities(V); paintStress(V);
+      // production gate
+      $('#rl-gate-pill', el).textContent = `${V.gate.done} of ${V.gate.total}`;
+      $('#rl-gate-list', el).innerHTML = gateHtml(V.gate);
+      $('#rl-gate-callout', el).innerHTML = `<span class="ic">${icon('info')}</span><span><b>Research result.</b> ${fe ? 'This project is not approved for production (production_approved is false).' : 'Nothing is approved for production.'} Approving the brief approves a pilot, not a launch ${chip('DCLAB-R22')}.</span>`;
+      const llm = (f && (f.notes || []).find(n => n.source === 'llm'));
+      const notes = ((f && f.notes) || []).filter(n => n.source !== 'llm').map((n, i) => [n, /holdout|production/i.test(n.title || '') ? 0 : 1, i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(x => x[0]);
+      $('#rl-critic-head', el).innerHTML = `<h3>${llm ? 'What the critic said' : 'What the record says'}</h3><span class="ev-list">${evChips(f, 2, ['DCLAB-R22', 'DCLAB-R17'])}</span>`;
+      $('#rl-critic-body', el).innerHTML = llm ? `<p>“${esc(llm.text)}”</p><p class="muted">Advisory: deterministic code owns the split, the metrics and the selection.</p>`
+        : notes.length ? notes.slice(0, 3).map(n => `<p><b>${esc(n.title)}.</b> <span class="muted">${esc(n.text)}</span></p>`).join('') : `<p class="muted">${esc(stageNote(p, 'final'))}</p>`;
+      DC.hydrate(el);
+    }
+    function paintPoints(V) {
+      const { p, fe } = V;
+      const rows = (fe && fe.threshold_analysis) || [];
+      const target = V.binary ? (p.solution || {}).target || 'positive' : 'positive';
+      $('#rl-op-head', el).innerHTML = `<th>Cut-off</th><th class="num">Flagged on the holdout</th><th class="num">Hit rate (precision)</th><th class="num">Share of all ${esc(target)} cases reached</th><th>Note</th>`;
+      if (!rows.length) {
+        $('#rl-points-sub', el).textContent = 'What flagging every score above a cut-off would mean, read from the holdout predictions.';
+        $('#op-table tbody', el).innerHTML = `<tr><td colspan="5">${empty(fe ? `Operating points apply to yes/no targets; this project's task is ${(p.solution || {}).task || V.task || 'not binary'}.` : stageNote(p, 'final', 'the operating points'))}</td></tr>`;
+        $('#rl-op-foot', el).textContent = '';
+        return;
+      }
+      const n = fe.holdout_rows, hm = fe.holdout_metrics || {}, pos = Math.round((hm.positive_rate || 0) * n), cut = hm.threshold != null ? hm.threshold : 0.5;
+      $('#rl-points-sub', el).textContent = `What flagging every score at or above each cut-off would mean on the ${int(n)} untouched holdout rows. Every row is measured.`;
+      $('#op-table tbody', el).innerHTML = rows.map(r => `<tr class="${r.threshold === cut ? 'selected' : ''}"><td>≥ ${r.threshold} · ${pc(r.alerts / n)} flagged</td><td class="num mono">${int(r.alerts)} of ${int(n)}</td><td class="num mono">${r.precision == null ? '—' : pc(r.precision)}</td><td class="num mono">${pc(r.recall)}</td><td>${r.threshold === cut ? '<span class="pill accent">default cut-off</span>' : r.alerts ? '<span class="pill ok">measured</span>' : '<span class="pill outline">nothing flagged</span>'}</td></tr>`).join('');
+      $('#rl-op-foot', el).textContent = `Read straight from the holdout predictions: ${int(n)} rows, ${int(pos)} of them ${target} cases (${pc(hm.positive_rate)}). A cut-off picked from this table should be confirmed on fresh data, because the holdout is already used.`;
+    }
+    function paintProbabilities(V) {
+      const { p, fe } = V;
+      const bins = (fe && fe.calibration_bins) || [];
+      $('#rl-calib-sub', el).textContent = 'Do 30% scores come true 30% of the time?';
+      $('#rl-slice-sub', el).textContent = `${V.label} by group, with intervals`;
+      if (bins.length) {
+        const hm = fe.holdout_metrics || {}, n = bins.reduce((s, b) => s + b.count, 0);
+        const ece = bins.reduce((s, b) => s + b.count * Math.abs(b.predicted - b.observed), 0) / n;
+        $('#rl-calib-pill', el).textContent = `measured · ${bins.length} bins`;
+        $('#calib-chart', el).innerHTML = charts.line([{ pts: bins.map(b => [b.predicted, b.observed]).sort((a, b) => a[0] - b[0]), dots: true }],
+          { width: 360, height: 220, xMin: 0, xMax: 1, yMin: 0, yMax: 1, diag: true, xLabel: 'predicted probability', yLabel: 'observed rate', xFmt: v => v.toFixed(1), yFmt: v => v.toFixed(1), xTicks: [0, 0.2, 0.4, 0.6, 0.8, 1], yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1], aria: 'Reliability curve' });
+        $('#rl-calib-note', el).innerHTML = `Brier ${num(hm.brier)} and log loss ${num(hm.log_loss)} on ${int(n)} holdout rows; calibration error over these bins ${num(ece)}. Rows per bin: ${bins.map(b => int(b.count)).join(' · ')}; bins with few rows are noisy ${DC.REC['DCLAB-R18'] ? chip('DCLAB-R18') : ''}.`;
+      } else {
+        $('#rl-calib-pill', el).textContent = 'not measured';
+        $('#calib-chart', el).innerHTML = empty(fe ? `Calibration bins are computed for yes/no targets only; this project's task is ${(p.solution || {}).task || V.task || 'not binary'}.` : stageNote(p, 'final', 'the calibration curve'));
+        $('#rl-calib-note', el).textContent = '';
+      }
+      $('#rl-slice-pill', el).textContent = 'not measured';
+      $('#slice-chart', el).innerHTML = empty('Not measured for this project yet: the engine does not score the holdout by group.');
+      $('#rl-slice-note', el).innerHTML = `Slices need a column to group by, such as a region, a source or a period ${DC.REC['DCLAB-R19'] ? chip('DCLAB-R19') : ''}.`;
+    }
+    function paintStress(V) {
+      const { p } = V;
+      const d = p.records && p.records.data, de = d && d.evidence, sol = p.solution || {};
+      if (!de) {
+        $('#rl-shift-h', el).textContent = 'Shift'; $('#rl-shift-pill', el).className = 'pill outline'; $('#rl-shift-pill', el).textContent = 'not measured';
+        $('#rl-shift-body', el).innerHTML = empty(stageNote(p, 'data', 'training-versus-holdout shift'));
+        $('#rl-miss-pill', el).className = 'pill outline'; $('#rl-miss-pill', el).textContent = 'not measured';
+        $('#rl-miss-body', el).innerHTML = empty(stageNote(p, 'data', 'missing rates'));
+        return;
+      }
+      const prof = (de.feature_profiles || []).filter(x => x.role === 'feature' || x.role === 'text');  // model inputs only
+      const psi = prof.filter(x => ok(x.train_vs_holdout_psi)).sort((a, b) => b.train_vs_holdout_psi - a.train_vs_holdout_psi);
+      const top = psi.length ? psi[0].train_vs_holdout_psi : null;
+      $('#rl-shift-h', el).textContent = sol.time_column ? 'Shift over time' : 'Shift: training vs holdout';
+      const shiftPill = $('#rl-shift-pill', el);
+      shiftPill.className = 'pill ' + (!psi.length ? 'outline' : top >= 0.25 ? 'bad' : top >= 0.1 ? 'warn' : 'ok');
+      shiftPill.textContent = !psi.length ? 'not measured' : top >= 0.25 ? 'large shift' : top >= 0.1 ? 'moderate shift' : 'PSI below 0.1';
+      const why = sol.time_column ? `<p>Holdout: ${esc(de.holdout_split || 'the latest rows')}, ordered by <code>${esc(sol.time_column)}</code>, so PSI shows how much later rows differ from earlier ones.</p>`
+        : `<p>Holdout: ${esc(de.holdout_split || 'a random split')}. It is not later in time, so this compares training rows with holdout rows, not past with future. No time column is declared, so a forward-in-time test is not possible yet ${DC.REC['PIT-005'] ? chip('PIT-005') : ''}.</p>`;
+      const shown = psi.slice(0, 8);
+      $('#rl-shift-body', el).innerHTML = (shown.length ? charts.barsH(shown.map(x => ({ label: x.feature, value: x.train_vs_holdout_psi, valueText: x.train_vs_holdout_psi.toFixed(3), cls: x.train_vs_holdout_psi >= 0.25 ? 'bad' : x.train_vs_holdout_psi >= 0.1 ? 'warn' : 'soft' })),
+        (() => { const sc = scale([0, top, 0.1], false, 0.05, 3); return { width: 380, labelW: 120, valW: 56, min: 0, max: sc.max, rowH: 24, ref: 0.1, refLabel: '0.1', ticks: sc.ticks, tickFmt: sc.fmt, aria: 'PSI between training and holdout per feature' }; })())
+        : '') + why + `<p class="muted">PSI is measured for numeric columns with enough distinct values (${psi.length} of ${prof.length} features). Under 0.1 is usually read as stable, 0.1–0.25 as a moderate shift.</p>`;
+      const gaps = prof.filter(x => x.missing_rate > 0).sort((a, b) => b.missing_rate - a.missing_rate);
+      const missPill = $('#rl-miss-pill', el);
+      missPill.className = 'pill ' + (gaps.length ? 'outline' : 'ok');
+      missPill.textContent = gaps.length ? `${gaps.length} column${gaps.length === 1 ? '' : 's'} with gaps` : 'no gaps';
+      $('#rl-miss-body', el).innerHTML = `<p>${de.missing_cell_rate_train ? pc(de.missing_cell_rate_train, 2) + ' of training cells are missing. ' : ''}${gaps.length ? 'Columns with gaps in the training rows: ' + gaps.slice(0, 6).map(x => `<code>${esc(x.feature)}</code> ${pc(x.missing_rate, 2)}`).join(', ') + (gaps.length > 6 ? ` and ${gaps.length - 6} more` : '') + '.' : 'No model input has gaps in the training rows.'}</p>
+        <p class="muted">Not measured for this project yet: the masking test (how much the score drops when a column is missing at prediction time, with an interval) has not run ${chip('DCLAB-R12')}.</p>`;
+    }
+    function realSeal(V) {
+      const { p, fe } = V, R = V.R, done = s => ['completed', 'approved'].includes(((p.stages || {})[s] || {}).status);
+      const signed_ = signedSolution(p);
+      const td = fe && fe.tuning_decision;
+      const li = (okv, text) => `<li class="${okv ? 'done' : 'blocked'}"><span class="pi">${okv ? '✓' : '!'}</span><span>${esc(text)}</span></li>`;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">WF-09 · holdout</span>', title: 'Open the holdout, once', confirm: fe || V.uses ? 'Already used for this project' : 'Opens from the Workflow page', confirmDisabled: true,
+        html: `<p>This reads ${fe ? int(fe.holdout_rows) : 'the'} rows nobody has used. The number you get is final for this project: it cannot be used to choose or tune anything afterwards ${chip('PIT-006')}.</p>
+          <ul class="plan-list">${li(signed_, signed_ ? 'Solution is signed' : 'Solution is saved but not signed')}${li(done('features'), `Feature recipe locked${R.features && R.features.evidence ? ': ' + (R.features.decision && R.features.decision.chosen || R.features.evidence.selected_recipe) : ''}`)}${li(done('models'), `Model locked${R.models && R.models.evidence ? ': ' + ((R.models.decision || {}).chosen || R.models.evidence.selected_model) : ''}`)}${li(!!td, td ? `Tuning decided on training folds only (${td.accepted ? V.cfg + ' kept' : 'defaults kept'})` : 'Tuning decided on training folds only')}${li(V.uses <= 1, V.uses <= 1 ? 'No earlier read of these rows' : `Read ${V.uses} times`)}</ul>
+          <div class="field"><label for="seal-type">Type the project name to confirm</label><input id="seal-type" type="text" value="${esc(p.name)}" disabled></div>
+          <div class="callout info"><span class="ic">${icon('info')}</span><span>${fe ? `The holdout of this project was opened on ${esc(day(V.f.completed_at))}${V.opened ? ' ' + (V.opened.actor === 'agent' ? 'by the intern' : 'by you') : ''}. The dialog is shown read-only.` : 'The final stage opens the holdout; run it from the Workflow page. This dialog is shown read-only.'}</span></div>`,
+      });
+    }
+    this.renderReal = p => { real = build(p); paint(real); };
+  },
+  async enter(el) {
+    let p = null;
+    try { p = await DC.currentProject.get(); } catch (e) { p = null; }
+    DC.markSample(!p);
+    if (p) this.renderReal(p); else this.restoreSample();
+    clearTimeout(this.timer);
+    if (p && p.running) this.timer = setTimeout(() => { if (DC.state.view === 'reliability') { DC.currentProject.clear(); this.enter(el); } }, 3000);
   },
 });

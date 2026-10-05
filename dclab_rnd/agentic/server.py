@@ -345,6 +345,25 @@ def create_app(home=None):
         studio_graph.capture(projects, project_id, "human")
         text = studio_export.dumps_notebook(studio_export.notebook(p, projects.records(project_id)))
         return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})
+    @app.get("/api/projects/{project_id}/review")
+    async def review_project_notebook(project_id: str):
+        """The notebook copilot's review of the project's exported notebook, in the demo's review shape.
+        Read-only: unlike the export route it logs no capture move and saves nothing."""
+        p = project(project_id)
+        if not p.get("solution"): raise HTTPException(409, "Nothing to review yet: save the solution first")
+        text = studio_export.dumps_notebook(studio_export.notebook(p, projects.records(project_id)))
+        def review():
+            import tempfile
+            from ..copilot import review_notebook
+            with tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "notebook.ipynb"
+                path.write_text(text, encoding="utf-8")
+                report = review_notebook(path)
+            keys = ("detector", "severity", "cell", "line", "title", "message", "suggestion", "rules")
+            return {"summary": report["summary"], "cells": [{"type": c["type"], "source": c["source"]} for c in report["cells"]],
+                    "findings": [{**{k: f.get(k) for k in keys}, "proof": [r["record_id"] for r in f.get("proof", [])]} for f in report["findings"]],
+                    "limitations": report.get("limitations", [])}
+        return await asyncio.to_thread(review)
     @app.get("/api/projects/{project_id}/export/report")
     async def export_report(project_id: str):
         p = project(project_id)

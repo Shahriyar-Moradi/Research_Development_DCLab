@@ -251,7 +251,7 @@ DC.view('project', {
       const next = (g.moves || []).find(m => m.move === 'run_stage' && m.status === 'allowed' && (p.stages[m.stage] || {}).status !== 'completed');
       const running = p.running && (p.running.stage || p.running);
       const actions = running ? `<button type="button" class="btn" disabled>Running ${esc(String(running))}…</button>`
-        : `${next ? `<button type="button" class="btn primary" data-run-stage="${esc(next.stage)}">Run the ${esc(next.stage)} stage</button><button type="button" class="btn" data-run-all="1">Run all remaining</button>` : ''}<a class="btn" href="/classic#project/${esc(p.id)}">Open the notebook</a>`;
+        : `${next ? `<button type="button" class="btn primary" data-run-stage="${esc(next.stage)}">Run the ${esc(next.stage)} stage</button><button type="button" class="btn" data-run-all="1">Run all remaining</button>` : ''}<a class="btn" href="#notebook">Open the notebook</a>`;
       return { title: p.name, sub: [d.filename, d.rows ? Number(d.rows).toLocaleString('en-US') + ' rows' : '', sol.task, d.synthetic ? 'synthetic data' : '', 'started ' + (p.created || '').slice(0, 10)].filter(Boolean).join(' · '),
         lede: p.goal || 'No goal written yet.', actions, current: g.current || 'WF-10', log, real: true, project: p };
     }
