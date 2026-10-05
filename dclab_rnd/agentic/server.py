@@ -97,7 +97,7 @@ def create_app(home=None):
         task.add_done_callback(lambda _: tasks.pop(run_id, None))
     @app.get("/api/config")
     async def configuration():
-        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"), "default_project": "general", "projects": project_catalog(), "datasets": catalog(), "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"], "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4", "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"}, "privacy": "Aggregate data profiles and scientific evidence are sent to OpenAI. Raw rows and API keys are not included in agent context. store=false; provider policies still apply."}
+        return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"), "default_project": "general", "projects": project_catalog(), "datasets": catalog(), "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"], "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4", "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"}, "privacy": "When a model is configured, aggregate data profiles (with up to three example values per column) and scientific evidence are sent to it; the Home agent sends summaries only. Full rows and API keys are never sent. store=false; provider policies still apply."}
     @app.get("/api/runs")
     async def runs(): return store.list()
     @app.post("/api/runs", status_code=201)
@@ -219,10 +219,14 @@ def create_app(home=None):
             settings = body["settings"]
             if "max_rows" in settings: p["settings"]["max_rows"] = max(200, min(int(settings["max_rows"]), 200000))
             if "quick" in settings: p["settings"]["quick"] = bool(settings["quick"])
+        changed = {}
         if isinstance(body.get("policy"), dict):  # which gates wait for a person; the invariants hold either way
             named = {studio_graph.LEGACY_POLICY.get(k, k): v for k, v in body["policy"].items()}
+            before = {**studio_graph.DEFAULT_POLICY, **(p.get("policy") or {})}
             p["policy"] = {**(p.get("policy") or {}), **{k: bool(v) for k, v in named.items() if k in studio_graph.DEFAULT_POLICY}}
+            changed = {k: {"from": before.get(k), "to": v} for k, v in p["policy"].items() if before.get(k) != v}
         projects.save(p)
+        if changed: projects.log(project_id, "policy_changed", {"changes": changed, "actor": "human"})  # the platform audit reads it
         return with_records(projects.get(project_id))
     @app.delete("/api/projects/{project_id}", status_code=204)
     async def delete_project(project_id: str):
