@@ -206,6 +206,11 @@ class ApiTests(unittest.TestCase):
         target = draft["analysis"]["profile"]["target_candidates"][0] if draft["analysis"]["profile"]["target_candidates"] else "y"
         wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": target}, headers=self.h).status_code == 202)
         wait(lambda: self.draft(d["id"])["understanding"].get("target") == target)
+        # a missing or malformed body is the caller's mistake (422), never a server error; the proposal's body is optional
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/messages", content=b"not json", headers=self.h).status_code, 422)
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/data/sample", content=b"[1]", headers=self.h).status_code, 422)
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/solution/proposal", headers=self.h).json()["target"], target)  # the chat's target
+        self.assertEqual(c.post(f"/api/drafts/{d['id']}/solution/proposal", json={"target": "nope"}, headers=self.h).status_code, 422)
         # wizard: the solution draft from the column audit, then split and budget
         y = ready["suggestion"]["target"]
         proposal = c.post(f"/api/drafts/{d['id']}/solution/proposal", json={"target": y}, headers=self.h)

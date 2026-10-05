@@ -90,6 +90,18 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         pipeline.run(drafts, draft_id, asset["id"], agent(), client_factory())
         return asset
 
+    async def json_body(request: Request, optional: bool = False) -> dict[str, Any]:
+        """The request's JSON object; a 422 (not a 500) when it is missing or not an object."""
+        if optional and not await request.body():
+            return {}
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(422, "Send a JSON object") from None
+        if not isinstance(body, dict):
+            raise HTTPException(422, "Send a JSON object")
+        return body
+
     @app.get("/api/packs")
     async def list_packs():
         return packs.PACKS
@@ -101,7 +113,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
 
     @app.post("/api/drafts", status_code=201)
     async def create_draft(request: Request):
-        body = await request.json()
+        body = await json_body(request)
         problem = str(body.get("problem", "")).strip()
         if len(problem) < 8:
             raise HTTPException(422, "Describe the problem in one sentence first")
@@ -122,7 +134,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     @app.patch("/api/drafts/{draft_id}")
     async def edit_draft(draft_id: str, request: Request):
         get(draft_id)
-        body = await request.json()
+        body = await json_body(request)
         problem = str(body.get("problem", "")).strip()
         if problem:
             if len(problem) < 8:
@@ -143,11 +155,16 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         from ..studio import solution as studio_solution
 
         draft = get(draft_id)
-        body = await request.json()
+        body = await json_body(request, optional=True)
         frame, asset = clean_frame(draft)
         profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
+        # the target the caller names, else what the chat established, the sample's own, or the profile's first candidate
+        hinted = [(draft.get("understanding") or {}).get("target"), (asset.get("suggestion") or {}).get("target"), *(profile.get("target_candidates") or [])[:1]]
+        target = str(body["target"]) if body.get("target") else next((str(t) for t in hinted if t and str(t) in frame.columns), "")
+        if not target:
+            raise HTTPException(422, "Name the target column")
         try:
-            proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, str(body.get("target", "")), body.get("task"))
+            proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         hint = asset.get("suggestion") or {}
@@ -173,7 +190,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         draft = get(draft_id)
         frame, _ = clean_frame(draft)
         try:
-            solution = studio_solution.Solution(**(await request.json()))
+            solution = studio_solution.Solution(**(await json_body(request)))
             solution.check_columns([str(c) for c in frame.columns])
         except ValidationError as exc:
             raise HTTPException(422, "; ".join(e["msg"] for e in exc.errors())) from None
@@ -191,7 +208,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     @app.put("/api/drafts/{draft_id}/settings")
     async def draft_settings(draft_id: str, request: Request):
         get(draft_id)
-        body = await request.json()
+        body = await json_body(request)
         budget = body.get("budget") or {}
         settings = {
             "split": body.get("split") if body.get("split") in ("stratified", "time", "group") else "stratified",
@@ -209,7 +226,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     @app.post("/api/drafts/{draft_id}/messages", status_code=202)
     async def message(draft_id: str, request: Request):
         get(draft_id)
-        text = str((await request.json()).get("text", "")).strip()
+        text = str((await json_body(request)).get("text", "")).strip()
         if not text:
             raise HTTPException(422, "Write a message first")
         if (draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done():
@@ -220,7 +237,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     @app.post("/api/drafts/{draft_id}/pack")
     async def choose_pack(draft_id: str, request: Request):
         get(draft_id)
-        key = (await request.json()).get("key")
+        key = (await json_body(request)).get("key")
         a = agent()
         if key in (None, "", "auto"):
             det = packs.detect(drafts.get(draft_id)["problem"], drafts.get(draft_id).get("analysis"))
@@ -251,7 +268,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     @app.post("/api/drafts/{draft_id}/data/sample")
     async def sample(draft_id: str, request: Request):
         get(draft_id)
-        key = str((await request.json()).get("key", ""))
+        key = str((await json_body(request)).get("key", ""))
         if key not in {s["key"] for s in studio_data.sample_catalog()}:
             raise HTTPException(404, "Unknown sample dataset")
         frame, policy = await asyncio.to_thread(studio_data.load_sample, key)
@@ -264,7 +281,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     @app.post("/api/drafts/{draft_id}/data/synthetic", status_code=202)
     async def synthetic_data(draft_id: str, request: Request):
         get(draft_id)
-        body = await request.json()
+        body = await json_body(request)
         rows = max(100, min(int(body.get("rows") or 5000), 200_000))
         background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows)
         return {"accepted": True, "rows": rows}
@@ -272,15 +289,6 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
     # ------------------------------------------------------------------ data connectors (dclab_rnd/connectors)
     # Each import downloads into the draft's data folder in a worker thread, then registers the file as an
     # asset and processes it in the background exactly like an upload. Credentials live on the server only.
-    async def json_body(request: Request) -> dict[str, Any]:
-        try:
-            body = await request.json()
-        except ValueError:
-            raise HTTPException(422, "Send a JSON object") from None
-        if not isinstance(body, dict):
-            raise HTTPException(422, "Send a JSON object")
-        return body
-
     def text_field(body: dict[str, Any], key: str, required: bool = False, limit: int = 300) -> str | None:
         value = body.get(key)
         if value is None or (isinstance(value, str) and not value.strip()):
