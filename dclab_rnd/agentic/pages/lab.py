@@ -27,6 +27,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
+from ... import research_map
 from ..catalog import ROOT
 
 CAMPAIGNS = ROOT / "evidence/campaigns"
@@ -393,7 +394,6 @@ def _notebook_pilot() -> dict[str, Any]:
 # --------------------------------------------------------------------------- research tracks and commands
 
 
-_STATUS_LINE = re.compile(r"\*\*Status:?\*\*:?\s*(.+)|\*\*Status:\s*([^*]+)\*\*")
 
 
 def _track_status() -> dict[str, dict[str, str]]:
@@ -402,8 +402,7 @@ def _track_status() -> dict[str, dict[str, str]]:
     def compute():
         out = {}
         for path in readmes:
-            m = _STATUS_LINE.search(path.read_text(encoding="utf-8"))
-            text = " ".join((m.group(1) or m.group(2) or "").split()).strip().rstrip(".") if m else ""
+            text = research_map.readme_status(path.read_text(encoding="utf-8"))  # the same reading as the research map
             low = text.lower()
             kind = ("active" if low.startswith("active") else "planned" if low.startswith("planned")
                     else "concluded" if low.startswith("concluded") else "paused" if low.startswith("paused")

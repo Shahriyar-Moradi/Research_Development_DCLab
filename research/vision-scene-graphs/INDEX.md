@@ -4,7 +4,7 @@
 
 **Idea.** The goal is for a vision-language assistant to describe objects and their relationships with evidence, not just list detected labels.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** proposed research; no scene-graph implementation or result is currently established by this repository · **Read first:** [README.md](README.md)
 
 ## Champion
 

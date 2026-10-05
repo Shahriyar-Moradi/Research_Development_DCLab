@@ -16,6 +16,13 @@ class ResearchMapTests(unittest.TestCase):
     def setUpClass(cls):
         cls.map = research_map.research_map()
 
+    def test_every_track_readme_status_is_read_in_both_forms(self):
+        self.assertEqual(research_map.readme_status("**Status:** active · code lives in `dclab_rnd/`"), "active · code lives in `dclab_rnd/`")
+        self.assertEqual(research_map.readme_status("**Status: proposed research.** The idea is to test…"), "proposed research")
+        self.assertEqual(research_map.readme_status("# Title\n\nNo status line."), "")
+        missing = [name for name, track in self.map["tracks"].items() if not track["status"]]
+        self.assertEqual(missing, [], "a track README declares a status the map does not read")
+
     def test_generated_files_are_current(self):
         stale = [p for p, text in research_map.render_all().items() if not p.exists() or p.read_text(encoding="utf-8") != text]
         self.assertEqual(stale, [], "run: make research-index")

@@ -4,7 +4,7 @@
 
 **Idea.** The long-term idea is to make DCLab's experiment-and-evidence approach useful for other technical workflows, without assuming that ML procedures themselves transfer unchanged.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** proposed research · **Read first:** [README.md](README.md)
 
 ## Champion
 

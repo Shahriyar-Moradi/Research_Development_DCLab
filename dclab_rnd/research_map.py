@@ -101,13 +101,21 @@ def link(text: str, target: str, base: str) -> str:
     return f"[{text}]({os.path.relpath(target, base)})"
 
 
+# A track README states its status as ``**Status:** active · note`` or, in the proposal tracks, as the bold opening
+# of a paragraph: ``**Status: proposed research.** The idea is…``.
+STATUS_LINE = re.compile(r"\*\*Status:?\*\*:?\s*(.+)|\*\*Status:\s*([^*]+)\*\*")
+
+
+def readme_status(text: str) -> str:
+    """The status a track README declares, without the closing full stop ('' when it declares none)."""
+    m = STATUS_LINE.search(text)
+    return " ".join((m.group(1) or m.group(2) or "").split()).rstrip(".") if m else ""
+
+
 def readme_field(track_dir: Path) -> tuple[str, str, str]:
     text = (track_dir / "README.md").read_text(encoding="utf-8") if (track_dir / "README.md").exists() else ""
     title = next((l[2:].strip() for l in text.splitlines() if l.startswith("# ")), track_dir.name)
-    status = ""
-    m = re.search(r"\*\*Status:?\*\*:?\s*(.+)", text)
-    if m:
-        status = m.group(1).strip()
+    status = readme_status(text)
     question = ""
     m = re.search(r"## Research question\s+(.+?)(?:\n\n|\Z)", text, re.S)
     if m:

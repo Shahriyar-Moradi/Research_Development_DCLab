@@ -4,7 +4,7 @@
 
 **Idea.** A road network graph describes static topology; a driving-scene graph describes actors, traffic controls, and their interactions over time. Combining these may support prediction and explanations, but a benchmark prototype is not evidence of vehicle safety.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** proposed, safety-critical research · **Read first:** [README.md](README.md)
 
 ## Champion
 

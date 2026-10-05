@@ -4,7 +4,7 @@
 
 **Idea.** No finite test suite can guarantee an agent is completely correct. Evaluation should state exactly which tasks and failure modes have been tested and where it remains uncertain.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** automated software checks exist; end-to-end correctness and user value remain unproven · **Read first:** [README.md](README.md)
 
 ## Champion
 

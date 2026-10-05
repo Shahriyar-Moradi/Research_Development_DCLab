@@ -4,7 +4,7 @@
 
 **Idea.** The idea is to generate a coherent unit—such as a complete function, validated notebook-cell transformation, or pair of compatible workflow steps—in fewer fragile decisions than generating each line independently.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** hypothesis requiring a controlled prototype · **Read first:** [README.md](README.md)
 
 ## Champion
 

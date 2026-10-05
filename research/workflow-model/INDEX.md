@@ -4,7 +4,7 @@
 
 **Idea.** The goal is a small model that knows a narrow workflow deeply: what stage it is in, what evidence it needs, what valid next step follows, and when it should stop or ask a human.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** research proposal informed by existing SOPs and training-data preparation · **Read first:** [README.md](README.md)
 
 ## Champion
 

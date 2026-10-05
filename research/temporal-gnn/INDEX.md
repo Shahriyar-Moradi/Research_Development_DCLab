@@ -4,7 +4,7 @@
 
 **Idea.** This track tests whether explicitly passing information between object nodes improves interaction or event predictions across frames.
 
-**Status.** see README.md · **Read first:** [README.md](README.md)
+**Status.** proposed research · **Read first:** [README.md](README.md)
 
 ## Champion
 
