@@ -162,7 +162,7 @@ DC.view('solution', {
     }
     function sheetReal(p, F, qs) {
       const { sol, dev, u } = F;
-      const head = `<div class="panel-head"><div class="panel-title"><h2>The solution</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><a class="btn sm" href="/classic#project/${esc(p.id)}">Edit in the notebook</a></div>`;
+      const head = `<div class="panel-head"><div class="panel-title"><h2>The solution</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-edit-solution="1">Edit the solution</button></div>`;
       if (!p.solution) return head + `<div class="empty">No solution saved for this project yet. Write the target and the prediction moment first ${rc('DCLAB-R01')}.</div>`;
       const row = (k, v, side) => `<div class="cs-row"><span class="cs-key">${k}</span><span class="cs-val">${v}</span>${side || '<span></span>'}</div>`;
       const ts = dev && dev.target_summary, win = windowPhrase(p, F);
@@ -191,7 +191,7 @@ DC.view('solution', {
       const items = qs.filter(q => !q.done).concat(qs.filter(q => q.done));
       return `<div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill ${open ? 'warn' : 'ok'}">${open ? open + ' open' : 'all answered'}</span></div>
         <div class="list">${items.map(q => `<div class="list-item"><span class="pill ${q.done ? 'ok' : 'warn'}">${q.done ? 'done' : 'open'}</span><div class="li-main"><span class="li-title">${q.title}</span><span class="li-sub">${q.sub}${(q.chips || []).length ? ' ' + q.chips.map(rc).join('') : ''}</span></div></div>`).join('')}</div>
-        <div class="panel-foot">Answers go into the solution. Saving a changed solution reruns the stages that depend on it. <a href="/classic#project/${esc(p.id)}">Edit the solution</a></div>`;
+        <div class="panel-foot">Answers go into the solution. Saving a changed solution clears the stages that depend on it. <button type="button" class="link-btn" data-edit-solution="1">Edit the solution</button></div>`;
     }
     const versionsOf = p => (p.transitions || []).filter(t => t.move === 'set_solution' && t.status === 'allowed');
     function versionItems(p) {
@@ -421,6 +421,68 @@ DC.view('solution', {
         catch (err) { DC.toast(err.message, { ok: false }); }
         const p = await DC.currentProject.get(true);
         if (p) renderReal(p);
+      }
+    });
+    /* ---------- edit the solution of a real project (the wizard's fields, the project's own routes) ---------- */
+    let audit = null;
+    function editHtml(p) {
+      const sol = p.solution || {}, cols = (p.data || {}).columns || [], others = cols.filter(c => c !== sol.target);
+      const forb = new Set((sol.forbidden || []).map(f => f.column)), ids = new Set(sol.identifiers || []);
+      const flagged = [...(sol.forbidden || []), ...((audit || {}).forbidden || []).filter(f => !forb.has(f.column))];
+      const pick = (id, cur) => `<select id="${id}"><option value="">none</option>${others.map(c => `<option ${c === cur ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`;
+      const idCands = new Set([...ids, ...(((p.data || {}).profile || {}).id_candidates || [])]);
+      return `<div class="stack">
+        <div class="callout warn"><span class="ic">${DC.icon('alert')}</span><span>Saving a changed solution clears the stage results that depend on it. The graph checks the move; the log keeps the earlier version.</span></div>
+        <div class="field"><label for="es-target">Target</label><select id="es-target">${cols.map(c => `<option ${c === sol.target ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+        <div class="field"><label for="es-moment">Prediction moment</label><textarea id="es-moment" rows="2">${esc(sol.prediction_moment || '')}</textarea></div>
+        <div class="field"><span class="label">Forbidden columns</span>${flagged.map(f => `<label class="check"><input type="checkbox" data-es-forbid="${esc(f.column)}" data-reason="${esc(f.reason || '')}" ${forb.has(f.column) ? 'checked' : ''}><span><code>${esc(f.column)}</code> <span class="muted small">${esc(f.reason || '')}</span></span></label>`).join('') || '<span class="muted small">None flagged.</span>'}
+          <div class="row"><button type="button" class="btn sm" data-es-audit="1">Audit the columns again</button></div></div>
+        <div class="field"><span class="label">Identifiers</span><div class="row">${[...idCands].filter(c => c !== sol.target).map(c => `<label class="check"><input type="checkbox" data-es-ident="${esc(c)}" ${ids.has(c) ? 'checked' : ''}><code>${esc(c)}</code></label>`).join('') || '<span class="muted small">None found.</span>'}</div></div>
+        <div class="grid g2"><div class="field"><label for="es-time">Time column</label>${pick('es-time', sol.time_column)}</div><div class="field"><label for="es-group">Group column</label>${pick('es-group', sol.group_column)}</div></div>
+      </div>`;
+    }
+    function openEditor(p) {
+      DC.drawer.open({ eyebrow: '<span class="eyebrow">Solution · ' + esc(p.name) + '</span>', title: 'Edit the solution', html: editHtml(p),
+        actions: '<button type="button" class="btn sm primary" data-es-save="1">Save the solution</button>' });
+    }
+    function editedBody(p) {
+      const d = $('#drawer'), sol = p.solution || {}, val = id => (($(id, d) || {}).value || '').trim();
+      return { ...sol, target: val('#es-target'), prediction_moment: val('#es-moment'), time_column: val('#es-time') || null, group_column: val('#es-group') || null,
+        forbidden: [...d.querySelectorAll('[data-es-forbid]:checked')].map(i => ({ column: i.dataset.esForbid, reason: i.dataset.reason || 'declared unavailable at the prediction moment' })),
+        identifiers: [...d.querySelectorAll('[data-es-ident]:checked')].map(i => i.dataset.esIdent) };
+    }
+    async function saveEdit(p) {
+      const body = editedBody(p);
+      try {
+        if (body.target !== (p.solution || {}).target) {
+          // a new target needs its own task, positive label and metric: take them from the column audit for it
+          const fresh = audit && audit.target === body.target ? audit : await DC.api(`/projects/${p.id}/solution/proposal`, { method: 'POST', body: { target: body.target } });
+          Object.assign(body, { task: fresh.task, positive_label: fresh.task === 'binary' && fresh.positive_label != null ? String(fresh.positive_label) : null, metric: fresh.metric });
+        }
+        await DC.api(`/projects/${p.id}/solution`, { method: 'PUT', body });
+        DC.drawer.close();
+        DC.toast('Saved. Stages that depended on the earlier version were cleared; run them again from the workflow.');
+        const fresh = await DC.currentProject.get(true);
+        if (fresh) renderReal(fresh);
+      } catch (err) { DC.toast(err.message, { ok: false }); }
+    }
+    el.addEventListener('click', e => { if (e.target.closest('[data-edit-solution]') && real) { audit = null; openEditor(real); } });
+    $('#drawer').addEventListener('click', async e => {
+      if (!real || !$('#es-target', $('#drawer'))) return;
+      if (e.target.closest('[data-es-audit]')) {
+        const keep = editedBody(real);  // the audit redraws the panel; keep what the user typed
+        try {
+          audit = await DC.api(`/projects/${real.id}/solution/proposal`, { method: 'POST', body: { target: keep.target } });
+          openEditor({ ...real, solution: { ...(real.solution || {}), ...keep } });
+        }
+        catch (err) { DC.toast(err.message, { ok: false }); }
+      }
+      if (e.target.closest('[data-es-save]')) {
+        const done = Object.values(real.stages || {}).filter(s => s && s.status === 'completed').length;
+        if (!done) { saveEdit(real); return; }
+        DC.modal.open({ eyebrow: '<span class="eyebrow">Solution</span>', title: 'Save and clear the stage results?', confirm: 'Save the solution',
+          html: `<p>${done} stage result${done === 1 ? '' : 's'} depend on the current solution and will be cleared. The holdout stays consumed, so a new holdout score needs a written reason.</p>`,
+          onConfirm: () => { saveEdit(real); } });
       }
     });
     this.renderReal = renderReal;
