@@ -414,12 +414,14 @@ class HomeAgent:
         return out, live
 
     def run_tool(self, draft_id: str, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        """Run one of the Home agent's tools on a draft. The handlers are lenient about argument types (small models
-        send strings for numbers); the runtime checks arguments against the schemas before it gets here."""
+        """Run one of the Home agent's tools on a draft, through the draft guard. The handlers are lenient (small models
+        send strings for numbers, extra keys, and leave out what the handlers default): unknown keys are dropped and the
+        rest is the handlers' to coerce and default. The runtime checks the schemas instead once Home runs on it (A2.4)."""
         tool = self.registry.get(name)
         if tool is None or tool.scope != "draft":
             return {"error": f"unknown tool {name}"}
-        return tool.handler(Turn(self, draft_id), **args)
+        known = {k: v for k, v in args.items() if k in tool.parameters.get("properties", {})}
+        return self.registry.call(tool.name, known, Turn(self, draft_id), scope="draft", check="none")
 
 
 def title_for(draft: dict[str, Any], key: str) -> str:
@@ -454,10 +456,6 @@ def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
 
 def set_pack(turn: Turn, /, **args: Any) -> dict[str, Any]:
     agent, draft_id = turn.agent, turn.draft_id
-    if args.get("key") not in packs.KEYS:
-        return {"error": "unknown pack"}
-    if (agent.store.get(draft_id).get("pack") or {}).get("source") == "user":
-        return {"error": "The user chose the pack; ask before changing it."}
     agent.set_pack(draft_id, args["key"], "agent", str(args.get("why", ""))[:200])
     agent.refresh_workflow(draft_id)
     return {"pack": args["key"]}
@@ -503,8 +501,6 @@ def get_analysis(turn: Turn, /, **args: Any) -> dict[str, Any]:
 def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     agent, draft_id = turn.agent, turn.draft_id
     draft = agent.store.get(draft_id)
-    if any(a.get("status") in ("queued", "structuring", "cleaning", "analysing") for a in draft["assets"]):
-        return {"error": "Data is already being prepared; wait for it."}
     agent.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
     try:
         rows = max(100, min(int(args.get("rows") or 5000), 200_000))
@@ -514,11 +510,47 @@ def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
     return {"simulating": True, "rows": rows}
 
 
+# What each Home write does to a draft. The draft guard checks set_pack, propose_workflow and simulate; the others
+# only add to the conversation or the understanding, which the user can always correct.
+DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "propose_workflow": "propose_workflow",
+               "request_data": "request_data", "simulate_data": "simulate"}
+PREPARING = ("queued", "structuring", "cleaning", "analysing")
+
+
+class DraftGuard:
+    """The Home agent's writes change a draft, not a project, so they have their own checks (package A2.2):
+    the pack must be on the list and the user's choice stands; a workflow must pass ``workflow.validate``; one
+    simulation (or any data preparation) at a time."""
+
+    def __call__(self, tool: Tool, turn: Turn, arguments: dict[str, Any], proceed: Callable[[], Any]) -> Any:
+        agent, draft_id = turn.agent, turn.draft_id
+        if tool.move == "set_pack":
+            if arguments.get("key") not in packs.KEYS:
+                return {"error": f"Unknown pack {str(arguments.get('key'))[:40]!r}. Packs: {', '.join(packs.KEYS)}."}
+            if (agent.store.get(draft_id).get("pack") or {}).get("source") == "user":
+                return {"error": "The user chose the pack; ask before changing it."}
+        elif tool.move == "simulate":
+            if any(a.get("status") in PREPARING for a in agent.store.get(draft_id)["assets"]):
+                return {"error": "Data is already being prepared; wait for it."}
+        elif tool.move == "propose_workflow":
+            draft = agent.store.get(draft_id)
+            _, problems = wflow.validate(arguments, (draft.get("pack") or {}).get("key") or "tabular")
+            if problems:  # the current workflow stays; the page shows what was refused
+                if getattr(agent.client, "output", None):
+                    agent.client.output(False, "; ".join(problems)[:200])
+                agent.store.emit(draft_id, "workflow", {"workflow": draft.get("workflow"), "rejected": problems})
+                return {"error": "The workflow was not accepted: " + "; ".join(problems)[:400], "accepted": False, "problems": problems}
+        return proceed()
+
+
 def register(registry: Registry) -> None:
-    """Register the Home agent's tools (scope "draft"). Each takes a ``Turn`` as its context."""
+    """Register the Home agent's tools (scope "draft"). Each takes a ``Turn`` as its context; each write declares
+    its draft move and passes the draft guard."""
+    registry.guards["draft"] = DraftGuard()
+
     def add(name: str, description: str, properties: dict[str, Any], required: list[str], effect: str) -> None:
         registry.register(Tool(name, description, {"type": "object", "properties": properties, "required": required}, globals()[name],
-                               effect=effect, scope="draft", takes_context=True))
+                               effect=effect, scope="draft", move=DRAFT_MOVES.get(name) if effect == "write" else None, takes_context=True))
 
     S = {"type": "string"}
     add("ask_user", "Ask the user one short question.", {"question": S, "options": {"type": "array", "items": S},

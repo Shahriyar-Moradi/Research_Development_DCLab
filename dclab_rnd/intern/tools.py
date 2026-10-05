@@ -79,12 +79,50 @@ def _expected(exc: Exception) -> dict[str, Any] | None:
     return None
 
 
+SELF_LOGGED = ("run_stage", "set_solution", "approve_stage", "capture")  # their handlers log the allowed move with its outcome
+
+
+class ProjectGuard:
+    """Every project write passes ``studio.graph.check`` as the actor "agent" before its handler runs (package A2.2).
+
+    A refusal is logged as a transition and returned with the reason, the failed checks and the rules. An allowed move
+    whose handler does not log itself is logged after it runs, with its outcome.
+    """
+
+    def __call__(self, tool: Tool, box: "Toolbox", arguments: dict[str, Any], proceed: Callable[[], Any]) -> Any:
+        if tool.move == "create_project":
+            project: dict[str, Any] = {}
+            args = {"name": arguments.get("name"), "goal": arguments.get("goal")}
+        else:
+            project = box.projects.get(arguments["project_id"])
+            args = {k: arguments[k] for k in ("stage", "choice", "gate") if arguments.get(k) is not None}
+            if tool.name == "run_all":  # the first stage it would run; each later one is checked by the engine as it runs
+                args["stage"] = next((s for s in STAGE_KEYS if project["stages"][s].get("status") not in studio_graph.DONE), None)
+                if args["stage"] is None:
+                    return proceed()  # nothing left to run: it only reads the records
+        verdict = studio_graph.check(project, tool.move, "agent", **args)
+        if not verdict.allowed:
+            if project:
+                studio_graph.log(box.projects, project["id"], verdict, project)
+            # run_all answers one result per stage (the standard plan's report reads it that way)
+            return {args["stage"]: blocked(verdict)} if tool.name == "run_all" else blocked(verdict)
+        result = proceed()
+        if tool.move not in SELF_LOGGED:
+            project_id = project.get("id") or (result.get("project_id") if isinstance(result, dict) else None)
+            if project_id:
+                failed = isinstance(result, dict) and "error" in result
+                studio_graph.log(box.projects, project_id, verdict, project or None,
+                                 outcome=f"failed: {str(result['error'])[:200]}" if failed else "done")
+        return result
+
+
 def register(registry: Registry) -> None:
     """Register the evidence tools and the project tools (scope "project": the intern and MCP clients).
 
     Project tools take the Toolbox as their context: ``handler(toolbox, **arguments)``. Each write declares the
-    workflow move it makes, where it makes one.
+    workflow move it makes (``studio.graph.MOVES``); the project guard checks it before the handler runs.
     """
+    registry.guards["project"] = ProjectGuard()
     for name in EVIDENCE_TOOLS:
         fn, schema = evidence_tools.TOOLS[name]
         registry.register(Tool(name, (fn.__doc__ or "").strip().split("\n\n")[0].replace("\n", " "), schema, fn, errors=_expected))
@@ -98,13 +136,13 @@ def register(registry: Registry) -> None:
     pid = {"project_id": {**S, "description": "The project id returned by create_project."}}
     add("list_samples", {}, [], "List the datasets the R&D already studied, with their task type and the solution it wrote for them.")
     add("create_project", {"name": S, "industry": {**S, "enum": list(INDUSTRIES)}, "goal": S}, ["name", "goal"],
-        "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.", "write")
+        "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.", "write", "create_project")
     add("use_sample", {**pid, "key": {**S, "description": "A key from list_samples."}}, ["project_id", "key"],
-        "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.", "write")
+        "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.", "write", "attach_data")
     add("describe_data", pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the solution suggestion if any.")
     add("propose_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
         "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.",
-        "write", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "propose_solution"))
+        "write", "propose_solution", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "propose_solution"))
     add("set_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]},
         "prediction_moment": {**S, "description": "When the prediction is made and what is known then (at least one sentence)."},
         "forbidden": {"type": "array", "items": {"type": "object", "properties": {"column": S, "reason": S}, "required": ["column"]}},
@@ -113,7 +151,7 @@ def register(registry: Registry) -> None:
         ["project_id", "target", "task", "prediction_moment"], "Save the solution. Saving clears any previous stage results.",
         "write", "set_solution", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "set_solution"))
     add("set_settings", {**pid, "quick": {"type": "boolean", "description": "True: 3,000 rows for a fast pass. False: up to max_rows."},
-        "max_rows": {"type": "integer", "minimum": 200, "maximum": 200000}}, ["project_id"], "Change how many rows the stages use.", "write")
+        "max_rows": {"type": "integer", "minimum": 200, "maximum": 200000}}, ["project_id"], "Change how many rows the stages use.", "write", "set_settings")
     add("run_stage", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id", "stage"],
         "Run one stage (data, leakage, features, models, final) now. Stages run in order; each needs the previous one. Returns the stage record: summary, numbers, claims, notes with proof, decision.",
         "write", "run_stage")
@@ -125,7 +163,7 @@ def register(registry: Registry) -> None:
     add("export_notebook", pid, ["project_id"], "Write the runnable scikit-learn notebook and the markdown report for the project; returns their download paths.", "write", "capture")
     add("get_graph", pid, ["project_id"],
         "The project's workflow graph: the ten steps WF-01…WF-10 with their state, the current step, which moves are allowed now and why not, the gates, and the last transitions.")
-    add("check_move", {**pid, "move": {**S, "enum": list(studio_graph.MOVES)}, "stage": {**S, "enum": list(STAGE_KEYS)},
+    add("check_move", {**pid, "move": {**S, "enum": [m for m in studio_graph.MOVES if m != "create_project"]}, "stage": {**S, "enum": list(STAGE_KEYS)},
         "choice": S, "gate": {**S, "enum": list(studio_graph.GATES)}}, ["project_id", "move"],
         "Ask the validator whether a move would be allowed right now, without doing it. Returns the checks, the rules and the side effects.")
 
@@ -149,7 +187,7 @@ class Toolbox:
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
         # The intern's loop and MCP clients keep the handlers' clamping and coercion until A2.4 moves the intern onto run().
-        return self.registry.call(name, arguments, context=self, scope="project", strict=False)
+        return self.registry.call(name, arguments, context=self, scope="project", check="names")
 
     def list_samples(self) -> dict[str, Any]:
         return {"samples": [{k: s[k] for k in ("key", "name", "task", "goal", "industry", "source", "rows", "blocked")} for s in studio_data.sample_catalog() if s["available"]]}

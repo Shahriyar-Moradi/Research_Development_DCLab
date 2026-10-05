@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.agents import EFFECTS, SCOPES, Policy, Registry, Tool, build_registry, default_registry, run  # noqa: E402
-from dclab_rnd.draft.chat import HomeAgent  # noqa: E402
+from dclab_rnd.draft.chat import DRAFT_MOVES, HomeAgent  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
 from dclab_rnd.intern.loop import Intern  # noqa: E402
 from dclab_rnd.intern.sessions import SessionStore  # noqa: E402
@@ -93,10 +93,12 @@ class RegistryTests(unittest.TestCase):
         self.assertIn("Missing", self.r.call("opt", {"a": None})["error"])
         self.assertIn("Unknown", self.r.call("opt", {"a": 1, "c": None})["error"])  # the handler could not take it
 
-    def test_lenient_calls_check_only_names(self):
-        self.assertIn("error", self.r.call("add", {"a": 1}, strict=False))
-        with self.assertRaises(TypeError):  # the type is the handler's to handle when not strict
-            self.r.call("add", {"a": "1", "b": 2}, strict=False)
+    def test_lighter_check_levels(self):
+        self.assertIn("error", self.r.call("add", {"a": 1}, check="names"))
+        with self.assertRaises(TypeError):  # the type is the handler's to handle at this level
+            self.r.call("add", {"a": "1", "b": 2}, check="names")
+        with self.assertRaises(TypeError):  # "none" leaves even a missing argument to the handler
+            self.r.call("add", {"a": 1}, check="none")
 
     def test_an_unexpected_failure_is_a_bug_and_raises(self):
         with self.assertRaises(Boom):
@@ -138,7 +140,7 @@ class DclabRegistryTests(unittest.TestCase):
                 self.assertIn(tool.scope, SCOPES)
                 self.assertTrue(tool.description)
                 if tool.move is not None:
-                    self.assertIn(tool.move, studio_graph.MOVES)
+                    self.assertIn(tool.move, studio_graph.MOVES if tool.scope == "project" else DRAFT_MOVES.values())
                     self.assertEqual(tool.effect, "write")
         for old, new in LEGACY_TOOLS.items():
             self.assertEqual(registry.get(old).name, new)

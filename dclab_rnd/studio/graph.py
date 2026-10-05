@@ -57,7 +57,8 @@ REVISITS = {("WF-05", "WF-01"): "a leak changes the solution", ("WF-07", "WF-06"
 GATES = {"solution": "The owner signs the solution before WF-04.",
          "holdout": "The owner approves opening the holdout (WF-09)."}
 DEFAULT_POLICY = {"require_solution_signoff": False, "require_holdout_approval": False}
-MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture")
+MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture",
+         "create_project", "attach_data", "set_settings", "propose_solution")  # the last four: every other project write
 DONE = ("completed", "approved")
 
 
@@ -169,12 +170,13 @@ def check(project: dict[str, Any], move: str, actor: str = "human", **args: Any)
     move = LEGACY_MOVES.get(move, move)
     if "gate" in clean:
         clean["gate"] = LEGACY_GATES.get(clean["gate"], clean["gate"])
-    frm = current_node(project)
+    frm = current_node(project) if project else None
     if move not in MOVES:
         return Verdict(move, actor, "blocked", frm, None, f"Unknown move {move!r}. Moves: {', '.join(MOVES)}.",
                        [_check("Move exists", False, f"{move!r} is not one of {', '.join(MOVES)}")], args=clean)
     return {"run_stage": _run_stage, "set_solution": _set_solution, "approve_stage": _approve_stage,
-            "approve_gate": _approve_gate, "capture": _capture}[move](project, actor, frm, clean)
+            "approve_gate": _approve_gate, "capture": _capture, "create_project": _create_project,
+            "attach_data": _attach_data, "set_settings": _set_settings, "propose_solution": _propose_solution}[move](project, actor, frm, clean)
 
 
 def _verdict(move: str, actor: str, frm: str | None, to: str | None, checks: list[dict[str, Any]], rules: list[str],
@@ -283,6 +285,42 @@ def _capture(project: dict[str, Any], actor: str, frm: str | None, args: dict[st
     checks = [_check("Solution", bool(project.get("solution")), "Nothing to capture: there is no solution yet.")]
     side = [] if _stage_status(project, "final") in DONE else ["The final stage has not run: the export is a work in progress and WF-10 stays open."]
     return _verdict("capture", actor, frm, "WF-10", checks, ["DCLAB-R20", "DCLAB-R21"], [], side, args)
+
+
+def _create_project(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    checks = [_check("Name", bool(str(args.get("name") or "").strip()), "Give the project a name."),
+              _check("Goal", bool(str(args.get("goal") or "").strip()), "State the goal: what should be predicted, for whom (WF-01 starts from it).")]
+    # The log keeps the name, not the goal: the goal is the user's own words and the transition log feeds trajectories.
+    return _verdict("create_project", actor, None, "WF-01", checks, ["DCLAB-R01"], [], [], {"name": str(args.get("name") or "")[:80]})
+
+
+def _not_running(project: dict[str, Any]) -> dict[str, Any]:
+    running = project.get("running")
+    return _check("Nothing running", not running, f"`{running}` is still running on this project.")
+
+
+def _attach_data(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    checks = [_not_running(project)]
+    side = []
+    if project.get("data"):
+        ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
+        side.append("Replaces the table: the solution is cleared" + (f", and so are {', '.join(ran)}." if ran else "."))
+    if actor == "agent" and solution_signed(project):
+        checks.append(_check("Signed solution unchanged", False, "The owner signed this solution; new data would clear it, so only a person may replace the data."))
+    if int(project.get("holdout_uses", 0) or 0):
+        side.append("The holdout stays used: a new estimate on it will need a reason.")
+    return _verdict("attach_data", actor, frm, "WF-02", checks, ["DCLAB-R01"], [], side, args, ("Signed solution unchanged",))
+
+
+def _set_settings(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
+    side = [f"Finished stages ({', '.join(ran)}) used the old rows; they apply the new setting only when rerun."] if ran else []
+    return _verdict("set_settings", actor, frm, "WF-03", [_not_running(project)], [], [], side, args)
+
+
+def _propose_solution(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    checks = [_check("Data", bool(project.get("data")), "Attach a table before proposing a solution (WF-02).")]
+    return _verdict("propose_solution", actor, frm, "WF-01", checks, ["DCLAB-R01"], [], ["Saves a proposal only; the solution changes with set_solution."], args)
 
 
 # ---------------------------------------------------------------------- effects and the log

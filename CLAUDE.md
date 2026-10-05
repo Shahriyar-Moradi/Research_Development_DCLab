@@ -60,7 +60,7 @@ the last `make check-all` result.
 - `dclab_rnd/agentic/static/app/**` is generated from `dclab_rnd/agentic/web/src` by `make web`.
 - `DCLAB_DATABASE_URL` switches projects, drafts and sessions to PostgreSQL; tests use (and empty) `dclab_test`.
 - Every model request goes through `dclab_rnd.models` (the gateway); tests use scripted transports, never a live key.
-- Every agent tool is registered once in `dclab_rnd.agents` (`default_registry()`): scope "project" for the intern and `/mcp`, "draft" for the Home agent. Never keep a private tool list.
+- Every agent tool is registered once in `dclab_rnd.agents` (`default_registry()`): scope "project" for the intern and `/mcp`, "draft" for the Home agent. Never keep a private tool list. A write tool declares its move and runs only through its scope's guard (the graph validator for projects).
 - `.venv-agent` has no pandas, so the studio tests skip there; run the suite with `.venv`.
 
 ## Git
