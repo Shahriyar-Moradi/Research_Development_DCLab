@@ -252,7 +252,7 @@ class HomeAgent:
         self.store.emit(draft_id, "chat", msg)
         if self.client is not None:
             try:
-                self.model_turn(draft_id)
+                self.model_turn(draft_id, text=text)
                 return
             except Exception as exc:  # noqa: BLE001 — provider errors: fall back to the script for this turn
                 reason = str(exc).split(": ", 1)[-1][:120]
@@ -261,23 +261,27 @@ class HomeAgent:
                     self.store.emit(draft_id, "status", {"note": f"The model was unavailable ({reason}); DCLab continues with its standard questions."})
         self.script_turn(draft_id, text)
 
+    def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
+        """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
+        draft = self.store.get(draft_id)
+        self.record(draft_id, q["field"], value)
+
+        def answered(d):
+            for item in d["questions"]:
+                if item["id"] == q["id"]:
+                    item["answered"] = value
+        self.store.update(draft_id, answered)
+        if q["field"] == "data_plan" and SIMULATE_WORDS.search(value):
+            self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
+        self.refresh_workflow(draft_id)
+        self.next_turn(draft_id)
+
     # ------------------------------------------------------------------ the deterministic script
     def script_turn(self, draft_id: str, text: str) -> None:
         draft = self.store.get(draft_id)
         q = self.pending(draft)
         if q is not None:
-            value = text
-            self.record(draft_id, q["field"], value)
-
-            def answered(d):
-                for item in d["questions"]:
-                    if item["id"] == q["id"]:
-                        item["answered"] = value
-            self.store.update(draft_id, answered)
-            if q["field"] == "data_plan" and SIMULATE_WORDS.search(value):
-                self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
-            self.refresh_workflow(draft_id)
-            self.next_turn(draft_id)
+            self.take_answer(draft_id, q, text)
             return
         if SIMULATE_WORDS.search(text):
             self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
@@ -362,8 +366,10 @@ class HomeAgent:
             "workflow": [{k: n.get(k) for k in ("wf", "label")} for n in ((draft.get("workflow") or {}).get("nodes") or [])],
         }, ensure_ascii=False, default=str)
 
-    def model_turn(self, draft_id: str, max_steps: int = 5) -> None:
+    def model_turn(self, draft_id: str, max_steps: int = 5, text: str = "") -> None:
         draft = self.store.get(draft_id)
+        open_question = self.pending(draft)
+        used_tool = False
         history = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["text"]} for m in draft["messages"][-12:] if m.get("text")]
         messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)}, *history]
         self.store.emit(draft_id, "status", {"thinking": True})
@@ -376,6 +382,7 @@ class HomeAgent:
                 if out.get("content"):
                     self.say(draft_id, out["content"].strip(), message_id=live)  # the chat event replaces the live bubble
                 break
+            used_tool = True
             for call in calls:
                 result = self.run_tool(draft_id, call["name"], call.get("arguments") or {})
                 # a question waits for the user; a simulation ends the turn too (the data pipeline speaks next)
@@ -385,6 +392,16 @@ class HomeAgent:
                 break
         self.store.emit(draft_id, "status", {"thinking": False})
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
+        if not used_tool and text:
+            # A model that only talks (small models often never call a tool) must not stall the conversation:
+            # code records the answer to the open question and asks the next thing, as the script would.
+            still_open = self.pending(self.store.get(draft_id))
+            if open_question and still_open and still_open["id"] == open_question["id"]:
+                self.take_answer(draft_id, open_question, text)
+            elif SIMULATE_WORDS.search(text) and not self.store.get(draft_id)["assets"]:
+                self.on_request(draft_id, "simulate", {"prompt": draft["problem"] + " " + text})
+            else:
+                self.next_turn(draft_id)
 
     def complete(self, draft_id: str, messages: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
         """One model step. With a streaming client the reply reaches the page as ``token`` events while it is written.

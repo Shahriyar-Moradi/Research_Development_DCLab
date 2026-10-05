@@ -252,7 +252,7 @@ class AgentTests(unittest.TestCase):
         HomeAgent(self.store, Streaming()).reply(d["id"], "Customers who cancel within 30 days")
         events = self.store.events(d["id"])
         tokens = [e["data"] for e in events if e["kind"] == "token"]
-        last = self.store.get(d["id"])["messages"][-1]
+        last = next(m for m in self.store.get(d["id"])["messages"] if tokens and m["id"] == tokens[0]["id"])  # the streamed reply
         self.assertTrue(tokens and all(t["id"] == last["id"] for t in tokens))
         self.assertLess(len(tokens), 12)  # chunks, not one event per delta
         self.assertEqual("".join(t["delta"] for t in tokens).strip(), last["text"])
@@ -293,6 +293,21 @@ class AgentTests(unittest.TestCase):
         HomeAgent(self.store, Broken()).reply(d["id"], "At the weekly snapshot, before the retention call.")
         notes = [e["data"].get("note") for e in self.store.events(d["id"]) if e["kind"] == "status" and e["data"].get("note")]
         self.assertEqual(notes, ["The model was unavailable (the model request failed); DCLab continues with its standard questions."])  # said once, not per turn
+
+    def test_a_model_that_only_talks_does_not_stall_the_conversation(self):
+        class Talker:  # never calls a tool, as a small local model did in the live check
+            def complete(self, messages, tools=None, max_tokens=1800):
+                return {"content": "Great, that makes sense.", "tool_calls": [], "assistant_message": {"role": "assistant", "content": "Great, that makes sense."}}
+        d = self.store.create("Predict which customers pause or cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        agent = HomeAgent(self.store, Talker())
+        for answer in ("Lost means paused or cancelled within 30 days.", "Every Monday morning.", "The team calls the riskiest 200.", "No data yet, plan only"):
+            agent.reply(d["id"], answer)
+        draft = self.store.get(d["id"])
+        self.assertEqual({k: draft["understanding"].get(k) for k in ("target", "prediction_moment", "action")},
+                         {"target": "Lost means paused or cancelled within 30 days.", "prediction_moment": "Every Monday morning.", "action": "The team calls the riskiest 200."})
+        self.assertEqual(draft["messages"][-1]["kind"], "summary")  # the user always has a next step
+        self.assertEqual(draft["agent"]["mode"], "model")
 
     def test_the_summary_is_said_once_and_quotes_the_answers(self):
         d = self.store.create("Predict which customers cancel")

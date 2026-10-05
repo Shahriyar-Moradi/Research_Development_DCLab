@@ -8,7 +8,7 @@ or a decision (section 8). Every done package names the commit that did it, so t
 plan to the code.
 
 **Part 2 (sections 9 to 13) is the software foundation underneath**: a database, accounts, durable jobs, the model
-gateway and agent runtime, and the infrastructure to run it for more than one person. **None of Part 2 is built.**
+gateway and agent runtime, and the infrastructure to run it for more than one person. **Of Part 2 only 11.4 is built.**
 Today the product is a single-user program on one machine that keeps everything as files in a folder.
 
 **خلاصه فارسی.** این سند برنامه‌ی «از دموی نسخه‌ی ۱ تا محصول واقعی DCLab» را به **۴۰ برنامه‌ی کوچک** تقسیم می‌کند.
@@ -728,14 +728,13 @@ feature builds its own model client. There is no container, no deployment and no
 That is a sound design for one person on one laptop. It does not support several people, a server, or work that
 must survive a restart. Part 2 builds that, without changing the UI or the science.
 
-**Three decisions shape everything below.** The packages assume the first option of each; change the prompts if you
-choose otherwise.
+**Decided by the owner on 2026-10-05:**
 
-| Decision | Assumed | Alternative |
+| Decision | Choice | What it means for the packages |
 |---|---|---|
-| Who uses it | A small team on one server you run | Stay single-user and local (then build only 9.1, 9.2, 11.1 to 11.4 and 12.3) |
-| Database | PostgreSQL on the server, SQLite on a laptop, one schema through SQLAlchemy | PostgreSQL only |
-| Where it runs | Docker Compose on one machine | A managed cloud (adds 12.6) |
+| Who uses it | One team of about 1,000 users | Accounts, roles and workspaces are required (10.2). Several app instances run behind a load balancer, so nothing may live only in one process: jobs, locks, live events and the model pause all move to the database (10.3, 10.5, 11.1). Every list is paged and indexed. Sign-in through the company's identity provider (OIDC) is the default. |
+| Database | PostgreSQL only | No SQLite path. Tests run against a real PostgreSQL (a local server or a container). A connection pool is required at this size (9.2). |
+| Where it runs | Locally during development, with Docker as an option; a cloud service after development | `make dev` runs the backend, the worker and the frontend on the developer's machine against a local PostgreSQL (12.0). Docker Compose gives the same thing in containers (12.1). The cloud deployment is its own package (12.6) and uses managed PostgreSQL and object storage. |
 
 | # | Package | Status |
 |---|---|---|
@@ -747,15 +746,19 @@ choose otherwise.
 | 10.2 | Accounts, workspaces and roles | Open |
 | 10.3 | Durable jobs and workers | Open |
 | 10.4 | One audit trail in the database | Open |
+| 10.5 | Live events and locks that work across several app instances | Open |
+| 10.6 | Rate limits and per-user quotas | Open |
 | 11.1 | The model gateway | Open |
 | 11.2 | One agent runtime and tool registry | Open |
 | 11.3 | An evaluation suite for the agents | Open |
-| 11.4 | Progress with a model that does not call tools | Open (a defect found in the live check) |
+| 11.4 | Progress with a model that does not call tools | Done |
+| 12.0 | Run everything locally with one command | Open |
 | 12.1 | Containers | Open |
 | 12.2 | Configuration and secrets | Open |
 | 12.3 | Continuous integration | Open |
 | 12.4 | Logs, health and metrics | Open |
 | 12.5 | Backups and retention | Open |
+| 12.6 | Cloud deployment | Open (after development) |
 | 13.1 | A typed API client and consistent loading and error states | Open |
 | 13.2 | Browser tests of the main flows | Open |
 
@@ -777,7 +780,7 @@ behaviour: make rd-check and make product-e2e must pass without edits to their e
 ### 9.2 The database schema and migrations
 
 - **Delivers:** SQLAlchemy models and Alembic migrations: workspaces, users, projects, drafts, stage records, transitions, approvals, events, intern sessions, jobs, model requests; a database implementation of the 9.1 interfaces.
-- **Done when:** the whole test suite and `make product-e2e` pass against SQLite and against PostgreSQL, chosen by one setting.
+- **Done when:** the whole test suite and `make product-e2e` pass against PostgreSQL; the projects list stays fast with 10,000 projects (measured, with the query plan).
 
 ```text
 Package 9.2. Implement the storage Protocols from 9.1 on a database with SQLAlchemy 2 and Alembic. Tables:
@@ -785,8 +788,10 @@ workspace, user, membership, project, draft, asset, stage_record, transition, ap
 job, model_request. Keep documents that are read whole (a stage record, a solution, a workflow) as JSON columns;
 make columns of what is filtered or joined (ids, workspace, status, timestamps, kind). Append-only logs
 (transitions, events) get a sequence per parent and are never updated. An immutable stage record stays immutable.
-One setting, DCLAB_DATABASE_URL, selects SQLite (default, a file in the workspace) or PostgreSQL. Run the whole
-suite and make product-e2e against both. No raw SQL built from request input.
+PostgreSQL only: DCLAB_DATABASE_URL points at it, with a connection pool sized for several app instances (and
+PgBouncer in front in production). Index every column a list filters or sorts on and page every list: one team
+of about 1,000 users will hold thousands of projects. Tests run against a real PostgreSQL in a temporary
+database, never a mock. No raw SQL built from request input.
 ```
 
 ### 9.3 File storage for tables and artifacts
@@ -837,8 +842,9 @@ Keep every path, status code and payload as it is: the frontend and the tests mu
 Package 10.2. Add accounts and workspaces. Sign-in with a password hashed with argon2 and a server-side session
 in an HttpOnly, SameSite=Lax cookie; keep the CSRF token on writes. Every project, draft and session belongs to a
 workspace and every query filters by it. Enforce roles in one dependency: owner (everything), data scientist
-(projects, runs), reviewer (approve gates, read), viewer (read). A gate approval records the user. Local
-single-user mode stays available behind a setting and signs in a default owner. Add OIDC sign-in only when asked.
+(projects, runs), reviewer (approve gates, read), viewer (read). A gate approval records the user. For a team of
+about 1,000, sign-in through the company's identity provider (OIDC) is the main path, with groups mapped to
+roles; password sign-in stays for local development. Sessions live in the database, not in process memory.
 Write one test per write route that the wrong role and the wrong workspace are refused.
 ```
 
@@ -850,7 +856,7 @@ Write one test per write route that the wrong role and the wrong workspace are r
 ```text
 Package 10.3. Jobs are asyncio tasks inside the server and die with it. Add a job table (kind, payload, status,
 progress, started, finished, error, attempts, cancel requested) and a worker process (python -m dclab_rnd.worker)
-that claims jobs with SELECT … FOR UPDATE SKIP LOCKED on PostgreSQL and a simple lock on SQLite. Move stage runs,
+that claims jobs with SELECT … FOR UPDATE SKIP LOCKED, so any number of workers can run. Move stage runs,
 the draft pipeline, simulations and intern sessions onto it. A job writes progress events the page already
 streams. Add cancel (checked between steps) and wire the Compute page's Stop button. On start, a job left
 "running" by a dead worker is marked interrupted and can be retried. A stage stays deterministic: same seed, same
@@ -868,6 +874,31 @@ action (validated moves allowed or refused, gate approvals and their use, policy
 imports with their source and hash, sign-ins, role changes) to one append-only audit table with the user, the
 workspace, the time and a JSON detail. The application has no update or delete on it. Point the Admin audit tab
 at it with paging and filters.
+```
+
+### 10.5 Live events and locks across several app instances
+
+- **Delivers:** the chat and pipeline streams, the per-draft agent turn lock and the model pause working when requests land on different app instances.
+- **Done when:** with two app instances and one worker, a page connected to one instance shows events produced through the other, and two messages to one draft never interleave.
+
+```text
+Package 10.5. Several things assume one process: the event stream tails a file, the agent turn lock and the
+store locks are threading locks, and the model pause is a module variable. Move them to PostgreSQL: events are
+rows with a sequence per draft, the stream wakes on LISTEN/NOTIFY and replays from Last-Event-ID; the per-draft
+turn lock is an advisory lock; the model pause is a row with an expiry. Test with two app processes and one
+worker against the same database.
+```
+
+### 10.6 Rate limits and per-user quotas
+
+- **Delivers:** limits per user and per workspace on requests, uploads, running jobs and model spend, stored in the database and shown on the Admin page.
+- **Done when:** a user over a limit gets a 429 with a clear message and the others are unaffected.
+
+```text
+Package 10.6. With about 1,000 users one person must not be able to starve the rest. Add limits per user and per
+workspace: requests per minute, upload bytes per day, jobs running at once, and model spend per month (from the
+gateway's usage log). Enforce them in one dependency and in the job queue, return 429 with what was exceeded and
+when it resets, and show usage against limits on the Admin page. Limits are settings with safe defaults.
 ```
 
 ## 11. AI and agents
@@ -931,6 +962,16 @@ user must always have a next step. Test it with a scripted client that only ever
 
 ## 12. Infrastructure
 
+### 12.0 Run everything locally with one command
+
+```text
+Package 12.0. Development happens on the developer's machine without containers. Add make dev: it checks that a
+local PostgreSQL is reachable (and says how to start one), creates the dclab_dev database and runs the
+migrations when needed, then starts the API with reload, one worker, and a watcher that rebuilds the frontend
+when a file under dclab_rnd/agentic/web/src changes. Add make db-reset for a clean database and make test-db for
+the temporary database the tests use. Document it in the README in ten lines.
+```
+
 ### 12.1 Containers
 
 ```text
@@ -952,9 +993,9 @@ setting for the host check. Scan the repository and the image for committed secr
 ### 12.3 Continuous integration
 
 ```text
-Package 12.3. Extend .github/workflows: on every push run make rd-check and make product-e2e on SQLite; on main
-also run the suite against a PostgreSQL service and build the image. No job may use a model key. Cache
-dependencies. A failing check blocks the merge.
+Package 12.3. Extend .github/workflows: on every push run make rd-check and make product-e2e against a PostgreSQL
+service container, and build the image on main. No job may use a model key. Cache dependencies. A failing check
+blocks the merge.
 ```
 
 ### 12.4 Logs, health and metrics
@@ -972,6 +1013,17 @@ Package 12.5. Add make backup and make restore: a database dump plus the file st
 machine, with a test that restores into a temporary database and compares counts. Add the retention rule the
 Admin page promises: raw uploads can be deleted after N days while the cleaned table, its hash and every record
 stay. Deleting a project removes its files and leaves an audit entry.
+```
+
+### 12.6 Cloud deployment (after development)
+
+```text
+Package 12.6. Deploy the same image to a cloud: managed PostgreSQL with backups and point-in-time recovery,
+object storage for tables and artifacts (9.3), two or more app instances behind a load balancer with TLS, one or
+more workers that scale with the job queue, secrets in the cloud's secret manager, and logs and metrics in its
+monitoring. Write it as infrastructure code (Terraform or the provider's equivalent) with a staging and a
+production environment. Ask me which provider and region before writing anything, and never apply a change to a
+cloud account without my explicit yes.
 ```
 
 ## 13. Frontend
@@ -998,8 +1050,9 @@ that the stats on screen equal the API's numbers. Run them in CI against the con
 
 ## Suggested order for Part 2
 
-1. **11.4** (a defect), then **9.1** and **10.1** (they move code without changing behaviour).
-2. **9.2, 9.3, 9.4** (the database), then **10.3** (jobs) and **10.4** (audit).
-3. **11.1** and **11.2** (the AI layer), then **11.3**.
-4. **10.2** (accounts), **12.1 to 12.5** (infrastructure), **13.1** and **13.2**.
+1. **9.1** and **10.1** (they move code without changing behaviour), then **12.0** (local development on PostgreSQL).
+2. **9.2, 9.3, 9.4** (the database), then **10.3** (jobs), **10.4** (audit) and **10.5** (several instances).
+3. **10.2** (accounts and roles) and **10.6** (limits): required before more than one person uses it.
+4. **11.1** and **11.2** (the AI layer), then **11.3**.
+5. **12.1 to 12.5**, **13.1** and **13.2**; **12.6** (cloud) last.
 
