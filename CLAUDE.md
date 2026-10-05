@@ -15,7 +15,7 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 - `evidence/campaigns/` — immutable experiment results (one JSON each). `evidence/knowledge/` — GENERATED; never edit by hand.
 - `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `research_map.py` (track records → INDEX.md and the map page), `studio/` (the DCLab notebook: projects, the solution, five-stage engine on user data, `graph.py` the WF-01…WF-10 workflow graph whose validator checks every move and logs it to `transitions.jsonl`, evidence-cited notes, .ipynb export), `draft/` (Home before a project exists: a draft with a background pipeline structure → clean → analyze, the Home agent that asks a few questions and draws the solution workflow, pack detection, synthetic data, and `build_project`), `connectors/` (Kaggle, Hugging Face, databases, S3/GCS; credentials stay on the server), `agentic/` (API server; `agentic/pages/` holds the read-mostly routes of the product's workspace, lab, learn, platform and evidence pages; the product frontend in `agentic/web/src/`, built into `agentic/static/app/` and served at `/`; the earlier UI in `agentic/static/{css,js}` at `/classic`; and the LLM campaign loop), `intern/` (chat mode with tools and a budget over the notebook; standard plan when no model is configured), `studio/sft.py` (finished projects → SFT examples), `mcp_server.py` (the toolbox as an MCP server at `/mcp`, for Hugging Face Chat UI / ML Intern).
 - `general_pipeline/` — shared tabular pipeline imported by research scripts and `dclab_rnd`.
-- `docs/guides/` — field notes, integration plan, agent architecture, copilot, SFT guide.
+- `docs/guides/` — field notes, integration plan, agent architecture, copilot, SFT guide, and `PRODUCT_BUILD_PLAYBOOK.md` (the product plan as 40 small packages, each with its check, its status and a prompt).
 
 ## Commands
 
@@ -29,6 +29,7 @@ make notebook         # the web UI (DCLab notebook, intern, research map, knowle
 make chat-ui          # Hugging Face Chat UI locally with DCLab as an MCP server (make chat-ui-intern: ML Intern mode)
 make product-demo     # rebuild docs/product-demo/index.html: demo v1, the frozen UI reference (tag demo-v1; do not change it)
 make web              # rebuild the product frontend (agentic/web/src → agentic/static/app); same UI as demo v1, wired to the API
+make product-e2e      # the product's main flows on a temporary server (upload, no data, synthetic, log file; ~90 s, no model)
 python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a notebook
 ```
 
