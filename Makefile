@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -142,6 +142,14 @@ web:  ## rebuild the product frontend (dclab_rnd/agentic/web/src -> dclab_rnd/ag
 test-pg:  ## the whole suite on PostgreSQL: needs the local database dclab_test (createdb dclab_test); the tests empty it
 	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m dclab_rnd.storage upgrade
 	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m unittest discover -s tests
+
+# Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
+rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
+
+check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, and the end-to-end flows
+	$(MAKE) rd-check
+	$(MAKE) test-pg
+	$(MAKE) product-e2e
 
 product-e2e:  ## run the product's main flows end to end on a temporary server (upload, no data, synthetic, log file; ~3 min, no model)
 	$(PYTHON) scripts/product_e2e.py

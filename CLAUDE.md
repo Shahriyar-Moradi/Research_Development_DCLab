@@ -21,7 +21,8 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 
 ```bash
 make help        # every target
-make rd-check    # tests + evidence validation + freshness of all generated files (~10 s); must pass before committing
+make rd-check    # tests + evidence validation + freshness of all generated files (~3 min); must pass before committing
+make check-all   # the gate for a plan package: rd-check, the suite on PostgreSQL (test-pg) and the end-to-end flows (~8 min)
 make rd-sync     # rebuild the registry and knowledge base after new results
 make knowledge   # rebuild the evidence index and SFT v3 corpus after new results
 make research-index   # regenerate every research/<track>/INDEX.md (champions, file maps)
@@ -45,6 +46,21 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 5. LLM critique is advisory. Deterministic code owns splits, metrics and selection rules (`dclab_rnd/critic_gate.py` checks critiques against the numbers).
 6. Report results with their uncertainty and limits. Never call a model production-ready from benchmark evidence alone.
 7. Shared code stays at the repository root so `python -m dclab_rnd` and `import general_pipeline` work without installation.
+
+## Working on the plan
+
+The product and its foundation are built package by package from `docs/guides/PRODUCT_BUILD_PLAYBOOK.md` and
+`docs/guides/AGENTIC_FOUNDATION_PLAN.md`. Use the `dclab-package` skill for one package and the `dclab-reviewer`
+subagent to review its diff before committing. When compacting, keep the package in progress, the files changed and
+the last `make check-all` result.
+
+## Gotchas
+
+- Never `git stash`: the owner keeps uncommitted work in this tree (for example `docs/recap/`).
+- `dclab_rnd/agentic/static/app/**` is generated from `dclab_rnd/agentic/web/src` by `make web`.
+- `DCLAB_DATABASE_URL` switches projects, drafts and sessions to PostgreSQL; tests use (and empty) `dclab_test`.
+- Every model request goes through `dclab_rnd.models` (the gateway); tests use scripted transports, never a live key.
+- `.venv-agent` has no pandas, so the studio tests skip there; run the suite with `.venv`.
 
 ## Git
 
