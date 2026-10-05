@@ -92,7 +92,7 @@ print('Pos rate:', meta_s.get('pos_rate', ytr_s.mean()))
     cells.append(_md("## 2. Feature engineering stages\nInspect how each FE stage expands the matrix (train-fit stateful steps)."))
     cells.append(_code("""
 for stage in ['raw', 'logs', 'ratios', 'interactions', 'full_fe', 'selected']:
-    Xtr, Xte, fe_meta = build_feature_matrix(Xtr_s, ytr_s, Xte_s, stage=stage)
+    Xtr, Xte, fe_meta = build_feature_matrix(Xtr_s, ytr_s, Xte_s, stage=stage, categorical=meta_s['categorical'])
     print(f'{stage:12s} -> train {Xtr.shape} | top MI: {fe_meta.get(\"top_mi\", [])[:5]}')
 """))
 
@@ -167,7 +167,7 @@ rows = []
 for mode in ['safe', 'unsafe']:
     Xtr, ytr, Xte, yte, meta = load_raw_xy(KEY, mode)
     for stage in ['raw', 'logs', 'ratios', 'interactions', 'full_fe', 'selected']:
-        A, B, fe = build_feature_matrix(Xtr, ytr, Xte, stage=stage)
+        A, B, fe = build_feature_matrix(Xtr, ytr, Xte, stage=stage, categorical=meta['categorical'])
         m = evaluate(model, A, ytr, B, yte)
         rows.append({{'mode': mode, 'stage': stage, 'feats': A.shape[1], 'roc_auc': m['roc_auc'], 'f1': m['f1']}})
 pd.DataFrame(rows).sort_values(['mode', 'roc_auc'], ascending=[True, False])

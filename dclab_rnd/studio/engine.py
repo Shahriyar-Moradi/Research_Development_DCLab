@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dclab_rnd.categoricals import HEURISTIC_RULE, category_code_columns
 from dclab_rnd.expansion import datasets as ds
 from dclab_rnd.expansion import runner as rn
 
@@ -52,9 +54,10 @@ def _now() -> str:
 
 class Prepared:
     def __init__(self, frame: pd.DataFrame, contract: Contract, bundle: ds.TaskBundle, roles: dict[str, str],
-                 class_labels: list[str] | None, recipes: dict[str, dict[str, Any]], sampling: dict[str, Any]):
+                 class_labels: list[str] | None, recipes: dict[str, dict[str, Any]], sampling: dict[str, Any], code_rule: str = ""):
         self.frame, self.contract, self.bundle, self.roles = frame, contract, bundle, roles
         self.class_labels, self.recipes, self.sampling = class_labels, recipes, sampling
+        self.code_rule = code_rule  # how bundle.spec.categorical_columns was decided
 
     @property
     def task(self) -> str:
@@ -87,7 +90,8 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         raise ValueError("The project needs data and a prediction contract first")
     contract = Contract(**project["contract"])
     path = store.data_dir(project["id"]) / project["data"]["filename"]
-    key = (project["id"], project["data"]["sha256"], _hash(project["contract"]) + str(project["settings"]))
+    declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
+    key = (project["id"], project["data"]["sha256"], _hash(project["contract"]) + str(project["settings"]) + str(declared))
     if key in _BUNDLES:
         return _BUNDLES[key]
     frame = load_table(path)
@@ -165,8 +169,14 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     )
     bundle = ds.prepare_bundle(spec, X, y, data_paths=[path], source_rows=source_rows, sampling=sampling,
                                class_labels=class_labels, cv_folds=3)
-    recipes = _register_recipes(spec, X, roles, datetime_time)
-    prepared = Prepared(frame, contract, bundle, roles, class_labels, recipes, sampling)
+    # Numeric columns that stand for categories get no log or product feature (DCLAB-R11). Decided once,
+    # on training rows: the declaration when there is one, otherwise the conservative heuristic.
+    features = [c for c, role in roles.items() if role == "feature"]
+    codes = category_code_columns(bundle.X_train[features], declared)
+    bundle.spec = replace(spec, categorical_columns=tuple(codes))
+    code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
+    recipes = _register_recipes(bundle.spec, X, roles, datetime_time)
+    prepared = Prepared(frame, contract, bundle, roles, class_labels, recipes, sampling, code_rule)
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
@@ -181,7 +191,9 @@ def _hash(value: Any) -> str:
 
 def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], datetime_time: bool) -> dict[str, dict[str, Any]]:
     features = [c for c, role in roles.items() if role == "feature"]
-    numeric = [c for c in features if pd.api.types.is_numeric_dtype(X[c]) and X[c].nunique() > 2]
+    codes = set(spec.categorical_columns)
+    numeric = [c for c in features if c not in codes and pd.api.types.is_numeric_dtype(X[c]) and X[c].nunique() > 2]
+    left_out = f" ({len(codes)} category-code column{'' if len(codes) == 1 else 's'} left out)" if codes else ""
     if spec.task_type == "text_tabular_binary":
         recipes = {
             "tabular": {"description": f"{len(features)} structured columns only, no text", "tabular": True},
@@ -192,12 +204,12 @@ def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
     else:
         recipes = {"raw": {"description": f"the {len(features)} safe input columns as given (categories one-hot, fitted per fold)", "derive": ()}}
         if numeric:
-            recipes["log_numeric"] = {"description": f"raw + signed log of the {len(numeric)} numeric inputs", "derive": ("log_numeric",)}
+            recipes["log_numeric"] = {"description": f"raw + signed log of the {len(numeric)} numeric inputs{left_out}", "derive": ("log_numeric",)}
         if datetime_time:
             recipes["calendar"] = {"description": "raw + calendar features from the time column (day-of-year sin/cos, day of month, ISO week, weekend)", "derive": ("calendar",)}
         if 2 <= len(numeric) <= 8:
             pairs = len(numeric) * (len(numeric) - 1) // 2
-            recipes["poly2"] = {"description": f"raw + all {pairs} pairwise products of the numeric inputs", "derive": ("poly2",)}
+            recipes["poly2"] = {"description": f"raw + all {pairs} pairwise products of the numeric inputs{left_out}", "derive": ("poly2",)}
         if spec.task_type != "timeseries_regression" and len(features) >= 10:
             k = max(5, int(round(0.6 * len(features))))
             recipes["selected_mi"] = {"description": f"top-{k} inputs by fit-fold mutual information", "derive": (), "select_k": k}
@@ -415,7 +427,8 @@ def stage_features(p: Prepared, eid: str) -> tuple[dict, list, str]:
     evidence = {"stage_results": rows, "stage_model": model, "selected_recipe": selected["recipe"], "selected_recipe_description": selected["description"],
                 "selection_rule": rule, "best_recipe": best["recipe"], "selected_metric_mean": rn._mean(selected, metric), "best_metric_mean": rn._mean(best, metric),
                 "reference_recipe": first["recipe"], "reference_metric_mean": rn._mean(first, metric),
-                "selected_vs_reference_gain": rn.oriented_gain(rn._mean(selected, metric), rn._mean(first, metric), higher), "cv_protocol": bundle.cv_description}
+                "selected_vs_reference_gain": rn.oriented_gain(rn._mean(selected, metric), rn._mean(first, metric), higher), "cv_protocol": bundle.cv_description,
+                "category_code_columns": list(spec.categorical_columns), "category_code_rule": p.code_rule}
     table = "; ".join(f"{r['recipe']} ({r['feature_count_mean']:.0f} feats, {rn._ms(r, metric)})" for r in rows)
     claims = [
         _claim(f"{eid}-C1", "decision", f"Selected recipe `{selected['recipe']}` ({selected['feature_count_mean']:.0f} features, {rn._ms(selected, metric)} {_label(metric)}); "
@@ -426,6 +439,13 @@ def stage_features(p: Prepared, eid: str) -> tuple[dict, list, str]:
     gain = evidence["selected_vs_reference_gain"]
     claims.append(_claim(f"{eid}-C2", "fact", f"Versus the first rung (`{first['recipe']}`), the selected recipe changes {_label(metric)} by {rn._signed(gain, metric)} on identical folds.",
                          ["evidence.selected_vs_reference_gain", "evidence.stage_results"]))
+    codes = evidence["category_code_columns"]
+    if codes:
+        names = ", ".join(f"`{c}`" for c in codes[:12]) + (f" and {len(codes) - 12} more" if len(codes) > 12 else "")
+        claims.append(_claim(f"{eid}-C3", "fact", f"Treated as category codes ({p.code_rule}): {names}. "
+                             "No log or product feature is built from them, because their order and scale are arbitrary (DCLAB-R11).",
+                             ["evidence.category_code_columns", "evidence.category_code_rule"],
+                             ["Every recipe still passes the codes to the model as plain numbers; encoding them as categories is a separate decision."]))
     summary = f"Compared {len(rows)} feature recipes with {model} on {bundle.cv_description}: {table}. Selected `{selected['recipe']}`."
     return evidence, claims, summary
 

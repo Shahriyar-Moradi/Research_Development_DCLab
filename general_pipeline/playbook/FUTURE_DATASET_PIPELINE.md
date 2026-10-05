@@ -9,6 +9,7 @@ Reusable path to produce the same depth of analysis as HyperAck for any new tabu
 3. **Define leakage policy** in `general_pipeline/playbook/policy.py`:
    - List post-outcome columns in `unsafe_only_features`.
    - Write a clear decision-time rationale.
+   - Declare its categorical columns in `dclab_rnd/agentic/catalog.py`. The cache stores them as factorized codes, and the FE families (logs, ratios, interactions, clusters/bins) must leave codes alone (DCLAB-R11). Without a declaration, whole-number columns with at most 20 distinct values are treated as codes.
 4. **Run the playbook**:
    ```bash
    .venv/bin/python general_pipeline/playbook/run_playbook.py --dataset <key>
