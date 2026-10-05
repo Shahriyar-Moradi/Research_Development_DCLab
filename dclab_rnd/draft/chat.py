@@ -18,7 +18,6 @@ import functools
 import json
 import re
 import secrets
-import threading
 from typing import Any, Callable
 
 from . import pack as packs
@@ -73,21 +72,14 @@ TOOLS = [
 ]
 
 
-_TURNS: dict[tuple[str, str], threading.RLock] = {}
-_TURNS_GUARD = threading.Lock()
-
-
 def turn(method):
     """One agent turn at a time per draft. The data pipeline ("your data is ready") and the user's messages run in
     different threads; without this a message that lands between two steps of the other turn is read against a
-    question that was just withdrawn, and the answer ends up in the notes. Re-entrant: a reply that starts a
-    simulation runs the pipeline, and its data-ready turn, in the same thread."""
+    question that was just withdrawn, and the answer ends up in the notes. The store owns the lock (a thread lock
+    for files, an advisory lock in a database), and it is re-entrant."""
     @functools.wraps(method)
     def locked(self, draft_id: str, *args: Any, **kwargs: Any):
-        key = (str(self.store.home), draft_id)
-        with _TURNS_GUARD:
-            lock = _TURNS.setdefault(key, threading.RLock())
-        with lock:
+        with self.store.turn(draft_id):
             return method(self, draft_id, *args, **kwargs)
     return locked
 

@@ -8,7 +8,7 @@ or a decision (section 8). Every done package names the commit that did it, so t
 plan to the code.
 
 **Part 2 (sections 9 to 13) is the software foundation underneath**: a database, accounts, durable jobs, the model
-gateway and agent runtime, and the infrastructure to run it for more than one person. **Of Part 2 only 11.4 is built.**
+gateway and agent runtime, and the infrastructure to run it for more than one person. **Of Part 2, packages 9.1 and 11.4 are built.**
 Today the product is a single-user program on one machine that keeps everything as files in a folder.
 
 **خلاصه فارسی.** این سند برنامه‌ی «از دموی نسخه‌ی ۱ تا محصول واقعی DCLab» را به **۴۰ برنامه‌ی کوچک** تقسیم می‌کند.
@@ -738,7 +738,7 @@ must survive a restart. Part 2 builds that, without changing the UI or the scien
 
 | # | Package | Status |
 |---|---|---|
-| 9.1 | A storage interface in front of the three stores | Open |
+| 9.1 | A storage interface in front of the three stores | Done (`dclab_rnd/storage`, `tests/test_storage_interface.py`) |
 | 9.2 | The database schema and migrations | Open |
 | 9.3 | File storage for tables and artifacts | Open |
 | 9.4 | Move an existing workspace into the database | Open |

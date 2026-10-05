@@ -30,6 +30,8 @@ class DraftStore:
         self.home = Path(home)
         self.home.mkdir(parents=True, exist_ok=True)
         self._locks: dict[str, threading.Lock] = {}
+        self._turns: dict[str, threading.RLock] = {}
+        self._guard = threading.Lock()
 
     # ------------------------------------------------------------------ documents
     def directory(self, draft_id: str) -> Path:
@@ -44,6 +46,20 @@ class DraftStore:
 
     def lock(self, draft_id: str) -> threading.Lock:
         return self._locks.setdefault(draft_id, threading.Lock())
+
+    def turn(self, draft_id: str) -> threading.RLock:
+        """Held for one agent turn on this draft (``with store.turn(id):``). Re-entrant: a reply that starts a
+        simulation runs the pipeline and its data-ready turn in the same thread."""
+        with self._guard:
+            return self._turns.setdefault(draft_id, threading.RLock())
+
+    def events_version(self, draft_id: str) -> tuple[int, int]:
+        """Changes whenever an event is added: a cache key for readers of the log."""
+        path = self.directory(draft_id) / "events.jsonl"
+        if not path.is_file():
+            return (0, 0)
+        stat = path.stat()
+        return (stat.st_mtime_ns, stat.st_size)
 
     def create(self, problem: str = "", pack: str | None = None) -> dict[str, Any]:
         draft_id = secrets.token_hex(6)

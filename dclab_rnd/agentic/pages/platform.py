@@ -276,7 +276,7 @@ def limits(projects) -> dict[str, Any]:
         "rows": {"quick": QUICK_ROWS, "caps": list(DRAFT_CAPS["max_rows"])},
         "spend": {"tracked": False, "note": "No GPU job or model spend is metered yet, so per-job, per-project and workspace caps are not enforced."},
         "upload_max_bytes": UPLOAD_MAX_BYTES, "connector_max_bytes": connectors.MAX_BYTES,
-        "storage": str(Path(projects.home).parent),
+        "storage": projects.location(),
         "model": {"key_configured": bool(cfg["key_configured"]), "available": bool(cfg["available"]), "endpoint": cfg["endpoint"], "model": cfg["model"]},
         "privacy": [
             {"title": "Data stays on this machine", "on": True,

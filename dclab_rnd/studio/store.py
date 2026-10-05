@@ -63,6 +63,19 @@ class ProjectStore:
     def data_dir(self, project_id: str) -> Path:
         return self.directory(project_id) / "data"
 
+    def export_dir(self, project_id: str) -> Path:
+        """The folder a project's exported notebook and report are written to."""
+        path = self.directory(project_id) / "exports"
+        path.mkdir(exist_ok=True)
+        return path
+
+    def location(self) -> str:
+        """Where this workspace lives, in words for the Admin page."""
+        return str(self.home.parent)
+
+    def has_stage(self, project_id: str, stage: str) -> bool:
+        return self.stage_path(project_id, stage).exists()
+
     def stage_path(self, project_id: str, stage: str) -> Path:
         if stage not in STAGE_KEYS:
             raise KeyError(stage)

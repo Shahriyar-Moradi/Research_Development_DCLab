@@ -150,6 +150,7 @@ class Jobs:
     server's start time: a job that says it is running but started before this server cannot be running now."""
 
     def __init__(self, ctx):
+        self._pipeline_cache: dict[str, tuple[Any, tuple[dict[str, Any], ...]]] = {}
         self.ctx = ctx
         self.started = _now()
 
@@ -188,7 +189,7 @@ class Jobs:
         runs.sort(key=lambda r: (r[1] or r[2] or {}).get("at") or "")
         moves = [m for m in projects.transitions(pid, 100_000) if m.get("move") == "run_stage" and m.get("status") == "allowed"]
         used: set[int] = set()
-        has_record = {s: projects.stage_path(pid, s).exists() for s in STAGE_KEYS}
+        has_record = {s: projects.has_stage(pid, s) for s in STAGE_KEYS}
         last_completed = {}
         for i, (stage, _start, end) in enumerate(runs):
             if end and end.get("kind") == "stage_completed":
@@ -288,29 +289,17 @@ class Jobs:
                     tokens={"input": int(used.get("input_tokens") or 0), "output": int(used.get("output_tokens") or 0)})
 
     # ------------------------------------------------------------------ draft data pipelines
-    @staticmethod
-    @functools.lru_cache(maxsize=256)
-    def _pipeline_events(path: str, mtime_ns: int, size: int) -> tuple[dict[str, Any], ...]:
-        """The draft's ``pipeline`` events (the other kinds are skipped unread). Cached per file version."""
-        out = []
-        with open(path, encoding="utf-8") as handle:
-            for line in handle:
-                if '"pipeline"' not in line[:200]:
-                    continue
-                try:
-                    event = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if event.get("kind") == "pipeline":
-                    out.append(event)
-        return tuple(out)
-
     def pipeline_events(self, draft_id: str) -> tuple[dict[str, Any], ...]:
-        path = self.ctx.drafts.directory(draft_id) / "events.jsonl"
-        if not path.is_file():
-            return ()
-        st = path.stat()
-        return self._pipeline_events(str(path), st.st_mtime_ns, st.st_size)
+        """The draft's ``pipeline`` events, read through the store and cached until the log changes."""
+        version = self.ctx.drafts.events_version(draft_id)
+        cached = self._pipeline_cache.get(draft_id)
+        if cached and cached[0] == version:
+            return cached[1]
+        events = tuple(e for e in self.ctx.drafts.events(draft_id) if e.get("kind") == "pipeline")
+        if len(self._pipeline_cache) > 512:
+            self._pipeline_cache.clear()
+        self._pipeline_cache[draft_id] = (version, events)
+        return events
 
     def data_jobs(self, draft: dict[str, Any]) -> list[dict[str, Any]]:
         did = draft["id"]

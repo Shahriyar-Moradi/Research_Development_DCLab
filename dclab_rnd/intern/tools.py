@@ -251,8 +251,7 @@ class Toolbox:
         if not studio_graph.check(project, "capture", "agent").allowed:
             studio_graph.capture(self.projects, project_id, "agent")  # logs the blocked move and raises
         records = self.projects.records(project_id)
-        folder = self.projects.directory(project_id) / "exports"
-        folder.mkdir(exist_ok=True)
+        folder = self.projects.export_dir(project_id)
         (folder / "notebook.ipynb").write_text(studio_export.dumps_notebook(studio_export.notebook(project, records)), encoding="utf-8")
         (folder / "report.md").write_text(studio_export.report(project, records), encoding="utf-8")
         studio_graph.capture(self.projects, project_id, "agent")
