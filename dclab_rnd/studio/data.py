@@ -1,4 +1,4 @@
-"""Load and profile a table; built-in sample datasets with their known contracts."""
+"""Load and profile a table; built-in sample datasets with their known solutions."""
 
 from __future__ import annotations
 
@@ -181,7 +181,7 @@ def _expansion_specs():
 
 
 def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
-    """Datasets the R&D already studied, each with the contract it wrote for them.
+    """Datasets the R&D already studied, each with the solution it wrote for them.
 
     The ten UCI tables and the two project tables ship with the repository. The four
     Kaggle/GitHub datasets of the expansion campaign (imbalanced fraud, multiclass,
@@ -213,7 +213,7 @@ def sample_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
 
 
 def load_sample(key: str, root: Path = ROOT) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """The sample table as one frame (target included) plus a suggested contract."""
+    """The sample table as one frame (target included) plus a suggested solution."""
     expansion = _expansion_specs()
     if key in expansion.SPECS:
         return _load_expansion_sample(expansion, key, root)
@@ -237,7 +237,7 @@ def load_sample(key: str, root: Path = ROOT) -> tuple[pd.DataFrame, dict[str, An
         target, identifiers, time_column = "target", [], None
     suggestion = {
         "target": target,
-        "forbidden": [{"column": c, "reason": "Blocked by the DCLab prediction contract for this dataset: " + policy["decision"]} for c in policy["blocked"] if c in frame and c not in identifiers],
+        "forbidden": [{"column": c, "reason": "Blocked by the R&D solution for this dataset: " + policy["decision"]} for c in policy["blocked"] if c in frame and c not in identifiers],
         "identifiers": [c for c in identifiers if c in frame],
         "time_column": time_column if time_column in frame else None,
         "prediction_moment": policy["decision"],
@@ -292,7 +292,7 @@ def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     project = store.get(project_id)
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
                        "sha256": sha256(path), "profile": profile_table(frame)}
-    project["contract"], project["proposal"], project["suggestion"] = None, None, None
+    project["solution"], project["proposal"], project["suggestion"] = None, None, None
     store.save(project)
     store.clear_stages(project_id)
     store.log(project_id, "data_attached", {"filename": filename, "rows": project["data"]["rows"], "columns": len(project["data"]["columns"])})
@@ -309,7 +309,7 @@ def sample_categorical(key: str, columns: list[str]) -> list[str]:
 
 
 def use_sample(store, project_id: str, key: str, root: Path = ROOT) -> dict[str, Any]:
-    """Copy a sample dataset into the project and remember the contract the R&D wrote for it."""
+    """Copy a sample dataset into the project and remember the solution the R&D wrote for it."""
     frame, suggestion = load_sample(key, root)
     name = f"{key}.csv"
     frame.to_csv(store.data_dir(project_id) / name, index=False)

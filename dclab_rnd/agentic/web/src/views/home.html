@@ -23,7 +23,7 @@
       <div class="stack">
         <div class="panel raised dev-only" data-f="home.composer" data-tour="composer">
           <div class="panel-body stack tight">
-            <div class="spread"><div class="eyebrow">Start from one sentence</div><span class="small muted">DCLab drafts the contract first, then the plan.</span></div>
+            <div class="spread"><div class="eyebrow">Start from one sentence</div><span class="small muted">DCLab drafts the solution first, then the plan.</span></div>
             <div class="composer">
               <label class="sr-only" for="home-task">Describe the model you need</label>
               <textarea id="home-task">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea>
@@ -40,7 +40,7 @@
                   <option>Budget · 48 tool calls · 60 min · €15</option>
                   <option>Budget · 12 tool calls · 5 min · €1</option>
                 </select>
-                <button type="button" class="btn primary send" id="home-start">Draft the contract<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+                <button type="button" class="btn primary send" id="home-start">Draft the solution<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
               </div>
             </div>
             <div class="row small muted" data-f="home.quickstarts">
@@ -84,7 +84,7 @@
           </a>
           <a class="list-item" href="#project" data-project="telco">
             <span class="avatar b">AV</span>
-            <div class="li-main"><span class="li-title">Telco churn: choose the outcome window</span><span class="li-sub">30 or 90 days after the snapshot? The contract was reopened and later steps are on hold.</span><span class="row"><span class="pill warn">Revisit</span><span class="tag">WF-01</span></span></div>
+            <div class="li-main"><span class="li-title">Telco churn: choose the outcome window</span><span class="li-sub">30 or 90 days after the snapshot? The solution was reopened and later steps are on hold.</span><span class="row"><span class="pill warn">Revisit</span><span class="tag">WF-01</span></span></div>
           </a>
         </div>
       </div>
@@ -117,7 +117,7 @@
       <div class="panel" data-f="home.activity">
         <div class="panel-head"><h2>Live</h2><a class="link-btn small" href="#compute">Compute →</a></div>
         <div class="list">
-          <a class="list-item" href="#intern"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Intern · HyperAck contract</span><span class="li-sub">Paused at a question · 9 of 48 tool calls</span></div></a>
+          <a class="list-item" href="#intern"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Intern · HyperAck solution</span><span class="li-sub">Paused at a question · 9 of 48 tool calls</span></div></a>
           <a class="list-item" href="#compute"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">GPU job · pedestrian detector screen</span><span class="li-sub">A10G · 41% · €0.62 so far</span></div></a>
           <a class="list-item" href="#lab"><span class="dot accent" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Campaign · expansion_v2</span><span class="li-sub">Queued · 20 experiments on 4 new datasets</span></div></a>
         </div>
@@ -171,8 +171,8 @@ DC.view('home', {
     });
     $('#home-start', el).addEventListener('click', () => {
       const mode = $('#home-mode button[aria-pressed="true"]', el).dataset.v;
-      if (mode === 'intern') { DC.toast('Handed to the intern. It drafts the contract and asks before anything irreversible.'); location.hash = 'intern'; }
-      else { DC.toast('Contract draft ready. Check the goal, then the data.'); location.hash = 'new'; }
+      if (mode === 'intern') { DC.toast('Handed to the intern. It drafts the solution and asks before anything irreversible.'); location.hash = 'intern'; }
+      else { DC.toast('Solution draft ready. Check the goal, then the data.'); location.hash = 'new'; }
     });
   },
 });

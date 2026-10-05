@@ -26,7 +26,7 @@ from dclab_rnd.expansion import runner  # noqa: E402
 
 try:
     from dclab_rnd.studio import ProjectStore, data as sd, engine, export
-    from dclab_rnd.studio.contract import Contract
+    from dclab_rnd.studio.solution import Solution
 except ImportError as error:  # pydantic is not part of requirements/ci.txt
     STUDIO_MISSING = str(error)
 else:
@@ -247,7 +247,7 @@ class RecipeTests(unittest.TestCase):
 
 @unittest.skipIf(STUDIO_MISSING, f"DCLab notebook dependencies not installed: {STUDIO_MISSING}")
 class NotebookTests(unittest.TestCase):
-    CONTRACT = {"target": "subscribed", "task": "binary", "positive_label": "yes",
+    SOLUTION = {"target": "subscribed", "task": "binary", "positive_label": "yes",
                 "prediction_moment": "Before the call, from the client's record and the month of contact."}
 
     def setUp(self):
@@ -259,7 +259,7 @@ class NotebookTests(unittest.TestCase):
         frame.to_csv(path, index=False)
         loaded = sd.load_table(path)
         project["data"] = {"filename": "data.csv", "rows": len(loaded), "columns": list(loaded.columns), "sha256": sd.sha256(path), "profile": sd.profile_table(loaded)}
-        project["contract"] = Contract(**self.CONTRACT).model_dump()
+        project["solution"] = Solution(**self.SOLUTION).model_dump()
         project["settings"]["quick"] = True
         return self.store.save(project)
 
@@ -277,7 +277,7 @@ class NotebookTests(unittest.TestCase):
         project = sd.use_sample(self.store, project["id"], "bank_marketing")
         self.assertEqual(project["data"]["categorical"], declared_categorical("bank_marketing", project["data"]["columns"][:-1]))
         suggestion = project["suggestion"]
-        project["contract"] = Contract(target=suggestion["target"], task="binary", positive_label="1", forbidden=suggestion["forbidden"],
+        project["solution"] = Solution(target=suggestion["target"], task="binary", positive_label="1", forbidden=suggestion["forbidden"],
                                        prediction_moment=suggestion["prediction_moment"]).model_dump()
         project["settings"]["quick"] = True
         p = engine.prepare(self.store, self.store.save(project))

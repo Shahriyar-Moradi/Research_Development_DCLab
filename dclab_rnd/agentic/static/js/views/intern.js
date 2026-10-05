@@ -27,7 +27,7 @@ export async function renderIntern(arg, extra) {
       <p>A chat mode with tools and a budget, like Hugging Face's ML Intern, but the compute is the DCLab notebook on this machine:<br>every tool it can call is one the R&D already verified, and the model never owns a split, a metric or a selection rule.</p></div>
     <div class="intern-status card"><span class="live-dot"></span><b>${status.mode === 'llm' ? `Model: ${esc(status.model)} via ${esc(status.endpoint)}` : 'No model configured · standard plan'}</b><span>${esc(status.note)}</span></div>
     ${status.mcp_url ? `<div class="card chatui"><div class="eyebrow">PREFER HUGGINGCHAT'S INTERFACE?</div>
-      <p>Hugging Face's <a href="https://github.com/huggingface/chat-ui" target="_blank" rel="noopener">Chat UI</a> runs locally with the DCLab notebook attached as an MCP server, so its ML Intern mode (or any tool-capable model) can create projects, write contracts, run the stages and export notebooks here.
+      <p>Hugging Face's <a href="https://github.com/huggingface/chat-ui" target="_blank" rel="noopener">Chat UI</a> runs locally with the DCLab notebook attached as an MCP server, so its ML Intern mode (or any tool-capable model) can create projects, write solutions, run the stages and export notebooks here.
       Run <code>${esc(status.chat_ui.command)}</code> (or <code>${esc(status.chat_ui.intern_command)}</code> for ML Intern mode) in a second terminal, then open <a href="${esc(status.chat_ui.intern_url)}" target="_blank" rel="noopener">${esc(status.chat_ui.intern_url)}</a>.
       MCP endpoint: <code>${esc(status.mcp_url)}</code> · tools: ${status.tools.length}.</p></div>` : ''}
     <div class="intern-layout">
@@ -49,7 +49,7 @@ function renderComposer(projectId) {
   const budget = status.default_budget;
   main.innerHTML = `<div class="card composer intern-composer">
     <div class="card-heading"><h2>${projectId ? 'Hand a project to the intern' : 'What should the intern do?'}</h2></div>
-    ${projectId ? `<p class="small muted">It will continue project <code>${esc(projectId)}</code>: read its data and contract, run what is missing, and report.</p>` : ''}
+    ${projectId ? `<p class="small muted">It will continue project <code>${esc(projectId)}</code>: read its data and solution, run what is missing, and report.</p>` : ''}
     <label class="sr-only" for="intern-task">Task</label><textarea id="intern-task" rows="4" placeholder="e.g. Build a leakage-safe churn model on the Telco sample and tell me the honest score.">${projectId ? 'Continue this project: run every missing stage, then report the honest score, the leakage findings and the decisions with their proof.' : ''}</textarea>
     <div class="field-label">EXAMPLES <span>click to use</span></div>
     <div class="chips examples">${status.examples.map(t => `<button type="button" class="sample example" data-example="${esc(t)}"><small>${esc(t)}</small></button>`).join('')}</div>

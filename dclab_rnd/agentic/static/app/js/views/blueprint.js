@@ -2,7 +2,7 @@ DC.view('blueprint', {
   init(el) {
     const { $, $$, esc, chip, FEATURES, STATUS_LABEL, Decisions, decideButtons, charts, copyText, toast } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id));
-    const VIEW_LABEL = { shell: 'Everywhere', home: 'Home', new: 'New project', project: 'Workflow graph', contract: 'Contract & data', notebook: 'Notebook', audit: 'Leakage & features', models: 'Models', reliability: 'Reliability', brief: 'Decision brief', intern: 'Intern', compute: 'Compute & jobs', evidence: 'Evidence', lab: 'Research lab', benchmark: 'Benchmark', policy: 'Policy model', packs: 'Domain packs', integrations: 'Integrations', admin: 'Admin' };
+    const VIEW_LABEL = { shell: 'Everywhere', home: 'Home', new: 'New project', project: 'Workflow graph', solution: 'Solution & data', notebook: 'Notebook', audit: 'Leakage & features', models: 'Models', reliability: 'Reliability', brief: 'Decision brief', intern: 'Intern', compute: 'Compute & jobs', evidence: 'Evidence', lab: 'Research lab', benchmark: 'Benchmark', policy: 'Policy model', packs: 'Domain packs', integrations: 'Integrations', admin: 'Admin' };
     const PH = [
       { k: 'Now', t: 'Exists today', g: 'The evidence engine, the notebook stages, the intern, MCP and Chat UI.', exit: 'Already in the repository and tested.' },
       { k: 'P1', t: 'Proof core', g: 'Make every move checkable: the graph, the validator, the log, questions and approvals, the brief, and the first benchmark suites.', exit: 'Term-deposit calls and HyperAck run end to end inside the graph; suites A–D score the standard plan and one LLM.' },

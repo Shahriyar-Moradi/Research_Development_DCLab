@@ -39,8 +39,8 @@ class McpOverHttpTests(unittest.TestCase):
         self.assertIn("holdout", init["result"]["instructions"])
         tools = self.post(rpc("tools/list", {}, 2))["result"]["tools"]
         names = {t["name"] for t in tools}
-        self.assertTrue({"search_evidence", "list_samples", "create_project", "set_contract", "run_all", "export_notebook"} <= names)
-        self.assertEqual(next(t for t in tools if t["name"] == "set_contract")["inputSchema"]["required"], ["project_id", "target", "task", "prediction_moment"])
+        self.assertTrue({"search_evidence", "list_samples", "create_project", "set_solution", "run_all", "export_notebook"} <= names)
+        self.assertEqual(next(t for t in tools if t["name"] == "set_solution")["inputSchema"]["required"], ["project_id", "target", "task", "prediction_moment"])
         hit = self.post(rpc("tools/call", {"name": "search_evidence", "arguments": {"query": "duration leakage bank marketing", "k": 2}}, 3))
         payload = json.loads(hit["result"]["content"][0]["text"])
         self.assertTrue(any(r["record_id"].startswith("LEAK-") or r["record_id"].startswith("EXP-") for r in payload["results"]))

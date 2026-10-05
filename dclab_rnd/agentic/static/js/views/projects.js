@@ -6,8 +6,8 @@ const INDUSTRIES = ['general', 'fintech and banking', 'insurance', 'retail and e
 
 export function progress(p) {
   const done = STAGE_ORDER.filter(s => ['completed', 'approved'].includes(p.stages?.[s]?.status)).length;
-  const steps = (p.data ? 1 : 0) + (p.contract ? 1 : 0) + done;
-  return {steps, total: 7, done, label: !p.data ? 'needs data' : !p.contract ? 'needs a contract' : p.running ? `running: ${p.running}` : done === 5 ? 'finished' : `${done} of 5 stages`};
+  const steps = (p.data ? 1 : 0) + (p.solution ? 1 : 0) + done;
+  return {steps, total: 7, done, label: !p.data ? 'needs data' : !p.solution ? 'needs a solution' : p.running ? `running: ${p.running}` : done === 5 ? 'finished' : `${done} of 5 stages`};
 }
 
 export function renderProjectList(list) {
@@ -33,7 +33,7 @@ export async function renderProjects() {
     return `<a class="card project-card" href="#project/${esc(p.id)}">
       <div class="project-card-head"><h3>${esc(p.name)}</h3><span class="stage-chip ${pr.done === 5 ? 'approved' : p.running ? 'running' : 'pending'}">${esc(pr.label)}</span></div>
       <p>${esc(p.goal || 'No goal written yet.')}</p>
-      <div class="project-card-meta"><span>${esc(p.industry)}</span>${p.data ? `<span>${esc(p.data.filename)} · ${Number(p.data.rows).toLocaleString()} rows</span>` : ''}${p.contract ? `<span>target <code>${esc(p.contract.target)}</code> · ${esc(p.contract.task)}</span>` : ''}</div>
+      <div class="project-card-meta"><span>${esc(p.industry)}</span>${p.data ? `<span>${esc(p.data.filename)} · ${Number(p.data.rows).toLocaleString()} rows</span>` : ''}${p.solution ? `<span>target <code>${esc(p.solution.target)}</code> · ${esc(p.solution.task)}</span>` : ''}</div>
       <div class="progress-steps">${Array.from({length: 7}, (_, i) => `<i class="${i < pr.steps ? 'on' : ''}"></i>`).join('')}</div>
     </a>`;
   }).join('') : '<div class="card empty-card"><h2>No projects yet.</h2><p>Create one on the left: a name, the industry and the question you want the model to answer.</p></div>';

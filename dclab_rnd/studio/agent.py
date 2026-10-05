@@ -72,7 +72,7 @@ def _fmt(value: Any, digits: int = 4) -> str:
 # ---------------------------------------------------------------------- notes per stage
 
 
-def narrate(stage: str, record: dict[str, Any], contract: dict[str, Any], task_type: str) -> list[dict[str, Any]]:
+def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_type: str) -> list[dict[str, Any]]:
     ev = record["evidence"]
     rules = STAGE_RULES[stage]
     notes: list[dict[str, Any]] = []
@@ -86,7 +86,7 @@ def narrate(stage: str, record: dict[str, Any], contract: dict[str, Any], task_t
         if ids:
             notes.append(_note("warning", f"{len(ids)} column(s) look like identifiers but are used as inputs",
                                f"{', '.join(ids[:6])} are nearly unique per row. A model can memorize them without learning anything that transfers. "
-                               "If they are keys, declare them as identifiers in the contract.", ["DCLAB-R12", "DCLAB-R04"], "Edit the contract: mark them as identifiers"))
+                               "If they are keys, declare them as identifiers in the solution.", ["DCLAB-R12", "DCLAB-R04"], "Edit the solution: mark them as identifiers"))
         shifted = [c for c, r in risks.items() if "train_holdout_feature_shift" in r]
         if shifted:
             notes.append(_note("warning", "Some inputs drift between training and holdout",
@@ -102,7 +102,7 @@ def narrate(stage: str, record: dict[str, Any], contract: dict[str, Any], task_t
             notes.append(_note("warning", "Rare positives: accuracy would mislead",
                                f"Only {ts['positive_rate_train']:.1%} of training rows are positive. The campaigns scored such problems with average precision and recall at a precision target, not accuracy.",
                                ["DCLAB-R18", *_precedents("data", task_type, "imbalanced positive rate average precision")]))
-        if task_type == "timeseries_regression" and not contract.get("time_column"):
+        if task_type == "timeseries_regression" and not solution.get("time_column"):
             notes.append(_note("warning", "No time column declared for a regression target",
                                "If these rows are events over time, a random split lets the model see the future. The bike-sharing campaign measured how optimistic that is.",
                                ["DCLAB-R02", *_leak_precedents(["casual", "registered"]), *_precedents("leakage", task_type, "random split optimism time order")],
@@ -121,10 +121,10 @@ def narrate(stage: str, record: dict[str, Any], contract: dict[str, Any], task_t
                                    "The largest jumps ever recorded in the DCLab campaigns came from exactly this.", [*precedents, "DCLAB-R04", "DCLAB-R05"]))
             else:
                 notes.append(_note("info", "The forbidden columns add little or nothing to the score",
-                                   f"Excluding {', '.join(declared)} costs {_fmt(abs(lift))} {metric}. The exclusion still stands: the contract says they are unknown at the prediction moment, and that, not the score, decides.",
+                                   f"Excluding {', '.join(declared)} costs {_fmt(abs(lift))} {metric}. The exclusion still stands: the solution says they are unknown at the prediction moment, and that, not the score, decides.",
                                    [*precedents, "DCLAB-R05"]))
         else:
-            notes.append(_note("info", "No column is forbidden yet", "Nothing in the contract is marked as unknown at the prediction moment. Review the flagged columns below before trusting the score.",
+            notes.append(_note("info", "No column is forbidden yet", "Nothing in the solution is marked as unknown at the prediction moment. Review the flagged columns below before trusting the score.",
                                ["DCLAB-R01", "DCLAB-R04"]))
         flagged = [f for f in ev.get("heuristic_review_candidates", []) if "declared_post_outcome_or_contested" not in f["reasons"]]
         for finding in flagged[:6]:
@@ -133,14 +133,14 @@ def narrate(stage: str, record: dict[str, Any], contract: dict[str, Any], task_t
             notes.append(_note(severity, f"Review `{finding['feature']}`: {reasons}",
                                "A single column this predictive is either the real driver or something recorded after the outcome. Only the prediction moment can tell. "
                                "If it is not known at that moment, add it to the forbidden list and rerun the audit.",
-                               [*_leak_precedents([finding["feature"]]), "DCLAB-R05", "DCLAB-R04"], "Confirm or forbid this column in the contract"))
+                               [*_leak_precedents([finding["feature"]]), "DCLAB-R05", "DCLAB-R04"], "Confirm or forbid this column in the solution"))
         if "random_vs_time_cv" in ev:
             gap = ev["random_vs_time_cv"]["optimism_gap"]
             notes.append(_note("warning" if gap > 0 else "info", f"Random splits would look {_fmt(gap)} better than time-ordered ones",
                                "That gap is the optimism a random split would have hidden. The time-ordered protocol is kept for every later stage.",
                                ["DCLAB-R02", *_precedents("leakage", "timeseries_regression", "random KFold time ordered optimism")]))
         if not ev.get("detector_canary_passed", True):
-            notes.append(_note("warning", "The leakage detector missed its own canary", "Treat the heuristic review list as incomplete and rely on the contract.", ["DCLAB-R05"]))
+            notes.append(_note("warning", "The leakage detector missed its own canary", "Treat the heuristic review list as incomplete and rely on the solution.", ["DCLAB-R05"]))
     elif stage == "features":
         selected, best = ev["selected_recipe"], ev["best_recipe"]
         if selected != best:

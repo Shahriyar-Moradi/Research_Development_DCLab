@@ -1,7 +1,7 @@
 """Export a finished project as a runnable notebook and a report.
 
 The notebook reproduces the approved workflow with plain scikit-learn code so an
-engineer can take it anywhere: the same contract, split, recipe, model and
+engineer can take it anywhere: the same solution, split, recipe, model and
 parameters, and the same once-only holdout.
 """
 
@@ -44,9 +44,9 @@ def _cell(kind: str, source: str) -> dict[str, Any]:
 
 
 def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dict[str, Any]:
-    contract = project["contract"] or {}
+    solution = project["solution"] or {}
     data = project["data"] or {}
-    task = contract.get("task", "binary")
+    task = solution.get("task", "binary")
     regression = task == "regression"
     features = records.get("features", {}).get("decision", {})
     feature_evidence = records.get("features", {}).get("evidence", {})
@@ -59,10 +59,10 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     family = models.get("chosen") or models.get("selected") or ("ridge" if regression else "logistic_regression")
     params = {k.replace("model__", ""): v for k, v in (final.get("selected_model_params") or {}).items()}
     metric = records.get("final", records.get("features", {})).get("primary_metric") or ("mae" if regression else "roc_auc")
-    forbidden = [f["column"] for f in contract.get("forbidden", [])]
-    identifiers = list(contract.get("identifiers", []))
-    time_column, group_column = contract.get("time_column"), contract.get("group_column")
-    drop = sorted(set(forbidden + identifiers + ([time_column] if time_column else []) + ([group_column] if group_column else []) + list(contract.get("text_columns", []))))
+    forbidden = [f["column"] for f in solution.get("forbidden", [])]
+    identifiers = list(solution.get("identifiers", []))
+    time_column, group_column = solution.get("time_column"), solution.get("group_column")
+    drop = sorted(set(forbidden + identifiers + ([time_column] if time_column else []) + ([group_column] if group_column else []) + list(solution.get("text_columns", []))))
     import_line, ctor = MODEL_IMPORTS[family]
     cls = CLASS_NAMES.get(family, ("", ""))[1 if regression else 0]
     ctor = ctor.format(cls=cls)
@@ -71,7 +71,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     cells = [
         _cell("markdown", f"# {project['name']}\n\n"
               f"**Goal.** {project.get('goal') or '—'}\n\n"
-              f"**Prediction contract.** Target `{contract.get('target')}` ({task}). {contract.get('prediction_moment', '')}\n\n"
+              f"**Solution draft.** Target `{solution.get('target')}` ({task}). {solution.get('prediction_moment', '')}\n\n"
               + (f"**Forbidden at prediction time:** " + ", ".join(f"`{c}`" for c in forbidden) + "\n\n" if forbidden else "")
               + (f"**Identifiers (never features):** " + ", ".join(f"`{c}`" for c in identifiers) + "\n\n" if identifiers else "")
               + f"**Metric.** {metric}\n\n"
@@ -80,10 +80,10 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("code", "import numpy as np\nimport pandas as pd\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.impute import SimpleImputer\n"
               "from sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import OneHotEncoder, StandardScaler\n"
               f"from sklearn.metrics import {metric_import}\n{import_line}\n\nRANDOM_STATE = 42"),
-        _cell("markdown", "## 1. Load the data and apply the contract\n\nColumns unknown at the prediction moment and identifiers are removed before anything else happens."),
+        _cell("markdown", "## 1. Load the data and apply the solution\n\nColumns unknown at the prediction moment and identifiers are removed before anything else happens."),
         _cell("code", f"frame = pd.read_csv({data.get('filename', 'data.csv')!r})  # the project's data file\n"
-              f"TARGET = {contract.get('target')!r}\nDROP = {drop!r}\n"
-              + _target_code(task, contract)
+              f"TARGET = {solution.get('target')!r}\nDROP = {drop!r}\n"
+              + _target_code(task, solution)
               + f"X = frame.drop(columns=[TARGET] + [c for c in DROP if c in frame])\nprint(X.shape, y.value_counts(normalize=True).round(3).to_dict() if y.nunique() < 20 else y.describe())"),
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
         _cell("code", _split_code(time_column, group_column, regression, data)),
@@ -103,9 +103,9 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
             "nbformat": 4, "nbformat_minor": 5}
 
 
-def _target_code(task: str, contract: dict[str, Any]) -> str:
+def _target_code(task: str, solution: dict[str, Any]) -> str:
     if task == "binary":
-        return f"y = (frame[TARGET].astype(str).str.strip() == {str(contract.get('positive_label'))!r}).astype(int)\n"
+        return f"y = (frame[TARGET].astype(str).str.strip() == {str(solution.get('positive_label'))!r}).astype(int)\n"
     if task == "multiclass":
         return "labels = sorted(frame[TARGET].dropna().astype(str).unique())\ny = frame[TARGET].astype(str).map({l: i for i, l in enumerate(labels)}).astype(int)\n"
     return "y = pd.to_numeric(frame[TARGET], errors='coerce')\nframe = frame[y.notna()].reset_index(drop=True)\ny = y[y.notna()].reset_index(drop=True)\n"
@@ -199,16 +199,16 @@ def _result_markdown(records: dict[str, dict[str, Any]], metric: str) -> str:
 
 
 def report(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> str:
-    contract = project.get("contract") or {}
+    solution = project.get("solution") or {}
     lines = [f"# {project['name']}", "", f"*Industry:* {project.get('industry', 'general')} · *Created:* {project.get('created', '')[:10]}", "",
              f"**Goal.** {project.get('goal') or '—'}", "",
-             "## Prediction contract", "",
-             f"| Item | Value |", "|---|---|", f"| Target | `{contract.get('target')}` ({contract.get('task')}) |",
-             f"| Prediction moment | {contract.get('prediction_moment', '')} |",
-             f"| Forbidden columns | {', '.join('`' + f['column'] + '`' for f in contract.get('forbidden', [])) or 'none'} |",
-             f"| Identifiers | {', '.join('`' + c + '`' for c in contract.get('identifiers', [])) or 'none'} |",
-             f"| Time / group column | {contract.get('time_column') or '—'} / {contract.get('group_column') or '—'} |",
-             f"| Metric | {contract.get('metric') or 'default for the task'} |", ""]
+             "## Solution draft", "",
+             f"| Item | Value |", "|---|---|", f"| Target | `{solution.get('target')}` ({solution.get('task')}) |",
+             f"| Prediction moment | {solution.get('prediction_moment', '')} |",
+             f"| Forbidden columns | {', '.join('`' + f['column'] + '`' for f in solution.get('forbidden', [])) or 'none'} |",
+             f"| Identifiers | {', '.join('`' + c + '`' for c in solution.get('identifiers', [])) or 'none'} |",
+             f"| Time / group column | {solution.get('time_column') or '—'} / {solution.get('group_column') or '—'} |",
+             f"| Metric | {solution.get('metric') or 'default for the task'} |", ""]
     for index, stage in enumerate(STAGE_KEYS, 1):
         record = records.get(stage)
         if not record:

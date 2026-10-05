@@ -2,10 +2,10 @@
 
 Every tool is deterministic and bounded. The model can look things up, create a
 project, load a sample or describe uploaded data, propose and set a prediction
-contract, run the five stages, approve a choice and export the notebook. It cannot
+solution, run the five stages, approve a choice and export the notebook. It cannot
 run arbitrary code, reach the network or touch files outside the project home.
 
-Every project move the intern makes (run a stage, save a contract, approve a choice,
+Every project move the intern makes (run a stage, save a solution, approve a choice,
 export) is checked by the workflow graph's validator as the actor "agent" and logged.
 A blocked move comes back as an error with the verdict: which check failed, which rule
 applies, and whether a person can unblock it.
@@ -20,7 +20,7 @@ from typing import Any, Callable
 
 from dclab_rnd import tools as evidence_tools
 from dclab_rnd.studio import agent as studio_agent
-from dclab_rnd.studio import contract as studio_contract
+from dclab_rnd.studio import solution as studio_solution
 from dclab_rnd.studio import data as studio_data
 from dclab_rnd.studio import engine as studio_engine
 from dclab_rnd.studio import export as studio_export
@@ -63,6 +63,10 @@ def compact_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+# Tool names from before the prediction contract was renamed to the solution; old MCP and Chat UI configs still call them.
+LEGACY_TOOLS = {"propose_contract": "propose_solution", "set_contract": "set_solution"}
+
+
 class Toolbox:
     def __init__(self, projects: ProjectStore, quick_default: bool = True):
         self.projects = projects
@@ -85,6 +89,7 @@ class Toolbox:
         return list(self._tools)
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
+        name = LEGACY_TOOLS.get(name, name)
         if name not in self._tools:
             return {"error": f"Unknown tool {name!r}. Available: {', '.join(self._tools)}"}
         fn, schema, _ = self._tools[name]
@@ -108,20 +113,20 @@ class Toolbox:
     def _register(self) -> None:
         S = {"type": "string"}
         pid = {"project_id": {**S, "description": "The project id returned by create_project."}}
-        self._add("list_samples", self.list_samples, {}, [], "List the datasets the R&D already studied, with their task type and the contract it wrote for them.")
+        self._add("list_samples", self.list_samples, {}, [], "List the datasets the R&D already studied, with their task type and the solution it wrote for them.")
         self._add("create_project", self.create_project, {"name": S, "industry": {**S, "enum": list(INDUSTRIES)}, "goal": S}, ["name", "goal"],
                   "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.")
         self._add("use_sample", self.use_sample, {**pid, "key": {**S, "description": "A key from list_samples."}}, ["project_id", "key"],
-                  "Load a sample dataset into the project. Returns the data profile and the contract suggestion the R&D wrote for it.")
-        self._add("describe_data", self.describe_data, pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the contract suggestion if any.")
-        self._add("propose_contract", self.propose_contract, {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
-                  "Audit the columns for a chosen target and propose a prediction contract: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.")
-        self._add("set_contract", self.set_contract, {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]},
+                  "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.")
+        self._add("describe_data", self.describe_data, pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the solution suggestion if any.")
+        self._add("propose_solution", self.propose_solution, {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
+                  "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.")
+        self._add("set_solution", self.set_solution, {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]},
                   "prediction_moment": {**S, "description": "When the prediction is made and what is known then (at least one sentence)."},
                   "forbidden": {"type": "array", "items": {"type": "object", "properties": {"column": S, "reason": S}, "required": ["column"]}},
                   "identifiers": {"type": "array", "items": S}, "time_column": S, "group_column": S, "text_columns": {"type": "array", "items": S},
                   "positive_label": S, "metric": {**S, "enum": ["roc_auc", "average_precision", "macro_f1", "mae"]}},
-                  ["project_id", "target", "task", "prediction_moment"], "Save the prediction contract. Saving clears any previous stage results.")
+                  ["project_id", "target", "task", "prediction_moment"], "Save the solution. Saving clears any previous stage results.")
         self._add("set_settings", self.set_settings, {**pid, "quick": {"type": "boolean", "description": "True: 3,000 rows for a fast pass. False: up to max_rows."},
                   "max_rows": {"type": "integer", "minimum": 200, "maximum": 200000}}, ["project_id"], "Change how many rows the stages use.")
         self._add("run_stage", self.run_stage, {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id", "stage"],
@@ -161,35 +166,35 @@ class Toolbox:
                 "columns": [{"name": c["name"], "kind": c["kind"], "missing": round(c["missing_rate"], 3), "unique": c["unique"], "examples": c["preview"][:3]} for c in profile["columns"]],
                 "target_candidates": profile["target_candidates"], "time_candidates": profile["time_candidates"],
                 "id_candidates": profile["id_candidates"], "text_candidates": profile["text_candidates"],
-                "suggestion": project.get("suggestion"), "contract": project.get("contract")}
+                "suggestion": project.get("suggestion"), "solution": project.get("solution")}
 
-    def propose_contract(self, project_id: str, target: str, task: str | None = None) -> dict[str, Any]:
+    def propose_solution(self, project_id: str, target: str, task: str | None = None) -> dict[str, Any]:
         project = self.projects.get(project_id)
         if not project.get("data"):
             return {"error": "The project has no data yet."}
         frame = studio_data.load_table(self.projects.data_dir(project_id) / project["data"]["filename"])
-        proposal = studio_contract.propose(frame, project["data"]["profile"], target, task)
+        proposal = studio_solution.propose(frame, project["data"]["profile"], target, task)
         project["proposal"] = proposal
         self.projects.save(project)
         return {k: proposal[k] for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
                                          "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint")}
 
-    def set_contract(self, project_id: str, **fields: Any) -> dict[str, Any]:
+    def set_solution(self, project_id: str, **fields: Any) -> dict[str, Any]:
         project = self.projects.get(project_id)
         if not project.get("data"):
             return {"error": "The project has no data yet."}
         fields = {k: v for k, v in fields.items() if v not in (None, "", [])}
-        contract = studio_contract.Contract(**fields)
-        contract.check_columns(project["data"]["columns"])
-        verdict = studio_graph.check(project, "set_contract", "agent", target=contract.target)
+        solution = studio_solution.Solution(**fields)
+        solution.check_columns(project["data"]["columns"])
+        verdict = studio_graph.check(project, "set_solution", "agent", target=solution.target)
         studio_graph.log(self.projects, project_id, verdict, project)
         if not verdict.allowed:
             return blocked(verdict)
-        project["contract"] = contract.model_dump()
+        project["solution"] = solution.model_dump()
         self.projects.save(project)
         self.projects.clear_stages(project_id)
-        self.projects.log(project_id, "contract_saved", {"target": contract.target, "task": contract.task, "forbidden": [f.column for f in contract.forbidden], "by": "intern"})
-        return {"saved": True, "contract": project["contract"], "next": "run_stage('data') or run_all"}
+        self.projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden], "by": "intern"})
+        return {"saved": True, "solution": project["solution"], "next": "run_stage('data') or run_all"}
 
     def set_settings(self, project_id: str, quick: bool | None = None, max_rows: int | None = None) -> dict[str, Any]:
         project = self.projects.get(project_id)

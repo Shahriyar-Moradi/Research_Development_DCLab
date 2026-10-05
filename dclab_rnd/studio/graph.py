@@ -1,6 +1,6 @@
 """The controlled workflow graph: ten steps, the moves allowed between them, and a validator.
 
-A person or the intern *proposes* a move (run a stage, save a contract, approve a
+A person or the intern *proposes* a move (run a stage, save a solution, approve a
 choice, approve a gate, capture what was learned). ``check`` decides, with plain
 deterministic code, whether the move exists in the graph, whether its prerequisites
 and gates are met, and which rules and precedents apply. ``log`` writes every verdict,
@@ -11,7 +11,7 @@ The LLM is the decision-maker inside the graph, never the owner of it (DCLAB-R20
 
 Steps (WF-01 … WF-10) and the engine stage that runs each one:
 
-    WF-01 contract · WF-02 source and lineage · WF-03 split design   (declared, no stage)
+    WF-01 solution · WF-02 source and lineage · WF-03 split design   (declared, no stage)
     WF-04 data · WF-05 leakage · WF-06 features · WF-07 models        (one stage each)
     WF-08 + WF-09 final (tuning on training folds, then the holdout once)
     WF-10 knowledge capture (export notebook, report, training examples)
@@ -27,12 +27,12 @@ from typing import Any
 from .store import STAGE_KEYS, ProjectStore, now
 
 NODES: list[dict[str, Any]] = [
-    {"id": "WF-01", "name": "Prediction contract", "stage": None, "rules": ["DCLAB-R01", "DCLAB-R18"],
-     "exit": "A saved contract: target, prediction moment, forbidden columns with reasons, metric."},
+    {"id": "WF-01", "name": "Solution draft", "stage": None, "rules": ["DCLAB-R01", "DCLAB-R18"],
+     "exit": "A saved solution: target, prediction moment, forbidden columns with reasons, metric."},
     {"id": "WF-02", "name": "Source and lineage", "stage": None, "rules": ["DCLAB-R09", "DCLAB-R21"],
      "exit": "A data snapshot with its SHA-256, row count and file name."},
     {"id": "WF-03", "name": "Split design", "stage": None, "rules": ["DCLAB-R02", "DCLAB-R17"],
-     "exit": "The split follows the contract: by time, by group, or stratified; the holdout is sealed."},
+     "exit": "The split follows the solution: by time, by group, or stratified; the holdout is sealed."},
     {"id": "WF-04", "name": "Train-only EDA", "stage": "data", "rules": ["DCLAB-R03", "DCLAB-R12"],
      "exit": "A training-only profile with its risks."},
     {"id": "WF-05", "name": "Leakage audit", "stage": "leakage", "rules": ["DCLAB-R04", "DCLAB-R05", "DCLAB-R06"],
@@ -51,13 +51,13 @@ NODES: list[dict[str, Any]] = [
 NODE_IDS = [n["id"] for n in NODES]
 NODE_BY_ID = {n["id"]: n for n in NODES}
 STAGE_NODE = {"data": "WF-04", "leakage": "WF-05", "features": "WF-06", "models": "WF-07", "final": "WF-09"}
-# Revisits the graph allows on purpose. Reopening the contract is allowed from any step.
-REVISITS = {("WF-05", "WF-01"): "a leak changes the contract", ("WF-07", "WF-06"): "the screen sends you back to the features",
+# Revisits the graph allows on purpose. Reopening the solution is allowed from any step.
+REVISITS = {("WF-05", "WF-01"): "a leak changes the solution", ("WF-07", "WF-06"): "the screen sends you back to the features",
             ("WF-09", "WF-03"): "a shift needs a new split"}
-GATES = {"contract": "The owner signs the prediction contract before WF-04.",
+GATES = {"solution": "The owner signs the solution before WF-04.",
          "holdout": "The owner approves opening the holdout (WF-09)."}
-DEFAULT_POLICY = {"require_contract_signoff": False, "require_holdout_approval": False}
-MOVES = ("run_stage", "set_contract", "approve_stage", "approve_gate", "capture")
+DEFAULT_POLICY = {"require_solution_signoff": False, "require_holdout_approval": False}
+MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture")
 DONE = ("completed", "approved")
 
 
@@ -94,19 +94,26 @@ class Verdict:
 # ---------------------------------------------------------------------- state
 
 
+# Names used before the prediction contract was renamed to the solution; still accepted from old clients.
+LEGACY_MOVES = {"set_contract": "set_solution"}
+LEGACY_GATES = {"contract": "solution"}
+LEGACY_POLICY = {"require_contract_signoff": "require_solution_signoff"}
+
+
 def policy(project: dict[str, Any]) -> dict[str, Any]:
-    return {**DEFAULT_POLICY, **(project.get("policy") or {})}
+    own = {LEGACY_POLICY.get(k, k): v for k, v in (project.get("policy") or {}).items()}
+    return {**DEFAULT_POLICY, **own}
 
 
-def contract_hash(contract: dict[str, Any] | None) -> str | None:
-    if not contract:
+def solution_hash(solution: dict[str, Any] | None) -> str | None:
+    if not solution:
         return None
-    return hashlib.sha256(json.dumps(contract, sort_keys=True, default=str).encode()).hexdigest()[:16]
+    return hashlib.sha256(json.dumps(solution, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
-def contract_signed(project: dict[str, Any]) -> bool:
+def solution_signed(project: dict[str, Any]) -> bool:
     signoff = project.get("signoff") or {}
-    return bool(project.get("contract")) and signoff.get("contract_hash") == contract_hash(project.get("contract"))
+    return bool(project.get("solution")) and signoff.get("solution_hash") == solution_hash(project.get("solution"))
 
 
 def _stage_status(project: dict[str, Any], stage: str) -> str:
@@ -117,9 +124,9 @@ def node_states(project: dict[str, Any]) -> dict[str, str]:
     """done · current · waiting (a person must act) · running · failed · todo, for every step."""
     pol = policy(project)
     raw: dict[str, str] = {}
-    has_contract = bool(project.get("contract"))
-    signed_ok = contract_signed(project) or not pol["require_contract_signoff"]
-    raw["WF-01"] = "done" if has_contract and signed_ok else ("waiting" if has_contract else "todo")
+    has_solution = bool(project.get("solution"))
+    signed_ok = solution_signed(project) or not pol["require_solution_signoff"]
+    raw["WF-01"] = "done" if has_solution and signed_ok else ("waiting" if has_solution else "todo")
     raw["WF-02"] = "done" if (project.get("data") or {}).get("sha256") else "todo"
     raw["WF-03"] = "done" if raw["WF-01"] == "done" and raw["WF-02"] == "done" else "todo"
     for stage in STAGE_KEYS:
@@ -159,11 +166,14 @@ def check(project: dict[str, Any], move: str, actor: str = "human", **args: Any)
     if actor not in ("human", "agent"):
         actor = "agent"
     clean = {k: v for k, v in args.items() if v not in (None, "")}
+    move = LEGACY_MOVES.get(move, move)
+    if "gate" in clean:
+        clean["gate"] = LEGACY_GATES.get(clean["gate"], clean["gate"])
     frm = current_node(project)
     if move not in MOVES:
         return Verdict(move, actor, "blocked", frm, None, f"Unknown move {move!r}. Moves: {', '.join(MOVES)}.",
                        [_check("Move exists", False, f"{move!r} is not one of {', '.join(MOVES)}")], args=clean)
-    return {"run_stage": _run_stage, "set_contract": _set_contract, "approve_stage": _approve_stage,
+    return {"run_stage": _run_stage, "set_solution": _set_solution, "approve_stage": _approve_stage,
             "approve_gate": _approve_gate, "capture": _capture}[move](project, actor, frm, clean)
 
 
@@ -190,11 +200,11 @@ def _run_stage(project: dict[str, Any], actor: str, frm: str | None, args: dict[
     evidence: list[str] = []
     side: list[str] = []
     checks = [
-        _check("Contract", bool(project.get("contract")), "Save the prediction contract first (WF-01)."),
+        _check("Solution", bool(project.get("solution")), "Save the solution first (WF-01)."),
         _check("Data", bool(project.get("data")), "Attach a table first (WF-02)."),
     ]
-    if pol["require_contract_signoff"]:
-        checks.append(_check("Contract signed", contract_signed(project), "The owner must sign the current contract before WF-04 (gate: contract)."))
+    if pol["require_solution_signoff"]:
+        checks.append(_check("Solution signed", solution_signed(project), "The owner must sign the current solution before WF-04 (gate: solution)."))
     index = STAGE_KEYS.index(stage)
     if index:
         previous = STAGE_KEYS[index - 1]
@@ -224,21 +234,21 @@ def _run_stage(project: dict[str, Any], actor: str, frm: str | None, args: dict[
             approved = any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", []))
             checks.append(_check("Owner approval", approved, "The owner must approve opening the holdout (gate: holdout)."))
         side.append("Consumes the holdout once.")
-    approval = ("Contract signed", "Owner approval") + (("Holdout reuse confirmed",) if actor == "human" else ())
+    approval = ("Solution signed", "Owner approval") + (("Holdout reuse confirmed",) if actor == "human" else ())
     return _verdict("run_stage", actor, frm, to, checks, rules, evidence, side, args, approval)
 
 
-def _set_contract(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
-    checks = [_check("Data", bool(project.get("data")), "Attach a table before writing the contract.")]
+def _set_solution(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    checks = [_check("Data", bool(project.get("data")), "Attach a table before writing the solution.")]
     side = []
     ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
     if ran:
         side.append(f"Reopens WF-01: clears {', '.join(ran)}.")
     if int(project.get("holdout_uses", 0) or 0):
         side.append("The holdout stays used: a new estimate on it will need a reason.")
-    if actor == "agent" and contract_signed(project):
-        checks.append(_check("Signed contract unchanged", False, "The owner signed this contract; only a person may change it."))
-    return _verdict("set_contract", actor, frm, "WF-01", checks, ["DCLAB-R01"], [], side, args, ("Signed contract unchanged",))
+    if actor == "agent" and solution_signed(project):
+        checks.append(_check("Signed solution unchanged", False, "The owner signed this solution; only a person may change it."))
+    return _verdict("set_solution", actor, frm, "WF-01", checks, ["DCLAB-R01"], [], side, args, ("Signed solution unchanged",))
 
 
 def _approve_stage(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
@@ -263,14 +273,14 @@ def _approve_gate(project: dict[str, Any], actor: str, frm: str | None, args: di
     gate = args.get("gate")
     checks = [_check("Gate exists", gate in GATES, f"Gates: {', '.join(GATES)}."),
               _check("A person approves", actor == "human", "Only a person can approve a gate; ask the owner.")]
-    if gate == "contract":
-        checks.append(_check("Contract", bool(project.get("contract")), "There is no contract to sign."))
-    to = "WF-01" if gate == "contract" else "WF-09" if gate == "holdout" else None
-    return _verdict("approve_gate", actor, frm, to, checks, ["DCLAB-R01"] if gate == "contract" else ["DCLAB-R17"], [], [], args)
+    if gate == "solution":
+        checks.append(_check("Solution", bool(project.get("solution")), "There is no solution to sign."))
+    to = "WF-01" if gate == "solution" else "WF-09" if gate == "holdout" else None
+    return _verdict("approve_gate", actor, frm, to, checks, ["DCLAB-R01"] if gate == "solution" else ["DCLAB-R17"], [], [], args)
 
 
 def _capture(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
-    checks = [_check("Contract", bool(project.get("contract")), "Nothing to capture: there is no contract yet.")]
+    checks = [_check("Solution", bool(project.get("solution")), "Nothing to capture: there is no solution yet.")]
     side = [] if _stage_status(project, "final") in DONE else ["The final stage has not run: the export is a work in progress and WF-10 stays open."]
     return _verdict("capture", actor, frm, "WF-10", checks, ["DCLAB-R20", "DCLAB-R21"], [], side, args)
 
@@ -280,14 +290,15 @@ def _capture(project: dict[str, Any], actor: str, frm: str | None, args: dict[st
 
 def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "owner", reason: str = "") -> dict[str, Any]:
     """Record a person's approval of a gate (validated and logged like any move)."""
+    gate = LEGACY_GATES.get(gate, gate)
     project = store.get(project_id)
     verdict = check(project, "approve_gate", "human", gate=gate)
     log(store, project_id, verdict, project)
     if not verdict.allowed:
         raise GraphBlocked(verdict)
     entry = {"gate": gate, "by": by, "at": now(), "reason": reason[:500]}
-    if gate == "contract":
-        entry["contract_hash"] = contract_hash(project["contract"])
+    if gate == "solution":
+        entry["solution_hash"] = solution_hash(project["solution"])
         project["signoff"] = entry
     project.setdefault("approvals", []).append(entry)
     store.save(project)
@@ -344,9 +355,9 @@ def describe(project: dict[str, Any], actor: str = "human") -> dict[str, Any]:
     return {
         "nodes": [{**n, "state": states[n["id"]]} for n in NODES],
         "current": current_node(project), "state": state_string(project), "policy": policy(project),
-        "revisits": [{"from": a, "to": b, "why": why} for (a, b), why in REVISITS.items()] + [{"from": "any", "to": "WF-01", "why": "reopen the contract"}],
-        "gates": [{"gate": g, "what": what, "required": policy(project)["require_contract_signoff" if g == "contract" else "require_holdout_approval"],
-                   "approved": (contract_signed(project) if g == "contract" else any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", [])))}
+        "revisits": [{"from": a, "to": b, "why": why} for (a, b), why in REVISITS.items()] + [{"from": "any", "to": "WF-01", "why": "reopen the solution"}],
+        "gates": [{"gate": g, "what": what, "required": policy(project)["require_solution_signoff" if g == "solution" else "require_holdout_approval"],
+                   "approved": (solution_signed(project) if g == "solution" else any(a.get("gate") == "holdout" and not a.get("used") for a in project.get("approvals", [])))}
                   for g, what in GATES.items()],
         "holdout_uses": int(project.get("holdout_uses", 0) or 0),
         "moves": moves,

@@ -46,11 +46,11 @@ class ScriptedModel:
 
 
 BIKE_SCRIPT = [
-    ("write_plan", {"plan": "1 load the bike sample 2 contract 3 stages 4 report"}),
+    ("write_plan", {"plan": "1 load the bike sample 2 solution 3 stages 4 report"}),
     ("list_samples", {}),
     ("create_project", {"name": "Bike demand", "goal": "forecast daily rentals", "industry": "logistics and delivery"}),
     ("use_sample", {"project_id": "PID", "key": "bike_sharing_daily"}),
-    ("set_contract", {"project_id": "PID", "target": "cnt", "task": "regression", "prediction_moment": "Forecast two days ahead; same-day rider counts are unknown.",
+    ("set_solution", {"project_id": "PID", "target": "cnt", "task": "regression", "prediction_moment": "Forecast two days ahead; same-day rider counts are unknown.",
                       "forbidden": [{"column": "casual", "reason": "post-outcome"}, {"column": "registered", "reason": "post-outcome"}], "identifiers": ["instant"], "time_column": "dteday"}),
     ("run_all", {"project_id": "PID"}),
     ("get_results", {"project_id": "PID", "stage": "final"}),
@@ -68,7 +68,7 @@ class ToolboxTests(unittest.TestCase):
         projects, _ = make(tempfile.mkdtemp())
         box = Toolbox(projects)
         names = set(box.names())
-        self.assertTrue({"search_evidence", "create_project", "use_sample", "set_contract", "run_all", "export_notebook"} <= names)
+        self.assertTrue({"search_evidence", "create_project", "use_sample", "set_solution", "run_all", "export_notebook"} <= names)
         self.assertNotIn("audit_columns", names)  # no path-based tools for the model
         self.assertIn("error", box.call("nope", {}))
         self.assertIn("error", box.call("create_project", {"name": "x"}))  # goal required
@@ -85,12 +85,12 @@ class StandardPlanTests(unittest.TestCase):
             session = intern.start("Build a leakage-safe heart disease model and report the honest score.", {"max_steps": 12, "max_minutes": 5})
             session = intern.run(session["id"])
         self.assertEqual(session["status"], "completed")
-        self.assertEqual([s["tool"] for s in session["steps"]], ["list_samples", "create_project", "use_sample", "describe_data", "propose_contract", "set_contract", "run_all", "export_notebook"])
+        self.assertEqual([s["tool"] for s in session["steps"]], ["list_samples", "create_project", "use_sample", "describe_data", "propose_solution", "set_solution", "run_all", "export_notebook"])
         self.assertTrue(all(s["ok"] for s in session["steps"]))
         self.assertIn("Honest score", session["final"])
         self.assertIn("DCLAB-R22", session["final"])
         project = projects.get(session["project_id"])
-        self.assertEqual(project["contract"]["target"], "target")
+        self.assertEqual(project["solution"]["target"], "target")
         self.assertEqual(project["data"]["filename"], "heart_disease.csv")
         self.assertTrue(all(v["status"] == "completed" for v in project["stages"].values()))
         self.assertTrue((projects.directory(project["id"]) / "exports" / "notebook.ipynb").exists())
@@ -118,7 +118,7 @@ class LlmLoopTests(unittest.TestCase):
             session = intern.run(intern.start("Forecast bike rentals", {"max_steps": 20, "max_minutes": 5})["id"])
         self.assertEqual(session["status"], "completed")
         self.assertEqual(session["final"], "Bike model built; see the project.")
-        self.assertEqual(session["plan"], "1 load the bike sample 2 contract 3 stages 4 report")
+        self.assertEqual(session["plan"], "1 load the bike sample 2 solution 3 stages 4 report")
         self.assertEqual([s["tool"] for s in session["steps"]][:4], ["write_plan", "list_samples", "create_project", "use_sample"])
         final = projects.read_stage(session["project_id"], "final")["evidence"]
         self.assertIn("mae", final["holdout_metrics"])
@@ -163,8 +163,8 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(s["project_id"])
         self.assertEqual(c.get(f"/api/projects/{s['project_id']}").json()["stages"]["final"]["status"], "completed")
         rows = [json.loads(line) for line in c.get(f"/api/projects/{s['project_id']}/export/sft").text.splitlines() if line]
-        self.assertEqual(len(rows), 6)  # five stages plus the contract example (two forbidden columns)
-        self.assertEqual(c.get(f"/api/projects/{s['project_id']}").json()["contract"]["forbidden"][0]["column"], "casual")
+        self.assertEqual(len(rows), 6)  # five stages plus the solution example (two forbidden columns)
+        self.assertEqual(c.get(f"/api/projects/{s['project_id']}").json()["solution"]["forbidden"][0]["column"], "casual")
         self.assertEqual(c.get("/api/intern/sessions").json()[0]["id"], s["id"])
         self.assertEqual(c.delete(f"/api/intern/sessions/{s['id']}", headers=self.headers).status_code, 204)
 

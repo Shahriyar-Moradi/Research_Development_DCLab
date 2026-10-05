@@ -4,7 +4,7 @@ DC.view('notebook', {
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
     const R = window.DEMO_REVIEW || { cells: [], findings: [], summary: {} };
     const FIX = {
-      3: `# duration is known only after the call ends: forbidden by contract v2
+      3: `# duration is known only after the call ends: forbidden by solution v2
 features = ["age", "balance", "campaign", "pdays", "previous", "job", "month"]
 # job's subscription rate is learned inside the training folds (cell 5)`,
       4: `# keep the natural class balance (11.7% positive);
@@ -102,7 +102,7 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
         const A = {
           why: `Three things inflate it. duration is the call length, known only after the call ${chip('LEAK-bank_marketing')}. job_rate is the target mean computed on all rows, so each row sees its own label ${chip('PIT-004')}. The resampled copies land on both sides of the split, so the model is graded on rows it memorized ${chip('PIT-003')}. Accuracy also hides the rare class ${chip('DCLAB-R18')}.`,
           smote: `Yes, but only inside each training fold, through an imblearn Pipeline. Evaluate on untouched, naturally imbalanced rows with average precision ${chip('PIT-003')} ${chip('DCLAB-R03')}.`,
-          campaign: `Not decided yet. If the count includes the call being predicted, it leaks a little. The contract keeps it with a warning and runs a with/without check on identical folds. Only the owner can settle it ${chip('DCLAB-R05')}.`,
+          campaign: `Not decided yet. If the count includes the call being predicted, it leaks a little. The solution keeps it with a warning and runs a with/without check on identical folds. Only the owner can settle it ${chip('DCLAB-R05')}.`,
         };
         $('#nb-answer', el).innerHTML = `<div class="inset">${A[q.dataset.q]}</div>`;
       }
@@ -123,17 +123,17 @@ print("Brier after ", brier_score_loss(y_test, calibrated.predict_proba(X_test)[
     render();
 
     const PIPE = [
-      ['md', '<h3>Term-deposit calls · contract v2</h3><p>Predict subscription immediately before a marketing call. <code>duration</code> is forbidden. Primary metric: net value at 2,000 calls.</p>', []],
-      ['code', `from dclab import load_snapshot, load_contract
-contract = load_contract("term-deposit-calls", version=2)
-X, y = load_snapshot("9c1e4b07", contract)   # raises if a forbidden column is requested
-split = contract.split(X, y, holdout=0.2, stratify=True, seed=42)  # holdout sealed`, ['DATASET-bank_marketing', 'DCLAB-R01']],
-      ['code', `recipe = contract.feature_recipe("ratios")   # smallest set within 0.002 of the best
+      ['md', '<h3>Term-deposit calls · solution v2</h3><p>Predict subscription immediately before a marketing call. <code>duration</code> is forbidden. Primary metric: net value at 2,000 calls.</p>', []],
+      ['code', `from dclab import load_snapshot, load_solution
+solution = load_solution("term-deposit-calls", version=2)
+X, y = load_snapshot("9c1e4b07", solution)   # raises if a forbidden column is requested
+split = solution.split(X, y, holdout=0.2, stratify=True, seed=42)  # holdout sealed`, ['DATASET-bank_marketing', 'DCLAB-R01']],
+      ['code', `recipe = solution.feature_recipe("ratios")   # smallest set within 0.002 of the best
 pipe = recipe.pipeline(model="extra_trees", params="C02")`, ['EXP-008', 'DCLAB-R07']],
       ['code', `cv = split.folds(k=3)                        # identical folds for every comparison
-screen = contract.screen(pipe.families, cv, rule="mean - 0.25*std, then runtime")
+screen = solution.screen(pipe.families, cv, rule="mean - 0.25*std, then runtime")
 screen.selected                                 # 'extra_trees'`, ['EXP-009', 'DCLAB-R13']],
-      ['code', `tuning = contract.tune(pipe, cv, candidates=3, margin=0.005)
+      ['code', `tuning = solution.tune(pipe, cv, candidates=3, margin=0.005)
 tuning.kept                                     # 'C02', +0.0235 over the paired baseline`, ['EXP-010', 'DCLAB-R16']],
       ['code', `result = split.open_holdout(pipe, approved_by="Shahriyar")   # once; logged
 result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['EXP-010', 'DCLAB-R17']],

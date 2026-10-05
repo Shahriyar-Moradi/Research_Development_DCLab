@@ -40,12 +40,12 @@ KIND = {"data": "data_understanding", "leakage": "leakage_audit", "features": "f
 
 
 def dataset_card(project: dict[str, Any]) -> str:
-    c, d = project.get("contract") or {}, project.get("data") or {}
+    c, d = project.get("solution") or {}, project.get("data") or {}
     profile = d.get("profile") or {}
     forbidden = ", ".join(f"`{f['column']}`" for f in c.get("forbidden", [])) or "none"
     return (f"### Dataset\nProject `{project['name']}` ({project.get('industry', 'general')}). {project.get('goal') or ''} "
             f"Facts: task {c.get('task')}, {d.get('rows', '?')} rows, {profile.get('column_count', '?')} columns, target `{c.get('target')}`. "
-            f"Decision-time contract: {c.get('prediction_moment', '')} Forbidden at prediction time: {forbidden}.")
+            f"Decision-time solution: {c.get('prediction_moment', '')} Forbidden at prediction time: {forbidden}.")
 
 
 def stage_card(stage: str) -> str:
@@ -74,7 +74,7 @@ def _answer(record: dict[str, Any]) -> str:
 
 
 def examples_from_project(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
-    if not project.get("contract"):
+    if not project.get("solution"):
         return []
     out = []
     for stage in STAGE_KEYS:
@@ -90,17 +90,17 @@ def examples_from_project(project: dict[str, Any], records: dict[str, dict[str, 
     leakage = records.get("leakage")
     if leakage:
         ev = leakage["evidence"]
-        forbidden = project["contract"].get("forbidden", [])
+        forbidden = project["solution"].get("forbidden", [])
         if forbidden:
             answer = ("**Evidence.** " + ev["policy_rationale"] + f" Including {ev['declared_leakage_features']} moved training-CV {ev['apparent_lift_metric']} by {ev['apparent_lift']:+.4f} on identical folds.\n\n"
                       "**Interpretation.** The size of the gap shows how much a leak would inflate the score; only the prediction moment confirms the leak. [DCLAB-R04, DCLAB-R05]\n\n"
-                      f"**Decision.** Keep {ev['declared_leakage_features']} out of every model; document why in the contract.\n\n"
+                      f"**Decision.** Keep {ev['declared_leakage_features']} out of every model; document why in the solution.\n\n"
                       "**Risks.** Heuristics flagged " + (", ".join(f["feature"] for f in ev["heuristic_review_candidates"] if "declared_post_outcome_or_contested" not in f["reasons"]) or "no other column") + " for review.\n\n"
                       "**Next test.** " + NEXT_TEST["leakage"])
             out.append({"messages": [{"role": "system", "content": SYSTEM_PROMPT},
                                      {"role": "user", "content": dataset_card(project) + "\n\nWhich columns must be excluded at the prediction moment, and what would including them do to the score?"},
                                      {"role": "assistant", "content": answer}],
-                        "metadata": {"source": "notebook_project", "project_id": project["id"], "stage": "contract", "task": leakage["task"], "task_type": leakage["task_type"],
+                        "metadata": {"source": "notebook_project", "project_id": project["id"], "stage": "solution", "task": leakage["task"], "task_type": leakage["task_type"],
                                      "primary_metric": leakage["primary_metric"], "cited": ["DCLAB-R04", "DCLAB-R05"], "experiment_id": leakage["experiment_id"]}})
     return out
 

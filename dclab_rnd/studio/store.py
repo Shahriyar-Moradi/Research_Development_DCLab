@@ -25,6 +25,30 @@ def safe_name(name: str, default: str = "data.csv") -> str:
     return name[:120]
 
 
+def migrate(project: dict[str, Any]) -> bool:
+    """Bring a project.json written before the rename of the prediction contract to the solution up to date.
+
+    Old files kept the solution under "contract", the owner's sign-off as "contract_hash", the gate as
+    "contract" and the policy switch as "require_contract_signoff". Returns True when anything changed.
+    """
+    changed = False
+    if "contract" in project:
+        old = project.pop("contract")
+        project.setdefault("solution", old)
+        changed = True
+    pol = project.get("policy")
+    if isinstance(pol, dict) and "require_contract_signoff" in pol:
+        pol.setdefault("require_solution_signoff", pol.pop("require_contract_signoff"))
+        changed = True
+    for entry in [project.get("signoff") or {}, *(project.get("approvals") or [])]:
+        if isinstance(entry, dict):
+            if entry.get("gate") == "contract":
+                entry["gate"] = "solution"; changed = True
+            if "contract_hash" in entry:
+                entry.setdefault("solution_hash", entry.pop("contract_hash")); changed = True
+    return changed
+
+
 class ProjectStore:
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -55,7 +79,7 @@ class ProjectStore:
             "created": now(),
             "updated": now(),
             "data": None,
-            "contract": None,
+            "solution": None,
             "proposal": None,
             "settings": {"max_rows": 20000, "quick": False},
             "stages": {key: {"status": "pending"} for key in STAGE_KEYS},
@@ -74,7 +98,10 @@ class ProjectStore:
         path = self.directory(project_id) / "project.json"
         if not path.exists():
             raise KeyError(project_id)
-        return json.loads(path.read_text(encoding="utf-8"))
+        project = json.loads(path.read_text(encoding="utf-8"))
+        if migrate(project):
+            self.save(project)
+        return project
 
     def save(self, project: dict[str, Any]) -> dict[str, Any]:
         project["updated"] = now()
@@ -93,7 +120,9 @@ class ProjectStore:
         projects = []
         for path in self.home.glob("*/project.json"):
             try:
-                projects.append(json.loads(path.read_text(encoding="utf-8")))
+                project = json.loads(path.read_text(encoding="utf-8"))
+                migrate(project)
+                projects.append(project)
             except (OSError, json.JSONDecodeError):
                 continue
         return sorted(projects, key=lambda p: p.get("updated", ""), reverse=True)
@@ -125,7 +154,7 @@ class ProjectStore:
         return out
 
     def clear_stages(self, project_id: str, from_stage: str = "data") -> None:
-        """Downstream results are invalid once the data or the contract changes."""
+        """Downstream results are invalid once the data or the solution changes."""
         start = STAGE_KEYS.index(from_stage)
         project = self.get(project_id)
         for stage in STAGE_KEYS[start:]:

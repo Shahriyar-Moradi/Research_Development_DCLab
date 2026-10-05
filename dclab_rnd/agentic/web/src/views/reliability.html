@@ -25,7 +25,7 @@
           </div>
         </div>
       </div>
-      <div class="panel-foot bar"><span>Seal record: contract v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" data-style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
+      <div class="panel-foot bar"><span>Seal record: solution v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" data-style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
     </div>
   </div>
 
@@ -75,10 +75,10 @@
         <div class="panel-head"><div class="panel-title"><h3>Production gate</h3><span class="sub">Research evidence is not production approval</span></div><span class="pill warn">2 of 6</span></div>
         <div class="panel-body stack tight">
           <ul class="plan-list">
-            <li class="done"><span class="pi">✓</span><span>Provenance recorded: snapshot hash, licence, contract version</span></li>
-            <li class="done"><span class="pi">✓</span><span>Leakage-safe contract signed and enforced</span></li>
+            <li class="done"><span class="pi">✓</span><span>Provenance recorded: snapshot hash, licence, solution version</span></li>
+            <li class="done"><span class="pi">✓</span><span>Leakage-safe solution signed and enforced</span></li>
             <li class="blocked"><span class="pi">!</span><span>Independent confirmation on fresh campaign data</span></li>
-            <li class="blocked"><span class="pi">!</span><span>Feature contracts: raw category labels instead of codes</span></li>
+            <li class="blocked"><span class="pi">!</span><span>Feature solutions: raw category labels instead of codes</span></li>
             <li class="blocked"><span class="pi">!</span><span>Monitoring plan: drift, calibration and hit rate per week</span></li>
             <li class="blocked"><span class="pi">!</span><span>Shadow test with the call centre for one campaign</span></li>
           </ul>
@@ -90,7 +90,7 @@
         <div class="panel-head"><h3>What the critic said</h3>${chip:EXP-010}</div>
         <div class="panel-body small stack tight">
           <p>“Treat the holdout score as a consumed, descriptive result only. Do not approve feature promotion without separate decision-time and production-availability review.”</p>
-          <p class="muted">Kept by the gate: it agrees with the numbers. It is why the production gate lists feature contracts.</p>
+          <p class="muted">Kept by the gate: it agrees with the numbers. It is why the production gate lists feature solutions.</p>
         </div>
       </div>
   <div class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R17} Consume the holdout once, after every choice is locked.</div><div>${chip:DCLAB-R18} Report ranking, probability quality and operating points.</div><div>${chip:DCLAB-R19} Use time and source slices when those shifts exist.</div></div></div>
@@ -122,7 +122,7 @@ DC.view('reliability', {
     $('#seal-preview', el).addEventListener('click', () => DC.modal.open({
       eyebrow: '<span class="eyebrow">WF-09 · holdout</span>', title: 'Open the holdout, once', confirm: 'Already used for this project', confirmDisabled: true,
       html: `<p>This reads 800 rows nobody has used. The number you get is final for this project: it cannot be used to choose or tune anything afterwards ${chip('PIT-006')}.</p>
-        <ul class="plan-list"><li class="done"><span class="pi">✓</span><span>Contract v2 is signed</span></li><li class="done"><span class="pi">✓</span><span>Feature recipe locked: ratios</span></li><li class="done"><span class="pi">✓</span><span>Model locked: extra_trees C02</span></li><li class="done"><span class="pi">✓</span><span>Tuning decided on training folds only</span></li><li class="done"><span class="pi">✓</span><span>No earlier read of these rows</span></li></ul>
+        <ul class="plan-list"><li class="done"><span class="pi">✓</span><span>Solution v2 is signed</span></li><li class="done"><span class="pi">✓</span><span>Feature recipe locked: ratios</span></li><li class="done"><span class="pi">✓</span><span>Model locked: extra_trees C02</span></li><li class="done"><span class="pi">✓</span><span>Tuning decided on training folds only</span></li><li class="done"><span class="pi">✓</span><span>No earlier read of these rows</span></li></ul>
         <div class="field"><label for="seal-type">Type the project name to confirm</label><input id="seal-type" type="text" value="Term-deposit calls" disabled></div>
         <div class="callout info"><span class="ic">${icon('info')}</span><span>In this demo the holdout was opened on Oct 2. The dialog is shown read-only.</span></div>`,
     }));

@@ -2,7 +2,7 @@
 
 A session has a budget of tool calls and minutes, enforced here on every step. In LLM
 mode the model plans, calls tools and writes the report; in standard mode the same
-tools run in the fixed DCLab order (sample → contract → five stages → report), so the
+tools run in the fixed DCLab order (sample → solution → five stages → report), so the
 transcript looks the same and the product works offline.
 """
 
@@ -19,11 +19,11 @@ from .tools import Toolbox, summarize, truncate
 POLICY = """You are the DCLab intern: a careful ML engineer who builds models with evidence, not opinions.
 You work only through the tools. Deterministic code owns splits, metrics and selection rules; you plan, choose, explain and cite.
 Rules you never break:
-1. Write the prediction contract before any score: what is predicted, at which moment, which columns are unknown then. Use propose_contract and forbid every column that would be known only after the outcome. Identifiers are never features.
+1. Write the solution before any score: what is predicted, at which moment, which columns are unknown then. Use propose_solution and forbid every column that would be known only after the outcome. Identifiers are never features.
 2. Run the stages in order and read each result before the next. The final stage consumes the holdout once; do not rerun it to chase a score.
 3. Report numbers with their uncertainty (fold std, the 95% interval) and name the rule or precedent record IDs behind each claim (search_evidence / get_record).
 4. Never claim production readiness, causality or fairness from benchmark evidence.
-5. Stay inside the budget: prefer quick mode first; use run_all when the contract is settled.
+5. Stay inside the budget: prefer quick mode first; use run_all when the solution is settled.
 6. Every project move passes the workflow graph's validator. If a tool returns a blocked or needs_approval verdict, do not work around it: explain it, and ask the owner when a person must decide. get_graph shows where the project is and which moves are allowed.
 Start by writing a short plan with write_plan. When the work is done, call finish with a report for the person: what was built, the honest score with its interval, the leakage findings, the decisions and their proof, what to do next. Keep every message concise."""
 
@@ -170,7 +170,7 @@ class Intern:
         task = session["task"].lower()
         pid = session.get("project_id")
         session["plan"] = ("Standard DCLab plan (no model configured, so the fixed order runs):\n"
-                           "1. pick the dataset the task names\n2. create the project and load the data\n3. write the prediction contract from the R&D audit and suggestion\n"
+                           "1. pick the dataset the task names\n2. create the project and load the data\n3. write the solution from the R&D audit and suggestion\n"
                            "4. run the five stages (quick mode)\n5. report the honest score, the leakage findings and the decisions with proof")
         self.sessions.save(session)
         if not pid:
@@ -190,14 +190,14 @@ class Intern:
             session["status"] = "completed"
             session["final"] = described["error"]
             return
-        if not described.get("contract"):
+        if not described.get("solution"):
             suggestion = described.get("suggestion") or {}
             target = suggestion.get("target") or (described["target_candidates"][0] if described["target_candidates"] else None)
             if not target:
                 session["status"] = "completed"
-                session["final"] = "I could not find a target column. Set the contract in the notebook and hand the project back to me."
+                session["final"] = "I could not find a target column. Set the solution in the notebook and hand the project back to me."
                 return
-            proposal = self._step(session, "propose_contract", {"project_id": pid, "target": target, **({"task": suggestion["task"]} if suggestion.get("task") else {})}, started)
+            proposal = self._step(session, "propose_solution", {"project_id": pid, "target": target, **({"task": suggestion["task"]} if suggestion.get("task") else {})}, started)
             if "error" in proposal:
                 session["status"] = "completed"
                 session["final"] = proposal["error"]
@@ -206,16 +206,16 @@ class Intern:
             for f in proposal.get("forbidden", []):
                 if f["column"] not in known and any(p.startswith("LEAK-") for p in f.get("proof", [])):
                     known[f["column"]] = {"column": f["column"], "reason": f["reason"]}
-            contract = {"project_id": pid, "target": target, "task": proposal["task"],
+            solution = {"project_id": pid, "target": target, "task": proposal["task"],
                         "prediction_moment": suggestion.get("prediction_moment") or ("Predict at the moment the row is recorded; " + proposal["prediction_moment_hint"]),
                         "forbidden": list(known.values()), "identifiers": sorted(set(proposal.get("identifiers", [])) | set(suggestion.get("identifiers", []))),
                         "time_column": suggestion.get("time_column") or None, "group_column": suggestion.get("group_column") or None,
                         "text_columns": suggestion.get("text_columns") or [], "positive_label": suggestion.get("positive_label") or proposal.get("positive_label"),
                         "metric": suggestion.get("metric") or None}
-            saved = self._step(session, "set_contract", {k: v for k, v in contract.items() if v not in (None, [], "")}, started)
+            saved = self._step(session, "set_solution", {k: v for k, v in solution.items() if v not in (None, [], "")}, started)
             if "error" in saved:
                 session["status"] = "completed"
-                session["final"] = "The contract could not be saved: " + saved["error"]
+                session["final"] = "The solution could not be saved: " + saved["error"]
                 return
         if "full" in task or "all rows" in task:
             self._step(session, "set_settings", {"project_id": pid, "quick": False}, started)
@@ -239,5 +239,5 @@ class Intern:
             lo, hi = final["numbers"]["interval95"]
             lines.append(f"Honest score: {metric} {final['numbers']['holdout'][metric]:.4f} on the holdout (95% {lo:.4f}–{hi:.4f}), CV mean {final['numbers']['cv_mean']:.4f}. "
                          f"Tuning {'accepted' if final['numbers']['tuning_accepted'] else 'rejected'}. Not production-approved (DCLAB-R22).")
-        lines.append("Next: open the project, review the notes with their proof, and change the contract if a flagged column is really unknown at prediction time.")
+        lines.append("Next: open the project, review the notes with their proof, and change the solution if a flagged column is really unknown at prediction time.")
         return "\n".join(lines)

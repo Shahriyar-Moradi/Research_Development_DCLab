@@ -9,10 +9,10 @@ window.DEMO = {
   projects: [
     { id: 'bank', name: 'Term-deposit calls', dataset: 'bank_marketing', pack: 'Tabular · binary', states: 'dddddddddc', at: 'WF-10 · Knowledge capture',
       score: 'ROC-AUC 0.7718', ci: '0.7126–0.8290', note: 'holdout, opened once', ev: 'EXP-010', leaks: 1, status: 'Awaits sign-off', cls: 'warn', updated: '2 h ago', owner: 'SM', filter: 'active', open: 'project' },
-    { id: 'hyperack', name: 'HyperAck order acceptance', dataset: 'hyperack', pack: 'Tabular · binary · time', states: 'b---------', at: 'WF-01 · Prediction contract',
+    { id: 'hyperack', name: 'HyperAck order acceptance', dataset: 'hyperack', pack: 'Tabular · binary · time', states: 'b---------', at: 'WF-01 · Solution draft',
       score: 'safe CV ROC-AUC 0.9455', ci: '', note: 'unsafe 0.9802 is blocked', ev: 'LEAK-hyperack', leaks: 2, status: 'Owner question', cls: 'warn', updated: 'yesterday', owner: 'SM', filter: 'waiting', open: 'hyperack' },
     { id: 'telco', name: 'Telco churn', dataset: 'telco_churn', pack: 'Tabular · binary', states: 'bdddddd---', at: 'WF-01 · reopened',
-      score: 'dev CV ROC-AUC 0.8499', ci: '', note: 'AP 0.6708 · logistic won', ev: 'FINDING-churn-linear', leaks: 1, status: 'Contract reopened', cls: 'warn', updated: '3 d ago', owner: 'AV', filter: 'waiting', open: 'telco' },
+      score: 'dev CV ROC-AUC 0.8499', ci: '', note: 'AP 0.6708 · logistic won', ev: 'FINDING-churn-linear', leaks: 1, status: 'Solution reopened', cls: 'warn', updated: '3 d ago', owner: 'AV', filter: 'waiting', open: 'telco' },
     { id: 'fraud', name: 'Card fraud screening', dataset: 'credit_card_fraud', pack: 'Imbalanced · time split', states: 'dddddddddd', at: 'Done',
       score: 'PR-AUC 0.8139', ci: '0.7317–0.8847', note: 'last 56,961 rows by time', ev: 'EXP-055', leaks: 1, status: 'Research result', cls: 'ok', updated: '5 d ago', owner: 'AV', filter: 'done' },
     { id: 'bike', name: 'Daily bike demand', dataset: 'bike_sharing_daily', pack: 'Time series · regression', states: 'dddddddddd', at: 'Done',
@@ -25,7 +25,7 @@ window.DEMO = {
       score: '—', ci: '', note: 'operating domain drafted', ev: '', leaks: 0, status: 'Preview pack', cls: 'info', updated: 'today', owner: 'AV', filter: 'active', sample: true },
   ],
   wf: [
-    ['WF-01', 'Prediction contract'], ['WF-02', 'Source and lineage'], ['WF-03', 'Split design'], ['WF-04', 'Train-only EDA'], ['WF-05', 'Leakage audit'],
+    ['WF-01', 'Solution draft'], ['WF-02', 'Source and lineage'], ['WF-03', 'Split design'], ['WF-04', 'Train-only EDA'], ['WF-05', 'Leakage audit'],
     ['WF-06', 'Feature ladder'], ['WF-07', 'Algorithm screen'], ['WF-08', 'Conservative optimization'], ['WF-09', 'Reliability challenge'], ['WF-10', 'Knowledge capture'],
   ],
   bank: {
@@ -36,12 +36,12 @@ window.DEMO = {
   },
   tours: {
     developer: {
-      name: 'Developer tour', role: 'developer', blurb: 'Build the term-deposit model end to end: contract, leakage, models, holdout, brief.',
+      name: 'Developer tour', role: 'developer', blurb: 'Build the term-deposit model end to end: solution, leakage, models, holdout, brief.',
       steps: [
-        { view: 'home', target: 'composer', title: 'Start from one sentence', text: 'Describe the model you need. DCLab turns the sentence into a draft contract, picks a domain pack and proposes a plan.' },
+        { view: 'home', target: 'composer', title: 'Start from one sentence', text: 'Describe the model you need. DCLab turns the sentence into a draft solution, picks a domain pack and proposes a plan.' },
         { view: 'new', target: 'new-data', title: 'Bring data from anywhere', text: 'Upload a file, pick a studied sample, or import from Kaggle, Hugging Face or a warehouse. DCLab profiles it and records where it came from.' },
-        { view: 'contract', target: 'timeline', title: 'The prediction moment comes first', text: 'Every column sits on a timeline. duration is only known after the call ends, so it can never be an input. This one picture prevents most leakage.' },
-        { view: 'contract', target: 'costs', title: 'Costs choose the metric', text: 'The owner enters what a call costs and what a subscription is worth. DCLab turns that into the threshold and the call volume.' },
+        { view: 'solution', target: 'timeline', title: 'The prediction moment comes first', text: 'Every column sits on a timeline. duration is only known after the call ends, so it can never be an input. This one picture prevents most leakage.' },
+        { view: 'solution', target: 'costs', title: 'Costs choose the metric', text: 'The owner enters what a call costs and what a subscription is worth. DCLab turns that into the threshold and the call volume.' },
         { view: 'project', target: 'graph', title: 'A graph decides which moves exist', text: 'The intern can propose any move, but only edges in this graph can run. A blocked move is logged with the rule that blocked it.' },
         { view: 'notebook', target: 'nb-companion', title: 'Proof beside every cell', text: 'This teammate notebook got 10 findings from the real copilot. Each names the rule, the measured precedent and the fix.' },
         { view: 'audit', target: 'ablation', title: 'Severity is measured', text: 'With duration, training-CV ROC-AUC jumps from 0.7130 to 0.8972. The jump shows the damage; the timeline is the proof.' },
@@ -54,10 +54,10 @@ window.DEMO = {
     business: {
       name: 'Business tour', role: 'business', blurb: 'What a manager sees: decisions to make, the brief, the value, the limits.',
       steps: [
-        { view: 'home', target: 'inbox', title: 'What needs your decision', text: 'Business users see decisions, not code: a contract to sign, a brief to approve, a question only the owner can answer.' },
+        { view: 'home', target: 'inbox', title: 'What needs your decision', text: 'Business users see decisions, not code: a solution to sign, a brief to approve, a question only the owner can answer.' },
         { view: 'brief', target: 'brief-summary', title: 'Read the brief', text: 'What the model does, how good it honestly is, and what it would mean for the call centre next month.' },
         { view: 'brief', target: 'value', title: 'Choose the operating point', text: 'Move the call volume and see expected subscriptions, cost and net value, with the range that comes from the holdout interval.' },
-        { view: 'contract', target: 'costs', title: 'Your numbers set the target', text: 'The costs you enter decide the threshold. Change them and the recommendation changes with them.' },
+        { view: 'solution', target: 'costs', title: 'Your numbers set the target', text: 'The costs you enter decide the threshold. Change them and the recommendation changes with them.' },
         { view: 'reliability', target: 'gate', title: 'A research result is not a launch', text: 'A good score is not approval. This checklist shows what must happen before a real rollout.' },
       ],
     },

@@ -1,12 +1,12 @@
-<section class="view" id="view-contract" hidden>
+<section class="view" id="view-solution" hidden>
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow accent">Term-deposit calls · WF-01 to WF-03</div>
-      <h1>Prediction contract <span class="pill ok" data-f="contract.signoff">v2 · signed by Shahriyar · Sep 27</span></h1>
+      <h1>Solution draft <span class="pill ok" data-f="solution.signoff">v2 · signed by Shahriyar · Sep 27</span></h1>
       <p class="lede">Written before anyone looks at a score. Leakage, the metric and the split follow from it.</p>
     </div>
     <div class="vh-actions">
-      <button type="button" class="btn" id="contract-history">Version history</button>
+      <button type="button" class="btn" id="solution-history">Version history</button>
     </div>
   </header>
 
@@ -18,9 +18,9 @@
       <div class="stat"><span class="v">800 <small>rows</small></span><span class="l">holdout sealed until WF-09 · 3,200 training rows in 3 folds</span></div>
     </div>
 
-    <div class="panel" data-f="contract.fields">
-      <div class="panel-head"><div class="panel-title"><h2>The contract</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-toast="In the product: edit opens a new draft version; signing it reruns only the steps that depend on what changed.">Edit as v3</button></div>
-      <div class="contract-sheet">
+    <div class="panel" data-f="solution.fields">
+      <div class="panel-head"><div class="panel-title"><h2>The solution</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-toast="In the product: edit opens a new draft version; signing it reruns only the steps that depend on what changed.">Edit as v3</button></div>
+      <div class="solution-sheet">
         <div class="cs-row"><span class="cs-key">Question</span><span class="cs-val">Which clients are most likely to subscribe if we call them in the next campaign?</span><span></span></div>
         <div class="cs-row"><span class="cs-key">Unit of prediction</span><span class="cs-val">One client, before one campaign call</span><span></span></div>
         <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>y</code> = subscribed to a term deposit · positive label <code>yes</code> · base rate 11.7%</span>${chip:EXP-006}</div>
@@ -39,7 +39,7 @@
 
   <div class="pane" data-pane="owner" data-label="Owner questions" data-count="2">
     <div class="grid g2">
-      <div class="panel" data-f="contract.worksheet">
+      <div class="panel" data-f="solution.worksheet">
         <div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill warn">2 open</span></div>
         <div class="list">
           <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Is campaign counted before or after the call being predicted?</span><span class="li-sub">Until answered, campaign stays in with a warning and a with/without comparison.</span><div class="row"><button type="button" class="btn sm" data-toast="Recorded: counted before the call. campaign becomes a normal input in v3.">Before</button><button type="button" class="btn sm" data-toast="Recorded: includes this call. campaign moves to forbidden in v3; dependent steps rerun.">Includes this call</button></div></div></div>
@@ -57,7 +57,7 @@
             <div class="muted">Signing opens the gate to WF-04. Later edits create v3 and rerun only the steps they affect.</div>
             <div class="timeline" data-style="margin-top:6px">
               <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed</span><span class="tl-meta">capacity and costs added</span></div></div>
-              <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern</span><span class="tl-meta">from the column audit and the R&amp;D contract</span></div></div>
+              <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern</span><span class="tl-meta">from the column audit and the R&amp;D solution</span></div></div>
             </div>
           </div></div>
         </div>
@@ -74,7 +74,7 @@
   </div>
 
   <div class="pane" data-pane="timeline" data-label="Known when">
-    <div class="panel" data-f="contract.timeline" data-tour="timeline">
+    <div class="panel" data-f="solution.timeline" data-tour="timeline">
       <div class="panel-head"><div class="panel-title"><h2>What is known when</h2><span class="sub">Each column is placed at the moment its value is written. Anything to the right of the line cannot be an input.</span></div></div>
       <div class="panel-body">
         <div class="moment-line">
@@ -94,7 +94,7 @@
   </div>
 
   <div class="pane" data-pane="costs" data-label="Costs & metric">
-    <div class="panel" data-f="contract.costs" data-tour="costs">
+    <div class="panel" data-f="solution.costs" data-tour="costs">
       <div class="panel-head"><div class="panel-title"><h2>Costs decide the metric</h2><span class="sub">The owner enters the money. DCLab turns it into the call volume and cut-off, instead of optimizing ROC-AUC alone.</span></div><span class="pill proof">uses holdout ROC-AUC 0.7718</span></div>
       <div class="panel-body grid g2">
         <div class="stack">
@@ -117,7 +117,7 @@
 
   <div class="pane" data-pane="data" data-label="Data & split">
     <div class="grid g2">
-      <div class="panel" data-f="contract.lineage">
+      <div class="panel" data-f="solution.lineage">
         <div class="panel-head"><div class="panel-title"><h2>Source and lineage</h2><span class="sub">WF-02</span></div><span class="pill ok">passed</span></div>
         <div class="panel-body small">
           <dl class="kv">
@@ -131,7 +131,7 @@
           <div class="callout warn" data-style="margin-top:10px"><span class="ic">${icon:alert}</span><span>Integer codes for categories are not an order. Production encoders need the raw labels ${chip:DCLAB-R11}.</span></div>
         </div>
       </div>
-      <div class="panel" data-f="contract.split">
+      <div class="panel" data-f="solution.split">
         <div class="panel-head"><div class="panel-title"><h2>Split design</h2><span class="sub">WF-03</span></div><span class="pill accent">holdout sealed</span></div>
         <div class="panel-body small"><div class="stack tight">
           <div id="split-chart"></div>
@@ -141,14 +141,14 @@
             <dt>Folds</dt><dd>3 stratified folds on the 3,200 training rows</dd>
             <dt>Holdout</dt><dd>800 rows, sealed until WF-09, opened once</dd>
           </dl>
-          <div class="row" data-f="contract.checks"><span class="pill ok">0 exact duplicates across the split</span><span class="pill warn">repeat clients: cannot check</span></div>
+          <div class="row" data-f="solution.checks"><span class="pill ok">0 exact duplicates across the split</span><span class="pill warn">repeat clients: cannot check</span></div>
         </div></div>
       </div>
     </div>
   </div>
 </section>
 <script>
-DC.view('contract', {
+DC.view('solution', {
   init(el) {
     const { $, chip, icon, charts, binormal, int } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
@@ -188,12 +188,12 @@ DC.view('contract', {
       { label: 'Training · 3 folds', value: 3200, valueText: '3,200', cls: 'soft' },
       { label: 'Holdout · sealed', value: 800, valueText: '800', cls: 'proof' },
     ], { width: 420, labelW: 128, valW: 60, min: 0, max: 46000, rowH: 26, ticks: [0, 15000, 30000, 45000], tickFmt: v => v ? (v / 1000) + 'k' : '0', aria: 'Rows in each split' });
-    $('#contract-history', el).addEventListener('click', () => DC.modal.open({
-      eyebrow: '<span class="eyebrow">Contract</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
+    $('#solution-history', el).addEventListener('click', () => DC.modal.open({
+      eyebrow: '<span class="eyebrow">Solution</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
       html: `<div class="timeline">
         <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed by Shahriyar · Sep 27 09:21</span><span class="tl-meta">+ capacity 2,000 calls · + €8 per call · + €110 per subscription · metric changed from ROC-AUC to net value at capacity</span></div></div>
-        <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's contract for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
-      </div><p class="small muted">Each version is immutable. Results always say which contract version they were produced under.</p>`,
+        <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's solution for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
+      </div><p class="small muted">Each version is immutable. Results always say which solution version they were produced under.</p>`,
     }));
   },
 });

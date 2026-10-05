@@ -21,7 +21,7 @@ DC.view('audit', {
     ], { width: 340, labelW: 112, valW: 52, min: 0.5, max: 1.0, rowH: 28, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], tickFmt: v => v.toFixed(1), aria: 'ROC-AUC with and without duration' });
 
     const CRIT = [
-      ['EXP-007', 'high', 'Calling duration a decision-time exclusion is plausible but not proven here; the evidence only shows a declared exclusion and a CV lift.', 'kept', 'Agrees with the numbers. Resolved by the contract: the call length is written when the call ends (timeline on the contract page).'],
+      ['EXP-007', 'high', 'Calling duration a decision-time exclusion is plausible but not proven here; the evidence only shows a declared exclusion and a CV lift.', 'kept', 'Agrees with the numbers. Resolved by the solution: the call length is written when the call ends (timeline on the solution page).'],
       ['EXP-007', 'high', 'The +0.1842 AUC lift is not sufficient to label a feature as leakage or proxy; predictive lift can arise from legitimate signal.', 'kept', 'Agrees with the numbers and with DCLAB-R06. The lift is shown as severity only.'],
       ['EXP-007', 'medium', 'The canary detection only shows the detector can catch a synthetic canary. It does not validate detection of real leakage columns.', 'kept', 'Fair. The blind auditor replay measures it: 11 of 18 known leaks found across 7 datasets.'],
       ['EXP-008', 'high', 'The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.', 'dropped', 'Contradicted by the numbers. The chosen recipe is ratios (0.7172, the best mean). 0.7029 belongs to a different recipe that happens to be named "selected".'],

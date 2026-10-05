@@ -1,9 +1,9 @@
 <section class="view" id="view-new" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Projects · from a sentence to a signed contract</div>
+      <div class="eyebrow accent">Projects · from a sentence to a signed solution</div>
       <h1>New project</h1>
-      <p class="lede">Six short steps: DCLab drafts each one and shows its proof, you confirm or edit. Nothing is trained until the contract is signed.</p>
+      <p class="lede">Six short steps: DCLab drafts each one and shows its proof, you confirm or edit. Nothing is trained until the solution is signed.</p>
     </div>
     <div class="vh-actions"><a class="btn ghost" href="#home">Cancel</a></div>
   </header>
@@ -23,7 +23,7 @@
             <button type="button" data-step="1" class="done"><span class="sn">1</span>Goal</button>
             <button type="button" data-step="2" class="done"><span class="sn">2</span>Domain pack</button>
             <button type="button" data-step="3" aria-current="step"><span class="sn">3</span>Data</button>
-            <button type="button" data-step="4"><span class="sn">4</span>Contract draft</button>
+            <button type="button" data-step="4"><span class="sn">4</span>Solution draft</button>
             <button type="button" data-step="5"><span class="sn">5</span>Split and budget</button>
             <button type="button" data-step="6"><span class="sn">6</span>Review and start</button>
           </nav>
@@ -41,7 +41,7 @@
               <textarea id="new-goal" rows="3">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea></div>
             <div class="inset stack tight">
               <div class="spread"><span class="eyebrow proof">DCLab understood</span><span class="small muted">Check each line. Wrong lines are the cheapest bugs to fix.</span></div>
-              <div class="contract-sheet">
+              <div class="solution-sheet">
                 <div class="cs-row"><span class="cs-key">Unit of prediction</span><span class="cs-val">One client, before one campaign call</span><span class="pill ok">sure</span></div>
                 <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val">Subscribes to a term deposit (<code>y = yes</code>)</span><span class="pill ok">sure</span></div>
                 <div class="cs-row"><span class="cs-key">Action</span><span class="cs-val">Call the client, or skip</span><span class="pill ok">sure</span></div>
@@ -78,7 +78,7 @@
               <div class="drop"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><b>Drop a CSV, Parquet or Excel file</b><span>Up to 2 GB. The file stays on this machine; only the profile is shown here.</span><label class="btn sm" for="new-file">Choose a file</label><input type="file" id="new-file" class="sr-only" accept=".csv,.parquet,.xlsx"></div>
             </div>
             <div data-tab-panel="src:samples" data-f="new.samples">
-              <div class="table-wrap"><table class="data compact clickable" id="sample-table"><thead><tr><th>Dataset</th><th>Task</th><th class="num">Rows</th><th>Contract the R&amp;D wrote</th><th></th></tr></thead><tbody></tbody></table></div>
+              <div class="table-wrap"><table class="data compact clickable" id="sample-table"><thead><tr><th>Dataset</th><th>Task</th><th class="num">Rows</th><th>Solution the R&amp;D wrote</th><th></th></tr></thead><tbody></tbody></table></div>
             </div>
             <div data-tab-panel="src:kaggle" hidden data-f="new.hub">
               <div class="stack tight">
@@ -112,9 +112,9 @@
         </div>
 
         <!-- step 4 -->
-        <div class="panel" data-new-step="4" hidden data-f="new.contract">
-          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 4 of 6</span><h2>Contract draft</h2><span class="sub">Proposed from the column audit and the R&amp;D's own contract for this dataset. Every line has a reason.</span></div><span class="pill warn">1 question for you</span></div>
-          <div class="contract-sheet">
+        <div class="panel" data-new-step="4" hidden data-f="new.solution">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 4 of 6</span><h2>Solution draft</h2><span class="sub">Proposed from the column audit and the R&amp;D's own solution for this dataset. Every line has a reason.</span></div><span class="pill warn">1 question for you</span></div>
+          <div class="solution-sheet">
             <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>y</code> · positive label <code>yes</code> · binary</span><span></span></div>
             <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before a marketing call. Contact schedule and prior history are known.</span>${chip:DATASET-bank_marketing}</div>
             <div class="cs-row"><span class="cs-key">Forbidden</span><span class="cs-val"><code>duration</code>: call length, known only after the call ends. With it the training-CV ROC-AUC rises from 0.7130 to 0.8972 (+0.1842).</span><span class="ev-list">${chip:EXP-007}${chip:LEAK-bank_marketing}</span></div>
@@ -123,7 +123,7 @@
             <div class="cs-row"><span class="cs-key">Time column</span><span class="cs-val"><code>month</code> and <code>day_of_week</code> (the day of the month) exist but no year, so rows cannot be ordered in time.</span>${chip:PIT-005}</div>
             <div class="cs-row"><span class="cs-key">Metric</span><span class="cs-val">Expected net value at the call capacity (from your costs). ROC-AUC and average precision for ranking, Brier for probabilities.</span>${chip:DCLAB-R18}</div>
           </div>
-          <div class="panel-foot bar"><button type="button" class="btn" data-next="3">Back</button><a class="link-btn" href="#contract">Open the full contract page</a><button type="button" class="btn primary" data-next="5" data-style="margin-left:auto">Accept the draft</button></div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="3">Back</button><a class="link-btn" href="#solution">Open the full solution page</a><button type="button" class="btn primary" data-next="5" data-style="margin-left:auto">Accept the draft</button></div>
         </div>
 
         <!-- step 5 -->
@@ -161,13 +161,13 @@
                 <dt>Project</dt><dd>Term-deposit calls</dd>
                 <dt>Pack</dt><dd>Tabular · binary</dd>
                 <dt>Data</dt><dd>bank_marketing · snapshot 9c1e…4b07</dd>
-                <dt>Contract</dt><dd>v1 draft · 1 open question · needs your signature</dd>
+                <dt>Solution</dt><dd>v1 draft · 1 open question · needs your signature</dd>
                 <dt>Split</dt><dd>Stratified 80/20 · holdout sealed · 3 folds</dd>
                 <dt>Budget</dt><dd>24 tool calls · 20 minutes · €5</dd>
               </div>
             </div>
             <div class="stack">
-              <a class="btn lg primary" href="#notebook" data-toast="Project created. The notebook opens at WF-04, after you sign the contract.">Open in the notebook · I drive</a>
+              <a class="btn lg primary" href="#notebook" data-toast="Project created. The notebook opens at WF-04, after you sign the solution.">Open in the notebook · I drive</a>
               <a class="btn lg" href="#intern" data-toast="Handed to the intern with a budget of 24 tool calls.">Hand to the intern · it drives</a>
               <span class="small muted">Either way the same graph applies: the intern cannot skip a step that you could not skip.</span>
             </div>
@@ -210,7 +210,7 @@ DC.view('new', {
       ['Time series', 'Forecasts with horizons and backtests against naive baselines.', 'Beta', 'info', 'trend'],
       ['Text + tabular', 'Reviews, tickets and notes next to structured fields.', 'Beta', 'info', 'text'],
       ['Computer vision', 'Detection and classification, split by scene or drive.', 'Preview', 'warn', 'image'],
-      ['Driving perception', 'Operating domain (ODD) as the contract; split by trip and route.', 'Research', '', 'car'],
+      ['Driving perception', 'Operating domain (ODD) as the solution; split by trip and route.', 'Research', '', 'car'],
       ['Maps and road flow', 'Road graphs, speed and flow forecasts.', 'Research', '', 'route'],
       ['Scene graphs', 'Objects, relations and events in video.', 'Research', '', 'nodes'],
       ['LLM and SLM fine-tuning', 'Training data, LoRA runs and evaluation.', 'Beta', 'info', 'brain'],

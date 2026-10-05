@@ -19,7 +19,7 @@ from .projects import project_catalog
 from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .. import research_map
-from ..studio import ProjectStore, agent as studio_agent, contract as studio_contract, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, sft as studio_sft
+from ..studio import ProjectStore, agent as studio_agent, solution as studio_solution, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, sft as studio_sft
 from ..intern import Intern, SessionStore
 from ..intern import llm as intern_llm
 from ..intern.sessions import EXAMPLE_TASKS
@@ -213,7 +213,8 @@ def create_app(home=None):
             if "max_rows" in settings: p["settings"]["max_rows"] = max(200, min(int(settings["max_rows"]), 200000))
             if "quick" in settings: p["settings"]["quick"] = bool(settings["quick"])
         if isinstance(body.get("policy"), dict):  # which gates wait for a person; the invariants hold either way
-            p["policy"] = {**(p.get("policy") or {}), **{k: bool(v) for k, v in body["policy"].items() if k in studio_graph.DEFAULT_POLICY}}
+            named = {studio_graph.LEGACY_POLICY.get(k, k): v for k, v in body["policy"].items()}
+            p["policy"] = {**(p.get("policy") or {}), **{k: bool(v) for k, v in named.items() if k in studio_graph.DEFAULT_POLICY}}
         projects.save(p)
         return with_records(projects.get(project_id))
     @app.delete("/api/projects/{project_id}", status_code=204)
@@ -239,12 +240,13 @@ def create_app(home=None):
         except KeyError: raise HTTPException(404, "Unknown sample dataset")
         except studio_data.DataError as exc: raise HTTPException(400, str(exc))
         return with_records(projects.get(project_id))
-    @app.post("/api/projects/{project_id}/contract/proposal")
-    async def contract_proposal(project_id: str, request: Request):
+    @app.post("/api/projects/{project_id}/solution/proposal")
+    @app.post("/api/projects/{project_id}/contract/proposal", include_in_schema=False)  # old name, kept for one release
+    async def solution_proposal(project_id: str, request: Request):
         p = project(project_id)
         body = await request.json()
         frame = load_frame(p)
-        try: proposal = await asyncio.to_thread(studio_contract.propose, frame, p["data"]["profile"], str(body.get("target", "")), body.get("task"))
+        try: proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], str(body.get("target", "")), body.get("task"))
         except ValueError as exc: raise HTTPException(422, str(exc))
         if p.get("suggestion"):
             known = {f["column"] for f in proposal["forbidden"]}
@@ -255,29 +257,30 @@ def create_app(home=None):
         p["proposal"] = proposal
         projects.save(p)
         return proposal
-    @app.put("/api/projects/{project_id}/contract")
-    async def save_contract(project_id: str, request: Request):
+    @app.put("/api/projects/{project_id}/solution")
+    @app.put("/api/projects/{project_id}/contract", include_in_schema=False)  # old name, kept for one release
+    async def save_solution(project_id: str, request: Request):
         p = project(project_id)
         body = await request.json()
         try:
-            contract = studio_contract.Contract(**body)
-            contract.check_columns(p["data"]["columns"] if p.get("data") else [])
+            solution = studio_solution.Solution(**body)
+            solution.check_columns(p["data"]["columns"] if p.get("data") else [])
         except Exception as exc: raise HTTPException(422, str(exc).split("\n")[0][:400] if "validation error" not in str(exc) else "; ".join(line.strip() for line in str(exc).split("\n")[1:] if line.strip() and not line.strip().startswith("For further"))[:600])
-        changed = p.get("contract") != contract.model_dump()
+        changed = p.get("solution") != solution.model_dump()
         if changed:
-            verdict = validate(p, "set_contract", target=contract.target)
-            studio_graph.log(projects, project_id, verdict, p, outcome="done: contract saved")
-        p["contract"] = contract.model_dump()
+            verdict = validate(p, "set_solution", target=solution.target)
+            studio_graph.log(projects, project_id, verdict, p, outcome="done: solution saved")
+        p["solution"] = solution.model_dump()
         projects.save(p)
         if changed:
             projects.clear_stages(project_id)
-            projects.log(project_id, "contract_saved", {"target": contract.target, "task": contract.task, "forbidden": [f.column for f in contract.forbidden]})
+            projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden]})
         return with_records(projects.get(project_id))
     @app.post("/api/projects/{project_id}/stages/{stage}/run")
     async def run_stage(project_id: str, stage: str, wait: bool = False, reuse_reason: str = ""):
         p = project(project_id)
         if stage not in studio_engine.STAGE_BY_KEY: raise HTTPException(404, "Unknown stage")
-        if not p.get("contract"): raise HTTPException(409, "Save the prediction contract first")
+        if not p.get("solution"): raise HTTPException(409, "Save the solution first")
         validate(p, "run_stage", stage=stage, reuse_reason=reuse_reason)
         job = start_job(project_id, [stage], wait, reuse_reason or None)
         if wait: await job
@@ -285,7 +288,7 @@ def create_app(home=None):
     @app.post("/api/projects/{project_id}/run")
     async def run_all(project_id: str, start: str = "data", wait: bool = False):
         p = project(project_id)
-        if not p.get("contract"): raise HTTPException(409, "Save the prediction contract first")
+        if not p.get("solution"): raise HTTPException(409, "Save the solution first")
         if start not in studio_engine.STAGE_BY_KEY: raise HTTPException(404, "Unknown stage")
         keys = list(studio_engine.STAGE_BY_KEY)
         validate(p, "run_stage", stage=start)
@@ -331,7 +334,7 @@ def create_app(home=None):
     @app.get("/api/projects/{project_id}/export/notebook")
     async def export_notebook(project_id: str):
         p = project(project_id)
-        if not p.get("contract"): raise HTTPException(409, "Nothing to export yet")
+        if not p.get("solution"): raise HTTPException(409, "Nothing to export yet")
         studio_graph.capture(projects, project_id, "human")
         text = studio_export.dumps_notebook(studio_export.notebook(p, projects.records(project_id)))
         return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})

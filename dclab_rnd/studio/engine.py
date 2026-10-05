@@ -23,7 +23,7 @@ from dclab_rnd.expansion import datasets as ds
 from dclab_rnd.expansion import runner as rn
 
 from . import agent, graph
-from .contract import Contract
+from .solution import Solution
 from .data import column_kind, load_table, sha256
 from .store import STAGE_KEYS, ProjectStore
 
@@ -53,31 +53,31 @@ def _now() -> str:
 
 
 class Prepared:
-    def __init__(self, frame: pd.DataFrame, contract: Contract, bundle: ds.TaskBundle, roles: dict[str, str],
+    def __init__(self, frame: pd.DataFrame, solution: Solution, bundle: ds.TaskBundle, roles: dict[str, str],
                  class_labels: list[str] | None, recipes: dict[str, dict[str, Any]], sampling: dict[str, Any], code_rule: str = ""):
-        self.frame, self.contract, self.bundle, self.roles = frame, contract, bundle, roles
+        self.frame, self.solution, self.bundle, self.roles = frame, solution, bundle, roles
         self.class_labels, self.recipes, self.sampling = class_labels, recipes, sampling
         self.code_rule = code_rule  # how bundle.spec.categorical_columns was decided
 
     @property
     def task(self) -> str:
-        return self.contract.task
+        return self.solution.task
 
     @property
     def metric(self) -> str:
         return self.bundle.spec.primary_metric
 
 
-def _target_series(frame: pd.DataFrame, contract: Contract) -> tuple[pd.Series, list[str] | None]:
-    raw = frame[contract.target]
-    if contract.task == "binary":
-        positive = contract.positive_label
+def _target_series(frame: pd.DataFrame, solution: Solution) -> tuple[pd.Series, list[str] | None]:
+    raw = frame[solution.target]
+    if solution.task == "binary":
+        positive = solution.positive_label
         if positive is None:
             values = sorted(raw.dropna().unique(), key=str)
             positive = str(values[-1])
         y = (raw.astype(str).str.strip() == str(positive)).astype(int)
         return y, None
-    if contract.task == "multiclass":
+    if solution.task == "multiclass":
         labels = sorted(raw.dropna().astype(str).unique(), key=str)
         mapping = {label: i for i, label in enumerate(labels)}
         return raw.astype(str).map(mapping).astype(int), labels
@@ -85,35 +85,35 @@ def _target_series(frame: pd.DataFrame, contract: Contract) -> tuple[pd.Series, 
 
 
 def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
-    """Load the table, apply the contract, lock the holdout and register the feature recipes."""
-    if not project.get("data") or not project.get("contract"):
-        raise ValueError("The project needs data and a prediction contract first")
-    contract = Contract(**project["contract"])
+    """Load the table, apply the solution, lock the holdout and register the feature recipes."""
+    if not project.get("data") or not project.get("solution"):
+        raise ValueError("The project needs data and a solution first")
+    solution = Solution(**project["solution"])
     path = store.data_dir(project["id"]) / project["data"]["filename"]
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
-    key = (project["id"], project["data"]["sha256"], _hash(project["contract"]) + str(project["settings"]) + str(declared))
+    key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared))
     if key in _BUNDLES:
         return _BUNDLES[key]
     frame = load_table(path)
-    contract.check_columns(list(frame.columns))
+    solution.check_columns(list(frame.columns))
     source_rows = len(frame)
-    frame = frame[frame[contract.target].notna()].reset_index(drop=True)
-    y, class_labels = _target_series(frame, contract)
+    frame = frame[frame[solution.target].notna()].reset_index(drop=True)
+    y, class_labels = _target_series(frame, solution)
     keep = y.notna()
     frame, y = frame[keep].reset_index(drop=True), y[keep].reset_index(drop=True)
-    X = frame.drop(columns=[contract.target])
+    X = frame.drop(columns=[solution.target])
 
     roles: dict[str, str] = {}
-    identifiers: dict[str, str] = {c: "declared identifier (never a feature)" for c in contract.identifiers if c in X}
-    text_columns = tuple(c for c in contract.text_columns if c in X)
-    task_type = TASK_TYPE[contract.task]
-    if text_columns and contract.task == "binary":
+    identifiers: dict[str, str] = {c: "declared identifier (never a feature)" for c in solution.identifiers if c in X}
+    text_columns = tuple(c for c in solution.text_columns if c in X)
+    task_type = TASK_TYPE[solution.task]
+    if text_columns and solution.task == "binary":
         task_type = "text_tabular_binary"
     elif text_columns:
         for column in text_columns:
             identifiers[column] = "free text is modeled for binary targets only; excluded here"
         text_columns = ()
-    time_column = contract.time_column
+    time_column = solution.time_column
     if time_column:
         if column_kind(X[time_column]) == "datetime":
             stamps = pd.to_datetime(X[time_column], errors="coerce")
@@ -129,12 +129,12 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     else:
         datetime_time = False
     for column in X.columns:
-        if column not in identifiers and column != contract.group_column and column not in text_columns and column_kind(X[column]) == "datetime":
+        if column not in identifiers and column != solution.group_column and column not in text_columns and column_kind(X[column]) == "datetime":
             identifiers[column] = "datetime column that is not the declared time column; excluded to avoid one-hot dates"
-    blocked = {f.column: (f.reason or "declared unavailable at the prediction moment") for f in contract.forbidden if f.column in X}
+    blocked = {f.column: (f.reason or "declared unavailable at the prediction moment") for f in solution.forbidden if f.column in X}
     for column in X.columns:
         roles[column] = ("blocked" if column in blocked else "identifier" if column in identifiers and column != time_column
-                         else "time" if column == time_column else "group" if column == contract.group_column
+                         else "time" if column == time_column else "group" if column == solution.group_column
                          else "text" if column in text_columns else "feature")
 
     settings = project.get("settings") or {}
@@ -152,17 +152,17 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         X, y = X.iloc[order].reset_index(drop=True), y.iloc[order].reset_index(drop=True)
     sampling["rows_used"] = int(len(X))
 
-    positive_rate = float(y.mean()) if contract.task == "binary" else None
-    metric = contract.resolved_metric(positive_rate)
-    split = "time" if time_column else "group" if contract.group_column else "stratified"
-    regression = contract.task == "regression"
+    positive_rate = float(y.mean()) if solution.task == "binary" else None
+    metric = solution.resolved_metric(positive_rate)
+    split = "time" if time_column else "group" if solution.group_column else "stratified"
+    regression = solution.task == "regression"
     spec = ds.DatasetSpec(
         key=f"project_{project['id']}", name=project["name"], task_type=task_type, primary_metric=metric,
-        target=contract.target, url=f"upload://{project['data']['filename']}", filename=project["data"]["filename"],
+        target=solution.target, url=f"upload://{project['data']['filename']}", filename=project["data"]["filename"],
         sha256=project["data"]["sha256"], description=project.get("goal") or project["name"],
-        decision_time_contract=contract.prediction_moment, split_strategy=split, source_rows=source_rows,
+        decision_time_contract=solution.prediction_moment, split_strategy=split, source_rows=source_rows,
         feature_count=int(X.shape[1]), blocked_features=blocked, identifier_columns=identifiers,
-        text_columns=text_columns, time_column=time_column, group_column=contract.group_column,
+        text_columns=text_columns, time_column=time_column, group_column=solution.group_column,
         positive_rate=positive_rate,
         settings={"precision_target": 0.9, "fe_tolerance": 0.01 if regression else 0.002, "fe_tolerance_relative": regression,
                   "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression},
@@ -176,7 +176,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     bundle.spec = replace(spec, categorical_columns=tuple(codes))
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time)
-    prepared = Prepared(frame, contract, bundle, roles, class_labels, recipes, sampling, code_rule)
+    prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
@@ -268,7 +268,7 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
         positives, rate = int(y_tr.sum()), float(y_tr.mean())
         evidence["target_summary"] = {"positive_rate_train": rate, "positives_train": positives, "negatives_train": int(len(y_tr) - positives),
                                       "imbalance_ratio_neg_per_pos": float((len(y_tr) - positives) / max(positives, 1)),
-                                      "majority_baseline_accuracy_train": float(max(rate, 1 - rate)), "positive_label": p.contract.positive_label}
+                                      "majority_baseline_accuracy_train": float(max(rate, 1 - rate)), "positive_label": p.solution.positive_label}
         target_text = f"a positive rate of {rate:.1%} ({positives} positives)"
     elif p.task == "multiclass":
         counts = y_tr.value_counts().sort_index()
@@ -296,7 +296,7 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
                                       "median_words": float(X_tr[c].dropna().astype(str).str.split().str.len().median())} for c in spec.text_columns}
     risks = evidence["risk_features"]
     claims = [
-        _claim(f"{eid}-C1", "fact", f"{bundle.source_rows} source rows and {X_tr.shape[1]} columns; {len(feature_cols)} are usable inputs under the contract. "
+        _claim(f"{eid}-C1", "fact", f"{bundle.source_rows} source rows and {X_tr.shape[1]} columns; {len(feature_cols)} are usable inputs under the solution. "
                f"The locked holdout is {bundle.holdout_description} ({len(X_te)} rows); {len(X_tr)} training rows remain with {target_text}.",
                ["evidence.source_rows", "evidence.usable_feature_count", "evidence.holdout_split", "evidence.target_summary"]),
         _claim(f"{eid}-C2", "risk", f"{len(risks)} of {X_tr.shape[1]} columns triggered a review rule (missingness > 5%, identifier-like, near-constant, or train/holdout PSI > 0.20): "
@@ -307,7 +307,7 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
     if p.task == "binary":
         ts = evidence["target_summary"]
         claims.append(_claim(f"{eid}-C3", "risk", f"Predicting the majority class for every row already scores {ts['majority_baseline_accuracy_train']:.1%} accuracy, "
-                             f"so accuracy alone cannot judge this model; the contract scores {_label(p.metric)}.",
+                             f"so accuracy alone cannot judge this model; the solution scores {_label(p.metric)}.",
                              ["evidence.target_summary"]))
     elif p.task == "multiclass":
         ts = evidence["target_summary"]
@@ -372,14 +372,14 @@ def stage_leakage(p: Prepared, eid: str) -> tuple[dict, list, str]:
         per = comparison.get("per_column", {})
         per_text = (" Per column: " + ", ".join(f"{c} {rn._signed(v['apparent_lift'], metric)}" for c, v in per.items()) + ".") if per else ""
         claims.append(_claim(f"{eid}-C2", "decision",
-                             f"Forbidden under the contract: {declared}. Including them moves training-CV {_label(metric)} ({audit_model}, {recipe} recipe) "
+                             f"Forbidden under the solution: {declared}. Including them moves training-CV {_label(metric)} ({audit_model}, {recipe} recipe) "
                              f"from {rn._ms(safe, metric)} to {rn._ms(comparison['unsafe'], metric)}, "
                              + (f"an apparent lift of {rn._signed(lift, metric)} that would not exist in production." if lift > 0
                                 else f"no apparent lift ({rn._signed(lift, metric)}); the exclusion rests on decision-time semantics, not on CV inflation.") + per_text,
                              ["evidence.declared_leakage_features", "evidence.policy_rationale", "evidence.safe_vs_unsafe_training_cv", "evidence.apparent_lift"],
                              [evidence["warning"]]))
     else:
-        claims.append(_claim(f"{eid}-C2", "decision", f"No column is forbidden under the contract; the safe {audit_model} {recipe} baseline scores "
+        claims.append(_claim(f"{eid}-C2", "decision", f"No column is forbidden under the solution; the safe {audit_model} {recipe} baseline scores "
                              f"{rn._ms(safe, metric)} training-CV {_label(metric)}, apparent lift 0 by construction.",
                              ["evidence.declared_leakage_features", "evidence.policy_rationale", "evidence.safe_vs_unsafe_training_cv"], [evidence["warning"]]))
     flagged = ", ".join(f"{f['feature']} ({'/'.join(f['reasons'])})" for f in non_declared) or "none"
@@ -654,13 +654,13 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
             "stage": stage, "kind": meta["kind"], "title": meta["title"], "workflow": meta["workflow"], "question": meta["question"],
             "experiment_id": eid, "status": "completed", "started_at": project["stages"][stage]["started"], "completed_at": _now(),
             "elapsed_seconds": float(elapsed), "task": p.task, "task_type": p.bundle.task_type, "primary_metric": p.metric,
-            "decision_time_rule": p.contract.prediction_moment, "holdout_policy": p.bundle.spec.holdout_policy(),
+            "decision_time_rule": p.solution.prediction_moment, "holdout_policy": p.bundle.spec.holdout_policy(),
             "setup_summary": summary, "evidence": evidence, "claims": claims, "decision": decision,
             "provenance": {"data_sha256": project["data"]["sha256"], "filename": project["data"]["filename"], "sampling": p.sampling,
                            "cv": p.bundle.cv_description, "holdout": p.bundle.holdout_description, "random_state": ds.RANDOM_STATE},
         }
         record = rn._jsonable(record)
-        record["notes"] = agent.narrate(stage, record, p.contract.model_dump(), p.bundle.task_type)
+        record["notes"] = agent.narrate(stage, record, p.solution.model_dump(), p.bundle.task_type)
         store.write_stage(project_id, stage, record)
         project = store.get(project_id)
         project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed)}

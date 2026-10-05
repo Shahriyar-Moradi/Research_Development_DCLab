@@ -15,7 +15,7 @@ DC.view('compute', {
       gpu: `<span class="t-dim">12:01:04</span> pull image dclab/vision:0.3 <span class="t-dim">sha256:4e1f…a90c</span>
 <span class="t-dim">12:01:31</span> snapshot ped-night-rain v1 · 18,420 frames · 212 drives
 <span class="t-dim">12:01:31</span> split by drive: train 170 · val 21 · test 21 <span class="t-acc">(sealed)</span>
-<span class="t-dim">12:01:33</span> contract ODD v1: night · rain · urban · 30–50 km/h
+<span class="t-dim">12:01:33</span> solution ODD v1: night · rain · urban · 30–50 km/h
 <span class="t-dim">12:01:33</span> forbidden inputs: frame index, drive id, GPS time
 <span class="t-dim">12:02:10</span> screen 1/3 detector-s   epoch  6/15  loss 1.84  val mAP@0.5 0.512
 <span class="t-dim">12:09:44</span> screen 1/3 detector-s   epoch 15/15  loss 1.31  val mAP@0.5 0.604 <span class="t-ok">✓</span>
@@ -52,7 +52,7 @@ DC.view('compute', {
       $('#jd-artifacts', el).innerHTML = j.kind === 'gpu'
         ? '<div class="list small"><div class="list-item"><code>checkpoints/detector-s/best.pt</code><span class="li-side">94 MB</span></div><div class="list-item"><code>eval/val_by_slice.json</code><span class="li-side">night · rain · occlusion</span></div><div class="list-item"><code>samples/failures_rain.png</code><span class="li-side">24 frames</span></div></div>'
         : '<div class="list small"><div class="list-item"><code>record.json</code><span class="li-side">stage record with evidence</span></div><div class="list-item"><code>notebook.ipynb</code><span class="li-side">runnable export</span></div></div>';
-      $('#jd-repro', el).innerHTML = `<dl class="kv small"><dt>Seed</dt><dd class="mono">42</dd><dt>Data snapshot</dt><dd class="mono">${j.kind === 'gpu' ? 'ped-night-rain v1 · sha256 77ab…1f02' : j.kind === 'local' ? 'bank_marketing · sha256 9c1e…4b07' : 'sha256 3d90…c2e1'}</dd><dt>Contract</dt><dd>${j.kind === 'gpu' ? 'ODD v1' : 'v2 (signed)'}</dd><dt>Image</dt><dd class="mono">${j.kind === 'gpu' ? 'dclab/vision:0.3@sha256:4e1f…a90c' : 'dclab/tabular:0.9@sha256:b20e…77d1'}</dd><dt>Lockfile</dt><dd class="mono">requirements/agent.lock.txt · sha256 51c4…e8a0</dd><dt>Code</dt><dd class="mono">git 8175dea</dd><dt>Command</dt><dd class="mono" data-style="overflow-wrap:anywhere">dclab run --project ${j.proj.toLowerCase().replace(/[^a-z]+/g, '-')} --stage ${j.kind === 'gpu' ? 'WF-07' : 'all'} --seed 42</dd></dl>`;
+      $('#jd-repro', el).innerHTML = `<dl class="kv small"><dt>Seed</dt><dd class="mono">42</dd><dt>Data snapshot</dt><dd class="mono">${j.kind === 'gpu' ? 'ped-night-rain v1 · sha256 77ab…1f02' : j.kind === 'local' ? 'bank_marketing · sha256 9c1e…4b07' : 'sha256 3d90…c2e1'}</dd><dt>Solution</dt><dd>${j.kind === 'gpu' ? 'ODD v1' : 'v2 (signed)'}</dd><dt>Image</dt><dd class="mono">${j.kind === 'gpu' ? 'dclab/vision:0.3@sha256:4e1f…a90c' : 'dclab/tabular:0.9@sha256:b20e…77d1'}</dd><dt>Lockfile</dt><dd class="mono">requirements/agent.lock.txt · sha256 51c4…e8a0</dd><dt>Code</dt><dd class="mono">git 8175dea</dd><dt>Command</dt><dd class="mono" data-style="overflow-wrap:anywhere">dclab run --project ${j.proj.toLowerCase().replace(/[^a-z]+/g, '-')} --stage ${j.kind === 'gpu' ? 'WF-07' : 'all'} --seed 42</dd></dl>`;
       DC.hydrate(el);
     }
     tbody.addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) show(Number(tr.dataset.i)); });

@@ -18,7 +18,7 @@
     home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     graph: '<circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 6h9M6.3 8.2l4.4 7.6M17.7 8.2l-4.4 7.6"/>',
-    contract: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8 13h8M8 17h5"/>',
+    solution: '<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M8 13h8M8 17h5"/>',
     notebook: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m9 10-2 2 2 2M15 10l2 2-2 2"/>',
     shield: '<path d="M12 3 4 6v6c0 4.5 3.4 8.2 8 9 4.6-.8 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
     models: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
@@ -77,12 +77,12 @@
   const icon = (name, cls = '') => `<svg viewBox="0 0 24 24" class="${cls}" aria-hidden="true">${IC[name] || ''}</svg>`;
 
   /* ---------------- navigation model ---------------- */
-  const PROJECT_VIEWS = ['project', 'contract', 'notebook', 'audit', 'models', 'reliability', 'brief'];
+  const PROJECT_VIEWS = ['project', 'solution', 'notebook', 'audit', 'models', 'reliability', 'brief'];
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
     new: { label: 'New project', crumbs: ['Workspace'] },
     project: { label: 'Workflow', crumbs: ['Term-deposit calls'] },
-    contract: { label: 'Contract & data', crumbs: ['Term-deposit calls'] },
+    solution: { label: 'Solution & data', crumbs: ['Term-deposit calls'] },
     notebook: { label: 'Notebook', crumbs: ['Term-deposit calls'] },
     audit: { label: 'Leakage & features', crumbs: ['Term-deposit calls'] },
     models: { label: 'Models', crumbs: ['Term-deposit calls'] },
@@ -108,7 +108,7 @@
     ] },
     { group: 'Project · Term deposits', items: [
       { id: 'project', label: 'Workflow', icon: 'graph' },
-      { id: 'contract', label: 'Contract & data', icon: 'contract' },
+      { id: 'solution', label: 'Solution & data', icon: 'solution' },
       { id: 'notebook', label: 'Notebook', icon: 'notebook', count: '10' },
       { id: 'audit', label: 'Leakage & features', icon: 'shield' },
       { id: 'models', label: 'Models', icon: 'models' },

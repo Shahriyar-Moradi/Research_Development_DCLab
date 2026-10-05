@@ -35,8 +35,8 @@ DC.view('home', {
     });
     $('#home-start', el).addEventListener('click', () => {
       const mode = $('#home-mode button[aria-pressed="true"]', el).dataset.v;
-      if (mode === 'intern') { DC.toast('Handed to the intern. It drafts the contract and asks before anything irreversible.'); location.hash = 'intern'; }
-      else { DC.toast('Contract draft ready. Check the goal, then the data.'); location.hash = 'new'; }
+      if (mode === 'intern') { DC.toast('Handed to the intern. It drafts the solution and asks before anything irreversible.'); location.hash = 'intern'; }
+      else { DC.toast('Solution draft ready. Check the goal, then the data.'); location.hash = 'new'; }
     });
   },
 });

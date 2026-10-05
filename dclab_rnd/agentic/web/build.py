@@ -23,7 +23,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SRC = HERE / "src"
 OUT = HERE.parent / "static" / "app"
-VIEWS = ["home", "new", "project", "contract", "notebook", "audit", "models", "reliability", "brief",
+VIEWS = ["home", "new", "project", "solution", "notebook", "audit", "models", "reliability", "brief",
          "intern", "compute", "evidence", "lab", "benchmark", "policy", "packs", "integrations", "admin", "blueprint"]
 DATA = [("records.js", "DEMO_RECORDS", "records.json"), ("review.js", "DEMO_REVIEW", "copilot_review.json"),
         ("sft.js", "DEMO_SFT", "sft.json")]

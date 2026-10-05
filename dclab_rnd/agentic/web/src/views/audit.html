@@ -3,20 +3,20 @@
     <div class="vh-text">
       <div class="eyebrow accent">Term-deposit calls · WF-04 to WF-06</div>
       <h1>Leakage &amp; features <span class="pill ok">WF-05 · WF-06 done · Sep 28</span></h1>
-      <p class="lede">A column is judged by when its value is written, not by its name or its score. The contract decides; an ablation on identical folds measures how much a leak would have lied.</p>
+      <p class="lede">A column is judged by when its value is written, not by its name or its score. The solution decides; an ablation on identical folds measures how much a leak would have lied.</p>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats">
-      <div class="stat"><span class="v">16</span><span class="l">columns audited against contract v2</span></div>
+      <div class="stat"><span class="v">16</span><span class="l">columns audited against solution v2</span></div>
       <div class="stat"><span class="v bad">1 <small>forbidden</small></span><span class="l">duration · written after the call · the only heuristic flag (AUC 0.812)</span></div>
       <div class="stat"><span class="v warn">1 <small>open</small></span><span class="l">campaign · waiting on the owner: counted when?</span><div class="row"><button type="button" class="link-btn small" data-pane-go="leaks">See the question →</button></div></div>
       <div class="stat"><span class="v ok">caught</span><span class="l">synthetic canary · the detector is awake</span></div>
     </div>
 
     <div class="panel" data-f="audit.matrix">
-      <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the contract.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the solution.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
       <div class="table-wrap"><table class="data compact" id="avail-table"><thead><tr><th>Column</th><th>Written when</th><th>Known at the moment?</th><th>Heuristic flag</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
       <div class="panel-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
     </div>
@@ -38,7 +38,7 @@
         <div class="panel-body small stack tight">
           <p>The UCI description says <i>contacts performed during this campaign, including the last contact</i>. If the count includes the call being predicted, the model learns from the future.</p>
           <div class="inset stack tight"><div class="spread"><span>Training CV without campaign</span><b class="mono">scheduled</b></div><div class="spread"><span>Training CV with campaign</span><b class="mono">scheduled</b></div><div class="xs muted">Runs on identical folds when the owner answers, or tonight on the sandbox.</div></div>
-          <a class="btn sm" href="#contract">Answer in the owner worksheet</a>
+          <a class="btn sm" href="#solution">Answer in the owner worksheet</a>
         </div>
       </div>
     </div>
@@ -102,7 +102,7 @@ DC.view('audit', {
     ], { width: 340, labelW: 112, valW: 52, min: 0.5, max: 1.0, rowH: 28, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0], tickFmt: v => v.toFixed(1), aria: 'ROC-AUC with and without duration' });
 
     const CRIT = [
-      ['EXP-007', 'high', 'Calling duration a decision-time exclusion is plausible but not proven here; the evidence only shows a declared exclusion and a CV lift.', 'kept', 'Agrees with the numbers. Resolved by the contract: the call length is written when the call ends (timeline on the contract page).'],
+      ['EXP-007', 'high', 'Calling duration a decision-time exclusion is plausible but not proven here; the evidence only shows a declared exclusion and a CV lift.', 'kept', 'Agrees with the numbers. Resolved by the solution: the call length is written when the call ends (timeline on the solution page).'],
       ['EXP-007', 'high', 'The +0.1842 AUC lift is not sufficient to label a feature as leakage or proxy; predictive lift can arise from legitimate signal.', 'kept', 'Agrees with the numbers and with DCLAB-R06. The lift is shown as severity only.'],
       ['EXP-007', 'medium', 'The canary detection only shows the detector can catch a synthetic canary. It does not validate detection of real leakage columns.', 'kept', 'Fair. The blind auditor replay measures it: 11 of 18 known leaks found across 7 datasets.'],
       ['EXP-008', 'high', 'The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.', 'dropped', 'Contradicted by the numbers. The chosen recipe is ratios (0.7172, the best mean). 0.7029 belongs to a different recipe that happens to be named "selected".'],

@@ -854,12 +854,12 @@ body.bp [data-f]::after {
 .stamp b { font-size: 15px; letter-spacing: .04em; }
 .stamp.sealed { border-color: var(--accent); color: var(--accent-2); }
 .stamp.broken { border-color: var(--warn); color: var(--warn); }
-.contract-sheet { font-size: 13.5px; }
-.contract-sheet .cs-row { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 12px; padding: 11px 24px; border-bottom: 1px solid var(--line); align-items: start; }
-.contract-sheet .cs-row:last-child { border-bottom: 0; }
-.contract-sheet .cs-key { color: var(--muted); font-size: 12.5px; font-weight: 600; padding-top: 1px; }
-.contract-sheet .cs-val { color: var(--ink); min-width: 0; }
-@media (max-width: 760px) { .contract-sheet .cs-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.solution-sheet { font-size: 13.5px; }
+.solution-sheet .cs-row { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 12px; padding: 11px 24px; border-bottom: 1px solid var(--line); align-items: start; }
+.solution-sheet .cs-row:last-child { border-bottom: 0; }
+.solution-sheet .cs-key { color: var(--muted); font-size: 12.5px; font-weight: 600; padding-top: 1px; }
+.solution-sheet .cs-val { color: var(--ink); min-width: 0; }
+@media (max-width: 760px) { .solution-sheet .cs-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
 .moment-line { position: relative; padding: 8px 0 0; }
 .ml-track { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; position: relative; }
 .ml-phase { padding: 10px 10px 12px; border-top: 4px solid var(--ok); display: flex; flex-direction: column; gap: 6px; min-width: 0; }

@@ -1,4 +1,4 @@
-DC.view('contract', {
+DC.view('solution', {
   init(el) {
     const { $, chip, icon, charts, binormal, int } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
@@ -38,12 +38,12 @@ DC.view('contract', {
       { label: 'Training · 3 folds', value: 3200, valueText: '3,200', cls: 'soft' },
       { label: 'Holdout · sealed', value: 800, valueText: '800', cls: 'proof' },
     ], { width: 420, labelW: 128, valW: 60, min: 0, max: 46000, rowH: 26, ticks: [0, 15000, 30000, 45000], tickFmt: v => v ? (v / 1000) + 'k' : '0', aria: 'Rows in each split' });
-    $('#contract-history', el).addEventListener('click', () => DC.modal.open({
-      eyebrow: '<span class="eyebrow">Contract</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
+    $('#solution-history', el).addEventListener('click', () => DC.modal.open({
+      eyebrow: '<span class="eyebrow">Solution</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
       html: `<div class="timeline">
         <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed by Shahriyar · Sep 27 09:21</span><span class="tl-meta">+ capacity 2,000 calls · + €8 per call · + €110 per subscription · metric changed from ROC-AUC to net value at capacity</span></div></div>
-        <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's contract for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
-      </div><p class="small muted">Each version is immutable. Results always say which contract version they were produced under.</p>`,
+        <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's solution for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
+      </div><p class="small muted">Each version is immutable. Results always say which solution version they were produced under.</p>`,
     }));
   },
 });

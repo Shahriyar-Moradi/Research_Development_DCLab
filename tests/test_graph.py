@@ -11,14 +11,14 @@ sys.path.insert(0, str(ROOT))
 from dclab_rnd.studio import graph  # noqa: E402
 from dclab_rnd.studio.store import STAGE_KEYS, ProjectStore  # noqa: E402
 
-CONTRACT = {"target": "y", "task": "binary", "prediction_moment": "Before the call is placed.", "forbidden": [{"column": "duration", "reason": "after the call"}]}
+SOLUTION = {"target": "y", "task": "binary", "prediction_moment": "Before the call is placed.", "forbidden": [{"column": "duration", "reason": "after the call"}]}
 
 
 def ready(store, *done, uses=0, **extra):
-    """A project with data and a contract, and the given stages completed."""
+    """A project with data and a solution, and the given stages completed."""
     p = store.create("graph test", goal="test")
     p["data"] = {"filename": "t.csv", "sha256": "abc", "rows": 10, "columns": ["y", "x", "duration"]}
-    p["contract"] = dict(CONTRACT)
+    p["solution"] = dict(SOLUTION)
     for stage in done:
         p["stages"][stage] = {"status": "completed"}
     p["holdout_uses"] = uses
@@ -30,7 +30,7 @@ class NodeStateTests(unittest.TestCase):
     def setUp(self):
         self.store = ProjectStore(Path(tempfile.mkdtemp()))
 
-    def test_empty_project_starts_at_the_contract(self):
+    def test_empty_project_starts_at_the_solution(self):
         p = self.store.create("x", goal="y")
         self.assertEqual(graph.current_node(p), "WF-01")
         self.assertEqual(graph.state_string(p), "c---------")
@@ -45,8 +45,8 @@ class NodeStateTests(unittest.TestCase):
         p["captured"] = graph.now()
         self.assertIsNone(graph.current_node(p))
 
-    def test_unsigned_contract_waits_when_the_policy_asks_for_a_signature(self):
-        p = ready(self.store, policy={"require_contract_signoff": True})
+    def test_unsigned_solution_waits_when_the_policy_asks_for_a_signature(self):
+        p = ready(self.store, policy={"require_solution_signoff": True})
         self.assertEqual(graph.node_states(p)["WF-01"], "waiting")
 
 
@@ -74,14 +74,14 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(agent.status, "blocked")
         self.assertIn("PIT-006", agent.evidence)
 
-    def test_contract_gate(self):
-        p = ready(self.store, policy={"require_contract_signoff": True})
+    def test_solution_gate(self):
+        p = ready(self.store, policy={"require_solution_signoff": True})
         self.assertEqual(graph.check(p, "run_stage", "agent", stage="data").status, "needs_approval")
-        p = graph.approve_gate(self.store, p["id"], "contract", reason="read it")
+        p = graph.approve_gate(self.store, p["id"], "solution", reason="read it")
         self.assertTrue(graph.check(p, "run_stage", "agent", stage="data").allowed)
-        self.assertEqual(graph.check(p, "set_contract", "agent").status, "needs_approval")  # only a person changes a signed contract
-        p["contract"] = {**CONTRACT, "prediction_moment": "Changed later."}
-        self.assertFalse(graph.contract_signed(p))  # a new version needs a new signature
+        self.assertEqual(graph.check(p, "set_solution", "agent").status, "needs_approval")  # only a person changes a signed solution
+        p["solution"] = {**SOLUTION, "prediction_moment": "Changed later."}
+        self.assertFalse(graph.solution_signed(p))  # a new version needs a new signature
 
     def test_holdout_gate_for_the_agent(self):
         p = ready(self.store, "data", "leakage", "features", "models", policy={"require_holdout_approval": True})
@@ -124,7 +124,7 @@ class ValidatorTests(unittest.TestCase):
         moves = {m["stage"]: m["status"] for m in view["moves"] if m["move"] == "run_stage"}
         self.assertEqual(moves["leakage"], "allowed")
         self.assertEqual(moves["models"], "blocked")
-        self.assertEqual({g["gate"] for g in view["gates"]}, {"contract", "holdout"})
+        self.assertEqual({g["gate"] for g in view["gates"]}, {"solution", "holdout"})
 
 
 class WiringTests(unittest.TestCase):
@@ -137,9 +137,9 @@ class WiringTests(unittest.TestCase):
         pid = box.call("create_project", {"name": "x", "goal": "y"})["project_id"]
         result = box.call("run_stage", {"project_id": pid, "stage": "data"})
         self.assertEqual(result["status"], "blocked")
-        self.assertIn("Contract", [c["name"] for c in result["failed_checks"]])
+        self.assertIn("Solution", [c["name"] for c in result["failed_checks"]])
         self.assertEqual(box.call("get_graph", {"project_id": pid})["current"], "WF-01")
-        self.assertEqual(box.call("check_move", {"project_id": pid, "move": "approve_gate", "gate": "contract"})["status"], "blocked")
+        self.assertEqual(box.call("check_move", {"project_id": pid, "move": "approve_gate", "gate": "solution"})["status"], "blocked")
         self.assertEqual(store.transitions(pid)[-1]["actor"], "agent")
 
     def test_api_routes(self):
@@ -156,10 +156,10 @@ class WiringTests(unittest.TestCase):
             self.assertEqual(view["current"], "WF-01")
             verdict = client.post(f"/api/projects/{pid}/graph/check", json={"move": "run_stage", "stage": "data", "actor": "agent"}, headers=headers).json()
             self.assertEqual(verdict["status"], "blocked")
-            self.assertEqual(client.post(f"/api/projects/{pid}/approvals", json={"gate": "contract"}, headers=headers).status_code, 409)
+            self.assertEqual(client.post(f"/api/projects/{pid}/approvals", json={"gate": "solution"}, headers=headers).status_code, 409)
             self.assertIn("graph", client.get(f"/api/projects/{pid}").json())
-            policy = client.patch(f"/api/projects/{pid}", json={"policy": {"require_contract_signoff": True, "unknown": True}}, headers=headers).json()["graph"]["policy"]
-            self.assertEqual(policy, {"require_contract_signoff": True, "require_holdout_approval": False})
+            policy = client.patch(f"/api/projects/{pid}", json={"policy": {"require_solution_signoff": True, "unknown": True}}, headers=headers).json()["graph"]["policy"]
+            self.assertEqual(policy, {"require_solution_signoff": True, "require_holdout_approval": False})
 
 
 if __name__ == "__main__":

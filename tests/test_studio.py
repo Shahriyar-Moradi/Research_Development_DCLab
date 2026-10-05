@@ -1,4 +1,4 @@
-"""The DCLab notebook: projects, contracts, the five-stage engine on user data, exports and the API."""
+"""The DCLab notebook: projects, solutions, the five-stage engine on user data, exports and the API."""
 
 import ast
 import json
@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.expansion.runner import fast_profile  # noqa: E402
-from dclab_rnd.studio import ProjectStore, agent, contract as sc, data as sd, engine, export  # noqa: E402
+from dclab_rnd.studio import ProjectStore, agent, solution as sc, data as sd, engine, export  # noqa: E402
 
 
 def churn_frame(n: int = 900) -> pd.DataFrame:
@@ -32,13 +32,13 @@ def churn_frame(n: int = 900) -> pd.DataFrame:
     return frame
 
 
-def new_project(store: ProjectStore, frame: pd.DataFrame, contract: dict) -> dict:
+def new_project(store: ProjectStore, frame: pd.DataFrame, solution: dict) -> dict:
     project = store.create("Test project", "telecom", "Predict churn before renewal")
     path = store.data_dir(project["id"]) / "data.csv"
     frame.to_csv(path, index=False)
     loaded = sd.load_table(path)
     project["data"] = {"filename": "data.csv", "rows": len(loaded), "columns": list(loaded.columns), "sha256": sd.sha256(path), "profile": sd.profile_table(loaded)}
-    project["contract"] = sc.Contract(**contract).model_dump()
+    project["solution"] = sc.Solution(**solution).model_dump()
     project["settings"]["quick"] = True
     return store.save(project)
 
@@ -61,16 +61,16 @@ class DataAndContractTests(unittest.TestCase):
         self.assertIn("final_refund_amount", [f["column"] for f in proposal["forbidden"]])
         self.assertIn("customer_id", proposal["identifiers"])
 
-    def test_contract_rejects_incoherent_forms(self):
+    def test_solution_rejects_incoherent_forms(self):
         with self.assertRaises(ValueError):
-            sc.Contract(target="y", task="binary", prediction_moment="Before the outcome is known", forbidden=[{"column": "y"}])
+            sc.Solution(target="y", task="binary", prediction_moment="Before the outcome is known", forbidden=[{"column": "y"}])
         with self.assertRaises(ValueError):
-            sc.Contract(target="y", task="regression", prediction_moment="Before the outcome is known", metric="roc_auc")
-        c = sc.Contract(target="y", task="binary", prediction_moment="Before the outcome is known")
+            sc.Solution(target="y", task="regression", prediction_moment="Before the outcome is known", metric="roc_auc")
+        c = sc.Solution(target="y", task="binary", prediction_moment="Before the outcome is known")
         with self.assertRaises(ValueError):
             c.check_columns(["x"])
 
-    def test_sample_catalog_carries_known_contracts(self):
+    def test_sample_catalog_carries_known_solutions(self):
         catalog = {s["key"]: s for s in sd.sample_catalog()}
         self.assertIn("final_customer_fare", catalog["hyperack"]["blocked"])
         self.assertIn("duration", catalog["bank_marketing"]["blocked"])
@@ -204,11 +204,11 @@ class ApiTests(unittest.TestCase):
         project = c.get(f"/api/projects/{pid}").json()
         self.assertEqual(project["data"]["filename"], "evil.csv")
         self.assertIn("churned", project["data"]["profile"]["target_candidates"])
-        proposal = c.post(f"/api/projects/{pid}/contract/proposal", json={"target": "churned"}, headers=self.headers).json()
+        proposal = c.post(f"/api/projects/{pid}/solution/proposal", json={"target": "churned"}, headers=self.headers).json()
         self.assertIn("final_refund_amount", [f["column"] for f in proposal["forbidden"]])
-        bad = c.put(f"/api/projects/{pid}/contract", json={**CHURN_CONTRACT, "target": "nope"}, headers=self.headers)
+        bad = c.put(f"/api/projects/{pid}/solution", json={**CHURN_CONTRACT, "target": "nope"}, headers=self.headers)
         self.assertEqual(bad.status_code, 422)
-        self.assertEqual(c.put(f"/api/projects/{pid}/contract", json=CHURN_CONTRACT, headers=self.headers).status_code, 200)
+        self.assertEqual(c.put(f"/api/projects/{pid}/solution", json=CHURN_CONTRACT, headers=self.headers).status_code, 200)
         c.patch(f"/api/projects/{pid}", json={"settings": {"quick": True}}, headers=self.headers)
         with fast_profile():
             project = c.post(f"/api/projects/{pid}/run?wait=true", headers=self.headers).json()
@@ -219,7 +219,7 @@ class ApiTests(unittest.TestCase):
         nb = c.get(f"/api/projects/{pid}/export/notebook")
         self.assertEqual(nb.status_code, 200)
         self.assertEqual(json.loads(nb.text)["nbformat"], 4)
-        self.assertIn("Prediction contract", c.get(f"/api/projects/{pid}/export/report").text)
+        self.assertIn("Solution draft", c.get(f"/api/projects/{pid}/export/report").text)
         self.assertEqual(c.get("/api/evidence/DCLAB-R04").json()["record_id"], "DCLAB-R04")
         self.assertEqual(c.get("/api/evidence/NOPE").status_code, 404)
         self.assertEqual(c.post(f"/api/projects/{pid}/stages/models/approve", json={"choice": "logistic_regression"}, headers=self.headers).status_code, 200)

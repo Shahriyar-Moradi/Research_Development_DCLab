@@ -1,7 +1,7 @@
 """DCLab as an MCP server over HTTP, so any MCP client can drive the notebook.
 
 The tools are the intern's toolbox: the evidence index, the column auditor, the
-prediction contract, the five deterministic stages, the notebook export. Hugging
+solution, the five deterministic stages, the notebook export. Hugging
 Face's Chat UI (and its ML Intern mode) connects to this endpoint through
 ``MCP_SERVERS``; so can Claude Desktop, Cursor or any other MCP client.
 
@@ -31,8 +31,8 @@ from dclab_rnd.intern.tools import Toolbox
 from dclab_rnd.studio import ProjectStore
 
 INSTRUCTIONS = (
-    "DCLab notebook tools. Build a model from a table with evidence: write the prediction contract first "
-    "(propose_contract → set_contract), run the stages in order (run_stage or run_all), read each record before "
+    "DCLab notebook tools. Build a model from a table with evidence: write the solution first "
+    "(propose_solution → set_solution), run the stages in order (run_stage or run_all), read each record before "
     "the next step, cite the record IDs the notes give you (search_evidence / get_record), and never rerun the "
     "final stage to chase a score: it consumes the holdout once. Research evidence is not production approval."
 )

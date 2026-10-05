@@ -59,7 +59,7 @@
           <select id="move-select">
             <option value="holdout">Intern: open the holdout to compare extra_trees with lightgbm</option>
             <option value="stop">Intern: stop and hand the brief to Reza</option>
-            <option value="revisit">Intern: go back to WF-01, the contract (with reason)</option>
+            <option value="revisit">Intern: go back to WF-01, the solution (with reason)</option>
             <option value="skip">Intern: skip the leakage audit to save time</option>
             <option value="useduration">Intern: add duration back as a feature</option>
           </select></div>
@@ -78,13 +78,13 @@ DC.view('project', {
   init(el) {
     const { $, $$, esc, chip, chips, icon, toast } = DC;
     const NODES = [
-      ['WF-01', 'Contract', 20, 64], ['WF-02', 'Source & lineage', 210, 64], ['WF-03', 'Split design', 400, 64], ['WF-04', 'Train-only EDA', 590, 64], ['WF-05', 'Leakage audit', 780, 64],
+      ['WF-01', 'Solution', 20, 64], ['WF-02', 'Source & lineage', 210, 64], ['WF-03', 'Split design', 400, 64], ['WF-04', 'Train-only EDA', 590, 64], ['WF-05', 'Leakage audit', 780, 64],
       ['WF-06', 'Feature ladder', 780, 224], ['WF-07', 'Algorithm screen', 590, 224], ['WF-08', 'Optimization', 400, 224], ['WF-09', 'Reliability', 210, 224], ['WF-10', 'Knowledge capture', 20, 224],
     ];
     const W = 150, H = 64;
     const RULES = { 'WF-01': ['DCLAB-R01', 'DCLAB-R18'], 'WF-02': ['DCLAB-R09', 'DCLAB-R21'], 'WF-03': ['DCLAB-R02', 'DCLAB-R17'], 'WF-04': ['DCLAB-R03', 'DCLAB-R12'], 'WF-05': ['DCLAB-R04', 'DCLAB-R05', 'DCLAB-R06'],
       'WF-06': ['DCLAB-R07', 'DCLAB-R08', 'DCLAB-R10', 'DCLAB-R11'], 'WF-07': ['DCLAB-R13', 'DCLAB-R14'], 'WF-08': ['DCLAB-R15', 'DCLAB-R16'], 'WF-09': ['DCLAB-R17', 'DCLAB-R19', 'DCLAB-R22'], 'WF-10': ['DCLAB-R20', 'DCLAB-R21'] };
-    const EXIT = { 'WF-01': 'Signed contract: moment, target window, action, unit, costs, forbidden columns with reasons.', 'WF-02': 'Snapshot hash, licence, row count, time range, known transformations.',
+    const EXIT = { 'WF-01': 'Signed solution: moment, target window, action, unit, costs, forbidden columns with reasons.', 'WF-02': 'Snapshot hash, licence, row count, time range, known transformations.',
       'WF-03': 'Split unit and direction declared; holdout sealed; fold assignment stored.', 'WF-04': 'Training-only profile; risks listed; no feature promoted from EDA.',
       'WF-05': 'Availability verdict per column; severity ablation on identical folds; canary result.', 'WF-06': 'Recipe chosen by the predeclared tolerance; lineage for every new feature.',
       'WF-07': 'Families screened on identical folds; pick by the declared rule; runner-up kept.', 'WF-08': 'Tuning kept only if it beats the paired baseline by the declared margin.',
@@ -98,13 +98,13 @@ DC.view('project', {
       return `M${p.cx},${p.y + H} L${q.cx},${q.y - 2}`;
     }
     const BACK = {
-      'WF-05>WF-01': { d: 'M855,64 C855,14 95,14 95,62', label: 'revisit · a leak changes the contract', lx: 475, ly: 28 },
+      'WF-05>WF-01': { d: 'M855,64 C855,14 95,14 95,62', label: 'revisit · a leak changes the solution', lx: 475, ly: 28 },
       'WF-09>WF-03': { d: 'M285,224 C285,178 475,178 475,130', label: 'revisit · a shift needs a new split', lx: 380, ly: 172 },
       'WF-07>WF-06': { d: 'M665,288 C665,328 855,328 855,290', label: 'revisit · features', lx: 760, ly: 330 },
     };
     const BLOCK = { 'WF-07>WF-09': { d: 'M630,288 C630,352 285,352 285,290', label: 'blocked · open the holdout to choose', lx: 458, ly: 352 } };
     const GATES = [
-      { x: 570, y: 96, label: 'contract signed', ly: 54 },
+      { x: 570, y: 96, label: 'solution signed', ly: 54 },
       { x: 380, y: 256, label: 'owner approves', ly: 304 },
     ];
 
@@ -116,10 +116,10 @@ DC.view('project', {
         current: 'WF-10',
         log: [
           ['Sep 27 09:12', 'SM', 'human', 'Create project from the sentence', 'WF-01', [], 'ok', 'proceed', 'c---------'],
-          ['Sep 27 09:12', 'AI', 'agent', 'Propose contract v1 from the column audit', 'WF-01', ['DATASET-bank_marketing', 'DCLAB-R01'], 'ok', 'run check', 'c---------'],
+          ['Sep 27 09:12', 'AI', 'agent', 'Propose solution v1 from the column audit', 'WF-01', ['DATASET-bank_marketing', 'DCLAB-R01'], 'ok', 'run check', 'c---------'],
           ['Sep 27 09:13', 'AI', 'agent', 'Ask: does campaign include the call we are about to make?', 'WF-01', ['DATASET-bank_marketing'], 'ask', 'ask owner', 'c---------'],
-          ['Sep 27 09:20', 'SM', 'human', 'Edit contract v2: capacity 2,000 calls, €8 per call, €110 per subscription', 'WF-01', ['DCLAB-R18'], 'ok', 'edit', 'c---------'],
-          ['Sep 27 09:21', 'SM', 'human', 'Sign contract v2 (gate: contract signed)', 'WF-01', [], 'ok', 'approve', 'dc--------'],
+          ['Sep 27 09:20', 'SM', 'human', 'Edit solution v2: capacity 2,000 calls, €8 per call, €110 per subscription', 'WF-01', ['DCLAB-R18'], 'ok', 'edit', 'c---------'],
+          ['Sep 27 09:21', 'SM', 'human', 'Sign solution v2 (gate: solution signed)', 'WF-01', [], 'ok', 'approve', 'dc--------'],
           ['Sep 27 09:22', 'AI', 'agent', 'Record lineage: snapshot 9c1e…4b07, licence CC BY 4.0', 'WF-02', ['DCLAB-R09'], 'ok', 'proceed', 'ddc-------'],
           ['Sep 28 10:02', 'AI', 'agent', 'Design split: stratified 80/20, no time order, no client ID; seal holdout', 'WF-03', ['PIT-005', 'DCLAB-R02'], 'ok', 'proceed', 'dddc------'],
           ['Sep 28 10:04', 'AI', 'agent', 'Profile 3,200 training rows only', 'WF-04', ['EXP-006'], 'ok', 'run check', 'dddc------'],
@@ -143,7 +143,7 @@ DC.view('project', {
       },
       hyperack: {
         title: 'HyperAck order acceptance', sub: 'hyperack · tabular · binary · 11,118 orders · 2022-06-29 to 2022-11-14',
-        lede: 'Step 1 is waiting for an answer only the owner can give: the moment of prediction. The research runs exist, but none counts until the contract is signed.',
+        lede: 'Step 1 is waiting for an answer only the owner can give: the moment of prediction. The research runs exist, but none counts until the solution is signed.',
         actions: '<a class="btn" href="#intern">Open the intern session</a><button type="button" class="btn primary" data-scroll-ask>Answer the question</button>',
         current: 'WF-01',
         log: [
@@ -155,14 +155,14 @@ DC.view('project', {
       },
       telco: {
         title: 'Telco churn', sub: 'telco_churn · tabular · binary · 7,043 customers',
-        lede: 'The screen finished, but the contract never said when the prediction is made or how long the outcome window is. It was reopened; later steps wait for it.',
-        actions: '<a class="btn primary" href="#contract">Open the contract</a>',
+        lede: 'The screen finished, but the solution never said when the prediction is made or how long the outcome window is. It was reopened; later steps wait for it.',
+        actions: '<a class="btn primary" href="#solution">Open the solution</a>',
         current: 'WF-01',
         log: [
           ['Sep 20 10:00', 'AV', 'human', 'Create project from the Telco sample', 'WF-01', ['DATASET-telco_churn'], 'ok', 'proceed', 'c---------'],
           ['Sep 20 10:30', 'AI', 'agent', 'Steps 2–7 run; logistic regression leads (ROC-AUC 0.8499)', 'WF-07', ['FINDING-churn-linear'], 'ok', 'proceed', 'dddddddc--'],
           ['Sep 21 09:15', 'CR', 'critic', 'Critic: adaptive development CV is not independent confirmation', 'WF-07', ['FINDING-churn-linear'], 'note', 'advisory', 'dddddddc--'],
-          ['Sep 21 09:20', 'AV', 'human', 'Reopen the contract: the prediction moment and outcome window are missing', 'WF-01', ['DCLAB-R01'], 'back', 'revisit', 'bdddddd---'],
+          ['Sep 21 09:20', 'AV', 'human', 'Reopen the solution: the prediction moment and outcome window are missing', 'WF-01', ['DCLAB-R01'], 'back', 'revisit', 'bdddddd---'],
           ['now', 'SM', 'human', 'Waiting: 30-day or 90-day outcome window?', 'WF-01', [], 'wait', 'ask', 'bdddddd---'],
         ],
       },
@@ -236,10 +236,10 @@ DC.view('project', {
       const rec = DC.REC[id];
       const produced = [...new Set(P[proj].log.filter(r => r[4] === id).flatMap(r => r[5]).filter(x => !x.startsWith('DCLAB-')))];
       const next = [];
-      if (i < 9) next.push(`<li>Proceed to <b>${NODES[i + 1][0]}</b> ${esc(NODES[i + 1][1])}${id === 'WF-03' ? ' · needs the signed contract' : id === 'WF-08' ? ' · needs the owner\'s approval' : ''}</li>`);
+      if (i < 9) next.push(`<li>Proceed to <b>${NODES[i + 1][0]}</b> ${esc(NODES[i + 1][1])}${id === 'WF-03' ? ' · needs the signed solution' : id === 'WF-08' ? ' · needs the owner\'s approval' : ''}</li>`);
       Object.keys(BACK).filter(k => k.startsWith(id + '>')).forEach(k => next.push(`<li>Revisit <b>${k.split('>')[1]}</b> with a written reason</li>`));
       next.push('<li>Run a named check, ask the owner, or stop</li>');
-      if (i > 0) next.push('<li>Reopen the contract (clears later results)</li>');
+      if (i > 0) next.push('<li>Reopen the solution (clears later results)</li>');
       $('#node-eyebrow', el).textContent = `Selected step · ${statusText(st, id)}`;
       $('#node-title', el).textContent = `${id} · ${DEMO.wf[i][1]}`;
       $('#node-body', el).innerHTML = `
@@ -273,9 +273,9 @@ DC.view('project', {
     const VALID = {
       holdout: { verdict: 'blocked', checks: [['Edge exists', false, 'WF-07 → WF-09 is not an edge. Optimization (WF-08) comes first.'], ['Prerequisites', false, 'No tuning decision recorded yet.'], ['Approval gate', false, 'Opening the holdout needs the owner.'], ['Rule check', false, 'DCLAB-R17: the holdout is consumed once, after every choice is locked.'], ['Evidence attached', true, 'EXP-009 attached.']], why: 'Choosing between models by holdout score makes that score optimistic: +0.0072 ROC-AUC on average, +0.0177 on german_credit.', ev: ['DCLAB-R17', 'PIT-006'] },
       stop: { verdict: 'needs approval', checks: [['Edge exists', true, 'WF-10 may end the project.'], ['Prerequisites', true, 'Brief drafted, lessons proposed, examples written.'], ['Approval gate', false, 'Business sign-off from Reza is still pending.'], ['Rule check', true, 'Marked as a research result (DCLAB-R22).']], why: 'The move is valid but waits at the sign-off gate.', ev: ['DCLAB-R22'] },
-      revisit: { verdict: 'allowed', checks: [['Edge exists', true, 'Reopening the contract is allowed from any step.'], ['Reason given', true, 'A reason is required and logged.'], ['Side effects', true, 'Clears WF-02…WF-10 results; the holdout stays consumed.'], ['Approval gate', true, 'The owner signs the new version.']], why: 'Allowed. Expensive on purpose: the log shows what was cleared and why.', ev: ['DCLAB-R01'] },
+      revisit: { verdict: 'allowed', checks: [['Edge exists', true, 'Reopening the solution is allowed from any step.'], ['Reason given', true, 'A reason is required and logged.'], ['Side effects', true, 'Clears WF-02…WF-10 results; the holdout stays consumed.'], ['Approval gate', true, 'The owner signs the new version.']], why: 'Allowed. Expensive on purpose: the log shows what was cleared and why.', ev: ['DCLAB-R01'] },
       skip: { verdict: 'blocked', checks: [['Edge exists', false, 'WF-04 → WF-06 is not an edge; WF-05 cannot be skipped.'], ['Rule check', false, 'DCLAB-R04: leakage has several separate failure modes.']], why: 'No path through the graph skips the leakage audit.', ev: ['DCLAB-R04', 'FINDING-leakage-gaps'] },
-      useduration: { verdict: 'blocked', checks: [['Contract', false, 'duration is forbidden in the signed contract v2.'], ['Tool guard', false, 'No tool accepts a forbidden column as input.'], ['Rule check', false, 'Post-outcome column: known only after the call ends.']], why: 'With duration the training-CV score rises by +0.1842. That is the size of the lie, not a gain.', ev: ['LEAK-bank_marketing', 'EXP-007'] },
+      useduration: { verdict: 'blocked', checks: [['Solution', false, 'duration is forbidden in the signed solution v2.'], ['Tool guard', false, 'No tool accepts a forbidden column as input.'], ['Rule check', false, 'Post-outcome column: known only after the call ends.']], why: 'With duration the training-CV score rises by +0.1842. That is the size of the lie, not a gain.', ev: ['LEAK-bank_marketing', 'EXP-007'] },
     };
     function drawValidator() {
       const v = VALID[$('#move-select', el).value];
@@ -294,7 +294,7 @@ DC.view('project', {
       $('#proj-stats', el).innerHTML = `
         <div class="stat"><span class="v">${done} <small>/ 10</small></span><span class="l">steps done · current ${cur[0]} ${esc(cur[1])}</span></div>
         <div class="stat"><span class="v">${log.length}</span><span class="l">moves in the transition log · ${people} by people</span></div>
-        <div class="stat"><span class="v ${blocked ? 'bad' : back ? 'warn' : ''}">${blocked || back}</span><span class="l">${blocked ? 'unsafe move blocked by the graph' : back ? 'revisit: the contract was reopened' : 'blocked moves'}</span></div>
+        <div class="stat"><span class="v ${blocked ? 'bad' : back ? 'warn' : ''}">${blocked || back}</span><span class="l">${blocked ? 'unsafe move blocked by the graph' : back ? 'revisit: the solution was reopened' : 'blocked moves'}</span></div>
         <div class="stat"><span class="v warn">${esc(WHO[last[1]][0])}</span><span class="l">${esc(last[3])}</span></div>`;
     }
     function setProject(p) {
@@ -322,7 +322,7 @@ DC.view('project', {
       const a = e.target.closest('[data-ans]');
       if (a) {
         $$('.ask-option', el).forEach(b => b.setAttribute('aria-pressed', String(b === a)));
-        toast(a.dataset.ans.startsWith('t') ? 'Answer recorded. Contract v3 drafted; later steps rerun after you sign.' : 'Answer recorded. Contract v2 drafted with the allowed columns; it needs your signature.');
+        toast(a.dataset.ans.startsWith('t') ? 'Answer recorded. Solution v3 drafted; later steps rerun after you sign.' : 'Answer recorded. Solution v2 drafted with the allowed columns; it needs your signature.');
       }
       if (e.target.closest('[data-scroll-ask]')) { const c = $('#ask-card', el); if (c) { DC.reveal(c); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
     });

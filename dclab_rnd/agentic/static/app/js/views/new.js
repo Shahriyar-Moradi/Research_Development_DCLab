@@ -8,7 +8,7 @@ DC.view('new', {
       ['Time series', 'Forecasts with horizons and backtests against naive baselines.', 'Beta', 'info', 'trend'],
       ['Text + tabular', 'Reviews, tickets and notes next to structured fields.', 'Beta', 'info', 'text'],
       ['Computer vision', 'Detection and classification, split by scene or drive.', 'Preview', 'warn', 'image'],
-      ['Driving perception', 'Operating domain (ODD) as the contract; split by trip and route.', 'Research', '', 'car'],
+      ['Driving perception', 'Operating domain (ODD) as the solution; split by trip and route.', 'Research', '', 'car'],
       ['Maps and road flow', 'Road graphs, speed and flow forecasts.', 'Research', '', 'route'],
       ['Scene graphs', 'Objects, relations and events in video.', 'Research', '', 'nodes'],
       ['LLM and SLM fine-tuning', 'Training data, LoRA runs and evaluation.', 'Beta', 'info', 'brain'],

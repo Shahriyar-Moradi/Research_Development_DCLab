@@ -19,7 +19,7 @@ DC.view('policy', {
     $('#sft-more', el).addEventListener('click', () => { full = !full; ex(); });
     ex();
     $('#traj-json', el).replaceWith(Object.assign(document.createElement('div'), { innerHTML: codeBlock(`{
-  "project": "term-deposit-calls", "move": 15, "contract": "v2",
+  "project": "term-deposit-calls", "move": 15, "solution": "v2",
   "state": {"node": "WF-07", "done": ["WF-01", "WF-02", "WF-03", "WF-04", "WF-05", "WF-06"],
             "holdout": "sealed", "evidence": ["EXP-009"]},
   "proposal": {"by": "intern", "move": "open_holdout",
@@ -31,7 +31,7 @@ DC.view('policy', {
     const RQ = [
       ['HyperAck · WF-05', 'Intern kept deliverey_category_id as an input after the auditor flagged it.', 'Strong signal, plausibly known at order time. Was keeping it with a flag right?'],
       ['Card fraud · WF-08', 'Intern rejected tuning: gain −0.0048 against a required +0.0050.', 'Was the margin right for PR-AUC on 0.17% positives?'],
-      ['Telco churn · WF-07', 'Intern proposed reopening the contract after the critic\'s note.', 'Should it have asked the owner first?'],
+      ['Telco churn · WF-07', 'Intern proposed reopening the solution after the critic\'s note.', 'Should it have asked the owner first?'],
     ];
     let left = RQ.length;
     $('#review-queue', el).innerHTML = RQ.map(([where, what, q], i) => `<div class="list-item" data-rq="${i}"><div class="li-main"><span class="li-sub">${esc(where)}</span><span class="li-title">${esc(what)}</span><span class="small muted">${esc(q)}</span></div><div class="li-side"><div class="decide"><button type="button" data-rv="right">Right</button><button type="button" data-rv="edit">Edit</button><button type="button" data-rv="wrong">Wrong</button></div></div></div>`).join('');

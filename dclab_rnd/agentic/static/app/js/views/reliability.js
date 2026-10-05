@@ -21,7 +21,7 @@ DC.view('reliability', {
     $('#seal-preview', el).addEventListener('click', () => DC.modal.open({
       eyebrow: '<span class="eyebrow">WF-09 · holdout</span>', title: 'Open the holdout, once', confirm: 'Already used for this project', confirmDisabled: true,
       html: `<p>This reads 800 rows nobody has used. The number you get is final for this project: it cannot be used to choose or tune anything afterwards ${chip('PIT-006')}.</p>
-        <ul class="plan-list"><li class="done"><span class="pi">✓</span><span>Contract v2 is signed</span></li><li class="done"><span class="pi">✓</span><span>Feature recipe locked: ratios</span></li><li class="done"><span class="pi">✓</span><span>Model locked: extra_trees C02</span></li><li class="done"><span class="pi">✓</span><span>Tuning decided on training folds only</span></li><li class="done"><span class="pi">✓</span><span>No earlier read of these rows</span></li></ul>
+        <ul class="plan-list"><li class="done"><span class="pi">✓</span><span>Solution v2 is signed</span></li><li class="done"><span class="pi">✓</span><span>Feature recipe locked: ratios</span></li><li class="done"><span class="pi">✓</span><span>Model locked: extra_trees C02</span></li><li class="done"><span class="pi">✓</span><span>Tuning decided on training folds only</span></li><li class="done"><span class="pi">✓</span><span>No earlier read of these rows</span></li></ul>
         <div class="field"><label for="seal-type">Type the project name to confirm</label><input id="seal-type" type="text" value="Term-deposit calls" disabled></div>
         <div class="callout info"><span class="ic">${icon('info')}</span><span>In this demo the holdout was opened on Oct 2. The dialog is shown read-only.</span></div>`,
     }));

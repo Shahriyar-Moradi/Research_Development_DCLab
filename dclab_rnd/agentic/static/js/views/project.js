@@ -5,7 +5,7 @@ import {recordChip} from '../drawer.js';
 import {refreshProjects} from './projects.js';
 
 const STAGES = ['data', 'leakage', 'features', 'models', 'final'];
-const STEP_TITLES = {upload: 'Data', contract: 'Prediction contract', data: 'Understand the data', leakage: 'Audit leakage',
+const STEP_TITLES = {upload: 'Data', solution: 'Solution draft', data: 'Understand the data', leakage: 'Audit leakage',
   features: 'Climb the feature ladder', models: 'Screen algorithms', final: 'Tune and confirm on the holdout', report: 'Report and export'};
 const STATUS_LABEL = {pending: 'not run', queued: 'queued…', running: 'running…', completed: 'done · awaiting your review', approved: 'approved', failed: 'failed'};
 const METRIC_LABEL = {roc_auc: 'ROC-AUC', average_precision: 'average precision', macro_f1: 'macro-F1', mae: 'MAE'};
@@ -56,10 +56,10 @@ function render(full) {
   $('page-label').textContent = 'Projects / ' + p.name;
   if (full || !$('ws-cells')) {
     $('project-view').innerHTML = `
-      <div class="ws-head"><div><div class="eyebrow">${esc(p.industry.toUpperCase())} · ${p.contract ? esc(TASK_LABEL[p.contract.task]) : 'NEW PROJECT'}</div>
+      <div class="ws-head"><div><div class="eyebrow">${esc(p.industry.toUpperCase())} · ${p.solution ? esc(TASK_LABEL[p.solution.task]) : 'NEW PROJECT'}</div>
         <h1 class="ws-title">${esc(p.name)}</h1><p class="ws-goal">${esc(p.goal || 'No goal written yet. Edit it below.')}</p></div>
-        <div class="actions ws-actions"><button class="secondary" id="run-all" ${(!p.contract || busy(p)) ? 'disabled' : ''}>▶ Run every stage</button>
-          <a class="secondary ${p.contract ? '' : 'disabled'}" href="/api/projects/${esc(p.id)}/export/notebook" ${p.contract ? '' : 'tabindex="-1"'}>Export notebook ↗</a>
+        <div class="actions ws-actions"><button class="secondary" id="run-all" ${(!p.solution || busy(p)) ? 'disabled' : ''}>▶ Run every stage</button>
+          <a class="secondary ${p.solution ? '' : 'disabled'}" href="/api/projects/${esc(p.id)}/export/notebook" ${p.solution ? '' : 'tabindex="-1"'}>Export notebook ↗</a>
           <a class="secondary" href="/api/projects/${esc(p.id)}/export/report">Export report ↗</a>
           <a class="secondary" href="#intern/new/${esc(p.id)}">Hand to the intern ↗</a>
           <button class="secondary danger" id="delete-project">Delete</button></div></div>
@@ -69,12 +69,12 @@ function render(full) {
       if (!confirm(`Delete "${p.name}" and its results? This cannot be undone.`)) return;
       await call(`/projects/${p.id}`, {method: 'DELETE'}); await refreshProjects(); location.hash = '#projects';
     });
-    $('ws-cells').innerHTML = `<section class="cell" id="cell-upload"></section><section class="cell" id="cell-contract"></section>`
+    $('ws-cells').innerHTML = `<section class="cell" id="cell-upload"></section><section class="cell" id="cell-solution"></section>`
       + STAGES.map(s => `<section class="cell" id="cell-${s}"></section>`).join('') + `<section class="cell" id="cell-report"></section>`;
     renderUpload(); renderContract();
   }
   renderRail(); STAGES.forEach(renderStage); renderReport(); renderAgent();
-  if ($('run-all')) $('run-all').disabled = !p.contract || busy(p);
+  if ($('run-all')) $('run-all').disabled = !p.solution || busy(p);
   refreshProjects();
 }
 
@@ -82,8 +82,8 @@ function render(full) {
 function renderRail() {
   const p = current;
   const steps = [['upload', p.data ? 'approved' : 'pending', p.data ? `${Number(p.data.rows).toLocaleString()} rows` : 'upload a table'],
-    ['contract', p.contract ? 'approved' : p.data ? 'pending' : 'locked', p.contract ? `target ${p.contract.target}` : 'target and prediction moment'],
-    ...STAGES.map(s => [s, p.contract ? stageStatus(p, s) : 'locked', p.stages?.[s]?.elapsed_seconds ? `${p.stages[s].elapsed_seconds.toFixed(1)} s` : (STATUS_LABEL[stageStatus(p, s)] || '')]),
+    ['solution', p.solution ? 'approved' : p.data ? 'pending' : 'locked', p.solution ? `target ${p.solution.target}` : 'target and prediction moment'],
+    ...STAGES.map(s => [s, p.solution ? stageStatus(p, s) : 'locked', p.stages?.[s]?.elapsed_seconds ? `${p.stages[s].elapsed_seconds.toFixed(1)} s` : (STATUS_LABEL[stageStatus(p, s)] || '')]),
     ['report', stageDone(p, 'final') ? 'approved' : 'locked', stageDone(p, 'final') ? 'notebook and report' : 'after the final stage']];
   $('ws-rail').innerHTML = `<div class="rail-title">Workflow</div>` + steps.map(([key, status, sub], i) =>
     `<a class="rail-step ${esc(status)}" href="#cell-${key}" data-jump="${key}"><span class="rail-no">${i}</span><span><b>${esc(STEP_TITLES[key])}</b><small>${esc(sub)}</small></span><i class="rail-dot"></i></a>`).join('')
@@ -112,7 +112,7 @@ function renderUpload() {
   $('replace-data')?.addEventListener('click', () => { $('upload-zone').classList.toggle('hidden'); });
 }
 function roleChip(name) {
-  const c = current.contract;
+  const c = current.solution;
   if (!c) return '<span class="muted small">—</span>';
   const role = name === c.target ? 'target' : c.forbidden.some(f => f.column === name) ? 'forbidden' : c.identifiers.includes(name) ? 'identifier'
     : name === c.time_column ? 'time' : name === c.group_column ? 'group' : c.text_columns.includes(name) ? 'text' : 'input';
@@ -146,11 +146,11 @@ async function renderUploadZone() {
   }));
 }
 
-/* ---------------------------------------------------------------- 1 · contract */
+/* ---------------------------------------------------------------- 1 · solution */
 function renderContract() {
-  const p = current, el = $('cell-contract');
-  if (!p.data) { el.innerHTML = cellHead(1, 'contract', 'locked') + '<p class="cell-lead muted">Upload data first. The contract says what is predicted, when, and what cannot be known at that moment.</p>'; return; }
-  const c = p.contract, prop = p.proposal, sug = p.suggestion || {};
+  const p = current, el = $('cell-solution');
+  if (!p.data) { el.innerHTML = cellHead(1, 'solution', 'locked') + '<p class="cell-lead muted">Upload data first. The solution says what is predicted, when, and what cannot be known at that moment.</p>'; return; }
+  const c = p.solution, prop = p.proposal, sug = p.suggestion || {};
   const columns = p.data.columns;
   const candidates = p.data.profile.target_candidates;
   const target = c?.target || prop?.target || sug.target || candidates[0];
@@ -164,7 +164,7 @@ function renderContract() {
   const metric = c?.metric || prop?.metric || '';
   const opt = (list, chosen, allowEmpty) => (allowEmpty ? '<option value="">— none —</option>' : '') + list.map(x => `<option value="${esc(x)}" ${x === chosen ? 'selected' : ''}>${esc(x)}</option>`).join('');
   const notTarget = columns.filter(x => x !== target);
-  el.innerHTML = cellHead(1, 'contract', c ? 'approved' : 'pending', c ? '<span class="muted small">Saving a change clears the stage results.</span>' : '')
+  el.innerHTML = cellHead(1, 'solution', c ? 'approved' : 'pending', c ? '<span class="muted small">Saving a change clears the stage results.</span>' : '')
     + `<p class="cell-lead">Leakage is defined by <em>when</em> you predict, not by a column's name. Write that moment down first; the agent proposes what to exclude and you decide.</p>
     <div class="contract">
       <div class="form-grid">
@@ -184,7 +184,7 @@ function renderContract() {
         <label>Group column<select id="c-group">${opt(notTarget, group, true)}</select><small>rows sharing it never split across train and holdout</small></label>
         <label>Text columns<select id="c-text" multiple size="4">${opt(notTarget, '')}</select><small>free text, binary targets only · ${plural(text.length, 'selected')}</small></label>
       </div>
-      <div class="contract-foot"><button class="primary" id="c-save">${c ? 'Save contract' : 'Save contract and unlock the stages'}</button><button class="secondary" id="c-propose">${prop ? 'Ask the agent again' : 'Ask the agent to propose'}</button><span class="muted small" id="c-status"></span></div>
+      <div class="contract-foot"><button class="primary" id="c-save">${c ? 'Save solution' : 'Save solution and unlock the stages'}</button><button class="secondary" id="c-propose">${prop ? 'Ask the agent again' : 'Ask the agent to propose'}</button><span class="muted small" id="c-status"></span></div>
     </div>`;
   [...$('c-ids').options].forEach(o => { o.selected = ids.includes(o.value); });
   [...$('c-text').options].forEach(o => { o.selected = text.includes(o.value); });
@@ -205,8 +205,8 @@ async function propose(force) {
   const target = $('c-target').value, task = $('c-task').value;
   $('c-status').textContent = 'The agent is auditing the columns…';
   try {
-    current.proposal = await api(`/projects/${current.id}/contract/proposal`, {method: 'POST', body: JSON.stringify({target, task: force ? task : undefined})});
-    if (!current.contract) renderContract();
+    current.proposal = await api(`/projects/${current.id}/solution/proposal`, {method: 'POST', body: JSON.stringify({target, task: force ? task : undefined})});
+    if (!current.solution) renderContract();
     else $('c-status').textContent = `${plural(current.proposal.forbidden.length, 'column')} proposed as forbidden; tick them above if they are unknown at the prediction moment.`;
   } catch (error) { $('c-status').textContent = error.message; } finally { proposalBusy = false; }
 }
@@ -220,21 +220,21 @@ async function saveContract() {
   };
   if (body.prediction_moment.length < 12) { notice('Describe the prediction moment in at least a sentence.'); $('c-moment').focus(); return; }
   $('c-save').disabled = true;
-  try { current = await api(`/projects/${current.id}/contract`, {method: 'PUT', body: JSON.stringify(body)}); notice(''); render(true); $('cell-data').scrollIntoView({behavior: 'smooth'}); }
+  try { current = await api(`/projects/${current.id}/solution`, {method: 'PUT', body: JSON.stringify(body)}); notice(''); render(true); $('cell-data').scrollIntoView({behavior: 'smooth'}); }
   catch (error) { notice(error.message); } finally { const b = $('c-save'); if (b) b.disabled = false; }
 }
 
 /* ---------------------------------------------------------------- 2–6 · stages */
 function renderStage(key) {
   const p = current, el = $('cell-' + key), no = STAGES.indexOf(key) + 2;
-  const status = p.contract ? stageStatus(p, key) : 'locked';
+  const status = p.solution ? stageStatus(p, key) : 'locked';
   const meta = p.stage_meta.find(m => m.key === key);
   const record = p.records?.[key];
-  const canRun = p.contract && !busy(p) && prevDone(p, key);
+  const canRun = p.solution && !busy(p) && prevDone(p, key);
   const tools = status === 'locked' ? '' : ['running', 'queued'].includes(status) ? '<span class="running-dot"></span><span class="muted small">working…</span>'
     : `<button class="secondary small-btn" data-run="${key}" ${canRun ? '' : 'disabled'}>${record ? 'Run again' : 'Run this stage'}</button>`;
   let body = `<p class="cell-lead"><em>${esc(meta.question)}</em> <span class="muted">· ${esc(meta.workflow)}</span></p>`;
-  if (status === 'locked') body += '<p class="muted small">Unlocks when the contract is saved.</p>';
+  if (status === 'locked') body += '<p class="muted small">Unlocks when the solution is saved.</p>';
   else if (status === 'pending') body += `<p class="muted small">${prevDone(p, key) ? 'Ready. Deterministic code runs it; the agent explains and cites.' : 'Waiting for the previous stage.'}</p>`;
   else if (status === 'failed') body += `<p class="map-empty">${esc(p.stages[key].error)}</p>`;
   if (record) body += stageBody(key, record) + decisionBlock(key, record) + notesBlock(record);
@@ -326,7 +326,7 @@ function renderReport() {
   el.innerHTML = cellHead(7, 'report', 'approved') + `
     <div class="headline"><div><small>HOLDOUT ${esc(label(m).toUpperCase())}</small><strong>${num(ev.holdout_metrics[m])}</strong><span>95% ${num(ci.low)}–${num(ci.high)} · ${esc(ev.model)} on <code>${esc(ev.feature_recipe)}</code> · holdout used ${ev.holdout_uses_in_this_project}×</span></div>
       <div class="actions"><a class="primary" href="/api/projects/${esc(p.id)}/export/notebook">Download notebook (.ipynb) ↗</a><a class="secondary" href="/api/projects/${esc(p.id)}/export/report">Download report (.md) ↗</a><a class="secondary" href="/api/projects/${esc(p.id)}/export/sft" title="RAFT-style chat examples built from this project's records">Training examples (.jsonl) ↗</a></div></div>
-    <p class="cell-lead">The notebook reproduces this workflow in plain scikit-learn: the contract, the split, the <code>${esc(ev.feature_recipe)}</code> recipe, <code>${esc(ev.model)}</code>${Object.keys(ev.selected_model_params).length ? ' with the accepted parameters' : ' with default parameters'}, the training-only folds and the once-only holdout.</p>
+    <p class="cell-lead">The notebook reproduces this workflow in plain scikit-learn: the solution, the split, the <code>${esc(ev.feature_recipe)}</code> recipe, <code>${esc(ev.model)}</code>${Object.keys(ev.selected_model_params).length ? ' with the accepted parameters' : ' with default parameters'}, the training-only folds and the once-only holdout.</p>
     ${important.length ? `<div class="notes"><div class="notes-head"><b>What to remember</b><small>${plural(important.length, 'warning')} across the stages</small></div>${important.map(n => `<div class="note ${sev(n.severity)}"><b>${esc(STEP_TITLES[n.stage])} · ${esc(n.title)}</b><p>${esc(n.text)}</p><div class="proof">${proofChips(n.proof)}</div></div>`).join('')}</div>` : ''}
     <p class="small muted">Research evidence is not production approval (DCLAB-R22): lineage, monitoring and a fresh confirmation come next.</p>`;
 }
@@ -338,7 +338,7 @@ function renderAgent() {
   const order = {high: 0, warning: 1, info: 2};
   notes.sort((a, b) => (order[a.severity] ?? 2) - (order[b.severity] ?? 2));
   const counts = {high: notes.filter(n => n.severity === 'high').length, warning: notes.filter(n => n.severity === 'warning').length};
-  el.innerHTML = `<div class="agent-head"><span class="live-dot"></span><b>Agent</b><small>${p.contract ? (busy(p) ? `running ${esc(p.running || '')}…` : 'evidence first, cited') : 'waiting for the contract'}</small></div>
+  el.innerHTML = `<div class="agent-head"><span class="live-dot"></span><b>Agent</b><small>${p.solution ? (busy(p) ? `running ${esc(p.running || '')}…` : 'evidence first, cited') : 'waiting for the solution'}</small></div>
     <div class="agent-tabs">${[['notes', `Notes${notes.length ? ` · ${notes.length}` : ''}`], ['graph', 'Graph'], ['ask', 'Ask'], ['activity', 'Activity']].map(([k, l]) => `<button type="button" class="${agentTab === k ? 'active' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>
     <div class="agent-body">${agentTab === 'notes' ? (notes.length ? `<p class="small muted">${counts.high} high · ${counts.warning} warning · ${notes.length - counts.high - counts.warning} info</p>` + notes.map(n => `<div class="note ${sev(n.severity)}"><small>${esc(STEP_TITLES[n.stage])}</small><b>${esc(n.title)}</b><p>${esc(n.text)}</p><div class="proof">${proofChips(n.proof)}</div></div>`).join('')
         : '<p class="small muted">Notes appear here as stages complete. Each one names the DCLab rule it applies and the measured precedent behind it.</p>')
@@ -348,7 +348,7 @@ function renderAgent() {
       : `<ol class="timeline">${(p.activity || []).slice().reverse().map(a => `<li>${esc(a.kind.replaceAll('_', ' '))}${a.payload?.stage ? ` · ${esc(a.payload.stage)}` : ''}${a.payload?.error ? `<small>${esc(a.payload.error)}</small>` : ''}<small>${new Date(a.at).toLocaleString([], {hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'})}</small></li>`).join('') || '<li>Nothing yet</li>'}</ol>`}</div>`;
   el.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { agentTab = b.dataset.tab; renderAgent(); }));
   el.querySelectorAll('[data-gate]').forEach(b => b.addEventListener('click', () => {
-    const reason = prompt(b.dataset.gate === 'contract' ? 'Sign the contract as it is now. Any note for the log?' : 'Allow the agent to open the holdout once. Why now?');
+    const reason = prompt(b.dataset.gate === 'solution' ? 'Sign the solution as it is now. Any note for the log?' : 'Allow the agent to open the holdout once. Why now?');
     if (reason !== null) act(`/projects/${p.id}/approvals`, {method: 'POST', body: JSON.stringify({gate: b.dataset.gate, reason})});
   }));
   el.querySelectorAll('[data-policy]').forEach(b => b.addEventListener('change', () =>
@@ -364,13 +364,13 @@ function renderAgent() {
 /* ---------------------------------------------------------------- workflow graph */
 const NODE_STATE = {done: 'done', current: 'next', waiting: 'waits for you', running: 'running', failed: 'failed', todo: ''};
 const VERDICT = {allowed: 'ok', blocked: 'blocked', needs_approval: 'needs you'};
-const POLICY_LABEL = {require_contract_signoff: 'The contract needs my signature before the data stage', require_holdout_approval: 'The intern needs my approval before it opens the holdout'};
+const POLICY_LABEL = {require_solution_signoff: 'The solution needs my signature before the data stage', require_holdout_approval: 'The intern needs my approval before it opens the holdout'};
 function graphHtml(p) {
   const g = p.graph;
   if (!g) return '<p class="small muted">No graph for this project.</p>';
   const nodes = g.nodes.map(n => `<li class="gnode ${esc(n.state)}" title="${esc((n.rules || []).join(' · '))}"><span class="gid">${esc(n.id)}</span><span><b>${esc(n.name)}</b>${NODE_STATE[n.state] ? `<small>${esc(NODE_STATE[n.state])}</small>` : ''}</span></li>`).join('');
-  const gates = g.gates.map(x => `<div class="gate"><div><b>${x.gate === 'contract' ? 'Contract signature' : 'Holdout approval'}</b><small>${esc(x.what)}</small></div>
-    ${x.approved ? '<span class="badge">approved</span>' : `<button class="secondary small-btn" data-gate="${esc(x.gate)}" ${x.gate === 'contract' && !p.contract ? 'disabled' : ''}>Approve</button>`}</div>`).join('');
+  const gates = g.gates.map(x => `<div class="gate"><div><b>${x.gate === 'solution' ? 'Solution signature' : 'Holdout approval'}</b><small>${esc(x.what)}</small></div>
+    ${x.approved ? '<span class="badge">approved</span>' : `<button class="secondary small-btn" data-gate="${esc(x.gate)}" ${x.gate === 'solution' && !p.solution ? 'disabled' : ''}>Approve</button>`}</div>`).join('');
   const policy = Object.entries(g.policy).map(([k, v]) => `<label class="policy"><input type="checkbox" data-policy="${esc(k)}" ${v ? 'checked' : ''}> ${esc(POLICY_LABEL[k] || k)}</label>`).join('');
   const log = (p.transitions || []).slice().reverse().map(t => `<li class="gmove ${esc(t.status)}"><b>${esc(t.actor)} · ${esc(t.move.replaceAll('_', ' '))}${t.args?.stage ? ` ${esc(t.args.stage)}` : t.args?.gate ? ` ${esc(t.args.gate)}` : ''}</b>
     <span class="verdict">${esc(VERDICT[t.status] || t.status)}</span><small>${esc(t.outcome || t.message || '')}</small><small class="mono">${esc(t.state)} · ${new Date(t.at).toLocaleString([], {hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'})}</small></li>`).join('');
