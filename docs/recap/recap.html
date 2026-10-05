@@ -1,0 +1,159 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>DCLab R&D Recap</title>
+<style>
+@page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+:root { --ink:#132026; --muted:#5d6e76; --accent:#0d7567; --soft:#e0f1ed; --line:#d8e0e2; --proof:#4650c4; }
+body { font-family: "DejaVu Sans", sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.5; margin: 0; }
+h1 { font-size: 24pt; margin: 0 0 6pt; color: var(--ink); }
+h2 { font-size: 14.5pt; color: var(--accent); border-bottom: 1.5px solid var(--accent); padding-bottom: 3pt; margin: 18pt 0 8pt; page-break-after: avoid; }
+h3 { font-size: 11pt; margin: 10pt 0 4pt; page-break-after: avoid; }
+p { margin: 0 0 6pt; } ul { margin: 0 0 6pt; padding-left: 16pt; } li { margin-bottom: 2pt; }
+table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9.2pt; page-break-inside: avoid; }
+th { text-align: left; background: var(--soft); padding: 4pt 6pt; border-bottom: 1px solid var(--line); }
+td { padding: 4pt 6pt; border-bottom: 1px solid var(--line); vertical-align: top; }
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: #f1f4f4; padding: 0 3px; border-radius: 3px; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+.cover .eyebrow { color: var(--accent); font-weight: bold; letter-spacing: 2px; font-size: 10pt; }
+.cover .sub { color: var(--muted); font-size: 12pt; max-width: 140mm; }
+.box { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: #f7faf9; padding: 7pt 10pt; margin: 6pt 0 10pt; page-break-inside: avoid; }
+.box.proof { border-left-color: var(--proof); }
+.muted { color: var(--muted); }
+.kpis { display: flex; gap: 8pt; margin: 6pt 0 10pt; }
+.kpi { flex: 1; border: 1px solid var(--line); padding: 6pt 8pt; border-radius: 6px; }
+.kpi b { display: block; font-size: 15pt; }
+.kpi span { font-size: 8.5pt; color: var(--muted); }
+.fa { direction: rtl; text-align: right; font-size: 10.4pt; line-height: 1.9; }
+.fa h2 { text-align: right; } .fa ul { padding-left: 0; padding-right: 16pt; }
+.pb { page-break-before: always; }
+</style></head><body>
+
+<section class="cover">
+  <div class="eyebrow">DCLAB R&amp;D · PROJECT AND PRODUCT</div>
+  <h1>Recap: from research repository to an ML Intern with proof</h1>
+  <p class="sub">Everything we discussed and built in this work session, from the first cleanup of the repository to the clickable demo of the final product. English first, Persian summary at the end.</p>
+  <p class="muted" style="margin-top:20pt">Repository: Shahriyar-Moradi/Research_Development_DCLab · latest commit <code>4865ead</code> on main and dev · October 2026</p>
+  <p class="muted">Note: in this document, "DCLab" means the DCLab R&amp;D project and the product growing out of it, not DCLab's main product.</p>
+</section>
+
+<h2>1. The vision in one paragraph</h2>
+<p>DCLab R&amp;D is becoming an <b>"ML Intern" for most kinds of machine-learning work</b>, close to Hugging Face's ML Intern, with one difference: every step comes with proof. It writes the prediction contract before looking at any score, catches leakage, uses the holdout once, and cites measured evidence for each suggestion ("someone hit this before, here is the number"). The guiding design rule from your earlier chats: <b>the LLM is the decision-maker inside a controlled graph, not the owner of the graph.</b></p>
+
+<h3>The six layers of the idea</h3>
+<table>
+<tr><th style="width:28%">Layer</th><th>What it means</th></tr>
+<tr><td>1. Evidence engine (the R&amp;D)</td><td>Experiments on real data (Kaggle, Hugging Face, UCI) become rules and records the product can cite: 579 experiments, 22 rules, leakage precedents, measured pitfalls.</td></tr>
+<tr><td>2. Workflow engine</td><td>Ten fixed steps WF-01…WF-10: contract → source → split → train-only EDA → leakage audit → feature ladder → algorithm screen → conservative tuning → reliability → knowledge capture. Allowed moves are explicit; code validates every move; every move is logged.</td></tr>
+<tr><td>3. Agent surfaces</td><td>The agentic notebook (proof beside each cell), the intern (give a task, it works inside a budget), Hugging Face Chat UI / ML Intern over MCP, later a VS Code companion.</td></tr>
+<tr><td>4. A focused small model</td><td>A fine-tuned open model (7–9B first) that knows the next step, when to stop and when to ask. Not a general chatbot. "Macro-tokens" (your "cake" idea: two steps for ~200 tokens instead of 400) stay a research question.</td></tr>
+<tr><td>5. Cost efficiency</td><td>A cost ladder: typed classifier (Jev) → NOOA structured call → full LLM only when needed; pass references, not growing message history.</td></tr>
+<tr><td>6. Domain packs</td><td>One engine, many packs: tabular first, then time series, text, vision and driving (ODD as the contract), maps and road flow, scene graphs, and software bug-fixing as the first non-ML pack.</td></tr>
+</table>
+
+<h2>2. What we did, in order</h2>
+<table>
+<tr><th style="width:24%">Round</th><th>What you asked</th><th>What was built</th></tr>
+<tr><td>Clean and structure</td><td>"Clean and structure the repo", one folder per research idea, work on main and keep dev fast-forwarded.</td><td>Top-level folders by role (data, research, evidence, code); every research idea has the same shape and a generated INDEX.md; a Research map; duplicates, dead files and regenerable models removed; <code>make clean</code>.</td></tr>
+<tr><td>Product redesign</td><td>"Agentic DCLab notebook … build any type of ML model in any industry in an agentic way instead of code."</td><td>The <b>DCLab notebook</b> (<code>dclab_rnd/studio</code>): projects, data upload or 16 studied samples, a prediction contract with forbidden columns and proof, five deterministic stages (data, leakage, features, models, final), evidence-cited notes, runnable .ipynb export.</td></tr>
+<tr><td>Fill the gaps</td><td>Kaggle/HF data; multiclass, time series, imbalanced fraud, text+tabular; paired instructions; an SFT job; an outside-reader narrative. "Do not remove anything; the goal is improvement."</td><td>Expansion campaign on 4 new task types (fraud, letters, bike demand, reviews), SFT v3 corpus (326 examples), <code>train_lora.py</code> / <code>eval_sft.py</code>, project-derived training examples, an outside-reader narrative.</td></tr>
+<tr><td>The intern</td><td>"Something like Hugging Face ML Intern, locally, one click away."</td><td>The <b>DCLab intern</b> (<code>dclab_rnd/intern</code>): task → plan → tool calls → report, 18 tools, enforced budget, a deterministic standard plan when no model is configured; works with any OpenAI-compatible endpoint (HF router, Ollama, OpenAI).</td></tr>
+<tr><td>Chat UI and ML Intern</td><td>"Use github chat-ui and ml-intern in DCLab."</td><td>DCLab as an <b>MCP server</b> at <code>/mcp</code>; <code>make chat-ui</code> and <code>make chat-ui-intern</code> run Hugging Face Chat UI locally with DCLab attached. Verified end to end: 18 DCLab tools in plain mode, 32 tools in ML Intern mode.</td></tr>
+<tr><td>Your background</td><td>Two PDFs of earlier chats (43 questions, 69 messages) to give full context.</td><td>A full review: the six layers, the 10 workflow blocks, the 22 rules, the controlled-graph architecture, domain packs, the workflow-policy model, and a prioritized MVP roadmap.</td></tr>
+<tr><td>Final product demo</td><td>"Generate a full HTML demo of the final product … to understand what we miss, need and don't need."</td><td>A <b>19-page clickable demo</b> with 4 role views, guided tours, a <b>Blueprint layer</b> marking 151 features, and a Must / Later / Cut decision board. Published privately and committed as <code>docs/product-demo/</code> (<code>make product-demo</code>, checked by <code>make rd-check</code>).</td></tr>
+<tr><td>Move to local</td><td>"Switch the cloud environment to my local one."</td><td>Explained teleport (<code>claude --teleport session_01VD8xcoYNb4YJEpXWRz2oU3</code>) and Remote Control (<code>/remote-control</code>); all branches pushed and aligned at <code>4865ead</code>.</td></tr>
+</table>
+
+<h2 class="pb">3. Where the repository stands</h2>
+<div class="kpis">
+  <div class="kpi"><b>579</b><span>experiments in the registry · 483 eligible · 11 datasets</span></div>
+  <div class="kpi"><b>133</b><span>evidence records: 22 rules, 10 workflow blocks, 70 experiments, 6 leakage precedents, 6 pitfalls</span></div>
+  <div class="kpi"><b>326</b><span>SFT v3 examples (260 train · 66 validation)</span></div>
+  <div class="kpi"><b>94</b><span>tests passing in <code>make rd-check</code></span></div>
+</div>
+<table>
+<tr><th style="width:30%">Piece</th><th style="width:16%">Status</th><th>Where</th></tr>
+<tr><td>Evidence engine (registry, index, rules, field guide)</td><td>Built</td><td><code>dclab_rnd/evidence_index.py</code>, <code>evidence/</code></td></tr>
+<tr><td>DCLab notebook (five stages, contract, export)</td><td>Built (tabular)</td><td><code>dclab_rnd/studio/</code></td></tr>
+<tr><td>Intern (tools + budget, standard plan)</td><td>Built</td><td><code>dclab_rnd/intern/</code></td></tr>
+<tr><td>MCP endpoint + Chat UI / ML Intern</td><td>Built, tested</td><td><code>dclab_rnd/mcp_server.py</code>, <code>scripts/chat_ui.py</code></td></tr>
+<tr><td>Notebook copilot review</td><td>Built (CLI)</td><td><code>python -m dclab_rnd.copilot review</code></td></tr>
+<tr><td>Training data for the small model</td><td>Data ready, no run yet</td><td><code>research/llm-fine-tuning/</code></td></tr>
+<tr><td>Workflow graph with validator and logged moves</td><td>Partial</td><td>stages run in order; explicit graph not yet</td></tr>
+<tr><td>Judgment benchmark</td><td>Partial</td><td>notebook pilot 6/7; blind auditor 11/18 leaks</td></tr>
+<tr><td>Real code execution, GPU jobs</td><td>Missing</td><td>reachable only through Chat UI's ML Intern mode</td></tr>
+<tr><td>Vision, driving, maps, scene-graph packs</td><td>Proposals</td><td><code>research/</code> tracks with 0 experiments</td></tr>
+</table>
+
+<h2>4. Real findings worth remembering</h2>
+<ul>
+<li><b>Leakage is the largest lie.</b> Bank marketing <code>duration</code>: training-CV ROC-AUC 0.7130 without it, 0.8972 with it (+0.1842). HyperAck final fares: 0.9455 safe vs 0.9802 unsafe. PageValues: +0.1968.</li>
+<li><b>A real holdout, used once.</b> Term-deposit model (extra_trees C02): ROC-AUC 0.7718, 95% interval 0.7126–0.8290, Brier 0.0870, ECE 0.0272.</li>
+<li><b>The copilot on a leaky notebook.</b> The teammate notebook prints accuracy 0.9689. After the copilot's fixes, the honest result on 9,043 untouched rows is ROC-AUC 0.7577 (AP 0.3454). Both were measured by running the code.</li>
+<li><b>Measured pitfalls.</b> Oversampling before the split: up to +0.3003 ROC-AUC of pure inflation. Target-encoding an ID: 1.0000 reported vs 0.8160 honest. Choosing by holdout score: +0.0072 optimism on average.</li>
+<li><b>No universal best algorithm.</b> LightGBM had the best mean rank (2.55) but won only 3 of 11 datasets; logistic regression won the Telco churn campaign (0.8499).</li>
+<li><b>The critic gate works.</b> 147 LLM critic challenges kept, 10 dropped because the numbers contradicted them.</li>
+<li><b>A real bug found while building the demo.</b> The pipeline takes the log of factorized category codes (<code>log1p_month</code>, <code>log1p_poutcome</code> are top features in EXP-010). A fix task was suggested separately.</li>
+</ul>
+
+<h2>5. The product demo and the Blueprint</h2>
+<p>The demo shows the final product as if it were finished, so we can decide what to build. Groups and pages:</p>
+<table>
+<tr><th style="width:18%">Group</th><th>Pages</th></tr>
+<tr><td>Build</td><td>Home · New project · Workflow graph · Contract &amp; data · Notebook · Leakage &amp; features · Models · Reliability &amp; holdout · Decision brief (English/Persian) · Intern · Compute &amp; jobs</td></tr>
+<tr><td>Know</td><td>Evidence library (searches the 133 real records) · Research lab · Judgment benchmark</td></tr>
+<tr><td>Learn</td><td>Policy model (curriculum, data, review queue, deployment gates, cost ladder, macro-actions)</td></tr>
+<tr><td>Platform</td><td>Domain packs · Integrations · Admin (rules as policy switches, roles, budgets)</td></tr>
+<tr><td>Plan</td><td>Blueprint: gap map, roadmap, non-goals, Must / Later / Cut decisions</td></tr>
+</table>
+<div class="kpis">
+  <div class="kpi"><b>151</b><span>features in the demo</span></div>
+  <div class="kpi"><b>51</b><span>built today</span></div>
+  <div class="kpi"><b>46</b><span>partly built</span></div>
+  <div class="kpi"><b>48</b><span>to build</span></div>
+  <div class="kpi"><b>6</b><span>need research</span></div>
+</div>
+<div class="box proof">Open it: <code>docs/product-demo/index.html</code> (no server needed) or the private published copy at claude.ai/artifact/Vky86ZeEg2z5gqeapBXwtr, where your decisions save to a shared store Claude can read. No decisions are saved yet.</div>
+
+<h2 class="pb">6. Roadmap toward the MVP</h2>
+<table>
+<tr><th style="width:20%">Phase</th><th>Goal</th><th style="width:34%">Done when</th></tr>
+<tr><td><b>P1 · Proof core</b></td><td>Make every move checkable: the workflow graph, the validator, the transition log, questions and approvals, the business brief, the production gate, the first benchmark suites.</td><td>Term-deposit calls and HyperAck run end to end inside the graph; suites A–D score the standard plan and one LLM.</td></tr>
+<tr><td><b>P2 · Reach</b></td><td>Code in a sandbox, live notebook cells with one-click fixes, GPU jobs, data connectors, VS Code companion, roles.</td><td>A new project from Kaggle or a warehouse runs with code cells; a GPU job runs under a cap.</td></tr>
+<tr><td><b>P3 · Domain packs</b></td><td>Vision first (pedestrians at night and in rain, split by drive), then time series and text; the pack builder.</td><td>The pedestrian experiment runs the ten steps with drive-level splits and slice reports.</td></tr>
+<tr><td><b>P4 · Own model</b></td><td>Graph trajectories → expert labels → QLoRA training → benchmark gates → serve as the intern's model; cost ladder tier 1.</td><td>The policy model passes the gates and serves 10% of intern sessions.</td></tr>
+<tr><td><b>R · Research</b></td><td>Macro-actions, maps, scene graphs, driving, software pack, TabPFN rerun.</td><td>Each idea has a controlled experiment and a record in the index.</td></tr>
+</table>
+<h3>Non-goals (what we will not build)</h3>
+<ul>
+<li>A general chatbot, or one giant generic agent.</li>
+<li>A model that owns splits, metrics or selection rules (code owns them).</li>
+<li>"Production-ready" labels from benchmark scores alone.</li>
+<li>Silent deletion of unclear columns, or training on users' projects without opt-in.</li>
+</ul>
+
+<h2>7. Open items and next steps</h2>
+<ul>
+<li><b>Your decisions:</b> walk through the demo and mark Must / Later / Cut on the Blueprint page; they become the build plan.</li>
+<li><b>Owner worksheet:</b> HyperAck prediction moment (order creation, courier offer, or after assignment) and Telco churn outcome window (30 or 90 days). Also: is <code>campaign</code> counted before the call being predicted?</li>
+<li><b>First build step:</b> the workflow graph with its validator and transition log (P1). Everything else depends on it.</li>
+<li><b>Bug fix:</b> stop log-transforming factorized category codes (suggested task).</li>
+<li><b>Local work:</b> the session was teleported to your computer; run <code>/remote-control</code> there to continue from the Claude app. Local setup: <code>python3 -m venv .venv</code>, install <code>requirements/base.txt</code>, add <code>.env</code>, then <code>make rd-check</code> and <code>make notebook</code>.</li>
+</ul>
+
+<section class="fa pb" lang="fa">
+<h2>خلاصه به فارسی</h2>
+<p><b>چشم‌انداز.</b> DCLab R&amp;D در حال تبدیل شدن به یک «ML Intern» برای بیشتر کارهای یادگیری ماشین است، شبیه ML Intern هاگینگ‌فیس، با یک تفاوت مهم: هر قدم همراه با مدرک است. اول قرارداد پیش‌بینی نوشته می‌شود، نشت داده پیدا می‌شود، holdout فقط یک بار استفاده می‌شود و هر پیشنهاد به شواهد اندازه‌گیری‌شده استناد می‌کند. اصل طراحی: مدل زبانی داخل یک گراف کنترل‌شده تصمیم می‌گیرد، اما صاحب گراف نیست.</p>
+<p><b>کارهایی که به ترتیب انجام دادیم:</b></p>
+<ul>
+<li>مخزن را تمیز و ساختارمند کردیم: هر ایده‌ی پژوهشی یک پوشه با شکل یکسان، نقشه‌ی پژوهش، حذف فایل‌های اضافی.</li>
+<li>نوت‌بوک DCLab را ساختیم: پروژه، داده، قرارداد پیش‌بینی، پنج مرحله‌ی قطعی، یادداشت‌های مستند و خروجی ‎.ipynb.</li>
+<li>شکاف‌ها را پر کردیم: داده‌های Kaggle و هاگینگ‌فیس، تقلب، چندکلاسه، سری زمانی، متن، ۳۲۶ نمونه‌ی آموزشی SFT و اسکریپت آموزش LoRA.</li>
+<li>اینترن DCLab را ساختیم: کار را می‌دهید، با ۱۸ ابزار و بودجه‌ی مشخص انجام می‌دهد و گزارش می‌دهد.</li>
+<li>DCLab را به‌صورت سرور MCP به Chat UI و حالت ML Intern هاگینگ‌فیس وصل کردیم و سرتاسر تست کردیم.</li>
+<li>دو PDF گفت‌وگوهای قبلی شما را کامل مرور کردیم و نقشه‌ی راه MVP را نوشتیم.</li>
+<li>دموی قابل‌کلیک محصول نهایی را ساختیم: ۱۹ صفحه، ۴ نمای کاربری، تورهای راهنما و لایه‌ی Blueprint با ۱۵۱ قابلیت (۵۱ ساخته‌شده، ۴۶ نیمه‌کاره، ۴۸ برای ساخت، ۶ نیازمند پژوهش).</li>
+<li>راه انتقال جلسه به کامپیوتر شما را با teleport و Remote Control توضیح دادیم و همه‌ی branchها را هم‌سطح کردیم.</li>
+</ul>
+<p><b>یافته‌های واقعی مهم:</b> نشت ستون duration امتیاز را از ۰٫۷۱۳۰ به ۰٫۸۹۷۲ می‌رساند؛ امتیاز صادقانه‌ی مدل روی holdout برابر ۰٫۷۷۱۸ است (بازه‌ی ۰٫۷۱۲۶ تا ۰٫۸۲۹۰)؛ نوت‌بوک دارای نشت دقت ۰٫۹۶۸۹ گزارش می‌کند در حالی که امتیاز واقعی بعد از اصلاح ۰٫۷۵۷۷ است؛ و pipeline از کدهای دسته‌ای لگاریتم می‌گیرد که باید اصلاح شود.</p>
+<p><b>نقشه‌ی راه:</b> فاز ۱ هسته‌ی اثبات (گراف گردش کار، بررسی‌کننده، ثبت حرکت‌ها، بنچمارک)؛ فاز ۲ اجرای کد و GPU و اتصال‌ها؛ فاز ۳ بسته‌های تخصصی با شروع از بینایی ماشین؛ فاز ۴ آموزش مدل کوچک و متمرکز؛ و در کنار آن پژوهش‌هایی مثل ایده‌ی «کیک».</p>
+<p><b>قدم‌های بعدی:</b> در صفحه‌ی Blueprint برای هر قابلیت Must، Later یا Cut بزنید؛ به سؤال‌های برگه‌ی مالک (لحظه‌ی پیش‌بینی HyperAck و پنجره‌ی خروج مشتری Telco) جواب دهید؛ و ساخت را از گراف گردش کار و بررسی‌کننده‌ی آن شروع کنیم.</p>
+</section>
+</body></html>
