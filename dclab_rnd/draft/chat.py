@@ -24,6 +24,7 @@ from . import workflow as wflow
 from .store import DraftStore, now
 
 MAX_QUESTIONS = 4
+TOKEN_CHUNK = 48  # characters per streamed ``token`` event
 FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan")
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
@@ -72,8 +73,8 @@ class HomeAgent:
         self.on_request = on_request or (lambda draft_id, what, args: None)
 
     # ------------------------------------------------------------------ helpers
-    def say(self, draft_id: str, text: str, kind: str = "text", **extra: Any) -> dict[str, Any]:
-        msg = {"id": "m" + secrets.token_hex(5), "role": "agent", "kind": kind, "text": text, "at": now(), **extra}
+    def say(self, draft_id: str, text: str, kind: str = "text", message_id: str | None = None, **extra: Any) -> dict[str, Any]:
+        msg = {"id": message_id or "m" + secrets.token_hex(5), "role": "agent", "kind": kind, "text": text, "at": now(), **extra}
 
         def add(d):
             d["messages"].append(msg)
@@ -290,12 +291,12 @@ class HomeAgent:
         self.store.emit(draft_id, "status", {"thinking": True})
         asked = False
         for _ in range(max_steps):
-            out = self.client.complete(messages, TOOLS)
+            out, live = self.complete(draft_id, messages)
             calls = out.get("tool_calls") or []
             messages.append(out["assistant_message"])
             if not calls:
                 if out.get("content"):
-                    self.say(draft_id, out["content"].strip())
+                    self.say(draft_id, out["content"].strip(), message_id=live)  # the chat event replaces the live bubble
                 break
             for call in calls:
                 result = self.run_tool(draft_id, call["name"], call.get("arguments") or {})
@@ -305,6 +306,38 @@ class HomeAgent:
                 break
         self.store.emit(draft_id, "status", {"thinking": False})
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
+
+    def complete(self, draft_id: str, messages: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+        """One model step. With a streaming client the reply reaches the page as ``token`` events while it is written.
+
+        Returns the reply and the id of the live bubble (None when nothing was streamed). Deltas are sent in chunks
+        of ``TOKEN_CHUNK`` characters, not one by one: every event is a line of the draft's event log, which a page
+        that reconnects replays. A reply that ends in tool calls, or fails, is never said, so its bubble is dropped.
+        """
+        stream = getattr(self.client, "stream", None)
+        if stream is None:
+            return self.client.complete(messages, TOOLS), None
+        live, buffer = "m" + secrets.token_hex(5), []
+
+        def flush(force: bool = False) -> None:
+            if buffer and (force or sum(map(len, buffer)) >= TOKEN_CHUNK):
+                self.store.emit(draft_id, "token", {"id": live, "delta": "".join(buffer)})
+                buffer.clear()
+
+        def on_text(delta: str) -> None:
+            buffer.append(delta)
+            flush()
+
+        try:
+            out = stream(messages, TOOLS, on_text=on_text)
+            flush(True)
+        except Exception:
+            self.store.emit(draft_id, "token", {"id": live, "drop": True})
+            raise
+        if out.get("tool_calls") or not out.get("content"):
+            self.store.emit(draft_id, "token", {"id": live, "drop": True})
+            return out, None
+        return out, live
 
     def run_tool(self, draft_id: str, name: str, args: dict[str, Any]) -> dict[str, Any]:
         if name == "ask_user":

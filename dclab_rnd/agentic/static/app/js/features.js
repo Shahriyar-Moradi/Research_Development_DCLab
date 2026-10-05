@@ -20,7 +20,7 @@ window.FEATURES = [
 
   // ---- new project
   { id: 'home.bring', view: 'home', name: 'Bring the data on Home: upload, samples, connectors, synthetic', status: 'built', phase: 'Now', where: 'draft/api.py · draft/pipeline.py', note: 'Upload, studied samples, Kaggle, Hugging Face, databases, S3/GCS and synthetic data, all through the same pipeline.' },
-  { id: 'home.chat', view: 'home', name: 'Home conversation: a few questions, data analysis as it gets ready', status: 'built', phase: 'Now', where: 'draft/chat.py · draft/analyze.py', note: 'A model when configured; a deterministic question script otherwise.' },
+  { id: 'home.chat', view: 'home', name: 'Home conversation: a few questions, data analysis as it gets ready', status: 'built', phase: 'Now', where: 'draft/chat.py · intern/llm.py stream()', note: 'With a model, replies stream into the thread as they are written; without one, a deterministic question script.' },
   { id: 'home.solution', view: 'home', name: 'Solution workflow for this problem, updated from the chat', status: 'built', phase: 'Now', where: 'draft/workflow.py', note: 'Every step maps to a WF block; gates added by code; a model proposal is validated first.' },
   { id: 'home.pack', view: 'home', name: 'Optional domain pack choice on Home', status: 'built', phase: 'Now', where: 'draft/pack.py', note: '' },
   { id: 'new.data', view: 'new', name: 'Data step: structure, clean and describe before the target is used', status: 'built', phase: 'Now', where: 'draft/pipeline.py', note: '' },

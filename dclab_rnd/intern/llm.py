@@ -48,6 +48,56 @@ class ChatClient:
             self._client = openai.OpenAI(base_url=self.base_url, api_key=self.api_key, timeout=180, max_retries=1)
         return self._client
 
+    def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int = 1800, on_text=None) -> dict[str, Any]:
+        """Like ``complete`` (same return value), but ``on_text(delta)`` hears the reply as it is written.
+
+        Tool-call arguments arrive in pieces and are joined here; a call whose arguments are not valid JSON keeps the
+        raw text under ``_raw``, as in ``complete``.
+        """
+        kwargs: dict[str, Any] = {"model": self.model, "messages": messages, "max_tokens": max_tokens, "stream": True,
+                                  "stream_options": {"include_usage": True}}
+        if tools:
+            kwargs.update(tools=tools, tool_choice="auto")
+        text: list[str] = []
+        pieces: dict[int, dict[str, Any]] = {}
+        finish, usage = None, None
+        try:
+            for chunk in self.client.chat.completions.create(**kwargs):
+                if getattr(chunk, "usage", None):
+                    usage = chunk.usage
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                delta = choice.delta
+                if getattr(delta, "content", None):
+                    text.append(delta.content)
+                    if on_text:
+                        on_text(delta.content)
+                for call in getattr(delta, "tool_calls", None) or []:
+                    piece = pieces.setdefault(call.index, {"id": "", "name": "", "arguments": ""})
+                    piece["id"] = call.id or piece["id"]
+                    if call.function:
+                        piece["name"] += call.function.name or ""
+                        piece["arguments"] += call.function.arguments or ""
+                finish = choice.finish_reason or finish
+        except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
+            raise RuntimeError(f"{type(exc).__name__}: the model request failed (check the key, the endpoint and the model name)") from None
+        calls = []
+        for index in sorted(pieces):
+            piece = pieces[index]
+            try:
+                arguments = json.loads(piece["arguments"] or "{}")
+            except json.JSONDecodeError:
+                arguments = {"_raw": piece["arguments"]}
+            calls.append({"id": piece["id"] or f"call_{index}", "name": piece["name"], "arguments": arguments})
+        content = "".join(text)
+        return {
+            "content": content, "tool_calls": calls, "finish_reason": finish,
+            "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
+            "assistant_message": {"role": "assistant", "content": content,
+                                  **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}} for c in calls]} if calls else {})},
+        }
+
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int = 1800) -> dict[str, Any]:
         kwargs: dict[str, Any] = {"model": self.model, "messages": messages, "max_tokens": max_tokens}
         if tools:

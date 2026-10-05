@@ -131,6 +131,47 @@ class AgentTests(unittest.TestCase):
         rejected = [e for e in self.store.events(d["id"]) if e["kind"] == "workflow" and e["data"].get("rejected")]
         self.assertTrue(rejected)
 
+    def test_streaming_client_sends_token_chunks_then_the_message_replaces_them(self):
+        class Streaming:
+            def stream(self, messages, tools=None, max_tokens=1800, on_text=None):
+                text = "Thanks, that is clear. " * 6
+                for i in range(0, len(text), 5):
+                    on_text(text[i:i + 5])
+                return {"content": text, "tool_calls": [], "assistant_message": {"role": "assistant", "content": text}}
+        d = self.store.create("Predict which customers cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        HomeAgent(self.store, Streaming()).reply(d["id"], "Customers who cancel within 30 days")
+        events = self.store.events(d["id"])
+        tokens = [e["data"] for e in events if e["kind"] == "token"]
+        last = self.store.get(d["id"])["messages"][-1]
+        self.assertTrue(tokens and all(t["id"] == last["id"] for t in tokens))
+        self.assertLess(len(tokens), 12)  # chunks, not one event per delta
+        self.assertEqual("".join(t["delta"] for t in tokens).strip(), last["text"])
+        order = [e["kind"] for e in events if e["kind"] in ("token", "chat")]
+        self.assertEqual(order[-1], "chat")  # the message follows its tokens
+        self.assertFalse([t for t in tokens if t.get("drop")])
+
+    def test_a_streamed_step_that_ends_in_tool_calls_or_fails_drops_its_bubble(self):
+        class ToolsAfterText:
+            def stream(self, messages, tools=None, max_tokens=1800, on_text=None):
+                on_text("Let me note that down. ")
+                call = {"id": "c1", "name": "record", "arguments": {"field": "target", "value": "churn"}}
+                return {"content": "Let me note that down. ", "tool_calls": [call], "assistant_message": {"role": "assistant", "content": "", "tool_calls": [
+                    {"id": "c1", "type": "function", "function": {"name": "record", "arguments": "{}"}}]}}
+        d = self.store.create("Predict which customers cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        HomeAgent(self.store, ToolsAfterText()).complete(d["id"], [])
+        kinds = [(e["data"].get("id") and e["data"].get("drop"), e["kind"]) for e in self.store.events(d["id"]) if e["kind"] == "token"]
+        self.assertEqual([k[0] for k in kinds][-1], True)
+
+        class Broken:
+            def stream(self, messages, tools=None, max_tokens=1800, on_text=None):
+                on_text("Partial ")
+                raise RuntimeError("APIError: the model request failed")
+        with self.assertRaises(RuntimeError):
+            HomeAgent(self.store, Broken()).complete(d["id"], [])
+        self.assertTrue([e for e in self.store.events(d["id"]) if e["kind"] == "token"][-1]["data"].get("drop"))
+
     def test_model_failure_falls_back_to_the_script(self):
         class Broken:
             def complete(self, *a, **k):

@@ -130,6 +130,7 @@ DC.view('home', {
     /* ---------- events from the draft ---------- */
     function onEvent(kind, data) {
       if (kind === 'chat') renderMessage(data);
+      else if (kind === 'token') renderToken(data);
       else if (kind === 'pipeline') renderPipeline(data);
       else if (kind === 'analysis') { S.analysis[data.asset] = data.analysis; }
       else if (kind === 'workflow') drawWorkflow(data.workflow, data.rejected);
@@ -152,9 +153,27 @@ DC.view('home', {
     }
     function scrollThread() { const t = $('#home-thread', el); t.lastElementChild && t.lastElementChild.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 
+    /* A reply being written: text grows in a bubble keyed by the message id; the chat event with that id replaces it,
+       and a drop event removes it (the model ended its step with tool calls, or failed). Text goes in as text, never as HTML. */
+    function renderToken(d) {
+      const thread = $('#home-thread', el);
+      let live = $(`[data-live="${d.id}"]`, thread);
+      if (d.drop) { if (live) live.remove(); return; }
+      setThinking(false);
+      if (!live) {
+        thread.insertAdjacentHTML('beforeend', `<div class="msg" data-live="${esc(d.id)}"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab</div><p></p></div></div>`);
+        live = $(`[data-live="${d.id}"]`, thread);
+      }
+      const p = $('p', live);
+      p.textContent += d.delta || '';
+      scrollThread();
+    }
+
     function renderMessage(m) {
       setThinking(false);
       const thread = $('#home-thread', el);
+      const live = m.id && $(`[data-live="${m.id}"]`, thread);
+      if (live) live.remove();
       if (m.role === 'user') {
         $$('.ask-card:not([data-done])', thread).forEach(card => { card.dataset.done = '1'; $$('.ask-option', card).forEach(b => { b.disabled = true; if (b.dataset.answer === m.text) b.setAttribute('aria-pressed', 'true'); }); });
         thread.insertAdjacentHTML('beforeend', `<div class="msg user"><span class="avatar">SM</span><div class="msg-body"><div class="who">You <span>${esc((m.at || '').slice(11, 16))}</span></div><div class="bubble">${esc(m.text)}</div></div></div>`);

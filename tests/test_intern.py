@@ -135,6 +135,55 @@ class LlmLoopTests(unittest.TestCase):
         self.assertIn("budget", session["final"])
 
 
+class StreamingClientTests(unittest.TestCase):
+    """ChatClient.stream joins a streamed reply into the shape complete() returns, without a network or a key."""
+
+    @staticmethod
+    def chunk(content=None, calls=None, finish=None, usage=None):
+        from types import SimpleNamespace as NS
+        delta = NS(content=content, tool_calls=calls)
+        return NS(choices=[NS(delta=delta, finish_reason=finish)] if (content is not None or calls or finish) else [], usage=usage)
+
+    def client(self, chunks, seen=None, fail=False):
+        from types import SimpleNamespace as NS
+        from dclab_rnd.intern.llm import ChatClient
+
+        def create(**kwargs):
+            if seen is not None:
+                seen.update(kwargs)
+            if fail:
+                raise ValueError("secret-header-value")
+            return iter(chunks)
+        client = ChatClient(model="m", base_url="http://x", api_key="k")
+        client._client = NS(chat=NS(completions=NS(create=create)))
+        return client
+
+    def test_text_and_split_tool_arguments_are_joined(self):
+        from types import SimpleNamespace as NS
+        fn = lambda name=None, args=None: NS(name=name, arguments=args)  # noqa: E731
+        chunks = [self.chunk("Hel"), self.chunk("lo."),
+                  self.chunk(calls=[NS(index=0, id="c1", function=fn("record", '{"field": "tar'))]),
+                  self.chunk(calls=[NS(index=0, id=None, function=fn(None, 'get", "value": "churn"}'))]),
+                  self.chunk(calls=[NS(index=1, id="c2", function=fn("ask_user", "{oops"))]),
+                  self.chunk(finish="tool_calls"),
+                  self.chunk(usage=NS(prompt_tokens=11, completion_tokens=7))]
+        heard, seen = [], {}
+        out = self.client(chunks, seen).stream([{"role": "user", "content": "hi"}], [{"type": "function"}], on_text=heard.append)
+        self.assertEqual(heard, ["Hel", "lo."])
+        self.assertEqual(out["content"], "Hello.")
+        self.assertEqual([(c["id"], c["name"], c["arguments"]) for c in out["tool_calls"]],
+                         [("c1", "record", {"field": "target", "value": "churn"}), ("c2", "ask_user", {"_raw": "{oops"})])
+        self.assertEqual((out["finish_reason"], out["usage"]), ("tool_calls", {"input_tokens": 11, "output_tokens": 7}))
+        self.assertEqual(out["assistant_message"]["tool_calls"][0]["function"]["name"], "record")
+        self.assertTrue(seen["stream"] and seen["tool_choice"] == "auto")
+
+    def test_errors_surface_by_type_only(self):
+        with self.assertRaises(RuntimeError) as caught:
+            self.client([], fail=True).stream([{"role": "user", "content": "hi"}])
+        self.assertIn("ValueError", str(caught.exception))
+        self.assertNotIn("secret-header-value", str(caught.exception))
+
+
 class StandardPlanSolutionTests(unittest.TestCase):
     def test_time_column_is_not_also_forbidden(self):
         """The fraud sample blocks elapsed Time and also orders the split by it; the plan must not list it twice."""
