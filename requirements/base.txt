@@ -16,3 +16,12 @@ python-dotenv>=1.0
 httpx>=0.27
 mcp>=1.20
 openai>=1.50
+
+# Bring-the-data (Home and the new-project wizard). Each library is imported only when its source is used, and the
+# page says which one is missing, so the product starts without them.
+pyarrow>=15.0             # Parquet: drafts and projects keep their cleaned table as Parquet
+openpyxl>=3.1             # Excel uploads (.xlsx)
+huggingface-hub>=0.24     # Hugging Face datasets
+SQLAlchemy>=2.0           # databases through a server-side connection (DCLAB_DB_<NAME>); add the driver you use, e.g. psycopg2-binary or pymysql
+boto3>=1.34               # s3:// objects
+google-cloud-storage>=2.10  # gs:// objects
