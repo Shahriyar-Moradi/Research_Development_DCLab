@@ -1,80 +1,73 @@
 <section class="view" id="view-evidence" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Evidence library</div>
-      <h1>The proof behind every suggestion</h1>
-      <p class="lede">Rules, workflow blocks, experiments, leakage precedents, measured pitfalls and dataset cards. Every note in the notebook, every move of the intern and every line of a brief cites records from here. The records on this page are the real ones from the repository.</p>
+      <div class="eyebrow accent">Evidence library · the real records from the repository</div>
+      <h1>Evidence library <span class="pill proof" id="ev-total"></span></h1>
+      <p class="lede">The proof behind every suggestion. Every note in the notebook, every move of the intern and every line of a brief cites records from here.</p>
     </div>
-    <div class="vh-actions"><span class="pill proof" id="ev-total"></span><a class="btn" href="#lab">Where records come from</a></div>
+    <div class="vh-actions"><a class="btn" href="#lab">Where records come from</a></div>
   </header>
 
-  <div class="tabs" data-tabs="ev" role="tablist" style="margin-bottom:14px">
-    <button type="button" class="tab" data-tab="search" role="tab" aria-selected="true">Search</button>
-    <button type="button" class="tab" data-tab="rules" role="tab" aria-selected="false">Rules <span class="pill">22</span></button>
-    <button type="button" class="tab" data-tab="workflow" role="tab" aria-selected="false">Workflow <span class="pill">10</span></button>
-    <button type="button" class="tab" data-tab="datasets" role="tab" aria-selected="false">Datasets <span class="pill">16</span></button>
-    <button type="button" class="tab" data-tab="ask" role="tab" aria-selected="false">Ask</button>
-    <button type="button" class="tab" data-tab="grow" role="tab" aria-selected="false">How it grows</button>
-  </div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v proof">133</span><span class="l">records · rules, workflow blocks, experiments, precedents, pitfalls, findings, datasets</span></div>
+      <div class="stat"><span class="v">22</span><span class="l">rules the product enforces · each from measured evidence</span><div class="row"><button type="button" class="link-btn small" data-pane-go="rules">See the rules →</button></div></div>
+      <div class="stat"><span class="v">70</span><span class="l">experiments from the R&amp;D campaigns</span></div>
+      <div class="stat"><span class="v bad">6</span><span class="l">leakage precedents · and 6 measured pitfalls</span></div>
+    </div>
 
-  <div data-tab-panel="ev:search">
-    <div class="grid g-3-1">
-      <div class="panel" data-f="ev.search" data-tour="ev-search">
-        <div class="panel-body stack tight" style="border-bottom:1px solid var(--line)">
-          <div class="row"><label class="sr-only" for="ev-q">Search the evidence</label><input id="ev-q" type="search" value="oversampling before split" style="flex:1;min-width:220px"><select id="ev-ds" style="width:auto" aria-label="Dataset"></select></div>
-          <div class="chips" id="ev-types"></div>
-          <div class="xs muted">Filter, then rank: the type and dataset filters narrow the candidates before the text is scored, so a precise question never drowns in loosely related records.</div>
-        </div>
-        <div class="list" id="ev-results"></div>
+    <div class="panel" data-f="ev.search" data-tour="ev-search">
+      <div class="panel-body stack tight" style="border-bottom:1px solid var(--line)">
+        <div class="row"><label class="sr-only" for="ev-q">Search the evidence</label><input id="ev-q" type="search" value="oversampling before split" style="flex:1;min-width:220px"><select id="ev-ds" style="width:auto" aria-label="Dataset"></select></div>
+        <div class="chips" id="ev-types"></div>
+        <div class="xs muted">Filter, then rank: the type and dataset filters narrow the candidates before the text is scored, so a precise question never drowns in loosely related records.</div>
       </div>
-      <aside class="stack">
-        <div class="panel"><div class="panel-head"><h3>What is inside</h3></div><div class="panel-body" id="ev-mix"></div></div>
-        <div class="panel" data-f="ev.scope">
-          <div class="panel-head"><h3>Every claim has a scope</h3></div>
-          <div class="panel-body small stack tight">
-            <p>A finding says where it holds, what argues against it, and the next test that could change it.</p>
-            <div class="inset stack tight"><div>${chip:FINDING-churn-linear}</div><div><b>Claim:</b> a regularized linear model won the Telco churn campaign (ROC-AUC 0.8499).</div><div><b>Scope:</b> one 15-experiment development campaign on one dataset.</div><div><b>Against it:</b> adaptive development CV is not independent confirmation.</div><div><b>Next test:</b> a fresh holdout after the contract is fixed.</div></div>
-            <div class="xs muted">Rule ${chip:DCLAB-R21}</div>
-          </div>
-        </div>
-      </aside>
+      <div class="list" id="ev-results"></div>
     </div>
   </div>
 
-  <div data-tab-panel="ev:rules" hidden>
+  <div class="pane" data-pane="rules" data-label="Rules &amp; workflow" data-count="22">
     <div class="panel" data-f="ev.rules">
       <div class="panel-head"><div class="panel-title"><h2>The 22 rules</h2><span class="sub">The laws the product enforces. Each comes from measured evidence and carries its own failure signal and next test.</span></div></div>
       <div class="table-wrap"><table class="data compact clickable" id="rules-table"><thead><tr><th>Rule</th><th>What it says</th><th>Area</th><th class="num">Cited by</th></tr></thead><tbody></tbody></table></div>
     </div>
-  </div>
-
-  <div data-tab-panel="ev:workflow" hidden>
+    <p class="pane-intro">The 10 workflow blocks, WF-01 to WF-10, with the rules each one enforces.</p>
     <div class="grid g2" id="wf-cards" data-f="ev.workflow"></div>
   </div>
 
-  <div data-tab-panel="ev:datasets" hidden>
+  <div class="pane" data-pane="datasets" data-label="Datasets" data-count="16">
     <div class="grid g3" id="ds-cards"></div>
   </div>
 
-  <div data-tab-panel="ev:ask" hidden>
-    <div class="grid g-3-1">
-      <div class="panel" data-f="ev.ask">
-        <div class="panel-head"><div class="panel-title"><h2>Ask the evidence</h2><span class="sub">Answers quote records and say when the evidence does not cover the question.</span></div></div>
-        <div class="panel-body stack">
-          <div class="chips" id="ask-chips">
-            <button type="button" class="chip" data-ask="smote">Should I oversample before splitting?</button>
-            <button type="button" class="chip" data-ask="best">Which algorithm should I use for tabular data?</button>
-            <button type="button" class="chip" data-ask="time">Is a random split fine when rows have timestamps?</button>
-            <button type="button" class="chip" data-ask="gnn">Do graph neural networks help for road speed?</button>
-          </div>
-          <div id="ask-answer"></div>
+  <div class="pane" data-pane="ask" data-label="Ask">
+    <div class="panel" data-f="ev.ask">
+      <div class="panel-head"><div class="panel-title"><h2>Ask the evidence</h2><span class="sub">Answers quote records and say when the evidence does not cover the question.</span></div></div>
+      <div class="panel-body stack">
+        <div class="chips" id="ask-chips">
+          <button type="button" class="chip" data-ask="smote">Should I oversample before splitting?</button>
+          <button type="button" class="chip" data-ask="best">Which algorithm should I use for tabular data?</button>
+          <button type="button" class="chip" data-ask="time">Is a random split fine when rows have timestamps?</button>
+          <button type="button" class="chip" data-ask="gnn">Do graph neural networks help for road speed?</button>
         </div>
+        <div id="ask-answer"></div>
       </div>
-      <aside class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">How answers are built</div><p>Search narrows the records, the model writes the answer from those records only, and a check removes any number that is not in a cited record. When nothing matches, the answer says so.</p></div></aside>
+      <div class="panel-foot">How answers are built: search narrows the records, the model writes the answer from those records only, and a check removes any number that is not in a cited record. When nothing matches, the answer says so.</div>
     </div>
   </div>
 
-  <div data-tab-panel="ev:grow" hidden>
+  <div class="pane" data-pane="inside" data-label="What's inside">
+    <div class="grid g2">
+      <div class="panel"><div class="panel-head"><h3>What is inside</h3></div><div class="panel-body" id="ev-mix"></div></div>
+      <div class="panel" data-f="ev.scope">
+        <div class="panel-head"><h3>Every claim has a scope</h3></div>
+        <div class="panel-body small stack tight">
+          <p>A finding says where it holds, what argues against it, and the next test that could change it.</p>
+          <div class="inset stack tight"><div>${chip:FINDING-churn-linear}</div><div><b>Claim:</b> a regularized linear model won the Telco churn campaign (ROC-AUC 0.8499).</div><div><b>Scope:</b> one 15-experiment development campaign on one dataset.</div><div><b>Against it:</b> adaptive development CV is not independent confirmation.</div><div><b>Next test:</b> a fresh holdout after the contract is fixed.</div></div>
+          <div class="xs muted">Rule ${chip:DCLAB-R21}</div>
+        </div>
+      </div>
+    </div>
+    <p class="pane-intro">How the library grows.</p>
     <div class="grid g3">
       <div class="panel" data-f="ev.contribute">
         <div class="panel-head"><h3>From projects</h3><span class="pill warn">3 waiting</span></div>
@@ -96,7 +89,7 @@
         <div class="panel-head"><h3>For readers</h3><span class="pill ok">exists</span></div>
         <div class="panel-body small stack tight">
           <p>The field guide turns the records into plain lessons with their numbers, and an outside-reader narrative explains the method without jargon.</p>
-          <p class="mono xs">evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.html</p>
+          <p class="mono xs">evidence/<wbr>knowledge/<wbr>MODEL_BUILDING_<wbr>FIELD_GUIDE.html</p>
         </div>
       </div>
     </div>

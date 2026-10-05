@@ -1,26 +1,38 @@
 <section class="view" id="view-blueprint" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Blueprint · plan the product</div>
-      <h1>What exists, what is missing, what we will not build</h1>
-      <p class="lede">Every feature shown in this demo, marked by what the repository has today. Mark each one <b>Must</b>, <b>Later</b> or <b>Cut</b>. The decisions become the plan.</p>
+      <div class="eyebrow">Blueprint · plan the product</div>
+      <h1>Blueprint &amp; roadmap</h1>
+      <p class="lede">Every feature in this demo, marked by what the repository has today. Mark each one <b>Must</b>, <b>Later</b> or <b>Cut</b>; the decisions become the plan.</p>
     </div>
     <div class="vh-actions">
-      <button type="button" class="btn" id="bp-copy">Copy decisions as Markdown</button>
-      <button type="button" class="btn primary" id="bp-overlay">Show the blueprint on every page</button>
+      <button type="button" class="btn" id="bp-copy">Copy as Markdown</button>
+      <button type="button" class="btn primary" id="bp-overlay">Show on every page</button>
     </div>
   </header>
 
-  <div class="grid g3" style="margin-bottom:14px">
-    <div class="panel"><div class="panel-head"><h3>Status today</h3><span class="small muted" id="bp-total"></span></div><div class="panel-body" id="bp-status"></div></div>
-    <div class="panel"><div class="panel-head"><h3>Your decisions</h3><span class="small muted" id="bp-store"></span></div><div class="panel-body" id="bp-decisions"></div></div>
-    <div class="panel"><div class="panel-head"><h3>By page</h3><span class="small muted">built · partial · to build · research</span></div><div class="panel-body tight" id="bp-pages" style="max-height:260px;overflow:auto"></div></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v ok" id="bp-n-built">–</span><span class="l">built · in the repository and tested</span></div>
+      <div class="stat"><span class="v warn" id="bp-n-partial">–</span><span class="l">partial · some of it exists today</span></div>
+      <div class="stat"><span class="v proof" id="bp-n-todo">–</span><span class="l">to build · shown in the demo, not in the code yet</span></div>
+      <div class="stat"><span class="v" id="bp-n-decided">–</span><span class="l">decided as Must, Later or Cut <button type="button" class="link-btn" data-pane-go="decisions">Decide →</button></span></div>
+    </div>
+
+    <div class="grid g2">
+      <div class="panel"><div class="panel-head"><h3>Status today</h3><span class="small muted" id="bp-total"></span></div><div class="panel-body" id="bp-status"></div></div>
+      <div class="panel"><div class="panel-head"><h3>By page</h3><span class="small muted">built · partial · to build · research</span></div><div class="panel-body tight" id="bp-pages" style="max-height:260px;overflow:auto"></div></div>
+    </div>
   </div>
 
-  <div class="section-title"><h2>Roadmap</h2><span class="small muted">Order matters more than dates: each phase needs the one before it</span></div>
-  <div class="grid g3" id="bp-phases" style="margin:10px 0 18px"></div>
+  <div class="pane" data-pane="roadmap" data-label="Roadmap">
+    <p class="pane-intro">Order matters more than dates: each phase needs the one before it.</p>
+    <div class="grid g3" id="bp-phases"></div>
+  </div>
 
-  <div class="grid g-3-1">
+  <div class="pane" data-pane="decisions" data-label="Decisions">
+    <div class="panel"><div class="panel-head"><h3>Your decisions</h3><span class="small muted" id="bp-store"></span></div><div class="panel-body" id="bp-decisions"></div></div>
+
     <div class="panel" data-tour="bp-table">
       <div class="panel-head"><div class="panel-title"><h2>All features</h2><span class="sub" id="bp-count"></span></div></div>
       <div class="panel-body stack tight" style="border-bottom:1px solid var(--line)">
@@ -34,8 +46,10 @@
       </div>
       <div class="table-wrap tall"><table class="data compact" id="bp-table"><thead><tr><th>Feature</th><th>Page</th><th>Status</th><th>Phase</th><th>Decision</th></tr></thead><tbody></tbody></table></div>
     </div>
+  </div>
 
-    <aside class="stack">
+  <div class="pane" data-pane="scope" data-label="Scope">
+    <div class="grid g2">
       <div class="panel">
         <div class="panel-head"><h3>What we will not build</h3><span class="pill">non-goals</span></div>
         <div class="list small">
@@ -47,23 +61,25 @@
           <div class="list-item"><div class="li-main"><span class="li-title">Training on users' projects by default</span><span class="li-sub">Opt-in only, per workspace.</span></div></div>
         </div>
       </div>
-      <div class="panel dashed">
-        <div class="panel-body small stack tight">
-          <div class="eyebrow">How to use this page</div>
-          <p>1. Turn on <b>Blueprint</b> in the top bar and walk through the pages; each feature shows its status in place.</p>
-          <p>2. Mark features here or in the side panel on each page.</p>
-          <p>3. Share the link, or paste the Markdown into the chat. When the decisions save to the shared plan, Claude can read them directly.</p>
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-head"><h3>Already decided</h3></div>
+          <div class="panel-body small stack tight">
+            <div class="row top"><span class="pill accent">yes</span><span>VS Code notebooks are the editor to support first.</span></div>
+            <div class="row top"><span class="pill accent">yes</span><span>Hugging Face Chat UI with ML Intern mode is the chat front end; DCLab plugs in over MCP.</span></div>
+            <div class="row top"><span class="pill warn">open</span><span>Owner worksheet: prediction moment and outcome window for HyperAck and Telco churn.</span></div>
+          </div>
+        </div>
+        <div class="panel dashed">
+          <div class="panel-body small stack tight">
+            <div class="eyebrow">How to use this page</div>
+            <p>1. Turn on the <b>Blueprint layer</b> in the sidebar and walk through the pages; each feature shows its status in place.</p>
+            <p>2. Mark features here or in the side panel on each page.</p>
+            <p>3. Share the link, or paste the Markdown into the chat. When the decisions save to the shared plan, Claude can read them directly.</p>
+          </div>
         </div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Already decided</h3></div>
-        <div class="panel-body small stack tight">
-          <div class="row top"><span class="pill accent">yes</span><span>VS Code notebooks are the editor to support first.</span></div>
-          <div class="row top"><span class="pill accent">yes</span><span>Hugging Face Chat UI with ML Intern mode is the chat front end; DCLab plugs in over MCP.</span></div>
-          <div class="row top"><span class="pill warn">open</span><span>Owner worksheet: prediction moment and outcome window for HyperAck and Telco churn.</span></div>
-        </div>
-      </div>
-    </aside>
+    </div>
   </div>
 </section>
 <script>
@@ -83,6 +99,7 @@ DC.view('blueprint', {
     const counts = s => FEATURES.filter(f => f.status === s).length;
     $('#bp-total', el).textContent = FEATURES.length + ' features';
     function statusPanel() {
+      ['built', 'partial', 'todo'].forEach(s => { $('#bp-n-' + s, el).innerHTML = `${counts(s)} <small>of ${FEATURES.length}</small>`; });
       $('#bp-status', el).innerHTML = charts.barsH(['built', 'partial', 'todo', 'research'].map(s => ({ label: STATUS_LABEL[s], value: counts(s), valueText: String(counts(s)), cls: s === 'built' ? 'ok' : s === 'partial' ? 'warn' : s === 'todo' ? 'proof' : 'muted' })),
         { width: 300, labelW: 74, valW: 32, min: 0, max: Math.max(...['built', 'partial', 'todo', 'research'].map(counts)) + 5, rowH: 26, noAxis: true, ticks: [], aria: 'Features by status' });
     }
@@ -93,6 +110,7 @@ DC.view('blueprint', {
         <div class="row"><span class="pill accent">${c.must} must</span><span class="pill info">${c.later} later</span><span class="pill bad">${c.cut} cut</span></div>
         <div class="xs muted">${Decisions.backend === 'shared' ? 'Saved to the shared plan. Claude can read these decisions.' : 'Saved in this browser only. Copy the Markdown to share it.'}</div></div>`;
       $('#bp-store', el).textContent = Decisions.backend === 'shared' ? 'shared plan' : 'this browser';
+      $('#bp-n-decided', el).innerHTML = `${n} <small>of ${FEATURES.length}</small>`;
     }
     function pagesPanel() {
       const views = Object.keys(VIEW_LABEL);

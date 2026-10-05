@@ -2,56 +2,28 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow accent">Term-deposit calls · WF-04 to WF-06</div>
-      <h1>Leakage audit and feature ladder</h1>
-      <p class="lede">A column is judged by when its value is written, not by its name or its score. Heuristics raise a flag, the contract decides, and an ablation on identical folds measures how much a leak would have lied.</p>
+      <h1>Leakage &amp; features <span class="pill ok">WF-05 · WF-06 done · Sep 28</span></h1>
+      <p class="lede">A column is judged by when its value is written, not by its name or its score. The contract decides; an ablation on identical folds measures how much a leak would have lied.</p>
     </div>
-    <div class="vh-actions"><span class="pill ok">WF-05 done · Sep 28</span><span class="pill ok">WF-06 done · Sep 28</span></div>
   </header>
 
-  <div class="panel" style="margin-bottom:14px">
-    <div class="kpi-strip">
-      <div class="kpi"><span class="label">Columns audited</span><span class="value">16</span><span class="delta">against contract v2</span></div>
-      <div class="kpi"><span class="label">Forbidden</span><span class="value" style="color:var(--bad)">1</span><span class="delta">duration · post-outcome</span></div>
-      <div class="kpi"><span class="label">Waiting on the owner</span><span class="value" style="color:var(--warn)">1</span><span class="delta">campaign · counted when?</span></div>
-      <div class="kpi"><span class="label">Heuristic flags</span><span class="value">1</span><span class="delta">duration · single-feature AUC 0.812</span></div>
-      <div class="kpi"><span class="label">Synthetic canary</span><span class="value" style="color:var(--ok)">caught</span><span class="delta">the detector is awake</span></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">16</span><span class="l">columns audited against contract v2</span></div>
+      <div class="stat"><span class="v bad">1 <small>forbidden</small></span><span class="l">duration · written after the call · the only heuristic flag (AUC 0.812)</span></div>
+      <div class="stat"><span class="v warn">1 <small>open</small></span><span class="l">campaign · waiting on the owner: counted when?</span><div class="row"><button type="button" class="link-btn small" data-pane-go="leaks">See the question →</button></div></div>
+      <div class="stat"><span class="v ok">caught</span><span class="l">synthetic canary · the detector is awake</span></div>
+    </div>
+
+    <div class="panel" data-f="audit.matrix">
+      <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the contract.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
+      <div class="table-wrap"><table class="data compact" id="avail-table"><thead><tr><th>Column</th><th>Written when</th><th>Known at the moment?</th><th>Heuristic flag</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
     </div>
   </div>
 
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel" data-f="audit.matrix">
-        <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the contract.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
-        <div class="table-wrap"><table class="data compact" id="avail-table"><thead><tr><th>Column</th><th>Written when</th><th>Known at the moment?</th><th>Heuristic flag</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
-        <div class="panel-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
-      </div>
-
-      <div class="panel" data-f="audit.critic">
-        <div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">An LLM critic challenges every claim. The gate keeps a challenge only if it agrees with the recorded numbers.</span></div>${chip:DCLAB-R20}</div>
-        <div class="list" id="critic-list"></div>
-      </div>
-
-      <div class="panel" data-f="audit.eda">
-        <div class="panel-head"><div class="panel-title"><h2>Train-only look at the data</h2><span class="sub">Subscription rate on the 36,168 training rows only. Patterns here are questions, never promoted features.</span></div><span class="pill outline">computed from the repository data</span></div>
-        <div class="panel-body grid g3">
-          <div class="stack tight"><b class="small">By month of the call</b><div id="eda-month"></div><span class="xs muted">March, September, October and December reach 45–51%, on few rows each.</span></div>
-          <div class="stack tight"><b class="small">By outcome of the previous campaign</b><div id="eda-pout"></div><span class="xs muted">A past success subscribes at 64.7%.</span></div>
-          <div class="stack tight"><b class="small">By age band</b><div id="eda-age"></div><span class="xs muted">Clients over 60 subscribe at 42.1% (969 rows).</span></div>
-        </div>
-        <div class="panel-foot"><span class="pill warn">state, not a number</span> <code>pdays = −1</code> on 81.8% of rows means "never contacted before". It needs an indicator, not a distance ${chip:DCLAB-R12}. The month pattern cannot be tested forward in time because the table has no year ${chip:DCLAB-R19}.</div>
-      </div>
-
-      <div class="panel" data-f="audit.ladder">
-        <div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">Six recipes, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${chip:EXP-008}</div>
-        <div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ROC-AUC</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
-        <div class="panel-body stack tight">
-          <div class="row"><label for="tol" class="small strong" style="color:var(--ink)">Declared tolerance</label><input type="range" id="tol" min="0" max="0.01" step="0.0005" value="0.002" style="flex:1;min-width:160px"><span class="mono small" id="tol-val">0.0020</span></div>
-          <div id="tol-out"></div>
-        </div>
-      </div>
-    </div>
-
-    <aside class="stack">
+  <div class="pane" data-pane="leaks" data-label="Leak checks">
+    <div class="grid g2">
       <div class="panel" data-f="audit.ablation" data-tour="ablation">
         <div class="panel-head"><div class="panel-title"><h3>How much the leak lies</h3><span class="sub">Safe vs with duration, identical folds</span></div></div>
         <div class="panel-body stack tight">
@@ -61,7 +33,6 @@
           <div class="rule-quote">A large safe-versus-unsafe gap shows how bad the leak would be. It is not the proof. The proof is that the call length is written after the call ends ${chip:DCLAB-R06}.</div>
         </div>
       </div>
-
       <div class="panel" data-f="audit.verdict">
         <div class="panel-head"><h3>Open question for the owner</h3><span class="pill warn">campaign</span></div>
         <div class="panel-body small stack tight">
@@ -70,12 +41,41 @@
           <a class="btn sm" href="#contract">Answer in the owner worksheet</a>
         </div>
       </div>
+    </div>
+  </div>
 
-      <div class="panel" data-f="audit.lineage">
-        <div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>
-        <div class="list small" id="lineage-list"></div>
+  <div class="pane" data-pane="data" data-label="Data look">
+    <div class="panel" data-f="audit.eda">
+      <div class="panel-head"><div class="panel-title"><h2>Train-only look at the data</h2><span class="sub">Subscription rate on the 36,168 training rows only. Patterns here are questions, never promoted features.</span></div><span class="pill outline">computed from the repository data</span></div>
+      <div class="panel-body grid g3">
+        <div class="stack tight"><b class="small">By month of the call</b><div id="eda-month"></div><span class="xs muted">March, September, October and December reach 45–51%, on few rows each.</span></div>
+        <div class="stack tight"><b class="small">By outcome of the previous campaign</b><div id="eda-pout"></div><span class="xs muted">A past success subscribes at 64.7%.</span></div>
+        <div class="stack tight"><b class="small">By age band</b><div id="eda-age"></div><span class="xs muted">Clients over 60 subscribe at 42.1% (969 rows).</span></div>
       </div>
-    </aside>
+      <div class="panel-foot"><span class="pill warn">state, not a number</span> <code>pdays = −1</code> on 81.8% of rows means "never contacted before". It needs an indicator, not a distance ${chip:DCLAB-R12}. The month pattern cannot be tested forward in time because the table has no year ${chip:DCLAB-R19}.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="ladder" data-label="Feature ladder">
+    <div class="panel" data-f="audit.ladder">
+      <div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">Six recipes, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${chip:EXP-008}</div>
+      <div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ROC-AUC</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-body stack tight">
+        <div class="row"><label for="tol" class="small strong" style="color:var(--ink)">Declared tolerance</label><input type="range" id="tol" min="0" max="0.01" step="0.0005" value="0.002" style="flex:1;min-width:160px"><span class="mono small" id="tol-val">0.0020</span></div>
+        <div id="tol-out"></div>
+      </div>
+    </div>
+    <div class="panel" data-f="audit.lineage">
+      <div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>
+      <div class="list small" id="lineage-list"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="critic" data-label="Critic review" data-count="5">
+    <div class="panel" data-f="audit.critic">
+      <div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">An LLM critic challenges every claim. The gate keeps a challenge only if it agrees with the recorded numbers.</span></div>${chip:DCLAB-R20}</div>
+      <div class="list" id="critic-list"></div>
+    </div>
   </div>
 </section>
 <script>

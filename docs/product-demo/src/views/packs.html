@@ -1,27 +1,42 @@
 <section class="view" id="view-packs" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Domain packs</div>
-      <h1>One workflow engine, many kinds of problems</h1>
-      <p class="lede">DCLab should not become one giant generic agent. It is one reliable engine with ten universal steps, and each pack maps those steps to a domain with its own rules, tools, metrics and validators.</p>
+      <div class="eyebrow">Domain packs · one engine, ten universal steps</div>
+      <h1>Domain packs</h1>
+      <p class="lede">One reliable engine with ten universal steps, not one giant generic agent. Each pack maps those steps to a domain with its own rules, tools, metrics and validators.</p>
     </div>
     <div class="vh-actions"><button type="button" class="btn" id="pack-builder-btn" data-f="packs.builder">Build a pack</button></div>
   </header>
 
-  <div class="grid g4" id="pack-cards" style="margin-bottom:14px"></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">8</span><span class="l">packs on one engine · 1 GA · 2 beta · 1 preview · 4 research</span></div>
+      <div class="stat"><span class="v">10</span><span class="l">universal steps every pack maps, WF-01 to WF-10</span></div>
+      <div class="stat"><span class="v ok">1</span><span class="l">generally available: Tabular · five stages cover WF-04 to WF-09</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">research packs: driving, maps, scene graphs, software</span></div>
+    </div>
 
-  <div class="panel" data-tour="pack-map">
-    <div class="panel-head">
-      <div class="panel-title"><span class="eyebrow" id="pk-eyebrow"></span><h2 id="pk-title"></h2><span class="sub" id="pk-sub"></span></div>
-      <span class="pill" id="pk-maturity"></span>
+    <div class="grid g4" id="pack-cards"></div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="eyebrow" id="pk-eyebrow"></span><h2 id="pk-title"></h2><span class="sub" id="pk-sub"></span></div>
+        <span class="pill" id="pk-maturity"></span>
+      </div>
+      <div class="panel-body grid g3">
+        <div class="stack tight"><div class="eyebrow">Pack rules (draft)</div><div id="pk-rules" class="small stack tight"></div></div>
+        <div class="stack tight"><div class="eyebrow">Tools it adds</div><div id="pk-tools" class="chips"></div></div>
+        <div class="stack tight"><div class="eyebrow">Metrics</div><div id="pk-metrics" class="small stack tight"></div></div>
+      </div>
+      <div class="panel-foot spread"><span id="pk-foot"></span><button type="button" class="link-btn" data-pane-go="steps">See the ten steps mapped →</button></div>
     </div>
-    <div class="table-wrap"><table class="data" id="pk-table"><thead><tr><th style="width:190px">Universal step</th><th>In this pack</th><th style="width:250px">What the validator checks</th></tr></thead><tbody></tbody></table></div>
-    <div class="panel-body grid g3" style="border-top:1px solid var(--line)">
-      <div class="stack tight"><div class="eyebrow">Pack rules (draft)</div><div id="pk-rules" class="small stack tight"></div></div>
-      <div class="stack tight"><div class="eyebrow">Tools it adds</div><div id="pk-tools" class="chips"></div></div>
-      <div class="stack tight"><div class="eyebrow">Metrics</div><div id="pk-metrics" class="small stack tight"></div></div>
+  </div>
+
+  <div class="pane" data-pane="steps" data-label="Ten steps mapped">
+    <div class="panel" data-tour="pack-map">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="pk-steps-name"></span><h2>The ten steps, mapped</h2><span class="sub">Pick a pack on the Overview; this map follows it.</span></div></div>
+      <div class="table-wrap"><table class="data" id="pk-table"><thead><tr><th style="width:190px">Universal step</th><th>In this pack</th><th style="width:250px">What the validator checks</th></tr></thead><tbody></tbody></table></div>
     </div>
-    <div class="panel-foot" id="pk-foot"></div>
   </div>
 </section>
 <script>
@@ -68,8 +83,9 @@ DC.view('packs', {
     function show(k) {
       current = k; const p = P[k];
       $$('[data-pack]', el).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pack === k)));
-      $('#pk-eyebrow', el).textContent = 'Pack · ' + p.name;
-      $('#pk-title', el).textContent = 'The ten steps, mapped';
+      $('#pk-eyebrow', el).textContent = 'Selected pack';
+      $('#pk-title', el).textContent = p.name;
+      $('#pk-steps-name', el).textContent = 'Pack · ' + p.name + ' · ' + p.m[0];
       $('#pk-sub', el).textContent = p.sub;
       $('#pk-maturity', el).textContent = p.m[0]; $('#pk-maturity', el).className = 'pill ' + p.m[1];
       $('#pk-table tbody', el).innerHTML = U.map((u, i) => `<tr><td><span class="tag">WF-${String(i + 1).padStart(2, '0')}</span> <b class="small">${u}</b></td><td>${esc(p.steps[i])}</td><td class="small muted">${esc(p.checks[i])}</td></tr>`).join('');

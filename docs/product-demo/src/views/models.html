@@ -1,56 +1,65 @@
 <section class="view" id="view-models" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Term-deposit calls · WF-07 and WF-08</div>
-      <h1>Algorithm screen and conservative tuning</h1>
-      <p class="lede">Five families, identical folds, one rule declared before the run. The leader is a candidate, not a winner, and tuning stays only if it clears a margin set in advance.</p>
+      <div class="eyebrow">Term-deposit calls · WF-07 and WF-08</div>
+      <h1>Models <span class="pill ok">extra_trees · C02 locked</span></h1>
+      <p class="lede">Five families on identical folds, ranked by a rule declared before the run. Tuning stays only if it clears a margin set in advance.</p>
     </div>
     <div class="vh-actions">
       <button type="button" class="btn" id="override-btn" data-f="models.override">Choose a different model…</button>
-      <span class="pill ok">extra_trees · C02 locked</span>
     </div>
   </header>
 
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel" data-f="models.screen" data-tour="screen">
-        <div class="panel-head"><div class="panel-title"><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds on 3,200 training rows · 38 features · ROC-AUC</span></div>${chip:EXP-009}</div>
-        <div class="table-wrap"><table class="data compact" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num">Mean − k×spread</th><th class="num">Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
-        <div class="panel-body"><div id="screen-chart"></div></div>
-      </div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">extra_trees</span><span class="l">selected by the declared rule · runner-up lightgbm</span></div>
+      <div class="stat"><span class="v">0.7288 <small>± 0.0295</small></span><span class="l">mean CV ROC-AUC on 3 folds · 3,200 training rows</span></div>
+      <div class="stat"><span class="v ok">+0.0235</span><span class="l">gain from tuning candidate C02 · declared margin 0.0050</span></div>
+      <div class="stat"><span class="v">5</span><span class="l">model families screened on the same 3 folds</span></div>
+    </div>
 
-      <div class="panel" data-f="models.rule">
-        <div class="panel-head"><div class="panel-title"><h2>The selection rule</h2><span class="sub">Declared in the protocol before the screen ran: rank by mean minus a quarter of the fold spread, then by runtime.</span></div></div>
-        <div class="panel-body stack tight">
-          <div class="row"><label for="kpen" class="small strong" style="color:var(--ink)">Spread penalty k</label><input type="range" id="kpen" min="0" max="1" step="0.05" value="0.25" style="flex:1;min-width:160px"><span class="mono small" id="kpen-val">0.25</span></div>
-          <div id="rule-out"></div>
-        </div>
-      </div>
+    <div class="panel" data-f="models.screen" data-tour="screen">
+      <div class="panel-head"><div class="panel-title"><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds · 38 features · ranked by mean − 0.25 × fold spread, then runtime</span></div>${chip:EXP-009}</div>
+      <div class="table-wrap"><table class="data" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num">Mean − k×spread</th><th class="num">Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-body"><div id="screen-chart"></div></div>
+    </div>
+  </div>
 
-      <div class="panel" data-f="models.folds">
-        <div class="panel-head"><div class="panel-title"><h2>Fold by fold</h2><span class="sub">The same three folds for every family, so differences are paired.</span></div><span class="pill outline">fold points shown as mean ± spread</span></div>
-        <div class="panel-body"><div id="fold-chart"></div><p class="xs muted">The records store mean and spread; the product draws the stored fold scores. Bars mark the means.</p></div>
+  <div class="pane" data-pane="rule" data-label="Selection rule">
+    <div class="panel" data-f="models.rule">
+      <div class="panel-head"><div class="panel-title"><h2>The selection rule</h2><span class="sub">Declared in the protocol before the screen ran: rank by mean minus a quarter of the fold spread, then by runtime.</span></div></div>
+      <div class="panel-body stack tight">
+        <div class="row"><label for="kpen" class="small strong" style="color:var(--ink)">Spread penalty k</label><input type="range" id="kpen" min="0" max="1" step="0.05" value="0.25" style="flex:1;min-width:160px"><span class="mono small" id="kpen-val">0.25</span></div>
+        <div id="rule-out"></div>
       </div>
+    </div>
+    <div class="panel" data-f="models.folds">
+      <div class="panel-head"><div class="panel-title"><h2>Fold by fold</h2><span class="sub">The same three folds for every family, so differences are paired.</span></div><span class="pill outline">mean ± spread</span></div>
+      <div class="panel-body"><div id="fold-chart"></div><p class="xs muted">The records store mean and spread; the product draws the stored fold scores. Bars mark the means.</p></div>
+    </div>
+  </div>
 
-      <div class="panel" data-f="models.tuning">
-        <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub">Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div>${chip:EXP-010}</div>
-        <div class="panel-body grid g2">
-          <div id="tune-chart"></div>
-          <div class="stack tight small">
-            <div class="inset stack tight">
-              <div class="spread"><span>Baseline (defaults)</span><b class="mono">0.7288</b></div>
-              <div class="spread"><span>Best candidate C02</span><b class="mono">0.7523</b></div>
-              <div class="spread"><span>Gain</span><b class="mono" style="color:var(--ok)">+0.0235</b></div>
-              <div class="spread"><span>Declared margin</span><b class="mono">0.0050</b></div>
-              <div class="spread"><span>Decision</span><span class="pill ok">keep C02</span></div>
-            </div>
-            <div class="callout warn"><span class="ic">${icon:alert}</span><span>The critic asked for the baseline and the candidate on the same folds, side by side. The product now stores paired fold scores for every tuning claim, so the gain can carry its own interval ${chip:DCLAB-R16}.</span></div>
+  <div class="pane" data-pane="tuning" data-label="Tuning">
+    <div class="panel" data-f="models.tuning">
+      <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub">Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div>${chip:EXP-010}</div>
+      <div class="panel-body grid g2">
+        <div id="tune-chart"></div>
+        <div class="stack tight small">
+          <div class="inset stack tight">
+            <div class="spread"><span>Baseline (defaults)</span><b class="mono">0.7288</b></div>
+            <div class="spread"><span>Best candidate C02</span><b class="mono">0.7523</b></div>
+            <div class="spread"><span>Gain</span><b class="mono" style="color:var(--ok)">+0.0235</b></div>
+            <div class="spread"><span>Declared margin</span><b class="mono">0.0050</b></div>
+            <div class="spread"><span>Decision</span><span class="pill ok">keep C02</span></div>
           </div>
+          <div class="callout warn"><span class="ic">${icon:alert}</span><span>The critic asked for the baseline and the candidate on the same folds, side by side. The product now stores paired fold scores for every tuning claim, so the gain can carry its own interval ${chip:DCLAB-R16}.</span></div>
         </div>
       </div>
     </div>
+  </div>
 
-    <aside class="stack">
+  <div class="pane" data-pane="context" data-label="Cost & context">
+    <div class="grid g2">
       <div class="panel" data-f="models.ops">
         <div class="panel-head"><div class="panel-title"><h3>Cost to run</h3><span class="sub">Fit time from the screen; scoring cost estimated</span></div></div>
         <div class="table-wrap"><table class="data compact"><thead><tr><th>Family</th><th class="num">Fit (3 folds)</th><th class="num">Score 10k rows</th></tr></thead><tbody>
@@ -62,12 +71,10 @@
         </tbody></table></div>
         <div class="panel-foot">Monthly scoring of 20,000 clients costs seconds for any of them. Runtime only breaks ties here.</div>
       </div>
-
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><h3>Across the R&amp;D datasets</h3><span class="sub">Why one default family is not enough</span></div>${chip:FINDING-model-families}</div>
         <div class="panel-body"><div id="family-chart"></div><p class="xs muted">Mean rank over 11 datasets (lower is better) and wins. Winners differ by dataset.</p></div>
       </div>
-
       <div class="panel" data-f="models.foundation">
         <div class="panel-head"><h3>Tabular foundation models</h3><span class="pill">research</span></div>
         <div class="panel-body small stack tight">
@@ -75,9 +82,8 @@
           <a class="link-btn small" href="#lab">See the track in the research map →</a>
         </div>
       </div>
-
-      <div class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R13} No universal best algorithm; screen several families.</div><div>${chip:DCLAB-R14} Judge by mean, stability, probabilities and runtime, not ROC-AUC alone.</div><div>${chip:DCLAB-R15} Tune only after data, features, metric and family are locked.</div></div></div>
-    </aside>
+      <div class="panel dashed"><div class="panel-body small stack tight" style="padding-top:20px"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R13} No universal best algorithm; screen several families.</div><div>${chip:DCLAB-R14} Judge by mean, stability, probabilities and runtime, not ROC-AUC alone.</div><div>${chip:DCLAB-R15} Tune only after data, features, metric and family are locked.</div></div></div>
+    </div>
   </div>
 </section>
 <script>

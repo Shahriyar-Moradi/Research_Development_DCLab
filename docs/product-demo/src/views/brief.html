@@ -2,83 +2,96 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow accent">Term-deposit calls · WF-10 · for the business</div>
-      <h1>Decision brief</h1>
-      <p class="lede">One page for the people who decide. Plain words, the value with its range, what we refused to use, and what is not proven yet.</p>
+      <h1>Decision brief <span class="pill warn">waiting for Reza</span></h1>
+      <p class="lede">One page for the people who decide: the value with its range, what we refused to use, and what is not proven yet.</p>
     </div>
     <div class="vh-actions">
-      <div class="seg" data-seg="lang" id="brief-lang" role="group" aria-label="Language" data-f="brief.fa"><button type="button" data-v="en" aria-pressed="true">English</button><button type="button" data-v="fa" aria-pressed="false">فارسی</button></div>
       <button type="button" class="btn" data-f="brief.share" data-copy="https://dclab.local/p/term-deposit-calls/brief/v1" data-copy-label="Link">Copy link</button>
       <button type="button" class="btn" data-toast="In the product: exports the brief as PDF or slides. Downloads are blocked inside this demo.">Export</button>
     </div>
   </header>
 
-  <div class="grid g-3-1">
-    <div class="stack">
-      <article class="panel" data-f="brief.summary" data-tour="brief-summary">
-        <div class="panel-head"><div class="panel-title"><span class="eyebrow">Brief v1 · Oct 3 · prepared by the intern, reviewed by Ava</span></div><span class="pill warn">waiting for Reza</span></div>
-        <div class="panel-body">
-          <div class="doc" id="brief-en">
-            <h2>Call the 2,000 clients most likely to subscribe</h2>
-            <h3>What we built</h3>
-            <p>A model that ranks clients by how likely they are to open a term deposit if we call them. It uses only what we know before the call: the client's profile and account, earlier campaigns, and the planned call date.</p>
-            <h3>How good it is, honestly</h3>
-            <p>On 800 clients the model never saw, it puts a random subscriber above a random non-subscriber 77% of the time (ROC-AUC 0.77, most likely between 0.71 and 0.83). That is a useful ranking, not a precise one.</p>
-            <h3>What it means next month</h3>
-            <p>If the team calls the top 2,000 of 20,000 clients, we expect about <b>780 subscriptions</b> (most likely 620–960), against about 230 when calling 2,000 clients at random. At €8 per call and €110 per subscription, that is about <b>€70,000 net instead of €9,700</b>.</p>
-            <h3>What we refused to use</h3>
-            <p>The length of the call is known only after the call ends. With it, the model looked far better in training (0.90 instead of 0.71) and would have failed on the first real call list.</p>
-            <h3>What is not proven yet</h3>
-            <p>The estimate rests on one small test set of 800 clients. The data has no year, so we could not check whether the pattern holds over time. Repeat clients could not be separated. Categories are stored as codes and must be fixed before real use.</p>
-            <h3>The decision we need</h3>
-            <p>Approve a pilot for one campaign: call the model's top 2,000 and, at the same time, 200 clients chosen at random as a control group. Then compare the two hit rates.</p>
-          </div>
-          <div class="doc fa" id="brief-fa" hidden lang="fa" dir="rtl">
-            <h2>با ۲٬۰۰۰ مشتری‌ای تماس بگیریم که بیشترین احتمال اشتراک را دارند</h2>
-            <h3>چه ساختیم</h3>
-            <p>مدلی که مشتری‌ها را بر اساس احتمال باز کردن سپرده‌ی مدت‌دار، در صورت تماس، رتبه‌بندی می‌کند. فقط از اطلاعاتی استفاده می‌کند که پیش از تماس در دست داریم: مشخصات و حساب مشتری، کمپین‌های قبلی و تاریخ برنامه‌ریزی‌شده‌ی تماس.</p>
-            <h3>صادقانه، چقدر خوب است</h3>
-            <p>روی ۸۰۰ مشتری که مدل هرگز ندیده بود، در ۷۷ درصد موارد یک مشترک تصادفی را بالاتر از یک غیرمشترک تصادفی قرار می‌دهد (ROC-AUC برابر ۰٫۷۷، به احتمال زیاد بین ۰٫۷۱ و ۰٫۸۳). این رتبه‌بندی مفید است، اما دقیق نیست.</p>
-            <h3>برای ماه آینده یعنی چه</h3>
-            <p>اگر تیم با ۲٬۰۰۰ مشتری برتر از میان ۲۰٬۰۰۰ نفر تماس بگیرد، حدود <b>۷۸۰ اشتراک</b> انتظار داریم (به احتمال زیاد بین ۶۲۰ تا ۹۶۰)، در برابر حدود ۲۳۰ اشتراک با تماس تصادفی. با هزینه‌ی ۸ یورو برای هر تماس و ارزش ۱۱۰ یورو برای هر اشتراک، سود خالص حدود <b>۷۰٬۰۰۰ یورو به‌جای ۹٬۷۰۰ یورو</b> است.</p>
-            <h3>از چه استفاده نکردیم</h3>
-            <p>طول تماس فقط بعد از پایان تماس معلوم می‌شود. با آن، مدل در آموزش بسیار بهتر به نظر می‌رسید (۰٫۹۰ به‌جای ۰٫۷۱) و در اولین فهرست واقعی تماس شکست می‌خورد.</p>
-            <h3>چه چیزی هنوز ثابت نشده</h3>
-            <p>این برآورد فقط بر یک مجموعه‌ی آزمون کوچک با ۸۰۰ مشتری تکیه دارد. داده سال ندارد، پس نتوانستیم بررسی کنیم که الگو در طول زمان پایدار می‌ماند یا نه. مشتری‌های تکراری از هم جدا نشدند. دسته‌ها به‌صورت کد ذخیره شده‌اند و پیش از استفاده‌ی واقعی باید اصلاح شوند.</p>
-            <h3>تصمیمی که لازم داریم</h3>
-            <p>تأیید یک پایلوت در یک کمپین: با ۲٬۰۰۰ مشتری برتر مدل تماس بگیریم و هم‌زمان با ۲۰۰ مشتری تصادفی به‌عنوان گروه کنترل، و سپس نرخ موفقیت دو گروه را مقایسه کنیم.</p>
-          </div>
-        </div>
-        <div class="panel-foot dev-only">Every number in this brief links to its record: ${chip:EXP-010} ${chip:EXP-007} ${chip:LEAK-bank_marketing}</div>
-      </article>
-
-      <div class="panel" data-f="brief.value" data-tour="value">
-        <div class="panel-head"><div class="panel-title"><h2>Choose the call volume</h2><span class="sub">Expected result for 20,000 clients. The band is the range that comes from the holdout's interval.</span></div></div>
-        <div class="panel-body grid g2">
-          <div class="stack">
-            <div class="field"><label for="v-calls">Calls next month: <b id="v-calls-out">2,000</b></label><input type="range" id="v-calls" min="250" max="10000" step="250" value="2000"></div>
-            <div class="grid g2">
-              <div class="field"><label for="v-cost">Cost per call (€)</label><input type="number" id="v-cost" value="8" min="1"></div>
-              <div class="field"><label for="v-val">Value per subscription (€)</label><input type="number" id="v-val" value="110" min="1"></div>
-            </div>
-            <div class="kpi-strip panel flat" id="v-kpis"></div>
-          </div>
-          <div class="stack tight"><div id="v-chart"></div><div class="legend"><span><i></i>model ranking</span><span><i class="s3"></i>random calls</span><span><i class="sq" style="background:var(--accent-soft)"></i>likely range</span></div></div>
-        </div>
-      </div>
-
-      <div class="panel" data-f="brief.risks">
-        <div class="panel-head"><div class="panel-title"><h2>Risks and what we will do about them</h2></div></div>
-        <div class="table-wrap"><table class="data"><thead><tr><th>Risk</th><th>Why it matters</th><th>What we do</th></tr></thead><tbody>
-          <tr><td class="strong">Small test set</td><td>800 clients give a wide range (0.71–0.83)</td><td>The pilot's random control group measures the real lift</td></tr>
-          <tr><td class="strong">No year in the data</td><td>March, September, October and December look excellent on very few calls</td><td>Owner asked for real call dates; seasonal effects are reported, not trusted</td></tr>
-          <tr><td class="strong">Repeat clients</td><td>The same client may appear in training and test</td><td>Ask for a client ID in the next extract and re-split by client</td></tr>
-          <tr><td class="strong">Category codes</td><td>Two top features take a log of codes, which has no meaning</td><td>Rebuild with raw labels before any production use</td></tr>
-          <tr><td class="strong">campaign column</td><td>May count the call being predicted</td><td>Owner question open; with/without comparison scheduled</td></tr>
-        </tbody></table></div>
-      </div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">0.77 <small>0.71–0.83</small></span><span class="l">ROC-AUC on 800 clients the model never saw · a useful ranking, not a precise one</span></div>
+      <div class="stat"><span class="v ok">~780</span><span class="l">subscriptions expected from the top 2,000 calls · likely 620–960 · about 230 at random</span></div>
+      <div class="stat"><span class="v ok">€70,000</span><span class="l">net value next month · €9,700 calling at random · €8 a call, €110 a subscription</span><div class="row"><button type="button" class="link-btn small" data-pane-go="value">Try other volumes →</button></div></div>
+      <div class="stat"><span class="v warn">Pilot</span><span class="l">the decision we need · top 2,000 plus 200 random clients as a control</span><div class="row"><button type="button" class="link-btn small" data-pane-go="signoff">Go to sign-off →</button></div></div>
     </div>
 
-    <aside class="stack">
+    <article class="panel" data-f="brief.summary" data-tour="brief-summary">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow">Brief v1 · Oct 3 · prepared by the intern, reviewed by Ava</span></div><div class="seg" data-seg="lang" id="brief-lang" role="group" aria-label="Language" data-f="brief.fa"><button type="button" data-v="en" aria-pressed="true">English</button><button type="button" data-v="fa" aria-pressed="false">فارسی</button></div></div>
+      <div class="panel-body">
+        <div class="doc" id="brief-en">
+          <h2>Call the 2,000 clients most likely to subscribe</h2>
+          <h3>What we built</h3>
+          <p>A model that ranks clients by how likely they are to open a term deposit if we call them. It uses only what we know before the call: the client's profile and account, earlier campaigns, and the planned call date.</p>
+          <h3>How good it is, honestly</h3>
+          <p>On 800 clients the model never saw, it puts a random subscriber above a random non-subscriber 77% of the time (ROC-AUC 0.77, most likely between 0.71 and 0.83). That is a useful ranking, not a precise one.</p>
+          <h3>What it means next month</h3>
+          <p>If the team calls the top 2,000 of 20,000 clients, we expect about <b>780 subscriptions</b> (most likely 620–960), against about 230 when calling 2,000 clients at random. At €8 per call and €110 per subscription, that is about <b>€70,000 net instead of €9,700</b>.</p>
+          <h3>What we refused to use</h3>
+          <p>The length of the call is known only after the call ends. With it, the model looked far better in training (0.90 instead of 0.71) and would have failed on the first real call list.</p>
+          <h3>What is not proven yet</h3>
+          <p>The estimate rests on one small test set of 800 clients. The data has no year, so we could not check whether the pattern holds over time. Repeat clients could not be separated. Categories are stored as codes and must be fixed before real use.</p>
+          <h3>The decision we need</h3>
+          <p>Approve a pilot for one campaign: call the model's top 2,000 and, at the same time, 200 clients chosen at random as a control group. Then compare the two hit rates.</p>
+        </div>
+        <div class="doc fa" id="brief-fa" hidden lang="fa" dir="rtl">
+          <h2>با ۲٬۰۰۰ مشتری‌ای تماس بگیریم که بیشترین احتمال اشتراک را دارند</h2>
+          <h3>چه ساختیم</h3>
+          <p>مدلی که مشتری‌ها را بر اساس احتمال باز کردن سپرده‌ی مدت‌دار، در صورت تماس، رتبه‌بندی می‌کند. فقط از اطلاعاتی استفاده می‌کند که پیش از تماس در دست داریم: مشخصات و حساب مشتری، کمپین‌های قبلی و تاریخ برنامه‌ریزی‌شده‌ی تماس.</p>
+          <h3>صادقانه، چقدر خوب است</h3>
+          <p>روی ۸۰۰ مشتری که مدل هرگز ندیده بود، در ۷۷ درصد موارد یک مشترک تصادفی را بالاتر از یک غیرمشترک تصادفی قرار می‌دهد (ROC-AUC برابر ۰٫۷۷، به احتمال زیاد بین ۰٫۷۱ و ۰٫۸۳). این رتبه‌بندی مفید است، اما دقیق نیست.</p>
+          <h3>برای ماه آینده یعنی چه</h3>
+          <p>اگر تیم با ۲٬۰۰۰ مشتری برتر از میان ۲۰٬۰۰۰ نفر تماس بگیرد، حدود <b>۷۸۰ اشتراک</b> انتظار داریم (به احتمال زیاد بین ۶۲۰ تا ۹۶۰)، در برابر حدود ۲۳۰ اشتراک با تماس تصادفی. با هزینه‌ی ۸ یورو برای هر تماس و ارزش ۱۱۰ یورو برای هر اشتراک، سود خالص حدود <b>۷۰٬۰۰۰ یورو به‌جای ۹٬۷۰۰ یورو</b> است.</p>
+          <h3>از چه استفاده نکردیم</h3>
+          <p>طول تماس فقط بعد از پایان تماس معلوم می‌شود. با آن، مدل در آموزش بسیار بهتر به نظر می‌رسید (۰٫۹۰ به‌جای ۰٫۷۱) و در اولین فهرست واقعی تماس شکست می‌خورد.</p>
+          <h3>چه چیزی هنوز ثابت نشده</h3>
+          <p>این برآورد فقط بر یک مجموعه‌ی آزمون کوچک با ۸۰۰ مشتری تکیه دارد. داده سال ندارد، پس نتوانستیم بررسی کنیم که الگو در طول زمان پایدار می‌ماند یا نه. مشتری‌های تکراری از هم جدا نشدند. دسته‌ها به‌صورت کد ذخیره شده‌اند و پیش از استفاده‌ی واقعی باید اصلاح شوند.</p>
+          <h3>تصمیمی که لازم داریم</h3>
+          <p>تأیید یک پایلوت در یک کمپین: با ۲٬۰۰۰ مشتری برتر مدل تماس بگیریم و هم‌زمان با ۲۰۰ مشتری تصادفی به‌عنوان گروه کنترل، و سپس نرخ موفقیت دو گروه را مقایسه کنیم.</p>
+        </div>
+      </div>
+      <div class="panel-foot dev-only">Every number in this brief links to its record: ${chip:EXP-010} ${chip:EXP-007} ${chip:LEAK-bank_marketing}</div>
+    </article>
+  <div class="panel biz-only">
+        <div class="panel-body small stack tight"><div class="eyebrow">Reading the numbers</div><p><b>ROC-AUC 0.77</b> means the model puts a real subscriber above a non-subscriber 77 times out of 100. Random guessing gives 50.</p><p><b>Hit rate</b> is the share of called clients who subscribe.</p></div>
+      </div>
+  </div>
+
+  <div class="pane" data-pane="value" data-label="Value calculator">
+    <div class="panel" data-f="brief.value" data-tour="value">
+      <div class="panel-head"><div class="panel-title"><h2>Choose the call volume</h2><span class="sub">Expected result for 20,000 clients. The band is the range that comes from the holdout's interval.</span></div></div>
+      <div class="panel-body grid g2">
+        <div class="stack">
+          <div class="field"><label for="v-calls">Calls next month: <b id="v-calls-out">2,000</b></label><input type="range" id="v-calls" min="250" max="10000" step="250" value="2000"></div>
+          <div class="grid g2">
+            <div class="field"><label for="v-cost">Cost per call (€)</label><input type="number" id="v-cost" value="8" min="1"></div>
+            <div class="field"><label for="v-val">Value per subscription (€)</label><input type="number" id="v-val" value="110" min="1"></div>
+          </div>
+          <div class="kpi-strip panel flat" id="v-kpis"></div>
+        </div>
+        <div class="stack tight"><div id="v-chart"></div><div class="legend"><span><i></i>model ranking</span><span><i class="s3"></i>random calls</span><span><i class="sq" style="background:var(--accent-soft)"></i>likely range</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="risks" data-label="Risks" data-count="5">
+    <div class="panel" data-f="brief.risks">
+      <div class="panel-head"><div class="panel-title"><h2>Risks and what we will do about them</h2></div></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Risk</th><th>Why it matters</th><th>What we do</th></tr></thead><tbody>
+        <tr><td class="strong">Small test set</td><td>800 clients give a wide range (0.71–0.83)</td><td>The pilot's random control group measures the real lift</td></tr>
+        <tr><td class="strong">No year in the data</td><td>March, September, October and December look excellent on very few calls</td><td>Owner asked for real call dates; seasonal effects are reported, not trusted</td></tr>
+        <tr><td class="strong">Repeat clients</td><td>The same client may appear in training and test</td><td>Ask for a client ID in the next extract and re-split by client</td></tr>
+        <tr><td class="strong">Category codes</td><td>Two top features take a log of codes, which has no meaning</td><td>Rebuild with raw labels before any production use</td></tr>
+        <tr><td class="strong">campaign column</td><td>May count the call being predicted</td><td>Owner question open; with/without comparison scheduled</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="signoff" data-label="Sign-off &amp; lessons">
+    <div class="grid g2">
       <div class="panel" data-f="brief.signoff">
         <div class="panel-head"><h3>Sign-off</h3><span class="pill warn">pending</span></div>
         <div class="panel-body stack tight small">
@@ -89,7 +102,6 @@
           <span class="xs muted">Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span>
         </div>
       </div>
-
       <div class="panel" data-f="brief.capture">
         <div class="panel-head"><div class="panel-title"><h3>What this project taught DCLab</h3><span class="sub">WF-10 · knowledge capture</span></div></div>
         <div class="list small">
@@ -99,11 +111,7 @@
           <div class="list-item"><span class="pill proof">data</span><div class="li-main"><span>11 training examples (contract + each stage) and one 24-move trajectory for the policy model.</span><a class="link-btn small" href="#policy">See the training data →</a></div></div>
         </div>
       </div>
-
-      <div class="panel biz-only">
-        <div class="panel-body small stack tight"><div class="eyebrow">Reading the numbers</div><p><b>ROC-AUC 0.77</b> means the model puts a real subscriber above a non-subscriber 77 times out of 100. Random guessing gives 50.</p><p><b>Hit rate</b> is the share of called clients who subscribe.</p></div>
-      </div>
-    </aside>
+    </div>
   </div>
 </section>
 <script>

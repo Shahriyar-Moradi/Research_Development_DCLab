@@ -17,57 +17,60 @@
     <div class="vh-actions" id="proj-actions"></div>
   </header>
 
-  <div class="wf-rail" id="wf-rail" data-f="proj.stages" style="margin-bottom:14px"></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" id="proj-stats"></div>
 
-  <div class="panel" data-f="proj.graph" data-tour="graph" style="margin-bottom:14px">
-        <div class="panel-head">
-          <div class="panel-title"><h2>The graph</h2><span class="sub">Ten steps and the moves allowed between them. The model proposes a move; the graph decides whether it exists.</span></div>
-          <div class="legend"><span><i class="ok"></i>taken</span><span><i class="s4"></i>allowed revisit</span><span><i class="s3"></i>revisit taken</span><span><i class="bad"></i>blocked attempt</span><span><i class="sq s2"></i>approval gate</span></div>
-        </div>
-        <div class="panel-body graph-wrap" id="graph-box"></div>
-        <div class="panel-foot bar" data-f="proj.replay">
-          <label for="replay" class="strong" style="color:var(--ink)">Replay</label>
-          <input type="range" id="replay" min="1" max="24" value="24" style="flex:1;min-width:160px">
-          <span class="mono small" id="replay-label"></span>
-          <button type="button" class="btn sm" id="replay-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Play</button>
-        </div>
+    <div class="panel" data-f="proj.graph" data-tour="graph">
+      <div class="panel-head">
+        <div class="panel-title"><h2>The graph</h2><span class="sub">Ten steps and the moves allowed between them. The model proposes a move; the graph decides whether it exists.</span></div>
+        <div class="legend"><span><i class="ok"></i>taken</span><span><i class="s4"></i>allowed revisit</span><span><i class="s3"></i>revisit taken</span><span><i class="bad"></i>blocked attempt</span><span><i class="sq s2"></i>approval gate</span></div>
       </div>
-
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel" data-f="proj.log">
-        <div class="panel-head"><div class="panel-title"><h2>Transition log</h2><span class="sub">Every move, who proposed it, what checked it, and the evidence it carried. This log is also training data for the policy model.</span></div>
-          <div class="row"><div class="seg" data-seg="logf" id="log-filter" role="group" aria-label="Filter log"><button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="human" aria-pressed="false">People</button><button type="button" data-v="blocked" aria-pressed="false">Blocked</button></div></div></div>
-        <div class="table-wrap"><table class="data compact" id="log-table"><thead><tr><th>When</th><th>Who</th><th>Move</th><th>Step</th><th>Evidence</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-body graph-wrap" id="graph-box"></div>
+      <div class="panel-foot bar" data-f="proj.replay">
+        <label for="replay" class="strong" style="color:var(--ink)">Replay</label>
+        <input type="range" id="replay" min="1" max="24" value="24" style="flex:1;min-width:160px">
+        <span class="mono small" id="replay-label"></span>
+        <button type="button" class="btn sm" id="replay-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Play</button>
       </div>
     </div>
 
-    <aside class="stack">
-      <div class="panel" id="node-panel">
-        <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="node-eyebrow">Selected step</span><h3 id="node-title">WF-10 · Knowledge capture</h3></div></div>
-        <div class="panel-body stack tight small" id="node-body"></div>
-      </div>
+    <div class="panel" id="node-panel">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="node-eyebrow">Selected step</span><h3 id="node-title">WF-10 · Knowledge capture</h3></div></div>
+      <div class="panel-body small"><div class="stack tight" id="node-body"></div></div>
+    </div>
+  </div>
 
-      <div class="panel" data-f="proj.validator">
-        <div class="panel-head"><div class="panel-title"><h3>Validator</h3><span class="sub">Deterministic. Runs before any proposed move.</span></div></div>
-        <div class="panel-body stack tight">
-          <div class="field"><label for="move-select">Check a proposed move</label>
-            <select id="move-select">
-              <option value="holdout">Intern: open the holdout to compare extra_trees with lightgbm</option>
-              <option value="stop">Intern: stop and hand the brief to Reza</option>
-              <option value="revisit">Intern: go back to WF-01, the contract (with reason)</option>
-              <option value="skip">Intern: skip the leakage audit to save time</option>
-              <option value="useduration">Intern: add duration back as a feature</option>
-            </select></div>
-          <div id="validator-out"></div>
-        </div>
-      </div>
+  <div class="pane" data-pane="log" data-label="Transition log">
+    <p class="pane-intro">Pick a step in the strip to see it on the graph. Every row below is a move: who proposed it, what checked it, and the evidence it carried.</p>
+    <div class="wf-rail" id="wf-rail" data-f="proj.stages"></div>
+    <div class="panel" data-f="proj.log">
+      <div class="panel-head"><div class="panel-title"><h2>Transition log</h2><span class="sub">This log is also training data for the policy model.</span></div>
+        <div class="row"><div class="seg" data-seg="logf" id="log-filter" role="group" aria-label="Filter log"><button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="human" aria-pressed="false">People</button><button type="button" data-v="blocked" aria-pressed="false">Blocked</button></div></div></div>
+      <div class="table-wrap"><table class="data compact" id="log-table"><thead><tr><th>When</th><th>Who</th><th>Move</th><th>Step</th><th>Evidence</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
 
-      <div class="panel" data-f="proj.team">
-        <div class="panel-head"><h3>People on this project</h3><button type="button" class="btn sm" data-toast="In the product: invite by email with a role (engineer, reviewer, business viewer).">Invite</button></div>
-        <div class="list" id="team-list"></div>
-      </div>
-    </aside>
+  <div class="pane" data-pane="validator" data-label="Validator & team">
+    <div class="grid g-3-1">
+    <div class="panel" data-f="proj.validator">
+      <div class="panel-head"><div class="panel-title"><h2>Validator</h2><span class="sub">Deterministic. Runs before any proposed move.</span></div></div>
+      <div class="panel-body"><div class="stack tight">
+        <div class="field"><label for="move-select">Check a proposed move</label>
+          <select id="move-select">
+            <option value="holdout">Intern: open the holdout to compare extra_trees with lightgbm</option>
+            <option value="stop">Intern: stop and hand the brief to Reza</option>
+            <option value="revisit">Intern: go back to WF-01, the contract (with reason)</option>
+            <option value="skip">Intern: skip the leakage audit to save time</option>
+            <option value="useduration">Intern: add duration back as a feature</option>
+          </select></div>
+        <div id="validator-out"></div>
+      </div></div>
+    </div>
+    <div class="panel" data-f="proj.team">
+      <div class="panel-head"><div class="panel-title"><h2>People on this project</h2></div><button type="button" class="btn sm" data-toast="In the product: invite by email with a role (engineer, reviewer, business viewer).">Invite</button></div>
+      <div class="list" id="team-list"></div>
+    </div>
+    </div>
   </div>
 </section>
 <script>
@@ -108,7 +111,7 @@ DC.view('project', {
     const P = {
       bank: {
         title: 'Term-deposit calls', sub: 'bank_marketing · tabular · binary · started Sep 27',
-        lede: 'Nine of ten steps are done. The brief waits for Reza\'s sign-off. One unsafe move was blocked on the way, and the log shows why.',
+        lede: 'Nine of ten steps are done and the brief waits for Reza\'s sign-off. One unsafe move was blocked on the way; the log shows why.',
         actions: '<a class="btn" href="#notebook">Open notebook</a><a class="btn primary" href="#brief">Open the brief</a>',
         current: 'WF-10',
         log: [
@@ -152,7 +155,7 @@ DC.view('project', {
       },
       telco: {
         title: 'Telco churn', sub: 'telco_churn · tabular · binary · 7,043 customers',
-        lede: 'The screen finished, but the contract never said when the prediction is made or how long the outcome window is. The contract was reopened, and the later steps wait for it.',
+        lede: 'The screen finished, but the contract never said when the prediction is made or how long the outcome window is. It was reopened; later steps wait for it.',
         actions: '<a class="btn primary" href="#contract">Open the contract</a>',
         current: 'WF-01',
         log: [
@@ -284,6 +287,16 @@ DC.view('project', {
     function drawTeam() {
       $('#team-list', el).innerHTML = DEMO.team.map(t => `<div class="list-item"><span class="avatar sm ${t.cls}">${t.id}</span><div class="li-main"><span class="li-title">${esc(t.name)}</span><span class="li-sub">${esc(t.role)}</span></div></div>`).join('');
     }
+    function drawStats() {
+      const log = P[proj].log, last = log[log.length - 1], states = last[8];
+      const done = [...states].filter(c => c === 'd').length, cur = NODES.find(n => n[0] === P[proj].current);
+      const people = log.filter(r => r[2] === 'human').length, blocked = log.filter(r => r[6] === 'blocked').length, back = log.filter(r => r[6] === 'back').length;
+      $('#proj-stats', el).innerHTML = `
+        <div class="stat"><span class="v">${done} <small>/ 10</small></span><span class="l">steps done · current ${cur[0]} ${esc(cur[1])}</span></div>
+        <div class="stat"><span class="v">${log.length}</span><span class="l">moves in the transition log · ${people} by people</span></div>
+        <div class="stat"><span class="v ${blocked ? 'bad' : back ? 'warn' : ''}">${blocked || back}</span><span class="l">${blocked ? 'unsafe move blocked by the graph' : back ? 'revisit: the contract was reopened' : 'blocked moves'}</span></div>
+        <div class="stat"><span class="v warn">${esc(WHO[last[1]][0])}</span><span class="l">${esc(last[3])}</span></div>`;
+    }
     function setProject(p) {
       proj = p; step = P[p].log.length;
       $$('#proj-switch button', el).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === p)));
@@ -292,7 +305,7 @@ DC.view('project', {
       $('#proj-lede', el).textContent = P[p].lede;
       $('#proj-actions', el).innerHTML = P[p].actions;
       const r = $('#replay', el); r.max = P[p].log.length; r.value = step;
-      drawGraph(); drawLog(); drawNode(P[p].current); DC.hydrate(el);
+      drawStats(); drawGraph(); drawLog(); drawNode(P[p].current); DC.hydrate(el);
     }
     this.setProject = setProject;
     $('#proj-switch', el).addEventListener('segchange', e => { DC.state.project = e.detail; setProject(e.detail); });
@@ -305,13 +318,13 @@ DC.view('project', {
     $('#log-filter', el).addEventListener('segchange', e => drawLog(e.detail));
     $('#move-select', el).addEventListener('change', drawValidator);
     el.addEventListener('click', e => {
-      const n = e.target.closest('[data-node]'); if (n) { drawNode(n.dataset.node); return; }
+      const n = e.target.closest('[data-node]'); if (n) { drawNode(n.dataset.node); if (n.classList.contains('wf-step')) { DC.reveal($('#node-panel', el)); $('#graph-box', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
       const a = e.target.closest('[data-ans]');
       if (a) {
         $$('.ask-option', el).forEach(b => b.setAttribute('aria-pressed', String(b === a)));
         toast(a.dataset.ans.startsWith('t') ? 'Answer recorded. Contract v3 drafted; later steps rerun after you sign.' : 'Answer recorded. Contract v2 drafted with the allowed columns; it needs your signature.');
       }
-      if (e.target.closest('[data-scroll-ask]')) { const c = $('#ask-card', el); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      if (e.target.closest('[data-scroll-ask]')) { const c = $('#ask-card', el); if (c) { DC.reveal(c); c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
     });
     el.addEventListener('keydown', e => { const n = e.target.closest('.node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); drawNode(n.dataset.node); } });
     drawValidator(); drawTeam(); setProject('bank');

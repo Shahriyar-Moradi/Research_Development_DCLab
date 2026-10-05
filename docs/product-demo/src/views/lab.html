@@ -1,34 +1,23 @@
 <section class="view" id="view-lab" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Research lab</div>
-      <h1>Where the evidence comes from</h1>
-      <p class="lede">Campaigns run controlled experiments on real datasets. An LLM critic challenges every claim, a gate checks the challenges against the numbers, and what survives becomes records the product can cite.</p>
+      <div class="eyebrow accent">Research lab · where the evidence comes from</div>
+      <h1>Research lab</h1>
+      <p class="lede">Campaigns run controlled experiments on real datasets. A critic challenges every claim, a gate checks it against the numbers, and what survives becomes citable records.</p>
     </div>
     <div class="vh-actions"><button type="button" class="btn primary" id="lab-new">Design a campaign</button></div>
   </header>
 
-  <div class="panel" style="margin-bottom:14px" data-f="lab.registry" data-tour="lab-registry">
-    <div class="kpi-strip">
-      <div class="kpi"><span class="label">Experiments in the registry</span><span class="value">579</span><span class="delta">483 eligible results · 11 datasets</span></div>
-      <div class="kpi"><span class="label">Campaigns</span><span class="value">4</span><span class="delta">76 records in the evidence index</span></div>
-      <div class="kpi"><span class="label">Critic challenges</span><span class="value">157</span><span class="delta">147 kept · 10 contradicted by the numbers</span></div>
-      <div class="kpi"><span class="label">Blind auditor recall</span><span class="value">61%</span><span class="delta">11 of 18 known leaks, no hints</span></div>
-      <div class="kpi"><span class="label">Research tracks</span><span class="value">22</span><span class="delta">6 active · 7 proposed · 9 planned</span></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" data-f="lab.registry" data-tour="lab-registry">
+      <div class="stat"><span class="v">579</span><span class="l">experiments in the registry · 483 eligible results · 11 datasets</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">campaigns · 76 records in the evidence index</span></div>
+      <div class="stat"><span class="v">157</span><span class="l">critic challenges · 147 kept · 10 contradicted by the numbers</span><div class="row"><button type="button" class="link-btn small" data-pane-go="critic">How the gate works →</button></div></div>
+      <div class="stat"><span class="v warn">61%</span><span class="l">blind auditor recall · 11 of 18 known leaks, no hints</span></div>
     </div>
-  </div>
 
-  <div class="tabs" data-tabs="lab" role="tablist" style="margin-bottom:14px">
-    <button type="button" class="tab" data-tab="campaigns" role="tab" aria-selected="true">Campaigns</button>
-    <button type="button" class="tab" data-tab="champions" role="tab" aria-selected="false">Registry champions</button>
-    <button type="button" class="tab" data-tab="pitfalls" role="tab" aria-selected="false">Measured pitfalls <span class="pill">6</span></button>
-    <button type="button" class="tab" data-tab="critic" role="tab" aria-selected="false">Critic gate</button>
-    <button type="button" class="tab" data-tab="map" role="tab" aria-selected="false">Research map <span class="pill">22</span></button>
-  </div>
-
-  <div data-tab-panel="lab:campaigns">
-    <div class="grid g-3-1">
       <div class="panel" data-f="lab.campaigns">
+        <div class="panel-head"><div class="panel-title"><h2>Campaigns</h2><span class="sub">Each one tests a question on real datasets; its results become records</span></div></div>
         <div class="table-wrap"><table class="data"><thead><tr><th>Campaign</th><th>What it tested</th><th class="num">Experiments</th><th>Status</th><th>Evidence</th></tr></thead><tbody>
           <tr><td><span class="cell-main">model_building_50_v1</span><div class="cell-sub">10 public datasets × 5 stages</div></td><td class="small">The full workflow on each dataset: data, leakage, features, models, holdout. Critic review on every record.</td><td class="num">50</td><td><span class="pill ok">done</span></td><td>${chips:EXP-006,EXP-007,EXP-010}</td></tr>
           <tr><td><span class="cell-main">expansion_v1</span><div class="cell-sub">fraud · multiclass · time series · text</div></td><td class="small">The same workflow on four new task types: imbalanced, 26 classes, daily forecasting, text with tabular fields.</td><td class="num">20</td><td><span class="pill ok">done</span></td><td>${chips:EXP-055,EXP-060,EXP-065,EXP-070}</td></tr>
@@ -37,20 +26,23 @@
           <tr><td><span class="cell-main">expansion_v2</span><div class="cell-sub">sample · planned</div></td><td class="small">Four new datasets with timestamps, so forward-in-time validation can be measured everywhere.</td><td class="num">20</td><td><span class="pill info">queued</span></td><td><span class="faint">—</span></td></tr>
         </tbody></table></div>
       </div>
-      <aside class="panel" data-f="lab.designer">
+      <div class="panel" data-f="lab.designer">
         <div class="panel-head"><div class="panel-title"><h3>New campaign</h3><span class="sub">The LLM proposes; deterministic code runs and scores</span></div></div>
-        <div class="panel-body stack tight">
-          <div class="field"><label for="cd-h">Hypothesis</label><textarea id="cd-h" rows="2">Target encoding beats one-hot for categories with more than 50 levels, when fitted inside folds.</textarea></div>
+        <div class="panel-body grid g2">
+          <div class="stack tight">
+          <div class="field"><label for="cd-h">Hypothesis</label><textarea id="cd-h" rows="3">Target encoding beats one-hot for categories with more than 50 levels, when fitted inside folds.</textarea></div>
+          <label class="check small"><input type="checkbox" checked> Critic review on every record, checked by the gate</label>
+          </div>
+          <div class="stack tight">
           <div class="field"><label for="cd-d">Datasets</label><select id="cd-d"><option>adult, bank_marketing, hyperack, telco_churn</option><option>All 16 studied datasets</option></select></div>
           <div class="grid g2"><div class="field"><label for="cd-f">Protocol</label><select id="cd-f"><option>5×2 repeated CV</option><option>3-fold CV</option></select></div><div class="field"><label for="cd-m">Decision margin</label><input id="cd-m" type="text" value="+0.005 ROC-AUC"></div></div>
-          <label class="check small"><input type="checkbox" checked> Critic review on every record, checked by the gate</label>
           <button type="button" class="btn primary" data-toast="Campaign queued: 8 experiments. Results become records after the critic gate.">Queue campaign</button>
+          </div>
         </div>
-      </aside>
-    </div>
+      </div>
   </div>
 
-  <div data-tab-panel="lab:champions" hidden>
+  <div class="pane" data-pane="champions" data-label="Champions">
     <div class="panel">
       <div class="panel-head"><div class="panel-title"><h2>Best eligible result per dataset</h2><span class="sub">From <code>python -m dclab_rnd status</code>. Eligible means leakage-safe and validated, not production-ready.</span></div></div>
       <div class="table-wrap"><table class="data compact" id="champ-table"><thead><tr><th>Dataset</th><th>Family</th><th>Recipe</th><th class="num">ROC-AUC</th></tr></thead><tbody></tbody></table></div>
@@ -58,7 +50,7 @@
     </div>
   </div>
 
-  <div data-tab-panel="lab:pitfalls" hidden>
+  <div class="pane" data-pane="pitfalls" data-label="Pitfalls" data-count="6">
     <div class="panel" data-f="lab.pitfalls">
       <div class="panel-head"><div class="panel-title"><h2>What each mistake costs</h2><span class="sub">Measured on real datasets by running the wrong way and the right way side by side</span></div></div>
       <div class="table-wrap"><table class="data"><thead><tr><th>Pitfall</th><th>Measured cost</th><th>Lesson</th><th></th></tr></thead><tbody>
@@ -72,7 +64,7 @@
     </div>
   </div>
 
-  <div data-tab-panel="lab:critic" hidden>
+  <div class="pane" data-pane="critic" data-label="Critic gate">
     <div class="grid g2" data-f="lab.critic">
       <div class="panel">
         <div class="panel-head"><h3>How the gate works</h3>${chip:DCLAB-R20}</div>
@@ -95,9 +87,9 @@
     </div>
   </div>
 
-  <div data-tab-panel="lab:map" hidden>
+  <div class="pane" data-pane="map" data-label="Research map" data-count="22">
     <div class="panel" data-f="lab.map">
-      <div class="panel-head"><div class="panel-title"><h2>Research map</h2><span class="sub">One folder per idea, the same shape everywhere: README, index, experiments, notebooks, evaluation, reports</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>Research map</h2><span class="sub">One folder per idea, the same shape everywhere: README, index, experiments, notebooks, evaluation, reports</span></div><span class="pill">22 tracks · 6 active · 7 proposed · 9 planned</span></div>
       <div class="panel-body grid g3" id="tracks"></div>
     </div>
   </div>
@@ -122,7 +114,7 @@ DC.view('lab', {
     ];
     const cls = { active: 'ok', proposed: 'proof', planned: 'outline' };
     $('#tracks', el).innerHTML = TR.map(([k, t, s, n]) => `<div class="inset stack tight"><div class="spread"><b class="small">${esc(t)}</b><span class="pill ${cls[s]}">${s}</span></div><span class="mono xs muted">research/${k}</span>${n ? `<span class="xs muted">${esc(n)}</span>` : ''}</div>`).join('');
-    $('#lab-new', el).addEventListener('click', () => { DC.$$('[data-tabs="lab"] [data-tab]')[0].click(); $('#cd-h', el).focus(); });
+    $('#lab-new', el).addEventListener('click', () => { DC.reveal($('#cd-h', el)); $('#cd-h', el).focus(); });
     DC.hydrate(el);
   },
 });

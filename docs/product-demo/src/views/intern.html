@@ -2,8 +2,8 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow accent">Intern · the agent mode</div>
-      <h1>Give it the task. It works inside the graph.</h1>
-      <p class="lede">Like Hugging Face's ML Intern: a plan, tool calls, code in a sandbox, jobs when needed, and a report. Different in one way: every move passes the same graph and validator as a person, so it stops and asks instead of guessing.</p>
+      <h1>Intern</h1>
+      <p class="lede">Give it the task: it plans, calls tools, runs code in a sandbox and writes a report. Every move passes the same graph and validator as a person, so it stops and asks instead of guessing.</p>
     </div>
     <div class="vh-actions">
       <label class="sr-only" for="intern-model">Model</label>
@@ -17,13 +17,15 @@
     </div>
   </header>
 
-  <div class="g-3col">
-    <aside class="panel col-left sticky-col">
-      <div class="panel-head"><h3>Sessions</h3><span class="pill">5</span></div>
-      <div class="list" id="intern-sessions"></div>
-    </aside>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v warn">1</span><span class="l">question waiting for you · when is the HyperAck prediction made?</span></div>
+      <div class="stat"><span class="v">5</span><span class="l">sessions · 3 done, 2 waiting on a person</span><div class="row"><button type="button" class="link-btn small" data-pane-go="sessions">See all sessions →</button></div></div>
+      <div class="stat"><span class="v">€5 <small>· 48 calls · 30 min</small></span><span class="l">budget per session · enforced on every call</span></div>
+      <div class="stat"><span class="v ok">5</span><span class="l">guardrails active · the holdout opens once, after the owner approves</span></div>
+    </div>
 
-    <div class="stack">
+    <div class="grid g-side">
       <div class="panel" data-f="intern.session" data-tour="intern-thread">
         <div class="panel-head">
           <div class="panel-title"><span class="eyebrow" id="sess-mode">open model · via Hugging Face router</span><h2>HyperAck: an acceptance model we can trust</h2></div>
@@ -38,33 +40,48 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <aside class="stack sticky-col">
-      <div class="panel" data-f="intern.budget">
-        <div class="panel-head"><h3>Budget</h3><span class="small muted">enforced on every call</span></div>
-        <div class="panel-body stack tight" id="budget"></div>
-      </div>
-      <div class="panel" data-f="intern.graphpos">
-        <div class="panel-head"><h3>Where it is in the graph</h3><a class="link-btn small" href="#project" data-project="hyperack">Open →</a></div>
-        <div class="panel-body"><div class="wf-rail" id="intern-rail" style="grid-template-columns:repeat(5,minmax(0,1fr))"></div></div>
-      </div>
-      <div class="panel" data-f="intern.guard">
-        <div class="panel-head"><h3>Guardrails</h3><span class="pill ok">active</span></div>
-        <div class="panel-body stack tight small">
-          <div class="row top"><span class="cell-flag ok">✓</span><span>The holdout opens once, and only after the owner approves</span></div>
-          <div class="row top"><span class="cell-flag ok">✓</span><span>No tool accepts a forbidden column</span></div>
-          <div class="row top"><span class="cell-flag ok">✓</span><span>Nothing is deleted: data, results and logs are append-only</span></div>
-          <div class="row top"><span class="cell-flag ok">✓</span><span>Code runs in a sandbox with no secrets and read-only data</span></div>
-          <div class="row top"><span class="cell-flag ok">✓</span><span>Network: Hugging Face Hub and Kaggle, read-only</span></div>
+      <aside class="stack sticky-col">
+        <div class="panel" data-f="intern.budget">
+          <div class="panel-head"><h3>Budget</h3><span class="small muted">enforced on every call</span></div>
+          <div class="panel-body stack tight" id="budget"></div>
         </div>
+        <div class="panel" data-f="intern.graphpos">
+          <div class="panel-head"><h3>Where it is in the graph</h3><a class="link-btn small" href="#project" data-project="hyperack">Open →</a></div>
+          <div class="panel-body"><div class="wf-rail" id="intern-rail" style="grid-template-columns:repeat(5,minmax(0,1fr))"></div></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="sessions" data-label="Sessions" data-count="5">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Sessions</h2><span class="sub">In the demo only the HyperAck session opens.</span></div><span class="pill">5</span></div>
+      <div class="list" id="intern-sessions"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="guardrails" data-label="Guardrails">
+    <div class="panel" data-f="intern.guard">
+      <div class="panel-head"><div class="panel-title"><h2>Guardrails</h2><span class="sub">The same limits a person works under, checked on every tool call</span></div><span class="pill ok">active</span></div>
+      <div class="panel-body stack tight small">
+        <div class="row top"><span class="cell-flag ok">✓</span><span>The holdout opens once, and only after the owner approves</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>No tool accepts a forbidden column</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Nothing is deleted: data, results and logs are append-only</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Code runs in a sandbox with no secrets and read-only data</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Network: Hugging Face Hub and Kaggle, read-only</span></div>
       </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="tiers" data-label="Model tiers">
+    <div class="grid g2">
       <div class="panel" data-f="intern.ladder">
         <div class="panel-head"><div class="panel-title"><h3>Who decided what</h3><span class="sub">Cheapest tier first</span></div><span class="pill outline">sample</span></div>
         <div class="panel-body stack tight small" id="ladder"></div>
       </div>
       <div class="panel dashed" data-f="intern.standard"><div class="panel-body small">With <b>no model</b> configured, the intern follows the standard plan: the five stages in order with the R&amp;D's defaults. It never improvises.</div></div>
-    </aside>
+    </div>
   </div>
 </section>
 <script>
@@ -78,7 +95,7 @@ DC.view('intern', {
       ['Bike demand: beat the lag-2 baseline', 'done · MAE 680.0 vs 1,156.4', 'ok'],
       ['Review a notebook from Ava', 'done · 10 findings', 'ok'],
     ];
-    $('#intern-sessions', el).innerHTML = SESS.map(([t, s, c, on]) => `<button type="button" class="list-item" ${on ? 'style="background:var(--accent-soft)"' : 'data-toast="In the demo only the HyperAck session opens."'}><div class="li-main"><span class="li-title">${esc(t)}</span><span class="li-sub"><span class="dot ${c}"></span> ${esc(s)}</span></div></button>`).join('');
+    $('#intern-sessions', el).innerHTML = SESS.map(([t, s, c, on]) => `<button type="button" class="list-item" ${on ? 'style="background:var(--accent-soft)" data-pane-go="overview"' : 'data-toast="In the demo only the HyperAck session opens."'}><div class="li-main"><span class="li-title">${esc(t)}</span><span class="li-sub"><span class="dot ${c}"></span> ${esc(s)}</span></div></button>`).join('');
 
     const TOOL = (name, sum, body, t, extra = '') => ({ k: 'tool', name, sum, body, t, extra });
     const PRE = [

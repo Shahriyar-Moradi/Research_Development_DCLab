@@ -1,31 +1,26 @@
-<title>DCLab R&amp;D Demo</title>
+<title>DCLab Product Demo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&amp;family=Vazirmatn:wght@400;500;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Vazirmatn:wght@400;500;700&amp;display=swap">
 <style>
 /*STYLES*/
 </style>
 <div class="app">
-  <aside class="side" id="side" aria-label="Products">
+  <aside class="side" id="side" aria-label="Navigation">
     <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 30 30" aria-hidden="true">
-        <rect x="0.5" y="0.5" width="29" height="29" rx="8" style="fill:var(--accent)"/>
-        <path d="M8.5 10.5h7.5M10 12l4.2 7M17.6 12l-2.2 7" style="stroke:var(--on-accent);stroke-width:1.6;fill:none;stroke-linecap:round"/>
-        <circle cx="8.5" cy="10.5" r="2.4" style="fill:var(--on-accent)"/>
-        <circle cx="19" cy="10.5" r="2.4" style="fill:none;stroke:var(--on-accent);stroke-width:1.6"/>
-        <circle cx="14.6" cy="20.5" r="2.6" style="fill:var(--on-accent)"/>
-        <path d="M20.5 18.6l1.6 1.6 3-3.4" style="stroke:var(--on-accent);stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round"/>
-      </svg>
-      <div class="brand-name">DCLab R&amp;D<small>models with proof</small></div>
+      <span class="brand-mark" aria-hidden="true">DC</span>
+      <span class="brand-name">DCLab</span>
+      <span class="brand-tag">Preview</span>
     </div>
     <button type="button" class="ws-switch" data-toast="In the product: switch between workspaces (your lab, a client lab, a sandbox).">
-      <span><b>Shahriyar's lab</b> · 4 members</span><span aria-hidden="true">▾</span>
+      <span class="ws-name">Shahriyar's lab</span>
+      <span class="ws-sub">4 members · EU region <span aria-hidden="true">⌄</span></span>
     </button>
-    <a class="btn primary new-btn" href="#new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New project</a>
     <nav id="nav" aria-label="Main"></nav>
     <div class="side-foot">
-      <button type="button" class="btn sm" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg>Guided tours</button>
-      <div class="side-note"><b>About this demo.</b> It shows the final product so we can decide what to build. Numbers next to a <span class="ev-chip" style="cursor:default">EXP-007</span> chip are real records from this repository; everything else is sample data. Switch on <b>Blueprint</b> to see what exists today.</div>
+      <div class="nav-label">Preview</div>
+      <label class="nav-item switch-item" title="Outline every feature as built, partial, to build or research"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
+      <button type="button" class="nav-item" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span>Guided tours</span></button>
     </div>
   </aside>
   <div class="side-scrim" id="side-scrim"></div>
@@ -33,19 +28,10 @@
     <header class="topbar">
       <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open navigation"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search this workspace or jump to…</span><kbd>⌘K</kbd></button>
       <div class="top-actions">
-        <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search pages, actions, evidence</span><kbd>⌘K</kbd></button>
-        <div class="seg" id="role-seg" role="group" aria-label="View as">
-          <button type="button" data-role="developer" aria-pressed="true">Developer</button>
-          <button type="button" data-role="business" aria-pressed="false">Business</button>
-          <button type="button" data-role="researcher" aria-pressed="false">Researcher</button>
-          <button type="button" data-role="admin" aria-pressed="false">Admin</button>
-        </div>
-        <label class="sr-only" for="role-select">View as</label>
-        <select class="role-select" id="role-select"><option value="developer">Developer</option><option value="business">Business</option><option value="researcher">Researcher</option><option value="admin">Admin</option></select>
-        <label class="switch" title="Mark what exists today and what is still to build"><input type="checkbox" id="bp-switch"><span class="track"></span><span class="sw-label">Blueprint</span></label>
-        <button type="button" class="btn sm" id="tour-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span class="tl">Tours</span></button>
-        <span class="demo-pill" title="Sample data, except where a record chip cites the repository">Demo</span>
+        <label class="role-pick" title="See the product as another user would"><span class="sr-only">View as</span><span class="dot accent"></span><select class="role-select" id="role-select"><option value="developer">Developer view</option><option value="business">Business view</option><option value="researcher">Researcher view</option><option value="admin">Admin view</option></select></label>
+        <span class="demo-pill" title="Sample data, except where a record chip such as EXP-007 cites the repository">Sample data · Demo</span>
         <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch light or dark theme"></button>
         <span class="avatar top-avatar" title="Shahriyar · owner">SM</span>
       </div>

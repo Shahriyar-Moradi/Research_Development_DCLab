@@ -1,28 +1,31 @@
 # DCLab R&D product demo
 
+**Demo v1 — frozen reference for development.** This folder is the agreed UI and UX of the product, tagged `demo-v1` in git. The working product is built from a copy of these sources; do not edit this folder to change the product. It stays buildable and `make rd-check` keeps checking that `index.html` matches `src/`.
+
 A clickable demo of the final DCLab R&D product, built to decide what to build next. It is UI only: nothing runs a model, and no backend is needed.
 
 Open `docs/product-demo/index.html` in a browser. It is one self-contained file. A published copy, private to the owner, is at https://claude.ai/artifact/Vky86ZeEg2z5gqeapBXwtr. There, the Must, Later and Cut decisions save to a shared store that Claude can read.
 
 ## What is inside
 
-19 pages, grouped like the product:
+19 pages, grouped in the sidebar like the product:
 
 | Group | Pages |
 |---|---|
-| Build | Home · New project · Workflow graph · Contract & data · Notebook · Leakage & features · Models · Reliability & holdout · Decision brief · Intern · Compute & jobs |
-| Know | Evidence library · Research lab · Judgment benchmark |
-| Learn | Policy model |
-| Platform | Domain packs · Integrations · Admin |
-| Plan | Blueprint (gap map, roadmap, decisions) |
+| Workspace | Home · New project · Intern · Compute & jobs |
+| Project (Term-deposit calls) | Workflow · Contract & data · Notebook · Leakage & features · Models · Reliability · Decision brief |
+| Knowledge | Evidence library · Research lab · Benchmark · Policy model |
+| Platform | Domain packs · Integrations · Admin · Blueprint & roadmap |
+
+Every page opens on an **Overview** tab: three or four headline numbers and the one card that matters most. The details sit in the other tabs at the top of the page. A tab has its own link (`#models/tuning`), and ⌘K finds tabs as well as pages.
 
 Across every page:
 
-- **Roles.** The top bar switches between developer, business, researcher and admin views.
-- **Guided tours.** Four tours walk through the product: developer, business, researcher, admin.
-- **Blueprint layer.** The *Blueprint* switch outlines every feature on the page as built, partial, to build or research, with where it lives in the code.
+- **Roles.** The *View as* menu in the top bar switches between developer, business, researcher and admin views.
+- **Guided tours.** Four tours walk through the product (sidebar → Guided tours). A tour opens the right tab by itself.
+- **Blueprint layer.** The *Blueprint layer* switch in the sidebar outlines every feature on the page as built, partial, to build or research, with where it lives in the code.
 - **Decisions.** Mark each feature *Must*, *Later* or *Cut*, in the side card or on the Blueprint page. "Copy decisions as Markdown" exports them.
-- **Search.** Ctrl/⌘ K searches pages, actions and the evidence records.
+- **Search.** Ctrl/⌘ K searches pages, tabs, actions and the evidence records.
 
 ## What is real and what is sample data
 
@@ -45,12 +48,12 @@ make product-demo REFRESH=1    # also re-extract records, copilot review and SFT
 
 Sources live in `src/`:
 
-- `shell.html`: the layout.
+- `shell.html`: the layout (sidebar, top bar, drawer, modal, palette).
 - `styles.css`: the design system.
-- `core.js`: router, roles, blueprint layer, decisions, tours, search and charts.
+- `core.js`: router, page tabs, roles, blueprint layer, decisions, tours, search and charts.
 - `features.js`: the feature registry with status and code paths.
 - `data.js`: sample data and tours.
 - `data/*.json`: data extracted from the repository.
-- `views/*.html`: one file per page.
+- `views/*.html`: one file per page. A page lists its tabs as `<div class="pane" data-pane="id" data-label="Label">` blocks directly inside its `<section>`; the first one is the Overview.
 
 `build.py --artifact OUT.html` also writes the skeleton-free version used for publishing.

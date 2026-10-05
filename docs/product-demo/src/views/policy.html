@@ -1,53 +1,64 @@
 <section class="view" id="view-policy" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Policy model · the focused small model</div>
-      <h1>A small model that knows the ten steps</h1>
-      <p class="lede">Not a general chatbot. A fine-tuned open model (7–9B to start) that proposes the next move inside the graph, cites evidence, and knows when to stop and ask. Facts that change stay in the evidence index; the model learns the judgment.</p>
+      <div class="eyebrow">Policy model · the focused small model</div>
+      <h1>Policy model <span class="pill">phase 4</span></h1>
+      <p class="lede">A fine-tuned open model (7–9B to start) that proposes the next move in the graph, cites evidence and knows when to ask. Changing facts stay in the evidence index; the model learns judgment.</p>
     </div>
-    <div class="vh-actions"><span class="pill">phase 4</span><button type="button" class="btn" data-go="benchmark">See the benchmark it must pass</button></div>
+    <div class="vh-actions"><button type="button" class="btn" data-go="benchmark">See the benchmark it must pass</button></div>
   </header>
 
-  <div class="panel" data-tour="policy-curriculum" style="margin-bottom:14px">
-    <div class="panel-head"><div class="panel-title"><h2>Curriculum</h2><span class="sub">Each stage needs the one before it. The graph's log is what turns stage 2 from an idea into data.</span></div></div>
-    <div class="panel-body grid g4">
-      <div class="inset stack tight" data-f="policy.sft"><div class="spread"><span class="eyebrow">Stage 1</span><span class="pill ok">data ready</span></div><b>Declarative SFT</b><span class="small muted">Rules, experiments, critiques and leakage judgments as question-answer pairs. 326 examples.</span></div>
-      <div class="inset stack tight" data-f="policy.traj"><div class="spread"><span class="eyebrow">Stage 2</span><span class="pill outline">needs the graph log</span></div><b>Trajectory SFT</b><span class="small muted">State → proposed move → evidence → validator result, from every project. Includes blocked moves and recoveries.</span></div>
-      <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 3</span><span class="pill outline">planned</span></div><b>Rejection sampling</b><span class="small muted">Sample several moves per state; keep the ones the validator accepts and the benchmark scores well.</span></div>
-      <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 4</span><span class="pill">research</span></div><b>Reinforcement learning</b><span class="small muted">Rewards from the validator and the benchmark: valid moves, leaks caught, correct citations, no unsafe action.</span></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">326</span><span class="l">examples in SFT corpus v3 · 260 train · 66 validation</span></div>
+      <div class="stat"><span class="v">147</span><span class="l">critic challenges kept · 10 contradicted ones dropped</span></div>
+      <div class="stat"><span class="v">3</span><span class="l">datasets held out entirely from training</span></div>
+      <div class="stat"><span class="v">1 <small>of 4</small></span><span class="l">curriculum stages with data ready · no training run yet</span></div>
+    </div>
+
+    <div class="panel" data-tour="policy-curriculum">
+      <div class="panel-head"><div class="panel-title"><h2>Curriculum</h2><span class="sub">Each stage needs the one before it. The graph's log is what turns stage 2 from an idea into data.</span></div></div>
+      <div class="panel-body grid g4">
+        <div class="inset stack tight" data-f="policy.sft"><div class="spread"><span class="eyebrow">Stage 1</span><span class="pill ok">data ready</span></div><b>Declarative SFT</b><span class="small muted">Rules, experiments, critiques and leakage judgments as question-answer pairs. 326 examples.</span></div>
+        <div class="inset stack tight" data-f="policy.traj"><div class="spread"><span class="eyebrow">Stage 2</span><span class="pill outline">needs the graph log</span></div><b>Trajectory SFT</b><span class="small muted">State → proposed move → evidence → validator result, from every project. Includes blocked moves and recoveries.</span></div>
+        <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 3</span><span class="pill outline">planned</span></div><b>Rejection sampling</b><span class="small muted">Sample several moves per state; keep the ones the validator accepts and the benchmark scores well.</span></div>
+        <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 4</span><span class="pill">research</span></div><b>Reinforcement learning</b><span class="small muted">Rewards from the validator and the benchmark: valid moves, leaks caught, correct citations, no unsafe action.</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel">
-        <div class="panel-head"><div class="panel-title"><h2>Training data · SFT corpus v3</h2><span class="sub">Built from the evidence index; datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews</span></div><span class="pill ok">real</span></div>
-        <div class="panel-body grid g2">
-          <div id="sft-chart"></div>
-          <div class="stack tight small">
-            <div class="kv"><dt>Examples</dt><dd>326 · 260 train · 66 validation</dd><dt>Formats</dt><dd>chat (TRL messages), Alpaca, ShareGPT</dd><dt>Quality gates</dt><dd>147 critic challenges kept · 10 contradicted ones dropped</dd><dt>Answer shape</dt><dd>Evidence · Interpretation · Decision · Risks · Next test</dd></div>
-            <div class="inset" data-f="policy.projectsft"><b>From projects:</b> each finished project adds a contract example and one per stage. Term-deposit calls added 11.</div>
-          </div>
-        </div>
-        <div class="panel-body" style="border-top:1px solid var(--line)">
-          <div class="spread"><b class="small">A real training example</b><button type="button" class="link-btn small" id="sft-more">Show the full example</button></div>
-          <div id="sft-example" class="stack tight" style="margin-top:8px"></div>
+  <div class="pane" data-pane="data" data-label="Training data">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Training data · SFT corpus v3</h2><span class="sub">Built from the evidence index; datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews</span></div><span class="pill ok">real</span></div>
+      <div class="panel-body grid g2">
+        <div id="sft-chart"></div>
+        <div class="stack tight small">
+          <div class="kv"><dt>Examples</dt><dd>326 · 260 train · 66 validation</dd><dt>Formats</dt><dd>chat (TRL messages), Alpaca, ShareGPT</dd><dt>Quality gates</dt><dd>147 critic challenges kept · 10 contradicted ones dropped</dd><dt>Answer shape</dt><dd>Evidence · Interpretation · Decision · Risks · Next test</dd></div>
+          <div class="inset" data-f="policy.projectsft"><b>From projects:</b> each finished project adds a contract example and one per stage. Term-deposit calls added 11.</div>
         </div>
       </div>
-
-      <div class="panel" data-f="policy.traj">
-        <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub">Move 15 of Term-deposit calls: the blocked holdout request, as the model will see it</span></div><span class="pill outline">format draft</span></div>
-        <div class="panel-body"><pre class="code" id="traj-json"></pre></div>
-        <div class="panel-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
-      </div>
-
-      <div class="panel" data-f="policy.review">
-        <div class="panel-head"><div class="panel-title"><h2>Expert review queue</h2><span class="sub">Reviewers label whether a move was right. Labels become training data and benchmark ground truth.</span></div><span class="pill warn" id="rq-count">3 to review</span></div>
-        <div class="list" id="review-queue"></div>
+      <div class="panel-body" style="border-top:1px solid var(--line)">
+        <div class="spread"><b class="small">A real training example</b><button type="button" class="link-btn small" id="sft-more">Show the full example</button></div>
+        <div id="sft-example" class="stack tight" style="margin-top:8px"></div>
       </div>
     </div>
 
-    <aside class="stack">
+    <div class="panel" data-f="policy.traj">
+      <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub">Move 15 of Term-deposit calls: the blocked holdout request, as the model will see it</span></div><span class="pill outline">format draft</span></div>
+      <div class="panel-body"><pre class="code" id="traj-json"></pre></div>
+      <div class="panel-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="review" data-label="Expert review">
+    <div class="panel" data-f="policy.review">
+      <div class="panel-head"><div class="panel-title"><h2>Expert review queue</h2><span class="sub">Reviewers label whether a move was right. Labels become training data and benchmark ground truth.</span></div><span class="pill warn" id="rq-count">3 to review</span></div>
+      <div class="list" id="review-queue"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="serving" data-label="Training & serving">
+    <div class="grid g2">
       <div class="panel" data-f="policy.train">
         <div class="panel-head"><h3>Training runs</h3><span class="pill outline">none run yet</span></div>
         <div class="list small">
@@ -88,7 +99,7 @@
           <span class="mono xs">research/workflow-actions</span>
         </div>
       </div>
-    </aside>
+    </div>
   </div>
 </section>
 <script>

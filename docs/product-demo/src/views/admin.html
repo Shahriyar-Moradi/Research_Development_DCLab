@@ -1,53 +1,52 @@
 <section class="view" id="view-admin" hidden>
   <header class="vh">
     <div class="vh-text">
-      <div class="eyebrow accent">Admin · workspace settings</div>
-      <h1>The rules become settings you can see</h1>
-      <p class="lede">The R&amp;D's laws are enforced in code today. Here they are visible, with an audit trail. The core ones are locked: no workspace can switch off "the holdout opens once".</p>
+      <div class="eyebrow">Admin · workspace settings</div>
+      <h1>Admin</h1>
+      <p class="lede">The R&amp;D's rules, visible as settings with an audit trail. The core ones are locked: no workspace can switch off "the holdout opens once".</p>
     </div>
   </header>
 
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel" data-f="admin.policies" data-tour="policies">
-        <div class="panel-head"><div class="panel-title"><h2>Policies</h2><span class="sub">Locked policies are product guarantees; the others are workspace choices</span></div></div>
-        <div class="list" id="policy-list"></div>
-      </div>
-
-      <div class="panel" data-f="admin.roles">
-        <div class="panel-head"><div class="panel-title"><h2>Roles and permissions</h2><span class="sub">The intern is a member too, with the narrowest rights</span></div><button type="button" class="btn sm" data-toast="In the product: invite by email and pick a role.">Invite</button></div>
-        <div class="table-wrap" style="padding:0 0 4px"><table class="matrix" id="role-matrix"></table></div>
-        <div class="panel-foot">"Asks" means the move is allowed but waits for a person with the right.</div>
-      </div>
-
-      <div class="panel" data-f="admin.audit">
-        <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div></div>
-        <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>
-          <tr><td class="mono small">Oct 4 11:20</td><td>Shahriyar</td><td>Replied on the term-deposit brief</td></tr>
-          <tr><td class="mono small">Oct 2 11:40</td><td>Shahriyar</td><td>Approved opening the holdout · Term-deposit calls</td></tr>
-          <tr><td class="mono small">Sep 29 14:31</td><td>Validator</td><td>Blocked open_holdout from WF-07 · DCLAB-R17</td></tr>
-          <tr><td class="mono small">Sep 27 09:21</td><td>Shahriyar</td><td>Signed contract v2 · Term-deposit calls</td></tr>
-          <tr><td class="mono small">Sep 25 16:02</td><td>Shahriyar</td><td>Raised the per-job GPU cap from €3 to €5</td></tr>
-          <tr><td class="mono small">Sep 25 15:58</td><td>Shahriyar</td><td>Rotated the model-endpoint key (stored on the server)</td></tr>
-        </tbody></table></div>
-      </div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">10</span><span class="l">policies · 4 locked as product guarantees</span></div>
+      <div class="stat"><span class="v">5</span><span class="l">roles · the intern is a member with the narrowest rights</span></div>
+      <div class="stat"><span class="v">3</span><span class="l">model tiers · the cheapest tier that can decide, decides</span></div>
+      <div class="stat"><span class="v">€60</span><span class="l">workspace budget per month · alert at 80%</span></div>
     </div>
 
-    <aside class="stack">
-      <div class="panel" data-f="admin.models" data-tour="routing">
-        <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub">Cheapest tier that can decide</span></div></div>
-        <div class="panel-body stack tight small">
-          <div class="inset stack tight"><div class="spread"><b>Tier 1 · typed classifier</b><span class="pill outline">planned</span></div><span class="muted">Column types, ID and timestamp detection, proxy checks. Runs locally.</span></div>
-          <div class="inset stack tight"><div class="spread"><b>Tier 2 · NOOA structured calls</b><span class="pill warn">partial</span></div><span class="muted">Typed, non-code-executing calls that pass evidence by reference.</span></div>
-          <div class="inset stack tight"><div class="spread"><b>Tier 3 · full model</b><span class="pill ok">built</span></div>
-            <div class="field"><label for="m-base">Endpoint (OpenAI-compatible)</label><select id="m-base"><option>https://router.huggingface.co/v1</option><option>http://127.0.0.1:11434/v1 (Ollama)</option><option>https://api.openai.com/v1</option></select></div>
-            <div class="field"><label for="m-id">Model</label><input id="m-id" type="text" value="an open instruct model with tool calling"></div>
-            <div class="field" data-f="admin.keys"><span class="label">Key</span><span class="row"><span class="pill ok">stored on the server</span><span class="xs muted">never sent to the browser · set in .env</span></span></div>
-          </div>
-          <div class="inset stack tight"><div class="spread"><b>Policy model</b><span class="pill outline">phase 4</span></div><span class="muted">Takes tier 3 for workflow moves once it passes the benchmark gates.</span></div>
-        </div>
-      </div>
+    <div class="panel" data-f="admin.policies" data-tour="policies">
+      <div class="panel-head"><div class="panel-title"><h2>Policies</h2><span class="sub">Locked policies are product guarantees; the others are workspace choices</span></div></div>
+      <div class="list" id="policy-list"></div>
+    </div>
+  </div>
 
+  <div class="pane" data-pane="roles" data-label="Roles">
+    <div class="panel" data-f="admin.roles">
+      <div class="panel-head"><div class="panel-title"><h2>Roles and permissions</h2><span class="sub">The intern is a member too, with the narrowest rights</span></div><button type="button" class="btn sm" data-toast="In the product: invite by email and pick a role.">Invite</button></div>
+      <div class="table-wrap" style="padding:0 0 4px"><table class="matrix" id="role-matrix"></table></div>
+      <div class="panel-foot">"Asks" means the move is allowed but waits for a person with the right.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="models" data-label="Models & routing">
+    <div class="panel" data-f="admin.models" data-tour="routing">
+      <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub">Cheapest tier that can decide</span></div></div>
+      <div class="panel-body stack tight small">
+        <div class="inset stack tight"><div class="spread"><b>Tier 1 · typed classifier</b><span class="pill outline">planned</span></div><span class="muted">Column types, ID and timestamp detection, proxy checks. Runs locally.</span></div>
+        <div class="inset stack tight"><div class="spread"><b>Tier 2 · NOOA structured calls</b><span class="pill warn">partial</span></div><span class="muted">Typed, non-code-executing calls that pass evidence by reference.</span></div>
+        <div class="inset stack tight"><div class="spread"><b>Tier 3 · full model</b><span class="pill ok">built</span></div>
+          <div class="field"><label for="m-base">Endpoint (OpenAI-compatible)</label><select id="m-base"><option>https://router.huggingface.co/v1</option><option>http://127.0.0.1:11434/v1 (Ollama)</option><option>https://api.openai.com/v1</option></select></div>
+          <div class="field"><label for="m-id">Model</label><input id="m-id" type="text" value="an open instruct model with tool calling"></div>
+          <div class="field" data-f="admin.keys"><span class="label">Key</span><span class="row"><span class="pill ok">stored on the server</span><span class="xs muted">never sent to the browser · set in .env</span></span></div>
+        </div>
+        <div class="inset stack tight"><div class="spread"><b>Policy model</b><span class="pill outline">phase 4</span></div><span class="muted">Takes tier 3 for workflow moves once it passes the benchmark gates.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="budgets" data-label="Budgets & data">
+    <div class="grid g2">
       <div class="panel" data-f="admin.budgets">
         <div class="panel-head"><h3>Budgets</h3></div>
         <div class="panel-body grid g2 small">
@@ -57,7 +56,6 @@
           <div class="field"><label for="b4">Workspace, monthly</label><input id="b4" type="text" value="€60 · alert at 80%"></div>
         </div>
       </div>
-
       <div class="panel" data-f="admin.data">
         <div class="panel-head"><h3>Data and privacy</h3></div>
         <div class="panel-body stack tight small">
@@ -67,7 +65,21 @@
           <div class="field"><label for="ret">Keep raw uploads for</label><select id="ret"><option>90 days</option><option>1 year</option><option>Until the project is deleted</option></select></div>
         </div>
       </div>
-    </aside>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="audit" data-label="Audit log">
+    <div class="panel" data-f="admin.audit">
+      <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>
+        <tr><td class="mono small">Oct 4 11:20</td><td>Shahriyar</td><td>Replied on the term-deposit brief</td></tr>
+        <tr><td class="mono small">Oct 2 11:40</td><td>Shahriyar</td><td>Approved opening the holdout · Term-deposit calls</td></tr>
+        <tr><td class="mono small">Sep 29 14:31</td><td>Validator</td><td>Blocked open_holdout from WF-07 · DCLAB-R17</td></tr>
+        <tr><td class="mono small">Sep 27 09:21</td><td>Shahriyar</td><td>Signed contract v2 · Term-deposit calls</td></tr>
+        <tr><td class="mono small">Sep 25 16:02</td><td>Shahriyar</td><td>Raised the per-job GPU cap from €3 to €5</td></tr>
+        <tr><td class="mono small">Sep 25 15:58</td><td>Shahriyar</td><td>Rotated the model-endpoint key (stored on the server)</td></tr>
+      </tbody></table></div>
+    </div>
   </div>
 </section>
 <script>

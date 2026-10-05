@@ -1,4 +1,4 @@
-/* DCLab R&D demo — app core: shell, router, helpers, charts, blueprint layer, decisions, tours, palette. */
+/* DCLab R&D demo — app core: shell, router, page tabs, helpers, charts, blueprint layer, decisions, tours, palette. */
 (function () {
   'use strict';
   const DEMO = window.DEMO || {};
@@ -80,62 +80,60 @@
   const PROJECT_VIEWS = ['project', 'contract', 'notebook', 'audit', 'models', 'reliability', 'brief'];
   const VIEW_META = {
     home: { label: 'Home', crumbs: ['Workspace'] },
-    new: { label: 'New project', crumbs: ['Workspace', 'Projects'] },
-    project: { label: 'Workflow', crumbs: ['Projects', 'Term-deposit calls'] },
-    contract: { label: 'Contract & data', crumbs: ['Projects', 'Term-deposit calls'] },
-    notebook: { label: 'Notebook', crumbs: ['Projects', 'Term-deposit calls'] },
-    audit: { label: 'Leakage & features', crumbs: ['Projects', 'Term-deposit calls'] },
-    models: { label: 'Models', crumbs: ['Projects', 'Term-deposit calls'] },
-    reliability: { label: 'Reliability & holdout', crumbs: ['Projects', 'Term-deposit calls'] },
-    brief: { label: 'Decision brief', crumbs: ['Projects', 'Term-deposit calls'] },
-    intern: { label: 'Intern', crumbs: ['Build'] },
-    compute: { label: 'Compute & jobs', crumbs: ['Build'] },
-    evidence: { label: 'Evidence library', crumbs: ['Know'] },
-    lab: { label: 'Research lab', crumbs: ['Know'] },
-    benchmark: { label: 'Judgment benchmark', crumbs: ['Know'] },
-    policy: { label: 'Policy model', crumbs: ['Learn'] },
+    new: { label: 'New project', crumbs: ['Workspace'] },
+    project: { label: 'Workflow', crumbs: ['Term-deposit calls'] },
+    contract: { label: 'Contract & data', crumbs: ['Term-deposit calls'] },
+    notebook: { label: 'Notebook', crumbs: ['Term-deposit calls'] },
+    audit: { label: 'Leakage & features', crumbs: ['Term-deposit calls'] },
+    models: { label: 'Models', crumbs: ['Term-deposit calls'] },
+    reliability: { label: 'Reliability & holdout', crumbs: ['Term-deposit calls'] },
+    brief: { label: 'Decision brief', crumbs: ['Term-deposit calls'] },
+    intern: { label: 'Intern', crumbs: ['Workspace'] },
+    compute: { label: 'Compute & jobs', crumbs: ['Workspace'] },
+    evidence: { label: 'Evidence library', crumbs: ['Knowledge'] },
+    lab: { label: 'Research lab', crumbs: ['Knowledge'] },
+    benchmark: { label: 'Judgment benchmark', crumbs: ['Knowledge'] },
+    policy: { label: 'Policy model', crumbs: ['Knowledge'] },
     packs: { label: 'Domain packs', crumbs: ['Platform'] },
     integrations: { label: 'Integrations', crumbs: ['Platform'] },
     admin: { label: 'Admin', crumbs: ['Platform'] },
-    blueprint: { label: 'Blueprint', crumbs: ['Plan'] },
+    blueprint: { label: 'Blueprint & roadmap', crumbs: ['Platform'] },
   };
   const NAV = [
-    { items: [{ id: 'home', label: 'Home', icon: 'home' }] },
-    { group: 'Build', items: [
-      { id: 'project', label: 'Term-deposit calls', icon: 'graph', project: true, sub: [
-        { id: 'project', label: 'Workflow', wf: 'graph' },
-        { id: 'contract', label: 'Contract & data', wf: '01–03' },
-        { id: 'notebook', label: 'Notebook', wf: '04' },
-        { id: 'audit', label: 'Leakage & features', wf: '05–06' },
-        { id: 'models', label: 'Models', wf: '07–08' },
-        { id: 'reliability', label: 'Reliability', wf: '09' },
-        { id: 'brief', label: 'Decision brief', wf: '10' },
-      ] },
-      { id: 'intern', label: 'Intern', icon: 'intern', count: '1 live' },
+    { group: 'Workspace', items: [
+      { id: 'home', label: 'Home', icon: 'home' },
+      { id: 'new', label: 'New project', icon: 'plus' },
+      { id: 'intern', label: 'Intern', icon: 'intern', count: '1' },
       { id: 'compute', label: 'Compute & jobs', icon: 'cpu', count: '2' },
     ] },
-    { group: 'Know', items: [
-      { id: 'evidence', label: 'Evidence', icon: 'book', count: String(RECORDS.length || 133) },
+    { group: 'Project · Term deposits', items: [
+      { id: 'project', label: 'Workflow', icon: 'graph' },
+      { id: 'contract', label: 'Contract & data', icon: 'contract' },
+      { id: 'notebook', label: 'Notebook', icon: 'notebook', count: '10' },
+      { id: 'audit', label: 'Leakage & features', icon: 'shield' },
+      { id: 'models', label: 'Models', icon: 'models' },
+      { id: 'reliability', label: 'Reliability', icon: 'pulse' },
+      { id: 'brief', label: 'Decision brief', icon: 'brief' },
+    ] },
+    { group: 'Knowledge', items: [
+      { id: 'evidence', label: 'Evidence library', icon: 'book', count: String(RECORDS.length || 133) },
       { id: 'lab', label: 'Research lab', icon: 'flask' },
       { id: 'benchmark', label: 'Benchmark', icon: 'target' },
+      { id: 'policy', label: 'Policy model', icon: 'brain' },
     ] },
-    { group: 'Learn', items: [{ id: 'policy', label: 'Policy model', icon: 'brain' }] },
     { group: 'Platform', items: [
       { id: 'packs', label: 'Domain packs', icon: 'layers' },
       { id: 'integrations', label: 'Integrations', icon: 'plug' },
       { id: 'admin', label: 'Admin', icon: 'gear' },
+      { id: 'blueprint', label: 'Blueprint & roadmap', icon: 'map', count: '' },
     ] },
-    { group: 'Plan', items: [{ id: 'blueprint', label: 'Blueprint', icon: 'map', count: '' }] },
   ];
 
   function renderNav() {
     const nav = $('#nav');
     if (!nav) return;
-    nav.innerHTML = NAV.map(g => `<div class="nav-group">${g.group ? `<div class="nav-label">${esc(g.group)}</div>` : ''}${g.items.map(it => {
-      const main = `<a class="nav-item" href="#${it.id}" data-nav="${it.id}" ${it.project ? 'data-nav-project="1"' : ''}>${icon(it.icon)}<span>${esc(it.label)}</span>${it.count ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`;
-      const sub = it.sub ? `<div class="nav-sub">${it.sub.map(s => `<a class="nav-item" href="#${s.id}" data-nav-sub="${s.id}"><span>${esc(s.label)}</span><span class="wf">${esc(s.wf)}</span></a>`).join('')}</div>` : '';
-      return main + sub;
-    }).join('')}</div>`).join('');
+    nav.innerHTML = NAV.map(g => `<div class="nav-group"><div class="nav-label">${esc(g.group)}</div>${g.items.map(it =>
+      `<a class="nav-item" href="#${it.id}" data-nav="${it.id}">${icon(it.icon)}<span>${esc(it.label)}</span>${it.count != null ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`).join('')}</div>`).join('');
   }
 
   /* ---------------- toast / drawer / modal ---------------- */
@@ -252,7 +250,7 @@
       const sx = v => x0 + ((v - min) / (max - min)) * (x1 - x0);
       const ticks = o.ticks || niceTicks(min, max, 5);
       const tf = o.tickFmt || (v => v.toFixed(2));
-      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || 'bar chart')}">`;
+      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="max-width:${Math.round(W * 1.12)}px" role="img" aria-label="${esc(o.aria || 'bar chart')}">`;
       ticks.forEach(t => { if (t < min || t > max) return; const x = sx(t); s += `<line class="grid-line" x1="${x}" x2="${x}" y1="${top}" y2="${H - bottom}"/>`; if (!o.noAxis) s += `<text class="tick" x="${x}" y="${H - 8}" text-anchor="middle">${tf(t)}</text>`; });
       if (o.ref != null) { const x = sx(o.ref); s += `<line class="ref" x1="${x}" x2="${x}" y1="${top - 4}" y2="${H - bottom}"/>`; if (o.refLabel) s += `<text class="val-muted" x="${x + 4}" y="${top + 6}">${esc(o.refLabel)}</text>`; }
       items.forEach((it, i) => {
@@ -277,7 +275,7 @@
       const sy = v => H - B - ((v - yMin) / (yMax - yMin || 1)) * (H - T - B);
       const xt = o.xTicks || niceTicks(xMin, xMax, 5), yt = o.yTicks || niceTicks(yMin, yMax, 4);
       const xf = o.xFmt || (v => String(v)), yf = o.yFmt || (v => String(v));
-      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || 'line chart')}">`;
+      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="max-width:${Math.round(W * 1.12)}px" role="img" aria-label="${esc(o.aria || 'line chart')}">`;
       yt.forEach(t => { if (t < yMin - 1e-9 || t > yMax + 1e-9) return; const y = sy(t); s += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="tick" x="${L - 6}" y="${y + 3}" text-anchor="end">${yf(t)}</text>`; });
       xt.forEach(t => { if (t < xMin - 1e-9 || t > xMax + 1e-9) return; const x = sx(t); s += `<text class="tick" x="${x}" y="${H - B + 15}" text-anchor="middle">${xf(t)}</text>`; });
       s += `<line class="axis-line" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
@@ -302,7 +300,7 @@
       const all = rows.flatMap(r => r.folds.concat([r.mean]));
       const min = o.min != null ? o.min : Math.min(...all) - 0.01, max = o.max != null ? o.max : Math.max(...all) + 0.01;
       const sx = v => labelW + ((v - min) / (max - min)) * (W - labelW - R);
-      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || 'fold scores')}">`;
+      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="max-width:${Math.round(W * 1.12)}px" role="img" aria-label="${esc(o.aria || 'fold scores')}">`;
       niceTicks(min, max, 5).forEach(t => { if (t < min || t > max) return; const x = sx(t); s += `<line class="grid-line" x1="${x}" x2="${x}" y1="${T}" y2="${H - B}"/><text class="tick" x="${x}" y="${H - 8}" text-anchor="middle">${t.toFixed(2)}</text>`; });
       rows.forEach((r, i) => {
         const y = T + i * rowH + rowH / 2;
@@ -318,7 +316,7 @@
       const W = o.width || 360, H = o.height || 150, L = o.left || 30, R = 8, T = 10, B = 24;
       const max = o.max || Math.max(...items.map(i => i.value)) * 1.08;
       const bw = (W - L - R) / items.length;
-      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || 'histogram')}">`;
+      let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="max-width:${Math.round(W * 1.12)}px" role="img" aria-label="${esc(o.aria || 'histogram')}">`;
       niceTicks(0, max, 3).forEach(t => { const y = H - B - (t / max) * (H - T - B); if (t > max) return; s += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="tick" x="${L - 5}" y="${y + 3}" text-anchor="end">${o.yFmt ? o.yFmt(t) : t}</text>`; });
       items.forEach((it, i) => {
         const h = (it.value / max) * (H - T - B), x = L + i * bw + 1.5;
@@ -454,30 +452,80 @@
     try { localStorage.setItem('dclab-demo-bp', state.bp ? '1' : '0'); } catch (e) { /* ignore */ }
   }
 
+  /* ---------------- page tabs ----------------
+     A view lists its sections as <div class="pane" data-pane="id" data-label="Label" [data-count="n"]>.
+     The first pane is the Overview; the tab bar is built here and the choice lives in the URL (#view/pane). */
+  function buildPaneTabs(el) {
+    const panes = $$(':scope > .pane', el);
+    if (!panes.length || $(':scope > .ptabs', el)) return;
+    const bar = document.createElement('div');
+    bar.className = 'ptabs';
+    bar.setAttribute('role', 'tablist');
+    bar.setAttribute('aria-label', 'Sections of this page');
+    bar.innerHTML = panes.map(p => {
+      const roles = ['dev-only', 'biz-only', 'research-only', 'admin-only'].filter(c => p.classList.contains(c)).join(' ');
+      return `<button type="button" class="ptab ${roles}" role="tab" data-ptab="${esc(p.dataset.pane)}" aria-selected="false">${esc(p.dataset.label || p.dataset.pane)}${p.dataset.count ? `<span class="n">${esc(p.dataset.count)}</span>` : ''}</button>`;
+    }).join('');
+    panes[0].before(bar);
+    panes.forEach(p => { p.setAttribute('role', 'tabpanel'); p.hidden = true; });
+  }
+  function selectPane(el, id, opts = {}) {
+    const panes = $$(':scope > .pane', el);
+    if (!panes.length) return;
+    const usable = panes.filter(p => !roleHidden(p));
+    let target = panes.find(p => p.dataset.pane === id && !roleHidden(p)) || usable[0] || panes[0];
+    panes.forEach(p => { p.hidden = p !== target; });
+    $$(':scope > .ptabs .ptab', el).forEach(b => b.setAttribute('aria-selected', String(b.dataset.ptab === target.dataset.pane)));
+    state.panes[el.id] = target.dataset.pane;
+    hydrate(target);
+    if (opts.url !== false) {
+      const name = el.id.replace(/^view-/, '');
+      const want = '#' + name + (target === usable[0] ? '' : '/' + target.dataset.pane);
+      if (location.hash !== want) history.replaceState(null, '', want);
+    }
+    if (state.bp) renderBpPanel();
+    target.dispatchEvent(new CustomEvent('paneshow', { bubbles: true, detail: target.dataset.pane }));
+  }
+  function roleHidden(p) {
+    const r = state.role;
+    return (p.classList.contains('dev-only') && r === 'business') || (p.classList.contains('biz-only') && r !== 'business') ||
+      (p.classList.contains('research-only') && r !== 'researcher') || (p.classList.contains('admin-only') && r !== 'admin');
+  }
+  /* Open whichever pane holds an element, so tours and "Show on page" can reach it. */
+  function reveal(target) {
+    if (!target) return;
+    const pane = target.closest('.pane');
+    if (pane && pane.hidden) { const v = pane.closest('.view'); if (v) selectPane(v, pane.dataset.pane); }
+    let d = target.closest('details:not([open])');
+    while (d) { d.open = true; d = d.parentElement && d.parentElement.closest('details:not([open])'); }
+  }
+
   /* ---------------- router ---------------- */
   const VIEWS = {};
-  const state = { view: 'home', role: 'developer', bp: false, tour: null, step: 0 };
+  const state = { view: 'home', role: 'developer', bp: false, tour: null, step: 0, panes: {} };
   function view(name, def) { VIEWS[name] = Object.assign({ inited: false }, def); }
-  function currentHash() { const h = (location.hash || '').replace(/^#/, ''); return VIEW_META[h] ? h : 'home'; }
-  function show(name) {
+  function parseHash() { const [v, p] = (location.hash || '').replace(/^#/, '').split('/'); return { view: VIEW_META[v] ? v : 'home', pane: p || '' }; }
+  function currentHash() { return parseHash().view; }
+  function show(name, paneId) {
+    const changed = state.view !== name;
     state.view = name;
     $$('.view').forEach(v => { v.hidden = v.id !== 'view-' + name; });
     const el = $('#view-' + name);
     const def = VIEWS[name];
+    if (el) buildPaneTabs(el);
     if (def && el) {
-      if (!def.inited) { def.inited = true; try { def.init && def.init(el); } catch (e) { console.error('init ' + name, e); } hydrate(el); }
+      if (!def.inited) { def.inited = true; try { def.init && def.init(el); } catch (e) { console.error('init ' + name, e); } buildPaneTabs(el); hydrate(el); }
       try { def.enter && def.enter(el); } catch (e) { console.error('enter ' + name, e); }
     }
+    if (el) selectPane(el, paneId || '', { url: !!paneId });
     // nav highlight
     $$('.nav-item').forEach(a => a.classList.remove('active'));
-    const sub = $(`[data-nav-sub="${name}"]`);
-    if (sub) sub.classList.add('active');
-    else { const main = $(`[data-nav="${name}"]`); if (main) main.classList.add('active'); }
+    const main = $(`[data-nav="${name}"]`); if (main) main.classList.add('active');
     const meta = VIEW_META[name] || { label: name, crumbs: [] };
-    $('#crumbs').innerHTML = meta.crumbs.map(c => `<span>${esc(c)}</span><span class="sep">/</span>`).join('') + `<b>${esc(meta.label)}</b>`;
+    $('#crumbs').innerHTML = meta.crumbs.map(c => `<span>${esc(c)}</span><span class="sep">›</span>`).join('') + `<b>${esc(meta.label)}</b>`;
     document.body.classList.remove('nav-open');
     if (state.bp) { applyBlueprintAttrs(el || document); renderBpPanel(); }
-    if (!state.tour) window.scrollTo({ top: 0 });
+    if (!state.tour && changed) window.scrollTo({ top: 0 });
     updateTourBar();
   }
 
@@ -491,8 +539,9 @@
   function setRole(role) {
     state.role = role;
     document.body.dataset.role = role;
-    $$('#role-seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === role)));
     const rs = $('#role-select'); if (rs) rs.value = role;
+    const cur = $('#view-' + state.view);
+    if (cur && $(':scope > .ptabs', cur)) selectPane(cur, state.panes[cur.id] || '', { url: false });
     const n = $('#role-note');
     if (n) { n.hidden = !ROLE_NOTE[role]; n.textContent = ROLE_NOTE[role]; }
     document.dispatchEvent(new CustomEvent('rolechange', { detail: role }));
@@ -511,9 +560,10 @@
     if (!t) return;
     const st = t.steps[state.step];
     $$('.tour-focus').forEach(e => e.classList.remove('tour-focus'));
-    if (location.hash !== '#' + st.view) location.hash = st.view; else show(st.view);
+    if (parseHash().view !== st.view) location.hash = st.view; else show(st.view);
     setTimeout(() => {
       const target = st.target ? $(`[data-tour="${st.target}"]`) : null;
+      reveal(target);
       if (target) { target.classList.add('tour-focus'); target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
       else window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 120);
@@ -539,6 +589,11 @@
   function paletteSource(q) {
     const items = [];
     Object.entries(VIEW_META).forEach(([id, m]) => items.push({ group: 'Go to', label: m.label, hint: (m.crumbs || []).join(' / '), run: () => { location.hash = id; } }));
+    $$('.view > .pane').forEach((p, i, all) => {
+      const v = p.closest('.view').id.replace(/^view-/, ''), m = VIEW_META[v];
+      if (!m || p === all.find(x => x.closest('.view') === p.closest('.view'))) return;
+      items.push({ group: 'Sections', label: `${m.label} › ${p.dataset.label || p.dataset.pane}`, hint: (m.crumbs || []).join(' / '), run: () => { location.hash = v + '/' + p.dataset.pane; } });
+    });
     items.push({ group: 'Actions', label: 'Start a new project', hint: 'N', run: () => { location.hash = 'new'; } });
     items.push({ group: 'Actions', label: state.bp ? 'Hide the blueprint layer' : 'Show the blueprint layer', hint: 'B', run: () => setBlueprint(!state.bp) });
     items.push({ group: 'Actions', label: 'View as business', hint: 'role', run: () => setRole('business') });
@@ -546,7 +601,7 @@
     Object.entries(TOURS).forEach(([k, t]) => items.push({ group: 'Tours', label: 'Start the ' + t.name.toLowerCase(), hint: t.steps.length + ' steps', run: () => startTour(k) }));
     RECORDS.forEach(r => items.push({ group: 'Evidence', label: `${r.id} · ${r.title}`, hint: TYPE_LABEL[r.type] || r.type, run: () => openRecord(r.id) }));
     const ql = q.trim().toLowerCase();
-    if (!ql) return items.filter(i => i.group !== 'Evidence').concat(items.filter(i => i.group === 'Evidence').slice(0, 6));
+    if (!ql) return items.filter(i => i.group !== 'Evidence' && i.group !== 'Sections').concat(items.filter(i => i.group === 'Evidence').slice(0, 6));
     const words = ql.split(/\s+/);
     return items.filter(i => words.every(w => (i.label + ' ' + i.hint + ' ' + i.group).toLowerCase().includes(w))).slice(0, 40);
   }
@@ -604,6 +659,8 @@
     const t = e.target;
     const rec = t.closest('[data-record]');
     if (rec) { e.preventDefault(); openRecord(rec.dataset.record); return; }
+    const ptab = t.closest('.ptab[data-ptab]');
+    if (ptab) { selectPane(ptab.closest('.view'), ptab.dataset.ptab); return; }
     const tab = t.closest('[data-tab]');
     if (tab && tab.closest('[data-tabs]')) { selectTab(tab); return; }
     const segBtn = t.closest('.seg[data-seg] button');
@@ -617,6 +674,8 @@
     if (tog) { tog.setAttribute('aria-pressed', String(tog.getAttribute('aria-pressed') !== 'true')); tog.dispatchEvent(new CustomEvent('togglechange', { bubbles: true })); }
     const go = t.closest('[data-go]');
     if (go) { e.preventDefault(); location.hash = go.dataset.go; return; }
+    const pg = t.closest('[data-pane-go]');
+    if (pg) { e.preventDefault(); selectPane(pg.closest('.view'), pg.dataset.paneGo); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const ts = t.closest('[data-toast]');
     if (ts) { toast(ts.dataset.toast); }
     const cp = t.closest('[data-copy]');
@@ -624,7 +683,7 @@
     const dec = t.closest('[data-decide] button');
     if (dec) { const id = dec.closest('[data-decide]').dataset.decide; const d = dec.dataset.d; Decisions.set(id, Decisions.get(id) === d ? '' : d); return; }
     const find = t.closest('[data-bp-find]');
-    if (find) { const el = $(`[data-f="${find.dataset.bpFind}"]`); if (el && el.offsetParent !== null) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('tour-focus'); setTimeout(() => el.classList.remove('tour-focus'), 1600); } else toast('That feature sits in a tab or panel that is closed right now.'); return; }
+    if (find) { const el = $(`#view-${state.view} [data-f="${find.dataset.bpFind}"]`) || $(`[data-f="${find.dataset.bpFind}"]`); reveal(el); if (el && el.offsetParent !== null) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('tour-focus'); setTimeout(() => el.classList.remove('tour-focus'), 1600); } else toast('That feature sits in a tab or panel that is closed right now.'); return; }
     const pal = t.closest('[data-pal]');
     if (pal) { runPal(Number(pal.dataset.pal)); return; }
     const tourStart = t.closest('[data-tour-start]');
@@ -667,7 +726,6 @@
     $('#bp-switch').addEventListener('change', e => setBlueprint(e.target.checked));
     $('#bp-close').addEventListener('click', () => setBlueprint(false));
     $('#bp-expand').addEventListener('click', () => { const p = $('#bp-panel'); const min = p.classList.toggle('min'); $('#bp-expand').textContent = min ? 'Show list' : 'Hide list'; $('#bp-expand').setAttribute('aria-expanded', String(!min)); renderBpPanel(); });
-    $$('#role-seg button').forEach(b => b.addEventListener('click', () => setRole(b.dataset.role)));
     $('#role-select').addEventListener('change', e => setRole(e.target.value));
     $('#theme-btn').addEventListener('click', () => {
       const root = document.documentElement;
@@ -676,8 +734,7 @@
       $('#theme-btn').innerHTML = icon(dark ? 'moon' : 'sun');
     });
     $('#theme-btn').innerHTML = icon(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'sun' : 'moon');
-    $('#side-tours').addEventListener('click', () => $('#tour-btn').click());
-    $('#tour-btn').addEventListener('click', () => {
+    $('#side-tours').addEventListener('click', () => {
       modal.open({
         eyebrow: '<span class="eyebrow accent">Guided tours</span>', title: 'Walk through the product', hideConfirm: true, cancel: 'Close',
         html: `<p>Each tour opens the pages in order and points at the part that matters. Use the bar at the bottom to move.</p><div class="stack tight">${Object.entries(TOURS).map(([k, t]) => `<button type="button" class="list-item panel" data-tour-start="${k}" style="border-radius:10px"><div class="li-main"><span class="li-title">${esc(t.name)}</span><span class="li-sub">${esc(t.blurb)}</span></div><span class="pill outline">${t.steps.length} steps</span></button>`).join('')}</div>`,
@@ -691,11 +748,12 @@
     let bpOn = false;
     try { bpOn = localStorage.getItem('dclab-demo-bp') === '1'; } catch (e) { /* ignore */ }
     setRole('developer');
-    window.addEventListener('hashchange', () => show(currentHash()));
-    show(currentHash());
+    window.addEventListener('hashchange', () => { const h = parseHash(); show(h.view, h.pane); });
+    const h0 = parseHash();
+    show(h0.view, h0.pane);
     if (bpOn) setBlueprint(true);
   }
 
-  window.DC = { $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

@@ -2,53 +2,44 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow accent">Compute and jobs</div>
-      <h1>Where the work runs, what it costs, how to rerun it</h1>
-      <p class="lede">Small tabular work runs on this machine. Code from the intern runs in a sandbox. Vision and fine-tuning go to GPU jobs. Every run leaves a record that is enough to reproduce it.</p>
+      <h1>Compute &amp; jobs</h1>
+      <p class="lede">Tabular work runs on this machine, intern code in a sandbox, vision and fine-tuning on GPU jobs. Every run leaves a record that is enough to reproduce it.</p>
     </div>
     <div class="vh-actions"><button type="button" class="btn" data-toast="In the product: pick hardware, image and data snapshot; the graph decides whether the job may start.">New job</button></div>
   </header>
 
-  <div class="panel" style="margin-bottom:14px">
-    <div class="kpi-strip">
-      <div class="kpi"><span class="label">Running</span><span class="value">1</span><span class="delta">GPU · A10G</span></div>
-      <div class="kpi"><span class="label">Waiting for approval</span><span class="value" style="color:var(--warn)">1</span><span class="delta">over the €5 per-job cap</span></div>
-      <div class="kpi"><span class="label">GPU hours this month</span><span class="value">1.6</span><span class="delta">of 20 included</span></div>
-      <div class="kpi"><span class="label">Spend this month</span><span class="value">€18.40</span><span class="delta">cap €60 · alert at 80%</span></div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">1</span><span class="l">job running · GPU · A10G</span></div>
+      <div class="stat"><span class="v warn">1</span><span class="l">waiting for approval · over the €5 per-job cap</span><div class="row"><button type="button" class="link-btn small" data-pane-go="spend">Review →</button></div></div>
+      <div class="stat"><span class="v">1.6 <small>h</small></span><span class="l">GPU hours this month · 20 included</span></div>
+      <div class="stat"><span class="v">€18.40</span><span class="l">spend this month · cap €60 · alert at 80%</span></div>
+    </div>
+
+    <div class="panel" data-tour="jobs">
+      <div class="panel-head"><div class="panel-title"><h2>Jobs</h2><span class="sub">Click a row for logs, metrics and the reproducibility record</span></div><span class="pill outline">sample jobs</span></div>
+      <div class="table-wrap"><table class="data compact clickable" id="jobs-table"><thead><tr><th>Job</th><th>Project · task</th><th>Hardware</th><th>Status</th><th class="num">Time</th><th class="num">Cost</th><th>Started by</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="panel" id="job-detail">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="jd-eyebrow"></span><h3 id="jd-title"></h3></div><div class="row" id="jd-actions"></div></div>
+      <div class="tabs" data-tabs="jd" role="tablist">
+        <button type="button" class="tab" data-tab="logs" role="tab" aria-selected="true">Logs</button>
+        <button type="button" class="tab" data-tab="metrics" role="tab" aria-selected="false">Metrics</button>
+        <button type="button" class="tab" data-tab="artifacts" role="tab" aria-selected="false">Artifacts</button>
+        <button type="button" class="tab" data-tab="repro" role="tab" aria-selected="false">Reproduce</button>
+      </div>
+      <div class="panel-body">
+        <div data-tab-panel="jd:logs"><pre class="term" id="jd-logs"></pre></div>
+        <div data-tab-panel="jd:metrics" hidden><div id="jd-metrics"></div></div>
+        <div data-tab-panel="jd:artifacts" hidden><div id="jd-artifacts"></div></div>
+        <div data-tab-panel="jd:repro" hidden data-f="compute.repro"><div id="jd-repro"></div></div>
+      </div>
     </div>
   </div>
 
-  <div class="grid g4" style="margin-bottom:14px">
-    <div class="panel" data-f="compute.local"><div class="panel-body stack tight"><div class="spread"><b>This machine</b><span class="pill ok">ready</span></div><span class="small muted">8 CPU cores · tabular stages, evidence index, notebook export. Free.</span></div></div>
-    <div class="panel" data-f="compute.sandbox"><div class="panel-body stack tight"><div class="spread"><b>Sandboxes</b><span class="pill ok">1 active</span></div><span class="small muted">One per project. No secrets, read-only data, network limited to the Hub and Kaggle.</span></div></div>
-    <div class="panel" data-f="compute.gpu"><div class="panel-body stack tight"><div class="spread"><b>Hugging Face Jobs</b><span class="pill ok">connected</span></div><span class="small muted">T4 · L4 · A10G · A100 · H100. Billed to the workspace account.</span></div></div>
-    <div class="panel"><div class="panel-body stack tight"><div class="spread"><b>Your cluster</b><span class="pill outline">not set up</span></div><span class="small muted">Kubernetes or Slurm with a service account. For data that cannot leave.</span></div></div>
-  </div>
-
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel" data-tour="jobs">
-        <div class="panel-head"><div class="panel-title"><h2>Jobs</h2><span class="sub">Click a row for logs, metrics and the reproducibility record</span></div><span class="pill outline">sample jobs</span></div>
-        <div class="table-wrap"><table class="data compact clickable" id="jobs-table"><thead><tr><th>Job</th><th>Project · task</th><th>Hardware</th><th>Status</th><th class="num">Time</th><th class="num">Cost</th><th>Started by</th></tr></thead><tbody></tbody></table></div>
-      </div>
-
-      <div class="panel" id="job-detail">
-        <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="jd-eyebrow"></span><h3 id="jd-title"></h3></div><div class="row" id="jd-actions"></div></div>
-        <div class="tabs" data-tabs="jd" role="tablist">
-          <button type="button" class="tab" data-tab="logs" role="tab" aria-selected="true">Logs</button>
-          <button type="button" class="tab" data-tab="metrics" role="tab" aria-selected="false">Metrics</button>
-          <button type="button" class="tab" data-tab="artifacts" role="tab" aria-selected="false">Artifacts</button>
-          <button type="button" class="tab" data-tab="repro" role="tab" aria-selected="false">Reproduce</button>
-        </div>
-        <div class="panel-body">
-          <div data-tab-panel="jd:logs"><pre class="term" id="jd-logs"></pre></div>
-          <div data-tab-panel="jd:metrics" hidden><div id="jd-metrics"></div></div>
-          <div data-tab-panel="jd:artifacts" hidden><div id="jd-artifacts"></div></div>
-          <div data-tab-panel="jd:repro" hidden data-f="compute.repro"><div id="jd-repro"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <aside class="stack">
+  <div class="pane" data-pane="spend" data-label="Spend &amp; approvals" data-count="1">
+    <div class="grid g2">
       <div class="panel" data-f="compute.spend">
         <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub">October · €18.40 of €60</span></div></div>
         <div class="panel-body"><div id="spend-chart"></div></div>
@@ -62,7 +53,16 @@
           <div class="row"><button type="button" class="btn sm primary" data-toast="Approved. The job starts when an A100 is free; spend alerts stay on.">Approve</button><button type="button" class="btn sm" data-toast="Declined. The request stays in the log with your reason.">Decline</button></div>
         </div>
       </div>
-    </aside>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="where" data-label="Where it runs">
+    <div class="grid g2">
+      <div class="panel" data-f="compute.local"><div class="panel-body stack tight"><div class="spread"><b>This machine</b><span class="pill ok">ready</span></div><span class="small muted">8 CPU cores · tabular stages, evidence index, notebook export. Free.</span></div></div>
+      <div class="panel" data-f="compute.sandbox"><div class="panel-body stack tight"><div class="spread"><b>Sandboxes</b><span class="pill ok">1 active</span></div><span class="small muted">One per project. No secrets, read-only data, network limited to the Hub and Kaggle.</span></div></div>
+      <div class="panel" data-f="compute.gpu"><div class="panel-body stack tight"><div class="spread"><b>Hugging Face Jobs</b><span class="pill ok">connected</span></div><span class="small muted">T4 · L4 · A10G · A100 · H100. Billed to the workspace account.</span></div></div>
+      <div class="panel"><div class="panel-body stack tight"><div class="spread"><b>Your cluster</b><span class="pill outline">not set up</span></div><span class="small muted">Kubernetes or Slurm with a service account. For data that cannot leave.</span></div></div>
+    </div>
   </div>
 </section>
 <script>

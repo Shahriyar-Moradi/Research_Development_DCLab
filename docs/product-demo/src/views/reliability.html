@@ -2,70 +2,75 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow accent">Term-deposit calls · WF-09</div>
-      <h1>Reliability challenge and the holdout</h1>
-      <p class="lede">The holdout opens once, after every choice is locked. Then the result is attacked from every side: probabilities, operating points, slices, missing inputs and time. What survives goes into the brief, with its limits.</p>
+      <h1>Reliability &amp; holdout <span class="pill ok">holdout used once · Oct 2</span></h1>
+      <p class="lede">The holdout opens once, after every choice is locked. Then the result is attacked from every side, and what survives goes into the brief with its limits.</p>
     </div>
-    <div class="vh-actions"><span class="pill ok">holdout used once · Oct 2</span></div>
   </header>
 
-  <div class="grid g-3-1">
-    <div class="stack">
-      <div class="panel" data-f="rel.holdout" data-tour="holdout">
-        <div class="panel-head"><div class="panel-title"><h2>Holdout result</h2><span class="sub">extra_trees · C02 · ratios recipe · 800 untouched rows · bootstrap 95% interval</span></div>${chip:EXP-010}</div>
-        <div class="panel-body">
-          <div class="row top" style="gap:22px;flex-wrap:wrap">
-            <div class="stamp" data-f="rel.seal"><span>Opened once</span><b>Oct 2</b><span>by Shahriyar</span></div>
-            <div class="stack tight" style="flex:1;min-width:240px">
-              <div class="score" style="font-size:30px;font-weight:600;color:var(--ink)">ROC-AUC 0.7718 <span class="ci" style="font-size:16px">[0.7126, 0.8290]</span></div>
-              <div id="holdout-ci"></div>
-              <div class="grid g4">
-                <div class="inset"><div class="small muted">Average precision</div><b class="mono">0.3915</b></div>
-                <div class="inset"><div class="small muted">Brier score</div><b class="mono">0.0870</b></div>
-                <div class="inset"><div class="small muted">Calibration error (ECE)</div><b class="mono">0.0272</b></div>
-                <div class="inset"><div class="small muted">At cut-off 0.5</div><b class="mono">P 0.5652 · R 0.1383</b></div>
-              </div>
-            </div>
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">0.7718</span><span class="l">holdout ROC-AUC · 95% interval 0.7126–0.8290 · 800 untouched rows</span></div>
+      <div class="stat"><span class="v">0.3915</span><span class="l">average precision · at cut-off 0.5: precision 0.5652, recall 0.1383</span></div>
+      <div class="stat"><span class="v">0.0870</span><span class="l">Brier score · calibration error (ECE) 0.0272</span></div>
+      <div class="stat"><span class="v warn">2 <small>of 6</small></span><span class="l">production gate checks done · research evidence is not production approval</span><div class="row"><button type="button" class="link-btn small" data-pane-go="gate">See the gate →</button></div></div>
+    </div>
+
+    <div class="panel" data-f="rel.holdout" data-tour="holdout">
+      <div class="panel-head"><div class="panel-title"><h2>Holdout result</h2><span class="sub">extra_trees · C02 · ratios recipe · 800 untouched rows · bootstrap 95% interval</span></div>${chip:EXP-010}</div>
+      <div class="panel-body">
+        <div class="row top" style="gap:22px;flex-wrap:wrap">
+          <div class="stamp" data-f="rel.seal"><span>Opened once</span><b>Oct 2</b><span>by Shahriyar</span></div>
+          <div class="stack tight" style="flex:1;min-width:240px">
+            <div id="holdout-ci"></div>
           </div>
         </div>
-        <div class="panel-foot bar"><span>Seal record: contract v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
       </div>
+      <div class="panel-foot bar"><span>Seal record: contract v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
+    </div>
+  </div>
 
-      <div class="panel" data-f="rel.threshold">
-        <div class="panel-head"><div class="panel-title"><h2>Operating points</h2><span class="sub">What calling the top share of clients would mean. One real point from the holdout, the rest from the holdout's ranking quality.</span></div></div>
-        <div class="table-wrap"><table class="data compact" id="op-table"><thead><tr><th>Call the top</th><th class="num">Calls per 20,000</th><th class="num">Hit rate (precision)</th><th class="num">Share of all subscribers reached</th><th>Note</th></tr></thead><tbody></tbody></table></div>
-        <div class="panel-foot">Rows marked estimated come from a binormal fit to ROC-AUC 0.7718; at the real cut-off it predicts 55% hit rate for the top 2.5%, against 56.5% measured. The product reads these straight from the holdout predictions.</div>
+  <div class="pane" data-pane="points" data-label="Operating points">
+    <div class="panel" data-f="rel.threshold">
+      <div class="panel-head"><div class="panel-title"><h2>Operating points</h2><span class="sub">What calling the top share of clients would mean. One real point from the holdout, the rest from the holdout's ranking quality.</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="op-table"><thead><tr><th>Call the top</th><th class="num">Calls per 20,000</th><th class="num">Hit rate (precision)</th><th class="num">Share of all subscribers reached</th><th>Note</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">Rows marked estimated come from a binormal fit to ROC-AUC 0.7718; at the real cut-off it predicts 55% hit rate for the top 2.5%, against 56.5% measured. The product reads these straight from the holdout predictions.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="probabilities" data-label="Calibration &amp; slices">
+    <div class="grid g2">
+      <div class="panel" data-f="rel.calibration">
+        <div class="panel-head"><div class="panel-title"><h3>Calibration</h3><span class="sub">Do 30% scores subscribe 30% of the time?</span></div><span class="pill outline">curve is a sample shape</span></div>
+        <div class="panel-body"><div id="calib-chart"></div><p class="xs muted">Brier 0.0870 and ECE 0.0272 are measured ${chip:EXP-010}. The curve shape is drawn to match them.</p></div>
       </div>
+      <div class="panel" data-f="rel.slices">
+        <div class="panel-head"><div class="panel-title"><h3>Slices</h3><span class="sub">ROC-AUC by group, with intervals</span></div><span class="pill outline">sample numbers</span></div>
+        <div class="panel-body"><div id="slice-chart"></div><p class="xs muted">Slices with fewer than 100 holdout rows show as "not enough rows" in the brief. Over-60s and past successes are about 20–30 rows each here.</p></div>
+      </div>
+    </div>
+  </div>
 
-      <div class="grid g2">
-        <div class="panel" data-f="rel.calibration">
-          <div class="panel-head"><div class="panel-title"><h3>Calibration</h3><span class="sub">Do 30% scores subscribe 30% of the time?</span></div><span class="pill outline">curve is a sample shape</span></div>
-          <div class="panel-body"><div id="calib-chart"></div><p class="xs muted">Brier 0.0870 and ECE 0.0272 are measured ${chip:EXP-010}. The curve shape is drawn to match them.</p></div>
-        </div>
-        <div class="panel" data-f="rel.slices">
-          <div class="panel-head"><div class="panel-title"><h3>Slices</h3><span class="sub">ROC-AUC by group, with intervals</span></div><span class="pill outline">sample numbers</span></div>
-          <div class="panel-body"><div id="slice-chart"></div><p class="xs muted">Slices with fewer than 100 holdout rows show as "not enough rows" in the brief. Over-60s and past successes are about 20–30 rows each here.</p></div>
+  <div class="pane" data-pane="stress" data-label="Shift &amp; missing">
+    <div class="grid g2">
+      <div class="panel" data-f="rel.shift">
+        <div class="panel-head"><h3>Shift over time</h3><span class="pill warn">cannot test yet</span></div>
+        <div class="panel-body small stack tight">
+          <p>The table has month and day but no year, so no forward-in-time test is possible. The owner was asked for the real call dates.</p>
+          <p class="muted">On HyperAck, where dates exist, a forward-in-time test scored 0.9371 against 0.9332 for a random split. Time can help or hurt; it has to be measured ${chip:PIT-005}.</p>
         </div>
       </div>
-
-      <div class="grid g2">
-        <div class="panel" data-f="rel.shift">
-          <div class="panel-head"><h3>Shift over time</h3><span class="pill warn">cannot test yet</span></div>
-          <div class="panel-body small stack tight">
-            <p>The table has month and day but no year, so no forward-in-time test is possible. The owner was asked for the real call dates.</p>
-            <p class="muted">On HyperAck, where dates exist, a forward-in-time test scored 0.9371 against 0.9332 for a random split. Time can help or hurt; it has to be measured ${chip:PIT-005}.</p>
-          </div>
-        </div>
-        <div class="panel" data-f="rel.missing">
-          <div class="panel-head"><h3>Missing inputs</h3><span class="pill outline">scheduled</span></div>
-          <div class="panel-body small stack tight">
-            <p>What if <code>poutcome</code> is unknown for new clients? 81.8% of training rows were never contacted before, so the model already sees this state often.</p>
-            <p class="muted">The simulation masks poutcome, previous and pdays on the holdout predictions and reports the drop with an interval ${chip:DCLAB-R12}.</p>
-          </div>
+      <div class="panel" data-f="rel.missing">
+        <div class="panel-head"><h3>Missing inputs</h3><span class="pill outline">scheduled</span></div>
+        <div class="panel-body small stack tight">
+          <p>What if <code>poutcome</code> is unknown for new clients? 81.8% of training rows were never contacted before, so the model already sees this state often.</p>
+          <p class="muted">The simulation masks poutcome, previous and pdays on the holdout predictions and reports the drop with an interval ${chip:DCLAB-R12}.</p>
         </div>
       </div>
     </div>
+  </div>
 
-    <aside class="stack">
+  <div class="pane" data-pane="gate" data-label="Production gate">
+    <div class="grid g2">
       <div class="panel" data-f="rel.gate" data-tour="gate">
         <div class="panel-head"><div class="panel-title"><h3>Production gate</h3><span class="sub">Research evidence is not production approval</span></div><span class="pill warn">2 of 6</span></div>
         <div class="panel-body stack tight">
@@ -80,17 +85,17 @@
           <div class="callout warn"><span class="ic">${icon:info}</span><span><b>Research result.</b> Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span></div>
         </div>
       </div>
-
-      <div class="panel">
+      <div class="stack">
+  <div class="panel">
         <div class="panel-head"><h3>What the critic said</h3>${chip:EXP-010}</div>
         <div class="panel-body small stack tight">
           <p>“Treat the holdout score as a consumed, descriptive result only. Do not approve feature promotion without separate decision-time and production-availability review.”</p>
           <p class="muted">Kept by the gate: it agrees with the numbers. It is why the production gate lists feature contracts.</p>
         </div>
       </div>
-
-      <div class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R17} Consume the holdout once, after every choice is locked.</div><div>${chip:DCLAB-R18} Report ranking, probability quality and operating points.</div><div>${chip:DCLAB-R19} Use time and source slices when those shifts exist.</div></div></div>
-    </aside>
+  <div class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R17} Consume the holdout once, after every choice is locked.</div><div>${chip:DCLAB-R18} Report ranking, probability quality and operating points.</div><div>${chip:DCLAB-R19} Use time and source slices when those shifts exist.</div></div></div>
+      </div>
+    </div>
   </div>
 </section>
 <script>
