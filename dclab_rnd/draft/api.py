@@ -1,0 +1,361 @@
+"""HTTP routes for drafts, mounted by ``dclab_rnd.agentic.server.create_app``.
+
+    GET    /api/packs                         the domain packs (cards on Home and in the solution draft)
+    GET    /api/drafts                        recent drafts
+    POST   /api/drafts {problem, pack?}       start a draft; the agent answers on the event stream
+    GET    /api/drafts/{id}                   the draft
+    DELETE /api/drafts/{id}
+    POST   /api/drafts/{id}/messages {text}   a user turn
+    POST   /api/drafts/{id}/pack {key}        the user picks a pack (wins over detection)
+    PUT    /api/drafts/{id}/data?filename=    upload a file (raw body), processed in the background
+    POST   /api/drafts/{id}/data/sample {key} a dataset the R&D already studied
+    POST   /api/drafts/{id}/data/synthetic {prompt?, rows?}  simulated rows, labelled synthetic
+    GET    /api/drafts/{id}/events            server-sent events (resume with Last-Event-ID or ?after=)
+    PATCH  /api/drafts/{id} {problem}         edit the problem sentence (wizard step 1)
+    POST   /api/drafts/{id}/solution/proposal {target, task?}  the column audit on the cleaned table (step 3)
+    PUT    /api/drafts/{id}/solution          accept the solution draft (validated like a project's solution)
+    PUT    /api/drafts/{id}/settings          split, rows, folds, where it runs, budget (step 4)
+    POST   /api/drafts/{id}/build             turn the draft into a project; returns the project
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import shutil
+from pathlib import Path
+from typing import Any, Callable
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
+
+from . import pack as packs
+from . import pipeline
+from .chat import HomeAgent
+from .store import DraftStore
+
+MAX_UPLOAD = 200 * 1024 * 1024
+STREAM_SECONDS = 600  # the browser's EventSource reconnects and resumes from Last-Event-ID
+
+
+def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callable[[], Any], jobs: dict[str, asyncio.Task]) -> None:
+    from ..studio import data as studio_data
+
+    def get(draft_id: str) -> dict[str, Any]:
+        try:
+            return drafts.get(draft_id)
+        except KeyError:
+            raise HTTPException(404, "Draft not found") from None
+
+    def agent() -> HomeAgent:
+        client = client_factory()
+        return HomeAgent(drafts, client, on_request=lambda did, what, args: requests(did, what, args))
+
+    def background(key: str, fn, *args) -> None:
+        async def go():
+            try:
+                await asyncio.to_thread(fn, *args)
+            finally:
+                jobs.pop(key, None)
+        task = asyncio.get_running_loop().create_task(go())
+        jobs[key] = task
+
+    def requests(draft_id: str, what: str, args: dict[str, Any]) -> None:
+        """The agent asked for something that runs in the background (today: simulate data)."""
+        if what == "simulate":
+            simulate(draft_id, args.get("prompt", ""), int(args.get("rows", 5000)))
+
+    def process(draft_id: str, asset_id: str) -> None:
+        client = client_factory()
+        pipeline.run(drafts, draft_id, asset_id, HomeAgent(drafts, client, on_request=lambda did, what, a: requests(did, what, a)), client)
+
+    def simulate(draft_id: str, prompt: str, rows: int) -> dict[str, Any]:
+        from . import synthetic
+
+        draft = drafts.get(draft_id)
+        context = {"problem": draft["problem"], "understanding": draft.get("understanding") or {}, "pack": (draft.get("pack") or {}).get("key")}
+        drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Designing a synthetic dataset from the conversation"})
+        spec, info = synthetic.spec_from_model(client_factory(), prompt or draft["problem"], context, rows)
+        frame = synthetic.generate(spec)
+        saved = synthetic.save(frame, spec, drafts.data_dir(draft_id))
+        asset = pipeline.new_asset(drafts, draft_id, "synthetic", f"Synthetic · {spec.name}", Path(saved["path"]).name,
+                                   synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name)
+        pipeline.run(drafts, draft_id, asset["id"], agent(), client_factory())
+        return asset
+
+    @app.get("/api/packs")
+    async def list_packs():
+        return packs.PACKS
+
+    @app.get("/api/drafts")
+    async def list_drafts():
+        return [{k: d.get(k) for k in ("id", "problem", "status", "updated", "project_id", "pack")} | {"assets": len(d.get("assets", []))}
+                for d in drafts.list()]
+
+    @app.post("/api/drafts", status_code=201)
+    async def create_draft(request: Request):
+        body = await request.json()
+        problem = str(body.get("problem", "")).strip()
+        if len(problem) < 8:
+            raise HTTPException(422, "Describe the problem in one sentence first")
+        key = body.get("pack") if body.get("pack") in packs.KEYS else None
+        draft = drafts.create(problem[:2000], key)
+        background(draft["id"] + ":agent", lambda: agent().start(draft["id"]))
+        return draft
+
+    @app.get("/api/drafts/{draft_id}")
+    async def read_draft(draft_id: str):
+        return get(draft_id)
+
+    @app.delete("/api/drafts/{draft_id}", status_code=204)
+    async def delete_draft(draft_id: str):
+        get(draft_id)
+        drafts.delete(draft_id)
+
+    @app.patch("/api/drafts/{draft_id}")
+    async def edit_draft(draft_id: str, request: Request):
+        get(draft_id)
+        body = await request.json()
+        problem = str(body.get("problem", "")).strip()
+        if problem:
+            if len(problem) < 8:
+                raise HTTPException(422, "Describe the problem in one sentence first")
+            drafts.update(draft_id, lambda d: d.update(problem=problem[:2000]))
+        return drafts.get(draft_id)
+
+    def clean_frame(draft: dict[str, Any]):
+        import pandas as pd
+
+        asset = next((a for a in draft["assets"] if a["id"] == draft.get("active_asset") and a.get("status") == "ready"), None)
+        if asset is None:
+            raise HTTPException(409, "Bring the data first: the solution draft is checked against the table")
+        return pd.read_parquet(drafts.data_dir(draft["id"]) / asset.get("clean_file", "clean.parquet")), asset
+
+    @app.post("/api/drafts/{draft_id}/solution/proposal")
+    async def draft_proposal(draft_id: str, request: Request):
+        from ..studio import solution as studio_solution
+
+        draft = get(draft_id)
+        body = await request.json()
+        frame, asset = clean_frame(draft)
+        profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
+        try:
+            proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, str(body.get("target", "")), body.get("task"))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        hint = asset.get("suggestion") or {}
+        if hint:  # a studied sample: merge the solution the R&D wrote for it (same rule as a project's proposal)
+            known = {f["column"] for f in proposal["forbidden"]}
+            proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in hint.get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
+            proposal["identifiers"] = sorted(set(proposal["identifiers"]) | set(hint.get("identifiers") or []))
+            if hint.get("prediction_moment"):
+                proposal["prediction_moment_hint"] = hint["prediction_moment"]
+            if hint.get("time_column"):
+                proposal["time_candidates"] = [hint["time_column"]] + [c for c in proposal["time_candidates"] if c != hint["time_column"]]
+        moment = (draft.get("understanding") or {}).get("prediction_moment")
+        if moment:
+            proposal["prediction_moment_hint"] = moment
+        drafts.update(draft_id, lambda d: d.update(proposal=proposal))
+        return proposal
+
+    @app.put("/api/drafts/{draft_id}/solution")
+    async def draft_solution(draft_id: str, request: Request):
+        from pydantic import ValidationError
+        from ..studio import solution as studio_solution
+
+        draft = get(draft_id)
+        frame, _ = clean_frame(draft)
+        try:
+            solution = studio_solution.Solution(**(await request.json()))
+            solution.check_columns([str(c) for c in frame.columns])
+        except ValidationError as exc:
+            raise HTTPException(422, "; ".join(e["msg"] for e in exc.errors())) from None
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+        value = solution.model_dump()
+
+        def put(d):
+            d["solution"] = value
+            d.setdefault("understanding", {}).update(target=value["target"], prediction_moment=value["prediction_moment"])
+        drafts.update(draft_id, put)
+        HomeAgent(drafts, None).refresh_workflow(draft_id)
+        return drafts.get(draft_id)
+
+    @app.put("/api/drafts/{draft_id}/settings")
+    async def draft_settings(draft_id: str, request: Request):
+        get(draft_id)
+        body = await request.json()
+        budget = body.get("budget") or {}
+        settings = {
+            "split": body.get("split") if body.get("split") in ("stratified", "time", "group") else "stratified",
+            "quick": bool(body.get("quick", True)),
+            "max_rows": max(200, min(int(body.get("max_rows") or 20000), 200000)),
+            "folds": max(2, min(int(body.get("folds") or 3), 10)),
+            "where": body.get("where") if body.get("where") in ("local", "sandbox", "gpu") else "local",
+            "budget": {"max_steps": max(1, min(int(budget.get("calls") or 24), 80)), "max_minutes": max(1, min(int(budget.get("minutes") or 20), 240)),
+                       "eur": max(0.0, min(float(budget.get("eur") or 5), 1000.0))},
+            "ask_over_eur": bool(body.get("ask_over_eur", True)),
+        }
+        drafts.update(draft_id, lambda d: d.update(settings=settings))
+        return drafts.get(draft_id)
+
+    @app.post("/api/drafts/{draft_id}/messages", status_code=202)
+    async def message(draft_id: str, request: Request):
+        get(draft_id)
+        text = str((await request.json()).get("text", "")).strip()
+        if not text:
+            raise HTTPException(422, "Write a message first")
+        if (draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done():
+            raise HTTPException(409, "The agent is still answering")
+        background(draft_id + ":agent", lambda: agent().reply(draft_id, text))
+        return {"accepted": True}
+
+    @app.post("/api/drafts/{draft_id}/pack")
+    async def choose_pack(draft_id: str, request: Request):
+        get(draft_id)
+        key = (await request.json()).get("key")
+        a = agent()
+        if key in (None, "", "auto"):
+            det = packs.detect(drafts.get(draft_id)["problem"], drafts.get(draft_id).get("analysis"))
+            a.set_pack(draft_id, det["key"], det["source"], det["why"])
+        elif key in packs.KEYS:
+            a.set_pack(draft_id, key, "user", "You chose this pack.")
+        else:
+            raise HTTPException(422, "Unknown pack")
+        a.refresh_workflow(draft_id)
+        return drafts.get(draft_id)
+
+    @app.put("/api/drafts/{draft_id}/data")
+    async def upload(draft_id: str, request: Request, filename: str):
+        get(draft_id)
+        name = studio_data.safe_name(filename)
+        if not name:
+            raise HTTPException(422, "Give the file a name")
+        body = await request.body()
+        if not body:
+            raise HTTPException(422, "The file is empty")
+        if len(body) > MAX_UPLOAD:
+            raise HTTPException(413, "Files up to 200 MB; for larger tables connect the source instead")
+        (drafts.data_dir(draft_id) / name).write_bytes(body)
+        asset = pipeline.new_asset(drafts, draft_id, "upload", name, name, bytes=len(body))
+        background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
+        return asset
+
+    @app.post("/api/drafts/{draft_id}/data/sample")
+    async def sample(draft_id: str, request: Request):
+        get(draft_id)
+        key = str((await request.json()).get("key", ""))
+        if key not in {s["key"] for s in studio_data.sample_catalog()}:
+            raise HTTPException(404, "Unknown sample dataset")
+        frame, policy = await asyncio.to_thread(studio_data.load_sample, key)
+        name = f"{key}.parquet"
+        await asyncio.to_thread(pipeline._to_parquet, frame, drafts.data_dir(draft_id) / name)
+        asset = pipeline.new_asset(drafts, draft_id, "sample", key, name, suggestion=_suggestion(policy))
+        background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
+        return asset
+
+    @app.post("/api/drafts/{draft_id}/data/synthetic", status_code=202)
+    async def synthetic_data(draft_id: str, request: Request):
+        get(draft_id)
+        body = await request.json()
+        rows = max(100, min(int(body.get("rows") or 5000), 200_000))
+        background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows)
+        return {"accepted": True, "rows": rows}
+
+    @app.get("/api/drafts/{draft_id}/events")
+    async def events(draft_id: str, request: Request, after: int = 0, wait: float = STREAM_SECONDS):
+        get(draft_id)
+        start = int(request.headers.get("last-event-id") or after or 0)
+        limit = max(0.0, min(float(wait), STREAM_SECONDS))  # how long to keep the stream open (tests use a short one)
+
+        async def stream():
+            seq, idle, waited = start, 0.0, 0.0
+            yield "retry: 1500\n\n"
+            first = True
+            while first or waited < limit:
+                first = False
+                if await request.is_disconnected():
+                    break
+                new = await asyncio.to_thread(drafts.events, draft_id, seq)
+                for event in new:
+                    seq = event["seq"]
+                    yield f"id: {seq}\nevent: {event['kind']}\ndata: {json.dumps(event['data'], ensure_ascii=False, default=str)}\n\n"
+                if new:
+                    idle = 0.0
+                else:
+                    idle += 0.4
+                    if idle >= 15:
+                        yield ": keep-alive\n\n"
+                        idle = 0.0
+                await asyncio.sleep(0.4)
+                waited += 0.4
+        return StreamingResponse(stream(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
+
+    @app.post("/api/drafts/{draft_id}/build", status_code=201)
+    async def build(draft_id: str):
+        draft = get(draft_id)
+        if draft.get("project_id"):
+            try:
+                return projects.get(draft["project_id"])
+            except KeyError:
+                pass
+        return await asyncio.to_thread(build_project, drafts, projects, draft_id)
+
+
+def _suggestion(policy: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not policy:
+        return None
+    return {k: policy.get(k) for k in ("target", "task", "positive_label", "forbidden", "identifiers", "time_column", "prediction_moment") if k in policy}
+
+
+def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
+    """Create the project from the draft: its name and goal, the cleaned table, and what the chat established."""
+    from ..studio import data as studio_data
+
+    draft = drafts.get(draft_id)
+    u = draft.get("understanding") or {}
+    name = (u.get("target") or draft["problem"])[:60].strip().rstrip(".") or "New project"
+    project = projects.create(name[:1].upper() + name[1:], "general", draft["problem"])
+    pid = project["id"]
+    asset = next((a for a in draft["assets"] if a["id"] == draft.get("active_asset") and a.get("status") == "ready"), None)
+    if asset is not None:
+        source = drafts.data_dir(draft_id) / asset.get("clean_file", "clean.parquet")
+        filename = Path(asset["name"]).stem[:40] or "data"
+        filename = studio_data.safe_name(filename + ".parquet")
+        shutil.copyfile(source, projects.data_dir(pid) / filename)
+        studio_data.attach_data(projects, pid, filename)
+    project = projects.get(pid)
+    if asset is not None and project.get("data"):
+        project["data"]["synthetic"] = bool(asset.get("synthetic"))
+        suggestion = dict(asset.get("suggestion") or {})
+        target = u.get("target")
+        if target and target in project["data"]["columns"]:
+            suggestion["target"] = target
+        if u.get("prediction_moment"):
+            suggestion.setdefault("prediction_moment", u["prediction_moment"])
+        project["suggestion"] = suggestion or None
+    if draft.get("settings"):
+        st = draft["settings"]
+        project["settings"] = {**project.get("settings", {}), "quick": st["quick"], "max_rows": st["max_rows"]}
+        project["budget"] = st["budget"]
+    project["draft"] = {"id": draft_id, "problem": draft["problem"], "pack": draft.get("pack"), "understanding": u, "settings": draft.get("settings"),
+                        "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
+                        "synthetic": bool(asset and asset.get("synthetic"))}
+    projects.save(project)
+    projects.log(pid, "built_from_draft", {"draft": draft_id, "rows": (project.get("data") or {}).get("rows")})
+    if draft.get("solution") and project.get("data"):
+        from ..studio import graph as studio_graph
+
+        project = projects.get(pid)
+        verdict = studio_graph.check(project, "set_solution", "human", target=draft["solution"]["target"])  # same check as the project page
+        studio_graph.log(projects, pid, verdict, project, outcome="done: solution from the draft" if verdict.allowed else None)
+        if verdict.allowed:
+            project = projects.get(pid)
+            project["solution"] = draft["solution"]
+            projects.save(project)
+
+    def done(d):
+        d["status"], d["project_id"] = "built", pid
+    drafts.update(draft_id, done)
+    drafts.emit(draft_id, "status", {"built": True, "project_id": pid})
+    return projects.get(pid)

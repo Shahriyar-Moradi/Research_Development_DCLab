@@ -10,18 +10,24 @@ window.FEATURES = [
   { id: 'shell.tours', view: 'shell', name: 'Guided tours for new users', status: 'todo', phase: 'P2', where: '', note: 'Onboarding for developers and for business readers.' },
 
   // ---- home
-  { id: 'home.composer', view: 'home', name: 'Start from one sentence', status: 'built', phase: 'Now', where: 'dclab_rnd/agentic/static/js/views/intern.js · intern/loop.py', note: 'The intern composer takes a task in plain words and a budget.' },
-  { id: 'home.inbox', view: 'home', name: '"Needs you" inbox: questions, approvals, sign-offs', status: 'todo', phase: 'P1', where: '', note: 'Fed by the workflow graph when a move needs a human (ask, approve, sign).' },
-  { id: 'home.projects', view: 'home', name: 'Projects table with 10-step progress and honest score', status: 'partial', phase: 'P1', where: 'dclab_rnd/agentic/static/js/views/projects.js', note: 'Project list exists; the 10-step progress needs the workflow graph.' },
-  { id: 'home.kpis', view: 'home', name: 'Workspace health: leaks blocked, holdout discipline, spend', status: 'todo', phase: 'P1', where: '', note: 'Computed from the transition log.' },
+  { id: 'home.composer', view: 'home', name: 'Start from one sentence', status: 'built', phase: 'Now', where: 'draft/api.py · draft/chat.py · views/home.html', note: 'One sentence starts a draft on Home; the agent answers on the live event stream.' },
+  { id: 'home.inbox', view: 'home', name: '"Needs you" inbox: questions, approvals, sign-offs', status: 'built', phase: 'Now', where: 'server.py /api/workspace', note: 'Open questions from drafts and projects without a solution.' },
+  { id: 'home.projects', view: 'home', name: 'Projects table with 10-step progress and honest score', status: 'partial', phase: 'P1', where: 'server.py /api/workspace · views/home.html', note: 'Real projects with their ten-step state; they open in the classic notebook until their pages are wired.' },
+  { id: 'home.kpis', view: 'home', name: 'Workspace health: leaks blocked, holdout discipline, spend', status: 'built', phase: 'Now', where: 'server.py /api/workspace', note: 'Counted from projects and the transition log. Spend is not metered yet.' },
   { id: 'home.activity', view: 'home', name: 'Live activity (intern sessions, jobs, approvals)', status: 'partial', phase: 'P1', where: 'intern/sessions.py', note: 'Intern sessions list exists; a unified feed does not.' },
   { id: 'home.evidence', view: 'home', name: 'Evidence updates (new records, rules strengthened)', status: 'todo', phase: 'P2', where: '', note: '' },
   { id: 'home.quickstarts', view: 'home', name: 'Example tasks per domain pack', status: 'built', phase: 'Now', where: 'intern/sessions.py EXAMPLE_TASKS', note: '' },
 
   // ---- new project
-  { id: 'new.goal', view: 'new', name: 'Goal in plain words, parsed into unit, target, decision', status: 'partial', phase: 'P1', where: 'intern/loop.py (reads the task)', note: 'The structured parse with confirm/edit is new.' },
-  { id: 'new.pack', view: 'new', name: 'Domain pack picker with maturity labels', status: 'partial', phase: 'P3', where: 'studio/data.py detect_task', note: 'Binary, multiclass and regression are detected today; other packs are planned.' },
-  { id: 'new.upload', view: 'new', name: 'Upload CSV / Parquet / Excel', status: 'built', phase: 'Now', where: 'studio/data.py attach_data', note: '' },
+  { id: 'home.bring', view: 'home', name: 'Bring the data on Home: upload, samples, connectors, synthetic', status: 'partial', phase: 'Now', where: 'draft/api.py · draft/pipeline.py', note: 'Upload, studied samples and synthetic data work; Kaggle, Hugging Face and warehouse connectors come next.' },
+  { id: 'home.chat', view: 'home', name: 'Home conversation: a few questions, data analysis as it gets ready', status: 'built', phase: 'Now', where: 'draft/chat.py · draft/analyze.py', note: 'A model when configured; a deterministic question script otherwise.' },
+  { id: 'home.solution', view: 'home', name: 'Solution workflow for this problem, updated from the chat', status: 'built', phase: 'Now', where: 'draft/workflow.py', note: 'Every step maps to a WF block; gates added by code; a model proposal is validated first.' },
+  { id: 'home.pack', view: 'home', name: 'Optional domain pack choice on Home', status: 'built', phase: 'Now', where: 'draft/pack.py', note: '' },
+  { id: 'new.data', view: 'new', name: 'Data step: structure, clean and describe before the target is used', status: 'built', phase: 'Now', where: 'draft/pipeline.py', note: '' },
+  { id: 'new.synthetic', view: 'new', name: 'Synthetic data from a description, labelled synthetic everywhere', status: 'built', phase: 'Now', where: 'draft/synthetic.py', note: 'Schema designed by a model (validated) or a template; seeded generation.' },
+  { id: 'new.goal', view: 'new', name: 'Goal in plain words, parsed into unit, target, decision', status: 'built', phase: 'Now', where: 'draft/chat.py · views/new.html', note: '"DCLab understood" is filled from the Home conversation.' },
+  { id: 'new.pack', view: 'new', name: 'Domain pack picker with maturity labels', status: 'built', phase: 'Now', where: 'draft/pack.py', note: 'Detected from the problem and the data; the user can change it. Packs beyond tabular still run the tabular engine.' },
+  { id: 'new.upload', view: 'new', name: 'Upload CSV / Parquet / Excel', status: 'built', phase: 'Now', where: 'draft/structure.py · draft/clean.py', note: 'Any file: tables, JSON, JSON lines, logs and text are turned into a table, then cleaned with a logged, lossless step list.' },
   { id: 'new.samples', view: 'new', name: 'Sample library: 16 studied datasets with their solutions', status: 'built', phase: 'Now', where: 'studio/data.py sample_catalog', note: '' },
   { id: 'new.hub', view: 'new', name: 'Import from Kaggle and Hugging Face', status: 'partial', phase: 'P2', where: 'dclab_rnd/expansion/datasets.py', note: 'Four named datasets download today; a general importer with license capture is planned.' },
   { id: 'new.warehouse', view: 'new', name: 'Read-only warehouse connectors', status: 'todo', phase: 'P2', where: '', note: 'Postgres, BigQuery, Snowflake, S3.' },
@@ -29,8 +35,8 @@ window.FEATURES = [
   { id: 'new.lineage', view: 'new', name: 'Lineage capture: source, license, snapshot hash, time range', status: 'partial', phase: 'P1', where: 'dclab_rnd/provenance.py', note: 'Provenance exists for campaigns, not yet for user uploads.' },
   { id: 'new.solution', view: 'new', name: 'Solution draft with forbidden columns and proof', status: 'built', phase: 'Now', where: 'studio/solution.py propose · tools._audit_frame', note: '' },
   { id: 'new.split', view: 'new', name: 'Split strategy: time, group or stratified', status: 'built', phase: 'Now', where: 'studio/engine.py prepare', note: '' },
-  { id: 'new.budget', view: 'new', name: 'Compute and budget choice', status: 'partial', phase: 'P2', where: 'tool set_settings · intern budget', note: 'Quick vs full rows and step/minute budgets exist; money caps and GPU choice do not.' },
-  { id: 'new.handoff', view: 'new', name: 'Start in the notebook or hand to the intern', status: 'built', phase: 'Now', where: 'views/project.js "Hand to the intern"', note: '' },
+  { id: 'new.budget', view: 'new', name: 'Compute and budget choice', status: 'partial', phase: 'P2', where: 'draft/api.py settings · intern budget', note: 'Split, rows, folds and budget are saved; sandboxes and GPU jobs are not switched on yet.' },
+  { id: 'new.handoff', view: 'new', name: 'Start in the notebook or hand to the intern', status: 'built', phase: 'Now', where: 'draft/api.py build · views/new.html', note: 'Creates the project with data, solution and settings; opens the classic notebook until the new project pages are wired.' },
 
   // ---- project workflow graph
   { id: 'proj.graph', view: 'project', name: 'Workflow graph WF-01…WF-10 with allowed moves', status: 'built', phase: 'P1', where: 'dclab_rnd/studio/graph.py · Graph tab in views/project.js', note: 'The LLM proposes a move; the graph decides if the move exists. Revisit edges are listed; free reopening of earlier steps is next.' },

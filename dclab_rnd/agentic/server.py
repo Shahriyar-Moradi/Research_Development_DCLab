@@ -25,6 +25,8 @@ from ..intern import llm as intern_llm
 from ..intern.sessions import EXAMPLE_TASKS
 from ..intern.tools import Toolbox
 from .. import mcp_server
+from ..draft import api as draft_api
+from ..draft.store import DraftStore
 
 load_dotenv(ROOT / ".env", override=False)
 STATIC = Path(__file__).with_name("static")
@@ -43,6 +45,10 @@ def create_app(home=None):
     jobs = {}
     intern_sessions = SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
     intern_jobs = {}
+    drafts = DraftStore(Path(os.environ.get("DCLAB_DRAFT_HOME") or (projects.home.parent / "drafts")))
+    draft_jobs = {}
+    def llm_client():
+        return intern_llm.ChatClient() if intern_llm.settings()["available"] else None
     def intern():
         cfg = intern_llm.settings()
         client = intern_llm.ChatClient() if cfg["available"] else None
@@ -59,7 +65,7 @@ def create_app(home=None):
         else:
             async with mcp.run():  # the MCP transport lives as long as the server
                 yield
-        active = list(tasks.values()) + list(jobs.values()) + list(intern_jobs.values())
+        active = list(tasks.values()) + list(jobs.values()) + list(intern_jobs.values()) + list(draft_jobs.values())
         for task in active: task.cancel()
         if active: await asyncio.gather(*active, return_exceptions=True)
     app = FastAPI(title="DCLab notebook", lifespan=lifespan)
@@ -229,7 +235,8 @@ def create_app(home=None):
         body = await request.body()
         if len(body) > 200 * 1024 * 1024: raise HTTPException(413, "Files above 200 MB are not supported in the local notebook")
         if not body: raise HTTPException(400, "Empty file")
-        name = studio_data.safe_name(filename) if hasattr(studio_data, "safe_name") else filename
+        name = studio_data.safe_name(filename)  # never a path: "../x" or "a/b" cannot leave the data folder
+        if not name: raise HTTPException(422, "Give the file a name")
         (projects.data_dir(project_id) / name).write_bytes(body)
         return with_records(attach_data(p, name))
     @app.post("/api/projects/{project_id}/data/sample")
@@ -424,6 +431,41 @@ def create_app(home=None):
         return FileResponse(page)
     @app.get("/classic")
     async def classic(): return FileResponse(STATIC / "index.html")
+    draft_api.register(app, drafts, projects, llm_client, draft_jobs)
+    @app.get("/api/workspace")
+    async def workspace():
+        """What Home shows: real counts, the projects with their progress, and what waits for a person."""
+        def summary():
+            items, forbidden, opened, holdout_projects, blocked = [], 0, 0, 0, 0
+            for p in projects.list():
+                solution = p.get("solution") or {}
+                forbidden += len(solution.get("forbidden") or [])
+                uses = int(p.get("holdout_uses") or 0)
+                if uses:
+                    holdout_projects += 1
+                    opened += 1 if uses == 1 else 0
+                moves = projects.transitions(p["id"], 500)
+                blocked += sum(1 for m in moves if m.get("status") == "blocked")
+                items.append({"id": p["id"], "name": p["name"], "updated": p.get("updated"), "goal": p.get("goal"),
+                              "data": p["data"] and {k: p["data"].get(k) for k in ("filename", "rows", "synthetic")},
+                              "pack": ((p.get("draft") or {}).get("pack") or {}).get("key"), "has_solution": bool(p.get("solution")),
+                              "stages": {k: (v or {}).get("status") for k, v in (p.get("stages") or {}).items()},
+                              "state": studio_graph.state_string(p), "current": studio_graph.current_node(p),
+                              "holdout_uses": uses, "running": p.get("running")})
+            needs = []
+            for d in drafts.list(20):
+                if d.get("status") != "open":
+                    continue
+                q = next((q for q in d.get("questions", []) if not q.get("answered")), None)
+                if q:
+                    needs.append({"kind": "question", "draft": d["id"], "title": q["text"], "sub": d["problem"][:140], "tag": "WF-01"})
+            for it in items:
+                if not it["has_solution"]:
+                    needs.append({"kind": "solution", "project": it["id"], "title": f"{it['name']}: write the solution draft", "sub": "Nothing is trained until the solution is saved.", "tag": "WF-01"})
+            return {"projects": items, "needs": needs[:8],
+                    "stats": {"forbidden": forbidden, "holdouts_once": opened, "holdout_projects": holdout_projects, "blocked_moves": blocked,
+                              "projects": len(items), "drafts": sum(1 for d in drafts.list(200) if d.get("status") == "open")}}
+        return await asyncio.to_thread(summary)
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon(): return Response(status_code=204)
     if mcp is not None:

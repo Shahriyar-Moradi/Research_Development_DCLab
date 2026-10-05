@@ -26,10 +26,10 @@
             <div class="spread"><div class="eyebrow">Start from one sentence</div><span class="small muted">DCLab drafts the solution first, then the plan.</span></div>
             <div class="composer">
               <label class="sr-only" for="home-task">Describe the model you need</label>
-              <textarea id="home-task">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea>
+              <textarea id="home-task" placeholder="Describe the problem in one sentence, or ask for any kind of model. For example: rank our clients for next month's call campaign; a call costs about €8 and a subscription is worth about €110."></textarea>
               <div class="composer-bar">
-                <button type="button" class="btn sm ghost" data-toast="In the product: attach a file, pick a sample, or connect Kaggle, Hugging Face or a warehouse."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Attach data</button>
-                <span class="pill outline">bank_marketing · 45,211 rows</span>
+                <button type="button" class="btn sm ghost" id="home-connect" aria-expanded="false" aria-controls="home-bring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
+                <span class="pill outline" id="home-data-pill" hidden></span>
                 <div class="seg" data-seg="mode" id="home-mode" role="group" aria-label="Who drives">
                   <button type="button" data-v="notebook" aria-pressed="true">I drive · notebook</button>
                   <button type="button" data-v="intern" aria-pressed="false">Intern drives</button>
@@ -51,6 +51,61 @@
                 <button type="button" class="chip" data-example="Predict whether a reviewer recommends a product from the review text, on products the model has never seen.">Text + tabular</button>
                 <button type="button" class="chip" data-example="Detect pedestrians at night and in rain; split by drive so frames from one drive never land in both train and test.">Vision · pedestrians</button>
                 <button type="button" class="chip" data-example="Fine-tune a small model that knows our ten workflow steps and when to stop and ask.">Fine-tune a small model</button>
+              </div>
+            </div>
+            <div class="row small muted" data-f="home.pack">
+              <span>Domain pack:</span>
+              <button type="button" class="chip" id="home-pack-btn" aria-expanded="false" aria-controls="home-packs">Auto-detect ▾</button>
+              <span class="xs">Optional. DCLab detects it from the problem and the data; you can change it later.</span>
+            </div>
+            <div class="grid g3" id="home-packs" hidden></div>
+          </div>
+        </div>
+        <div class="panel" id="home-bring" hidden data-f="home.bring">
+          <div class="panel-head"><div class="panel-title"><h2>Bring the data</h2><span class="sub">DCLab turns it into a table, cleans it and describes it while you keep talking. Nothing about the outcome is looked at yet.</span></div></div>
+          <div class="tabs" data-tabs="hsrc" role="tablist">
+            <button type="button" class="tab" data-tab="upload" role="tab" aria-selected="true">Upload</button>
+            <button type="button" class="tab" data-tab="samples" role="tab" aria-selected="false">Studied samples <span class="pill" id="home-sample-count">16</span></button>
+            <button type="button" class="tab" data-tab="kaggle" role="tab" aria-selected="false">Kaggle</button>
+            <button type="button" class="tab" data-tab="hf" role="tab" aria-selected="false">Hugging Face</button>
+            <button type="button" class="tab" data-tab="wh" role="tab" aria-selected="false">Warehouse</button>
+            <button type="button" class="tab" data-tab="synthetic" role="tab" aria-selected="false">Synthetic</button>
+          </div>
+          <div class="panel-body stack">
+            <div data-tab-panel="hsrc:upload">
+              <div class="drop" id="home-drop"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><b>Drop a file, or choose one</b><span>CSV, Excel, Parquet, JSON, JSON lines, logs or plain text, up to 200 MB. Logs and text are turned into a table first.</span><label class="btn sm" for="home-file">Choose a file</label><input type="file" id="home-file" class="sr-only" accept=".csv,.tsv,.txt,.parquet,.xlsx,.xls,.json,.jsonl,.ndjson,.log"></div>
+            </div>
+            <div data-tab-panel="hsrc:samples" hidden>
+              <div class="table-wrap"><table class="data compact clickable" id="home-samples"><thead><tr><th>Dataset</th><th>Task</th><th class="num">Rows</th><th>Solution the R&amp;D wrote</th><th></th></tr></thead><tbody></tbody></table></div>
+            </div>
+            <div data-tab-panel="hsrc:kaggle" hidden>
+              <div class="stack tight">
+                <div class="row"><input type="search" id="home-kaggle-q" placeholder="Search Kaggle datasets" aria-label="Search Kaggle" data-style="max-width:360px"><button type="button" class="btn sm" data-connect="kaggle">Search Kaggle</button></div>
+                <div class="list panel" id="home-kaggle-list"><div class="empty">Uses your Kaggle token from the server settings; it is never shown here.</div></div>
+                <div class="callout info"><span class="ic">${icon:info}</span><span>Imports record the licence, the exact file version and a SHA-256 of the snapshot, so a result can always be traced to the bytes it was trained on.</span></div>
+              </div>
+            </div>
+            <div data-tab-panel="hsrc:hf" hidden>
+              <div class="grid g2">
+                <div class="field"><label for="home-hf-id">Dataset ID</label><input id="home-hf-id" type="text" placeholder="scikit-learn/adult-census-income"></div>
+                <div class="field"><label for="home-hf-rev">Revision</label><input id="home-hf-rev" type="text" placeholder="main"></div>
+                <div class="field"><label for="home-hf-split">Split</label><input id="home-hf-split" type="text" value="train"></div>
+                <div class="field"><label for="home-hf-cfg">Config</label><input id="home-hf-cfg" type="text" placeholder="default"></div>
+              </div>
+              <div class="row"><button type="button" class="btn sm" data-connect="hf">Import from Hugging Face</button></div>
+            </div>
+            <div data-tab-panel="hsrc:wh" hidden>
+              <div class="grid g3">
+                <button type="button" class="pack-card" data-connect="database"><span class="pc-name">PostgreSQL / MySQL</span><span class="pc-desc">Read-only connection kept on the server, a saved query, a row limit.</span></button>
+                <button type="button" class="pack-card" data-connect="database"><span class="pc-name">BigQuery</span><span class="pc-desc">Service account with read access to one dataset.</span></button>
+                <button type="button" class="pack-card" data-connect="cloud"><span class="pc-name">S3 / GCS</span><span class="pc-desc">Bucket and prefix; Parquet or CSV.</span></button>
+              </div>
+            </div>
+            <div data-tab-panel="hsrc:synthetic" hidden>
+              <div class="stack tight">
+                <div class="field"><label for="home-syn-prompt">Describe the data to simulate</label><textarea id="home-syn-prompt" placeholder="For example: 20,000 telecom customers with tenure, monthly charges, contract type and support calls; about 25% leave within 90 days."></textarea><span class="hint">No real rows are needed or sent. The conversation so far is used as context.</span></div>
+                <div class="row"><label class="small" for="home-syn-rows">Rows</label><select id="home-syn-rows" data-style="width:auto"><option value="2000">2,000</option><option value="5000" selected>5,000</option><option value="20000">20,000</option><option value="100000">100,000</option></select><button type="button" class="btn sm primary" id="home-syn-go">Generate synthetic data</button></div>
+                <div class="callout warn"><span class="ic">${icon:alert}</span><span>Synthetic data is labelled synthetic everywhere: in the project, the notebook and the brief. Use it to design and test the solution, not to report real performance.</span></div>
               </div>
             </div>
           </div>
@@ -86,6 +141,30 @@
             <span class="avatar b">AV</span>
             <div class="li-main"><span class="li-title">Telco churn: choose the outcome window</span><span class="li-sub">30 or 90 days after the snapshot? The solution was reopened and later steps are on hold.</span><span class="row"><span class="pill warn">Revisit</span><span class="tag">WF-01</span></span></div>
           </a>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="home-solution" hidden data-f="home.solution">
+      <div class="panel-head">
+        <div class="panel-title"><h2 id="home-sol-title">Solution workflow</h2><span class="sub" id="home-sol-sub">The big picture for this problem. It changes as the conversation goes on; every step maps to one of the ten DCLab workflow blocks.</span></div>
+        <div class="row"><span class="pill accent" id="home-sol-pack"></span><span class="pill outline" id="home-sol-version"></span></div>
+      </div>
+      <div class="panel-body graph-wrap" id="home-sol-graph"></div>
+      <div class="panel-foot bar" id="home-sol-foot"><span class="legend"><span><i class="ok"></i>done</span><span><i></i>in progress</span><span><i class="s3"></i>waiting for data</span><span><i class="s4"></i>allowed revisit</span><span><i class="sq s2"></i>approval gate</span></span><span class="muted small" id="home-sol-node"></span></div>
+    </div>
+
+    <div class="panel" id="home-chat" hidden data-f="home.chat">
+      <div class="panel-head"><div class="panel-title"><h2>Conversation</h2><span class="sub" id="home-chat-sub">A few questions to understand the problem, and the data as it gets ready.</span></div><span class="pill outline" id="home-chat-mode" hidden></span></div>
+      <div class="panel-body"><div class="thread" id="home-thread" aria-live="polite"></div></div>
+      <div class="panel-foot">
+        <div class="composer">
+          <label class="sr-only" for="home-reply">Reply to DCLab</label>
+          <textarea id="home-reply" placeholder="Answer, ask, or say “let's build the solution”."></textarea>
+          <div class="composer-bar">
+            <button type="button" class="btn sm ghost" data-open-bring="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Connect data</button>
+            <button type="button" class="btn sm" id="home-build">Let's build the solution</button>
+            <button type="button" class="btn primary send" id="home-send">Send<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          </div>
         </div>
       </div>
     </div>
@@ -135,45 +214,336 @@
 </section>
 <script>
 DC.view('home', {
+  /* Home: start from one sentence. A draft is created on "Draft the solution"; its events (chat, data pipeline,
+     analysis, solution workflow) stream from /api/drafts/{id}/events and are rendered here. The user stays on
+     Home until "Let's build the solution" turns the draft into a project. */
   init(el) {
-    const { $, $$, esc, chip, charts } = DC;
-    // fill inline tokens like ${chip:ID} and ${spark}
+    const { $, $$, esc, chip, charts, icon, api, stream, toast, graph } = DC;
     el.innerHTML = el.innerHTML
       .replace(/\$\{chip:([A-Z0-9_-]+)\}/g, (m, id) => chip(id))
+      .replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n))
       .replace('${spark}', charts.spark([2.1, 3.4, 4.0, 6.2, 7.9, 9.4, 12.6, 14.1, 16.0, 18.4], { width: 110, height: 22 }));
-    const tbody = $('#home-projects tbody', el);
-    const segClass = { d: 'd', c: 'c', b: 'b', '-': '' };
-    function rows(filter) {
-      tbody.innerHTML = DEMO.projects.filter(p => filter === 'all' || p.filter === filter).map(p => `
-        <tr data-open="${esc(p.open || '')}" data-name="${esc(p.name)}">
-          <td><div class="cell-main">${esc(p.name)}${p.sample ? ' <span class="pill outline">sample</span>' : ''}</div><div class="cell-sub">${esc(p.dataset)} · ${esc(p.pack)}</div></td>
-          <td><span class="wf-mini" aria-label="${esc(p.at)}">${p.states.split('').map(s => `<i class="${segClass[s] || ''}"></i>`).join('')}</span><div class="cell-sub">${esc(p.at)}</div></td>
-          <td><div class="score">${esc(p.score)}${p.ci ? ` <span class="ci">[${esc(p.ci)}]</span>` : ''}</div><div class="cell-sub">${esc(p.note)} ${p.ev ? chip(p.ev) : ''}</div></td>
-          <td class="num">${p.leaks}</td>
-          <td><span class="pill ${esc(p.cls)}">${esc(p.status)}</span><div class="cell-sub row" data-style="margin-top:4px"><span class="avatar sm ${p.owner === 'AV' ? 'b' : ''}">${esc(p.owner)}</span>${esc(p.updated)}</div></td>
-        </tr>`).join('');
+    const KEY = 'dclab-home-draft';
+    const S = { draft: null, close: null, packs: [], pack: null, analysis: {}, assets: {}, samples: null, thinking: false };
+    const remember = id => { try { id ? localStorage.setItem(KEY, id) : localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ } };
+    const recalled = () => { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+    const fmtN = v => (v == null ? '—' : Number(v).toLocaleString('en-US'));
+    const pctTxt = v => (v == null ? '—' : (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%');
+
+    /* ---------- workspace: stats, needs, projects ---------- */
+    const segClass = { d: 'd', c: 'c', r: 'c', w: 'b', f: 'b', '-': '' };
+    async function loadWorkspace() {
+      let ws;
+      try { ws = await api('/workspace'); } catch (e) { return; }
+      const st = ws.stats, stats = $$('.stats .stat', el);
+      if (stats.length >= 4) {
+        stats[0].innerHTML = `<span class="v">${fmtN(st.forbidden)}</span><span class="l">columns forbidden at the prediction moment, across ${fmtN(st.projects)} project${st.projects === 1 ? '' : 's'}</span>`;
+        stats[1].innerHTML = `<span class="v ok">${fmtN(st.holdouts_once)} <small>/ ${fmtN(st.holdout_projects)}</small></span><span class="l">holdouts opened exactly once · no reuse for selection</span>`;
+        stats[2].innerHTML = `<span class="v">${fmtN(st.blocked_moves)}</span><span class="l">unsafe moves stopped by the workflow graph, each logged with its rule</span>`;
+        stats[3].innerHTML = `<span class="v">${fmtN(st.drafts)}</span><span class="l">open draft${st.drafts === 1 ? '' : 's'} on Home · ${fmtN(st.projects)} project${st.projects === 1 ? '' : 's'}</span>`;
+      }
+      const inbox = $('[data-f="home.inbox"]', el);
+      if (inbox) {
+        $('.pill', inbox).textContent = ws.needs.length;
+        $('.list', inbox).innerHTML = ws.needs.length ? ws.needs.map(n => `<a class="list-item" href="${n.draft ? '#home' : '/classic#project/' + esc(n.project)}" ${n.draft ? `data-resume="${esc(n.draft)}"` : ''}>
+            <span class="avatar ai">AI</span>
+            <div class="li-main"><span class="li-title">${esc(n.title)}</span><span class="li-sub">${esc(n.sub || '')}</span><span class="row"><span class="pill warn">${n.kind === 'question' ? 'Question' : 'Solution'}</span><span class="tag">${esc(n.tag)}</span></span></div></a>`).join('')
+          : '<div class="empty">Nothing waits for you. Start from one sentence above.</div>';
+      }
+      if (ws.projects.length) {
+        const pane = $('[data-pane="projects"]', el);
+        $('#home-projects tbody', el).innerHTML = ws.projects.map(p => `
+          <tr data-real="${esc(p.id)}">
+            <td><div class="cell-main">${esc(p.name)}${p.data && p.data.synthetic ? ' <span class="pill warn">synthetic</span>' : ''}</div><div class="cell-sub">${esc(p.data ? p.data.filename + ' · ' + fmtN(p.data.rows) + ' rows' : 'no data yet')}${p.pack ? ' · ' + esc(p.pack) : ''}</div></td>
+            <td><span class="wf-mini" aria-label="${esc(p.current || 'done')}">${p.state.split('').map(c => `<i class="${segClass[c] || ''}"></i>`).join('')}</span><div class="cell-sub">${esc(p.current || 'all steps done')}</div></td>
+            <td><div class="score">${p.stages && p.stages.final === 'completed' ? 'holdout scored' : '—'}</div><div class="cell-sub">${p.holdout_uses ? 'holdout opened ' + p.holdout_uses + '×' : 'holdout sealed'}</div></td>
+            <td class="num">—</td>
+            <td><span class="pill ${p.running ? 'accent' : p.has_solution ? 'outline' : 'warn'}">${p.running ? 'running' : p.has_solution ? 'in progress' : 'solution draft'}</span><div class="cell-sub">${esc((p.updated || '').slice(0, 10))}</div></td>
+          </tr>`).join('');
+        const tab = $(`.ptab[data-ptab="projects"] .n`, el);
+        if (tab) tab.textContent = ws.projects.length;
+        $('.panel-foot', pane).innerHTML = '<span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Projects open in the classic notebook until their pages are wired.</span>';
+      }
     }
-    rows('all');
-    $('#proj-filter', el).addEventListener('segchange', e => rows(e.detail));
-    tbody.addEventListener('click', e => {
-      if (e.target.closest('[data-record]')) return;
-      const tr = e.target.closest('tr'); if (!tr) return;
-      const open = tr.dataset.open;
-      if (open === 'project') { DC.state.project = 'bank'; location.hash = 'project'; }
-      else if (open === 'hyperack' || open === 'telco') { DC.state.project = open; location.hash = 'project'; }
-      else DC.toast(`In the demo, ${tr.dataset.name} opens as a summary only. Its numbers come from the cited record.`);
+    $('#home-projects tbody', el).addEventListener('click', e => {
+      const real = e.target.closest('tr[data-real]');
+      if (real) { location.href = '/classic#project/' + real.dataset.real; return; }
+    }, true);
+
+    /* ---------- domain packs (optional) ---------- */
+    function packCard(p, on, detected) {
+      return `<button type="button" class="pack-card" data-pack="${esc(p.key)}" aria-pressed="${on ? 'true' : 'false'}"><span class="pc-top"><span class="pack-ic">${icon(p.icon)}</span><span class="pill ${esc(p.cls)}">${esc(p.maturity)}</span></span><span class="pc-name">${esc(p.name)}</span><span class="pc-desc">${esc(p.desc)}</span>${detected ? '<span class="pc-foot"><span class="pill accent">detected</span></span>' : ''}</button>`;
+    }
+    async function loadPacks() {
+      try { S.packs = await api('/packs'); } catch (e) { S.packs = []; }
+      drawPacks();
+    }
+    function drawPacks() {
+      const chosen = S.draft && S.draft.pack ? S.draft.pack : null;
+      const key = S.pack || (chosen && chosen.source === 'user' ? chosen.key : null);
+      $('#home-packs', el).innerHTML = S.packs.map(p => packCard(p, p.key === key, chosen && chosen.source !== 'user' && chosen.key === p.key)).join('');
+      const name = key ? (S.packs.find(p => p.key === key) || {}).name : chosen ? `Auto · ${(S.packs.find(p => p.key === chosen.key) || {}).name || chosen.key}` : 'Auto-detect';
+      $('#home-pack-btn', el).textContent = name + ' ▾';
+    }
+    $('#home-pack-btn', el).addEventListener('click', () => {
+      const g = $('#home-packs', el), open = g.hidden;
+      g.hidden = !open; $('#home-pack-btn', el).setAttribute('aria-expanded', String(open));
     });
-    el.addEventListener('click', e => {
+    $('#home-packs', el).addEventListener('click', async e => {
+      const card = e.target.closest('[data-pack]'); if (!card) return;
+      const key = card.dataset.pack;
+      S.pack = S.pack === key ? null : key;
+      drawPacks();
+      if (S.draft) {
+        try { S.draft = await api(`/drafts/${S.draft.id}/pack`, { method: 'POST', body: { key: S.pack || 'auto' } }); drawPacks(); }
+        catch (err) { toast(err.message, { ok: false }); }
+      }
+    });
+
+    /* ---------- the draft ---------- */
+    function showDraftPanels(on) {
+      $('#home-solution', el).hidden = !on;
+      $('#home-chat', el).hidden = !on;
+    }
+    async function ensureDraft() {
+      if (S.draft && S.draft.status === 'open') return S.draft;
+      const problem = $('#home-task', el).value.trim();
+      if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
+      S.draft = await api('/drafts', { method: 'POST', body: { problem, pack: S.pack } });
+      remember(S.draft.id);
+      openDraft(S.draft);
+      return S.draft;
+    }
+    function openDraft(draft) {
+      S.draft = draft; S.analysis = {}; S.assets = {};
+      $('#home-thread', el).innerHTML = '';
+      $('#home-task', el).value = draft.problem;
+      showDraftPanels(true);
+      api('/intern').then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? 'model · ' + i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
+      if (S.close) S.close();
+      S.close = stream(`/drafts/${draft.id}/events`, onEvent);
+      drawPacks();
+      updateDataPill();
+    }
+    async function resume(id) {
+      try { const d = await api(`/drafts/${id}`); if (d.status === 'open') { openDraft(d); return true; } } catch (e) { /* gone */ }
+      remember(null); return false;
+    }
+    $('#home-start', el).addEventListener('click', async () => {
+      if (S.draft && S.draft.status === 'open' && $('#home-task', el).value.trim() !== S.draft.problem) { S.draft = null; remember(null); }
+      try { await ensureDraft(); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { if (e.message !== 'no problem') toast(e.message, { ok: false }); }
+    });
+    el.addEventListener('click', async e => {
       const ex = e.target.closest('[data-example]');
       if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
-      const link = e.target.closest('[data-project]');
-      if (link) DC.state.project = link.dataset.project;
+      const res = e.target.closest('[data-resume]');
+      if (res) { e.preventDefault(); if (await resume(res.dataset.resume)) { DC.selectPane(el, 'overview'); $('#home-chat', el).scrollIntoView({ behavior: 'smooth' }); } }
     });
-    $('#home-start', el).addEventListener('click', () => {
-      const mode = $('#home-mode button[aria-pressed="true"]', el).dataset.v;
-      if (mode === 'intern') { DC.toast('Handed to the intern. It drafts the solution and asks before anything irreversible.'); location.hash = 'intern'; }
-      else { DC.toast('Solution draft ready. Check the goal, then the data.'); location.hash = 'new'; }
+
+    /* ---------- events from the draft ---------- */
+    function onEvent(kind, data) {
+      if (kind === 'chat') renderMessage(data);
+      else if (kind === 'pipeline') renderPipeline(data);
+      else if (kind === 'analysis') { S.analysis[data.asset] = data.analysis; }
+      else if (kind === 'workflow') drawWorkflow(data.workflow, data.rejected);
+      else if (kind === 'status') onStatus(data);
+    }
+    function onStatus(d) {
+      if (d.pack) { if (S.draft) S.draft.pack = d.pack; drawPacks(); $('#home-sol-pack', el).textContent = (S.packs.find(p => p.key === d.pack.key) || {}).name || d.pack.key; }
+      if ('thinking' in d) setThinking(d.thinking);
+      if (d.note) addSystem(d.note);
+      if (d.built) { S.draft.status = 'built'; }
+    }
+    function setThinking(on) {
+      S.thinking = on;
+      let t = $('#home-typing', el);
+      if (on && !t) { $('#home-thread', el).insertAdjacentHTML('beforeend', `<div class="msg" id="home-typing"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab</div><div class="typing muted small">Thinking</div></div></div>`); }
+      if (!on && t) t.remove();
+    }
+    function addSystem(text) {
+      $('#home-thread', el).insertAdjacentHTML('beforeend', `<div class="callout info small"><span class="ic">${icon('info')}</span><span>${esc(text)}</span></div>`);
+    }
+    function scrollThread() { const t = $('#home-thread', el); t.lastElementChild && t.lastElementChild.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+
+    function renderMessage(m) {
+      setThinking(false);
+      const thread = $('#home-thread', el);
+      if (m.role === 'user') {
+        $$('.ask-card:not([data-done])', thread).forEach(card => { card.dataset.done = '1'; $$('.ask-option', card).forEach(b => { b.disabled = true; if (b.dataset.answer === m.text) b.setAttribute('aria-pressed', 'true'); }); });
+        thread.insertAdjacentHTML('beforeend', `<div class="msg user"><span class="avatar">SM</span><div class="msg-body"><div class="who">You <span>${esc((m.at || '').slice(11, 16))}</span></div><div class="bubble">${esc(m.text)}</div></div></div>`);
+        return scrollThread();
+      }
+      let body = '';
+      if (m.kind === 'question') {
+        const q = m.question || {};
+        body = `<div class="ask-card"><div class="q">${esc(m.text)}</div>${q.why ? `<div class="small muted">${esc(q.why)}</div>` : ''}${(q.options || []).length ? `<div class="ask-options">${q.options.map(o => `<button type="button" class="ask-option" data-answer="${esc(o)}">${esc(o)}</button>`).join('')}</div>` : '<div class="small muted">Answer below in your own words.</div>'}</div>`;
+      } else if (m.kind === 'analysis') {
+        body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
+      } else if (m.kind === 'summary') {
+        body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
+      } else {
+        body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}</div>` : ''}`;
+      }
+      thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}</div></div>`);
+      DC.hydrate(thread);
+      scrollThread();
+    }
+
+    function renderPipeline(d) {
+      const thread = $('#home-thread', el);
+      const id = typeof d.asset === 'object' && d.asset ? d.asset.id : d.asset;
+      if (d.step === 'designing') { addSystem(d.text); return; }
+      if (typeof d.asset === 'object' && d.asset) { S.assets[id] = d.asset; updateDataPill(); }
+      let box = id && $(`[data-asset-run="${id}"]`, thread);
+      if (!box && id) {
+        const a = S.assets[id] || {};
+        thread.insertAdjacentHTML('beforeend', `<details class="tool-call" data-asset-run="${esc(id)}"><summary><span class="tname">${a.synthetic ? 'synthetic data' : 'prepare data'}</span><span class="tsum">${esc(a.name || 'data')}</span><span class="pill outline" data-asset-state>queued</span></summary><div class="tc-body small"><ol class="plan-list" data-asset-steps></ol></div></details>`);
+        box = $(`[data-asset-run="${id}"]`, thread);
+      }
+      if (!box) return;
+      const pill = $('[data-asset-state]', box), steps = $('[data-asset-steps]', box);
+      const label = { queued: 'queued', structuring: 'reading', structured: 'cleaning', cleaned: 'describing', ready: 'ready', failed: 'failed' }[d.step] || d.step;
+      pill.textContent = label;
+      pill.className = 'pill ' + (d.step === 'ready' ? 'ok' : d.step === 'failed' ? 'bad' : 'accent');
+      if (d.text && d.step !== 'queued') steps.insertAdjacentHTML('beforeend', `<li class="${d.step === 'failed' ? 'blocked' : 'done'}"><span class="pi">${d.step === 'failed' ? '!' : '✓'}</span><span class="t">${esc(d.text)}</span></li>`);
+      if (d.log && d.log.length) steps.insertAdjacentHTML('beforeend', d.log.map(l => `<li class="done"><span class="pi">✓</span><span>${esc(l.title)}<span class="muted"> · ${esc(l.detail)}</span></span></li>`).join(''));
+      if (d.step === 'ready' || d.step === 'failed') { if (S.assets[id]) S.assets[id].status = d.step; updateDataPill(); loadWorkspace(); }
+      scrollThread();
+    }
+    function updateDataPill() {
+      const ready = Object.values(S.assets).filter(a => a.status === 'ready' || a.status === 'queued' || !a.status);
+      const last = ready[ready.length - 1];
+      const pill = $('#home-data-pill', el);
+      pill.hidden = !last;
+      if (last) pill.textContent = `${last.name}${last.synthetic ? ' · synthetic' : ''}`;
+    }
+
+    function analysisCard(a, assetId) {
+      if (!a) return '';
+      const s = a.summary || {};
+      const kinds = Object.entries(s.kinds || {}).map(([k, v]) => `${v} ${k}`).join(' · ');
+      const cols = a.columns || [];
+      const missing = cols.filter(c => c.missing_rate > 0).sort((x, y) => y.missing_rate - x.missing_rate).slice(0, 6);
+      const num = cols.find(c => c.hist && c.hist.counts && c.hist.counts.length > 2);
+      const ids = new Set(((a.profile || {}).id_candidates) || []);
+      const cat = cols.find(c => c.top && c.top.length > 1 && !ids.has(c.name) && c.unique <= 50);
+      let charts = '';
+      if (missing.length) charts += `<div class="inset"><div class="eyebrow">Missing values</div>${DC.charts.barsH(missing.map(c => ({ label: c.name, value: c.missing_rate, valueText: pctTxt(c.missing_rate), cls: c.missing_rate > 0.3 ? 'warn' : '' })), { width: 420, labelW: 140, valW: 60, min: 0, max: 1, rowH: 24, ticks: [0, 0.5, 1], tickFmt: v => (v * 100) + '%', aria: 'Missing values by column' })}</div>`;
+      if (num) charts += `<div class="inset"><div class="eyebrow">Distribution · ${esc(num.name)}</div>${DC.charts.vbars(num.hist.counts.map((v, i) => ({ value: v, label: i === 0 || i === num.hist.counts.length - 1 ? Number(num.hist.edges[i]).toPrecision(3) : null })), { width: 420, height: 140, aria: 'Histogram of ' + num.name })}</div>`;
+      if (cat) charts += `<div class="inset"><div class="eyebrow">Top values · ${esc(cat.name)}</div>${DC.charts.barsH(cat.top.slice(0, 6).map(([v, n]) => ({ label: String(v).slice(0, 18), value: n, valueText: fmtN(n) })), { width: 420, labelW: 140, valW: 70, rowH: 22, aria: 'Top values of ' + cat.name })}</div>`;
+      const hl = (a.highlights || []).slice(0, 5).map(h => `<li class="${h.severity === 'warning' ? 'blocked' : 'done'}"><span class="pi">${h.severity === 'warning' ? '!' : 'i'}</span><span><b>${esc(h.title)}</b> <span class="muted">${esc(h.text)}</span></span></li>`).join('');
+      return `<div class="stack tight">
+        <div class="stats"><div class="stat"><span class="v">${fmtN(s.rows)}</span><span class="l">rows${s.sampled_rows ? ' · charts on a sample' : ''}</span></div><div class="stat"><span class="v">${fmtN(s.columns)}</span><span class="l">${esc(kinds || 'columns')}</span></div><div class="stat"><span class="v">${pctTxt(s.missing_cell_rate)}</span><span class="l">missing cells</span></div><div class="stat"><span class="v">${fmtN(s.duplicate_rows)}</span><span class="l">duplicate rows left</span></div></div>
+        ${hl ? `<ul class="plan-list">${hl}</ul>` : ''}
+        <div class="grid g2">${charts}</div>
+        <div class="xs muted">Descriptive only: nothing here looks at the outcome yet. Relations with the target are checked on training rows after the split (WF-04).</div>
+      </div>`;
+    }
+
+    /* ---------- solution workflow ---------- */
+    function drawWorkflow(wf, rejected) {
+      if (!wf) return;
+      S.workflow = wf;
+      $('#home-sol-title', el).textContent = wf.title || 'Solution workflow';
+      $('#home-sol-version', el).textContent = 'v' + wf.version + (wf.source === 'model' ? ' · agent' : ' · template');
+      $('#home-sol-graph', el).innerHTML = graph.render(wf, { selected: S.node });
+      if (rejected && rejected.length) addSystem('DCLab kept the previous workflow: the proposed one ' + rejected.join('; ') + '.');
+    }
+    $('#home-sol-graph', el).addEventListener('click', e => {
+      const g = e.target.closest('[data-node]'); if (!g || !S.workflow) return;
+      const n = S.workflow.nodes.find(x => x.id === g.dataset.node); if (!n) return;
+      S.node = n.id; drawWorkflow(S.workflow);
+      $('#home-sol-node', el).textContent = `${n.wf} · ${n.label}: ${n.detail || ''}`;
     });
+
+    /* ---------- talking ---------- */
+    async function send(text) {
+      text = (text || '').trim(); if (!text) return;
+      try { await ensureDraft(); } catch (e) { return; }
+      try { await api(`/drafts/${S.draft.id}/messages`, { method: 'POST', body: { text } }); $('#home-reply', el).value = ''; }
+      catch (err) { toast(err.status === 409 ? 'DCLab is still answering; send again in a moment.' : err.message, { ok: false }); }
+    }
+    $('#home-send', el).addEventListener('click', () => send($('#home-reply', el).value));
+    $('#home-reply', el).addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send($('#home-reply', el).value); } });
+    $('#home-thread', el).addEventListener('click', e => {
+      const opt = e.target.closest('.ask-option[data-answer]');
+      if (opt && !opt.disabled) send(opt.dataset.answer);
+    });
+
+    /* ---------- bring the data ---------- */
+    function openBring(tab) {
+      const card = $('#home-bring', el);
+      card.hidden = false; $('#home-connect', el).setAttribute('aria-expanded', 'true');
+      if (tab && tab !== '1') { const b = $(`[data-tabs="hsrc"] [data-tab="${tab}"]`, el); if (b) b.click(); }
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    $('#home-connect', el).addEventListener('click', () => { const card = $('#home-bring', el); if (card.hidden) openBring(); else { card.hidden = true; $('#home-connect', el).setAttribute('aria-expanded', 'false'); } });
+    el.addEventListener('click', async e => {
+      const ob = e.target.closest('[data-open-bring]'); if (ob) { openBring(ob.dataset.openBring); return; }
+      const b = e.target.closest('[data-build]'); if (b) { build(); return; }
+      const c = e.target.closest('[data-connect]');
+      if (c) {
+        try { await ensureDraft(); await api(`/drafts/${S.draft.id}/data/${c.dataset.connect}`, { method: 'POST', body: connectBody(c.dataset.connect) }); toast('Import started.'); }
+        catch (err) { if (err.message !== 'no problem') toast(err.status === 404 || err.status === 405 ? 'This connector is not switched on in this build yet. Upload a file or use a studied sample.' : err.message, { ok: false }); }
+      }
+    });
+    function connectBody(kind) {
+      if (kind === 'kaggle') return { query: $('#home-kaggle-q', el).value };
+      if (kind === 'hf') return { dataset: $('#home-hf-id', el).value, revision: $('#home-hf-rev', el).value, split: $('#home-hf-split', el).value, config: $('#home-hf-cfg', el).value };
+      return {};
+    }
+    async function uploadFile(file) {
+      if (!file) return;
+      try { await ensureDraft(); } catch (e) { return; }
+      try {
+        toast(`Uploading ${file.name}…`);
+        await api(`/drafts/${S.draft.id}/data?filename=${encodeURIComponent(file.name)}`, { method: 'PUT', body: file, headers: { 'Content-Type': 'application/octet-stream' } });
+        $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) { toast(err.message, { ok: false }); }
+    }
+    $('#home-file', el).addEventListener('change', e => uploadFile(e.target.files[0]));
+    const drop = $('#home-drop', el);
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); uploadFile(e.dataTransfer.files[0]); });
+
+    async function loadSamples() {
+      if (S.samples) return;
+      try { S.samples = await api('/samples'); } catch (e) { S.samples = []; }
+      $('#home-sample-count', el).textContent = S.samples.length;
+      $('#home-samples tbody', el).innerHTML = S.samples.map(s => `<tr data-sample="${esc(s.key)}"><td><span class="cell-main">${esc(s.key)}</span><div class="cell-sub">${esc(s.name || '')}</div></td><td>${esc(s.task || '')}</td><td class="num">${fmtN(s.rows)}</td><td class="small">${esc(s.decision || s.moment || '')}</td><td><button type="button" class="btn sm">Use</button></td></tr>`).join('');
+    }
+    $('[data-tabs="hsrc"]', el).addEventListener('tabchange', e => { if (e.detail === 'samples') loadSamples(); });
+    $('#home-samples', el).addEventListener('click', async e => {
+      const tr = e.target.closest('tr[data-sample]'); if (!tr || e.target.closest('[data-record]')) return;
+      try { await ensureDraft(); } catch (err) { return; }
+      try { await api(`/drafts/${S.draft.id}/data/sample`, { method: 'POST', body: { key: tr.dataset.sample } }); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      catch (err) { toast(err.message, { ok: false }); }
+    });
+    $('#home-syn-go', el).addEventListener('click', async () => {
+      try { await ensureDraft(); } catch (e) { return; }
+      try {
+        await api(`/drafts/${S.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#home-syn-prompt', el).value || S.draft.problem, rows: Number($('#home-syn-rows', el).value) } });
+        $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) { toast(err.message, { ok: false }); }
+    });
+
+    /* ---------- build ---------- */
+    function build() {
+      // The wizard continues on the same draft: data, solution draft, split and budget; the project is created at "Review and start".
+      if (!S.draft) { toast('Start with one sentence first.', { ok: false }); return; }
+      DC.state.draftId = S.draft.id;
+      location.hash = 'new';
+    }
+    $('#home-build', el).addEventListener('click', build);
+
+    this.loadWorkspace = loadWorkspace;
+    this.resume = resume;
+    loadPacks();
+  },
+  enter(el) {
+    this.loadWorkspace();
+    try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
   },
 });
 </script>

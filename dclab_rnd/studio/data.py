@@ -275,6 +275,13 @@ class DataError(ValueError):
     """A table the notebook cannot use; the message is safe to show."""
 
 
+def safe_name(filename: str) -> str:
+    """A file name that cannot leave the data folder: the last path part, safe characters only, no leading dots."""
+    base = re.split(r"[\\/]", str(filename or ""))[-1]
+    base = re.sub(r"[^A-Za-z0-9._-]+", "_", base).lstrip("._")[:120]
+    return base
+
+
 def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     """Register ``data/<filename>`` (already written) as the project's table and profile it."""
     path = store.data_dir(project_id) / filename

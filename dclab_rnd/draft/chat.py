@@ -1,0 +1,342 @@
+"""The Home agent: understands the problem in a few questions and keeps the solution workflow current.
+
+It is not a general chatbot. Its job on Home is narrow: find out what should be predicted, at which moment,
+what each prediction changes and what an error costs; describe the data the user brought; and keep a
+solution workflow for this problem. It asks at most ``MAX_QUESTIONS`` questions, one at a time.
+
+Two modes, like the intern:
+- with a model (``client`` given): the model reads a compact context (the problem, the answers so far, the
+  data summary; never raw rows) and acts through a few tools. Code validates what it proposes.
+- without a model, or when the model fails: a deterministic question script does the same job.
+
+Every message and change is written to the draft and emitted as an event for the live Home page.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import secrets
+from typing import Any, Callable
+
+from . import pack as packs
+from . import workflow as wflow
+from .store import DraftStore, now
+
+MAX_QUESTIONS = 4
+FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan")
+BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
+SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
+
+POLICY = """You are the DCLab Home agent. A user described a machine-learning problem and may have brought data.
+Your job: understand the real problem (not only "build a model") in at most 4 short questions, one at a time,
+and keep a solution workflow for it. Ask about: what exactly is predicted and for whom; the moment the prediction
+is made and what is known then; what happens with each prediction and what a wrong one costs; and, if no data
+was shared, whether they can upload a sample, connect a source, or want simulated data.
+Rules: never invent numbers or claim a model will perform well; never ask for passwords or keys; the data summary
+is descriptive only. Use tools: ask_user to ask (with 2-4 short options when natural), record to store an answer
+you understood, set_pack when the problem clearly fits another domain pack, propose_workflow to replace the
+workflow (every step tied to a block WF-01..WF-10, in order; keep WF-01, WF-03, WF-05, WF-09), request_data to
+offer upload / connect / simulate. Reply to the user in plain English, 1-3 sentences."""
+
+TOOLS = [
+    {"type": "function", "function": {"name": "ask_user", "description": "Ask the user one short question.", "parameters": {
+        "type": "object", "properties": {"question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
+                                         "field": {"type": "string", "enum": list(FIELDS)}, "why": {"type": "string"}},
+        "required": ["question", "field"]}}},
+    {"type": "function", "function": {"name": "record", "description": "Store an answer you understood.", "parameters": {
+        "type": "object", "properties": {"field": {"type": "string", "enum": list(FIELDS) + ["unit", "horizon", "constraints", "notes"]},
+                                         "value": {"type": "string"}}, "required": ["field", "value"]}}},
+    {"type": "function", "function": {"name": "set_pack", "description": "Switch the domain pack.", "parameters": {
+        "type": "object", "properties": {"key": {"type": "string", "enum": packs.KEYS}, "why": {"type": "string"}}, "required": ["key", "why"]}}},
+    {"type": "function", "function": {"name": "propose_workflow", "description": "Replace the solution workflow.", "parameters": {
+        "type": "object", "properties": {"title": {"type": "string"}, "nodes": {"type": "array", "items": {"type": "object", "properties": {
+            "wf": {"type": "string"}, "label": {"type": "string"}, "detail": {"type": "string"}}, "required": ["wf", "label"]}}},
+        "required": ["nodes"]}}},
+    {"type": "function", "function": {"name": "request_data", "description": "Offer the user ways to bring data.", "parameters": {
+        "type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
+]
+
+
+def moment_options(pack: str | None) -> list[str]:
+    if pack == "timeseries":
+        return ["The day before", "A week ahead", "A month ahead"]
+    if pack in ("imbalanced",):
+        return ["At the moment of the transaction", "Before approving the case", "In a nightly review"]
+    return ["Right before we act (e.g. before the call)", "At a fixed snapshot each month", "As soon as the event happens"]
+
+
+class HomeAgent:
+    def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None):
+        self.store, self.client = store, client
+        self.on_request = on_request or (lambda draft_id, what, args: None)
+
+    # ------------------------------------------------------------------ helpers
+    def say(self, draft_id: str, text: str, kind: str = "text", **extra: Any) -> dict[str, Any]:
+        msg = {"id": "m" + secrets.token_hex(5), "role": "agent", "kind": kind, "text": text, "at": now(), **extra}
+
+        def add(d):
+            d["messages"].append(msg)
+        self.store.update(draft_id, add)
+        self.store.emit(draft_id, "chat", msg)
+        return msg
+
+    def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "") -> dict[str, Any] | None:
+        draft = self.store.get(draft_id)
+        asked = [q for q in draft["questions"] if not q.get("superseded")]
+        if len(asked) >= MAX_QUESTIONS or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):
+            return None
+        q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None}
+
+        def add(d):
+            d["questions"].append(q)
+        self.store.update(draft_id, add)
+        return self.say(draft_id, question, kind="question", question=q)
+
+    def pending(self, draft: dict[str, Any]) -> dict[str, Any] | None:
+        return next((q for q in draft["questions"] if not q.get("answered")), None)
+
+    def record(self, draft_id: str, field: str, value: str) -> None:
+        def put(d):
+            d.setdefault("understanding", {})[field] = value.strip()[:400]
+        self.store.update(draft_id, put)
+
+    def refresh_workflow(self, draft_id: str, proposed: dict[str, Any] | None = None) -> dict[str, Any]:
+        draft = self.store.get(draft_id)
+        key = (draft.get("pack") or {}).get("key") or "tabular"
+        problems: list[str] = []
+        if proposed:
+            wf, problems = wflow.validate(proposed, key)
+        else:
+            wf = None
+        if wf is None:
+            current = draft.get("workflow")
+            wf = current if (current and current.get("source") == "model" and not proposed) else wflow.template(key, draft.get("understanding"))
+        wf = wflow.with_states(wf, draft)
+        wf["version"] = ((draft.get("workflow") or {}).get("version") or 0) + 1
+        wf["title"] = wf.get("title") or title_for(draft, key)
+
+        def put(d):
+            d["workflow"] = wf
+        self.store.update(draft_id, put)
+        self.store.emit(draft_id, "workflow", {"workflow": wf, "rejected": problems})
+        return wf
+
+    def set_pack(self, draft_id: str, key: str, source: str, why: str) -> None:
+        def put(d):
+            d["pack"] = {"key": key, "source": source, "why": why}
+        self.store.update(draft_id, put)
+        self.store.emit(draft_id, "status", {"pack": {"key": key, "source": source, "why": why}})
+
+    # ------------------------------------------------------------------ entry points
+    def start(self, draft_id: str) -> None:
+        """A new draft with a problem sentence: restate it, pick the pack, draw the workflow, ask the first question."""
+        draft = self.store.get(draft_id)
+        chosen = (draft.get("pack") or {}).get("key") if (draft.get("pack") or {}).get("source") == "user" else None
+        det = packs.detect(draft["problem"], draft.get("analysis"), chosen)
+        self.set_pack(draft_id, det["key"], det["source"], det["why"])
+        name = (packs.by_key(det["key"]) or {}).get("name", det["key"])
+        has_data = bool(draft.get("assets"))
+        why = det["why"].rstrip(".")
+        self.say(draft_id, f"I read the problem as: “{draft['problem']}”. I'll start from the {name} pack ({why[:1].lower() + why[1:]})."
+                 + (" Your data is being prepared now; I'll describe it as soon as it is ready." if has_data else
+                    " You can upload or connect data at any time, or we can plan the solution first."), kind="text")
+        self.refresh_workflow(draft_id)
+        self.next_turn(draft_id, opening=True)
+
+    def data_ready(self, draft_id: str, asset: dict[str, Any]) -> None:
+        """The table is analysed: describe it briefly, update the pack from data signals and the workflow, ask about the outcome."""
+        draft = self.store.get(draft_id)
+        analysis = draft.get("analysis") or {}
+        s = analysis.get("summary") or {}
+        steps = len(draft.get("cleaning_log") or [])
+        label = "synthetic " if asset.get("synthetic") else ""
+        text = (f"Your {label}data is ready: {s.get('rows', 0):,} rows and {s.get('columns', 0)} columns"
+                + (f", after {steps} cleaning step{'s' if steps != 1 else ''}" if steps else "") + ". Here is a first look.")
+        self.say(draft_id, text, kind="analysis", asset=asset.get("id"))
+        if (draft.get("pack") or {}).get("source") != "user":
+            det = packs.detect(draft["problem"], analysis)
+            if det["key"] != (draft.get("pack") or {}).get("key") and det["source"] in ("problem", "data"):
+                self.set_pack(draft_id, det["key"], det["source"], det["why"])
+        self.refresh_workflow(draft_id)
+        draft = self.store.get(draft_id)
+        pending = self.pending(draft)
+        candidates = ((draft.get("analysis") or {}).get("profile") or {}).get("target_candidates") or []
+        if pending and pending["field"] == "target" and not pending.get("options") and candidates:
+            # The outcome was asked before the data arrived; ask again with the columns to choose from.
+            self.store.update(draft_id, lambda d: [q.update(answered="(asked again with the columns)", superseded=True) for q in d["questions"] if q["id"] == pending["id"]])
+            pending = None
+        if not pending:
+            self.next_turn(draft_id)
+
+    def data_failed(self, draft_id: str, asset: dict[str, Any], error: str) -> None:
+        self.say(draft_id, f"I could not use {asset.get('name', 'that file')}: {error}", kind="text", severity="warning")
+        self.refresh_workflow(draft_id)
+
+    def reply(self, draft_id: str, text: str) -> None:
+        """A user message: store it, then let the model (or the script) answer."""
+        text = text.strip()[:2000]
+        msg = {"id": "u" + secrets.token_hex(5), "role": "user", "kind": "text", "text": text, "at": now()}
+
+        def add(d):
+            d["messages"].append(msg)
+        self.store.update(draft_id, add)
+        self.store.emit(draft_id, "chat", msg)
+        if self.client is not None:
+            try:
+                self.model_turn(draft_id)
+                return
+            except Exception as exc:  # noqa: BLE001 — provider errors: fall back to the script for this turn
+                self.store.emit(draft_id, "status", {"note": f"The model was unavailable ({str(exc).split(':')[0]}); DCLab continued with its standard questions."})
+        self.script_turn(draft_id, text)
+
+    # ------------------------------------------------------------------ the deterministic script
+    def script_turn(self, draft_id: str, text: str) -> None:
+        draft = self.store.get(draft_id)
+        q = self.pending(draft)
+        if q is not None:
+            value = text
+            self.record(draft_id, q["field"], value)
+
+            def answered(d):
+                for item in d["questions"]:
+                    if item["id"] == q["id"]:
+                        item["answered"] = value
+            self.store.update(draft_id, answered)
+            if q["field"] == "data_plan" and SIMULATE_WORDS.search(value):
+                self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
+            self.refresh_workflow(draft_id)
+            self.next_turn(draft_id)
+            return
+        if SIMULATE_WORDS.search(text):
+            self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
+            self.on_request(draft_id, "simulate", {"prompt": draft["problem"] + " " + text})
+            return
+        if BUILD_WORDS.search(text):
+            self.summarize(draft_id)
+            return
+        self.record(draft_id, "notes", ((draft.get("understanding") or {}).get("notes", "") + " " + text).strip())
+        self.say(draft_id, "Noted. I added it to the solution notes.")
+        self.next_turn(draft_id)
+
+    def next_turn(self, draft_id: str, opening: bool = False) -> None:
+        """Ask the next missing thing, or summarise when everything needed is known."""
+        draft = self.store.get(draft_id)
+        if self.pending(draft):
+            return
+        u = draft.get("understanding") or {}
+        key = (draft.get("pack") or {}).get("key")
+        has_data = any(a.get("status") in ("ready", "queued", "structuring", "cleaning", "analysing") for a in draft["assets"])
+        candidates = ((draft.get("analysis") or {}).get("profile") or {}).get("target_candidates") or []
+        asked = {q["field"] for q in draft["questions"] if not q.get("superseded")}
+        if "target" not in u and "target" not in asked:
+            if candidates:
+                self.ask(draft_id, "target", "Which column is the outcome the model should predict?", candidates[:3] + ["Something else"],
+                         "The outcome decides the task, the metric and which columns could leak it.")
+                return
+            if not has_data or opening:
+                self.ask(draft_id, "target", "What exactly should the model predict, and for whom? For example: will this customer leave in the next 30 days?",
+                         [], "Everything else follows from the outcome.")
+                return
+        if "prediction_moment" not in u and "prediction_moment" not in asked:
+            self.ask(draft_id, "prediction_moment", "When is the prediction made, and what is already known at that moment?", moment_options(key),
+                     "Anything written after this moment must stay out of the model; it is the main source of leakage.")
+            return
+        if "action" not in u and "action" not in asked:
+            self.ask(draft_id, "action", "What happens with each prediction, and what does a wrong one cost, roughly?",
+                     ["We contact or act on the top cases", "We block or review cases", "We plan capacity or stock", "It informs a person only"],
+                     "The cost of errors sets the metric and the operating point.")
+            return
+        if not has_data and "data_plan" not in u and "data_plan" not in asked:
+            self.ask(draft_id, "data_plan", "Can you share a sample of the data, connect a source, or should I simulate data from this conversation?",
+                     ["Upload a sample", "Connect a source", "Simulate data", "No data yet, plan only"],
+                     "A sample (even 1,000 rows) lets DCLab check the columns against the prediction moment.")
+            return
+        if not opening:
+            self.summarize(draft_id)
+
+    def summarize(self, draft_id: str) -> None:
+        draft = self.store.get(draft_id)
+        u = draft.get("understanding") or {}
+        name = (packs.by_key((draft.get("pack") or {}).get("key")) or {}).get("name", "Tabular")
+        low = lambda v: v[:1].lower() + v[1:] if v and not v[:2].isupper() else v  # noqa: E731 — "At a snapshot" reads mid-sentence
+        parts = [f"Predict {u['target']}" if u.get("target") else "The outcome is still open",
+                 f"made {low(u['prediction_moment'])}" if u.get("prediction_moment") else None,
+                 f"and then: {low(u['action'])}" if u.get("action") else None]
+        ready = any(a.get("status") == "ready" for a in draft["assets"])
+        text = ("Here is the solution I would build. " + "; ".join(p for p in parts if p) + f". Pack: {name}. "
+                + ("The data is ready, so we can build the solution now." if ready else
+                   "We can build the solution plan now and add data in the next step."))
+        self.say(draft_id, text, kind="summary", actions=["build"])
+
+    # ------------------------------------------------------------------ the model
+    def context(self, draft: dict[str, Any]) -> str:
+        a = draft.get("analysis") or {}
+        cols = [{k: c.get(k) for k in ("name", "kind", "missing_rate", "unique")} for c in (a.get("columns") or [])[:40]]
+        return json.dumps({
+            "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
+            "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
+            "questions_left": MAX_QUESTIONS - len(draft["questions"]),
+            "data": {"summary": a.get("summary"), "columns": cols, "highlights": [h.get("title") for h in (a.get("highlights") or [])][:8],
+                     "target_candidates": (a.get("profile") or {}).get("target_candidates")} if a else None,
+            "assets": [{k: x.get(k) for k in ("name", "kind", "status", "synthetic")} for x in draft["assets"]],
+            "workflow": [{k: n.get(k) for k in ("wf", "label")} for n in ((draft.get("workflow") or {}).get("nodes") or [])],
+        }, ensure_ascii=False, default=str)
+
+    def model_turn(self, draft_id: str, max_steps: int = 5) -> None:
+        draft = self.store.get(draft_id)
+        history = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["text"]} for m in draft["messages"][-12:] if m.get("text")]
+        messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)}, *history]
+        self.store.emit(draft_id, "status", {"thinking": True})
+        asked = False
+        for _ in range(max_steps):
+            out = self.client.complete(messages, TOOLS)
+            calls = out.get("tool_calls") or []
+            messages.append(out["assistant_message"])
+            if not calls:
+                if out.get("content"):
+                    self.say(draft_id, out["content"].strip())
+                break
+            for call in calls:
+                result = self.run_tool(draft_id, call["name"], call.get("arguments") or {})
+                asked = asked or call["name"] == "ask_user"
+                messages.append({"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)[:4000]})
+            if asked:
+                break
+        self.store.emit(draft_id, "status", {"thinking": False})
+        self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
+
+    def run_tool(self, draft_id: str, name: str, args: dict[str, Any]) -> dict[str, Any]:
+        if name == "ask_user":
+            field = args.get("field") if args.get("field") in FIELDS else "notes"
+            msg = self.ask(draft_id, field, str(args.get("question", ""))[:300], [str(o)[:60] for o in args.get("options") or []], str(args.get("why", ""))[:200])
+            return {"asked": bool(msg), "note": None if msg else "Question limit reached or the same question is open."}
+        if name == "record":
+            self.record(draft_id, str(args.get("field", "notes")), str(args.get("value", "")))
+            pending = self.pending(self.store.get(draft_id))
+            if pending and pending["field"] == args.get("field"):
+                self.store.update(draft_id, lambda d: [q.update(answered=str(args.get("value", ""))) for q in d["questions"] if q["id"] == pending["id"]])
+            self.refresh_workflow(draft_id)
+            return {"recorded": args.get("field")}
+        if name == "set_pack":
+            if args.get("key") not in packs.KEYS:
+                return {"error": "unknown pack"}
+            if (self.store.get(draft_id).get("pack") or {}).get("source") == "user":
+                return {"error": "The user chose the pack; ask before changing it."}
+            self.set_pack(draft_id, args["key"], "agent", str(args.get("why", ""))[:200])
+            self.refresh_workflow(draft_id)
+            return {"pack": args["key"]}
+        if name == "propose_workflow":
+            wf = self.refresh_workflow(draft_id, proposed=args)
+            return {"accepted": wf.get("source") == "model", "version": wf["version"]}
+        if name == "request_data":
+            self.say(draft_id, str(args.get("text", ""))[:400] or "You can upload a sample, connect a source, or ask me to simulate data.",
+                     kind="text", actions=["upload", "connect", "simulate"])
+            return {"offered": True}
+        return {"error": f"unknown tool {name}"}
+
+
+def title_for(draft: dict[str, Any], key: str) -> str:
+    name = (packs.by_key(key) or {}).get("name", key)
+    target = (draft.get("understanding") or {}).get("target")
+    return f"{target} · {name}" if target else f"Solution workflow · {name}"

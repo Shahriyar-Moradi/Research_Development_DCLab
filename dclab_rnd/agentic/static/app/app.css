@@ -150,6 +150,8 @@
 
 /* ---------- base ---------- */
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }  /* components set display; the hidden attribute must still win */
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
 html, body { height: 100%; }
 body {
   margin: 0;

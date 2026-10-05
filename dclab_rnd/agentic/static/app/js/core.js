@@ -333,6 +333,71 @@
     },
   };
 
+  /* ---------------- workflow graphs (the project graph and the solution workflow on Home) ----------------
+     A workflow is {nodes:[{id, wf, label, detail, state}], revisits:[{from, to, why}], gates:[{after, label}]}.
+     Nodes run in rows of five, left to right then right to left, like the project graph. */
+  const graph = {
+    W: 150, H: 64,
+    render(wf, opts = {}) {
+      const W = this.W, H = this.H, per = opts.perRow || 5, GX = 190, GY = 160, X0 = 20, Y0 = 64;
+      const nodes = (wf && wf.nodes) || [];
+      const rows = Math.max(1, Math.ceil(nodes.length / per));
+      const width = X0 * 2 + (per - 1) * GX + W, height = Y0 + (rows - 1) * GY + H + 64;
+      const pos = {};
+      nodes.forEach((n, i) => {
+        const r = Math.floor(i / per), c = r % 2 ? per - 1 - (i % per) : i % per;
+        const x = X0 + c * GX, y = Y0 + r * GY;
+        pos[n.id] = { x, y, cx: x + W / 2, cy: y + H / 2, i };
+      });
+      const mk = (id, cls) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="${cls}" d="M0,0 L10,5 L0,10 z"/></marker>`;
+      let s = `<svg class="graph-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(opts.aria || 'Solution workflow')}"><defs>${mk('gah', 'ah')}${mk('gah-ok', 'ah-ok')}${mk('gah-allowed', 'ah-allowed')}</defs>`;
+      const fwd = (a, b) => {
+        const p = pos[a], q = pos[b];
+        if (p.y === q.y && q.x > p.x) return `M${p.x + W},${p.cy} L${q.x - 2},${q.cy}`;
+        if (p.y === q.y) return `M${p.x},${p.cy} L${q.x + W + 2},${q.cy}`;
+        return `M${p.cx},${p.y + H} L${q.cx},${q.y - 2}`;
+      };
+      nodes.slice(1).forEach((b, i) => {
+        const a = nodes[i];
+        const taken = a.state === 'done' && b.state && b.state !== 'todo';
+        s += `<path class="edge ${taken ? 'taken' : ''}" d="${fwd(a.id, b.id)}" marker-end="url(#${taken ? 'gah-ok' : 'gah'})"/>`;
+      });
+      ((wf && wf.revisits) || []).forEach((r, k) => {
+        const a = pos[r.from], b = pos[r.to];
+        if (!a || !b) return;
+        const lift = 44 + 10 * k;
+        const d = a.y === b.y ? `M${a.cx},${a.y} C${a.cx},${a.y - lift} ${b.cx},${b.y - lift} ${b.cx},${b.y - 2}`
+          : `M${a.cx},${a.y} C${a.cx},${a.y - lift} ${b.cx},${b.y + H + lift} ${b.cx},${b.y + H + 2}`;
+        const lx = (a.cx + b.cx) / 2, ly = a.y === b.y ? a.y - lift * 0.72 : (a.y + b.y + H) / 2;
+        s += `<path class="edge allowed" d="${d}" marker-end="url(#gah-allowed)"/><text class="lane-label" x="${lx}" y="${ly}" text-anchor="middle">${esc(('revisit · ' + r.why).toUpperCase())}</text>`;
+      });
+      ((wf && wf.gates) || []).forEach(g => {
+        const a = pos[g.after], next = nodes[(a ? a.i : -2) + 1];
+        if (!a || !next) return;
+        const b = pos[next.id];
+        let x, y;
+        if (a.y === b.y) { x = (a.x < b.x ? a.x + W + b.x : b.x + W + a.x) / 2; y = a.cy; } else { x = a.cx; y = (a.y + H + b.y) / 2; }
+        const firstRow = a.y === Y0;
+        const ly = a.y === b.y ? (firstRow ? a.y - 10 : a.y + H + 16) : y + 4;
+        const lx = a.y === b.y ? x : x + 16;
+        s += `<path class="gate" d="M${x},${y - 9} L${x + 9},${y} L${x},${y + 9} L${x - 9},${y} Z"/><text class="gate-text" x="${lx}" y="${ly}" text-anchor="${a.y === b.y ? 'middle' : 'start'}">${esc(g.label)}</text>`;
+      });
+      const stateText = { done: 'done', current: 'in progress', waiting: 'waiting for data', blocked: 'blocked', todo: '' };
+      const stateCls = { done: 'done', current: 'current', waiting: 'blocked', blocked: 'blocked', todo: 'todo' };
+      nodes.forEach(n => {
+        const p = pos[n.id], label = n.label.length > 21 ? n.label.slice(0, 20) + '…' : n.label;
+        s += `<g class="node ${stateCls[n.state] || 'todo'}" data-node="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.wf + ' ' + n.label + (n.state ? ': ' + (stateText[n.state] || n.state) : ''))}">
+          <title>${esc(n.label + (n.detail ? ' — ' + n.detail : ''))}</title>
+          <rect x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="9"${n.id === opts.selected ? ' data-style="stroke-width:2.6"' : ''}/>
+          <text class="id" x="${p.x + 10}" y="${p.y + 17}">${esc(n.wf)}</text>
+          <text x="${p.x + 10}" y="${p.y + 36}">${esc(label)}</text>
+          <text class="st" x="${p.x + 10}" y="${p.y + 53}">${esc(stateText[n.state] || '')}</text>
+        </g>`;
+      });
+      return s + '</svg>';
+    },
+  };
+
   /* ---------------- maths used by the cost tools ---------------- */
   function erf(x) { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
   const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
@@ -806,6 +871,6 @@
     if (bpOn) setBlueprint(true);
   }
 
-  window.DC = { api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();
