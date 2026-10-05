@@ -176,6 +176,23 @@ class ToolTests(unittest.TestCase):
         self.assertTrue({"casual", "registered"} <= flagged)
         self.assertNotIn("temp", flagged)
 
+    def test_auditor_reads_yes_no_and_nullable_columns_in_the_arithmetic_check(self):
+        """Two boolean columns once crashed it (numpy refuses to subtract booleans); a real a − b leak is still found."""
+        import numpy as np
+        import pandas as pd
+
+        rng = np.random.default_rng(0)
+        n = 300
+        X = pd.DataFrame({"promo": rng.random(n) > 0.5, "holiday": pd.array(rng.random(n) > 0.8, dtype="boolean"),
+                          "gross": rng.integers(50, 500, n), "refund": pd.array(rng.integers(0, 40, n), dtype="Int64"), "noise": rng.normal(size=n)})
+        X.loc[0, "holiday"] = pd.NA
+        y = (X["gross"] - X["refund"]).astype(float)
+        report = tools._audit_frame(X, y, task="regression", blind=True)
+        flagged = {r["column"]: r["signals"] for r in report["flagged"]}
+        self.assertTrue(any("target = gross - refund" in s for s in flagged["gross"]))
+        self.assertIn("refund", flagged)
+        self.assertNotIn("promo", flagged)
+
 
 if __name__ == "__main__":
     unittest.main()

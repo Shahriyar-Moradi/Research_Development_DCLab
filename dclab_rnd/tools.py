@@ -211,10 +211,12 @@ def _audit_frame(X: Any, y: Any, task: str = "auto", blind: bool = False, source
     if task == "regression" and pd.api.types.is_numeric_dtype(y):
         target = y.to_numpy(dtype=float)
         tol = 1e-6 * (np.abs(target).max() + 1)
+        # as floats: yes/no columns count as numeric here and numpy refuses to subtract booleans; nullable columns keep NaN
+        arrays = {c: X[c].to_numpy(dtype=float, na_value=np.nan) for c in numeric_cols}
         for i, a in enumerate(numeric_cols):
             for b in numeric_cols[i + 1:]:
-                for op, values in (("+", X[a] + X[b]), ("-", X[a] - X[b]), ("-", X[b] - X[a])):
-                    match = float((np.abs(values.to_numpy(dtype=float) - target) <= tol).mean())
+                for op, values in (("+", arrays[a] + arrays[b]), ("-", arrays[a] - arrays[b]), ("-", arrays[b] - arrays[a])):
+                    match = float((np.abs(values - target) <= tol).mean())
                     if match >= 0.99:
                         for row in rows:
                             if row["column"] in (a, b):
