@@ -16,6 +16,7 @@ python-dotenv>=1.0
 httpx>=0.27
 mcp>=1.20
 openai>=1.50
+jsonschema>=4.18  # the agent runtime checks every tool call against its schema
 
 # Bring-the-data (Home and the new-project wizard). Each library is imported only when its source is used, and the
 # page says which one is missing, so the product starts without them.

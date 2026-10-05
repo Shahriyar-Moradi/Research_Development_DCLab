@@ -39,16 +39,16 @@ INSTRUCTIONS = (
 
 
 def build_server(toolbox: Toolbox):
-    """A low-level MCP server whose tool list is the toolbox's own JSON schemas."""
+    """A low-level MCP server whose tool list is the registry's project tools (the intern's), read at each request."""
     from mcp.server.lowlevel import Server
     import mcp.types as types
 
     server = Server("dclab", instructions=INSTRUCTIONS)
-    specs = {s["function"]["name"]: s["function"] for s in toolbox.schemas()}
 
     @server.list_tools()
     async def list_tools() -> list[types.Tool]:
-        return [types.Tool(name=name, description=spec["description"], inputSchema=spec["parameters"]) for name, spec in specs.items()]
+        specs = [s["function"] for s in toolbox.schemas()]
+        return [types.Tool(name=spec["name"], description=spec["description"], inputSchema=spec["parameters"]) for spec in specs]
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:

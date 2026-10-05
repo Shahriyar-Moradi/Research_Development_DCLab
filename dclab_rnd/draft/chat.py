@@ -18,7 +18,10 @@ import functools
 import json
 import re
 import secrets
+from dataclasses import dataclass
 from typing import Any, Callable
+
+from dclab_rnd.agents.registry import Registry, Tool
 
 from . import pack as packs
 from . import workflow as wflow
@@ -45,32 +48,6 @@ offer upload / connect / simulate, and simulate_data only after the user asked f
 table they need; it is generated and labelled synthetic). get_profile and get_analysis read the prepared table's
 column summaries and descriptive findings (aggregates only) when the state below does not show enough.
 Reply to the user in plain English, 1-3 sentences."""
-
-TOOLS = [
-    {"type": "function", "function": {"name": "ask_user", "description": "Ask the user one short question.", "parameters": {
-        "type": "object", "properties": {"question": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
-                                         "field": {"type": "string", "enum": list(FIELDS)}, "why": {"type": "string"}},
-        "required": ["question", "field"]}}},
-    {"type": "function", "function": {"name": "record", "description": "Store an answer you understood.", "parameters": {
-        "type": "object", "properties": {"field": {"type": "string", "enum": list(FIELDS) + ["unit", "horizon", "constraints", "notes"]},
-                                         "value": {"type": "string"}}, "required": ["field", "value"]}}},
-    {"type": "function", "function": {"name": "set_pack", "description": "Switch the domain pack.", "parameters": {
-        "type": "object", "properties": {"key": {"type": "string", "enum": packs.KEYS}, "why": {"type": "string"}}, "required": ["key", "why"]}}},
-    {"type": "function", "function": {"name": "propose_workflow", "description": "Replace the solution workflow.", "parameters": {
-        "type": "object", "properties": {"title": {"type": "string"}, "nodes": {"type": "array", "items": {"type": "object", "properties": {
-            "wf": {"type": "string"}, "label": {"type": "string"}, "detail": {"type": "string"}}, "required": ["wf", "label"]}}},
-        "required": ["nodes"]}}},
-    {"type": "function", "function": {"name": "request_data", "description": "Offer the user ways to bring data.", "parameters": {
-        "type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
-    {"type": "function", "function": {"name": "get_profile", "description": "Column summaries of the prepared table: name, kind, missing rate, unique count, and which columns look like outcomes, timestamps, identifiers or text. Aggregates only, never values. Name columns, or page through a wide table with offset.", "parameters": {
-        "type": "object", "properties": {"columns": {"type": "array", "items": {"type": "string"}}, "offset": {"type": "integer"}}}}},
-    {"type": "function", "function": {"name": "get_analysis", "description": "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.", "parameters": {
-        "type": "object", "properties": {}}}},
-    {"type": "function", "function": {"name": "simulate_data", "description": "Generate a synthetic table. Only after the user asked for simulated data.", "parameters": {
-        "type": "object", "properties": {"description": {"type": "string", "description": "The table to simulate: rows, columns, the outcome and its rate."},
-                                         "rows": {"type": "integer"}}, "required": ["description"]}}},
-]
-
 
 def turn(method):
     """One agent turn at a time per draft. The data pipeline ("your data is ready") and the user's messages run in
@@ -123,9 +100,14 @@ def moment_options(pack: str | None) -> list[str]:
 
 
 class HomeAgent:
-    def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None):
+    def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
+                 registry: Registry | None = None):
         self.store, self.client = store, client
         self.on_request = on_request or (lambda draft_id, what, args: None)
+        if registry is None:
+            from dclab_rnd.agents import default_registry
+            registry = default_registry()
+        self.registry = registry
 
     # ------------------------------------------------------------------ helpers
     def say(self, draft_id: str, text: str, kind: str = "text", message_id: str | None = None, **extra: Any) -> dict[str, Any]:
@@ -408,7 +390,7 @@ class HomeAgent:
         """
         stream = getattr(self.client, "stream", None)
         if stream is None:
-            return self.client.complete(messages, TOOLS), None
+            return self.client.complete(messages, self.registry.schemas("draft")), None
         live, buffer = "m" + secrets.token_hex(5), []
 
         def flush(force: bool = False) -> None:
@@ -421,7 +403,7 @@ class HomeAgent:
             flush()
 
         try:
-            out = stream(messages, TOOLS, on_text=on_text)
+            out = stream(messages, self.registry.schemas("draft"), on_text=on_text)
             flush(True)
         except Exception:
             self.store.emit(draft_id, "token", {"id": live, "drop": True})
@@ -432,65 +414,125 @@ class HomeAgent:
         return out, live
 
     def run_tool(self, draft_id: str, name: str, args: dict[str, Any]) -> dict[str, Any]:
-        if name == "ask_user":
-            field = args.get("field") if args.get("field") in FIELDS else "notes"
-            msg = self.ask(draft_id, field, str(args.get("question", ""))[:300], [str(o)[:60] for o in args.get("options") or []], str(args.get("why", ""))[:200])
-            return {"asked": bool(msg), "note": None if msg else "Question limit reached or the same question is open."}
-        if name == "record":
-            self.record(draft_id, str(args.get("field", "notes")), str(args.get("value", "")))
-            pending = self.pending(self.store.get(draft_id))
-            if pending and pending["field"] == args.get("field"):
-                self.store.update(draft_id, lambda d: [q.update(answered=str(args.get("value", ""))) for q in d["questions"] if q["id"] == pending["id"]])
-            self.refresh_workflow(draft_id)
-            return {"recorded": args.get("field")}
-        if name == "set_pack":
-            if args.get("key") not in packs.KEYS:
-                return {"error": "unknown pack"}
-            if (self.store.get(draft_id).get("pack") or {}).get("source") == "user":
-                return {"error": "The user chose the pack; ask before changing it."}
-            self.set_pack(draft_id, args["key"], "agent", str(args.get("why", ""))[:200])
-            self.refresh_workflow(draft_id)
-            return {"pack": args["key"]}
-        if name == "propose_workflow":
-            wf = self.refresh_workflow(draft_id, proposed=args)
-            return {"accepted": wf.get("source") == "model", "version": wf["version"]}
-        if name == "request_data":
-            self.say(draft_id, str(args.get("text", ""))[:400] or "You can upload a sample, connect a source, or ask me to simulate data.",
-                     kind="text", actions=["upload", "connect", "simulate"])
-            return {"offered": True}
-        if name in ("get_profile", "get_analysis"):
-            analysis = self.store.get(draft_id).get("analysis") or {}
-            columns = analysis.get("columns") or []
-            if not columns:
-                return {"error": "No table has been prepared yet."}
-            if name == "get_analysis":  # descriptive only: the analysis never relates a column to the outcome
-                return {"summary": analysis.get("summary"), "correlations": (analysis.get("correlations") or [])[:10],
-                        "highlights": [{k: h.get(k) for k in ("severity", "title", "text", "columns")} for h in (analysis.get("highlights") or [])[:12]]}
-            wanted = {str(c) for c in args.get("columns") or []}
-            try:
-                offset = max(0, int(args.get("offset") or 0))
-            except (TypeError, ValueError):
-                offset = 0
-            picked = [c for c in columns if c.get("name") in wanted] if wanted else columns[offset:offset + PROFILE_PAGE]
-            profile = analysis.get("profile") or {}
-            return {"total_columns": len(columns), "offset": 0 if wanted else offset,
-                    "columns": [{k: c.get(k) for k in PROFILE_FIELDS} for c in picked[:PROFILE_PAGE]],  # aggregates, never cell values
-                    **{k: profile.get(k) or [] for k in ("target_candidates", "time_candidates", "id_candidates", "text_candidates")}}
-        if name == "simulate_data":
-            draft = self.store.get(draft_id)
-            if any(a.get("status") in ("queued", "structuring", "cleaning", "analysing") for a in draft["assets"]):
-                return {"error": "Data is already being prepared; wait for it."}
-            self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
-            try:
-                rows = max(100, min(int(args.get("rows") or 5000), 200_000))
-            except (TypeError, ValueError):
-                rows = 5000
-            self.on_request(draft_id, "simulate", {"prompt": (draft["problem"] + " " + str(args.get("description", ""))[:2000]).strip(), "rows": rows})
-            return {"simulating": True, "rows": rows}
-        return {"error": f"unknown tool {name}"}
+        """Run one of the Home agent's tools on a draft. The handlers are lenient about argument types (small models
+        send strings for numbers); the runtime checks arguments against the schemas before it gets here."""
+        tool = self.registry.get(name)
+        if tool is None or tool.scope != "draft":
+            return {"error": f"unknown tool {name}"}
+        return tool.handler(Turn(self, draft_id), **args)
 
 
 def title_for(draft: dict[str, Any], key: str) -> str:
     name = (packs.by_key(key) or {}).get("name", key)
     target = (draft.get("understanding") or {}).get("target")
     return f"{target} · {name}" if target else f"Solution workflow · {name}"
+
+
+# ---------------------------------------------------------------------- tools
+@dataclass(frozen=True)
+class Turn:
+    """What a Home tool acts on: the agent (its store, client and request hook) and one draft."""
+    agent: HomeAgent
+    draft_id: str
+
+
+def ask_user(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    field = args.get("field") if args.get("field") in FIELDS else "notes"
+    msg = turn.agent.ask(turn.draft_id, field, str(args.get("question", ""))[:300], [str(o)[:60] for o in args.get("options") or []], str(args.get("why", ""))[:200])
+    return {"asked": bool(msg), "note": None if msg else "Question limit reached or the same question is open."}
+
+
+def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    agent, draft_id = turn.agent, turn.draft_id
+    agent.record(draft_id, str(args.get("field", "notes")), str(args.get("value", "")))
+    pending = agent.pending(agent.store.get(draft_id))
+    if pending and pending["field"] == args.get("field"):
+        agent.store.update(draft_id, lambda d: [q.update(answered=str(args.get("value", ""))) for q in d["questions"] if q["id"] == pending["id"]])
+    agent.refresh_workflow(draft_id)
+    return {"recorded": args.get("field")}
+
+
+def set_pack(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    agent, draft_id = turn.agent, turn.draft_id
+    if args.get("key") not in packs.KEYS:
+        return {"error": "unknown pack"}
+    if (agent.store.get(draft_id).get("pack") or {}).get("source") == "user":
+        return {"error": "The user chose the pack; ask before changing it."}
+    agent.set_pack(draft_id, args["key"], "agent", str(args.get("why", ""))[:200])
+    agent.refresh_workflow(draft_id)
+    return {"pack": args["key"]}
+
+
+def propose_workflow(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    wf = turn.agent.refresh_workflow(turn.draft_id, proposed=args)
+    return {"accepted": wf.get("source") == "model", "version": wf["version"]}
+
+
+def request_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    turn.agent.say(turn.draft_id, str(args.get("text", ""))[:400] or "You can upload a sample, connect a source, or ask me to simulate data.",
+                   kind="text", actions=["upload", "connect", "simulate"])
+    return {"offered": True}
+
+
+def get_profile(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    analysis = turn.agent.store.get(turn.draft_id).get("analysis") or {}
+    columns = analysis.get("columns") or []
+    if not columns:
+        return {"error": "No table has been prepared yet."}
+    wanted = {str(c) for c in args.get("columns") or []}
+    try:
+        offset = max(0, int(args.get("offset") or 0))
+    except (TypeError, ValueError):
+        offset = 0
+    picked = [c for c in columns if c.get("name") in wanted] if wanted else columns[offset:offset + PROFILE_PAGE]
+    profile = analysis.get("profile") or {}
+    return {"total_columns": len(columns), "offset": 0 if wanted else offset,
+            "columns": [{k: c.get(k) for k in PROFILE_FIELDS} for c in picked[:PROFILE_PAGE]],  # aggregates, never cell values
+            **{k: profile.get(k) or [] for k in ("target_candidates", "time_candidates", "id_candidates", "text_candidates")}}
+
+
+def get_analysis(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    analysis = turn.agent.store.get(turn.draft_id).get("analysis") or {}
+    if not analysis.get("columns"):
+        return {"error": "No table has been prepared yet."}
+    # descriptive only: the analysis never relates a column to the outcome
+    return {"summary": analysis.get("summary"), "correlations": (analysis.get("correlations") or [])[:10],
+            "highlights": [{k: h.get(k) for k in ("severity", "title", "text", "columns")} for h in (analysis.get("highlights") or [])[:12]]}
+
+
+def simulate_data(turn: Turn, /, **args: Any) -> dict[str, Any]:
+    agent, draft_id = turn.agent, turn.draft_id
+    draft = agent.store.get(draft_id)
+    if any(a.get("status") in ("queued", "structuring", "cleaning", "analysing") for a in draft["assets"]):
+        return {"error": "Data is already being prepared; wait for it."}
+    agent.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
+    try:
+        rows = max(100, min(int(args.get("rows") or 5000), 200_000))
+    except (TypeError, ValueError):
+        rows = 5000
+    agent.on_request(draft_id, "simulate", {"prompt": (draft["problem"] + " " + str(args.get("description", ""))[:2000]).strip(), "rows": rows})
+    return {"simulating": True, "rows": rows}
+
+
+def register(registry: Registry) -> None:
+    """Register the Home agent's tools (scope "draft"). Each takes a ``Turn`` as its context."""
+    def add(name: str, description: str, properties: dict[str, Any], required: list[str], effect: str) -> None:
+        registry.register(Tool(name, description, {"type": "object", "properties": properties, "required": required}, globals()[name],
+                               effect=effect, scope="draft", takes_context=True))
+
+    S = {"type": "string"}
+    add("ask_user", "Ask the user one short question.", {"question": S, "options": {"type": "array", "items": S},
+        "field": {**S, "enum": list(FIELDS)}, "why": S}, ["question", "field"], "write")
+    add("record", "Store an answer you understood.", {"field": {**S, "enum": list(FIELDS) + ["unit", "horizon", "constraints", "notes"]}, "value": S},
+        ["field", "value"], "write")
+    add("set_pack", "Switch the domain pack.", {"key": {**S, "enum": packs.KEYS}, "why": S}, ["key", "why"], "write")
+    add("propose_workflow", "Replace the solution workflow.", {"title": S, "nodes": {"type": "array", "items": {"type": "object", "properties": {
+        "wf": S, "label": S, "detail": S}, "required": ["wf", "label"]}}}, ["nodes"], "write")
+    add("request_data", "Offer the user ways to bring data.", {"text": S}, ["text"], "write")
+    add("get_profile", "Column summaries of the prepared table: name, kind, missing rate, unique count, and which columns look like outcomes, timestamps, identifiers or text. Aggregates only, never values. Name columns, or page through a wide table with offset.",
+        {"columns": {"type": "array", "items": S}, "offset": {"type": "integer"}}, [], "read")
+    add("get_analysis", "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.",
+        {}, [], "read")
+    add("simulate_data", "Generate a synthetic table. Only after the user asked for simulated data.",
+        {"description": {**S, "description": "The table to simulate: rows, columns, the outcome and its rate."}, "rows": {"type": "integer"}},
+        ["description"], "write")

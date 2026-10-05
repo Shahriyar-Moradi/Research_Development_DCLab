@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from dclab_rnd import tools as evidence_tools
+from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.studio import agent as studio_agent
 from dclab_rnd.studio import solution as studio_solution
 from dclab_rnd.studio import data as studio_data
@@ -67,81 +68,88 @@ def compact_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
 LEGACY_TOOLS = {"propose_contract": "propose_solution", "set_contract": "set_solution"}
 
 
+def _expected(exc: Exception) -> dict[str, Any] | None:
+    """The failures a model can act on, as tool results; anything else is a bug and raises."""
+    if isinstance(exc, studio_graph.GraphBlocked):
+        return blocked(exc.verdict)
+    if isinstance(exc, KeyError):
+        return {"error": f"Not found: {exc}"}
+    if isinstance(exc, (ValueError, studio_data.DataError)):
+        return {"error": str(exc)[:600]}
+    return None
+
+
+def register(registry: Registry) -> None:
+    """Register the evidence tools and the project tools (scope "project": the intern and MCP clients).
+
+    Project tools take the Toolbox as their context: ``handler(toolbox, **arguments)``. Each write declares the
+    workflow move it makes, where it makes one.
+    """
+    for name in EVIDENCE_TOOLS:
+        fn, schema = evidence_tools.TOOLS[name]
+        registry.register(Tool(name, (fn.__doc__ or "").strip().split("\n\n")[0].replace("\n", " "), schema, fn, errors=_expected))
+
+    def add(name: str, properties: dict[str, Any], required: list[str], description: str, effect: str = "read",
+            move: str | None = None, aliases: tuple[str, ...] = ()) -> None:
+        registry.register(Tool(name, description, {"type": "object", "properties": properties, "required": required}, getattr(Toolbox, name),
+                               effect=effect, move=move, aliases=aliases, takes_context=True, errors=_expected))
+
+    S = {"type": "string"}
+    pid = {"project_id": {**S, "description": "The project id returned by create_project."}}
+    add("list_samples", {}, [], "List the datasets the R&D already studied, with their task type and the solution it wrote for them.")
+    add("create_project", {"name": S, "industry": {**S, "enum": list(INDUSTRIES)}, "goal": S}, ["name", "goal"],
+        "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.", "write")
+    add("use_sample", {**pid, "key": {**S, "description": "A key from list_samples."}}, ["project_id", "key"],
+        "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.", "write")
+    add("describe_data", pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the solution suggestion if any.")
+    add("propose_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
+        "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.",
+        "write", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "propose_solution"))
+    add("set_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]},
+        "prediction_moment": {**S, "description": "When the prediction is made and what is known then (at least one sentence)."},
+        "forbidden": {"type": "array", "items": {"type": "object", "properties": {"column": S, "reason": S}, "required": ["column"]}},
+        "identifiers": {"type": "array", "items": S}, "time_column": S, "group_column": S, "text_columns": {"type": "array", "items": S},
+        "positive_label": S, "metric": {**S, "enum": ["roc_auc", "average_precision", "macro_f1", "mae"]}},
+        ["project_id", "target", "task", "prediction_moment"], "Save the solution. Saving clears any previous stage results.",
+        "write", "set_solution", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "set_solution"))
+    add("set_settings", {**pid, "quick": {"type": "boolean", "description": "True: 3,000 rows for a fast pass. False: up to max_rows."},
+        "max_rows": {"type": "integer", "minimum": 200, "maximum": 200000}}, ["project_id"], "Change how many rows the stages use.", "write")
+    add("run_stage", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id", "stage"],
+        "Run one stage (data, leakage, features, models, final) now. Stages run in order; each needs the previous one. Returns the stage record: summary, numbers, claims, notes with proof, decision.",
+        "write", "run_stage")
+    add("run_all", pid, ["project_id"], "Run every remaining stage in order and return all records. The final stage consumes the holdout once.", "write", "run_stage")
+    add("approve_stage", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}, "choice": {**S, "description": "Optional: an option id from the stage's decision, to override the rule's choice (clears later stages)."}},
+        ["project_id", "stage"], "Approve a completed stage, optionally choosing a different recipe or model than the rule picked.", "write", "approve_stage")
+    add("get_results", {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id"], "Return the records of the finished stages (or one stage).")
+    add("ask_project", {**pid, "question": S}, ["project_id", "question"], "Ask the deterministic project agent a question; it answers from the project's own results and the evidence index.")
+    add("export_notebook", pid, ["project_id"], "Write the runnable scikit-learn notebook and the markdown report for the project; returns their download paths.", "write", "capture")
+    add("get_graph", pid, ["project_id"],
+        "The project's workflow graph: the ten steps WF-01…WF-10 with their state, the current step, which moves are allowed now and why not, the gates, and the last transitions.")
+    add("check_move", {**pid, "move": {**S, "enum": list(studio_graph.MOVES)}, "stage": {**S, "enum": list(STAGE_KEYS)},
+        "choice": S, "gate": {**S, "enum": list(studio_graph.GATES)}}, ["project_id", "move"],
+        "Ask the validator whether a move would be allowed right now, without doing it. Returns the checks, the rules and the side effects.")
+
+
 class Toolbox:
-    def __init__(self, projects: ProjectStore, quick_default: bool = True):
+    """The project tools bound to one project store. The tools themselves live in the shared registry."""
+
+    def __init__(self, projects: ProjectStore, quick_default: bool = True, registry: Registry | None = None):
         self.projects = projects
         self.quick_default = quick_default
-        self._tools: dict[str, tuple[Callable[..., Any], dict[str, Any], str]] = {}
-        for name in EVIDENCE_TOOLS:
-            fn, schema = evidence_tools.TOOLS[name]
-            self._tools[name] = (fn, schema, (fn.__doc__ or "").strip().split("\n\n")[0].replace("\n", " "))
-        self._register()
-
-    # ------------------------------------------------------------------ registry
-    def _add(self, name: str, fn: Callable[..., Any], properties: dict[str, Any], required: list[str], description: str) -> None:
-        self._tools[name] = (fn, {"type": "object", "properties": properties, "required": required}, description)
+        if registry is None:
+            from dclab_rnd.agents import default_registry
+            registry = default_registry()
+        self.registry = registry
 
     def schemas(self) -> list[dict[str, Any]]:
-        return [{"type": "function", "function": {"name": name, "description": description, "parameters": schema}}
-                for name, (_, schema, description) in self._tools.items()]
+        return self.registry.schemas("project")
 
     def names(self) -> list[str]:
-        return list(self._tools)
+        return self.registry.names("project")
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
-        name = LEGACY_TOOLS.get(name, name)
-        if name not in self._tools:
-            return {"error": f"Unknown tool {name!r}. Available: {', '.join(self._tools)}"}
-        fn, schema, _ = self._tools[name]
-        arguments = dict(arguments or {})
-        unknown = set(arguments) - set(schema.get("properties", {}))
-        if unknown:
-            return {"error": f"Unknown argument(s) for {name}: {', '.join(sorted(unknown))}"}
-        missing = [r for r in schema.get("required", []) if r not in arguments]
-        if missing:
-            return {"error": f"Missing required argument(s) for {name}: {', '.join(missing)}"}
-        try:
-            return fn(**arguments)
-        except KeyError as exc:
-            return {"error": f"Not found: {exc}"}
-        except studio_graph.GraphBlocked as exc:
-            return blocked(exc.verdict)
-        except (ValueError, studio_data.DataError) as exc:
-            return {"error": str(exc)[:600]}
-
-    # ------------------------------------------------------------------ project tools
-    def _register(self) -> None:
-        S = {"type": "string"}
-        pid = {"project_id": {**S, "description": "The project id returned by create_project."}}
-        self._add("list_samples", self.list_samples, {}, [], "List the datasets the R&D already studied, with their task type and the solution it wrote for them.")
-        self._add("create_project", self.create_project, {"name": S, "industry": {**S, "enum": list(INDUSTRIES)}, "goal": S}, ["name", "goal"],
-                  "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.")
-        self._add("use_sample", self.use_sample, {**pid, "key": {**S, "description": "A key from list_samples."}}, ["project_id", "key"],
-                  "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.")
-        self._add("describe_data", self.describe_data, pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the solution suggestion if any.")
-        self._add("propose_solution", self.propose_solution, {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
-                  "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.")
-        self._add("set_solution", self.set_solution, {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]},
-                  "prediction_moment": {**S, "description": "When the prediction is made and what is known then (at least one sentence)."},
-                  "forbidden": {"type": "array", "items": {"type": "object", "properties": {"column": S, "reason": S}, "required": ["column"]}},
-                  "identifiers": {"type": "array", "items": S}, "time_column": S, "group_column": S, "text_columns": {"type": "array", "items": S},
-                  "positive_label": S, "metric": {**S, "enum": ["roc_auc", "average_precision", "macro_f1", "mae"]}},
-                  ["project_id", "target", "task", "prediction_moment"], "Save the solution. Saving clears any previous stage results.")
-        self._add("set_settings", self.set_settings, {**pid, "quick": {"type": "boolean", "description": "True: 3,000 rows for a fast pass. False: up to max_rows."},
-                  "max_rows": {"type": "integer", "minimum": 200, "maximum": 200000}}, ["project_id"], "Change how many rows the stages use.")
-        self._add("run_stage", self.run_stage, {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id", "stage"],
-                  "Run one stage (data, leakage, features, models, final) now. Stages run in order; each needs the previous one. Returns the stage record: summary, numbers, claims, notes with proof, decision.")
-        self._add("run_all", self.run_all, pid, ["project_id"], "Run every remaining stage in order and return all records. The final stage consumes the holdout once.")
-        self._add("approve_stage", self.approve_stage, {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}, "choice": {**S, "description": "Optional: an option id from the stage's decision, to override the rule's choice (clears later stages)."}},
-                  ["project_id", "stage"], "Approve a completed stage, optionally choosing a different recipe or model than the rule picked.")
-        self._add("get_results", self.get_results, {**pid, "stage": {**S, "enum": list(STAGE_KEYS)}}, ["project_id"], "Return the records of the finished stages (or one stage).")
-        self._add("ask_project", self.ask_project, {**pid, "question": S}, ["project_id", "question"], "Ask the deterministic project agent a question; it answers from the project's own results and the evidence index.")
-        self._add("export_notebook", self.export_notebook, pid, ["project_id"], "Write the runnable scikit-learn notebook and the markdown report for the project; returns their download paths.")
-        self._add("get_graph", self.get_graph, pid, ["project_id"],
-                  "The project's workflow graph: the ten steps WF-01…WF-10 with their state, the current step, which moves are allowed now and why not, the gates, and the last transitions.")
-        self._add("check_move", self.check_move, {**pid, "move": {**S, "enum": list(studio_graph.MOVES)}, "stage": {**S, "enum": list(STAGE_KEYS)},
-                  "choice": S, "gate": {**S, "enum": list(studio_graph.GATES)}}, ["project_id", "move"],
-                  "Ask the validator whether a move would be allowed right now, without doing it. Returns the checks, the rules and the side effects.")
+        # The intern's loop and MCP clients keep the handlers' clamping and coercion until A2.4 moves the intern onto run().
+        return self.registry.call(name, arguments, context=self, scope="project", strict=False)
 
     def list_samples(self) -> dict[str, Any]:
         return {"samples": [{k: s[k] for k in ("key", "name", "task", "goal", "industry", "source", "rows", "blocked")} for s in studio_data.sample_catalog() if s["available"]]}
