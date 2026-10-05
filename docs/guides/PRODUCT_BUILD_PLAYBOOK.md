@@ -7,6 +7,10 @@ delivers, how to check it, and gives a prompt to paste into a new Claude Code se
 or a decision (section 8). Every done package names the commit that did it, so the playbook is also the map from the
 plan to the code.
 
+**Part 2 (sections 9 to 13) is the software foundation underneath**: a database, accounts, durable jobs, the model
+gateway and agent runtime, and the infrastructure to run it for more than one person. **None of Part 2 is built.**
+Today the product is a single-user program on one machine that keeps everything as files in a folder.
+
 **خلاصه فارسی.** این سند برنامه‌ی «از دموی نسخه‌ی ۱ تا محصول واقعی DCLab» را به **۴۰ برنامه‌ی کوچک** تقسیم می‌کند.
 هر برنامه می‌گوید چه چیزی تحویل می‌دهد، چطور بررسی می‌شود، و یک پرامپت آماده دارد که در یک نشست تازه‌ی Claude Code
 جای‌گذاری می‌شود. در این مخزن **۳۶ برنامه انجام شده و ۴ برنامه باز است**؛ چهار مورد باز به تصمیم یا کلید شما نیاز
@@ -647,7 +651,8 @@ No path that uses a model has run against a real one. The tests use scripted cli
 paths: the Home agent's loop and its streamed replies, the parse pattern for unusual files, the synthetic schema, the
 workflow proposal, the Evidence library's answers, the intern.
 
-- **Needs:** the owner's yes. It uses the key in `.env`, costs a little, and sends the problem sentence, the answers and column summaries to the model's provider.
+- **Tried on 2026-10-05:** the OpenAI account behind the key in `.env` has no credit (`insufficient_quota`), so all 7 requests were refused and no tokens were used. The fallbacks worked. A run against a small local model (`qwen2.5-coder:1.5b` in Ollama) showed that streaming works (34 chunks, none dropped) and exposed one defect: **a model that answers in prose and never calls a tool leaves the draft with nothing recorded, no question and no summary** (package 11.4).
+- **Needs:** credit on the account, or another OpenAI-compatible endpoint in `.env`. It sends the problem sentence, the answers and column summaries to the model's provider.
 - **Done when:** each path has run once on synthetic data, the validators accepted or correctly refused what the model proposed, and anything that broke has a fix and a test.
 
 ```text
@@ -710,3 +715,291 @@ that money is not metered.
 - **The split** is not a free choice in the wizard. The solution decides it, because a random split on rows that have a declared time column answers a different question (PIT-005, DCLAB-R02).
 - **The Home agent** receives column summaries in its state and can page through the rest with `get_profile`; it never receives rows or cell values.
 - **Beyond the plan's first version:** package 5.6 wired the pages the plan left for later.
+
+---
+
+# Part 2 — The software foundation
+
+**What exists today, plainly.** One FastAPI process on `127.0.0.1`. Projects, drafts and intern sessions are JSON
+files and Parquet tables in a workspace folder; the research runs use one SQLite file. Jobs are tasks inside the
+server process and are lost when it restarts. There are no accounts: whoever opens the page is the owner. Each
+feature builds its own model client. There is no container, no deployment and no monitoring.
+
+That is a sound design for one person on one laptop. It does not support several people, a server, or work that
+must survive a restart. Part 2 builds that, without changing the UI or the science.
+
+**Three decisions shape everything below.** The packages assume the first option of each; change the prompts if you
+choose otherwise.
+
+| Decision | Assumed | Alternative |
+|---|---|---|
+| Who uses it | A small team on one server you run | Stay single-user and local (then build only 9.1, 9.2, 11.1 to 11.4 and 12.3) |
+| Database | PostgreSQL on the server, SQLite on a laptop, one schema through SQLAlchemy | PostgreSQL only |
+| Where it runs | Docker Compose on one machine | A managed cloud (adds 12.6) |
+
+| # | Package | Status |
+|---|---|---|
+| 9.1 | A storage interface in front of the three stores | Open |
+| 9.2 | The database schema and migrations | Open |
+| 9.3 | File storage for tables and artifacts | Open |
+| 9.4 | Move an existing workspace into the database | Open |
+| 10.1 | Settings, routers and typed request and response models | Open |
+| 10.2 | Accounts, workspaces and roles | Open |
+| 10.3 | Durable jobs and workers | Open |
+| 10.4 | One audit trail in the database | Open |
+| 11.1 | The model gateway | Open |
+| 11.2 | One agent runtime and tool registry | Open |
+| 11.3 | An evaluation suite for the agents | Open |
+| 11.4 | Progress with a model that does not call tools | Open (a defect found in the live check) |
+| 12.1 | Containers | Open |
+| 12.2 | Configuration and secrets | Open |
+| 12.3 | Continuous integration | Open |
+| 12.4 | Logs, health and metrics | Open |
+| 12.5 | Backups and retention | Open |
+| 13.1 | A typed API client and consistent loading and error states | Open |
+| 13.2 | Browser tests of the main flows | Open |
+
+## 9. Database
+
+### 9.1 A storage interface in front of the three stores
+
+- **Delivers:** one small interface each for projects, drafts and intern sessions, with today's file stores as the first implementation. Nothing else changes.
+- **Done when:** every route and module reaches storage only through the interface; `make rd-check` and `make product-e2e` pass unchanged.
+
+```text
+Package 9.1. ProjectStore (dclab_rnd/studio/store.py), DraftStore (dclab_rnd/draft/store.py) and SessionStore
+(dclab_rnd/intern) are used directly all over the code. Define a Protocol for each in dclab_rnd/storage/ with
+exactly the methods callers use today (get, save, update under a lock, list, delete, the append-only logs, the
+data folder). Make the file stores implement them and make every caller depend on the Protocol. Change no
+behaviour: make rd-check and make product-e2e must pass without edits to their expectations.
+```
+
+### 9.2 The database schema and migrations
+
+- **Delivers:** SQLAlchemy models and Alembic migrations: workspaces, users, projects, drafts, stage records, transitions, approvals, events, intern sessions, jobs, model requests; a database implementation of the 9.1 interfaces.
+- **Done when:** the whole test suite and `make product-e2e` pass against SQLite and against PostgreSQL, chosen by one setting.
+
+```text
+Package 9.2. Implement the storage Protocols from 9.1 on a database with SQLAlchemy 2 and Alembic. Tables:
+workspace, user, membership, project, draft, asset, stage_record, transition, approval, event, intern_session,
+job, model_request. Keep documents that are read whole (a stage record, a solution, a workflow) as JSON columns;
+make columns of what is filtered or joined (ids, workspace, status, timestamps, kind). Append-only logs
+(transitions, events) get a sequence per parent and are never updated. An immutable stage record stays immutable.
+One setting, DCLAB_DATABASE_URL, selects SQLite (default, a file in the workspace) or PostgreSQL. Run the whole
+suite and make product-e2e against both. No raw SQL built from request input.
+```
+
+### 9.3 File storage for tables and artifacts
+
+- **Delivers:** uploaded files, cleaned Parquet tables and exports behind one interface: a local folder now, S3-compatible storage later; the database holds the path, size and SHA-256.
+- **Done when:** a project's data can be read after the workspace folder is moved; the hash is checked on read.
+
+```text
+Package 9.3. Tables and artifacts do not belong in the database. Add dclab_rnd/storage/files.py with put, open,
+delete and exists, a local-folder implementation and an S3-compatible one (boto3, lazily imported). Record each
+file in the database with its key, size, SHA-256 and content type, and verify the hash when a stage loads data.
+Keep the sanitised-name and size-limit rules. Never store credentials in a file record.
+```
+
+### 9.4 Move an existing workspace into the database
+
+- **Delivers:** `python -m dclab_rnd.storage migrate`, which copies a file workspace into the database and verifies it.
+- **Done when:** a workspace created by `make product-e2e --base` migrates, and every page shows the same projects, records and logs.
+
+```text
+Package 9.4. Write a one-way, repeatable migration from a file workspace to the database: projects with their
+solution, stage records, transitions, approvals and activity; drafts with their events; intern sessions. Copy
+files through the 9.3 interface. Verify counts and the SHA-256 of every data file, print a report, and change
+nothing in the source folder. Running it twice must not duplicate anything.
+```
+
+## 10. Backend
+
+### 10.1 Settings, routers and typed models
+
+- **Delivers:** one settings object read once; routes grouped in routers per area; pydantic models for every request and response.
+- **Done when:** `server.py` only builds the app; the OpenAPI schema describes every route; a bad request body is a 422 everywhere.
+
+```text
+Package 10.1. dclab_rnd/agentic/server.py holds most routes as closures and reads os.environ in many places.
+Introduce dclab_rnd/settings.py (pydantic-settings: database URL, workspace folder, model endpoint and tiers,
+limits, feature switches) and split the routes into routers (projects, drafts, intern, evidence, pages, admin)
+that receive their dependencies through FastAPI Depends. Give every route pydantic request and response models.
+Keep every path, status code and payload as it is: the frontend and the tests must not need changes.
+```
+
+### 10.2 Accounts, workspaces and roles
+
+- **Delivers:** sign-in, sessions, workspaces with members, and the roles the Admin page already describes (owner, data scientist, reviewer, viewer) enforced on every route; gate approvals record who approved.
+- **Done when:** a viewer cannot run a stage or approve a gate; a user never sees another workspace; a test covers every write route.
+
+```text
+Package 10.2. Add accounts and workspaces. Sign-in with a password hashed with argon2 and a server-side session
+in an HttpOnly, SameSite=Lax cookie; keep the CSRF token on writes. Every project, draft and session belongs to a
+workspace and every query filters by it. Enforce roles in one dependency: owner (everything), data scientist
+(projects, runs), reviewer (approve gates, read), viewer (read). A gate approval records the user. Local
+single-user mode stays available behind a setting and signs in a default owner. Add OIDC sign-in only when asked.
+Write one test per write route that the wrong role and the wrong workspace are refused.
+```
+
+### 10.3 Durable jobs and workers
+
+- **Delivers:** stage runs, data pipelines, intern sessions and simulations as rows in a job table, run by a worker process, with progress, cancel, retry and recovery after a restart.
+- **Done when:** killing the server mid-run and starting it again resumes or cleanly fails the job; "Stop" works on the Compute page.
+
+```text
+Package 10.3. Jobs are asyncio tasks inside the server and die with it. Add a job table (kind, payload, status,
+progress, started, finished, error, attempts, cancel requested) and a worker process (python -m dclab_rnd.worker)
+that claims jobs with SELECT … FOR UPDATE SKIP LOCKED on PostgreSQL and a simple lock on SQLite. Move stage runs,
+the draft pipeline, simulations and intern sessions onto it. A job writes progress events the page already
+streams. Add cancel (checked between steps) and wire the Compute page's Stop button. On start, a job left
+"running" by a dead worker is marked interrupted and can be retried. A stage stays deterministic: same seed, same
+record.
+```
+
+### 10.4 One audit trail
+
+- **Delivers:** every validated move, approval, policy change, sign-in and data import as one append-only table with who, when and what.
+- **Done when:** the Admin audit tab reads one query; an entry cannot be changed or deleted through the application.
+
+```text
+Package 10.4. The audit log is assembled from transition and activity files per project. Write every governed
+action (validated moves allowed or refused, gate approvals and their use, policy switches, solution changes, data
+imports with their source and hash, sign-ins, role changes) to one append-only audit table with the user, the
+workspace, the time and a JSON detail. The application has no update or delete on it. Point the Admin audit tab
+at it with paging and filters.
+```
+
+## 11. AI and agents
+
+### 11.1 The model gateway
+
+- **Delivers:** one place every model request goes through: provider and model per tier (cheap, standard, strong), retries with backoff, the pause after a hard refusal, a per-project and per-workspace budget, and a usage log (tokens, cost, latency, purpose).
+- **Done when:** no module creates a model client by itself; the Compute and Admin pages show real spend; a request over budget is refused with a clear message.
+
+```text
+Package 11.1. Model clients are created in several places (intern/llm.py, studio/agent.py, the campaign loop).
+Build dclab_rnd/models/gateway.py: complete() and stream() take a purpose ("home_agent", "parse_pattern",
+"synthetic_schema", "evidence_answer", "intern") and a tier; settings map each tier to an OpenAI-compatible
+endpoint and model, so a small local model can serve cheap purposes. The gateway owns retries, timeouts, the
+safe failure reasons and the pause (already in intern/llm.py), counts tokens, prices them from one table, checks
+the project and workspace budget before sending, and writes a model_request row (purpose, model, tokens, cost,
+latency, outcome; never the prompt text unless a debug setting is on). Route every existing caller through it.
+This also delivers package 8.4.
+```
+
+### 11.2 One agent runtime and tool registry
+
+- **Delivers:** the Home agent, the intern and the campaign agent on one loop: a tool registry with JSON schemas, the validator in front of every tool that changes something, a step and time budget, and a stored trace of each step.
+- **Done when:** a new tool is registered once and is available to the intern and over MCP; every agent step can be replayed from its trace.
+
+```text
+Package 11.2. There are three agent loops (draft/chat.py, intern/loop.py, agentic/worker.py). Extract one
+runtime in dclab_rnd/agents/: a Tool (name, description, JSON schema, handler, whether it changes state), a
+registry shared by the intern and the MCP server, and a loop that asks the gateway, validates arguments against
+the schema, sends every state-changing tool through studio.graph.check, enforces the step and minute budget, and
+stores a trace (state summary, tool, arguments, verdict, result summary). Rebuild the three agents on it with
+their behaviour unchanged. The model still never computes a split or a metric.
+```
+
+### 11.3 An evaluation suite for the agents
+
+- **Delivers:** scripted cases that every agent must pass (planted leaks, a refused move, a missing prediction moment, an invalid workflow) and an optional live run that scores a real model on the same cases.
+- **Done when:** `make agent-eval` reports pass and fail per case with a scripted model; the live run reports valid moves, leaks caught, unsafe actions, tokens and cost.
+
+```text
+Package 11.3. Build the judgment suite the Benchmark page describes. Each case is a small table with a planted
+trap (a post-outcome column, an identifier that predicts the target, a random split on timestamped rows) and the
+expected behaviour. Run the standard plan and any configured model on the cases through the 11.2 runtime and
+score: valid moves, leaks caught, citations that exist, unsafe actions attempted, tokens and cost. The scripted
+run is part of make rd-check; the live run needs an explicit flag and my permission each time. Report scores
+with their uncertainty and never as proof of production readiness.
+```
+
+### 11.4 Progress with a model that does not call tools
+
+- **Delivers:** the Home conversation keeps moving when a model answers in prose: the pending question is answered from the user's reply by code, and the next question or the summary follows.
+- **Done when:** a scripted model that never calls a tool still leads to a recorded outcome, moment and action, and a summary.
+
+```text
+Package 11.4. Found in the live check: a small model replied in prose and never called record or ask_user, so
+nothing was recorded, no question was asked and no summary came. In HomeAgent.model_turn, when a turn ends with
+no tool call and a question is pending, record the user's reply as that question's answer in code, and when no
+question is pending and something is still unknown, ask the next scripted question after the model's text. The
+user must always have a next step. Test it with a scripted client that only ever returns text.
+```
+
+## 12. Infrastructure
+
+### 12.1 Containers
+
+```text
+Package 12.1. Add a Dockerfile (multi-stage, a non-root user, the built frontend copied in, no key baked in) and
+a docker-compose.yml with three services: app, worker and PostgreSQL with a named volume, plus a volume for file
+storage. The app listens on 0.0.0.0 only inside the container and is published on 127.0.0.1 by default. Add
+make up, make down and make logs. Done when make up starts a product that passes make product-e2e --base.
+```
+
+### 12.2 Configuration and secrets
+
+```text
+Package 12.2. Document every setting in .env.example with a safe default. Keys and connection strings come from
+the environment or Docker secrets, never from a committed file or an image layer. Fail at start with a clear
+message when a required setting is missing or the database cannot be reached. Add the allowed host names as a
+setting for the host check. Scan the repository and the image for committed secrets and report what you find.
+```
+
+### 12.3 Continuous integration
+
+```text
+Package 12.3. Extend .github/workflows: on every push run make rd-check and make product-e2e on SQLite; on main
+also run the suite against a PostgreSQL service and build the image. No job may use a model key. Cache
+dependencies. A failing check blocks the merge.
+```
+
+### 12.4 Logs, health and metrics
+
+```text
+Package 12.4. Add structured JSON logs with a request id (never a secret, a prompt or a data value), GET /healthz
+(process up) and GET /readyz (database and file storage reachable), and counters for requests, job durations,
+failures and model usage in Prometheus format on a port that is not public. Show job failures on the Compute page.
+```
+
+### 12.5 Backups and retention
+
+```text
+Package 12.5. Add make backup and make restore: a database dump plus the file storage, restorable on a clean
+machine, with a test that restores into a temporary database and compares counts. Add the retention rule the
+Admin page promises: raw uploads can be deleted after N days while the cleaned table, its hash and every record
+stay. Deleting a project removes its files and leaves an audit entry.
+```
+
+## 13. Frontend
+
+The UI stays demo v1. These two packages make it sturdier without changing how it looks.
+
+### 13.1 A typed API client and consistent states
+
+```text
+Package 13.1. Generate one API client from the server's OpenAPI schema (10.1) into
+dclab_rnd/agentic/web/src/api.js and make every view use it instead of path strings. Give every view the same
+three states with existing components: loading, empty (what to do next) and failed (what happened, try again).
+A signed-out response sends the user to sign-in. Change no layout, colour or wording that already exists.
+```
+
+### 13.2 Browser tests of the main flows
+
+```text
+Package 13.2. Add Playwright tests that drive the real page: one sentence and an uploaded file on Home, the
+chat's questions answered by clicking options, the wizard's five steps with their defaults, a run on the
+Workflow page, and the brief. Assert no console or CSP error on all 19 pages, no sideways scroll at 375 px, and
+that the stats on screen equal the API's numbers. Run them in CI against the container from 12.1.
+```
+
+## Suggested order for Part 2
+
+1. **11.4** (a defect), then **9.1** and **10.1** (they move code without changing behaviour).
+2. **9.2, 9.3, 9.4** (the database), then **10.3** (jobs) and **10.4** (audit).
+3. **11.1** and **11.2** (the AI layer), then **11.3**.
+4. **10.2** (accounts), **12.1 to 12.5** (infrastructure), **13.1** and **13.2**.
+
