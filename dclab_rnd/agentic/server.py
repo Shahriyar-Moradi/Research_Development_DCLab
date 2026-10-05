@@ -25,6 +25,7 @@ from ..intern import llm as intern_llm
 from ..intern.sessions import EXAMPLE_TASKS
 from ..intern.tools import Toolbox
 from .. import mcp_server
+from . import pages
 from ..draft import api as draft_api
 from ..draft.store import DraftStore
 
@@ -451,6 +452,8 @@ def create_app(home=None):
     @app.get("/classic")
     async def classic(): return FileResponse(STATIC / "index.html")
     draft_api.register(app, drafts, projects, llm_client, draft_jobs)
+    pages.register_all(app, pages.Context(store=store, projects=projects, drafts=drafts, intern_sessions=intern_sessions,
+                                          jobs=jobs, intern_jobs=intern_jobs, draft_jobs=draft_jobs))
     @app.get("/api/workspace")
     async def workspace():
         """What Home shows: real counts, the projects with their progress, and what waits for a person."""
