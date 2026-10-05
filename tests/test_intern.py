@@ -135,6 +135,20 @@ class LlmLoopTests(unittest.TestCase):
         self.assertIn("budget", session["final"])
 
 
+class StandardPlanSolutionTests(unittest.TestCase):
+    def test_time_column_is_not_also_forbidden(self):
+        """The fraud sample blocks elapsed Time and also orders the split by it; the plan must not list it twice."""
+        projects, sessions = make(tempfile.mkdtemp())
+        intern = Intern(sessions, Toolbox(projects), None)
+        with fast_profile():
+            session = intern.run(intern.start("Audit the credit-card fraud data for leakage", {"max_steps": 7, "max_minutes": 5})["id"])
+        saved = next((s for s in session["steps"] if s["tool"] == "set_solution"), None)
+        self.assertIsNotNone(saved, [s["tool"] for s in session["steps"]])
+        self.assertNotIn("error", json.dumps(saved.get("result", {}))[:200].lower(), saved)
+        solution = projects.get(session["project_id"])["solution"]
+        self.assertNotIn(solution["time_column"], [f["column"] for f in solution["forbidden"]])
+
+
 class ApiTests(unittest.TestCase):
     def setUp(self):
         try:

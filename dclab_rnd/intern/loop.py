@@ -199,13 +199,17 @@ class Intern:
                 return
             proposal = self._step(session, "propose_solution", {"project_id": pid, "target": target, **({"task": suggestion["task"]} if suggestion.get("task") else {})}, started)
             if "error" in proposal:
-                session["status"] = "completed"
+                session["status"] = "failed"
                 session["final"] = proposal["error"]
                 return
             known = {f["column"]: f for f in suggestion.get("forbidden", [])}
             for f in proposal.get("forbidden", []):
                 if f["column"] not in known and any(p.startswith("LEAK-") for p in f.get("proof", [])):
                     known[f["column"]] = {"column": f["column"], "reason": f["reason"]}
+            # A time, group or identifier column is already kept out of the model by its role; listing it as
+            # forbidden too is a contradiction the solution validator refuses (the fraud sample's elapsed Time).
+            roles = {suggestion.get("time_column"), suggestion.get("group_column"), *proposal.get("identifiers", []), *suggestion.get("identifiers", [])}
+            known = {c: f for c, f in known.items() if c not in roles}
             solution = {"project_id": pid, "target": target, "task": proposal["task"],
                         "prediction_moment": suggestion.get("prediction_moment") or ("Predict at the moment the row is recorded; " + proposal["prediction_moment_hint"]),
                         "forbidden": list(known.values()), "identifiers": sorted(set(proposal.get("identifiers", [])) | set(suggestion.get("identifiers", []))),
@@ -214,7 +218,7 @@ class Intern:
                         "metric": suggestion.get("metric") or None}
             saved = self._step(session, "set_solution", {k: v for k, v in solution.items() if v not in (None, [], "")}, started)
             if "error" in saved:
-                session["status"] = "completed"
+                session["status"] = "failed"
                 session["final"] = "The solution could not be saved: " + saved["error"]
                 return
         if "full" in task or "all rows" in task:
