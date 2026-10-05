@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "research/tabular-classification/experiments/hyperack_exp"))
 
 from shared.protocol import evaluate  # noqa: E402
+from dclab_rnd.categoricals import declared_categorical  # noqa: E402
 from dclab_rnd.provenance import capture_provenance  # noqa: E402
 from general_pipeline.external_catalog import DATASET_CATALOG  # noqa: E402
 from general_pipeline.external_project import PROJECTS_ROOT, project_dir, scaffold_project  # noqa: E402
@@ -84,6 +85,7 @@ def load_raw_xy(key: str, mode: str, max_rows: int | None = 20000):
     meta["dropped_leakage"] = drop
     meta["has_leakage"] = policy.has_leakage
     meta["leakage_rationale"] = policy.rationale
+    meta["categorical"] = declared_categorical(key, X.columns)  # category codes: no derived features from them
 
     if max_rows and len(X) > max_rows:
         X, _, y, _ = train_test_split(X, y, train_size=max_rows, stratify=y, random_state=RANDOM_STATE)
@@ -136,7 +138,7 @@ def run_ladder_experiment(
     optimization_method: str = "none",
 ) -> dict:
     X_train, y_train, X_test, y_test, meta = load_raw_xy(key, mode)
-    Xtr, Xte, fe_meta = build_feature_matrix(X_train, y_train, X_test, stage=stage)
+    Xtr, Xte, fe_meta = build_feature_matrix(X_train, y_train, X_test, stage=stage, categorical=meta["categorical"])
     model = model_factory()
     metrics, elapsed = _run_eval(model, Xtr, y_train, Xte, y_test)
     payload = {

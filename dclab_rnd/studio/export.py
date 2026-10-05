@@ -49,6 +49,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     task = contract.get("task", "binary")
     regression = task == "regression"
     features = records.get("features", {}).get("decision", {})
+    codes = list(records.get("features", {}).get("evidence", {}).get("category_code_columns", []))
     models = records.get("models", {}).get("decision", {})
     final = records.get("final", {}).get("evidence", {})
     recipe = features.get("chosen") or features.get("selected") or "raw"
@@ -84,7 +85,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
         _cell("code", _split_code(time_column, group_column, regression, data)),
         _cell("markdown", f"## 3. Feature recipe `{recipe}`\n\n{features.get('rule', '')}\n\nEvery statistic (imputation, scaling, one-hot categories) is learned inside the training folds only."),
-        _cell("code", _recipe_code(recipe, time_column)),
+        _cell("code", _recipe_code(recipe, time_column, codes)),
         _cell("markdown", f"## 4. Model `{family}`\n\n{models.get('rule', '')}\n\n"
               + (f"Tuned parameters accepted: `{params}`" if params else "Default parameters kept (tuning did not beat them by the required margin).")),
         _cell("code", f"model = {ctor}\n" + (f"model.set_params(**{params!r})\n" if params else "") + "pipeline = Pipeline([('features', features), ('model', model)])"),
@@ -133,19 +134,20 @@ def _split_code(time_column: str | None, group_column: str | None, regression: b
             f"cv = {kf}(n_splits=3, shuffle=True, random_state=RANDOM_STATE)\ncv_groups = None")
 
 
-def _recipe_code(recipe: str, time_column: str | None) -> str:
+def _recipe_code(recipe: str, time_column: str | None, codes: list[str]) -> str:
     derived = ""
+    skip = f"CATEGORY_CODES = {codes!r}  # numbers that stand for categories: never logged or multiplied (DCLAB-R11)\n"
     if recipe in ("log_numeric",):
-        derived = ("from sklearn.preprocessing import FunctionTransformer\n"
-                   "def add_logs(df):\n    df = df.copy()\n    for c in df.select_dtypes('number').columns:\n        if df[c].nunique() > 2:\n            df[f'log_{c}'] = np.sign(df[c]) * np.log1p(df[c].abs())\n    return df\n")
+        derived = ("from sklearn.preprocessing import FunctionTransformer\n" + skip +
+                   "def add_logs(df):\n    df = df.copy()\n    for c in df.select_dtypes('number').columns:\n        if c not in CATEGORY_CODES and df[c].nunique() > 2:\n            df[f'log_{c}'] = np.sign(df[c]) * np.log1p(df[c].abs())\n    return df\n")
     if recipe == "calendar" and time_column:
         derived = ("from sklearn.preprocessing import FunctionTransformer\n"
                    f"def add_calendar(df):\n    df = df.copy()\n    stamp = pd.to_datetime(frame.loc[df.index, {time_column!r}], errors='coerce')\n"
                    "    doy = stamp.dt.dayofyear.astype(float)\n    df['doy_sin'], df['doy_cos'] = np.sin(2 * np.pi * doy / 365.25), np.cos(2 * np.pi * doy / 365.25)\n"
                    "    df['day_of_month'], df['week_of_year'], df['is_weekend'] = stamp.dt.day, stamp.dt.isocalendar().week.astype(float).to_numpy(), (stamp.dt.dayofweek >= 5).astype(float)\n    return df\n")
     if recipe == "poly2":
-        derived = ("from sklearn.preprocessing import FunctionTransformer\n"
-                   "def add_products(df):\n    df = df.copy()\n    cols = [c for c in df.select_dtypes('number').columns if df[c].nunique() > 2]\n"
+        derived = ("from sklearn.preprocessing import FunctionTransformer\n" + skip +
+                   "def add_products(df):\n    df = df.copy()\n    cols = [c for c in df.select_dtypes('number').columns if c not in CATEGORY_CODES and df[c].nunique() > 2]\n"
                    "    for i, a in enumerate(cols):\n        for b in cols[i + 1:]:\n            df[f'{a}*{b}'] = df[a] * df[b]\n    return df\n")
     pre = ("numeric = X_train.select_dtypes('number').columns.tolist()\ncategorical = [c for c in X_train.columns if c not in numeric]\n"
            "preprocess = ColumnTransformer([\n    ('numeric', Pipeline([('impute', SimpleImputer(strategy='median')), ('scale', StandardScaler())]), numeric),\n"

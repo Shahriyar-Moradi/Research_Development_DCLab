@@ -39,6 +39,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import RepeatedStratifiedKFold, train_test_split
 
+from dclab_rnd.categoricals import declared_categorical
 from dclab_rnd.provenance import capture_provenance
 from general_pipeline.playbook.features import FeatureEngineer
 from general_pipeline.playbook.policy import get_policy
@@ -125,6 +126,7 @@ def load_dataset(
         "source_rows": source_rows,
         "analyzed_rows": len(X),
         "policy": policy,
+        "categorical": declared_categorical(key, X.columns),
         "data_paths": [x_path, y_path, meta_path],
     }
 
@@ -377,8 +379,12 @@ def evaluate_cv(
     model_params: dict[str, Any] | None = None,
     folds: int = 3,
     repeats: int = 1,
+    categorical: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate a train-fitted feature/model recipe without touching the holdout."""
+    """Evaluate a train-fitted feature/model recipe without touching the holdout.
+
+    ``categorical`` lists the dataset's category-code columns, which no derived feature uses.
+    """
     cv = RepeatedStratifiedKFold(
         n_splits=folds,
         n_repeats=repeats,
@@ -396,7 +402,7 @@ def evaluate_cv(
         X_valid = X.iloc[valid_idx].reset_index(drop=True)
         y_valid = y.iloc[valid_idx].reset_index(drop=True)
 
-        engineer = FeatureEngineer(stage=stage, random_state=RANDOM_STATE + fold_index)
+        engineer = FeatureEngineer(stage=stage, random_state=RANDOM_STATE + fold_index, categorical=categorical)
         engineer.fit(X_fit, y_fit)
         fit_matrix = engineer.transform(X_fit)
         valid_matrix = engineer.transform(X_valid)
@@ -685,6 +691,7 @@ def run_task(
     X_train_all = bundle["X_train"]
     y_train = bundle["y_train"]
     X_train = safe_features(X_train_all, policy)
+    categorical = bundle["categorical"]
     folds = 3
     repeats = 1 if quick else 2
     base = _result_base(root, task, bundle, started)
@@ -736,6 +743,7 @@ def run_task(
                 model_name="lightgbm",
                 folds=folds,
                 repeats=1,
+                categorical=categorical,
             )
             unsafe_cv = evaluate_cv(
                 X_train_all,
@@ -744,6 +752,7 @@ def run_task(
                 model_name="lightgbm",
                 folds=folds,
                 repeats=1,
+                categorical=categorical,
             )
             comparison = {
                 "safe": safe_cv,
@@ -793,6 +802,7 @@ def run_task(
                 model_name="lightgbm",
                 folds=folds,
                 repeats=1,
+                categorical=categorical,
             )
             for stage in FEATURE_STAGES
         ]
@@ -833,7 +843,7 @@ def run_task(
         stage = (feature_result or {}).get("evidence", {}).get("selected_stage", "raw")
         rows = [
             evaluate_cv(
-                X_train, y_train, stage=stage, model_name=model, folds=folds, repeats=1
+                X_train, y_train, stage=stage, model_name=model, folds=folds, repeats=1, categorical=categorical
             )
             for model in MODEL_FAMILIES
         ]
@@ -885,6 +895,7 @@ def run_task(
             optimization="baseline",
             folds=folds,
             repeats=repeats,
+            categorical=categorical,
         )
         candidates = optimization_candidates(model_name, quick=quick)
         configurations = [baseline]
@@ -898,6 +909,7 @@ def run_task(
                 model_params=candidate["params"],
                 folds=folds,
                 repeats=repeats,
+                categorical=categorical,
             )
             configurations.append(evaluated)
         best_tuned = max(
@@ -913,7 +925,7 @@ def run_task(
         )
         selected_config = best_tuned if auc_delta >= 0.001 else baseline
 
-        engineer = FeatureEngineer(stage=stage, random_state=RANDOM_STATE)
+        engineer = FeatureEngineer(stage=stage, random_state=RANDOM_STATE, categorical=categorical)
         engineer.fit(X_train, y_train)
         train_matrix = engineer.transform(X_train)
         test_matrix = engineer.transform(safe_features(bundle["X_test"], policy))
