@@ -285,6 +285,8 @@ def limits(projects) -> dict[str, Any]:
              "text": ("A model is configured, so these go to " + cfg["endpoint"] + ": " if cfg["available"] else "No model is configured, so nothing is sent. With one: ")
              + "the Home agent gets the problem, your answers, column summaries (name, kind, missing rate, unique count; 40 columns at a time) "
                "and the descriptive findings (counts and shares), never rows or cell values; "
+               "a file that no built-in reader can parse is the one exception: up to 20 of its lines (400 characters each) go to the "
+               "model to work out the format, the data step says when that happened, and DCLAB_MODEL_READS_SAMPLE_LINES=0 turns it off; "
                "the intern gets its tool results, and describe_data includes up to three example values per column."},
             {"title": "Scan uploads for personal data", "on": False, "text": "Not built yet: uploads are not scanned for personal data."},
             {"title": "Retention", "on": False, "text": "No timed retention: raw uploads stay until their project or draft is deleted."},

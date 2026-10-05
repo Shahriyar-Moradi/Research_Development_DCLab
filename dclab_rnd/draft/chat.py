@@ -255,7 +255,10 @@ class HomeAgent:
                 self.model_turn(draft_id)
                 return
             except Exception as exc:  # noqa: BLE001 — provider errors: fall back to the script for this turn
-                self.store.emit(draft_id, "status", {"note": f"The model was unavailable ({str(exc).split(':')[0]}); DCLab continued with its standard questions."})
+                reason = str(exc).split(": ", 1)[-1][:120]
+                if (self.store.get(draft_id).get("agent") or {}).get("model_note") != reason:  # say it once, not on every turn
+                    self.store.update(draft_id, lambda d: d["agent"].update(model_note=reason))
+                    self.store.emit(draft_id, "status", {"note": f"The model was unavailable ({reason}); DCLab continues with its standard questions."})
         self.script_turn(draft_id, text)
 
     # ------------------------------------------------------------------ the deterministic script
@@ -333,14 +336,16 @@ class HomeAgent:
         draft = self.store.get(draft_id)
         u = draft.get("understanding") or {}
         name = (packs.by_key((draft.get("pack") or {}).get("key")) or {}).get("name", "Tabular")
-        low = lambda v: v[:1].lower() + v[1:] if v and not v[:2].isupper() else v  # noqa: E731 — "At a snapshot" reads mid-sentence
-        parts = [f"Predict {u['target']}" if u.get("target") else "The outcome is still open",
-                 f"made {low(u['prediction_moment'])}" if u.get("prediction_moment") else None,
-                 f"and then: {low(u['action'])}" if u.get("action") else None]
+        line = lambda label, value: f"{label}: {str(value).strip().rstrip('.')}." if value else None  # noqa: E731 — answers are quoted as given
+        parts = [line("Outcome", u.get("target")) or "The outcome is still open.", line("Prediction moment", u.get("prediction_moment")),
+                 line("What happens with each prediction", u.get("action"))]
         ready = any(a.get("status") == "ready" for a in draft["assets"])
-        text = ("Here is the solution I would build. " + "; ".join(p for p in parts if p) + f". Pack: {name}. "
+        text = ("Here is the solution I would build. " + " ".join(p for p in parts if p) + f" Pack: {name}. "
                 + ("The data is ready, so we can build the solution now." if ready else
                    "We can build the solution plan now and add data in the next step."))
+        last = next((m for m in reversed(draft["messages"]) if m["role"] == "agent"), None)
+        if last and last.get("kind") == "summary" and last.get("text") == text:
+            return  # two turns can end here (the data-ready turn and the reply that started a simulation): say it once
         self.say(draft_id, text, kind="summary", actions=["build"])
 
     # ------------------------------------------------------------------ the model

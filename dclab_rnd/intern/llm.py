@@ -10,10 +10,43 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any
 from urllib.parse import urlparse
 
 DEFAULT_MODEL = "gpt-5.6-terra"
+PAUSE_SECONDS = 600  # after a refusal that will not go away by itself (no credit, a refused key, an unknown model)
+_PAUSED: dict[str, tuple[float, str]] = {}  # endpoint and model -> (until, reason)
+
+
+def failure(exc: BaseException) -> tuple[str, bool]:
+    """Why a model request failed, in words safe to show, and whether trying again soon is pointless.
+
+    Only the HTTP status and the provider's short error code are read. The provider's message is never passed on:
+    it can repeat request headers or parts of a key.
+    """
+    status = getattr(exc, "status_code", None)
+    body = getattr(exc, "body", None)
+    error = body.get("error", body) if isinstance(body, dict) else None
+    code = " ".join(str(error.get(k) or "") for k in ("code", "type")).lower() if isinstance(error, dict) else ""
+    if "quota" in code or "credit" in code or "billing" in code:
+        return "the model account has no credit left", True
+    if status in (401, 403):
+        return "the provider refused the key", True
+    if status == 404 or "model_not_found" in code:
+        return "the model name is not available to this key", True
+    if status == 429:
+        return "the provider is limiting requests for now", False
+    if isinstance(status, int) and status >= 500:
+        return "the provider had an error", False
+    if type(exc).__name__ in ("APIConnectionError", "APITimeoutError", "ConnectError", "ReadTimeout"):
+        return "the model endpoint could not be reached", False
+    return "the model request failed", False
+
+
+def resume() -> None:
+    """Forget every pause (a new key or endpoint was configured, or a test starts)."""
+    _PAUSED.clear()
 
 
 def settings() -> dict[str, Any]:
@@ -31,7 +64,8 @@ def settings() -> dict[str, Any]:
 
 
 class ChatClient:
-    """One ``complete`` call = one chat-completions request. Errors surface by type only."""
+    """One ``complete`` call = one chat-completions request. A failure is raised as ``RuntimeError("<Type>: <reason>")``
+    with a reason safe to show (see ``failure``); after a refusal that will not go away, requests pause for a while."""
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None):
         cfg = settings()
@@ -39,6 +73,17 @@ class ChatClient:
         self.base_url = base_url or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY") or ("ollama" if "11434" in self.base_url else "")
         self._client = None
+
+    def _ready(self) -> None:
+        until, reason = _PAUSED.get(f"{self.base_url} {self.model}", (0.0, ""))
+        if until > time.time():  # no request is sent: it would be refused again, and each attempt makes the user wait
+            raise RuntimeError(f"ModelPaused: {reason}")
+
+    def _failed(self, exc: BaseException) -> RuntimeError:
+        reason, pointless = failure(exc)
+        if pointless:
+            _PAUSED[f"{self.base_url} {self.model}"] = (time.time() + PAUSE_SECONDS, reason)
+        return RuntimeError(f"{type(exc).__name__}: {reason}")
 
     @property
     def client(self):
@@ -61,6 +106,7 @@ class ChatClient:
         text: list[str] = []
         pieces: dict[int, dict[str, Any]] = {}
         finish, usage = None, None
+        self._ready()
         try:
             for chunk in self.client.chat.completions.create(**kwargs):
                 if getattr(chunk, "usage", None):
@@ -81,7 +127,7 @@ class ChatClient:
                         piece["arguments"] += call.function.arguments or ""
                 finish = choice.finish_reason or finish
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
-            raise RuntimeError(f"{type(exc).__name__}: the model request failed (check the key, the endpoint and the model name)") from None
+            raise self._failed(exc) from None
         calls = []
         for index in sorted(pieces):
             piece = pieces[index]
@@ -102,10 +148,11 @@ class ChatClient:
         kwargs: dict[str, Any] = {"model": self.model, "messages": messages, "max_tokens": max_tokens}
         if tools:
             kwargs.update(tools=tools, tool_choice="auto")
+        self._ready()
         try:
             response = self.client.chat.completions.create(**kwargs)
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
-            raise RuntimeError(f"{type(exc).__name__}: the model request failed (check the key, the endpoint and the model name)") from None
+            raise self._failed(exc) from None
         choice = response.choices[0]
         calls = []
         for call in choice.message.tool_calls or []:

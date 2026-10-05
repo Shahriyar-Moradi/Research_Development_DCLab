@@ -8,6 +8,8 @@ nothing is learned from the data that could leak, and nothing looks at a possibl
 
 from __future__ import annotations
 
+import os
+
 import secrets
 from pathlib import Path
 from typing import Any
@@ -52,7 +54,9 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
     try:
         set_asset(store, draft_id, asset_id, status="structuring")
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structuring", "text": "Reading the file and turning it into a table"})
-        frame, info = structure.to_table(path, client=client)
+        # DCLAB_MODEL_READS_SAMPLE_LINES=0: a file no built-in reader fits is read line by line and nothing is sent
+        reader = client if os.environ.get("DCLAB_MODEL_READS_SAMPLE_LINES", "1") != "0" else None
+        frame, info = structure.to_table(path, client=reader)
         set_asset(store, draft_id, asset_id, status="cleaning", format=info.get("format"), structure=info)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structured", "text": _structured_text(info), "info": info})
 

@@ -779,6 +779,10 @@ def _ask_model(client: Any, lines: list[str], baseline: float, info: dict[str, A
     shown = [line[:MODEL_LINE_CHARS] for line in lines[:MODEL_LINES]]
     messages = [{"role": "system", "content": MODEL_PROMPT},
                 {"role": "user", "content": "Lines:\n" + "\n".join(shown)}]
+    # The one place raw content can reach a model: say so in the record the user sees (the pipeline lists these notes).
+    info["model_lines_sent"] = len(shown)
+    info["notes"].append(f"No built-in reader fits this file, so {len(shown)} of its lines (up to {MODEL_LINE_CHARS} characters each) "
+                         "were sent to the configured model to work out the format.")
     try:
         reply = client.complete(messages, tools=None, max_tokens=600)
         content = reply.get("content", "") if isinstance(reply, dict) else ""

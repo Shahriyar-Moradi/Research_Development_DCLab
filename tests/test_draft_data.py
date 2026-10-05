@@ -270,6 +270,29 @@ class StructureModelTest(unittest.TestCase):
         self.assertEqual(frame["ms"].dtype, "int64")
         self.assertEqual(frame.loc[1, "user"], "bob")
         self.assertTrue(any("checked before use" in n for n in info["notes"]))
+        # raw lines left the machine: the record the user sees says so
+        self.assertEqual(info["model_lines_sent"], st.MODEL_LINES)
+        self.assertTrue(any("were sent to the configured model" in n for n in info["notes"]))
+
+    def test_the_pipeline_can_be_told_never_to_send_lines(self):
+        import os
+        import shutil
+        import tempfile
+        from unittest import mock
+        from dclab_rnd.draft import pipeline
+        from dclab_rnd.draft.store import DraftStore
+
+        reply = json.dumps({"regex": CUSTOM_REGEX, "types": {"ms": "int", "req": "int"}})
+        for setting, calls, parser in (("1", 1, "model"), ("0", 0, "builtin")):
+            store = DraftStore(Path(tempfile.mkdtemp()))
+            draft = store.create("Find slow requests in our service log")
+            shutil.copyfile(FIXTURES / "custom.log", store.data_dir(draft["id"]) / "custom.log")
+            asset = pipeline.new_asset(store, draft["id"], "upload", "custom.log", "custom.log")
+            client = FakeClient(reply)
+            with mock.patch.dict(os.environ, {"DCLAB_MODEL_READS_SAMPLE_LINES": setting}):
+                final = pipeline.run(store, draft["id"], asset["id"], None, client)
+            self.assertEqual((final["status"], len(client.calls), final["structure"]["parser"]), ("ready", calls, parser), setting)
+            self.assertEqual("model_lines_sent" in final["structure"], setting == "1")
 
     def test_bad_model_patterns_are_ignored(self):
         cases = {

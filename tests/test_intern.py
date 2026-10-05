@@ -177,6 +177,50 @@ class StreamingClientTests(unittest.TestCase):
         self.assertEqual(out["assistant_message"]["tool_calls"][0]["function"]["name"], "record")
         self.assertTrue(seen["stream"] and seen["tool_choice"] == "auto")
 
+    def test_a_refusal_gets_a_safe_reason_and_no_credit_pauses_further_requests(self):
+        from types import SimpleNamespace as NS
+        from dclab_rnd.intern import llm
+
+        llm.resume()
+        self.addCleanup(llm.resume)
+
+        class Refused(Exception):
+            def __init__(self, status, code):
+                super().__init__("Authorization: Bearer sk-live-secret")  # provider text can carry a key: never shown
+                self.status_code, self.body = status, {"error": {"code": code, "type": "x", "message": "sk-live-secret"}}
+        cases = [(Refused(429, "insufficient_quota"), "the model account has no credit left", True), (Refused(401, "invalid_api_key"), "the provider refused the key", True),
+                 (Refused(404, "model_not_found"), "the model name is not available to this key", True), (Refused(429, "rate_limit_exceeded"), "the provider is limiting requests for now", False),
+                 (Refused(503, "server_error"), "the provider had an error", False), (ValueError("x"), "the model request failed", False)]
+        self.assertEqual([llm.failure(e) for e, _, _ in cases], [(reason, pointless) for _, reason, pointless in cases])
+        sent = []
+
+        def create(**kwargs):
+            sent.append(1)
+            raise Refused(429, "insufficient_quota")
+        client = llm.ChatClient(model="m", base_url="http://x", api_key="k")
+        client._client = NS(chat=NS(completions=NS(create=create)))
+        with self.assertRaises(RuntimeError) as first:
+            client.complete([{"role": "user", "content": "hi"}])
+        self.assertEqual(str(first.exception), "Refused: the model account has no credit left")
+        self.assertNotIn("sk-live-secret", str(first.exception))
+        for call in (client.complete, client.stream):
+            with self.assertRaises(RuntimeError) as again:
+                call([{"role": "user", "content": "hi"}])
+            self.assertEqual(str(again.exception), "ModelPaused: the model account has no credit left")
+        self.assertEqual(len(sent), 1)  # the paused requests never reached the provider
+        other = llm.ChatClient(model="other", base_url="http://x", api_key="k")  # another model is not paused
+        other._client = NS(chat=NS(completions=NS(create=lambda **k: (_ for _ in ()).throw(Refused(429, "rate_limit_exceeded")))))
+        with self.assertRaises(RuntimeError) as limited:
+            other.complete([{"role": "user", "content": "hi"}])
+        self.assertIn("limiting requests", str(limited.exception))
+        with self.assertRaises(RuntimeError) as limited_again:
+            other.complete([{"role": "user", "content": "hi"}])
+        self.assertNotIn("ModelPaused", str(limited_again.exception))  # a rate limit passes by itself: keep trying
+        llm.resume()
+        with self.assertRaises(RuntimeError) as after:
+            client.complete([{"role": "user", "content": "hi"}])
+        self.assertNotIn("ModelPaused", str(after.exception))
+
     def test_errors_surface_by_type_only(self):
         with self.assertRaises(RuntimeError) as caught:
             self.client([], fail=True).stream([{"role": "user", "content": "hi"}])

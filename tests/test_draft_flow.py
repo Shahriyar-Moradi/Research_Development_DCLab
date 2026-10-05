@@ -290,8 +290,24 @@ class AgentTests(unittest.TestCase):
         HomeAgent(self.store, Broken()).reply(d["id"], "Customers who cancel within 30 days")
         d = self.store.get(d["id"])
         self.assertEqual(d["understanding"]["target"], "Customers who cancel within 30 days")
+        HomeAgent(self.store, Broken()).reply(d["id"], "At the weekly snapshot, before the retention call.")
         notes = [e["data"].get("note") for e in self.store.events(d["id"]) if e["kind"] == "status" and e["data"].get("note")]
-        self.assertTrue(any("RateLimitError" in n for n in notes))
+        self.assertEqual(notes, ["The model was unavailable (the model request failed); DCLab continues with its standard questions."])  # said once, not per turn
+
+    def test_the_summary_is_said_once_and_quotes_the_answers(self):
+        d = self.store.create("Predict which customers cancel")
+        self.store.update(d["id"], lambda x: x["understanding"].update(target="A customer counts as lost if they pause or cancel within 30 days.",
+                                                                       prediction_moment="Every Monday morning", action="The team calls the riskiest customers"))
+        agent = HomeAgent(self.store, None)
+        agent.summarize(d["id"])
+        agent.summarize(d["id"])  # the data-ready turn and the reply that started a simulation both end here
+        summaries = [m for m in self.store.get(d["id"])["messages"] if m.get("kind") == "summary"]
+        self.assertEqual(len(summaries), 1)
+        self.assertIn("Outcome: A customer counts as lost if they pause or cancel within 30 days. Prediction moment: Every Monday morning. "
+                      "What happens with each prediction: The team calls the riskiest customers. Pack: Tabular.", summaries[0]["text"])
+        self.store.update(d["id"], lambda x: x["assets"].append({"id": "a1", "status": "ready"}))
+        agent.summarize(d["id"])  # something changed (the data is ready), so it is worth saying again
+        self.assertEqual(len([m for m in self.store.get(d["id"])["messages"] if m.get("kind") == "summary"]), 2)
 
 
 class BooleanFeatureTests(unittest.TestCase):
