@@ -222,10 +222,25 @@
   function linkIds(text) {
     return esc(text).replace(ID_RE, m => (REC[m] ? chip(m) : m));
   }
+  /* The evidence index, live: RECORDS starts as the snapshot bundled at build time and is replaced in place by
+     GET /api/evidence, so every chip, drawer and search reads the index the server has now. */
+  let recordsLoad = null;
+  function loadRecords(force) {
+    if (recordsLoad && !force) return recordsLoad;
+    recordsLoad = api('/evidence').then(d => {
+      if (!d || !Array.isArray(d.records) || !d.records.length) return null;
+      RECORDS.splice(0, RECORDS.length, ...d.records);
+      Object.keys(REC).forEach(k => { delete REC[k]; });
+      RECORDS.forEach(r => { REC[r.id] = r; });
+      setNavCount('evidence', String(RECORDS.length));
+      return d;
+    }).catch(() => { recordsLoad = null; return null; });
+    return recordsLoad;
+  }
   function openRecord(id) {
     const r = REC[id];
     if (!r) {
-      drawer.open({ eyebrow: '<span class="pill">Not in this demo</span>', title: id, html: `<p>The record <code>${esc(id)}</code> is not part of the demo snapshot.</p>` });
+      drawer.open({ eyebrow: '<span class="pill">Not in the index</span>', title: id, html: `<p>The record <code>${esc(id)}</code> is not in the evidence index.</p>` });
       return;
     }
     const meta = r.meta || {};
@@ -978,8 +993,9 @@
     const h0 = parseHash();
     show(h0.view, h0.pane);
     if (bpOn) setBlueprint(true);
+    loadRecords();
   }
 
-  window.DC = { setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

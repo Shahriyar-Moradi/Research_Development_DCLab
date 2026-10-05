@@ -1,4 +1,4 @@
-"""Read-only API routes behind the product's workspace and platform pages.
+"""API routes behind the product's workspace and platform pages.
 
 Each module here serves one group of pages and exposes ``register(app, ctx)``:
 
@@ -6,6 +6,7 @@ Each module here serves one group of pages and exposes ``register(app, ctx)``:
 - ``lab``       Research lab and Benchmark (registry, campaigns, critic gate, auditor replay)
 - ``learn``     Policy model and Domain packs (SFT corpus, project-derived examples, packs)
 - ``platform``  Integrations and Admin (MCP tools, connectors, routes, policies, audit log)
+- ``evidence``  Evidence library (the live evidence index, and answers checked against it)
 
 ``ctx`` carries the server's stores so a module never builds its own. A module that is
 missing is skipped, so groups can land one at a time.
@@ -17,7 +18,7 @@ import importlib
 from dataclasses import dataclass, field
 from typing import Any
 
-MODULES = ("ops", "lab", "learn", "platform")
+MODULES = ("ops", "lab", "learn", "platform", "evidence")
 
 
 @dataclass

@@ -130,12 +130,12 @@ window.FEATURES = [
   { id: 'compute.spend', view: 'compute', name: 'Spend caps and usage', status: 'todo', phase: 'P2', where: '', note: 'Compute time and tokens are counted; money is not metered, so caps are not enforced.' },
 
   // ---- evidence
-  { id: 'ev.search', view: 'evidence', name: 'Evidence search (filter, then rank)', status: 'built', phase: 'Now', where: 'dclab_rnd/evidence_index.py', note: 'The search on this page runs over the real records.' },
+  { id: 'ev.search', view: 'evidence', name: 'Evidence search (filter, then rank)', status: 'built', phase: 'Now', where: 'dclab_rnd/evidence_index.py · pages/evidence.py GET /api/evidence', note: 'The page reads the live index from the server; the bundled snapshot is only the first paint.' },
   { id: 'ev.record', view: 'evidence', name: 'Record viewer with citations', status: 'built', phase: 'Now', where: 'drawer.js openRecord', note: '' },
   { id: 'ev.rules', view: 'evidence', name: 'The 22 rules with their evidence', status: 'built', phase: 'Now', where: 'evidence/knowledge/model_building_rules.jsonl', note: '' },
   { id: 'ev.workflow', view: 'evidence', name: 'The 10 workflow blocks', status: 'built', phase: 'Now', where: 'evidence/knowledge/workflow_blocks.json', note: '' },
   { id: 'ev.scope', view: 'evidence', name: 'Scoped claims with counter-evidence and the next test', status: 'partial', phase: 'P2', where: 'rule records carry "next test"', note: 'Rule DCLAB-R21.' },
-  { id: 'ev.ask', view: 'evidence', name: 'Ask the evidence (answers cite records)', status: 'partial', phase: 'P1', where: 'tool search_evidence · copilot', note: '' },
+  { id: 'ev.ask', view: 'evidence', name: 'Ask the evidence (answers cite records)', status: 'partial', phase: 'P1', where: 'pages/evidence.py POST /api/evidence/ask', note: 'Search, then a model answer kept only where citations and numbers check out, or the closest records. The page asks four fixed questions; the route takes any.' },
   { id: 'ev.guide', view: 'evidence', name: 'Field guide and outside-reader narrative', status: 'built', phase: 'Now', where: 'evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.html', note: '' },
   { id: 'ev.kaggle', view: 'evidence', name: 'Kaggle solution corpus ("50 challenges solved")', status: 'todo', phase: 'P3', where: '', note: '' },
   { id: 'ev.contribute', view: 'evidence', name: 'Project lessons flow into the evidence', status: 'todo', phase: 'P1', where: '', note: '' },
