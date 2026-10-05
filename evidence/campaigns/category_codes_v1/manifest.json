@@ -1,0 +1,28 @@
+{
+  "campaign_id": "category_codes_v1",
+  "rule": "DCLAB-R11",
+  "datasets": [
+    "bank_marketing",
+    "german_credit",
+    "adult",
+    "credit_default",
+    "heart_disease",
+    "online_shoppers",
+    "mushroom"
+  ],
+  "experiments": [
+    {
+      "experiment_id": "CAT-001",
+      "name": "playbook_ladder",
+      "result": "results/CAT-001_playbook_ladder.json",
+      "status": "completed"
+    },
+    {
+      "experiment_id": "CAT-002",
+      "name": "notebook_recipes",
+      "result": "results/CAT-002_notebook_recipes.json",
+      "status": "completed"
+    }
+  ],
+  "command": "python -m dclab_rnd.code_encoding run"
+}

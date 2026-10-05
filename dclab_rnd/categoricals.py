@@ -3,7 +3,9 @@
 A factorized category is a number without order or scale: in the cached UCI tables
 ``month`` is May=0, Jun=1, ... in order of first appearance. Its log, its ratio to
 another column or its product with one means nothing, so feature recipes keep such
-columns out of every arithmetic transform. The columns themselves stay in the matrix.
+columns out of every arithmetic transform. The columns themselves stay in the matrix: the
+DCLab notebook one-hot encodes them inside each training fold, while the playbook
+``FeatureEngineer`` passes them as numbers unless ``one_hot_codes=True``.
 
 Declared metadata wins. The R&D dataset catalog (``dclab_rnd/agentic/catalog.py``)
 lists the categorical columns of every repository dataset, and the agentic worker

@@ -33,6 +33,7 @@ No experiments in this folder yet.
 - [expansion_v1](../../evidence/campaigns/expansion_v1): 20 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md)
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
 - [agent_verification_v1](../../evidence/campaigns/agent_verification_v1): 1 result files · [VERIFICATION_REPORT.md](../../evidence/campaigns/agent_verification_v1/VERIFICATION_REPORT.md)
+- [category_codes_v1](../../evidence/campaigns/category_codes_v1): 2 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/category_codes_v1/CAMPAIGN_REPORT.md)
 
 ## Notebooks
 

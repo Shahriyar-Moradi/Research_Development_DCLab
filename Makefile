@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls copilot-demo product-demo verify-auditor expansion expansion-status new-track research-index clean
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo verify-auditor expansion expansion-status new-track research-index clean
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -128,6 +128,9 @@ critic-gate:  ## show LLM critic challenges that the recorded numbers disprove
 
 pitfalls:  ## re-measure the six common notebook mistakes (evidence/campaigns/pitfalls_v1)
 	$(PYTHON) -m dclab_rnd.pitfalls run --force
+
+category-codes:  ## re-measure one-hot vs numeric category codes on identical training folds (evidence/campaigns/category_codes_v1)
+	$(PYTHON) -m dclab_rnd.code_encoding run --force
 
 copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.html
 	$(PYTHON) -m dclab_rnd.copilot review dclab_rnd/copilot/examples/leaky_bank_marketing.ipynb --html docs/copilot_demo.html > /dev/null

@@ -40,6 +40,7 @@ Best deployment-eligible result per dataset from the evidence registry (leakage-
 
 - [model_building_50_v1](../../evidence/campaigns/model_building_50_v1): 50 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/model_building_50_v1/CAMPAIGN_REPORT.md)
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
+- [category_codes_v1](../../evidence/campaigns/category_codes_v1): 2 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/category_codes_v1/CAMPAIGN_REPORT.md)
 
 ## Notebooks
 

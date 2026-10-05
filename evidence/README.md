@@ -13,6 +13,7 @@
 | `expansion_v1` | 20 (fraud, 26-class, time series, text + tabular) | [CAMPAIGN_REPORT.md](campaigns/expansion_v1/CAMPAIGN_REPORT.md) |
 | `pitfalls_v1` | 6 measured notebook mistakes | [PITFALLS_REPORT.md](campaigns/pitfalls_v1/PITFALLS_REPORT.md) |
 | `agent_verification_v1` | Blind leakage-auditor replay | [VERIFICATION_REPORT.md](campaigns/agent_verification_v1/VERIFICATION_REPORT.md) |
+| `category_codes_v1` | 2 (category codes as numbers vs one-hot, playbook ladder and DCLab notebook, training folds only) | [CAMPAIGN_REPORT.md](campaigns/category_codes_v1/CAMPAIGN_REPORT.md) |
 
 Track-specific results (for example HyperAck's 83 experiments) stay inside their track under `research/`. The registry in `knowledge/` indexes both.
 
@@ -25,6 +26,8 @@ The cached UCI tables store categories as factorized codes (bank_marketing: May=
 - DCLab notebook projects whose `log_numeric` or `poly2` recipe ran before the change.
 
 breast_cancer, spambase, wine_quality and `expansion_v1` have no category codes and are unaffected. To re-measure, rerun into new result files.
+
+The DCLab notebook now also one-hot encodes the codes inside each training fold instead of passing them to the model as numbers, and its exported notebook routes them to the one-hot branch. The playbook `FeatureEngineer` keeps codes as numbers unless `one_hot_codes=True`, so model_building_50_v1 reruns stay reproducible. [`category_codes_v1`](campaigns/category_codes_v1/CAMPAIGN_REPORT.md) measures all three treatments (legacy, numbers, one-hot) on identical training folds.
 
 ## Rules
 

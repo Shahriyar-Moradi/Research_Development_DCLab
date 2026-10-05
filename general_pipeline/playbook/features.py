@@ -4,6 +4,11 @@ All stateful decisions are fit on train only, then applied to test with aligned 
 Columns that hold category codes stay in the matrix as they are, but never feed a log,
 ratio, interaction, cluster or bin feature (DCLAB-R11): pass the dataset's declared
 categorical columns, or leave ``categorical=None`` to let a conservative heuristic decide.
+
+``one_hot_codes=True`` also replaces each code column by one-hot indicators (levels learned on
+the fit rows, the 40 most frequent). It is off by default: every ladder stage, ``raw`` included,
+then builds exactly the matrices the model_building_50_v1 campaign measured. Whether the ladder
+should encode codes is measured in evidence/campaigns/category_codes_v1.
 """
 
 from __future__ import annotations
@@ -26,6 +31,13 @@ def _numeric_frame(X: pd.DataFrame) -> pd.DataFrame:
     return out.replace([np.inf, -np.inf], np.nan)
 
 
+MAX_CODE_CATEGORIES = 40  # same cap as the DCLab notebook's encoder
+
+
+def _as_text(series: pd.Series) -> pd.Series:
+    return series.astype(object).where(series.notna(), "__missing__").astype(str)
+
+
 def _align(X: pd.DataFrame, columns: Sequence[str]) -> pd.DataFrame:
     out = X.copy()
     for c in columns:
@@ -37,11 +49,19 @@ def _align(X: pd.DataFrame, columns: Sequence[str]) -> pd.DataFrame:
 class FeatureEngineer:
     """Train-fitted FE pipeline producing aligned train/test matrices."""
 
-    def __init__(self, stage: str = "full_fe", random_state: int = 42, categorical: Optional[Sequence[str]] = None):
+    def __init__(
+        self,
+        stage: str = "full_fe",
+        random_state: int = 42,
+        categorical: Optional[Sequence[str]] = None,
+        one_hot_codes: bool = False,
+    ):
         self.stage = stage
         self.random_state = random_state
         self.categorical = None if categorical is None else list(categorical)
+        self.one_hot_codes = one_hot_codes
         self.categorical_: List[str] = []
+        self.code_levels_: dict = {}
         self.log_cols_: List[str] = []
         self.ratio_pairs_: List[Tuple[str, str]] = []
         self.interaction_pairs_: List[Tuple[str, str]] = []
@@ -58,6 +78,9 @@ class FeatureEngineer:
         # category codes: declared, else flagged on these training rows; excluded from every derived feature
         self.categorical_ = category_code_columns(Xn, self.categorical)
         codes = set(self.categorical_)
+        self.code_levels_ = {
+            c: _as_text(Xn[c]).value_counts().index[:MAX_CODE_CATEGORIES].tolist() for c in self.categorical_
+        } if self.one_hot_codes else {}
         # log cols from train skew
         self.log_cols_ = []
         if self.stage in {"logs", "ratios", "interactions", "full_fe", "selected"}:
@@ -160,6 +183,17 @@ class FeatureEngineer:
                 out[f"inter_{a}_x_{b}"] = out[a] * out[b]
         return out
 
+    def _one_hot(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Replace each code column still in the matrix by indicators of its fit-row levels (unseen levels: all zero)."""
+        out = X
+        for column, levels in self.code_levels_.items():
+            if column not in out.columns:
+                continue
+            text = _as_text(out[column])
+            indicators = pd.DataFrame({f"{column}={v}": (text == v).astype(float) for v in levels}, index=out.index)
+            out = pd.concat([out.drop(columns=[column]), indicators], axis=1)
+        return out
+
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         Xn = _numeric_frame(X)
         out = self._stateless(Xn)
@@ -184,6 +218,7 @@ class FeatureEngineer:
                 extra = [c for c in out.columns if c.startswith("kmeans_") or c.startswith("qbin_")]
                 keep = list(dict.fromkeys(keep + extra))
                 out = out[keep]
+        out = self._one_hot(out)
         if self.output_cols_:
             out = _align(out, self.output_cols_)
         return out.replace([np.inf, -np.inf], np.nan)
@@ -193,6 +228,7 @@ class FeatureEngineer:
             "stage": self.stage,
             "top_mi": self.mi_order_[:15],
             "categorical": self.categorical_,
+            "one_hot_codes": self.one_hot_codes,
             "log_cols": self.log_cols_,
             "n_ratio_pairs": len(self.ratio_pairs_),
             "n_interaction_pairs": len(self.interaction_pairs_),
@@ -208,7 +244,8 @@ def build_feature_matrix(
     *,
     stage: str,
     categorical: Optional[Sequence[str]] = None,
+    one_hot_codes: bool = False,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, dict]:
-    fe = FeatureEngineer(stage=stage, categorical=categorical)
+    fe = FeatureEngineer(stage=stage, categorical=categorical, one_hot_codes=one_hot_codes)
     fe.fit(X_train, y_train)
     return fe.transform(X_train), fe.transform(X_test), fe.meta()

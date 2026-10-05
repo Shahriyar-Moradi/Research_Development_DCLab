@@ -35,14 +35,15 @@ EXP50 = "evidence/campaigns/model_building_50_v1"
 EXPANSION = "evidence/campaigns/expansion_v1"
 PITFALLS = "evidence/campaigns/pitfalls_v1"
 VERIFY = "evidence/campaigns/agent_verification_v1"
+CODES = "evidence/campaigns/category_codes_v1"
 
 # Evidence that lives outside a track folder but belongs to it.
 RELATED = {
-    "tabular-classification": {"campaigns": [EXP50, PITFALLS], "tracks": ["churn-prediction", "tabular-foundation-models", "ml-methodology"]},
+    "tabular-classification": {"campaigns": [EXP50, PITFALLS, CODES], "tracks": ["churn-prediction", "tabular-foundation-models", "ml-methodology"]},
     "churn-prediction": {"campaigns": [PITFALLS], "tracks": ["tabular-classification", "tabular-foundation-models"]},
     "tabular-foundation-models": {"campaigns": [], "tracks": ["tabular-classification", "churn-prediction"]},
     "llm-fine-tuning": {"campaigns": [EXP50, EXPANSION], "tracks": ["workflow-model", "agentic-ml-copilot", "evaluation-and-trust"]},
-    "ml-methodology": {"campaigns": [EXP50, EXPANSION, PITFALLS, VERIFY], "tracks": ["tabular-classification", "evaluation-and-trust"]},
+    "ml-methodology": {"campaigns": [EXP50, EXPANSION, PITFALLS, VERIFY, CODES], "tracks": ["tabular-classification", "evaluation-and-trust"]},
     "agentic-ml-copilot": {"campaigns": [PITFALLS, VERIFY], "tracks": ["evaluation-and-trust", "llm-fine-tuning", "workflow-actions"]},
     "evaluation-and-trust": {"campaigns": [VERIFY, PITFALLS], "tracks": ["agentic-ml-copilot", "ml-methodology"]},
     "anomaly-and-fraud-detection": {"campaigns": [EXPANSION, PITFALLS], "tracks": ["tabular-classification"]},

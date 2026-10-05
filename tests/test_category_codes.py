@@ -1,7 +1,8 @@
-"""DCLAB-R11: numbers that stand for categories never feed a log, ratio or product feature.
+"""DCLAB-R11: numbers that stand for categories never feed a log, ratio or product feature,
+and the DCLab notebook one-hot encodes them inside the training folds instead of passing them as numbers.
 
 The cached UCI tables store categories as factorized codes (bank_marketing: May=0, Jun=1, ...).
-These tests pin the rule on every path that derives features: the playbook FeatureEngineer,
+These tests pin the rule on every path that derives or encodes features: the playbook FeatureEngineer,
 the expansion recipes the DCLab notebook runs, and the notebook it exports.
 """
 
@@ -97,6 +98,18 @@ class DetectionTests(unittest.TestCase):
                 self.assertFalse(missing, f"{key}: {sorted(missing)}")
 
 
+class PairedDifferenceTests(unittest.TestCase):
+    def test_corrected_interval_is_wider_than_the_naive_one(self):
+        from dclab_rnd.code_encoding import paired
+
+        diff = paired([0.80, 0.82, 0.79, 0.81], [0.78, 0.80, 0.80, 0.79], test_train_ratio=0.5)
+        self.assertAlmostEqual(diff["mean"], 0.0125)
+        self.assertEqual((diff["wins"], diff["losses"], diff["folds"]), (3, 1, 4))
+        naive, corrected = diff["naive_ci95"], diff["corrected_ci95"]
+        self.assertLess(corrected[0], naive[0])
+        self.assertGreater(corrected[1], naive[1])
+
+
 class FeatureEngineerTests(unittest.TestCase):
     def setUp(self):
         self.X, self.y = _xy(bank_like())
@@ -119,6 +132,25 @@ class FeatureEngineerTests(unittest.TestCase):
         self.assertFalse([c for c in engineer.kmeans_cols_ + engineer.bin_cols_ if "month" in c])
         self.assertEqual(engineer.meta()["categorical"], ["month"])
 
+    def test_raw_stage_keeps_codes_as_numbers_by_default(self):
+        out = features.FeatureEngineer(stage="raw", categorical=["month"]).fit(self.X, self.y).transform(self.X)
+        self.assertEqual(list(out.columns), list(self.X.columns))  # the model_building_50_v1 matrix, unchanged
+
+    def test_one_hot_codes_uses_fit_row_levels_only(self):
+        fit = self.X[self.X["month"] != 3].reset_index(drop=True)  # level 3 never seen while fitting
+        y_fit = self.y[self.X["month"] != 3].reset_index(drop=True)
+        for stage in ("raw", "full_fe"):
+            engineer = features.FeatureEngineer(stage=stage, categorical=["month"], one_hot_codes=True).fit(fit, y_fit)
+            out = engineer.transform(self.X)
+            self.assertNotIn("month", out.columns)  # never a number in the matrix
+            indicators = [c for c in out.columns if c.startswith("month=")]
+            self.assertEqual(sorted(indicators), sorted(f"month={float(v)}" for v in fit["month"].unique()))
+            self.assertTrue(set(np.unique(out[indicators].to_numpy())) <= {0.0, 1.0})
+            unseen = (self.X["month"] == 3).to_numpy()
+            self.assertTrue(unseen.any() and (out.loc[unseen, indicators].sum(axis=1) == 0).all())
+            self.assertFalse([c for c in out.columns if "month" in c and not c.startswith("month=")])
+        self.assertTrue(engineer.meta()["one_hot_codes"])
+
 
 class RecipeTests(unittest.TestCase):
     def test_log_numeric_and_poly2_skip_declared_codes(self):
@@ -131,6 +163,47 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual([c for c in runner._derive(bundle, "poly2", frame).columns if "month" in c], [])
         bundle.spec = replace(spec, categorical_columns=())
         self.assertIn("log_month", runner._derive(bundle, "log_numeric", frame).columns)
+
+    def test_encoder_one_hot_encodes_codes_with_fit_fold_levels(self):
+        frame, _ = _xy(bank_like())
+        fit, apply = frame.iloc[:600], frame.iloc[600:].copy()
+        apply.loc[apply.index[0], "month"] = 99.0  # a level the fit fold never saw
+        encoder = runner._Encoder().fit(fit, categorical=["month"])
+        self.assertEqual(encoder.numeric, ["duration", "balance", "age"])
+        out = encoder.transform(apply)
+        self.assertNotIn("month", out.columns)
+        indicators = [c for c in out.columns if c.startswith("month=")]
+        self.assertEqual(sorted(indicators), sorted(f"month={v}" for v in fit["month"].astype(str).unique()))
+        self.assertEqual(out.loc[apply.index[0], indicators].sum(), 0.0)
+        self.assertTrue((out.loc[apply.index[1:], indicators].sum(axis=1) == 1).all())
+        capped = runner._Encoder().fit(fit, max_categories=3, categorical=["month"])
+        self.assertEqual(len(capped.categories["month"]), 3)  # most frequent fit-fold levels only
+        self.assertIn("month", runner._Encoder().fit(fit).numeric)  # no declaration: a number, as before
+
+    def test_recipes_encode_codes_inside_each_training_fold(self):
+        frame, y = _xy(bank_like())
+        spec = replace(ds.SPECS["letter_recognition"], key="codes_test", categorical_columns=("month",))
+        bundle = ds.prepare_bundle(spec, frame, y, cv_folds=2)
+        runner.RECIPES["codes_test"] = {"raw": {"description": "raw", "derive": ()}, "log_numeric": {"description": "logs", "derive": ("log_numeric",)}}
+        try:
+            for fit_idx, valid_idx in bundle.cv_splits:
+                X_fit = bundle.X_train.iloc[fit_idx]
+                for name in ("raw", "log_numeric"):
+                    recipe = runner.make_recipe(bundle, name)
+                    recipe.fit(X_fit, bundle.y_train.iloc[fit_idx])
+                    matrix, names = recipe.transform(bundle.X_train.iloc[valid_idx])
+                    self.assertNotIn("month", names)
+                    self.assertFalse([n for n in names if "month" in n and not n.startswith("month=")])
+                    levels = [n for n in names if n.startswith("month=")]
+                    self.assertEqual(sorted(levels), sorted(f"month={v}" for v in X_fit["month"].astype(str).unique()))
+                    self.assertTrue(set(np.unique(matrix[:, [names.index(n) for n in levels]])) <= {0.0, 1.0})
+            numbers = replace(spec, settings={**spec.settings, "one_hot_codes": False})  # the paired "before" arm
+            bundle.spec = numbers
+            self.assertEqual(runner.encoded_codes(numbers), ())
+            recipe = runner.make_recipe(bundle, "raw").fit(bundle.X_train, bundle.y_train)
+            self.assertIn("month", recipe.transform(bundle.X_train)[1])
+        finally:
+            runner.RECIPES.pop("codes_test", None)
 
     def test_declared_quantities_keep_their_products(self):
         rng = np.random.default_rng(1)
@@ -188,6 +261,11 @@ class NotebookTests(unittest.TestCase):
             for stage in ("data", "leakage", "features"):
                 record = engine.execute(self.store, project["id"], stage)
         self.assertEqual(record["evidence"]["category_code_columns"], ["month"])
+        self.assertTrue(record["evidence"]["category_code_encoding"].startswith("one-hot"))
+        raw = next(r for r in record["evidence"]["stage_results"] if r["recipe"] == "raw")
+        bundle = engine.prepare(self.store, self.store.get(project["id"])).bundle
+        per_fold = [3 + bundle.X_train["month"].iloc[fit_idx].nunique() for fit_idx, _ in bundle.cv_splits]
+        self.assertAlmostEqual(raw["feature_count_mean"], float(np.mean(per_fold)))  # 3 quantities + one indicator per month seen in the fit fold
         self.assertTrue(any(c["claim_id"].endswith("-C3") and "`month`" in c["statement"] for c in record["claims"]))
         records = self.store.records(project["id"])
         records["features"]["decision"]["chosen"] = "log_numeric"
@@ -204,7 +282,25 @@ class NotebookTests(unittest.TestCase):
                      "Pipeline": Pipeline, "OneHotEncoder": OneHotEncoder, "StandardScaler": StandardScaler}
         exec(cell, namespace)  # the exported notebook's own code
         self.assertEqual(_derived(namespace["add_logs"](X), X), ["log_duration", "log_balance", "log_age"])
-        self.assertEqual(namespace["features"].fit_transform(X).shape[1], 7)
+        preprocess = namespace["features"].fit(X).named_steps["preprocess"]
+        self.assertEqual(namespace["features"].transform(X).shape[1], 6 + 12)  # 3 quantities + 3 logs + 12 month indicators
+        scaled, encoded = preprocess.transformers_[0], preprocess.transformers_[1]
+        self.assertEqual(scaled[0], "numeric")
+        self.assertNotIn("month", scaled[2])  # never scaled as a number
+        self.assertEqual(encoded[0], "categorical")
+        self.assertEqual(encoded[2], ["month"])
+        self.assertEqual(len(encoded[1].named_steps["onehot"].categories_[0]), 12)
+
+    def test_export_matches_records_made_before_codes_were_encoded(self):
+        project = self._project(bank_like())
+        with runner.fast_profile():
+            for stage in ("data", "leakage", "features"):
+                engine.execute(self.store, project["id"], stage)
+        records = self.store.records(project["id"])
+        del records["features"]["evidence"]["category_code_encoding"]  # as recorded by the engine before this change
+        cell = next(c["source"] for c in export.notebook(self.store.get(project["id"]), records)["cells"] if "ColumnTransformer(" in c["source"])
+        self.assertIn(".select_dtypes('number').columns.tolist()\ncategorical", cell)  # codes stay in the numeric branch
+        self.assertIn("never logged or multiplied (DCLAB-R11)", cell)
 
 
 if __name__ == "__main__":

@@ -380,10 +380,12 @@ def evaluate_cv(
     folds: int = 3,
     repeats: int = 1,
     categorical: list[str] | None = None,
+    one_hot_codes: bool = False,
 ) -> dict[str, Any]:
     """Evaluate a train-fitted feature/model recipe without touching the holdout.
 
-    ``categorical`` lists the dataset's category-code columns, which no derived feature uses.
+    ``categorical`` lists the dataset's category-code columns, which no derived feature uses;
+    ``one_hot_codes`` also one-hot encodes them inside each fit fold (see FeatureEngineer).
     """
     cv = RepeatedStratifiedKFold(
         n_splits=folds,
@@ -402,7 +404,9 @@ def evaluate_cv(
         X_valid = X.iloc[valid_idx].reset_index(drop=True)
         y_valid = y.iloc[valid_idx].reset_index(drop=True)
 
-        engineer = FeatureEngineer(stage=stage, random_state=RANDOM_STATE + fold_index, categorical=categorical)
+        engineer = FeatureEngineer(
+            stage=stage, random_state=RANDOM_STATE + fold_index, categorical=categorical, one_hot_codes=one_hot_codes
+        )
         engineer.fit(X_fit, y_fit)
         fit_matrix = engineer.transform(X_fit)
         valid_matrix = engineer.transform(X_valid)

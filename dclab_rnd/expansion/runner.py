@@ -740,10 +740,15 @@ def _identifier_like(series: pd.Series, unique_ratio: float) -> bool:
 
 
 class _Encoder:
-    """Numeric pass-through plus one-hot for non-numeric columns (fit-fold categories)."""
+    """Numeric pass-through plus one-hot (fit-fold categories) for non-numeric columns and category codes.
 
-    def fit(self, frame: pd.DataFrame, max_categories: int = 40) -> "_Encoder":
-        self.numeric = [c for c in frame.columns if pd.api.types.is_numeric_dtype(frame[c])]
+    A numeric column named in ``categorical`` holds category codes (DCLAB-R11): it is one-hot
+    encoded like a text column and never passed to the model as a number.
+    """
+
+    def fit(self, frame: pd.DataFrame, max_categories: int = 40, categorical: Iterable[str] = ()) -> "_Encoder":
+        codes = set(categorical)
+        self.numeric = [c for c in frame.columns if c not in codes and pd.api.types.is_numeric_dtype(frame[c])]
         self.categories = {
             c: _as_text(frame[c]).value_counts().index[:max_categories].tolist()
             for c in frame.columns
@@ -805,6 +810,12 @@ LETTER_RATIOS = (
     ("moment_ratio", "x2ybr", "xy2br", "ratio"),
     ("centroid_diff", "x-bar", "y-bar", "diff"),
 )
+
+
+def encoded_codes(spec: DatasetSpec) -> tuple[str, ...]:
+    """Category-code columns the recipes one-hot encode. ``settings["one_hot_codes"] = False`` passes
+    them as numbers instead, the behaviour before DCLAB-R11 reached the encoder (kept for paired measurement)."""
+    return tuple(spec.categorical_columns) if spec.settings.get("one_hot_codes", True) else ()
 
 
 def _quantity_columns(spec: DatasetSpec, frame: pd.DataFrame) -> list[str]:
@@ -903,7 +914,7 @@ class FrameRecipe:
 
     def fit(self, frame: pd.DataFrame, y: pd.Series) -> "FrameRecipe":
         self.columns = self.base_columns(frame)
-        self.encoder = _Encoder().fit(frame[self.columns])
+        self.encoder = _Encoder().fit(frame[self.columns], categorical=encoded_codes(self.bundle.spec))
         matrix = self._matrix(frame)
         self.names = list(matrix.columns)
         if self.select_k and self.select_k < len(self.names):
@@ -989,7 +1000,7 @@ class TextRecipe:
             excluded.add(spec.group_column)
         excluded |= set(spec.blocked_features) - self.include_blocked
         self.columns = [c for c in frame.columns if c not in excluded]
-        self.encoder = _Encoder().fit(frame[self.columns])
+        self.encoder = _Encoder().fit(frame[self.columns], categorical=encoded_codes(spec))
         dense = self._tabular_frame(frame)
         self.dense_names = list(dense.columns)
         self.medians = dense.median()

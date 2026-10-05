@@ -49,7 +49,10 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     task = contract.get("task", "binary")
     regression = task == "regression"
     features = records.get("features", {}).get("decision", {})
-    codes = list(records.get("features", {}).get("evidence", {}).get("category_code_columns", []))
+    feature_evidence = records.get("features", {}).get("evidence", {})
+    codes = list(feature_evidence.get("category_code_columns", []))
+    # Records made before the engine one-hot encoded codes say nothing about encoding: their codes were numbers.
+    encode_codes = feature_evidence.get("category_code_encoding", "passed as numbers") != "passed as numbers"
     models = records.get("models", {}).get("decision", {})
     final = records.get("final", {}).get("evidence", {})
     recipe = features.get("chosen") or features.get("selected") or "raw"
@@ -85,7 +88,7 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
         _cell("code", _split_code(time_column, group_column, regression, data)),
         _cell("markdown", f"## 3. Feature recipe `{recipe}`\n\n{features.get('rule', '')}\n\nEvery statistic (imputation, scaling, one-hot categories) is learned inside the training folds only."),
-        _cell("code", _recipe_code(recipe, time_column, codes)),
+        _cell("code", _recipe_code(recipe, time_column, codes, encode_codes)),
         _cell("markdown", f"## 4. Model `{family}`\n\n{models.get('rule', '')}\n\n"
               + (f"Tuned parameters accepted: `{params}`" if params else "Default parameters kept (tuning did not beat them by the required margin).")),
         _cell("code", f"model = {ctor}\n" + (f"model.set_params(**{params!r})\n" if params else "") + "pipeline = Pipeline([('features', features), ('model', model)])"),
@@ -134,32 +137,34 @@ def _split_code(time_column: str | None, group_column: str | None, regression: b
             f"cv = {kf}(n_splits=3, shuffle=True, random_state=RANDOM_STATE)\ncv_groups = None")
 
 
-def _recipe_code(recipe: str, time_column: str | None, codes: list[str]) -> str:
+def _recipe_code(recipe: str, time_column: str | None, codes: list[str], encode_codes: bool = True) -> str:
     derived = ""
-    skip = f"CATEGORY_CODES = {codes!r}  # numbers that stand for categories: never logged or multiplied (DCLAB-R11)\n"
+    # The engine one-hot encodes category codes inside each fit fold and never uses them as numbers (DCLAB-R11).
+    head = ("from sklearn.preprocessing import FunctionTransformer\n"
+            f"CATEGORY_CODES = {codes!r}  # numbers that stand for categories: "
+            + ("one-hot encoded, never scaled, logged or multiplied" if encode_codes else "never logged or multiplied") + " (DCLAB-R11)\n"
+            "def as_text(df):\n    return df.astype(object).where(df.notna(), 'missing').astype(str)\n")
     if recipe in ("log_numeric",):
-        derived = ("from sklearn.preprocessing import FunctionTransformer\n" + skip +
-                   "def add_logs(df):\n    df = df.copy()\n    for c in df.select_dtypes('number').columns:\n        if c not in CATEGORY_CODES and df[c].nunique() > 2:\n            df[f'log_{c}'] = np.sign(df[c]) * np.log1p(df[c].abs())\n    return df\n")
+        derived = ("def add_logs(df):\n    df = df.copy()\n    for c in df.select_dtypes('number').columns:\n        if c not in CATEGORY_CODES and df[c].nunique() > 2:\n            df[f'log_{c}'] = np.sign(df[c]) * np.log1p(df[c].abs())\n    return df\n")
     if recipe == "calendar" and time_column:
-        derived = ("from sklearn.preprocessing import FunctionTransformer\n"
-                   f"def add_calendar(df):\n    df = df.copy()\n    stamp = pd.to_datetime(frame.loc[df.index, {time_column!r}], errors='coerce')\n"
+        derived = (f"def add_calendar(df):\n    df = df.copy()\n    stamp = pd.to_datetime(frame.loc[df.index, {time_column!r}], errors='coerce')\n"
                    "    doy = stamp.dt.dayofyear.astype(float)\n    df['doy_sin'], df['doy_cos'] = np.sin(2 * np.pi * doy / 365.25), np.cos(2 * np.pi * doy / 365.25)\n"
                    "    df['day_of_month'], df['week_of_year'], df['is_weekend'] = stamp.dt.day, stamp.dt.isocalendar().week.astype(float).to_numpy(), (stamp.dt.dayofweek >= 5).astype(float)\n    return df\n")
     if recipe == "poly2":
-        derived = ("from sklearn.preprocessing import FunctionTransformer\n" + skip +
-                   "def add_products(df):\n    df = df.copy()\n    cols = [c for c in df.select_dtypes('number').columns if c not in CATEGORY_CODES and df[c].nunique() > 2]\n"
+        derived = ("def add_products(df):\n    df = df.copy()\n    cols = [c for c in df.select_dtypes('number').columns if c not in CATEGORY_CODES and df[c].nunique() > 2]\n"
                    "    for i, a in enumerate(cols):\n        for b in cols[i + 1:]:\n            df[f'{a}*{b}'] = df[a] * df[b]\n    return df\n")
-    pre = ("numeric = X_train.select_dtypes('number').columns.tolist()\ncategorical = [c for c in X_train.columns if c not in numeric]\n"
+    pre = (("numeric = [c for c in X_train.select_dtypes('number').columns if c not in CATEGORY_CODES]\n" if encode_codes
+            else "numeric = X_train.select_dtypes('number').columns.tolist()\n") + "categorical = [c for c in X_train.columns if c not in numeric]\n"
            "preprocess = ColumnTransformer([\n    ('numeric', Pipeline([('impute', SimpleImputer(strategy='median')), ('scale', StandardScaler())]), numeric),\n"
-           "    ('categorical', Pipeline([('impute', SimpleImputer(strategy='constant', fill_value='missing')), ('onehot', OneHotEncoder(handle_unknown='ignore', max_categories=40))]), categorical),\n], remainder='drop')\n")
+           "    ('categorical', Pipeline([('as_text', FunctionTransformer(as_text)), ('onehot', OneHotEncoder(handle_unknown='ignore', max_categories=40))]), categorical),\n], remainder='drop')\n")
     if recipe == "selected_mi":
-        return (pre + "from sklearn.feature_selection import SelectKBest, mutual_info_classif\n"
+        return (head + "\n" + pre + "from sklearn.feature_selection import SelectKBest, mutual_info_classif\n"
                 "features = Pipeline([('preprocess', preprocess), ('select', SelectKBest(mutual_info_classif, k=min(20, len(numeric) + len(categorical))))])")
     if derived:
         fn = {"log_numeric": "add_logs", "calendar": "add_calendar", "poly2": "add_products"}[recipe]
-        return derived + "\n" + pre.replace("X_train.select_dtypes", f"{fn}(X_train).select_dtypes").replace("X_train.columns", f"{fn}(X_train).columns") + \
+        return head + derived + "\n" + pre.replace("X_train.select_dtypes", f"{fn}(X_train).select_dtypes").replace("X_train.columns", f"{fn}(X_train).columns") + \
             f"features = Pipeline([('derive', FunctionTransformer({fn})), ('preprocess', preprocess)])"
-    return pre + "features = preprocess"
+    return head + "\n" + pre + "features = preprocess"
 
 
 def _cv_code(task: str, metric_expr: str, regression: bool) -> str:

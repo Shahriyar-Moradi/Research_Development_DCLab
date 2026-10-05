@@ -65,7 +65,7 @@ class DatasetSpec:
     blocked_features: dict[str, str] = field(default_factory=dict)
     identifier_columns: dict[str, str] = field(default_factory=dict)
     text_columns: tuple[str, ...] = ()
-    # Numeric columns that stand for categories (DCLAB-R11): kept as inputs, never logged or multiplied.
+    # Numeric columns that stand for categories (DCLAB-R11): one-hot encoded per fold, never logged or multiplied.
     categorical_columns: tuple[str, ...] = ()
     time_column: str | None = None
     group_column: str | None = None

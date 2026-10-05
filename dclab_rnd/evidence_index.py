@@ -667,6 +667,31 @@ def _pitfall_records(root: Path) -> list[Record]:
     return out
 
 
+def _category_code_records(root: Path) -> list[Record]:
+    """Measured effect of encoding factorized category codes as categories (DCLAB-R11, campaign category_codes_v1)."""
+    out = []
+    for path in sorted(root.glob("evidence/campaigns/*/results/CAT-*.json")):
+        result = _read_json(path)
+        claims = " ".join(c.get("statement", "") for c in result.get("claims", []))
+        limits = sorted({lim for c in result.get("claims", []) for lim in c.get("limitations", [])})
+        out.append(
+            Record(
+                record_id=result["experiment_id"],
+                type="finding",
+                title=f"{result['experiment_id']} · category codes as categories: {result['name'].replace('_', ' ')}",
+                text=(
+                    f"Experiment {result['experiment_id']} ({result['campaign_id']}, rule DCLAB-R11): {result['question']} "
+                    f"Setup: {result.get('setup_summary', '')} Findings: {claims}"
+                    + (f" Limitations: {' '.join(limits)}" if limits else "")
+                ),
+                metadata={"stage": "feature_engineering", "rule": "DCLAB-R11", "datasets": result.get("datasets", []),
+                          "campaign": result.get("campaign_id")},
+                citations=[path.relative_to(root).as_posix()],
+            )
+        )
+    return out
+
+
 def _finding_records(root: Path) -> list[Record]:
     path = root / "evidence/knowledge" / "master_evidence_pack.json"
     if not path.exists():
@@ -744,6 +769,7 @@ def build_records(root: Path = ROOT) -> list[dict[str, Any]]:
     records += _leakage_records(root, cards)
     records += _finding_records(root)
     records += _pitfall_records(root)
+    records += _category_code_records(root)
     seen: set[str] = set()
     unique = []
     for record in records:

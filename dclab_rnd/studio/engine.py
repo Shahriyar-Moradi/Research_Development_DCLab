@@ -202,7 +202,7 @@ def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
         }
         rn.LEAKAGE_RECIPE[spec.key] = "combined"
     else:
-        recipes = {"raw": {"description": f"the {len(features)} safe input columns as given (categories one-hot, fitted per fold)", "derive": ()}}
+        recipes = {"raw": {"description": f"the {len(features)} safe input columns as given (categories and category codes one-hot, fitted per fold)", "derive": ()}}
         if numeric:
             recipes["log_numeric"] = {"description": f"raw + signed log of the {len(numeric)} numeric inputs{left_out}", "derive": ("log_numeric",)}
         if datetime_time:
@@ -428,7 +428,8 @@ def stage_features(p: Prepared, eid: str) -> tuple[dict, list, str]:
                 "selection_rule": rule, "best_recipe": best["recipe"], "selected_metric_mean": rn._mean(selected, metric), "best_metric_mean": rn._mean(best, metric),
                 "reference_recipe": first["recipe"], "reference_metric_mean": rn._mean(first, metric),
                 "selected_vs_reference_gain": rn.oriented_gain(rn._mean(selected, metric), rn._mean(first, metric), higher), "cv_protocol": bundle.cv_description,
-                "category_code_columns": list(spec.categorical_columns), "category_code_rule": p.code_rule}
+                "category_code_columns": list(spec.categorical_columns), "category_code_rule": p.code_rule,
+                "category_code_encoding": "one-hot, levels learned on each fit fold (40 most frequent)" if rn.encoded_codes(spec) else "passed as numbers"}
     table = "; ".join(f"{r['recipe']} ({r['feature_count_mean']:.0f} feats, {rn._ms(r, metric)})" for r in rows)
     claims = [
         _claim(f"{eid}-C1", "decision", f"Selected recipe `{selected['recipe']}` ({selected['feature_count_mean']:.0f} features, {rn._ms(selected, metric)} {_label(metric)}); "
@@ -443,9 +444,11 @@ def stage_features(p: Prepared, eid: str) -> tuple[dict, list, str]:
     if codes:
         names = ", ".join(f"`{c}`" for c in codes[:12]) + (f" and {len(codes) - 12} more" if len(codes) > 12 else "")
         claims.append(_claim(f"{eid}-C3", "fact", f"Treated as category codes ({p.code_rule}): {names}. "
-                             "No log or product feature is built from them, because their order and scale are arbitrary (DCLAB-R11).",
-                             ["evidence.category_code_columns", "evidence.category_code_rule"],
-                             ["Every recipe still passes the codes to the model as plain numbers; encoding them as categories is a separate decision."]))
+                             f"Every recipe encodes them as categories ({evidence['category_code_encoding']}) and builds no log or product "
+                             "feature from them, because their order and scale are arbitrary (DCLAB-R11).",
+                             ["evidence.category_code_columns", "evidence.category_code_rule", "evidence.category_code_encoding"],
+                             ["Levels unseen in a fit fold, and levels beyond the 40 most frequent, encode as all zeros.",
+                              "A table that stores codes without their labels (as the R&D samples do) yields one-hot columns named by code, not by category."]))
     summary = f"Compared {len(rows)} feature recipes with {model} on {bundle.cv_description}: {table}. Selected `{selected['recipe']}`."
     return evidence, claims, summary
 
