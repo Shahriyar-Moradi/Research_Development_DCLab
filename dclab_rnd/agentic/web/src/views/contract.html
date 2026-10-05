@@ -1,0 +1,200 @@
+<section class="view" id="view-contract" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · WF-01 to WF-03</div>
+      <h1>Prediction contract <span class="pill ok" data-f="contract.signoff">v2 · signed by Shahriyar · Sep 27</span></h1>
+      <p class="lede">Written before anyone looks at a score. Leakage, the metric and the split follow from it.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" id="contract-history">Version history</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v bad">duration</span><span class="l">forbidden · known only after the call ends</span></div>
+      <div class="stat"><span class="v warn">2 <small>open</small></span><span class="l">questions only the owner can answer · <button type="button" class="link-btn" data-pane-go="owner">See them →</button></span></div>
+      <div class="stat"><span class="v">2,000 <small>calls a month</small></span><span class="l">capacity · €8 per call · €110 per subscription</span></div>
+      <div class="stat"><span class="v">800 <small>rows</small></span><span class="l">holdout sealed until WF-09 · 3,200 training rows in 3 folds</span></div>
+    </div>
+
+    <div class="panel" data-f="contract.fields">
+      <div class="panel-head"><div class="panel-title"><h2>The contract</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-toast="In the product: edit opens a new draft version; signing it reruns only the steps that depend on what changed.">Edit as v3</button></div>
+      <div class="contract-sheet">
+        <div class="cs-row"><span class="cs-key">Question</span><span class="cs-val">Which clients are most likely to subscribe if we call them in the next campaign?</span><span></span></div>
+        <div class="cs-row"><span class="cs-key">Unit of prediction</span><span class="cs-val">One client, before one campaign call</span><span></span></div>
+        <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>y</code> = subscribed to a term deposit · positive label <code>yes</code> · base rate 11.7%</span>${chip:EXP-006}</div>
+        <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before a marketing call. The contact schedule and prior history are known.</span>${chip:DATASET-bank_marketing}</div>
+        <div class="cs-row"><span class="cs-key">Outcome window</span><span class="cs-val">Subscription during the same campaign</span><span class="pill outline">assumed</span></div>
+        <div class="cs-row"><span class="cs-key">Action</span><span class="cs-val">Call the top clients up to capacity (2,000 calls a month)</span><span></span></div>
+        <div class="cs-row"><span class="cs-key">Forbidden inputs</span><span class="cs-val"><code>duration</code>: length of the call, known only after the call ends</span><span class="ev-list">${chip:EXP-007}${chip:LEAK-bank_marketing}</span></div>
+        <div class="cs-row"><span class="cs-key">Needs the owner</span><span class="cs-val"><code>campaign</code>: contacts during this campaign. If the count includes the call being predicted, it leaks a little. Kept with a warning; a with/without check runs on identical folds.</span><span class="pill warn">open</span></div>
+        <div class="cs-row"><span class="cs-key">Identifiers</span><span class="cs-val">None. Repeat clients cannot be kept on one side of the split.</span><span class="pill outline">risk logged</span></div>
+        <div class="cs-row"><span class="cs-key">Time · group · text</span><span class="cs-val">No usable time order (month and day_of_week, but no year) · no group column · no text</span>${chip:PIT-005}</div>
+        <div class="cs-row"><span class="cs-key">Primary metric</span><span class="cs-val">Expected net value at capacity, from the owner's costs</span>${chip:DCLAB-R18}</div>
+        <div class="cs-row"><span class="cs-key">Also reported</span><span class="cs-val">ROC-AUC and average precision (ranking) · Brier and ECE (probabilities) · precision and recall at the chosen cut-off</span>${chip:DCLAB-R14}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="owner" data-label="Owner questions" data-count="2">
+    <div class="grid g2">
+      <div class="panel" data-f="contract.worksheet">
+        <div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill warn">2 open</span></div>
+        <div class="list">
+          <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Is campaign counted before or after the call being predicted?</span><span class="li-sub">Until answered, campaign stays in with a warning and a with/without comparison.</span><div class="row"><button type="button" class="btn sm" data-toast="Recorded: counted before the call. campaign becomes a normal input in v3.">Before</button><button type="button" class="btn sm" data-toast="Recorded: includes this call. campaign moves to forbidden in v3; dependent steps rerun.">Includes this call</button></div></div></div>
+          <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Can we get the real call dates?</span><span class="li-sub">With dates, the split can follow time and the reliability step can test drift ${chip:DCLAB-R19}.</span></div></div>
+          <div class="list-item"><span class="pill ok">done</span><div class="li-main"><span class="li-title">Call capacity per month</span><span class="li-sub">2,000 calls · answered Sep 27</span></div></div>
+          <div class="list-item"><span class="pill ok">done</span><div class="li-main"><span class="li-title">Who signs the brief?</span><span class="li-sub">Reza, retention lead</span></div></div>
+        </div>
+        <div class="panel-foot">Other projects: HyperAck and Telco churn each wait on one answer.</div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-head"><h3>Sign-off</h3></div>
+          <div class="panel-body small"><div class="stack tight">
+            <div class="row"><span class="avatar sm">SM</span><span><b>Shahriyar</b> signed v2 · Sep 27, 09:21</span></div>
+            <div class="muted">Signing opens the gate to WF-04. Later edits create v3 and rerun only the steps they affect.</div>
+            <div class="timeline" data-style="margin-top:6px">
+              <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed</span><span class="tl-meta">capacity and costs added</span></div></div>
+              <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern</span><span class="tl-meta">from the column audit and the R&amp;D contract</span></div></div>
+            </div>
+          </div></div>
+        </div>
+        <div class="panel dashed">
+          <div class="panel-body small"><div class="stack tight">
+            <div class="eyebrow">Proof behind this page</div>
+            <div>${chip:DCLAB-R01} Write the moment, window, action, unit and costs first.</div>
+            <div>${chip:DCLAB-R05} A suspicious name starts a review. It does not prove a leak.</div>
+            <div>${chip:DCLAB-R18} Metrics and thresholds come from the decision cost.</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="timeline" data-label="Known when">
+    <div class="panel" data-f="contract.timeline" data-tour="timeline">
+      <div class="panel-head"><div class="panel-title"><h2>What is known when</h2><span class="sub">Each column is placed at the moment its value is written. Anything to the right of the line cannot be an input.</span></div></div>
+      <div class="panel-body">
+        <div class="moment-line">
+          <div class="ml-track">
+            <div class="ml-phase"><span class="ml-name">Client profile</span><span class="ml-when">long before</span><div class="ml-cols"><span class="ml-col">age</span><span class="ml-col">job</span><span class="ml-col">marital</span><span class="ml-col">education</span></div></div>
+            <div class="ml-phase"><span class="ml-name">Account state</span><span class="ml-when">at the snapshot</span><div class="ml-cols"><span class="ml-col">default</span><span class="ml-col">balance</span><span class="ml-col">housing</span><span class="ml-col">loan</span></div></div>
+            <div class="ml-phase"><span class="ml-name">Earlier campaigns</span><span class="ml-when">before this campaign</span><div class="ml-cols"><span class="ml-col">pdays</span><span class="ml-col">previous</span><span class="ml-col">poutcome</span></div></div>
+            <div class="ml-phase"><span class="ml-name">Call scheduled</span><span class="ml-when">planned contact</span><div class="ml-cols"><span class="ml-col">contact</span><span class="ml-col">day_of_week</span><span class="ml-col">month</span></div></div>
+            <div class="ml-phase p-ask"><span class="ml-name">Ask the owner</span><span class="ml-when">counted when?</span><div class="ml-cols"><span class="ml-col">campaign</span></div></div>
+            <div class="ml-phase p-after"><span class="ml-name">During and after the call</span><span class="ml-when">after the moment</span><div class="ml-cols"><span class="ml-col">duration</span></div><span class="ml-name" data-style="margin-top:6px;color:var(--proof)">Outcome</span><div class="ml-cols"><span class="ml-col" data-style="background:var(--proof-soft);color:var(--proof)">y</span></div></div>
+          </div>
+          <div class="ml-moment" data-style="left:calc(83.33% + 1px)"><span>Prediction moment</span></div>
+        </div>
+        <div class="callout bad" data-style="margin-top:12px"><span class="ic">${icon:alert}</span><span><b>Why this matters.</b> With <code>duration</code>, training-CV ROC-AUC rises from 0.7130 to 0.8972. On full rows the registry shows 0.8029 against 0.9357. The model would look excellent and fail on the first real call list ${chip:FINDING-leakage-gaps}.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="costs" data-label="Costs & metric">
+    <div class="panel" data-f="contract.costs" data-tour="costs">
+      <div class="panel-head"><div class="panel-title"><h2>Costs decide the metric</h2><span class="sub">The owner enters the money. DCLab turns it into the call volume and cut-off, instead of optimizing ROC-AUC alone.</span></div><span class="pill proof">uses holdout ROC-AUC 0.7718</span></div>
+      <div class="panel-body grid g2">
+        <div class="stack">
+          <div class="grid g2">
+            <div class="field"><label for="c-cost">Cost of one call (€)</label><input id="c-cost" type="number" min="1" step="1" value="8"></div>
+            <div class="field"><label for="c-value">Value of one subscription (€)</label><input id="c-value" type="number" min="1" step="5" value="110"></div>
+            <div class="field"><label for="c-pool">Clients in the next campaign</label><input id="c-pool" type="number" min="1000" step="1000" value="20000"></div>
+            <div class="field"><label for="c-cap">Calls the team can make</label><input id="c-cap" type="number" min="100" step="100" value="2000"></div>
+          </div>
+          <div class="inset small stack tight" id="c-out"></div>
+        </div>
+        <div class="stack tight">
+          <div id="c-chart"></div>
+          <div class="legend"><span><i></i>net value, model ranking</span><span><i class="sq" data-style="background:var(--accent-soft)"></i>likely range</span><span><i class="s3"></i>random calls</span><span><i class="bad"></i>capacity</span></div>
+          <p class="xs muted">Estimated from the holdout ROC-AUC with a binormal ranking model, base rate 11.7%. The product computes the same curve from the holdout predictions directly. The band shows the 95% interval of the holdout ROC-AUC (0.7126–0.8290).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="data" data-label="Data & split">
+    <div class="grid g2">
+      <div class="panel" data-f="contract.lineage">
+        <div class="panel-head"><div class="panel-title"><h2>Source and lineage</h2><span class="sub">WF-02</span></div><span class="pill ok">passed</span></div>
+        <div class="panel-body small">
+          <dl class="kv">
+            <dt>Source</dt><dd>UCI Machine Learning Repository, bank-full</dd>
+            <dt>Licence</dt><dd>CC BY 4.0</dd>
+            <dt>Snapshot</dt><dd class="mono">sha256 9c1e…4b07</dd>
+            <dt>Rows · columns</dt><dd>45,211 · 16 inputs + target</dd>
+            <dt>Time range</dt><dd>May 2008 – Nov 2010 (no year column in the table)</dd>
+            <dt>Transformations</dt><dd>Categoricals factorized to integer codes in the cached copy</dd>
+          </dl>
+          <div class="callout warn" data-style="margin-top:10px"><span class="ic">${icon:alert}</span><span>Integer codes for categories are not an order. Production encoders need the raw labels ${chip:DCLAB-R11}.</span></div>
+        </div>
+      </div>
+      <div class="panel" data-f="contract.split">
+        <div class="panel-head"><div class="panel-title"><h2>Split design</h2><span class="sub">WF-03</span></div><span class="pill accent">holdout sealed</span></div>
+        <div class="panel-body small"><div class="stack tight">
+          <div id="split-chart"></div>
+          <dl class="kv">
+            <dt>Unit</dt><dd>Client contact (no client ID, so repeats cannot be grouped)</dd>
+            <dt>Direction</dt><dd>No time order available: stratified random</dd>
+            <dt>Folds</dt><dd>3 stratified folds on the 3,200 training rows</dd>
+            <dt>Holdout</dt><dd>800 rows, sealed until WF-09, opened once</dd>
+          </dl>
+          <div class="row" data-f="contract.checks"><span class="pill ok">0 exact duplicates across the split</span><span class="pill warn">repeat clients: cannot check</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+DC.view('contract', {
+  init(el) {
+    const { $, chip, icon, charts, binormal, int } = DC;
+    el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    const B = DEMO.bank;
+    const models = [binormal(B.holdoutLo, B.positive), binormal(B.holdoutAuc, B.positive), binormal(B.holdoutHi, B.positive)];
+    function value(model, calls, pool, cost, val) { if (calls <= 0) return { net: 0, subs: 0, prec: 0 }; const r = model.atFraction(Math.min(1, calls / pool)); const subs = calls * r.precision; return { net: subs * val - calls * cost, subs, prec: r.precision }; }
+    function draw() {
+      const cost = Math.max(0.5, +$('#c-cost', el).value || 8), val = Math.max(1, +$('#c-value', el).value || 110);
+      const pool = Math.max(1000, +$('#c-pool', el).value || 20000), cap = Math.max(1, Math.min(pool, +$('#c-cap', el).value || 2000));
+      const steps = 40, xs = Array.from({ length: steps + 1 }, (_, i) => Math.round(pool * i / steps));
+      const mid = xs.map(c => [c, value(models[1], c, pool, cost, val).net / 1000]);
+      const lo = xs.map(c => [c, value(models[0], c, pool, cost, val).net / 1000]);
+      const hi = xs.map(c => [c, value(models[2], c, pool, cost, val).net / 1000]);
+      const rnd = xs.map(c => [c, (c * B.positive * val - c * cost) / 1000]);
+      let best = xs[0], bestNet = -Infinity;
+      for (let c = 0; c <= pool; c += Math.max(50, Math.round(pool / 400))) { const n = value(models[1], c, pool, cost, val).net; if (n > bestNet) { bestNet = n; best = c; } }
+      const atCap = value(models[1], cap, pool, cost, val), atCapLo = value(models[0], cap, pool, cost, val), atCapHi = value(models[2], cap, pool, cost, val);
+      const breakeven = cost / val;
+      const ys = mid.concat(lo, hi, rnd).map(p => p[1]);
+      $('#c-chart', el).innerHTML = charts.line([
+        { pts: rnd, cls: 's3' }, { pts: mid },
+      ], { width: 520, height: 230, range: [lo, hi], yMin: Math.min(0, ...ys), yMax: Math.max(...ys) * 1.05, xLabel: 'calls made', yLabel: 'net value (€ thousand)', xFmt: v => v >= 1000 ? (v / 1000) + 'k' : v, yFmt: v => Math.round(v), markers: [{ x: cap, label: 'capacity ' + int(cap) }], points: [{ x: best, y: bestNet / 1000, label: 'best ' + int(best) }] });
+      $('#c-out', el).innerHTML = `
+        <div class="spread"><span>Break-even hit rate</span><b class="mono">${(breakeven * 100).toFixed(1)}%</b></div>
+        <div class="spread"><span>Calling at random reaches</span><b class="mono">${(B.positive * 100).toFixed(1)}% subscribers</b></div>
+        <div class="spread"><span>At capacity (${int(cap)} calls), hit rate</span><b class="mono">${(atCap.prec * 100).toFixed(1)}% <span class="muted">[${(atCapLo.prec * 100).toFixed(0)}–${(atCapHi.prec * 100).toFixed(0)}%]</span></b></div>
+        <div class="spread"><span>Expected subscriptions</span><b class="mono">${int(Math.round(atCap.subs))} <span class="muted">[${int(Math.round(atCapLo.subs))}–${int(Math.round(atCapHi.subs))}]</span></b></div>
+        <div class="spread"><span>Expected net value</span><b class="mono">€${int(Math.round(atCap.net))}</b></div>
+        <div class="spread"><span>Volume with the best value</span><b class="mono">${int(best)} calls</b></div>
+        <div class="${best > cap ? 'callout info' : 'callout ok'}" data-style="margin-top:4px"><span class="ic">${icon('info')}</span><span>${best > cap ? `Capacity is the limit: more calls would still pay while the hit rate stays above ${(breakeven * 100).toFixed(1)}%. Recommendation: <b>call the top ${int(cap)}</b>.` : `Recommendation: <b>call the top ${int(best)}</b>; beyond that a call costs more than it earns.`}</span></div>`;
+    }
+    ['#c-cost', '#c-value', '#c-pool', '#c-cap'].forEach(s => $(s, el).addEventListener('input', draw));
+    draw();
+    $('#split-chart', el).innerHTML = charts.barsH([
+      { label: 'Source rows', value: 45211, valueText: '45,211', cls: 'muted' },
+      { label: 'Analyzed (quick)', value: 4000, valueText: '4,000' },
+      { label: 'Training · 3 folds', value: 3200, valueText: '3,200', cls: 'soft' },
+      { label: 'Holdout · sealed', value: 800, valueText: '800', cls: 'proof' },
+    ], { width: 420, labelW: 128, valW: 60, min: 0, max: 46000, rowH: 26, ticks: [0, 15000, 30000, 45000], tickFmt: v => v ? (v / 1000) + 'k' : '0', aria: 'Rows in each split' });
+    $('#contract-history', el).addEventListener('click', () => DC.modal.open({
+      eyebrow: '<span class="eyebrow">Contract</span>', title: 'Version history', hideConfirm: true, cancel: 'Close',
+      html: `<div class="timeline">
+        <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed by Shahriyar · Sep 27 09:21</span><span class="tl-meta">+ capacity 2,000 calls · + €8 per call · + €110 per subscription · metric changed from ROC-AUC to net value at capacity</span></div></div>
+        <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern · Sep 27 09:12</span><span class="tl-meta">from the column audit and the R&amp;D's contract for bank_marketing · duration forbidden · campaign flagged for the owner</span></div></div>
+      </div><p class="small muted">Each version is immutable. Results always say which contract version they were produced under.</p>`,
+    }));
+  },
+});
+</script>

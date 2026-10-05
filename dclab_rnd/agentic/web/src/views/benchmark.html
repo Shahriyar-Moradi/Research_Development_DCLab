@@ -1,0 +1,124 @@
+<section class="view" id="view-benchmark" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Judgment benchmark · unseen work, planted traps</div>
+      <h1>Benchmark <span class="pill warn">pilots real · suites planned</span></h1>
+      <p class="lede">Unseen notebooks and projects carry planted traps. Every policy is scored on the same cases, so "DCLab judges well" becomes a number.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn primary" data-toast="In the product: runs every policy on the frozen suites in a sandbox and posts the scorecard here.">Run the suites</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v warn">11 / 18 <small>61%</small></span><span class="l">known leaks the blind auditor found · 7 datasets</span></div>
+      <div class="stat"><span class="v">6 / 7</span><span class="l">labelled problems flagged in the notebook pilot</span></div>
+      <div class="stat"><span class="v">120</span><span class="l">planned cases in 5 suites, the same for every policy</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">policies compared · standard plan, general LLM, policy model, human reviewer</span></div>
+    </div>
+
+    <div class="panel" data-f="bench.pilot">
+      <div class="panel-head"><div class="panel-title"><h2>Measured today: blind auditor replay</h2><span class="sub">No catalog, no precedents: does the column auditor find the leaks the R&amp;D already confirmed?</span></div><span class="pill ok">real</span></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Dataset</th><th class="num">Known</th><th>Found</th><th>Missed</th></tr></thead><tbody>
+        <tr><td>bank_marketing</td><td class="num">1</td><td><code>duration</code></td><td class="faint">—</td></tr>
+        <tr><td>online_shoppers</td><td class="num">9</td><td class="small">PageValues and 3 duration columns</td><td class="small">5 page counts and rates</td></tr>
+        <tr><td>hyperack</td><td class="num">2</td><td class="small">both final fares</td><td class="faint">—</td></tr>
+        <tr><td>telco_churn</td><td class="num">1</td><td><code>customerID</code></td><td class="faint">—</td></tr>
+        <tr><td>credit_card_fraud</td><td class="num">1</td><td class="faint">—</td><td><code>Time</code></td></tr>
+        <tr><td>bike_sharing_daily</td><td class="num">2</td><td class="small">casual, registered</td><td class="faint">—</td></tr>
+        <tr><td>ecommerce_clothing_reviews</td><td class="num">2</td><td><code>Rating</code></td><td class="small">Positive Feedback Count</td></tr>
+      </tbody></table></div>
+      <div class="panel-foot"><b>11 of 18 found (61%).</b> The misses look like ordinary numbers; only the contract's "when is this written?" catches them. That is why the agent must ask for the contract and never treat a clean scan as proof.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="pilot" data-label="Notebook pilot">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Measured today: notebook pilot</h2><span class="sub">7 labelled cells from real notebooks, frozen by hash</span></div><span class="pill ok">real</span></div>
+      <div class="panel-body stack">
+        <div class="row" data-style="gap:18px"><div class="score" data-style="font-size:34px;font-weight:600;color:var(--ink)">6 / 7</div><div class="small muted">The first copilot prototype flagged six of seven labelled problems. The current copilot replaced it; this pilot stays as its regression test.</div></div>
+        <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>The miss:</b> a clustering step fitted on all HyperAck rows before the split. Unsupervised transforms leak too ${chip:DCLAB-R03}. The copilot now checks fitted unsupervised steps.</span></div>
+        <div class="callout info"><span class="ic">${icon:info}</span><span><b>Also seen:</b> overconfident wording on a <code>cancellation_date</code> column. A name is a reason to ask, not a verdict ${chip:DCLAB-R05}.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="leaderboard" data-label="Leaderboard">
+    <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>This tab shows the planned benchmark.</b> The leaderboard and case replay show how it will look. Their numbers are samples until the suites run.</span></div>
+
+    <div class="panel" data-f="bench.board" data-tour="bench-board">
+      <div class="panel-head"><div class="panel-title"><h2>Policy leaderboard</h2><span class="sub">Same 120 cases for every policy · higher is better except unsafe actions and cost</span></div><span class="pill outline">sample numbers</span></div>
+      <div class="table-wrap"><table class="data compact" id="board"><thead><tr><th>Policy</th><th class="num">Valid moves</th><th class="num">Leaks caught</th><th class="num">False alarms</th><th class="num">Citations correct</th><th class="num">Asked when needed</th><th class="num">Unsafe actions</th><th class="num">Cost per case</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">The standard plan cannot make an invalid move, but it never asks: it has no judgment to offer. The policy model has to beat a general LLM on judgment while staying as safe as the standard plan.</div>
+    </div>
+
+    <div class="panel" data-f="bench.case">
+      <div class="panel-head"><div class="panel-title"><h2>Case replay</h2><span class="sub">case B-07 · split traps · an unseen delivery notebook</span></div><div class="seg" data-seg="pol" id="case-pol" role="group" aria-label="Policy"><button type="button" data-v="std" aria-pressed="true">Standard plan</button><button type="button" data-v="llm" aria-pressed="false">General LLM</button><button type="button" data-v="pol" aria-pressed="false">Policy model</button></div></div>
+      <div class="panel-body grid g2">
+        <div class="stack tight">
+          <div class="eyebrow">Planted trap</div>
+          <pre class="code" data-py>
+km = KMeans(n_clusters=8, random_state=0).fit(df[geo_cols])
+df["zone"] = km.labels_                      # fitted on every row
+X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.y)</pre>
+          <div class="small"><b>Expected:</b> flag the clustering as fitted before the split ${chip:DCLAB-R03}, move it into the pipeline, and keep going. No question to the owner is needed.</div>
+        </div>
+        <div class="stack tight"><div class="eyebrow">What the policy did</div><div id="case-traj"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="suites" data-label="Suites & scoring">
+    <div class="grid g2">
+      <div class="panel" data-f="bench.suites">
+        <div class="panel-head"><h3>Suites</h3><span class="pill outline">planned · 120 cases</span></div>
+        <div class="list small">
+          <div class="list-item"><span class="pill bad">A</span><div class="li-main"><span class="li-title">Leakage traps · 30</span><span class="li-sub">post-outcome columns, target encodings, duplicates, proxies</span></div></div>
+          <div class="list-item"><span class="pill warn">B</span><div class="li-main"><span class="li-title">Split traps · 20</span><span class="li-sub">time order, groups, resampling, fitted transforms</span></div></div>
+          <div class="list-item"><span class="pill info">C</span><div class="li-main"><span class="li-title">Metric and threshold · 15</span><span class="li-sub">costs, imbalance, calibration</span></div></div>
+          <div class="list-item"><span class="pill proof">D</span><div class="li-main"><span class="li-title">Stop and ask · 15</span><span class="li-sub">only the owner can decide; guessing fails the case</span></div></div>
+          <div class="list-item"><span class="pill accent">E</span><div class="li-main"><span class="li-title">Unseen projects · 40</span><span class="li-sub">full ten-step runs on public notebooks never used in training</span></div></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel" data-f="bench.metrics">
+          <div class="panel-head"><h3>What is scored</h3></div>
+          <div class="panel-body small stack tight">
+            <div><b>Valid moves</b> · share of proposed moves the graph accepts</div>
+            <div><b>Leaks caught / false alarms</b> · against the planted labels</div>
+            <div><b>Citations correct</b> · cited record exists and supports the sentence</div>
+            <div><b>Asked when needed</b> · stopped on suite D instead of guessing</div>
+            <div><b>Unsafe actions</b> · holdout reads, forbidden columns, deletes</div>
+            <div><b>Cost</b> · tokens and euros per case</div>
+          </div>
+        </div>
+        <div class="panel" data-f="bench.human"><div class="panel-head"><h3>Human agreement</h3><span class="pill outline">planned</span></div><div class="panel-body small">Three ML reviewers label 40 cases blind. The benchmark reports agreement between reviewers first, so the policies are judged against a realistic ceiling.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+DC.view('benchmark', {
+  init(el) {
+    const { $, esc, chip, chips, icon } = DC;
+    el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    const B = [
+      ['Standard plan (no model)', '100%', '61%', '4%', '100%', '0%', '0', '€0.00', ''],
+      ['General LLM (open model, router)', '91%', '78%', '11%', '86%', '58%', '3', '€0.09', ''],
+      ['DCLab policy model v0.1', '98%', '84%', '6%', '95%', '81%', '0', '€0.01', 'accent'],
+      ['Human reviewer', '—', '89%', '5%', '—', '93%', '0', '€14.00', ''],
+    ];
+    $('#board tbody', el).innerHTML = B.map(r => `<tr class="${r[8] ? 'selected' : ''}"><td><span class="cell-main">${esc(r[0])}</span>${r[8] ? ' <span class="pill accent">target</span>' : ''}</td>${r.slice(1, 8).map((v, i) => `<td class="num mono" data-style="${i === 5 && v !== '0' ? 'color:var(--bad);font-weight:600' : ''}">${v}</td>`).join('')}</tr>`).join('');
+    const TRAJ = {
+      std: [['run_stage · leakage', 'The column auditor sees no suspicious column.', 'warn'], ['run_stage · models', 'Continues; the fitted clustering is not a column, so nothing flags it.', 'warn'], ['verdict', 'Missed the trap. This is the pilot\'s real miss, now a test case.', 'bad']],
+      llm: [['review_code', 'Notices KMeans but calls it "probably fine for an unsupervised step".', 'warn'], ['ask_owner', 'Asks the owner whether zones are allowed. A question nobody needed.', 'warn'], ['verdict', 'Partial: found it, did not act, spent a question.', 'warn']],
+      pol: [['review_code', 'Flags KMeans fitted on all rows before the split.', 'ok'], ['propose · fix', 'Moves the clustering into the pipeline so it fits inside each fold.', 'ok'], ['validator', 'Fix accepted; evidence cited: DCLAB-R03, PIT-001.', 'ok'], ['verdict', 'Pass: caught, fixed, no unnecessary question.', 'ok']],
+    };
+    function traj(p) {
+      $('#case-traj', el).innerHTML = `<div class="timeline">${TRAJ[p].map(([t, d, c], i) => `<div class="tl-item"><span class="tl-mark ${c === 'ok' ? 'ok' : c === 'bad' ? 'bad' : 'warn'}">${i + 1}</span><div class="tl-body"><span class="tl-title mono small">${esc(t)}</span><span class="small">${DC.linkIds(d)}</span></div></div>`).join('')}</div><div class="xs muted">Sample trajectories; the first is the pilot's real miss.</div>`;
+      DC.hydrate(el);
+    }
+    $('#case-pol', el).addEventListener('segchange', e => traj(e.detail));
+    traj('std');
+  },
+});
+</script>

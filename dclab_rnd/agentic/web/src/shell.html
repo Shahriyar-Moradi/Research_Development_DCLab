@@ -1,0 +1,85 @@
+<title>DCLab Product Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Vazirmatn:wght@400;500;700&amp;display=swap">
+<style>
+/*STYLES*/
+</style>
+<div class="app">
+  <aside class="side" id="side" aria-label="Navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">DC</span>
+      <span class="brand-name">DCLab</span>
+      <span class="brand-tag">Preview</span>
+    </div>
+    <button type="button" class="ws-switch" data-toast="In the product: switch between workspaces (your lab, a client lab, a sandbox).">
+      <span class="ws-name">Shahriyar's lab</span>
+      <span class="ws-sub">4 members · EU region <span aria-hidden="true">⌄</span></span>
+    </button>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="side-foot">
+      <div class="nav-label">Preview</div>
+      <label class="nav-item switch-item" title="Outline every feature as built, partial, to build or research"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
+      <button type="button" class="nav-item" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span>Guided tours</span></button>
+    </div>
+  </aside>
+  <div class="side-scrim" id="side-scrim"></div>
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open navigation"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search this workspace or jump to…</span><kbd>⌘K</kbd></button>
+      <div class="top-actions">
+        <label class="role-pick" title="See the product as another user would"><span class="sr-only">View as</span><span class="dot accent"></span><select class="role-select" id="role-select"><option value="developer">Developer view</option><option value="business">Business view</option><option value="researcher">Researcher view</option><option value="admin">Admin view</option></select></label>
+        <span class="demo-pill" title="Sample data, except where a record chip such as EXP-007 cites the repository">Sample data · Demo</span>
+        <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch light or dark theme"></button>
+        <span class="avatar top-avatar" title="Shahriyar · owner">SM</span>
+      </div>
+    </header>
+    <div class="role-note" id="role-note" hidden></div>
+    <main class="content" id="content">
+<!--VIEWS-->
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="dh-text"><div id="drawer-eyebrow" class="row"></div><h2 id="drawer-title"></h2><div id="drawer-actions" class="row"></div></div>
+    <button type="button" class="icon-btn" id="drawer-close" aria-label="Close panel"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+<div class="modal-wrap">
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+    <div class="modal-head"><div id="modal-eyebrow"></div><h2 id="modal-title"></h2></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot"><button type="button" class="btn" id="modal-cancel">Cancel</button><button type="button" class="btn primary" id="modal-confirm">Confirm</button></div>
+  </div>
+</div>
+<div class="palette" id="palette" hidden>
+  <div class="palette-box" role="dialog" aria-label="Search">
+    <label class="sr-only" for="pal-input">Search pages, actions and evidence</label>
+    <input id="pal-input" type="search" placeholder="Search pages, actions and evidence (try EXP-007 or leakage)" autocomplete="off">
+    <div class="palette-list" id="pal-list"></div>
+  </div>
+</div>
+<aside class="bp-panel min" id="bp-panel" hidden aria-label="Blueprint for this page">
+  <div class="bp-head">
+    <div class="spread"><div class="eyebrow">Blueprint · this page</div><span class="bp-tools"><button type="button" class="btn sm ghost" id="bp-expand" aria-expanded="false">Show list</button><button type="button" class="icon-btn" id="bp-close" aria-label="Turn off the blueprint layer"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div>
+    <div class="small" id="bp-summary"></div>
+    <div class="bp-legend"><span data-bp="built"><i></i>Built today</span><span data-bp="partial"><i></i>Partly built</span><span data-bp="todo"><i></i>To build</span><span data-bp="research"><i></i>Needs research</span></div>
+    <div class="xs muted" id="bp-backend"></div>
+    <a href="#blueprint" class="link-btn small bp-more">Open the full blueprint and roadmap →</a>
+  </div>
+  <div class="bp-list" id="bp-list"></div>
+</aside>
+<div class="tour-bar" id="tour-bar" hidden role="region" aria-label="Guided tour">
+  <div class="tb-top"><span class="tb-step" id="tb-step"></span><span class="tb-dots" id="tb-dots"></span></div>
+  <div class="tb-title" id="tb-title"></div>
+  <div class="tb-text" id="tb-text"></div>
+  <div class="tb-actions"><button type="button" class="btn sm" id="tb-exit">Exit tour</button><button type="button" class="btn sm" id="tb-back">Back</button><button type="button" class="btn sm primary" id="tb-next">Next</button></div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<!--SCRIPTS-->

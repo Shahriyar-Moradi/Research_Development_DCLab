@@ -1,0 +1,255 @@
+<section class="view" id="view-new" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Projects · from a sentence to a signed contract</div>
+      <h1>New project</h1>
+      <p class="lede">Six short steps: DCLab drafts each one and shows its proof, you confirm or edit. Nothing is trained until the contract is signed.</p>
+    </div>
+    <div class="vh-actions"><a class="btn ghost" href="#home">Cancel</a></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">Tabular <small>binary</small></span><span class="l">domain pack detected · 11.7% positive</span></div>
+      <div class="stat"><span class="v">45,211 <small>rows</small></span><span class="l">bank_marketing profiled in 1.4 s · 17 columns</span></div>
+      <div class="stat"><span class="v bad">duration</span><span class="l">forbidden in the draft · known only after the call ends</span></div>
+      <div class="stat"><span class="v warn">1 <small>question</small></span><span class="l">for you: does campaign include the call we are about to make?</span></div>
+    </div>
+
+    <div class="grid g-side-l">
+      <aside class="panel" data-style="position:sticky;top:72px">
+        <div class="panel-body"><div class="stack tight">
+          <nav class="stepper" id="new-steps" aria-label="Wizard steps">
+            <button type="button" data-step="1" class="done"><span class="sn">1</span>Goal</button>
+            <button type="button" data-step="2" class="done"><span class="sn">2</span>Domain pack</button>
+            <button type="button" data-step="3" aria-current="step"><span class="sn">3</span>Data</button>
+            <button type="button" data-step="4"><span class="sn">4</span>Contract draft</button>
+            <button type="button" data-step="5"><span class="sn">5</span>Split and budget</button>
+            <button type="button" data-step="6"><span class="sn">6</span>Review and start</button>
+          </nav>
+          <hr>
+          <div class="small muted">Draft saved 2 seconds ago. You can leave and come back; the intern can also finish the draft for you.</div>
+        </div></div>
+      </aside>
+
+      <div class="stack">
+        <!-- step 1 -->
+        <div class="panel" data-new-step="1" hidden data-f="new.goal">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 1 of 6</span><h2>What should the model decide?</h2></div></div>
+          <div class="panel-body stack">
+            <div class="field"><label for="new-goal">Your goal, in your words</label>
+              <textarea id="new-goal" rows="3">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea></div>
+            <div class="inset stack tight">
+              <div class="spread"><span class="eyebrow proof">DCLab understood</span><span class="small muted">Check each line. Wrong lines are the cheapest bugs to fix.</span></div>
+              <div class="contract-sheet">
+                <div class="cs-row"><span class="cs-key">Unit of prediction</span><span class="cs-val">One client, before one campaign call</span><span class="pill ok">sure</span></div>
+                <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val">Subscribes to a term deposit (<code>y = yes</code>)</span><span class="pill ok">sure</span></div>
+                <div class="cs-row"><span class="cs-key">Action</span><span class="cs-val">Call the client, or skip</span><span class="pill ok">sure</span></div>
+                <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before the call is placed</span><span class="pill warn">please confirm</span></div>
+                <div class="cs-row"><span class="cs-key">Costs</span><span class="cs-val">€8 per call · €110 per subscription</span><span class="pill ok">from your text</span></div>
+                <div class="cs-row"><span class="cs-key">Capacity</span><span class="cs-val">Not stated. Calls the team can make per month?</span><span class="pill bad">missing</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-foot bar"><span>Rule ${chip:DCLAB-R01}: write the moment, target window, action, unit and error costs before looking at any score.</span><button type="button" class="btn primary" data-next="2" data-style="margin-left:auto">Looks right</button></div>
+        </div>
+
+        <!-- step 2 -->
+        <div class="panel" data-new-step="2" hidden data-f="new.pack">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 2 of 6</span><h2>Choose a domain pack</h2><span class="sub">A pack maps the ten workflow steps to one kind of problem: its own rules, tools and metrics.</span></div><span class="pill accent">Detected: tabular · binary · 11.7% positive</span></div>
+          <div class="panel-body">
+            <div class="grid g3" id="pack-grid"></div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="1">Back</button><button type="button" class="btn primary" data-next="3" data-style="margin-left:auto">Use this pack</button></div>
+        </div>
+
+        <!-- step 3 -->
+        <div class="panel" data-new-step="3" data-tour="new-data">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 3 of 6</span><h2>Bring the data</h2><span class="sub">DCLab profiles every column and records where the table came from before anyone looks at the target.</span></div></div>
+          <div class="tabs" data-tabs="src" role="tablist">
+            <button type="button" class="tab" data-tab="upload" role="tab" aria-selected="false">Upload</button>
+            <button type="button" class="tab" data-tab="samples" role="tab" aria-selected="true">Studied samples <span class="pill">16</span></button>
+            <button type="button" class="tab" data-tab="kaggle" role="tab" aria-selected="false">Kaggle</button>
+            <button type="button" class="tab" data-tab="hf" role="tab" aria-selected="false">Hugging Face</button>
+            <button type="button" class="tab" data-tab="wh" role="tab" aria-selected="false">Warehouse</button>
+          </div>
+          <div class="panel-body stack">
+            <div data-tab-panel="src:upload" hidden data-f="new.upload">
+              <div class="drop"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><b>Drop a CSV, Parquet or Excel file</b><span>Up to 2 GB. The file stays on this machine; only the profile is shown here.</span><label class="btn sm" for="new-file">Choose a file</label><input type="file" id="new-file" class="sr-only" accept=".csv,.parquet,.xlsx"></div>
+            </div>
+            <div data-tab-panel="src:samples" data-f="new.samples">
+              <div class="table-wrap"><table class="data compact clickable" id="sample-table"><thead><tr><th>Dataset</th><th>Task</th><th class="num">Rows</th><th>Contract the R&amp;D wrote</th><th></th></tr></thead><tbody></tbody></table></div>
+            </div>
+            <div data-tab-panel="src:kaggle" hidden data-f="new.hub">
+              <div class="stack tight">
+                <div class="row"><input type="search" value="credit card fraud" aria-label="Search Kaggle" data-style="max-width:360px"><button type="button" class="btn sm">Search Kaggle</button><span class="pill outline">signed in as shahriardev</span></div>
+                <div class="list panel">
+                  <div class="list-item"><div class="li-main"><span class="li-title">mlg-ulb/creditcardfraud</span><span class="li-sub">284,807 rows · 31 columns · licence ODbL 1.0 · already studied ${chip:DATASET-credit_card_fraud}</span></div><button type="button" class="btn sm" data-toast="Imported with licence and snapshot hash recorded.">Import</button></div>
+                  <div class="list-item"><div class="li-main"><span class="li-title">nicapotato/womens-ecommerce-clothing-reviews</span><span class="li-sub">23,486 rows · text + tabular · licence CC0 · already studied ${chip:DATASET-ecommerce_clothing_reviews}</span></div><button type="button" class="btn sm" data-toast="Imported with licence and snapshot hash recorded.">Import</button></div>
+                </div>
+                <div class="callout info"><span class="ic">${icon:info}</span><span>Imports record the licence, the exact file version and a SHA-256 of the snapshot, so a result can always be traced to the bytes it was trained on.</span></div>
+              </div>
+            </div>
+            <div data-tab-panel="src:hf" hidden>
+              <div class="grid g2">
+                <div class="field"><label for="hf-id">Dataset ID</label><input id="hf-id" type="text" value="scikit-learn/adult-census-income"></div>
+                <div class="field"><label for="hf-rev">Revision</label><input id="hf-rev" type="text" value="main @ 3f1c2ab"></div>
+                <div class="field"><label for="hf-split">Split</label><select id="hf-split"><option>train</option><option>test</option></select></div>
+                <div class="field"><label for="hf-cfg">Config</label><select id="hf-cfg"><option>default</option></select></div>
+              </div>
+            </div>
+            <div data-tab-panel="src:wh" hidden data-f="new.warehouse">
+              <div class="grid g3">
+                <button type="button" class="pack-card" data-toast="In the product: read-only connection with a saved query and a row limit."><span class="pc-name">PostgreSQL</span><span class="pc-desc">Read-only role, saved SQL, snapshot to Parquet.</span></button>
+                <button type="button" class="pack-card" data-toast="In the product: read-only service account."><span class="pc-name">BigQuery</span><span class="pc-desc">Service account with read access to one dataset.</span></button>
+                <button type="button" class="pack-card" data-toast="In the product: bucket and prefix, read-only."><span class="pc-name">S3 / GCS</span><span class="pc-desc">Bucket and prefix; Parquet or CSV.</span></button>
+              </div>
+            </div>
+
+            <div class="inset spread small"><span><b>bank_marketing</b> · 45,211 rows · 17 columns · positive rate 11.7% · 1 post-outcome column</span><button type="button" class="link-btn" data-pane-go="profile">See the column profile →</button></div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="2">Back</button><button type="button" class="btn primary" data-next="4" data-style="margin-left:auto">Use this table</button></div>
+        </div>
+
+        <!-- step 4 -->
+        <div class="panel" data-new-step="4" hidden data-f="new.contract">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 4 of 6</span><h2>Contract draft</h2><span class="sub">Proposed from the column audit and the R&amp;D's own contract for this dataset. Every line has a reason.</span></div><span class="pill warn">1 question for you</span></div>
+          <div class="contract-sheet">
+            <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>y</code> · positive label <code>yes</code> · binary</span><span></span></div>
+            <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before a marketing call. Contact schedule and prior history are known.</span>${chip:DATASET-bank_marketing}</div>
+            <div class="cs-row"><span class="cs-key">Forbidden</span><span class="cs-val"><code>duration</code>: call length, known only after the call ends. With it the training-CV ROC-AUC rises from 0.7130 to 0.8972 (+0.1842).</span><span class="ev-list">${chip:EXP-007}${chip:LEAK-bank_marketing}</span></div>
+            <div class="cs-row"><span class="cs-key">Ask the owner</span><span class="cs-val"><code>campaign</code>: number of contacts in this campaign. Does the count include the call we are about to make? Kept with a warning until answered; a with/without check runs on identical folds.</span><span class="pill warn">open</span></div>
+            <div class="cs-row"><span class="cs-key">Identifiers</span><span class="cs-val">None found. Repeated clients cannot be grouped, so the split cannot keep a client on one side. Logged as a risk.</span><span class="pill outline">risk</span></div>
+            <div class="cs-row"><span class="cs-key">Time column</span><span class="cs-val"><code>month</code> and <code>day_of_week</code> (the day of the month) exist but no year, so rows cannot be ordered in time.</span>${chip:PIT-005}</div>
+            <div class="cs-row"><span class="cs-key">Metric</span><span class="cs-val">Expected net value at the call capacity (from your costs). ROC-AUC and average precision for ranking, Brier for probabilities.</span>${chip:DCLAB-R18}</div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="3">Back</button><a class="link-btn" href="#contract">Open the full contract page</a><button type="button" class="btn primary" data-next="5" data-style="margin-left:auto">Accept the draft</button></div>
+        </div>
+
+        <!-- step 5 -->
+        <div class="panel" data-new-step="5" hidden>
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 5 of 6</span><h2>Split and budget</h2></div></div>
+          <div class="panel-body grid g2">
+            <div class="stack" data-f="new.split">
+              <div class="field"><span class="label">Split strategy</span>
+                <div class="seg" data-seg="split" role="group" aria-label="Split strategy"><button type="button" data-v="strat" aria-pressed="true">Stratified random</button><button type="button" data-v="time" aria-pressed="false">By time</button><button type="button" data-v="group" aria-pressed="false">By group</button></div>
+                <span class="hint">No usable time column and no client ID, so stratified random is the only honest choice. The brief will say so.</span></div>
+              <div class="field"><label for="new-rows">Rows used</label><select id="new-rows"><option>Quick · 4,000 rows (3,200 train · 800 holdout)</option><option>Full · 45,211 rows</option></select><span class="hint">Quick mode answers "is this worth it?" in seconds. Run full rows before any decision.</span></div>
+              <div class="field"><label for="new-folds">Training folds</label><select id="new-folds"><option>3 stratified folds</option><option>5 stratified folds</option><option>5 × 2 repeated</option></select></div>
+            </div>
+            <div class="stack" data-f="new.budget">
+              <div class="field"><span class="label">Where it runs</span>
+                <div class="seg" data-seg="where" role="group" aria-label="Compute"><button type="button" data-v="local" aria-pressed="true">This machine</button><button type="button" data-v="sandbox" aria-pressed="false">Sandbox</button><button type="button" data-v="gpu" aria-pressed="false">GPU job</button></div></div>
+              <div class="grid g3">
+                <div class="field"><label for="b-calls">Tool calls</label><input id="b-calls" type="number" value="24"></div>
+                <div class="field"><label for="b-min">Minutes</label><input id="b-min" type="number" value="20"></div>
+                <div class="field"><label for="b-eur">Spend cap (€)</label><input id="b-eur" type="number" value="5"></div>
+              </div>
+              <label class="check"><input type="checkbox" checked disabled> Opening the holdout needs the owner's approval (workspace policy)</label>
+              <label class="check"><input type="checkbox" checked> Ask me before any step that costs more than €1</label>
+            </div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="4">Back</button><button type="button" class="btn primary" data-next="6" data-style="margin-left:auto">Continue</button></div>
+        </div>
+
+        <!-- step 6 -->
+        <div class="panel" data-new-step="6" hidden data-f="new.handoff">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 6 of 6</span><h2>Review and start</h2></div></div>
+          <div class="panel-body grid g2">
+            <div class="stack tight small">
+              <div class="kv">
+                <dt>Project</dt><dd>Term-deposit calls</dd>
+                <dt>Pack</dt><dd>Tabular · binary</dd>
+                <dt>Data</dt><dd>bank_marketing · snapshot 9c1e…4b07</dd>
+                <dt>Contract</dt><dd>v1 draft · 1 open question · needs your signature</dd>
+                <dt>Split</dt><dd>Stratified 80/20 · holdout sealed · 3 folds</dd>
+                <dt>Budget</dt><dd>24 tool calls · 20 minutes · €5</dd>
+              </div>
+            </div>
+            <div class="stack">
+              <a class="btn lg primary" href="#notebook" data-toast="Project created. The notebook opens at WF-04, after you sign the contract.">Open in the notebook · I drive</a>
+              <a class="btn lg" href="#intern" data-toast="Handed to the intern with a budget of 24 tool calls.">Hand to the intern · it drives</a>
+              <span class="small muted">Either way the same graph applies: the intern cannot skip a step that you could not skip.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="profile" data-label="Data profile">
+    <div class="grid g-3-1">
+      <div class="panel" data-f="new.profile">
+        <div class="panel-head"><div class="panel-title"><h3>Profile · bank_marketing</h3><span class="sub">45,211 rows · 17 columns · positive rate 11.7% · missing 0% · duplicate rows 0%</span></div><span class="pill ok">profiled in 1.4 s</span></div>
+        <div class="table-wrap"><table class="data compact" id="profile-table"><thead><tr><th>Column</th><th>Kind</th><th class="num">Unique</th><th>Example</th><th>First guess</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="stack">
+        <div class="panel" data-f="new.lineage">
+          <div class="panel-head"><h3>Where it came from</h3></div>
+          <div class="panel-body small">
+            <div class="timeline">
+              <div class="tl-item"><span class="tl-mark ok">1</span><div class="tl-body"><span class="tl-title">UCI Machine Learning Repository</span><span class="tl-meta">bank-full.csv · CC BY 4.0</span></div></div>
+              <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">data/public/bank_marketing</span><span class="tl-meta">Parquet · categoricals factorized</span></div></div>
+              <div class="tl-item"><span class="tl-mark accent">3</span><div class="tl-body"><span class="tl-title">Project snapshot v1</span><span class="tl-meta">sha256 9c1e…4b07 · 2026-09-27</span></div></div>
+            </div>
+            <div class="callout warn"><span class="ic">${icon:alert}</span><span>The cached copy stores categories as integer codes. A production encoder needs the raw labels ${chip:EXP-006}.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+DC.view('new', {
+  init(el) {
+    const { $, $$, esc, chip, icon } = DC;
+    el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
+    const packs = [
+      ['Tabular', 'Binary, multiclass and regression on tables.', 'GA', 'ok', 'models', true],
+      ['Imbalanced and fraud', 'Rare positives: PR-AUC, cost curves, time splits.', 'GA', 'ok', 'alert'],
+      ['Time series', 'Forecasts with horizons and backtests against naive baselines.', 'Beta', 'info', 'trend'],
+      ['Text + tabular', 'Reviews, tickets and notes next to structured fields.', 'Beta', 'info', 'text'],
+      ['Computer vision', 'Detection and classification, split by scene or drive.', 'Preview', 'warn', 'image'],
+      ['Driving perception', 'Operating domain (ODD) as the contract; split by trip and route.', 'Research', '', 'car'],
+      ['Maps and road flow', 'Road graphs, speed and flow forecasts.', 'Research', '', 'route'],
+      ['Scene graphs', 'Objects, relations and events in video.', 'Research', '', 'nodes'],
+      ['LLM and SLM fine-tuning', 'Training data, LoRA runs and evaluation.', 'Beta', 'info', 'brain'],
+    ];
+    $('#pack-grid', el).innerHTML = packs.map(([n, d, m, c, ic, on]) => `<button type="button" class="pack-card" data-toggle aria-pressed="${on ? 'true' : 'false'}"><span class="pc-top"><span class="pack-ic">${icon(ic)}</span><span class="pill ${c}">${m}</span></span><span class="pc-name">${n}</span><span class="pc-desc">${d}</span>${on ? '<span class="pc-foot"><span class="pill accent">recommended</span></span>' : ''}</button>`).join('');
+    $('#pack-grid', el).addEventListener('togglechange', e => { $$('.pack-card', el).forEach(c => { if (c !== e.target) c.setAttribute('aria-pressed', 'false'); }); });
+
+    const samples = [
+      ['bank_marketing', 'binary', '45,211', 'Immediately before a call; duration forbidden'],
+      ['hyperack', 'binary', '11,118', 'At order time; final fares forbidden'],
+      ['telco_churn', 'binary', '7,043', 'Snapshot; customerID forbidden'],
+      ['credit_card_fraud', 'binary · imbalanced', '284,807', 'At authorization; elapsed Time forbidden'],
+      ['online_shoppers', 'binary', '12,330', 'Before purchase; PageValues forbidden'],
+      ['bike_sharing_daily', 'regression · time', '728', 'Day ahead; casual and registered forbidden'],
+      ['letter_recognition', 'multiclass', '20,000', 'Image features only'],
+      ['ecommerce_clothing_reviews', 'text + tabular', '23,486', 'At review time; Rating forbidden'],
+    ];
+    $('#sample-table tbody', el).innerHTML = samples.map(([k, t, r, c], i) => `<tr class="${i === 0 ? 'selected' : ''}"><td><span class="cell-main">${k}</span></td><td>${t}</td><td class="num">${r}</td><td class="small">${c}</td><td>${chip('DATASET-' + k)}</td></tr>`).join('');
+    $('#sample-table tbody', el).addEventListener('click', e => { const tr = e.target.closest('tr'); if (!tr || e.target.closest('[data-record]')) return; $$('#sample-table tr', el).forEach(r => r.classList.toggle('selected', r === tr)); if (tr.rowIndex !== 1) DC.toast('In the demo the column profile stays on bank_marketing.'); });
+
+    const cols = [
+      ['age', 'number', '77', '58', 'input'], ['job', 'category (coded)', '12', '4', 'input'], ['marital', 'category (coded)', '3', '1', 'input'],
+      ['education', 'category (coded)', '4', '2', 'input'], ['default', 'category (coded)', '2', '0', 'input'], ['balance', 'number', '7,168', '2143', 'input'],
+      ['housing', 'category (coded)', '2', '1', 'input'], ['loan', 'category (coded)', '2', '0', 'input'], ['contact', 'category (coded)', '3', '2', 'input'],
+      ['day_of_week', 'number (day of month)', '31', '5', 'calendar, no year'], ['month', 'category (coded)', '12', '8', 'calendar, no year'],
+      ['duration', 'number', '1,573', '261', '<span class="pill bad">post-outcome</span>'], ['campaign', 'number', '48', '1', '<span class="pill warn">ask owner</span>'],
+      ['pdays', 'number', '559', '-1', 'input · −1 means never'], ['previous', 'number', '41', '0', 'input'], ['poutcome', 'category (coded)', '4', '3', 'input'],
+      ['y', 'binary', '2', '0', '<span class="pill accent">target</span>'],
+    ];
+    $('#profile-table tbody', el).innerHTML = cols.map(([n, k, u, ex, g]) => `<tr><td><code>${n}</code></td><td>${k}</td><td class="num">${u}</td><td class="mono small">${ex}</td><td>${g}</td></tr>`).join('');
+
+    const show = n => {
+      $$('[data-new-step]', el).forEach(p => { p.hidden = p.dataset.newStep !== String(n); });
+      $$('#new-steps button', el).forEach(b => { const s = Number(b.dataset.step); b.classList.toggle('done', s < n); if (s === n) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+      DC.hydrate(el);
+    };
+    el.addEventListener('click', e => { const b = e.target.closest('[data-next]'); if (b) { show(Number(b.dataset.next)); window.scrollTo({ top: 0, behavior: 'smooth' }); } const s = e.target.closest('#new-steps button'); if (s) show(Number(s.dataset.step)); });
+    this.show = show;
+  },
+  enter() { if (DC.state.tour) this.show(3); },
+});
+</script>

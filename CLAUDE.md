@@ -13,7 +13,7 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 - `data/` — all datasets: `project/` (HyperAck, Telco), `public/` (10 UCI parquet), `downloads/` (gitignored).
 - `research/<track>/` — one folder per research idea, same shape everywhere: `README.md` (idea, contract, conclusions), generated `INDEX.md` (champion, experiments, notebooks, evaluation, reports), `experiments/`, `notebooks/`, `evaluation/`, `reports/`. Index: `research/README.md`. New idea: `make new-track NAME=... TITLE="..." PREFIX=...`.
 - `evidence/campaigns/` — immutable experiment results (one JSON each). `evidence/knowledge/` — GENERATED; never edit by hand.
-- `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `research_map.py` (track records → INDEX.md and the map page), `studio/` (the DCLab notebook: projects, contract, five-stage engine on user data, `graph.py` the WF-01…WF-10 workflow graph whose validator checks every move and logs it to `transitions.jsonl`, evidence-cited notes, .ipynb export), `agentic/` (API server + web UI in `agentic/static/{css,js/views}`, and the LLM campaign loop), `intern/` (chat mode with tools and a budget over the notebook; standard plan when no model is configured), `studio/sft.py` (finished projects → SFT examples), `mcp_server.py` (the toolbox as an MCP server at `/mcp`, for Hugging Face Chat UI / ML Intern).
+- `dclab_rnd/` — shared package: control plane (`python -m dclab_rnd`), `evidence_index.py`, `critic_gate.py`, `pitfalls.py`, `tools.py`, `copilot/`, `notebook_assist.py` (cell-level companion), `expansion/`, `research_map.py` (track records → INDEX.md and the map page), `studio/` (the DCLab notebook: projects, contract, five-stage engine on user data, `graph.py` the WF-01…WF-10 workflow graph whose validator checks every move and logs it to `transitions.jsonl`, evidence-cited notes, .ipynb export), `agentic/` (API server; the product frontend in `agentic/web/src/`, built into `agentic/static/app/` and served at `/`; the earlier UI in `agentic/static/{css,js}` at `/classic`; and the LLM campaign loop), `intern/` (chat mode with tools and a budget over the notebook; standard plan when no model is configured), `studio/sft.py` (finished projects → SFT examples), `mcp_server.py` (the toolbox as an MCP server at `/mcp`, for Hugging Face Chat UI / ML Intern).
 - `general_pipeline/` — shared tabular pipeline imported by research scripts and `dclab_rnd`.
 - `docs/guides/` — field notes, integration plan, agent architecture, copilot, SFT guide.
 
@@ -27,7 +27,8 @@ make knowledge   # rebuild the evidence index and SFT v3 corpus after new result
 make research-index   # regenerate every research/<track>/INDEX.md (champions, file maps)
 make notebook         # the web UI (DCLab notebook, intern, research map, knowledge) + the MCP endpoint /mcp
 make chat-ui          # Hugging Face Chat UI locally with DCLab as an MCP server (make chat-ui-intern: ML Intern mode)
-make product-demo     # rebuild docs/product-demo/index.html, the clickable demo of the final product (sources in docs/product-demo/src/)
+make product-demo     # rebuild docs/product-demo/index.html: demo v1, the frozen UI reference (tag demo-v1; do not change it)
+make web              # rebuild the product frontend (agentic/web/src → agentic/static/app); same UI as demo v1, wired to the API
 python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a notebook
 ```
 
@@ -38,7 +39,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 1. **Leakage is the top risk.** Never use information unavailable at the prediction moment (`final_customer_fare`, `final_biker_fare`, `duration`, `casual`/`registered`, `Rating`, IDs). Write the prediction contract before looking at scores.
 2. Fit every preprocessing, selection, resampling and encoding step inside training folds only. Use the holdout once.
 3. Do not edit or rename files under any `results/` folder; the registry finds them by path. Rerun into new files instead.
-4. Generated files (`evidence/knowledge/**`, `research/*/INDEX.md`, `research/llm-fine-tuning/experiments/sft/out_v3/**`, `docs/product-demo/index.html`, campaign reports and `agent_memory.jsonl`) are rebuilt by commands, not edited.
+4. Generated files (`evidence/knowledge/**`, `research/*/INDEX.md`, `research/llm-fine-tuning/experiments/sft/out_v3/**`, `docs/product-demo/index.html`, `dclab_rnd/agentic/static/app/**`, campaign reports and `agent_memory.jsonl`) are rebuilt by commands, not edited.
 5. LLM critique is advisory. Deterministic code owns splits, metrics and selection rules (`dclab_rnd/critic_gate.py` checks critiques against the numbers).
 6. Report results with their uncertainty and limits. Never call a model production-ready from benchmark evidence alone.
 7. Shared code stays at the repository root so `python -m dclab_rnd` and `import general_pipeline` work without installation.

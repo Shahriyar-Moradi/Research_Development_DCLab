@@ -1,4 +1,4 @@
-.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo verify-auditor expansion expansion-status new-track research-index clean
+.PHONY: help test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web verify-auditor expansion expansion-status new-track research-index clean
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -23,6 +23,7 @@ rd-check:  ## tests, record validation, stale-knowledge and campaign gates
 	$(PYTHON) research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check
 	$(PYTHON) -m dclab_rnd.research_map --check
 	$(PYTHON) docs/product-demo/build.py --check
+	$(PYTHON) -m dclab_rnd.agentic.web.build --check
 
 rd-status:  ## deployment-eligible champions
 	$(PYTHON) -m dclab_rnd status
@@ -134,6 +135,9 @@ category-codes:  ## re-measure one-hot vs numeric category codes on identical tr
 
 copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.html
 	$(PYTHON) -m dclab_rnd.copilot review dclab_rnd/copilot/examples/leaky_bank_marketing.ipynb --html docs/copilot_demo.html > /dev/null
+
+web:  ## rebuild the product frontend (dclab_rnd/agentic/web/src -> dclab_rnd/agentic/static/app)
+	$(PYTHON) -m dclab_rnd.agentic.web.build
 
 product-demo:  ## rebuild docs/product-demo/index.html, the clickable demo of the final product (REFRESH=1 re-extracts the evidence)
 	$(PYTHON) docs/product-demo/build.py $(if $(REFRESH),--refresh,)

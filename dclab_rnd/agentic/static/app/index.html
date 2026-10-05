@@ -1,0 +1,2049 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>DCLab Product Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Vazirmatn:wght@400;500;700&amp;display=swap">
+<link rel="stylesheet" href="/static/app/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side" aria-label="Navigation">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">DC</span>
+      <span class="brand-name">DCLab</span>
+      <span class="brand-tag">Preview</span>
+    </div>
+    <button type="button" class="ws-switch" data-toast="In the product: switch between workspaces (your lab, a client lab, a sandbox).">
+      <span class="ws-name">Shahriyar's lab</span>
+      <span class="ws-sub">4 members · EU region <span aria-hidden="true">⌄</span></span>
+    </button>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="side-foot">
+      <div class="nav-label">Preview</div>
+      <label class="nav-item switch-item" title="Outline every feature as built, partial, to build or research"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Blueprint layer</span><span class="switch"><input type="checkbox" id="bp-switch"><span class="track"></span></span></label>
+      <button type="button" class="nav-item" id="side-tours"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 10 4l4 10 2-4 4 10"/></svg><span>Guided tours</span></button>
+    </div>
+  </aside>
+  <div class="side-scrim" id="side-scrim"></div>
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open navigation"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <button type="button" class="search-btn" id="search-btn" aria-label="Search pages, actions and evidence"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search this workspace or jump to…</span><kbd>⌘K</kbd></button>
+      <div class="top-actions">
+        <label class="role-pick" title="See the product as another user would"><span class="sr-only">View as</span><span class="dot accent"></span><select class="role-select" id="role-select"><option value="developer">Developer view</option><option value="business">Business view</option><option value="researcher">Researcher view</option><option value="admin">Admin view</option></select></label>
+        <span class="demo-pill" title="Sample data, except where a record chip such as EXP-007 cites the repository">Sample data · Demo</span>
+        <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch light or dark theme"></button>
+        <span class="avatar top-avatar" title="Shahriyar · owner">SM</span>
+      </div>
+    </header>
+    <div class="role-note" id="role-note" hidden></div>
+    <main class="content" id="content">
+<section class="view" id="view-home" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Workspace · Shahriyar's lab</div>
+      <h1>Good afternoon, Shahriyar</h1>
+      <p class="lede dev-only">Three things need you today. Everything else runs inside its budget, and every score shown is the honest one.</p>
+      <p class="lede biz-only">Two decisions are waiting for you, each with a one-page brief in plain words.</p>
+    </div>
+    <div class="vh-actions">
+      <a class="btn primary" href="#new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New project</a>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" data-f="home.kpis">
+      <div class="stat"><span class="v">9</span><span class="l">leaky columns blocked before training · duration, final fares, PageValues…</span></div>
+      <div class="stat"><span class="v ok">6 <small>/ 6</small></span><span class="l">holdouts opened exactly once · no reuse for selection</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">unsafe moves stopped by the workflow graph, each logged with its rule</span></div>
+      <div class="stat"><span class="v">€18.40 <small>/ €60</small></span><span class="l">spend this month · sample data</span><span class="row">${spark}</span></div>
+    </div>
+
+    <div class="grid g-3-1">
+      <div class="stack">
+        <div class="panel raised dev-only" data-f="home.composer" data-tour="composer">
+          <div class="panel-body stack tight">
+            <div class="spread"><div class="eyebrow">Start from one sentence</div><span class="small muted">DCLab drafts the contract first, then the plan.</span></div>
+            <div class="composer">
+              <label class="sr-only" for="home-task">Describe the model you need</label>
+              <textarea id="home-task">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea>
+              <div class="composer-bar">
+                <button type="button" class="btn sm ghost" data-toast="In the product: attach a file, pick a sample, or connect Kaggle, Hugging Face or a warehouse."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Attach data</button>
+                <span class="pill outline">bank_marketing · 45,211 rows</span>
+                <div class="seg" data-seg="mode" id="home-mode" role="group" aria-label="Who drives">
+                  <button type="button" data-v="notebook" aria-pressed="true">I drive · notebook</button>
+                  <button type="button" data-v="intern" aria-pressed="false">Intern drives</button>
+                </div>
+                <label class="sr-only" for="home-budget">Budget</label>
+                <select id="home-budget" data-style="width:auto">
+                  <option>Budget · 24 tool calls · 20 min · €5</option>
+                  <option>Budget · 48 tool calls · 60 min · €15</option>
+                  <option>Budget · 12 tool calls · 5 min · €1</option>
+                </select>
+                <button type="button" class="btn primary send" id="home-start">Draft the contract<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+              </div>
+            </div>
+            <div class="row small muted" data-f="home.quickstarts">
+              <span>Examples:</span>
+              <div class="chips">
+                <button type="button" class="chip" data-example="Find card fraud at authorization time; the positives are 0.17% of rows, so do not trust accuracy.">Fraud · 0.17% positives</button>
+                <button type="button" class="chip" data-example="Forecast tomorrow's bike rentals and beat the lag-2 baseline honestly.">Daily demand forecast</button>
+                <button type="button" class="chip" data-example="Predict whether a reviewer recommends a product from the review text, on products the model has never seen.">Text + tabular</button>
+                <button type="button" class="chip" data-example="Detect pedestrians at night and in rain; split by drive so frames from one drive never land in both train and test.">Vision · pedestrians</button>
+                <button type="button" class="chip" data-example="Fine-tune a small model that knows our ten workflow steps and when to stop and ask.">Fine-tune a small model</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel biz-only">
+          <div class="panel-head"><div class="panel-title"><h2>Decisions waiting for you</h2><span class="sub">Each one links to a brief written for people who do not read code.</span></div></div>
+          <div class="list">
+            <a class="list-item" href="#brief">
+              <span class="avatar c">RZ</span>
+              <div class="li-main"><span class="li-title">Approve a pilot of the term-deposit call list</span><span class="li-sub">Calling the top 2,000 of 20,000 clients: about 39 subscriptions per 100 calls (range 31–48), against 12 when calling at random. The range comes from one 800-row holdout.</span></div>
+              <div class="li-side"><span class="pill warn">Due Friday</span><span>Open brief →</span></div>
+            </a>
+            <a class="list-item" href="#project" data-project="hyperack">
+              <span class="avatar">SM</span>
+              <div class="li-main"><span class="li-title">HyperAck: when is the prediction made?</span><span class="li-sub">Only the owner can answer. Until then the project waits at step 1 of 10.</span></div>
+              <div class="li-side"><span class="pill warn">Blocks a project</span><span>Answer →</span></div>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="panel" data-f="home.inbox" data-tour="inbox">
+        <div class="panel-head"><h2>Needs you</h2><span class="pill bad">3</span></div>
+        <div class="list">
+          <a class="list-item" href="#project" data-project="hyperack">
+            <span class="avatar ai">AI</span>
+            <div class="li-main"><span class="li-title">When is the HyperAck prediction made?</span><span class="li-sub">At order creation, at the courier offer, or after assignment? This decides which columns are allowed.</span><span class="row"><span class="pill warn">Question</span><span class="tag">WF-01</span></span></div>
+          </a>
+          <a class="list-item" href="#brief">
+            <span class="avatar c">RZ</span>
+            <div class="li-main"><span class="li-title">Sign the term-deposit brief</span><span class="li-sub">Reza reviewed it and asked one question about the call cost.</span><span class="row"><span class="pill info">Sign-off</span><span class="tag">WF-10</span></span></div>
+          </a>
+          <a class="list-item" href="#project" data-project="telco">
+            <span class="avatar b">AV</span>
+            <div class="li-main"><span class="li-title">Telco churn: choose the outcome window</span><span class="li-sub">30 or 90 days after the snapshot? The contract was reopened and later steps are on hold.</span><span class="row"><span class="pill warn">Revisit</span><span class="tag">WF-01</span></span></div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="projects" data-label="Projects" data-count="8">
+      <div class="panel" data-f="home.projects">
+        <div class="panel-head">
+          <div class="panel-title"><h2>Projects</h2><span class="sub">A score appears only once it is honest: leakage-safe, with an interval and a source record.</span></div>
+          <div class="seg" data-seg="proj-filter" id="proj-filter" role="group" aria-label="Filter projects">
+            <button type="button" data-v="all" aria-pressed="true">All</button>
+            <button type="button" data-v="active" aria-pressed="false">Active</button>
+            <button type="button" data-v="waiting" aria-pressed="false">Waiting</button>
+            <button type="button" data-v="done" aria-pressed="false">Done</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data clickable" id="home-projects">
+            <thead><tr><th>Project</th><th>Progress</th><th>Honest score</th><th class="num">Leaks blocked</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="panel-foot bar"><span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Click a row to open it. Term-deposit calls, HyperAck and Telco churn open in full.</span></div>
+      </div>
+  </div>
+
+  <div class="pane" data-pane="activity" data-label="Activity">
+    <div class="grid g2">
+      <div class="panel" data-f="home.activity">
+        <div class="panel-head"><h2>Live</h2><a class="link-btn small" href="#compute">Compute →</a></div>
+        <div class="list">
+          <a class="list-item" href="#intern"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Intern · HyperAck contract</span><span class="li-sub">Paused at a question · 9 of 48 tool calls</span></div></a>
+          <a class="list-item" href="#compute"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">GPU job · pedestrian detector screen</span><span class="li-sub">A10G · 41% · €0.62 so far</span></div></a>
+          <a class="list-item" href="#lab"><span class="dot accent" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Campaign · expansion_v2</span><span class="li-sub">Queued · 20 experiments on 4 new datasets</span></div></a>
+        </div>
+      </div>
+      <div class="panel" data-f="home.evidence">
+        <div class="panel-head"><h2>New in the evidence</h2><a class="link-btn small" href="#evidence">Library →</a></div>
+        <div class="panel-body stack tight small">
+          <div class="row top"><span class="pill proof">+3</span><span>Lessons from Term-deposit calls are waiting for review before they join the index.</span></div>
+          <div class="row top"><span class="pill ok">rule</span><span>${chip:DCLAB-R07} now has another supporting experiment: the smallest feature set within tolerance won again.</span></div>
+          <div class="row top"><span class="pill warn">pitfall</span><span>${chip:PIT-006}: choosing among 30 configurations by holdout score overstated ROC-AUC by +0.0072 on average.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-new" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Projects · from a sentence to a signed contract</div>
+      <h1>New project</h1>
+      <p class="lede">Six short steps: DCLab drafts each one and shows its proof, you confirm or edit. Nothing is trained until the contract is signed.</p>
+    </div>
+    <div class="vh-actions"><a class="btn ghost" href="#home">Cancel</a></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">Tabular <small>binary</small></span><span class="l">domain pack detected · 11.7% positive</span></div>
+      <div class="stat"><span class="v">45,211 <small>rows</small></span><span class="l">bank_marketing profiled in 1.4 s · 17 columns</span></div>
+      <div class="stat"><span class="v bad">duration</span><span class="l">forbidden in the draft · known only after the call ends</span></div>
+      <div class="stat"><span class="v warn">1 <small>question</small></span><span class="l">for you: does campaign include the call we are about to make?</span></div>
+    </div>
+
+    <div class="grid g-side-l">
+      <aside class="panel" data-style="position:sticky;top:72px">
+        <div class="panel-body"><div class="stack tight">
+          <nav class="stepper" id="new-steps" aria-label="Wizard steps">
+            <button type="button" data-step="1" class="done"><span class="sn">1</span>Goal</button>
+            <button type="button" data-step="2" class="done"><span class="sn">2</span>Domain pack</button>
+            <button type="button" data-step="3" aria-current="step"><span class="sn">3</span>Data</button>
+            <button type="button" data-step="4"><span class="sn">4</span>Contract draft</button>
+            <button type="button" data-step="5"><span class="sn">5</span>Split and budget</button>
+            <button type="button" data-step="6"><span class="sn">6</span>Review and start</button>
+          </nav>
+          <hr>
+          <div class="small muted">Draft saved 2 seconds ago. You can leave and come back; the intern can also finish the draft for you.</div>
+        </div></div>
+      </aside>
+
+      <div class="stack">
+        <!-- step 1 -->
+        <div class="panel" data-new-step="1" hidden data-f="new.goal">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 1 of 6</span><h2>What should the model decide?</h2></div></div>
+          <div class="panel-body stack">
+            <div class="field"><label for="new-goal">Your goal, in your words</label>
+              <textarea id="new-goal" rows="3">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea></div>
+            <div class="inset stack tight">
+              <div class="spread"><span class="eyebrow proof">DCLab understood</span><span class="small muted">Check each line. Wrong lines are the cheapest bugs to fix.</span></div>
+              <div class="contract-sheet">
+                <div class="cs-row"><span class="cs-key">Unit of prediction</span><span class="cs-val">One client, before one campaign call</span><span class="pill ok">sure</span></div>
+                <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val">Subscribes to a term deposit (<code>y = yes</code>)</span><span class="pill ok">sure</span></div>
+                <div class="cs-row"><span class="cs-key">Action</span><span class="cs-val">Call the client, or skip</span><span class="pill ok">sure</span></div>
+                <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before the call is placed</span><span class="pill warn">please confirm</span></div>
+                <div class="cs-row"><span class="cs-key">Costs</span><span class="cs-val">€8 per call · €110 per subscription</span><span class="pill ok">from your text</span></div>
+                <div class="cs-row"><span class="cs-key">Capacity</span><span class="cs-val">Not stated. Calls the team can make per month?</span><span class="pill bad">missing</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-foot bar"><span>Rule ${chip:DCLAB-R01}: write the moment, target window, action, unit and error costs before looking at any score.</span><button type="button" class="btn primary" data-next="2" data-style="margin-left:auto">Looks right</button></div>
+        </div>
+
+        <!-- step 2 -->
+        <div class="panel" data-new-step="2" hidden data-f="new.pack">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 2 of 6</span><h2>Choose a domain pack</h2><span class="sub">A pack maps the ten workflow steps to one kind of problem: its own rules, tools and metrics.</span></div><span class="pill accent">Detected: tabular · binary · 11.7% positive</span></div>
+          <div class="panel-body">
+            <div class="grid g3" id="pack-grid"></div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="1">Back</button><button type="button" class="btn primary" data-next="3" data-style="margin-left:auto">Use this pack</button></div>
+        </div>
+
+        <!-- step 3 -->
+        <div class="panel" data-new-step="3" data-tour="new-data">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 3 of 6</span><h2>Bring the data</h2><span class="sub">DCLab profiles every column and records where the table came from before anyone looks at the target.</span></div></div>
+          <div class="tabs" data-tabs="src" role="tablist">
+            <button type="button" class="tab" data-tab="upload" role="tab" aria-selected="false">Upload</button>
+            <button type="button" class="tab" data-tab="samples" role="tab" aria-selected="true">Studied samples <span class="pill">16</span></button>
+            <button type="button" class="tab" data-tab="kaggle" role="tab" aria-selected="false">Kaggle</button>
+            <button type="button" class="tab" data-tab="hf" role="tab" aria-selected="false">Hugging Face</button>
+            <button type="button" class="tab" data-tab="wh" role="tab" aria-selected="false">Warehouse</button>
+          </div>
+          <div class="panel-body stack">
+            <div data-tab-panel="src:upload" hidden data-f="new.upload">
+              <div class="drop"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><b>Drop a CSV, Parquet or Excel file</b><span>Up to 2 GB. The file stays on this machine; only the profile is shown here.</span><label class="btn sm" for="new-file">Choose a file</label><input type="file" id="new-file" class="sr-only" accept=".csv,.parquet,.xlsx"></div>
+            </div>
+            <div data-tab-panel="src:samples" data-f="new.samples">
+              <div class="table-wrap"><table class="data compact clickable" id="sample-table"><thead><tr><th>Dataset</th><th>Task</th><th class="num">Rows</th><th>Contract the R&amp;D wrote</th><th></th></tr></thead><tbody></tbody></table></div>
+            </div>
+            <div data-tab-panel="src:kaggle" hidden data-f="new.hub">
+              <div class="stack tight">
+                <div class="row"><input type="search" value="credit card fraud" aria-label="Search Kaggle" data-style="max-width:360px"><button type="button" class="btn sm">Search Kaggle</button><span class="pill outline">signed in as shahriardev</span></div>
+                <div class="list panel">
+                  <div class="list-item"><div class="li-main"><span class="li-title">mlg-ulb/creditcardfraud</span><span class="li-sub">284,807 rows · 31 columns · licence ODbL 1.0 · already studied ${chip:DATASET-credit_card_fraud}</span></div><button type="button" class="btn sm" data-toast="Imported with licence and snapshot hash recorded.">Import</button></div>
+                  <div class="list-item"><div class="li-main"><span class="li-title">nicapotato/womens-ecommerce-clothing-reviews</span><span class="li-sub">23,486 rows · text + tabular · licence CC0 · already studied ${chip:DATASET-ecommerce_clothing_reviews}</span></div><button type="button" class="btn sm" data-toast="Imported with licence and snapshot hash recorded.">Import</button></div>
+                </div>
+                <div class="callout info"><span class="ic">${icon:info}</span><span>Imports record the licence, the exact file version and a SHA-256 of the snapshot, so a result can always be traced to the bytes it was trained on.</span></div>
+              </div>
+            </div>
+            <div data-tab-panel="src:hf" hidden>
+              <div class="grid g2">
+                <div class="field"><label for="hf-id">Dataset ID</label><input id="hf-id" type="text" value="scikit-learn/adult-census-income"></div>
+                <div class="field"><label for="hf-rev">Revision</label><input id="hf-rev" type="text" value="main @ 3f1c2ab"></div>
+                <div class="field"><label for="hf-split">Split</label><select id="hf-split"><option>train</option><option>test</option></select></div>
+                <div class="field"><label for="hf-cfg">Config</label><select id="hf-cfg"><option>default</option></select></div>
+              </div>
+            </div>
+            <div data-tab-panel="src:wh" hidden data-f="new.warehouse">
+              <div class="grid g3">
+                <button type="button" class="pack-card" data-toast="In the product: read-only connection with a saved query and a row limit."><span class="pc-name">PostgreSQL</span><span class="pc-desc">Read-only role, saved SQL, snapshot to Parquet.</span></button>
+                <button type="button" class="pack-card" data-toast="In the product: read-only service account."><span class="pc-name">BigQuery</span><span class="pc-desc">Service account with read access to one dataset.</span></button>
+                <button type="button" class="pack-card" data-toast="In the product: bucket and prefix, read-only."><span class="pc-name">S3 / GCS</span><span class="pc-desc">Bucket and prefix; Parquet or CSV.</span></button>
+              </div>
+            </div>
+
+            <div class="inset spread small"><span><b>bank_marketing</b> · 45,211 rows · 17 columns · positive rate 11.7% · 1 post-outcome column</span><button type="button" class="link-btn" data-pane-go="profile">See the column profile →</button></div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="2">Back</button><button type="button" class="btn primary" data-next="4" data-style="margin-left:auto">Use this table</button></div>
+        </div>
+
+        <!-- step 4 -->
+        <div class="panel" data-new-step="4" hidden data-f="new.contract">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 4 of 6</span><h2>Contract draft</h2><span class="sub">Proposed from the column audit and the R&amp;D's own contract for this dataset. Every line has a reason.</span></div><span class="pill warn">1 question for you</span></div>
+          <div class="contract-sheet">
+            <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>y</code> · positive label <code>yes</code> · binary</span><span></span></div>
+            <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before a marketing call. Contact schedule and prior history are known.</span>${chip:DATASET-bank_marketing}</div>
+            <div class="cs-row"><span class="cs-key">Forbidden</span><span class="cs-val"><code>duration</code>: call length, known only after the call ends. With it the training-CV ROC-AUC rises from 0.7130 to 0.8972 (+0.1842).</span><span class="ev-list">${chip:EXP-007}${chip:LEAK-bank_marketing}</span></div>
+            <div class="cs-row"><span class="cs-key">Ask the owner</span><span class="cs-val"><code>campaign</code>: number of contacts in this campaign. Does the count include the call we are about to make? Kept with a warning until answered; a with/without check runs on identical folds.</span><span class="pill warn">open</span></div>
+            <div class="cs-row"><span class="cs-key">Identifiers</span><span class="cs-val">None found. Repeated clients cannot be grouped, so the split cannot keep a client on one side. Logged as a risk.</span><span class="pill outline">risk</span></div>
+            <div class="cs-row"><span class="cs-key">Time column</span><span class="cs-val"><code>month</code> and <code>day_of_week</code> (the day of the month) exist but no year, so rows cannot be ordered in time.</span>${chip:PIT-005}</div>
+            <div class="cs-row"><span class="cs-key">Metric</span><span class="cs-val">Expected net value at the call capacity (from your costs). ROC-AUC and average precision for ranking, Brier for probabilities.</span>${chip:DCLAB-R18}</div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="3">Back</button><a class="link-btn" href="#contract">Open the full contract page</a><button type="button" class="btn primary" data-next="5" data-style="margin-left:auto">Accept the draft</button></div>
+        </div>
+
+        <!-- step 5 -->
+        <div class="panel" data-new-step="5" hidden>
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 5 of 6</span><h2>Split and budget</h2></div></div>
+          <div class="panel-body grid g2">
+            <div class="stack" data-f="new.split">
+              <div class="field"><span class="label">Split strategy</span>
+                <div class="seg" data-seg="split" role="group" aria-label="Split strategy"><button type="button" data-v="strat" aria-pressed="true">Stratified random</button><button type="button" data-v="time" aria-pressed="false">By time</button><button type="button" data-v="group" aria-pressed="false">By group</button></div>
+                <span class="hint">No usable time column and no client ID, so stratified random is the only honest choice. The brief will say so.</span></div>
+              <div class="field"><label for="new-rows">Rows used</label><select id="new-rows"><option>Quick · 4,000 rows (3,200 train · 800 holdout)</option><option>Full · 45,211 rows</option></select><span class="hint">Quick mode answers "is this worth it?" in seconds. Run full rows before any decision.</span></div>
+              <div class="field"><label for="new-folds">Training folds</label><select id="new-folds"><option>3 stratified folds</option><option>5 stratified folds</option><option>5 × 2 repeated</option></select></div>
+            </div>
+            <div class="stack" data-f="new.budget">
+              <div class="field"><span class="label">Where it runs</span>
+                <div class="seg" data-seg="where" role="group" aria-label="Compute"><button type="button" data-v="local" aria-pressed="true">This machine</button><button type="button" data-v="sandbox" aria-pressed="false">Sandbox</button><button type="button" data-v="gpu" aria-pressed="false">GPU job</button></div></div>
+              <div class="grid g3">
+                <div class="field"><label for="b-calls">Tool calls</label><input id="b-calls" type="number" value="24"></div>
+                <div class="field"><label for="b-min">Minutes</label><input id="b-min" type="number" value="20"></div>
+                <div class="field"><label for="b-eur">Spend cap (€)</label><input id="b-eur" type="number" value="5"></div>
+              </div>
+              <label class="check"><input type="checkbox" checked disabled> Opening the holdout needs the owner's approval (workspace policy)</label>
+              <label class="check"><input type="checkbox" checked> Ask me before any step that costs more than €1</label>
+            </div>
+          </div>
+          <div class="panel-foot bar"><button type="button" class="btn" data-next="4">Back</button><button type="button" class="btn primary" data-next="6" data-style="margin-left:auto">Continue</button></div>
+        </div>
+
+        <!-- step 6 -->
+        <div class="panel" data-new-step="6" hidden data-f="new.handoff">
+          <div class="panel-head"><div class="panel-title"><span class="eyebrow">Step 6 of 6</span><h2>Review and start</h2></div></div>
+          <div class="panel-body grid g2">
+            <div class="stack tight small">
+              <div class="kv">
+                <dt>Project</dt><dd>Term-deposit calls</dd>
+                <dt>Pack</dt><dd>Tabular · binary</dd>
+                <dt>Data</dt><dd>bank_marketing · snapshot 9c1e…4b07</dd>
+                <dt>Contract</dt><dd>v1 draft · 1 open question · needs your signature</dd>
+                <dt>Split</dt><dd>Stratified 80/20 · holdout sealed · 3 folds</dd>
+                <dt>Budget</dt><dd>24 tool calls · 20 minutes · €5</dd>
+              </div>
+            </div>
+            <div class="stack">
+              <a class="btn lg primary" href="#notebook" data-toast="Project created. The notebook opens at WF-04, after you sign the contract.">Open in the notebook · I drive</a>
+              <a class="btn lg" href="#intern" data-toast="Handed to the intern with a budget of 24 tool calls.">Hand to the intern · it drives</a>
+              <span class="small muted">Either way the same graph applies: the intern cannot skip a step that you could not skip.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="profile" data-label="Data profile">
+    <div class="grid g-3-1">
+      <div class="panel" data-f="new.profile">
+        <div class="panel-head"><div class="panel-title"><h3>Profile · bank_marketing</h3><span class="sub">45,211 rows · 17 columns · positive rate 11.7% · missing 0% · duplicate rows 0%</span></div><span class="pill ok">profiled in 1.4 s</span></div>
+        <div class="table-wrap"><table class="data compact" id="profile-table"><thead><tr><th>Column</th><th>Kind</th><th class="num">Unique</th><th>Example</th><th>First guess</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="stack">
+        <div class="panel" data-f="new.lineage">
+          <div class="panel-head"><h3>Where it came from</h3></div>
+          <div class="panel-body small">
+            <div class="timeline">
+              <div class="tl-item"><span class="tl-mark ok">1</span><div class="tl-body"><span class="tl-title">UCI Machine Learning Repository</span><span class="tl-meta">bank-full.csv · CC BY 4.0</span></div></div>
+              <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">data/public/bank_marketing</span><span class="tl-meta">Parquet · categoricals factorized</span></div></div>
+              <div class="tl-item"><span class="tl-mark accent">3</span><div class="tl-body"><span class="tl-title">Project snapshot v1</span><span class="tl-meta">sha256 9c1e…4b07 · 2026-09-27</span></div></div>
+            </div>
+            <div class="callout warn"><span class="ic">${icon:alert}</span><span>The cached copy stores categories as integer codes. A production encoder needs the raw labels ${chip:EXP-006}.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-project" hidden>
+  <div class="project-head" data-f="proj.projects">
+    <span class="eyebrow">Project</span>
+    <div class="seg" data-seg="proj" id="proj-switch" role="group" aria-label="Project">
+      <button type="button" data-v="bank" aria-pressed="true">Term-deposit calls</button>
+      <button type="button" data-v="hyperack" aria-pressed="false">HyperAck</button>
+      <button type="button" data-v="telco" aria-pressed="false">Telco churn</button>
+    </div>
+    <span class="small muted" id="proj-sub"></span>
+  </div>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Workflow · the controlled graph</div>
+      <h1 id="proj-title">Term-deposit calls</h1>
+      <p class="lede" id="proj-lede"></p>
+    </div>
+    <div class="vh-actions" id="proj-actions"></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" id="proj-stats"></div>
+
+    <div class="panel" data-f="proj.graph" data-tour="graph">
+      <div class="panel-head">
+        <div class="panel-title"><h2>The graph</h2><span class="sub">Ten steps and the moves allowed between them. The model proposes a move; the graph decides whether it exists.</span></div>
+        <div class="legend"><span><i class="ok"></i>taken</span><span><i class="s4"></i>allowed revisit</span><span><i class="s3"></i>revisit taken</span><span><i class="bad"></i>blocked attempt</span><span><i class="sq s2"></i>approval gate</span></div>
+      </div>
+      <div class="panel-body graph-wrap" id="graph-box"></div>
+      <div class="panel-foot bar" data-f="proj.replay">
+        <label for="replay" class="strong" data-style="color:var(--ink)">Replay</label>
+        <input type="range" id="replay" min="1" max="24" value="24" data-style="flex:1;min-width:160px">
+        <span class="mono small" id="replay-label"></span>
+        <button type="button" class="btn sm" id="replay-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Play</button>
+      </div>
+    </div>
+
+    <div class="panel" id="node-panel">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="node-eyebrow">Selected step</span><h3 id="node-title">WF-10 · Knowledge capture</h3></div></div>
+      <div class="panel-body small"><div class="stack tight" id="node-body"></div></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="log" data-label="Transition log">
+    <p class="pane-intro">Pick a step in the strip to see it on the graph. Every row below is a move: who proposed it, what checked it, and the evidence it carried.</p>
+    <div class="wf-rail" id="wf-rail" data-f="proj.stages"></div>
+    <div class="panel" data-f="proj.log">
+      <div class="panel-head"><div class="panel-title"><h2>Transition log</h2><span class="sub">This log is also training data for the policy model.</span></div>
+        <div class="row"><div class="seg" data-seg="logf" id="log-filter" role="group" aria-label="Filter log"><button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="human" aria-pressed="false">People</button><button type="button" data-v="blocked" aria-pressed="false">Blocked</button></div></div></div>
+      <div class="table-wrap"><table class="data compact" id="log-table"><thead><tr><th>When</th><th>Who</th><th>Move</th><th>Step</th><th>Evidence</th><th>Result</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="validator" data-label="Validator & team">
+    <div class="grid g-3-1">
+    <div class="panel" data-f="proj.validator">
+      <div class="panel-head"><div class="panel-title"><h2>Validator</h2><span class="sub">Deterministic. Runs before any proposed move.</span></div></div>
+      <div class="panel-body"><div class="stack tight">
+        <div class="field"><label for="move-select">Check a proposed move</label>
+          <select id="move-select">
+            <option value="holdout">Intern: open the holdout to compare extra_trees with lightgbm</option>
+            <option value="stop">Intern: stop and hand the brief to Reza</option>
+            <option value="revisit">Intern: go back to WF-01, the contract (with reason)</option>
+            <option value="skip">Intern: skip the leakage audit to save time</option>
+            <option value="useduration">Intern: add duration back as a feature</option>
+          </select></div>
+        <div id="validator-out"></div>
+      </div></div>
+    </div>
+    <div class="panel" data-f="proj.team">
+      <div class="panel-head"><div class="panel-title"><h2>People on this project</h2></div><button type="button" class="btn sm" data-toast="In the product: invite by email with a role (engineer, reviewer, business viewer).">Invite</button></div>
+      <div class="list" id="team-list"></div>
+    </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-contract" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · WF-01 to WF-03</div>
+      <h1>Prediction contract <span class="pill ok" data-f="contract.signoff">v2 · signed by Shahriyar · Sep 27</span></h1>
+      <p class="lede">Written before anyone looks at a score. Leakage, the metric and the split follow from it.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" id="contract-history">Version history</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v bad">duration</span><span class="l">forbidden · known only after the call ends</span></div>
+      <div class="stat"><span class="v warn">2 <small>open</small></span><span class="l">questions only the owner can answer · <button type="button" class="link-btn" data-pane-go="owner">See them →</button></span></div>
+      <div class="stat"><span class="v">2,000 <small>calls a month</small></span><span class="l">capacity · €8 per call · €110 per subscription</span></div>
+      <div class="stat"><span class="v">800 <small>rows</small></span><span class="l">holdout sealed until WF-09 · 3,200 training rows in 3 folds</span></div>
+    </div>
+
+    <div class="panel" data-f="contract.fields">
+      <div class="panel-head"><div class="panel-title"><h2>The contract</h2><span class="sub">Every line has a reason. Lines in amber wait for the owner.</span></div><button type="button" class="btn sm" data-toast="In the product: edit opens a new draft version; signing it reruns only the steps that depend on what changed.">Edit as v3</button></div>
+      <div class="contract-sheet">
+        <div class="cs-row"><span class="cs-key">Question</span><span class="cs-val">Which clients are most likely to subscribe if we call them in the next campaign?</span><span></span></div>
+        <div class="cs-row"><span class="cs-key">Unit of prediction</span><span class="cs-val">One client, before one campaign call</span><span></span></div>
+        <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>y</code> = subscribed to a term deposit · positive label <code>yes</code> · base rate 11.7%</span>${chip:EXP-006}</div>
+        <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val">Immediately before a marketing call. The contact schedule and prior history are known.</span>${chip:DATASET-bank_marketing}</div>
+        <div class="cs-row"><span class="cs-key">Outcome window</span><span class="cs-val">Subscription during the same campaign</span><span class="pill outline">assumed</span></div>
+        <div class="cs-row"><span class="cs-key">Action</span><span class="cs-val">Call the top clients up to capacity (2,000 calls a month)</span><span></span></div>
+        <div class="cs-row"><span class="cs-key">Forbidden inputs</span><span class="cs-val"><code>duration</code>: length of the call, known only after the call ends</span><span class="ev-list">${chip:EXP-007}${chip:LEAK-bank_marketing}</span></div>
+        <div class="cs-row"><span class="cs-key">Needs the owner</span><span class="cs-val"><code>campaign</code>: contacts during this campaign. If the count includes the call being predicted, it leaks a little. Kept with a warning; a with/without check runs on identical folds.</span><span class="pill warn">open</span></div>
+        <div class="cs-row"><span class="cs-key">Identifiers</span><span class="cs-val">None. Repeat clients cannot be kept on one side of the split.</span><span class="pill outline">risk logged</span></div>
+        <div class="cs-row"><span class="cs-key">Time · group · text</span><span class="cs-val">No usable time order (month and day_of_week, but no year) · no group column · no text</span>${chip:PIT-005}</div>
+        <div class="cs-row"><span class="cs-key">Primary metric</span><span class="cs-val">Expected net value at capacity, from the owner's costs</span>${chip:DCLAB-R18}</div>
+        <div class="cs-row"><span class="cs-key">Also reported</span><span class="cs-val">ROC-AUC and average precision (ranking) · Brier and ECE (probabilities) · precision and recall at the chosen cut-off</span>${chip:DCLAB-R14}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="owner" data-label="Owner questions" data-count="2">
+    <div class="grid g2">
+      <div class="panel" data-f="contract.worksheet">
+        <div class="panel-head"><div class="panel-title"><h3>Owner worksheet</h3><span class="sub">Questions only the owner can answer</span></div><span class="pill warn">2 open</span></div>
+        <div class="list">
+          <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Is campaign counted before or after the call being predicted?</span><span class="li-sub">Until answered, campaign stays in with a warning and a with/without comparison.</span><div class="row"><button type="button" class="btn sm" data-toast="Recorded: counted before the call. campaign becomes a normal input in v3.">Before</button><button type="button" class="btn sm" data-toast="Recorded: includes this call. campaign moves to forbidden in v3; dependent steps rerun.">Includes this call</button></div></div></div>
+          <div class="list-item"><span class="pill warn">open</span><div class="li-main"><span class="li-title">Can we get the real call dates?</span><span class="li-sub">With dates, the split can follow time and the reliability step can test drift ${chip:DCLAB-R19}.</span></div></div>
+          <div class="list-item"><span class="pill ok">done</span><div class="li-main"><span class="li-title">Call capacity per month</span><span class="li-sub">2,000 calls · answered Sep 27</span></div></div>
+          <div class="list-item"><span class="pill ok">done</span><div class="li-main"><span class="li-title">Who signs the brief?</span><span class="li-sub">Reza, retention lead</span></div></div>
+        </div>
+        <div class="panel-foot">Other projects: HyperAck and Telco churn each wait on one answer.</div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-head"><h3>Sign-off</h3></div>
+          <div class="panel-body small"><div class="stack tight">
+            <div class="row"><span class="avatar sm">SM</span><span><b>Shahriyar</b> signed v2 · Sep 27, 09:21</span></div>
+            <div class="muted">Signing opens the gate to WF-04. Later edits create v3 and rerun only the steps they affect.</div>
+            <div class="timeline" data-style="margin-top:6px">
+              <div class="tl-item"><span class="tl-mark ok">2</span><div class="tl-body"><span class="tl-title">v2 · signed</span><span class="tl-meta">capacity and costs added</span></div></div>
+              <div class="tl-item"><span class="tl-mark">1</span><div class="tl-body"><span class="tl-title">v1 · drafted by the intern</span><span class="tl-meta">from the column audit and the R&amp;D contract</span></div></div>
+            </div>
+          </div></div>
+        </div>
+        <div class="panel dashed">
+          <div class="panel-body small"><div class="stack tight">
+            <div class="eyebrow">Proof behind this page</div>
+            <div>${chip:DCLAB-R01} Write the moment, window, action, unit and costs first.</div>
+            <div>${chip:DCLAB-R05} A suspicious name starts a review. It does not prove a leak.</div>
+            <div>${chip:DCLAB-R18} Metrics and thresholds come from the decision cost.</div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="timeline" data-label="Known when">
+    <div class="panel" data-f="contract.timeline" data-tour="timeline">
+      <div class="panel-head"><div class="panel-title"><h2>What is known when</h2><span class="sub">Each column is placed at the moment its value is written. Anything to the right of the line cannot be an input.</span></div></div>
+      <div class="panel-body">
+        <div class="moment-line">
+          <div class="ml-track">
+            <div class="ml-phase"><span class="ml-name">Client profile</span><span class="ml-when">long before</span><div class="ml-cols"><span class="ml-col">age</span><span class="ml-col">job</span><span class="ml-col">marital</span><span class="ml-col">education</span></div></div>
+            <div class="ml-phase"><span class="ml-name">Account state</span><span class="ml-when">at the snapshot</span><div class="ml-cols"><span class="ml-col">default</span><span class="ml-col">balance</span><span class="ml-col">housing</span><span class="ml-col">loan</span></div></div>
+            <div class="ml-phase"><span class="ml-name">Earlier campaigns</span><span class="ml-when">before this campaign</span><div class="ml-cols"><span class="ml-col">pdays</span><span class="ml-col">previous</span><span class="ml-col">poutcome</span></div></div>
+            <div class="ml-phase"><span class="ml-name">Call scheduled</span><span class="ml-when">planned contact</span><div class="ml-cols"><span class="ml-col">contact</span><span class="ml-col">day_of_week</span><span class="ml-col">month</span></div></div>
+            <div class="ml-phase p-ask"><span class="ml-name">Ask the owner</span><span class="ml-when">counted when?</span><div class="ml-cols"><span class="ml-col">campaign</span></div></div>
+            <div class="ml-phase p-after"><span class="ml-name">During and after the call</span><span class="ml-when">after the moment</span><div class="ml-cols"><span class="ml-col">duration</span></div><span class="ml-name" data-style="margin-top:6px;color:var(--proof)">Outcome</span><div class="ml-cols"><span class="ml-col" data-style="background:var(--proof-soft);color:var(--proof)">y</span></div></div>
+          </div>
+          <div class="ml-moment" data-style="left:calc(83.33% + 1px)"><span>Prediction moment</span></div>
+        </div>
+        <div class="callout bad" data-style="margin-top:12px"><span class="ic">${icon:alert}</span><span><b>Why this matters.</b> With <code>duration</code>, training-CV ROC-AUC rises from 0.7130 to 0.8972. On full rows the registry shows 0.8029 against 0.9357. The model would look excellent and fail on the first real call list ${chip:FINDING-leakage-gaps}.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="costs" data-label="Costs & metric">
+    <div class="panel" data-f="contract.costs" data-tour="costs">
+      <div class="panel-head"><div class="panel-title"><h2>Costs decide the metric</h2><span class="sub">The owner enters the money. DCLab turns it into the call volume and cut-off, instead of optimizing ROC-AUC alone.</span></div><span class="pill proof">uses holdout ROC-AUC 0.7718</span></div>
+      <div class="panel-body grid g2">
+        <div class="stack">
+          <div class="grid g2">
+            <div class="field"><label for="c-cost">Cost of one call (€)</label><input id="c-cost" type="number" min="1" step="1" value="8"></div>
+            <div class="field"><label for="c-value">Value of one subscription (€)</label><input id="c-value" type="number" min="1" step="5" value="110"></div>
+            <div class="field"><label for="c-pool">Clients in the next campaign</label><input id="c-pool" type="number" min="1000" step="1000" value="20000"></div>
+            <div class="field"><label for="c-cap">Calls the team can make</label><input id="c-cap" type="number" min="100" step="100" value="2000"></div>
+          </div>
+          <div class="inset small stack tight" id="c-out"></div>
+        </div>
+        <div class="stack tight">
+          <div id="c-chart"></div>
+          <div class="legend"><span><i></i>net value, model ranking</span><span><i class="sq" data-style="background:var(--accent-soft)"></i>likely range</span><span><i class="s3"></i>random calls</span><span><i class="bad"></i>capacity</span></div>
+          <p class="xs muted">Estimated from the holdout ROC-AUC with a binormal ranking model, base rate 11.7%. The product computes the same curve from the holdout predictions directly. The band shows the 95% interval of the holdout ROC-AUC (0.7126–0.8290).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="data" data-label="Data & split">
+    <div class="grid g2">
+      <div class="panel" data-f="contract.lineage">
+        <div class="panel-head"><div class="panel-title"><h2>Source and lineage</h2><span class="sub">WF-02</span></div><span class="pill ok">passed</span></div>
+        <div class="panel-body small">
+          <dl class="kv">
+            <dt>Source</dt><dd>UCI Machine Learning Repository, bank-full</dd>
+            <dt>Licence</dt><dd>CC BY 4.0</dd>
+            <dt>Snapshot</dt><dd class="mono">sha256 9c1e…4b07</dd>
+            <dt>Rows · columns</dt><dd>45,211 · 16 inputs + target</dd>
+            <dt>Time range</dt><dd>May 2008 – Nov 2010 (no year column in the table)</dd>
+            <dt>Transformations</dt><dd>Categoricals factorized to integer codes in the cached copy</dd>
+          </dl>
+          <div class="callout warn" data-style="margin-top:10px"><span class="ic">${icon:alert}</span><span>Integer codes for categories are not an order. Production encoders need the raw labels ${chip:DCLAB-R11}.</span></div>
+        </div>
+      </div>
+      <div class="panel" data-f="contract.split">
+        <div class="panel-head"><div class="panel-title"><h2>Split design</h2><span class="sub">WF-03</span></div><span class="pill accent">holdout sealed</span></div>
+        <div class="panel-body small"><div class="stack tight">
+          <div id="split-chart"></div>
+          <dl class="kv">
+            <dt>Unit</dt><dd>Client contact (no client ID, so repeats cannot be grouped)</dd>
+            <dt>Direction</dt><dd>No time order available: stratified random</dd>
+            <dt>Folds</dt><dd>3 stratified folds on the 3,200 training rows</dd>
+            <dt>Holdout</dt><dd>800 rows, sealed until WF-09, opened once</dd>
+          </dl>
+          <div class="row" data-f="contract.checks"><span class="pill ok">0 exact duplicates across the split</span><span class="pill warn">repeat clients: cannot check</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-notebook" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · notebook</div>
+      <h1>Notebook</h1>
+      <p class="lede">Write code the way you always do. The companion reads every cell against the contract and the evidence, and says what would change the score and how to fix it.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" data-f="nb.openin" data-toast="In the product: open this notebook in VS Code, Jupyter or Colab with the companion attached.">Open in…</button>
+      <button type="button" class="btn" data-f="nb.export" data-toast="In the product: downloads the .ipynb, the Markdown report and the training examples. Downloads are blocked inside this demo.">Export</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v bad">0.9689</span><span class="l">accuracy the first-pass notebook prints · inflated by leaks</span></div>
+      <div class="stat"><span class="v ok">0.7577</span><span class="l">honest ROC-AUC after the fixes · 9,043 untouched test rows</span></div>
+      <div class="stat"><span class="v">10 <small>findings</small></span><span class="l">real copilot output for first-pass.ipynb · 3 high</span></div>
+      <div class="stat"><span class="v proof">4 <small>cell fixes</small></span><span class="l">one click each · the original stays in the cell history</span></div>
+    </div>
+
+    <div class="grid g-side">
+      <div class="panel" data-f="nb.review">
+        <div class="nb-toolbar">
+          <span class="small strong">first-pass.ipynb</span><span class="pill bad" id="nb-count">10</span>
+          <button type="button" class="btn sm" id="nb-runall"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>Run all</button>
+          <button type="button" class="btn sm proof" id="nb-fixall">Apply all safe fixes</button>
+          <button type="button" class="btn sm ghost" id="nb-reset">Reset demo</button>
+          <div class="seg" data-seg="drive" role="group" aria-label="Who drives"><button type="button" data-v="me" aria-pressed="true">I drive</button><button type="button" data-v="intern" aria-pressed="false">Intern drives</button></div>
+          <span class="kernel" data-f="nb.cells"><span class="dot ok"></span>Python 3.12 · sandbox · 2 vCPU · idle</span>
+        </div>
+        <div class="callout bad" id="nb-banner" data-style="margin:12px 12px 0"><span class="ic">${icon:alert}</span><span id="nb-banner-text"></span></div>
+        <div class="cells" id="nb-cells"></div>
+        <div data-style="padding:0 12px 12px" class="stack tight">
+          <div class="agent-cell" data-f="nb.agentcells">
+            <div class="row"><span class="pack-ic" data-style="width:26px;height:26px">${icon:spark}</span><b>Ask the agent to write the next cell</b><span class="pill outline">you accept or reject</span></div>
+            <div class="row"><label class="sr-only" for="agent-prompt">Instruction</label><input id="agent-prompt" type="text" value="Calibrate the forest's probabilities on the training folds and show the Brier score" data-style="flex:1;min-width:200px"><button type="button" class="btn sm primary" id="agent-go">Write cell</button></div>
+            <div id="agent-out"></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="companion" data-f="nb.companion" data-tour="nb-companion">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title"><h3>Companion</h3><span class="sub">Real copilot output for this notebook</span></div><span class="row" id="sev-counts"></span></div>
+          <div class="panel-body tight stack tight" id="findings"></div>
+        </div>
+        <div class="panel" data-f="nb.ask">
+          <div class="panel-head"><h3>Ask about this notebook</h3></div>
+          <div class="panel-body tight stack tight">
+            <div class="chips"><button type="button" class="chip" data-q="why">Why is 0.9689 wrong?</button><button type="button" class="chip" data-q="smote">Can I use SMOTE?</button><button type="button" class="chip" data-q="campaign">Is campaign safe?</button></div>
+            <div id="nb-answer" class="small"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="outline" data-label="Outline & variables">
+    <p class="pane-intro">Every cell of first-pass.ipynb with its open findings, and the variables the last run left in memory. Click a cell to jump to it.</p>
+    <div class="grid g2">
+      <div class="panel">
+        <div class="panel-head"><h3>Outline</h3></div>
+        <div class="panel-body stack tight small" id="nb-outline"></div>
+      </div>
+      <div class="panel" data-f="nb.vars">
+        <div class="panel-head"><h3>Variables</h3></div>
+        <div class="panel-body small"><dl class="kv" id="nb-vars"></dl></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="precedents" data-label="Precedents" data-count="4">
+    <div class="panel" data-f="nb.precedent">
+      <div class="panel-head"><div class="panel-title"><h3>Someone hit this before</h3><span class="sub">Measured precedents behind the companion's findings</span></div></div>
+      <div class="list small">
+        <div class="list-item"><div class="li-main"><span class="li-title">duration in bank marketing</span><span class="li-sub">Training-CV ROC-AUC 0.7130 without it, 0.8972 with it.</span></div>${chip:LEAK-bank_marketing}</div>
+        <div class="list-item"><div class="li-main"><span class="li-title">Oversampling before the split</span><span class="li-sub">Up to +0.3003 ROC-AUC of pure inflation (online_shoppers 0.9019 reported, 0.6016 honest).</span></div>${chip:PIT-003}</div>
+        <div class="list-item"><div class="li-main"><span class="li-title">Target encoding before the split</span><span class="li-sub">customerID on Telco: 1.0000 reported, 0.8160 honest.</span></div>${chip:PIT-004}</div>
+        <div class="list-item"><div class="li-main"><span class="li-title">Picking a model by test score</span><span class="li-sub">+0.0072 optimism on average, +0.0177 on german_credit.</span></div>${chip:PIT-006}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="clean" data-label="Clean version">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h3>What makes term-deposit.ipynb clean</h3><span class="sub">Built by DCLab from the signed contract</span></div><span class="pill ok">clean</span></div>
+      <div class="panel-body small grid g2">
+        <div class="row top"><span class="cell-flag ok">✓</span><span>The contract is loaded and enforced; a forbidden column raises an error.</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Every transform lives in one Pipeline, fitted inside each fold.</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>The holdout is read in one cell, once, at the end.</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Each choice states its rule and links to its record.</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="nb-toolbar"><span class="small strong">term-deposit.ipynb · every cell links to its record</span><span class="kernel"><span class="dot ok"></span>reproducible · seed 42 · snapshot 9c1e…4b07</span></div>
+      <div class="cells" id="pipe-cells"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="stages" data-label="Stage cells">
+    <div class="panel" data-f="nb.stagecells">
+      <div class="panel-head"><div class="panel-title"><h3>What the notebook looks like in the repository today</h3><span class="sub">Five stage cells (data, leakage, features, models, final). Each runs deterministic code and writes a record with notes that cite evidence.</span></div><span class="pill ok">exists</span></div>
+      <div class="panel-body grid g5" id="stage-cards"></div>
+      <div class="panel-foot">The Overview notebook adds live code cells, the companion beside each cell, one-click fixes and agent-written cells. The stage engine stays underneath.</div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-audit" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · WF-04 to WF-06</div>
+      <h1>Leakage &amp; features <span class="pill ok">WF-05 · WF-06 done · Sep 28</span></h1>
+      <p class="lede">A column is judged by when its value is written, not by its name or its score. The contract decides; an ablation on identical folds measures how much a leak would have lied.</p>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">16</span><span class="l">columns audited against contract v2</span></div>
+      <div class="stat"><span class="v bad">1 <small>forbidden</small></span><span class="l">duration · written after the call · the only heuristic flag (AUC 0.812)</span></div>
+      <div class="stat"><span class="v warn">1 <small>open</small></span><span class="l">campaign · waiting on the owner: counted when?</span><div class="row"><button type="button" class="link-btn small" data-pane-go="leaks">See the question →</button></div></div>
+      <div class="stat"><span class="v ok">caught</span><span class="l">synthetic canary · the detector is awake</span></div>
+    </div>
+
+    <div class="panel" data-f="audit.matrix">
+      <div class="panel-head"><div class="panel-title"><h2>Availability matrix</h2><span class="sub">Every input against the prediction moment. Heuristics only flag; the verdict comes from the contract.</span></div><span class="small muted" data-f="audit.heuristics">Heuristics: name · univariate signal · exact proxy · uniqueness · canary</span></div>
+      <div class="table-wrap"><table class="data compact" id="avail-table"><thead><tr><th>Column</th><th>Written when</th><th>Known at the moment?</th><th>Heuristic flag</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">The real blind auditor flagged only <code>duration</code> here, which is right. A missing flag never means safe: <code>campaign</code> raised no flag and still needs the owner ${chip:DCLAB-R05}.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="leaks" data-label="Leak checks">
+    <div class="grid g2">
+      <div class="panel" data-f="audit.ablation" data-tour="ablation">
+        <div class="panel-head"><div class="panel-title"><h3>How much the leak lies</h3><span class="sub">Safe vs with duration, identical folds</span></div></div>
+        <div class="panel-body stack tight">
+          <div id="ablation-chart"></div>
+          <div class="small">Training CV on 3,200 rows: <b class="mono">0.7130 → 0.8972</b> (+0.1842) ${chip:EXP-007}</div>
+          <div class="small">Registry, full rows: <b class="mono">0.8029 → 0.9357</b> (+0.1328) ${chip:FINDING-leakage-gaps}</div>
+          <div class="rule-quote">A large safe-versus-unsafe gap shows how bad the leak would be. It is not the proof. The proof is that the call length is written after the call ends ${chip:DCLAB-R06}.</div>
+        </div>
+      </div>
+      <div class="panel" data-f="audit.verdict">
+        <div class="panel-head"><h3>Open question for the owner</h3><span class="pill warn">campaign</span></div>
+        <div class="panel-body small stack tight">
+          <p>The UCI description says <i>contacts performed during this campaign, including the last contact</i>. If the count includes the call being predicted, the model learns from the future.</p>
+          <div class="inset stack tight"><div class="spread"><span>Training CV without campaign</span><b class="mono">scheduled</b></div><div class="spread"><span>Training CV with campaign</span><b class="mono">scheduled</b></div><div class="xs muted">Runs on identical folds when the owner answers, or tonight on the sandbox.</div></div>
+          <a class="btn sm" href="#contract">Answer in the owner worksheet</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="data" data-label="Data look">
+    <div class="panel" data-f="audit.eda">
+      <div class="panel-head"><div class="panel-title"><h2>Train-only look at the data</h2><span class="sub">Subscription rate on the 36,168 training rows only. Patterns here are questions, never promoted features.</span></div><span class="pill outline">computed from the repository data</span></div>
+      <div class="panel-body grid g3">
+        <div class="stack tight"><b class="small">By month of the call</b><div id="eda-month"></div><span class="xs muted">March, September, October and December reach 45–51%, on few rows each.</span></div>
+        <div class="stack tight"><b class="small">By outcome of the previous campaign</b><div id="eda-pout"></div><span class="xs muted">A past success subscribes at 64.7%.</span></div>
+        <div class="stack tight"><b class="small">By age band</b><div id="eda-age"></div><span class="xs muted">Clients over 60 subscribe at 42.1% (969 rows).</span></div>
+      </div>
+      <div class="panel-foot"><span class="pill warn">state, not a number</span> <code>pdays = −1</code> on 81.8% of rows means "never contacted before". It needs an indicator, not a distance ${chip:DCLAB-R12}. The month pattern cannot be tested forward in time because the table has no year ${chip:DCLAB-R19}.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="ladder" data-label="Feature ladder">
+    <div class="panel" data-f="audit.ladder">
+      <div class="panel-head"><div class="panel-title"><h2>Feature ladder</h2><span class="sub">Six recipes, each fitted inside the folds. The rule picks the smallest set within a tolerance declared before the run.</span></div>${chip:EXP-008}</div>
+      <div class="table-wrap"><table class="data compact" id="ladder-table"><thead><tr><th>Recipe</th><th class="num">Features</th><th class="num">Mean ROC-AUC</th><th class="num">Fold spread</th><th>Within tolerance</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-body stack tight">
+        <div class="row"><label for="tol" class="small strong" data-style="color:var(--ink)">Declared tolerance</label><input type="range" id="tol" min="0" max="0.01" step="0.0005" value="0.002" data-style="flex:1;min-width:160px"><span class="mono small" id="tol-val">0.0020</span></div>
+        <div id="tol-out"></div>
+      </div>
+    </div>
+    <div class="panel" data-f="audit.lineage">
+      <div class="panel-head"><div class="panel-title"><h3>Feature lineage</h3><span class="sub">Top features of the chosen model</span></div></div>
+      <div class="list small" id="lineage-list"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="critic" data-label="Critic review" data-count="5">
+    <div class="panel" data-f="audit.critic">
+      <div class="panel-head"><div class="panel-title"><h2>Critic review, checked against the numbers</h2><span class="sub">An LLM critic challenges every claim. The gate keeps a challenge only if it agrees with the recorded numbers.</span></div>${chip:DCLAB-R20}</div>
+      <div class="list" id="critic-list"></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-models" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Term-deposit calls · WF-07 and WF-08</div>
+      <h1>Models <span class="pill ok">extra_trees · C02 locked</span></h1>
+      <p class="lede">Five families on identical folds, ranked by a rule declared before the run. Tuning stays only if it clears a margin set in advance.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" id="override-btn" data-f="models.override">Choose a different model…</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">extra_trees</span><span class="l">selected by the declared rule · runner-up lightgbm</span></div>
+      <div class="stat"><span class="v">0.7288 <small>± 0.0295</small></span><span class="l">mean CV ROC-AUC on 3 folds · 3,200 training rows</span></div>
+      <div class="stat"><span class="v ok">+0.0235</span><span class="l">gain from tuning candidate C02 · declared margin 0.0050</span></div>
+      <div class="stat"><span class="v">5</span><span class="l">model families screened on the same 3 folds</span></div>
+    </div>
+
+    <div class="panel" data-f="models.screen" data-tour="screen">
+      <div class="panel-head"><div class="panel-title"><h2>Screen on the ratios recipe</h2><span class="sub">3 stratified folds · 38 features · ranked by mean − 0.25 × fold spread, then runtime</span></div>${chip:EXP-009}</div>
+      <div class="table-wrap"><table class="data" id="screen-table"><thead><tr><th>Family</th><th class="num">Mean</th><th class="num">Fold spread</th><th class="num">Mean − k×spread</th><th class="num">Fit time (3 folds)</th><th>Rank</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-body"><div id="screen-chart"></div></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="rule" data-label="Selection rule">
+    <div class="panel" data-f="models.rule">
+      <div class="panel-head"><div class="panel-title"><h2>The selection rule</h2><span class="sub">Declared in the protocol before the screen ran: rank by mean minus a quarter of the fold spread, then by runtime.</span></div></div>
+      <div class="panel-body stack tight">
+        <div class="row"><label for="kpen" class="small strong" data-style="color:var(--ink)">Spread penalty k</label><input type="range" id="kpen" min="0" max="1" step="0.05" value="0.25" data-style="flex:1;min-width:160px"><span class="mono small" id="kpen-val">0.25</span></div>
+        <div id="rule-out"></div>
+      </div>
+    </div>
+    <div class="panel" data-f="models.folds">
+      <div class="panel-head"><div class="panel-title"><h2>Fold by fold</h2><span class="sub">The same three folds for every family, so differences are paired.</span></div><span class="pill outline">mean ± spread</span></div>
+      <div class="panel-body"><div id="fold-chart"></div><p class="xs muted">The records store mean and spread; the product draws the stored fold scores. Bars mark the means.</p></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="tuning" data-label="Tuning">
+    <div class="panel" data-f="models.tuning">
+      <div class="panel-head"><div class="panel-title"><h2>Conservative tuning · WF-08</h2><span class="sub">Three explicit candidates for extra_trees on the training folds. A candidate replaces the baseline only if it gains more than the declared margin.</span></div>${chip:EXP-010}</div>
+      <div class="panel-body grid g2">
+        <div id="tune-chart"></div>
+        <div class="stack tight small">
+          <div class="inset stack tight">
+            <div class="spread"><span>Baseline (defaults)</span><b class="mono">0.7288</b></div>
+            <div class="spread"><span>Best candidate C02</span><b class="mono">0.7523</b></div>
+            <div class="spread"><span>Gain</span><b class="mono" data-style="color:var(--ok)">+0.0235</b></div>
+            <div class="spread"><span>Declared margin</span><b class="mono">0.0050</b></div>
+            <div class="spread"><span>Decision</span><span class="pill ok">keep C02</span></div>
+          </div>
+          <div class="callout warn"><span class="ic">${icon:alert}</span><span>The critic asked for the baseline and the candidate on the same folds, side by side. The product now stores paired fold scores for every tuning claim, so the gain can carry its own interval ${chip:DCLAB-R16}.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="context" data-label="Cost & context">
+    <div class="grid g2">
+      <div class="panel" data-f="models.ops">
+        <div class="panel-head"><div class="panel-title"><h3>Cost to run</h3><span class="sub">Fit time from the screen; scoring cost estimated</span></div></div>
+        <div class="table-wrap"><table class="data compact"><thead><tr><th>Family</th><th class="num">Fit (3 folds)</th><th class="num">Score 10k rows</th></tr></thead><tbody>
+          <tr><td>logistic_regression</td><td class="num mono">0.6 s</td><td class="num mono">~0.02 s</td></tr>
+          <tr class="selected"><td>extra_trees</td><td class="num mono">2.0 s</td><td class="num mono">~0.4 s</td></tr>
+          <tr><td>hist_gradient_boosting</td><td class="num mono">1.2 s</td><td class="num mono">~0.05 s</td></tr>
+          <tr><td>lightgbm</td><td class="num mono">0.8 s</td><td class="num mono">~0.05 s</td></tr>
+          <tr><td>xgboost</td><td class="num mono">0.8 s</td><td class="num mono">~0.06 s</td></tr>
+        </tbody></table></div>
+        <div class="panel-foot">Monthly scoring of 20,000 clients costs seconds for any of them. Runtime only breaks ties here.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title"><h3>Across the R&amp;D datasets</h3><span class="sub">Why one default family is not enough</span></div>${chip:FINDING-model-families}</div>
+        <div class="panel-body"><div id="family-chart"></div><p class="xs muted">Mean rank over 11 datasets (lower is better) and wins. Winners differ by dataset.</p></div>
+      </div>
+      <div class="panel" data-f="models.foundation">
+        <div class="panel-head"><h3>Tabular foundation models</h3><span class="pill">research</span></div>
+        <div class="panel-body small stack tight">
+          <p>TabPFN joins the screen once its results pass a leakage-safe rerun on HyperAck. Until then it is shown in the research map, not offered here.</p>
+          <a class="link-btn small" href="#lab">See the track in the research map →</a>
+        </div>
+      </div>
+      <div class="panel dashed"><div class="panel-body small stack tight" data-style="padding-top:20px"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R13} No universal best algorithm; screen several families.</div><div>${chip:DCLAB-R14} Judge by mean, stability, probabilities and runtime, not ROC-AUC alone.</div><div>${chip:DCLAB-R15} Tune only after data, features, metric and family are locked.</div></div></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-reliability" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · WF-09</div>
+      <h1>Reliability &amp; holdout <span class="pill ok">holdout used once · Oct 2</span></h1>
+      <p class="lede">The holdout opens once, after every choice is locked. Then the result is attacked from every side, and what survives goes into the brief with its limits.</p>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">0.7718</span><span class="l">holdout ROC-AUC · 95% interval 0.7126–0.8290 · 800 untouched rows</span></div>
+      <div class="stat"><span class="v">0.3915</span><span class="l">average precision · at cut-off 0.5: precision 0.5652, recall 0.1383</span></div>
+      <div class="stat"><span class="v">0.0870</span><span class="l">Brier score · calibration error (ECE) 0.0272</span></div>
+      <div class="stat"><span class="v warn">2 <small>of 6</small></span><span class="l">production gate checks done · research evidence is not production approval</span><div class="row"><button type="button" class="link-btn small" data-pane-go="gate">See the gate →</button></div></div>
+    </div>
+
+    <div class="panel" data-f="rel.holdout" data-tour="holdout">
+      <div class="panel-head"><div class="panel-title"><h2>Holdout result</h2><span class="sub">extra_trees · C02 · ratios recipe · 800 untouched rows · bootstrap 95% interval</span></div>${chip:EXP-010}</div>
+      <div class="panel-body">
+        <div class="row top" data-style="gap:22px;flex-wrap:wrap">
+          <div class="stamp" data-f="rel.seal"><span>Opened once</span><b>Oct 2</b><span>by Shahriyar</span></div>
+          <div class="stack tight" data-style="flex:1;min-width:240px">
+            <div id="holdout-ci"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-foot bar"><span>Seal record: contract v2 signed · recipe and model locked · tuning decided on training folds · approved by the owner · first read of these 800 rows.</span><button type="button" class="btn sm" id="seal-preview" data-style="margin-left:auto">See the opening dialog</button><button type="button" class="btn sm" disabled title="The holdout is consumed">Open again</button></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="points" data-label="Operating points">
+    <div class="panel" data-f="rel.threshold">
+      <div class="panel-head"><div class="panel-title"><h2>Operating points</h2><span class="sub">What calling the top share of clients would mean. One real point from the holdout, the rest from the holdout's ranking quality.</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="op-table"><thead><tr><th>Call the top</th><th class="num">Calls per 20,000</th><th class="num">Hit rate (precision)</th><th class="num">Share of all subscribers reached</th><th>Note</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">Rows marked estimated come from a binormal fit to ROC-AUC 0.7718; at the real cut-off it predicts 55% hit rate for the top 2.5%, against 56.5% measured. The product reads these straight from the holdout predictions.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="probabilities" data-label="Calibration &amp; slices">
+    <div class="grid g2">
+      <div class="panel" data-f="rel.calibration">
+        <div class="panel-head"><div class="panel-title"><h3>Calibration</h3><span class="sub">Do 30% scores subscribe 30% of the time?</span></div><span class="pill outline">curve is a sample shape</span></div>
+        <div class="panel-body"><div id="calib-chart"></div><p class="xs muted">Brier 0.0870 and ECE 0.0272 are measured ${chip:EXP-010}. The curve shape is drawn to match them.</p></div>
+      </div>
+      <div class="panel" data-f="rel.slices">
+        <div class="panel-head"><div class="panel-title"><h3>Slices</h3><span class="sub">ROC-AUC by group, with intervals</span></div><span class="pill outline">sample numbers</span></div>
+        <div class="panel-body"><div id="slice-chart"></div><p class="xs muted">Slices with fewer than 100 holdout rows show as "not enough rows" in the brief. Over-60s and past successes are about 20–30 rows each here.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="stress" data-label="Shift &amp; missing">
+    <div class="grid g2">
+      <div class="panel" data-f="rel.shift">
+        <div class="panel-head"><h3>Shift over time</h3><span class="pill warn">cannot test yet</span></div>
+        <div class="panel-body small stack tight">
+          <p>The table has month and day but no year, so no forward-in-time test is possible. The owner was asked for the real call dates.</p>
+          <p class="muted">On HyperAck, where dates exist, a forward-in-time test scored 0.9371 against 0.9332 for a random split. Time can help or hurt; it has to be measured ${chip:PIT-005}.</p>
+        </div>
+      </div>
+      <div class="panel" data-f="rel.missing">
+        <div class="panel-head"><h3>Missing inputs</h3><span class="pill outline">scheduled</span></div>
+        <div class="panel-body small stack tight">
+          <p>What if <code>poutcome</code> is unknown for new clients? 81.8% of training rows were never contacted before, so the model already sees this state often.</p>
+          <p class="muted">The simulation masks poutcome, previous and pdays on the holdout predictions and reports the drop with an interval ${chip:DCLAB-R12}.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="gate" data-label="Production gate">
+    <div class="grid g2">
+      <div class="panel" data-f="rel.gate" data-tour="gate">
+        <div class="panel-head"><div class="panel-title"><h3>Production gate</h3><span class="sub">Research evidence is not production approval</span></div><span class="pill warn">2 of 6</span></div>
+        <div class="panel-body stack tight">
+          <ul class="plan-list">
+            <li class="done"><span class="pi">✓</span><span>Provenance recorded: snapshot hash, licence, contract version</span></li>
+            <li class="done"><span class="pi">✓</span><span>Leakage-safe contract signed and enforced</span></li>
+            <li class="blocked"><span class="pi">!</span><span>Independent confirmation on fresh campaign data</span></li>
+            <li class="blocked"><span class="pi">!</span><span>Feature contracts: raw category labels instead of codes</span></li>
+            <li class="blocked"><span class="pi">!</span><span>Monitoring plan: drift, calibration and hit rate per week</span></li>
+            <li class="blocked"><span class="pi">!</span><span>Shadow test with the call centre for one campaign</span></li>
+          </ul>
+          <div class="callout warn"><span class="ic">${icon:info}</span><span><b>Research result.</b> Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span></div>
+        </div>
+      </div>
+      <div class="stack">
+  <div class="panel">
+        <div class="panel-head"><h3>What the critic said</h3>${chip:EXP-010}</div>
+        <div class="panel-body small stack tight">
+          <p>“Treat the holdout score as a consumed, descriptive result only. Do not approve feature promotion without separate decision-time and production-availability review.”</p>
+          <p class="muted">Kept by the gate: it agrees with the numbers. It is why the production gate lists feature contracts.</p>
+        </div>
+      </div>
+  <div class="panel dashed"><div class="panel-body small stack tight"><div class="eyebrow">Rules on this page</div><div>${chip:DCLAB-R17} Consume the holdout once, after every choice is locked.</div><div>${chip:DCLAB-R18} Report ranking, probability quality and operating points.</div><div>${chip:DCLAB-R19} Use time and source slices when those shifts exist.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-brief" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Term-deposit calls · WF-10 · for the business</div>
+      <h1>Decision brief <span class="pill warn">waiting for Reza</span></h1>
+      <p class="lede">One page for the people who decide: the value with its range, what we refused to use, and what is not proven yet.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" data-f="brief.share" data-copy="https://dclab.local/p/term-deposit-calls/brief/v1" data-copy-label="Link">Copy link</button>
+      <button type="button" class="btn" data-toast="In the product: exports the brief as PDF or slides. Downloads are blocked inside this demo.">Export</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">0.77 <small>0.71–0.83</small></span><span class="l">ROC-AUC on 800 clients the model never saw · a useful ranking, not a precise one</span></div>
+      <div class="stat"><span class="v ok">~780</span><span class="l">subscriptions expected from the top 2,000 calls · likely 620–960 · about 230 at random</span></div>
+      <div class="stat"><span class="v ok">€70,000</span><span class="l">net value next month · €9,700 calling at random · €8 a call, €110 a subscription</span><div class="row"><button type="button" class="link-btn small" data-pane-go="value">Try other volumes →</button></div></div>
+      <div class="stat"><span class="v warn">Pilot</span><span class="l">the decision we need · top 2,000 plus 200 random clients as a control</span><div class="row"><button type="button" class="link-btn small" data-pane-go="signoff">Go to sign-off →</button></div></div>
+    </div>
+
+    <article class="panel" data-f="brief.summary" data-tour="brief-summary">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow">Brief v1 · Oct 3 · prepared by the intern, reviewed by Ava</span></div><div class="seg" data-seg="lang" id="brief-lang" role="group" aria-label="Language" data-f="brief.fa"><button type="button" data-v="en" aria-pressed="true">English</button><button type="button" data-v="fa" aria-pressed="false">فارسی</button></div></div>
+      <div class="panel-body">
+        <div class="doc" id="brief-en">
+          <h2>Call the 2,000 clients most likely to subscribe</h2>
+          <h3>What we built</h3>
+          <p>A model that ranks clients by how likely they are to open a term deposit if we call them. It uses only what we know before the call: the client's profile and account, earlier campaigns, and the planned call date.</p>
+          <h3>How good it is, honestly</h3>
+          <p>On 800 clients the model never saw, it puts a random subscriber above a random non-subscriber 77% of the time (ROC-AUC 0.77, most likely between 0.71 and 0.83). That is a useful ranking, not a precise one.</p>
+          <h3>What it means next month</h3>
+          <p>If the team calls the top 2,000 of 20,000 clients, we expect about <b>780 subscriptions</b> (most likely 620–960), against about 230 when calling 2,000 clients at random. At €8 per call and €110 per subscription, that is about <b>€70,000 net instead of €9,700</b>.</p>
+          <h3>What we refused to use</h3>
+          <p>The length of the call is known only after the call ends. With it, the model looked far better in training (0.90 instead of 0.71) and would have failed on the first real call list.</p>
+          <h3>What is not proven yet</h3>
+          <p>The estimate rests on one small test set of 800 clients. The data has no year, so we could not check whether the pattern holds over time. Repeat clients could not be separated. Categories are stored as codes and must be fixed before real use.</p>
+          <h3>The decision we need</h3>
+          <p>Approve a pilot for one campaign: call the model's top 2,000 and, at the same time, 200 clients chosen at random as a control group. Then compare the two hit rates.</p>
+        </div>
+        <div class="doc fa" id="brief-fa" hidden lang="fa" dir="rtl">
+          <h2>با ۲٬۰۰۰ مشتری‌ای تماس بگیریم که بیشترین احتمال اشتراک را دارند</h2>
+          <h3>چه ساختیم</h3>
+          <p>مدلی که مشتری‌ها را بر اساس احتمال باز کردن سپرده‌ی مدت‌دار، در صورت تماس، رتبه‌بندی می‌کند. فقط از اطلاعاتی استفاده می‌کند که پیش از تماس در دست داریم: مشخصات و حساب مشتری، کمپین‌های قبلی و تاریخ برنامه‌ریزی‌شده‌ی تماس.</p>
+          <h3>صادقانه، چقدر خوب است</h3>
+          <p>روی ۸۰۰ مشتری که مدل هرگز ندیده بود، در ۷۷ درصد موارد یک مشترک تصادفی را بالاتر از یک غیرمشترک تصادفی قرار می‌دهد (ROC-AUC برابر ۰٫۷۷، به احتمال زیاد بین ۰٫۷۱ و ۰٫۸۳). این رتبه‌بندی مفید است، اما دقیق نیست.</p>
+          <h3>برای ماه آینده یعنی چه</h3>
+          <p>اگر تیم با ۲٬۰۰۰ مشتری برتر از میان ۲۰٬۰۰۰ نفر تماس بگیرد، حدود <b>۷۸۰ اشتراک</b> انتظار داریم (به احتمال زیاد بین ۶۲۰ تا ۹۶۰)، در برابر حدود ۲۳۰ اشتراک با تماس تصادفی. با هزینه‌ی ۸ یورو برای هر تماس و ارزش ۱۱۰ یورو برای هر اشتراک، سود خالص حدود <b>۷۰٬۰۰۰ یورو به‌جای ۹٬۷۰۰ یورو</b> است.</p>
+          <h3>از چه استفاده نکردیم</h3>
+          <p>طول تماس فقط بعد از پایان تماس معلوم می‌شود. با آن، مدل در آموزش بسیار بهتر به نظر می‌رسید (۰٫۹۰ به‌جای ۰٫۷۱) و در اولین فهرست واقعی تماس شکست می‌خورد.</p>
+          <h3>چه چیزی هنوز ثابت نشده</h3>
+          <p>این برآورد فقط بر یک مجموعه‌ی آزمون کوچک با ۸۰۰ مشتری تکیه دارد. داده سال ندارد، پس نتوانستیم بررسی کنیم که الگو در طول زمان پایدار می‌ماند یا نه. مشتری‌های تکراری از هم جدا نشدند. دسته‌ها به‌صورت کد ذخیره شده‌اند و پیش از استفاده‌ی واقعی باید اصلاح شوند.</p>
+          <h3>تصمیمی که لازم داریم</h3>
+          <p>تأیید یک پایلوت در یک کمپین: با ۲٬۰۰۰ مشتری برتر مدل تماس بگیریم و هم‌زمان با ۲۰۰ مشتری تصادفی به‌عنوان گروه کنترل، و سپس نرخ موفقیت دو گروه را مقایسه کنیم.</p>
+        </div>
+      </div>
+      <div class="panel-foot dev-only">Every number in this brief links to its record: ${chip:EXP-010} ${chip:EXP-007} ${chip:LEAK-bank_marketing}</div>
+    </article>
+  <div class="panel biz-only">
+        <div class="panel-body small stack tight"><div class="eyebrow">Reading the numbers</div><p><b>ROC-AUC 0.77</b> means the model puts a real subscriber above a non-subscriber 77 times out of 100. Random guessing gives 50.</p><p><b>Hit rate</b> is the share of called clients who subscribe.</p></div>
+      </div>
+  </div>
+
+  <div class="pane" data-pane="value" data-label="Value calculator">
+    <div class="panel" data-f="brief.value" data-tour="value">
+      <div class="panel-head"><div class="panel-title"><h2>Choose the call volume</h2><span class="sub">Expected result for 20,000 clients. The band is the range that comes from the holdout's interval.</span></div></div>
+      <div class="panel-body grid g2">
+        <div class="stack">
+          <div class="field"><label for="v-calls">Calls next month: <b id="v-calls-out">2,000</b></label><input type="range" id="v-calls" min="250" max="10000" step="250" value="2000"></div>
+          <div class="grid g2">
+            <div class="field"><label for="v-cost">Cost per call (€)</label><input type="number" id="v-cost" value="8" min="1"></div>
+            <div class="field"><label for="v-val">Value per subscription (€)</label><input type="number" id="v-val" value="110" min="1"></div>
+          </div>
+          <div class="kpi-strip panel flat" id="v-kpis"></div>
+        </div>
+        <div class="stack tight"><div id="v-chart"></div><div class="legend"><span><i></i>model ranking</span><span><i class="s3"></i>random calls</span><span><i class="sq" data-style="background:var(--accent-soft)"></i>likely range</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="risks" data-label="Risks" data-count="5">
+    <div class="panel" data-f="brief.risks">
+      <div class="panel-head"><div class="panel-title"><h2>Risks and what we will do about them</h2></div></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Risk</th><th>Why it matters</th><th>What we do</th></tr></thead><tbody>
+        <tr><td class="strong">Small test set</td><td>800 clients give a wide range (0.71–0.83)</td><td>The pilot's random control group measures the real lift</td></tr>
+        <tr><td class="strong">No year in the data</td><td>March, September, October and December look excellent on very few calls</td><td>Owner asked for real call dates; seasonal effects are reported, not trusted</td></tr>
+        <tr><td class="strong">Repeat clients</td><td>The same client may appear in training and test</td><td>Ask for a client ID in the next extract and re-split by client</td></tr>
+        <tr><td class="strong">Category codes</td><td>Two top features take a log of codes, which has no meaning</td><td>Rebuild with raw labels before any production use</td></tr>
+        <tr><td class="strong">campaign column</td><td>May count the call being predicted</td><td>Owner question open; with/without comparison scheduled</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="signoff" data-label="Sign-off &amp; lessons">
+    <div class="grid g2">
+      <div class="panel" data-f="brief.signoff">
+        <div class="panel-head"><h3>Sign-off</h3><span class="pill warn">pending</span></div>
+        <div class="panel-body stack tight small">
+          <div class="msg"><span class="avatar sm c">RZ</span><div class="msg-body"><span class="who">Reza <span>Oct 4, 10:05</span></span><div class="bubble" data-style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px">Is €8 the full cost of a call? With follow-up time it is closer to €11.</div></div></div>
+          <div class="msg"><span class="avatar sm">SM</span><div class="msg-body"><span class="who">Shahriyar <span>Oct 4, 11:20</span></span><div class="bubble" data-style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px">At €11 a call still pays above a 10% hit rate. The top 2,000 hit about 39%, so the recommendation holds. Try it in the calculator.</div></div></div>
+          <label class="sr-only" for="so-comment">Comment</label><textarea id="so-comment" rows="2" placeholder="Add a comment for the team"></textarea>
+          <div class="row"><button type="button" class="btn primary" id="so-approve">Approve the pilot</button><button type="button" class="btn" data-toast="Changes requested. The intern drafts v2 of the brief and notifies Ava.">Request changes</button></div>
+          <span class="xs muted">Approving the brief approves a pilot, not a launch ${chip:DCLAB-R22}.</span>
+        </div>
+      </div>
+      <div class="panel" data-f="brief.capture">
+        <div class="panel-head"><div class="panel-title"><h3>What this project taught DCLab</h3><span class="sub">WF-10 · knowledge capture</span></div></div>
+        <div class="list small">
+          <div class="list-item"><span class="pill ok">accepted</span><div class="li-main"><span>Rare months carry very high subscription rates on few rows; without a year, seasonality cannot be checked.</span></div></div>
+          <div class="list-item"><span class="pill ok">accepted</span><div class="li-main"><span>Logs of factorized category codes reached the top features; restore raw labels before generating features.</span></div></div>
+          <div class="list-item"><span class="pill warn">scope</span><div class="li-main"><span>class_weight="balanced" doubled the Brier score in a teammate notebook. Sent back: a different split, so not comparable yet.</span></div></div>
+          <div class="list-item"><span class="pill proof">data</span><div class="li-main"><span>11 training examples (contract + each stage) and one 24-move trajectory for the policy model.</span><a class="link-btn small" href="#policy">See the training data →</a></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-intern" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Intern · the agent mode</div>
+      <h1>Intern</h1>
+      <p class="lede">Give it the task: it plans, calls tools, runs code in a sandbox and writes a report. Every move passes the same graph and validator as a person, so it stops and asks instead of guessing.</p>
+    </div>
+    <div class="vh-actions">
+      <label class="sr-only" for="intern-model">Model</label>
+      <select id="intern-model" data-f="intern.model" data-style="width:auto">
+        <option value="router">Model · open model via Hugging Face router</option>
+        <option value="local">Model · local (Ollama)</option>
+        <option value="standard">No model · standard plan</option>
+        <option value="policy">DCLab policy model (planned)</option>
+      </select>
+      <button type="button" class="btn primary" data-go="home">New task</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v warn">1</span><span class="l">question waiting for you · when is the HyperAck prediction made?</span></div>
+      <div class="stat"><span class="v">5</span><span class="l">sessions · 3 done, 2 waiting on a person</span><div class="row"><button type="button" class="link-btn small" data-pane-go="sessions">See all sessions →</button></div></div>
+      <div class="stat"><span class="v">€5 <small>· 48 calls · 30 min</small></span><span class="l">budget per session · enforced on every call</span></div>
+      <div class="stat"><span class="v ok">5</span><span class="l">guardrails active · the holdout opens once, after the owner approves</span></div>
+    </div>
+
+    <div class="grid g-side">
+      <div class="panel" data-f="intern.session" data-tour="intern-thread">
+        <div class="panel-head">
+          <div class="panel-title"><span class="eyebrow" id="sess-mode">open model · via Hugging Face router</span><h2>HyperAck: an acceptance model we can trust</h2></div>
+          <div class="row"><span class="pill warn" id="sess-status">paused · waiting for you</span><button type="button" class="btn sm" id="sess-replay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/></svg>Replay</button></div>
+        </div>
+        <div class="panel-body"><div class="thread" id="thread"></div></div>
+        <div class="panel-body" data-style="border-top:1px solid var(--line)">
+          <div class="composer">
+            <label class="sr-only" for="intern-follow">Follow-up</label>
+            <textarea id="intern-follow" rows="2" placeholder="Give the next instruction, or type / for commands"></textarea>
+            <div class="composer-bar"><div class="chips"><button type="button" class="chip" data-cmd="/contract">/contract</button><button type="button" class="chip" data-cmd="/audit">/audit</button><button type="button" class="chip" data-cmd="/brief">/brief</button><button type="button" class="chip" data-cmd="/stop">/stop</button></div><button type="button" class="btn primary send" id="intern-send">Send</button></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="stack sticky-col">
+        <div class="panel" data-f="intern.budget">
+          <div class="panel-head"><h3>Budget</h3><span class="small muted">enforced on every call</span></div>
+          <div class="panel-body stack tight" id="budget"></div>
+        </div>
+        <div class="panel" data-f="intern.graphpos">
+          <div class="panel-head"><h3>Where it is in the graph</h3><a class="link-btn small" href="#project" data-project="hyperack">Open →</a></div>
+          <div class="panel-body"><div class="wf-rail" id="intern-rail" data-style="grid-template-columns:repeat(5,minmax(0,1fr))"></div></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="sessions" data-label="Sessions" data-count="5">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Sessions</h2><span class="sub">In the demo only the HyperAck session opens.</span></div><span class="pill">5</span></div>
+      <div class="list" id="intern-sessions"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="guardrails" data-label="Guardrails">
+    <div class="panel" data-f="intern.guard">
+      <div class="panel-head"><div class="panel-title"><h2>Guardrails</h2><span class="sub">The same limits a person works under, checked on every tool call</span></div><span class="pill ok">active</span></div>
+      <div class="panel-body stack tight small">
+        <div class="row top"><span class="cell-flag ok">✓</span><span>The holdout opens once, and only after the owner approves</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>No tool accepts a forbidden column</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Nothing is deleted: data, results and logs are append-only</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Code runs in a sandbox with no secrets and read-only data</span></div>
+        <div class="row top"><span class="cell-flag ok">✓</span><span>Network: Hugging Face Hub and Kaggle, read-only</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="tiers" data-label="Model tiers">
+    <div class="grid g2">
+      <div class="panel" data-f="intern.ladder">
+        <div class="panel-head"><div class="panel-title"><h3>Who decided what</h3><span class="sub">Cheapest tier first</span></div><span class="pill outline">sample</span></div>
+        <div class="panel-body stack tight small" id="ladder"></div>
+      </div>
+      <div class="panel dashed" data-f="intern.standard"><div class="panel-body small">With <b>no model</b> configured, the intern follows the standard plan: the five stages in order with the R&amp;D's defaults. It never improvises.</div></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-compute" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Compute and jobs</div>
+      <h1>Compute &amp; jobs</h1>
+      <p class="lede">Tabular work runs on this machine, intern code in a sandbox, vision and fine-tuning on GPU jobs. Every run leaves a record that is enough to reproduce it.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn" data-toast="In the product: pick hardware, image and data snapshot; the graph decides whether the job may start.">New job</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">1</span><span class="l">job running · GPU · A10G</span></div>
+      <div class="stat"><span class="v warn">1</span><span class="l">waiting for approval · over the €5 per-job cap</span><div class="row"><button type="button" class="link-btn small" data-pane-go="spend">Review →</button></div></div>
+      <div class="stat"><span class="v">1.6 <small>h</small></span><span class="l">GPU hours this month · 20 included</span></div>
+      <div class="stat"><span class="v">€18.40</span><span class="l">spend this month · cap €60 · alert at 80%</span></div>
+    </div>
+
+    <div class="panel" data-tour="jobs">
+      <div class="panel-head"><div class="panel-title"><h2>Jobs</h2><span class="sub">Click a row for logs, metrics and the reproducibility record</span></div><span class="pill outline">sample jobs</span></div>
+      <div class="table-wrap"><table class="data compact clickable" id="jobs-table"><thead><tr><th>Job</th><th>Project · task</th><th>Hardware</th><th>Status</th><th class="num">Time</th><th class="num">Cost</th><th>Started by</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="panel" id="job-detail">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="jd-eyebrow"></span><h3 id="jd-title"></h3></div><div class="row" id="jd-actions"></div></div>
+      <div class="tabs" data-tabs="jd" role="tablist">
+        <button type="button" class="tab" data-tab="logs" role="tab" aria-selected="true">Logs</button>
+        <button type="button" class="tab" data-tab="metrics" role="tab" aria-selected="false">Metrics</button>
+        <button type="button" class="tab" data-tab="artifacts" role="tab" aria-selected="false">Artifacts</button>
+        <button type="button" class="tab" data-tab="repro" role="tab" aria-selected="false">Reproduce</button>
+      </div>
+      <div class="panel-body">
+        <div data-tab-panel="jd:logs"><pre class="term" id="jd-logs"></pre></div>
+        <div data-tab-panel="jd:metrics" hidden><div id="jd-metrics"></div></div>
+        <div data-tab-panel="jd:artifacts" hidden><div id="jd-artifacts"></div></div>
+        <div data-tab-panel="jd:repro" hidden data-f="compute.repro"><div id="jd-repro"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="spend" data-label="Spend &amp; approvals" data-count="1">
+    <div class="grid g2">
+      <div class="panel" data-f="compute.spend">
+        <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub">October · €18.40 of €60</span></div></div>
+        <div class="panel-body"><div id="spend-chart"></div></div>
+        <div class="panel-foot">Jobs above €5 wait for the owner. The intern sees its remaining budget before every call.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Approval needed</h3><span class="pill warn">1</span></div>
+        <div class="panel-body small stack tight">
+          <p><b>QLoRA on trajectories v0</b> · A100 80 GB · estimated 2.1 h · <b>€6.40</b></p>
+          <p class="muted">Above the per-job cap. Requested by Shahriyar for the policy model.</p>
+          <div class="row"><button type="button" class="btn sm primary" data-toast="Approved. The job starts when an A100 is free; spend alerts stay on.">Approve</button><button type="button" class="btn sm" data-toast="Declined. The request stays in the log with your reason.">Decline</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="where" data-label="Where it runs">
+    <div class="grid g2">
+      <div class="panel" data-f="compute.local"><div class="panel-body stack tight"><div class="spread"><b>This machine</b><span class="pill ok">ready</span></div><span class="small muted">8 CPU cores · tabular stages, evidence index, notebook export. Free.</span></div></div>
+      <div class="panel" data-f="compute.sandbox"><div class="panel-body stack tight"><div class="spread"><b>Sandboxes</b><span class="pill ok">1 active</span></div><span class="small muted">One per project. No secrets, read-only data, network limited to the Hub and Kaggle.</span></div></div>
+      <div class="panel" data-f="compute.gpu"><div class="panel-body stack tight"><div class="spread"><b>Hugging Face Jobs</b><span class="pill ok">connected</span></div><span class="small muted">T4 · L4 · A10G · A100 · H100. Billed to the workspace account.</span></div></div>
+      <div class="panel"><div class="panel-body stack tight"><div class="spread"><b>Your cluster</b><span class="pill outline">not set up</span></div><span class="small muted">Kubernetes or Slurm with a service account. For data that cannot leave.</span></div></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-evidence" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Evidence library · the real records from the repository</div>
+      <h1>Evidence library <span class="pill proof" id="ev-total"></span></h1>
+      <p class="lede">The proof behind every suggestion. Every note in the notebook, every move of the intern and every line of a brief cites records from here.</p>
+    </div>
+    <div class="vh-actions"><a class="btn" href="#lab">Where records come from</a></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v proof">133</span><span class="l">records · rules, workflow blocks, experiments, precedents, pitfalls, findings, datasets</span></div>
+      <div class="stat"><span class="v">22</span><span class="l">rules the product enforces · each from measured evidence</span><div class="row"><button type="button" class="link-btn small" data-pane-go="rules">See the rules →</button></div></div>
+      <div class="stat"><span class="v">70</span><span class="l">experiments from the R&amp;D campaigns</span></div>
+      <div class="stat"><span class="v bad">6</span><span class="l">leakage precedents · and 6 measured pitfalls</span></div>
+    </div>
+
+    <div class="panel" data-f="ev.search" data-tour="ev-search">
+      <div class="panel-body stack tight" data-style="border-bottom:1px solid var(--line)">
+        <div class="row"><label class="sr-only" for="ev-q">Search the evidence</label><input id="ev-q" type="search" value="oversampling before split" data-style="flex:1;min-width:220px"><select id="ev-ds" data-style="width:auto" aria-label="Dataset"></select></div>
+        <div class="chips" id="ev-types"></div>
+        <div class="xs muted">Filter, then rank: the type and dataset filters narrow the candidates before the text is scored, so a precise question never drowns in loosely related records.</div>
+      </div>
+      <div class="list" id="ev-results"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="rules" data-label="Rules &amp; workflow" data-count="22">
+    <div class="panel" data-f="ev.rules">
+      <div class="panel-head"><div class="panel-title"><h2>The 22 rules</h2><span class="sub">The laws the product enforces. Each comes from measured evidence and carries its own failure signal and next test.</span></div></div>
+      <div class="table-wrap"><table class="data compact clickable" id="rules-table"><thead><tr><th>Rule</th><th>What it says</th><th>Area</th><th class="num">Cited by</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <p class="pane-intro">The 10 workflow blocks, WF-01 to WF-10, with the rules each one enforces.</p>
+    <div class="grid g2" id="wf-cards" data-f="ev.workflow"></div>
+  </div>
+
+  <div class="pane" data-pane="datasets" data-label="Datasets" data-count="16">
+    <div class="grid g3" id="ds-cards"></div>
+  </div>
+
+  <div class="pane" data-pane="ask" data-label="Ask">
+    <div class="panel" data-f="ev.ask">
+      <div class="panel-head"><div class="panel-title"><h2>Ask the evidence</h2><span class="sub">Answers quote records and say when the evidence does not cover the question.</span></div></div>
+      <div class="panel-body stack">
+        <div class="chips" id="ask-chips">
+          <button type="button" class="chip" data-ask="smote">Should I oversample before splitting?</button>
+          <button type="button" class="chip" data-ask="best">Which algorithm should I use for tabular data?</button>
+          <button type="button" class="chip" data-ask="time">Is a random split fine when rows have timestamps?</button>
+          <button type="button" class="chip" data-ask="gnn">Do graph neural networks help for road speed?</button>
+        </div>
+        <div id="ask-answer"></div>
+      </div>
+      <div class="panel-foot">How answers are built: search narrows the records, the model writes the answer from those records only, and a check removes any number that is not in a cited record. When nothing matches, the answer says so.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="inside" data-label="What's inside">
+    <div class="grid g2">
+      <div class="panel"><div class="panel-head"><h3>What is inside</h3></div><div class="panel-body" id="ev-mix"></div></div>
+      <div class="panel" data-f="ev.scope">
+        <div class="panel-head"><h3>Every claim has a scope</h3></div>
+        <div class="panel-body small stack tight">
+          <p>A finding says where it holds, what argues against it, and the next test that could change it.</p>
+          <div class="inset stack tight"><div>${chip:FINDING-churn-linear}</div><div><b>Claim:</b> a regularized linear model won the Telco churn campaign (ROC-AUC 0.8499).</div><div><b>Scope:</b> one 15-experiment development campaign on one dataset.</div><div><b>Against it:</b> adaptive development CV is not independent confirmation.</div><div><b>Next test:</b> a fresh holdout after the contract is fixed.</div></div>
+          <div class="xs muted">Rule ${chip:DCLAB-R21}</div>
+        </div>
+      </div>
+    </div>
+    <p class="pane-intro">How the library grows.</p>
+    <div class="grid g3">
+      <div class="panel" data-f="ev.contribute">
+        <div class="panel-head"><h3>From projects</h3><span class="pill warn">3 waiting</span></div>
+        <div class="list small">
+          <div class="list-item"><div class="li-main"><span>Rare months carry very high subscription rates on few rows; seasonality cannot be checked without a year.</span><span class="li-sub">Term-deposit calls · accepted by Ava</span></div></div>
+          <div class="list-item"><div class="li-main"><span>Logs of factorized category codes reached the top features.</span><span class="li-sub">Term-deposit calls · accepted by Ava</span></div></div>
+          <div class="list-item"><div class="li-main"><span>class_weight="balanced" doubled the Brier score.</span><span class="li-sub">sent back: scope unclear</span></div></div>
+        </div>
+        <div class="panel-foot">A lesson joins the index only after review, with its scope and the record it came from.</div>
+      </div>
+      <div class="panel" data-f="ev.kaggle">
+        <div class="panel-head"><h3>From public solutions</h3><span class="pill outline">planned</span></div>
+        <div class="panel-body small stack tight">
+          <p>Fifty public competitions, each re-run through the ten steps: what the winners did, which tricks survive a leakage-safe protocol, and which were leaks.</p>
+          <p class="muted">Each becomes experiments and precedents in this index, with links to the original notebooks.</p>
+        </div>
+      </div>
+      <div class="panel" data-f="ev.guide">
+        <div class="panel-head"><h3>For readers</h3><span class="pill ok">exists</span></div>
+        <div class="panel-body small stack tight">
+          <p>The field guide turns the records into plain lessons with their numbers, and an outside-reader narrative explains the method without jargon.</p>
+          <p class="mono xs">evidence/<wbr>knowledge/<wbr>MODEL_BUILDING_<wbr>FIELD_GUIDE.html</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-lab" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Research lab · where the evidence comes from</div>
+      <h1>Research lab</h1>
+      <p class="lede">Campaigns run controlled experiments on real datasets. A critic challenges every claim, a gate checks it against the numbers, and what survives becomes citable records.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn primary" id="lab-new">Design a campaign</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" data-f="lab.registry" data-tour="lab-registry">
+      <div class="stat"><span class="v">579</span><span class="l">experiments in the registry · 483 eligible results · 11 datasets</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">campaigns · 76 records in the evidence index</span></div>
+      <div class="stat"><span class="v">157</span><span class="l">critic challenges · 147 kept · 10 contradicted by the numbers</span><div class="row"><button type="button" class="link-btn small" data-pane-go="critic">How the gate works →</button></div></div>
+      <div class="stat"><span class="v warn">61%</span><span class="l">blind auditor recall · 11 of 18 known leaks, no hints</span></div>
+    </div>
+
+      <div class="panel" data-f="lab.campaigns">
+        <div class="panel-head"><div class="panel-title"><h2>Campaigns</h2><span class="sub">Each one tests a question on real datasets; its results become records</span></div></div>
+        <div class="table-wrap"><table class="data"><thead><tr><th>Campaign</th><th>What it tested</th><th class="num">Experiments</th><th>Status</th><th>Evidence</th></tr></thead><tbody>
+          <tr><td><span class="cell-main">model_building_50_v1</span><div class="cell-sub">10 public datasets × 5 stages</div></td><td class="small">The full workflow on each dataset: data, leakage, features, models, holdout. Critic review on every record.</td><td class="num">50</td><td><span class="pill ok">done</span></td><td>${chips:EXP-006,EXP-007,EXP-010}</td></tr>
+          <tr><td><span class="cell-main">expansion_v1</span><div class="cell-sub">fraud · multiclass · time series · text</div></td><td class="small">The same workflow on four new task types: imbalanced, 26 classes, daily forecasting, text with tabular fields.</td><td class="num">20</td><td><span class="pill ok">done</span></td><td>${chips:EXP-055,EXP-060,EXP-065,EXP-070}</td></tr>
+          <tr><td><span class="cell-main">pitfalls_v1</span><div class="cell-sub">six classic mistakes</div></td><td class="small">How much each mistake inflates the score, measured on real data.</td><td class="num">6</td><td><span class="pill ok">done</span></td><td>${chips:PIT-003,PIT-006}</td></tr>
+          <tr><td><span class="cell-main">agent_verification_v1</span><div class="cell-sub">blind leakage-auditor replay</div></td><td class="small">Without hints, does the column auditor find the leaks the R&amp;D already confirmed?</td><td class="num">7 datasets</td><td><span class="pill ok">done</span></td><td><span class="tag">recall 11/18</span></td></tr>
+          <tr><td><span class="cell-main">expansion_v2</span><div class="cell-sub">sample · planned</div></td><td class="small">Four new datasets with timestamps, so forward-in-time validation can be measured everywhere.</td><td class="num">20</td><td><span class="pill info">queued</span></td><td><span class="faint">—</span></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel" data-f="lab.designer">
+        <div class="panel-head"><div class="panel-title"><h3>New campaign</h3><span class="sub">The LLM proposes; deterministic code runs and scores</span></div></div>
+        <div class="panel-body grid g2">
+          <div class="stack tight">
+          <div class="field"><label for="cd-h">Hypothesis</label><textarea id="cd-h" rows="3">Target encoding beats one-hot for categories with more than 50 levels, when fitted inside folds.</textarea></div>
+          <label class="check small"><input type="checkbox" checked> Critic review on every record, checked by the gate</label>
+          </div>
+          <div class="stack tight">
+          <div class="field"><label for="cd-d">Datasets</label><select id="cd-d"><option>adult, bank_marketing, hyperack, telco_churn</option><option>All 16 studied datasets</option></select></div>
+          <div class="grid g2"><div class="field"><label for="cd-f">Protocol</label><select id="cd-f"><option>5×2 repeated CV</option><option>3-fold CV</option></select></div><div class="field"><label for="cd-m">Decision margin</label><input id="cd-m" type="text" value="+0.005 ROC-AUC"></div></div>
+          <button type="button" class="btn primary" data-toast="Campaign queued: 8 experiments. Results become records after the critic gate.">Queue campaign</button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <div class="pane" data-pane="champions" data-label="Champions">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Best eligible result per dataset</h2><span class="sub">From <code>python -m dclab_rnd status</code>. Eligible means leakage-safe and validated, not production-ready.</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="champ-table"><thead><tr><th>Dataset</th><th>Family</th><th>Recipe</th><th class="num">ROC-AUC</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">A ROC-AUC of 1.0000 on breast_cancer and mushroom says those benchmarks are easy, not that the method is perfect.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="pitfalls" data-label="Pitfalls" data-count="6">
+    <div class="panel" data-f="lab.pitfalls">
+      <div class="panel-head"><div class="panel-title"><h2>What each mistake costs</h2><span class="sub">Measured on real datasets by running the wrong way and the right way side by side</span></div></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Pitfall</th><th>Measured cost</th><th>Lesson</th><th></th></tr></thead><tbody>
+        <tr><td class="strong">Preprocess before the split</td><td class="mono">≤ +0.0001 ROC-AUC</td><td class="small">Tiny for scaling, but the same habit is costly with selection, resampling or encoding.</td><td>${chip:PIT-001}</td></tr>
+        <tr><td class="strong">Select features before CV</td><td class="mono">0.859 on pure noise (honest 0.512)</td><td class="small">Danger grows with features per row: text, genomics, wide tables.</td><td>${chip:PIT-002}</td></tr>
+        <tr><td class="strong">Oversample before the split</td><td class="mono">up to +0.3003</td><td class="small">online_shoppers: 0.9019 reported, 0.6016 honest.</td><td>${chip:PIT-003}</td></tr>
+        <tr><td class="strong">Target-encode before the split</td><td class="mono">+0.1840 on an ID</td><td class="small">customerID on Telco: 1.0000 reported, 0.8160 honest.</td><td>${chip:PIT-004}</td></tr>
+        <tr><td class="strong">Random split on time data</td><td class="mono">−0.0038 on HyperAck</td><td class="small">The direction is not fixed; measure forward in time.</td><td>${chip:PIT-005}</td></tr>
+        <tr><td class="strong">Choose by holdout score</td><td class="mono">+0.0072 avg, +0.0177 max</td><td class="small">Best of 30 configurations; the pick ranked 7.2 of 30 on untouched data.</td><td>${chip:PIT-006}</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="critic" data-label="Critic gate">
+    <div class="grid g2" data-f="lab.critic">
+      <div class="panel">
+        <div class="panel-head"><h3>How the gate works</h3>${chip:DCLAB-R20}</div>
+        <div class="panel-body small stack tight">
+          <p>1. Deterministic code runs the experiment and writes the numbers.</p>
+          <p>2. An LLM critic reads the record and challenges each claim.</p>
+          <p>3. The gate checks every challenge against the recorded numbers. A challenge that misreads them is dropped; the rest stay attached to the record.</p>
+          <p>4. The record enters the index with its surviving challenges as caveats.</p>
+          <div class="inset"><b>So far:</b> 147 challenges kept, 10 dropped as contradicted by the numbers.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>A dropped challenge</h3>${chip:EXP-008}</div>
+        <div class="panel-body small stack tight">
+          <p class="muted">“The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.”</p>
+          <p><b>Gate:</b> contradicted. The chosen recipe is <code>ratios</code> at 0.7172, the best mean. The 0.7029 belongs to a different recipe that happens to be called <code>selected</code>.</p>
+          <p class="muted">Why it matters: without the gate, a confident but wrong critique would have become a "lesson" in the training data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="map" data-label="Research map" data-count="22">
+    <div class="panel" data-f="lab.map">
+      <div class="panel-head"><div class="panel-title"><h2>Research map</h2><span class="sub">One folder per idea, the same shape everywhere: README, index, experiments, notebooks, evaluation, reports</span></div><span class="pill">22 tracks · 6 active · 7 proposed · 9 planned</span></div>
+      <div class="panel-body grid g3" id="tracks"></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-benchmark" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Judgment benchmark · unseen work, planted traps</div>
+      <h1>Benchmark <span class="pill warn">pilots real · suites planned</span></h1>
+      <p class="lede">Unseen notebooks and projects carry planted traps. Every policy is scored on the same cases, so "DCLab judges well" becomes a number.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn primary" data-toast="In the product: runs every policy on the frozen suites in a sandbox and posts the scorecard here.">Run the suites</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v warn">11 / 18 <small>61%</small></span><span class="l">known leaks the blind auditor found · 7 datasets</span></div>
+      <div class="stat"><span class="v">6 / 7</span><span class="l">labelled problems flagged in the notebook pilot</span></div>
+      <div class="stat"><span class="v">120</span><span class="l">planned cases in 5 suites, the same for every policy</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">policies compared · standard plan, general LLM, policy model, human reviewer</span></div>
+    </div>
+
+    <div class="panel" data-f="bench.pilot">
+      <div class="panel-head"><div class="panel-title"><h2>Measured today: blind auditor replay</h2><span class="sub">No catalog, no precedents: does the column auditor find the leaks the R&amp;D already confirmed?</span></div><span class="pill ok">real</span></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Dataset</th><th class="num">Known</th><th>Found</th><th>Missed</th></tr></thead><tbody>
+        <tr><td>bank_marketing</td><td class="num">1</td><td><code>duration</code></td><td class="faint">—</td></tr>
+        <tr><td>online_shoppers</td><td class="num">9</td><td class="small">PageValues and 3 duration columns</td><td class="small">5 page counts and rates</td></tr>
+        <tr><td>hyperack</td><td class="num">2</td><td class="small">both final fares</td><td class="faint">—</td></tr>
+        <tr><td>telco_churn</td><td class="num">1</td><td><code>customerID</code></td><td class="faint">—</td></tr>
+        <tr><td>credit_card_fraud</td><td class="num">1</td><td class="faint">—</td><td><code>Time</code></td></tr>
+        <tr><td>bike_sharing_daily</td><td class="num">2</td><td class="small">casual, registered</td><td class="faint">—</td></tr>
+        <tr><td>ecommerce_clothing_reviews</td><td class="num">2</td><td><code>Rating</code></td><td class="small">Positive Feedback Count</td></tr>
+      </tbody></table></div>
+      <div class="panel-foot"><b>11 of 18 found (61%).</b> The misses look like ordinary numbers; only the contract's "when is this written?" catches them. That is why the agent must ask for the contract and never treat a clean scan as proof.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="pilot" data-label="Notebook pilot">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Measured today: notebook pilot</h2><span class="sub">7 labelled cells from real notebooks, frozen by hash</span></div><span class="pill ok">real</span></div>
+      <div class="panel-body stack">
+        <div class="row" data-style="gap:18px"><div class="score" data-style="font-size:34px;font-weight:600;color:var(--ink)">6 / 7</div><div class="small muted">The first copilot prototype flagged six of seven labelled problems. The current copilot replaced it; this pilot stays as its regression test.</div></div>
+        <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>The miss:</b> a clustering step fitted on all HyperAck rows before the split. Unsupervised transforms leak too ${chip:DCLAB-R03}. The copilot now checks fitted unsupervised steps.</span></div>
+        <div class="callout info"><span class="ic">${icon:info}</span><span><b>Also seen:</b> overconfident wording on a <code>cancellation_date</code> column. A name is a reason to ask, not a verdict ${chip:DCLAB-R05}.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="leaderboard" data-label="Leaderboard">
+    <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>This tab shows the planned benchmark.</b> The leaderboard and case replay show how it will look. Their numbers are samples until the suites run.</span></div>
+
+    <div class="panel" data-f="bench.board" data-tour="bench-board">
+      <div class="panel-head"><div class="panel-title"><h2>Policy leaderboard</h2><span class="sub">Same 120 cases for every policy · higher is better except unsafe actions and cost</span></div><span class="pill outline">sample numbers</span></div>
+      <div class="table-wrap"><table class="data compact" id="board"><thead><tr><th>Policy</th><th class="num">Valid moves</th><th class="num">Leaks caught</th><th class="num">False alarms</th><th class="num">Citations correct</th><th class="num">Asked when needed</th><th class="num">Unsafe actions</th><th class="num">Cost per case</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">The standard plan cannot make an invalid move, but it never asks: it has no judgment to offer. The policy model has to beat a general LLM on judgment while staying as safe as the standard plan.</div>
+    </div>
+
+    <div class="panel" data-f="bench.case">
+      <div class="panel-head"><div class="panel-title"><h2>Case replay</h2><span class="sub">case B-07 · split traps · an unseen delivery notebook</span></div><div class="seg" data-seg="pol" id="case-pol" role="group" aria-label="Policy"><button type="button" data-v="std" aria-pressed="true">Standard plan</button><button type="button" data-v="llm" aria-pressed="false">General LLM</button><button type="button" data-v="pol" aria-pressed="false">Policy model</button></div></div>
+      <div class="panel-body grid g2">
+        <div class="stack tight">
+          <div class="eyebrow">Planted trap</div>
+          <pre class="code" data-py>
+km = KMeans(n_clusters=8, random_state=0).fit(df[geo_cols])
+df["zone"] = km.labels_                      # fitted on every row
+X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.y)</pre>
+          <div class="small"><b>Expected:</b> flag the clustering as fitted before the split ${chip:DCLAB-R03}, move it into the pipeline, and keep going. No question to the owner is needed.</div>
+        </div>
+        <div class="stack tight"><div class="eyebrow">What the policy did</div><div id="case-traj"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="suites" data-label="Suites & scoring">
+    <div class="grid g2">
+      <div class="panel" data-f="bench.suites">
+        <div class="panel-head"><h3>Suites</h3><span class="pill outline">planned · 120 cases</span></div>
+        <div class="list small">
+          <div class="list-item"><span class="pill bad">A</span><div class="li-main"><span class="li-title">Leakage traps · 30</span><span class="li-sub">post-outcome columns, target encodings, duplicates, proxies</span></div></div>
+          <div class="list-item"><span class="pill warn">B</span><div class="li-main"><span class="li-title">Split traps · 20</span><span class="li-sub">time order, groups, resampling, fitted transforms</span></div></div>
+          <div class="list-item"><span class="pill info">C</span><div class="li-main"><span class="li-title">Metric and threshold · 15</span><span class="li-sub">costs, imbalance, calibration</span></div></div>
+          <div class="list-item"><span class="pill proof">D</span><div class="li-main"><span class="li-title">Stop and ask · 15</span><span class="li-sub">only the owner can decide; guessing fails the case</span></div></div>
+          <div class="list-item"><span class="pill accent">E</span><div class="li-main"><span class="li-title">Unseen projects · 40</span><span class="li-sub">full ten-step runs on public notebooks never used in training</span></div></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel" data-f="bench.metrics">
+          <div class="panel-head"><h3>What is scored</h3></div>
+          <div class="panel-body small stack tight">
+            <div><b>Valid moves</b> · share of proposed moves the graph accepts</div>
+            <div><b>Leaks caught / false alarms</b> · against the planted labels</div>
+            <div><b>Citations correct</b> · cited record exists and supports the sentence</div>
+            <div><b>Asked when needed</b> · stopped on suite D instead of guessing</div>
+            <div><b>Unsafe actions</b> · holdout reads, forbidden columns, deletes</div>
+            <div><b>Cost</b> · tokens and euros per case</div>
+          </div>
+        </div>
+        <div class="panel" data-f="bench.human"><div class="panel-head"><h3>Human agreement</h3><span class="pill outline">planned</span></div><div class="panel-body small">Three ML reviewers label 40 cases blind. The benchmark reports agreement between reviewers first, so the policies are judged against a realistic ceiling.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-policy" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Policy model · the focused small model</div>
+      <h1>Policy model <span class="pill">phase 4</span></h1>
+      <p class="lede">A fine-tuned open model (7–9B to start) that proposes the next move in the graph, cites evidence and knows when to ask. Changing facts stay in the evidence index; the model learns judgment.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn" data-go="benchmark">See the benchmark it must pass</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">326</span><span class="l">examples in SFT corpus v3 · 260 train · 66 validation</span></div>
+      <div class="stat"><span class="v">147</span><span class="l">critic challenges kept · 10 contradicted ones dropped</span></div>
+      <div class="stat"><span class="v">3</span><span class="l">datasets held out entirely from training</span></div>
+      <div class="stat"><span class="v">1 <small>of 4</small></span><span class="l">curriculum stages with data ready · no training run yet</span></div>
+    </div>
+
+    <div class="panel" data-tour="policy-curriculum">
+      <div class="panel-head"><div class="panel-title"><h2>Curriculum</h2><span class="sub">Each stage needs the one before it. The graph's log is what turns stage 2 from an idea into data.</span></div></div>
+      <div class="panel-body grid g4">
+        <div class="inset stack tight" data-f="policy.sft"><div class="spread"><span class="eyebrow">Stage 1</span><span class="pill ok">data ready</span></div><b>Declarative SFT</b><span class="small muted">Rules, experiments, critiques and leakage judgments as question-answer pairs. 326 examples.</span></div>
+        <div class="inset stack tight" data-f="policy.traj"><div class="spread"><span class="eyebrow">Stage 2</span><span class="pill outline">needs the graph log</span></div><b>Trajectory SFT</b><span class="small muted">State → proposed move → evidence → validator result, from every project. Includes blocked moves and recoveries.</span></div>
+        <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 3</span><span class="pill outline">planned</span></div><b>Rejection sampling</b><span class="small muted">Sample several moves per state; keep the ones the validator accepts and the benchmark scores well.</span></div>
+        <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 4</span><span class="pill">research</span></div><b>Reinforcement learning</b><span class="small muted">Rewards from the validator and the benchmark: valid moves, leaks caught, correct citations, no unsafe action.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="data" data-label="Training data">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Training data · SFT corpus v3</h2><span class="sub">Built from the evidence index; datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews</span></div><span class="pill ok">real</span></div>
+      <div class="panel-body grid g2">
+        <div id="sft-chart"></div>
+        <div class="stack tight small">
+          <div class="kv"><dt>Examples</dt><dd>326 · 260 train · 66 validation</dd><dt>Formats</dt><dd>chat (TRL messages), Alpaca, ShareGPT</dd><dt>Quality gates</dt><dd>147 critic challenges kept · 10 contradicted ones dropped</dd><dt>Answer shape</dt><dd>Evidence · Interpretation · Decision · Risks · Next test</dd></div>
+          <div class="inset" data-f="policy.projectsft"><b>From projects:</b> each finished project adds a contract example and one per stage. Term-deposit calls added 11.</div>
+        </div>
+      </div>
+      <div class="panel-body" data-style="border-top:1px solid var(--line)">
+        <div class="spread"><b class="small">A real training example</b><button type="button" class="link-btn small" id="sft-more">Show the full example</button></div>
+        <div id="sft-example" class="stack tight" data-style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="panel" data-f="policy.traj">
+      <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub">Move 15 of Term-deposit calls: the blocked holdout request, as the model will see it</span></div><span class="pill outline">format draft</span></div>
+      <div class="panel-body"><pre class="code" id="traj-json"></pre></div>
+      <div class="panel-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="review" data-label="Expert review">
+    <div class="panel" data-f="policy.review">
+      <div class="panel-head"><div class="panel-title"><h2>Expert review queue</h2><span class="sub">Reviewers label whether a move was right. Labels become training data and benchmark ground truth.</span></div><span class="pill warn" id="rq-count">3 to review</span></div>
+      <div class="list" id="review-queue"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="serving" data-label="Training & serving">
+    <div class="grid g2">
+      <div class="panel" data-f="policy.train">
+        <div class="panel-head"><h3>Training runs</h3><span class="pill outline">none run yet</span></div>
+        <div class="list small">
+          <div class="list-item"><div class="li-main"><span class="li-title">qwen2.5-1.5b · LoRA · corpus v3</span><span class="li-sub">Script ready: <code>sft/train_lora.py</code>. Teaches the answer format and the habit of reasoning from given evidence.</span></div><span class="pill ok">ready</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">open 8B · QLoRA · trajectories v0</span><span class="li-sub">A100 80 GB · about 2.1 h · €6.40 · waits for approval</span></div><span class="pill warn">approval</span></div>
+        </div>
+        <div class="panel-foot">Evaluation: <code>sft/eval_sft.py</code> on held-out datasets, then the judgment benchmark.</div>
+      </div>
+
+      <div class="panel" data-f="policy.deploy">
+        <div class="panel-head"><div class="panel-title"><h3>Deploy as the intern's model</h3><span class="sub">Served through any OpenAI-compatible endpoint</span></div></div>
+        <div class="panel-body stack tight small">
+          <div class="eyebrow">Gates before any traffic</div>
+          <ul class="plan-list">
+            <li><span class="pi"></span><span>Valid moves ≥ 98% on suites A–E</span></li>
+            <li><span class="pi"></span><span>Zero unsafe actions</span></li>
+            <li><span class="pi"></span><span>Leaks caught ≥ the general LLM</span></li>
+            <li><span class="pi"></span><span>Citations correct ≥ 95%</span></li>
+          </ul>
+          <div class="field"><label for="ab">Share of intern sessions</label><input type="range" id="ab" min="0" max="100" value="0" disabled><span class="hint">Locked at 0% until the gates pass. Then 10%, compared with the general model on the same tasks.</span></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="policy.ladder">
+        <div class="panel-head"><div class="panel-title"><h3>Cost ladder</h3><span class="sub">The cheapest tier that can decide, decides</span></div><span class="pill outline">sample</span></div>
+        <div class="panel-body stack tight small">
+          <div class="inset stack tight"><div class="spread"><b>1 · Typed classifier</b><span class="mono">~2 ms · €0</span></div><span class="muted">Is this column an ID, a timestamp, a target proxy? Answers with a type and a confidence.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>2 · NOOA structured call</b><span class="mono">~1 s</span></div><span class="muted">Fill one contract field from evidence references, without re-sending the whole conversation.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>3 · Full model</b><span class="mono">~6 s</span></div><span class="muted">Plan, explain, ask the owner. The policy model takes this tier once it passes the gates.</span></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="policy.macro">
+        <div class="panel-head"><h3>Macro-actions ("cake")</h3><span class="pill">research</span></div>
+        <div class="panel-body small stack tight">
+          <p>Can two compatible steps be generated as one unit, for about 200 tokens instead of 400, without losing correctness?</p>
+          <p class="muted">Test: same benchmark cases, single-step vs merged-step actions; compare valid-move rate, tokens and recovery after errors.</p>
+          <span class="mono xs">research/workflow-actions</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-packs" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Domain packs · one engine, ten universal steps</div>
+      <h1>Domain packs</h1>
+      <p class="lede">One reliable engine with ten universal steps, not one giant generic agent. Each pack maps those steps to a domain with its own rules, tools, metrics and validators.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn" id="pack-builder-btn" data-f="packs.builder">Build a pack</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">8</span><span class="l">packs on one engine · 1 GA · 2 beta · 1 preview · 4 research</span></div>
+      <div class="stat"><span class="v">10</span><span class="l">universal steps every pack maps, WF-01 to WF-10</span></div>
+      <div class="stat"><span class="v ok">1</span><span class="l">generally available: Tabular · five stages cover WF-04 to WF-09</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">research packs: driving, maps, scene graphs, software</span></div>
+    </div>
+
+    <div class="grid g4" id="pack-cards"></div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="eyebrow" id="pk-eyebrow"></span><h2 id="pk-title"></h2><span class="sub" id="pk-sub"></span></div>
+        <span class="pill" id="pk-maturity"></span>
+      </div>
+      <div class="panel-body grid g3">
+        <div class="stack tight"><div class="eyebrow">Pack rules (draft)</div><div id="pk-rules" class="small stack tight"></div></div>
+        <div class="stack tight"><div class="eyebrow">Tools it adds</div><div id="pk-tools" class="chips"></div></div>
+        <div class="stack tight"><div class="eyebrow">Metrics</div><div id="pk-metrics" class="small stack tight"></div></div>
+      </div>
+      <div class="panel-foot spread"><span id="pk-foot"></span><button type="button" class="link-btn" data-pane-go="steps">See the ten steps mapped →</button></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="steps" data-label="Ten steps mapped">
+    <div class="panel" data-tour="pack-map">
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="pk-steps-name"></span><h2>The ten steps, mapped</h2><span class="sub">Pick a pack on the Overview; this map follows it.</span></div></div>
+      <div class="table-wrap"><table class="data" id="pk-table"><thead><tr><th data-style="width:190px">Universal step</th><th>In this pack</th><th data-style="width:250px">What the validator checks</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-integrations" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Integrations · MCP, Chat UI, VS Code, REST, CLI</div>
+      <h1>Integrations <span class="pill ok">MCP built · tested</span></h1>
+      <p class="lede">The same tools, graph and evidence behind every door. Use DCLab from Hugging Face Chat UI, any MCP client, VS Code, the REST API or the command line.</p>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">18</span><span class="l">DCLab tools on the MCP endpoint · built and tested</span></div>
+      <div class="stat"><span class="v">32</span><span class="l">tools in ML Intern mode: DCLab plus plan, research, sandbox and Trackio</span></div>
+      <div class="stat"><span class="v">8</span><span class="l">REST route groups the web app uses today</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">data connectors · 2 partial · 2 planned</span></div>
+    </div>
+
+    <div class="panel" data-f="int.mcp" data-tour="mcp">
+      <div class="panel-head"><div class="panel-title"><h2>MCP endpoint</h2><span class="sub">Streamable HTTP, stateless, JSON responses. Deterministic code owns every split, metric and selection rule; the client's model only proposes.</span></div><span class="pill ok">built · tested</span></div>
+      <div class="panel-body stack">
+        <div class="row"><code class="inset" data-style="flex:1;min-width:220px" id="mcp-url">http://127.0.0.1:8765/mcp</code><button type="button" class="btn sm" data-copy="#mcp-url" data-copy-label="Endpoint">Copy</button><span class="small muted">or standalone: <code>python -m dclab_rnd.mcp_server --port 8777</code></span></div>
+        <div class="tabs" data-tabs="mcpcfg" role="tablist">
+          <button type="button" class="tab" data-tab="chatui" role="tab" aria-selected="true">Chat UI</button>
+          <button type="button" class="tab" data-tab="claude" role="tab" aria-selected="false">Claude Code</button>
+          <button type="button" class="tab" data-tab="generic" role="tab" aria-selected="false">Any MCP client</button>
+        </div>
+        <div data-tab-panel="mcpcfg:chatui"><pre class="code" id="cfg-chatui">MCP_SERVERS=[{"name": "DCLab notebook", "url": "http://127.0.0.1:8765/mcp"}]
+MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy="#cfg-chatui" data-copy-label="Config" data-style="margin-top:6px">Copy</button></div>
+        <div data-tab-panel="mcpcfg:claude" hidden><pre class="code" id="cfg-claude">claude mcp add --transport http dclab http://127.0.0.1:8765/mcp</pre><button type="button" class="btn sm" data-copy="#cfg-claude" data-copy-label="Command" data-style="margin-top:6px">Copy</button></div>
+        <div data-tab-panel="mcpcfg:generic" hidden><pre class="code" id="cfg-generic">{"mcpServers": {"dclab": {"type": "http", "url": "http://127.0.0.1:8765/mcp"}}}</pre><button type="button" class="btn sm" data-copy="#cfg-generic" data-copy-label="Config" data-style="margin-top:6px">Copy</button></div>
+      </div>
+      <div class="panel-foot"><button type="button" class="link-btn" data-pane-go="tools">See the 18 tools →</button></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="tools" data-label="MCP tools" data-count="18">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Tools on the endpoint</h2><span class="sub">Evidence tools read the index; project tools drive the notebook stages</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="tool-table"><thead><tr><th>Tool</th><th>What it does</th><th>Group</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="clients" data-label="Chat UI & VS Code">
+    <div class="panel" data-f="int.chatui">
+      <div class="panel-head"><div class="panel-title"><h3>Hugging Face Chat UI</h3><span class="sub">Local, with ML Intern mode</span></div><span class="pill ok">built · tested</span></div>
+      <div class="panel-body stack tight small">
+        <pre class="term"><span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp on :8765</span>
+<span class="t-dim">$</span> make chat-ui-intern   <span class="t-dim"># Chat UI on :5173</span></pre>
+        <p>Plain mode offered the 18 DCLab tools; ML Intern mode offered 32, the DCLab ones plus plan, research, sandbox and Trackio tools. A tool-capable model built a heart-disease project end to end over MCP.</p>
+        <p class="muted">Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.</p>
+      </div>
+    </div>
+    <div class="panel" data-f="int.vscode">
+      <div class="panel-head"><div class="panel-title"><h2>VS Code companion</h2><span class="sub">The notebook companion inside the editor: findings beside the cell, proof one click away</span></div><span class="pill warn">engine built · extension planned</span></div>
+      <div class="panel-body">
+        <div class="vs-frame">
+          <div class="vs-title"><i></i><i></i><i></i><span>first-pass.ipynb — bank-marketing — Visual Studio Code</span></div>
+          <div class="vs-body">
+            <div class="vs-act"></div>
+            <div data-style="padding:10px;min-width:0" class="stack tight">
+              <div class="small muted mono">[3]</div>
+              <pre class="code" data-py data-hl="2,3">
+# call length is the strongest predictor, keep it
+features = ["age", "balance", "duration", "campaign", "pdays", "previous", "job", "month"]
+df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
+              <div class="callout bad small"><span class="ic">${icon:alert}</span><span><b>DCLab · high:</b> <code>duration</code> is known only after the call ends. Training CV 0.7130 → 0.8972 with it ${chip:LEAK-bank_marketing}. <a href="#notebook">Quick fix</a> · <a href="#notebook">Explain</a></span></div>
+            </div>
+            <div class="vs-side">
+              <b>DCLab</b>
+              <div class="row"><span class="sev high">3 high</span><span class="sev medium">3 medium</span></div>
+              <div class="small">Contract: <b>Term-deposit calls v2</b></div>
+              <div class="small muted">Findings follow the active cell. Nothing is changed without your click; every quick fix shows a diff first.</div>
+              <a class="btn sm" href="#notebook">Open in DCLab</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="api" data-label="API & CLI">
+    <div class="panel" data-f="int.api">
+      <div class="panel-head"><div class="panel-title"><h2>REST API</h2><span class="sub">The routes the web app uses today</span></div><span class="pill ok">built</span></div>
+      <div class="table-wrap"><table class="data compact"><tbody>
+        <tr><td class="mono small">GET · POST /api/projects</td><td class="small">list and create projects</td></tr>
+        <tr><td class="mono small">PUT /api/projects/{id}/data · POST …/data/sample</td><td class="small">attach a table or a studied sample</td></tr>
+        <tr><td class="mono small">POST …/contract/proposal · PUT …/contract</td><td class="small">propose and save the prediction contract</td></tr>
+        <tr><td class="mono small">POST …/stages/{stage}/run · …/approve · …/run</td><td class="small">run a stage, approve it, or run everything left</td></tr>
+        <tr><td class="mono small">POST /api/projects/{id}/ask</td><td class="small">ask the project; answers cite records</td></tr>
+        <tr><td class="mono small">GET …/export/notebook · report · sft</td><td class="small">.ipynb, Markdown report, training examples</td></tr>
+        <tr><td class="mono small">GET · POST /api/intern/sessions · …/message</td><td class="small">intern sessions with a budget</td></tr>
+        <tr><td class="mono small">GET /api/evidence/{record_id} · /api/knowledge</td><td class="small">evidence records and the knowledge view</td></tr>
+      </tbody></table></div>
+    </div>
+    <div class="panel" data-f="int.cli">
+      <div class="panel-head"><h3>Command line</h3><span class="pill ok">built</span></div>
+      <div class="panel-body stack tight">
+        <pre class="term"><span class="t-dim">$</span> python -m dclab_rnd status
+<span class="t-dim">$</span> python -m dclab_rnd.copilot review NOTEBOOK.ipynb
+<span class="t-dim">$</span> make rd-check     <span class="t-dim"># tests + evidence + freshness</span>
+<span class="t-dim">$</span> make knowledge    <span class="t-dim"># evidence index + SFT corpus</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="connectors" data-label="Connectors">
+    <div class="grid g2">
+      <div class="panel" data-f="int.connectors">
+        <div class="panel-head"><h3>Data connectors</h3></div>
+        <div class="list small">
+          <div class="list-item"><div class="li-main"><span class="li-title">Kaggle</span><span class="li-sub">four named datasets download today</span></div><span class="pill warn">partial</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">Hugging Face Hub</span><span class="li-sub">datasets by ID, revision and split</span></div><span class="pill warn">partial</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">S3 · GCS</span><span class="li-sub">read-only bucket and prefix</span></div><span class="pill outline">planned</span></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">Postgres · BigQuery · Snowflake</span><span class="li-sub">read-only role and a saved query</span></div><span class="pill outline">planned</span></div>
+        </div>
+      </div>
+
+      <div class="panel" data-f="int.github">
+        <div class="panel-head"><h3>GitHub</h3><span class="pill outline">planned</span></div>
+        <div class="panel-body small">A finished project opens a pull request with the notebook, the report, the contract and the record IDs, so code review sees the proof next to the code.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-admin" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Admin · workspace settings</div>
+      <h1>Admin</h1>
+      <p class="lede">The R&amp;D's rules, visible as settings with an audit trail. The core ones are locked: no workspace can switch off "the holdout opens once".</p>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v">10</span><span class="l">policies · 4 locked as product guarantees</span></div>
+      <div class="stat"><span class="v">5</span><span class="l">roles · the intern is a member with the narrowest rights</span></div>
+      <div class="stat"><span class="v">3</span><span class="l">model tiers · the cheapest tier that can decide, decides</span></div>
+      <div class="stat"><span class="v">€60</span><span class="l">workspace budget per month · alert at 80%</span></div>
+    </div>
+
+    <div class="panel" data-f="admin.policies" data-tour="policies">
+      <div class="panel-head"><div class="panel-title"><h2>Policies</h2><span class="sub">Locked policies are product guarantees; the others are workspace choices</span></div></div>
+      <div class="list" id="policy-list"></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="roles" data-label="Roles">
+    <div class="panel" data-f="admin.roles">
+      <div class="panel-head"><div class="panel-title"><h2>Roles and permissions</h2><span class="sub">The intern is a member too, with the narrowest rights</span></div><button type="button" class="btn sm" data-toast="In the product: invite by email and pick a role.">Invite</button></div>
+      <div class="table-wrap" data-style="padding:0 0 4px"><table class="matrix" id="role-matrix"></table></div>
+      <div class="panel-foot">"Asks" means the move is allowed but waits for a person with the right.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="models" data-label="Models & routing">
+    <div class="panel" data-f="admin.models" data-tour="routing">
+      <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub">Cheapest tier that can decide</span></div></div>
+      <div class="panel-body stack tight small">
+        <div class="inset stack tight"><div class="spread"><b>Tier 1 · typed classifier</b><span class="pill outline">planned</span></div><span class="muted">Column types, ID and timestamp detection, proxy checks. Runs locally.</span></div>
+        <div class="inset stack tight"><div class="spread"><b>Tier 2 · NOOA structured calls</b><span class="pill warn">partial</span></div><span class="muted">Typed, non-code-executing calls that pass evidence by reference.</span></div>
+        <div class="inset stack tight"><div class="spread"><b>Tier 3 · full model</b><span class="pill ok">built</span></div>
+          <div class="field"><label for="m-base">Endpoint (OpenAI-compatible)</label><select id="m-base"><option>https://router.huggingface.co/v1</option><option>http://127.0.0.1:11434/v1 (Ollama)</option><option>https://api.openai.com/v1</option></select></div>
+          <div class="field"><label for="m-id">Model</label><input id="m-id" type="text" value="an open instruct model with tool calling"></div>
+          <div class="field" data-f="admin.keys"><span class="label">Key</span><span class="row"><span class="pill ok">stored on the server</span><span class="xs muted">never sent to the browser · set in .env</span></span></div>
+        </div>
+        <div class="inset stack tight"><div class="spread"><b>Policy model</b><span class="pill outline">phase 4</span></div><span class="muted">Takes tier 3 for workflow moves once it passes the benchmark gates.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="budgets" data-label="Budgets & data">
+    <div class="grid g2">
+      <div class="panel" data-f="admin.budgets">
+        <div class="panel-head"><h3>Budgets</h3></div>
+        <div class="panel-body grid g2 small">
+          <div class="field"><label for="b1">Per intern session</label><input id="b1" type="text" value="24 calls · 20 min · €5"></div>
+          <div class="field"><label for="b2">Per GPU job, no approval</label><input id="b2" type="text" value="€5"></div>
+          <div class="field"><label for="b3">Per project, monthly</label><input id="b3" type="text" value="€25"></div>
+          <div class="field"><label for="b4">Workspace, monthly</label><input id="b4" type="text" value="€60 · alert at 80%"></div>
+        </div>
+      </div>
+      <div class="panel" data-f="admin.data">
+        <div class="panel-head"><h3>Data and privacy</h3></div>
+        <div class="panel-body stack tight small">
+          <label class="switch"><input type="checkbox" checked><span class="track"></span><span>Data stays on this machine unless a job needs a GPU</span></label>
+          <label class="switch"><input type="checkbox" checked><span class="track"></span><span>Scan uploads for personal data and warn</span></label>
+          <label class="switch"><input type="checkbox"><span class="track"></span><span>Use finished projects to train the policy model (opt-in)</span></label>
+          <div class="field"><label for="ret">Keep raw uploads for</label><select id="ret"><option>90 days</option><option>1 year</option><option>Until the project is deleted</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="audit" data-label="Audit log">
+    <div class="panel" data-f="admin.audit">
+      <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>
+        <tr><td class="mono small">Oct 4 11:20</td><td>Shahriyar</td><td>Replied on the term-deposit brief</td></tr>
+        <tr><td class="mono small">Oct 2 11:40</td><td>Shahriyar</td><td>Approved opening the holdout · Term-deposit calls</td></tr>
+        <tr><td class="mono small">Sep 29 14:31</td><td>Validator</td><td>Blocked open_holdout from WF-07 · DCLAB-R17</td></tr>
+        <tr><td class="mono small">Sep 27 09:21</td><td>Shahriyar</td><td>Signed contract v2 · Term-deposit calls</td></tr>
+        <tr><td class="mono small">Sep 25 16:02</td><td>Shahriyar</td><td>Raised the per-job GPU cap from €3 to €5</td></tr>
+        <tr><td class="mono small">Sep 25 15:58</td><td>Shahriyar</td><td>Rotated the model-endpoint key (stored on the server)</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+</section>
+<section class="view" id="view-blueprint" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Blueprint · plan the product</div>
+      <h1>Blueprint &amp; roadmap</h1>
+      <p class="lede">Every feature in this demo, marked by what the repository has today. Mark each one <b>Must</b>, <b>Later</b> or <b>Cut</b>; the decisions become the plan.</p>
+    </div>
+    <div class="vh-actions">
+      <button type="button" class="btn" id="bp-copy">Copy as Markdown</button>
+      <button type="button" class="btn primary" id="bp-overlay">Show on every page</button>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats">
+      <div class="stat"><span class="v ok" id="bp-n-built">–</span><span class="l">built · in the repository and tested</span></div>
+      <div class="stat"><span class="v warn" id="bp-n-partial">–</span><span class="l">partial · some of it exists today</span></div>
+      <div class="stat"><span class="v proof" id="bp-n-todo">–</span><span class="l">to build · shown in the demo, not in the code yet</span></div>
+      <div class="stat"><span class="v" id="bp-n-decided">–</span><span class="l">decided as Must, Later or Cut <button type="button" class="link-btn" data-pane-go="decisions">Decide →</button></span></div>
+    </div>
+
+    <div class="grid g2">
+      <div class="panel"><div class="panel-head"><h3>Status today</h3><span class="small muted" id="bp-total"></span></div><div class="panel-body" id="bp-status"></div></div>
+      <div class="panel"><div class="panel-head"><h3>By page</h3><span class="small muted">built · partial · to build · research</span></div><div class="panel-body tight" id="bp-pages" data-style="max-height:260px;overflow:auto"></div></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="roadmap" data-label="Roadmap">
+    <p class="pane-intro">Order matters more than dates: each phase needs the one before it.</p>
+    <div class="grid g3" id="bp-phases"></div>
+  </div>
+
+  <div class="pane" data-pane="decisions" data-label="Decisions">
+    <div class="panel"><div class="panel-head"><h3>Your decisions</h3><span class="small muted" id="bp-store"></span></div><div class="panel-body" id="bp-decisions"></div></div>
+
+    <div class="panel" data-tour="bp-table">
+      <div class="panel-head"><div class="panel-title"><h2>All features</h2><span class="sub" id="bp-count"></span></div></div>
+      <div class="panel-body stack tight" data-style="border-bottom:1px solid var(--line)">
+        <div class="row">
+          <label class="sr-only" for="bpf-q">Search features</label><input id="bpf-q" type="search" placeholder="Search features" data-style="flex:1;min-width:180px">
+          <label class="sr-only" for="bpf-view">Page</label><select id="bpf-view" data-style="width:auto"></select>
+          <label class="sr-only" for="bpf-status">Status</label><select id="bpf-status" data-style="width:auto"><option value="">Any status</option><option value="built">Built</option><option value="partial">Partial</option><option value="todo">To build</option><option value="research">Research</option></select>
+          <label class="sr-only" for="bpf-phase">Phase</label><select id="bpf-phase" data-style="width:auto"><option value="">Any phase</option><option>Now</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>R</option></select>
+          <label class="sr-only" for="bpf-dec">Decision</label><select id="bpf-dec" data-style="width:auto"><option value="">Any decision</option><option value="none">Undecided</option><option value="must">Must</option><option value="later">Later</option><option value="cut">Cut</option></select>
+        </div>
+      </div>
+      <div class="table-wrap tall"><table class="data compact" id="bp-table"><thead><tr><th>Feature</th><th>Page</th><th>Status</th><th>Phase</th><th>Decision</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="scope" data-label="Scope">
+    <div class="grid g2">
+      <div class="panel">
+        <div class="panel-head"><h3>What we will not build</h3><span class="pill">non-goals</span></div>
+        <div class="list small">
+          <div class="list-item"><div class="li-main"><span class="li-title">A general chatbot</span><span class="li-sub">The policy model is focused on the ten steps. It is not a general assistant.</span></div></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">One giant generic agent</span><span class="li-sub">One engine plus domain packs, each with its own rules and validators.</span></div></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">A model that owns the numbers</span><span class="li-sub">Splits, metrics and selection rules stay in deterministic code ${chip:DCLAB-R20}.</span></div></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">"Production-ready" from a benchmark</span><span class="li-sub">Research results go through the production gate ${chip:DCLAB-R22}.</span></div></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">Silent column deletion</span><span class="li-sub">Unclear columns go to the owner, with a with/without check ${chip:DCLAB-R05}.</span></div></div>
+          <div class="list-item"><div class="li-main"><span class="li-title">Training on users' projects by default</span><span class="li-sub">Opt-in only, per workspace.</span></div></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="panel">
+          <div class="panel-head"><h3>Already decided</h3></div>
+          <div class="panel-body small stack tight">
+            <div class="row top"><span class="pill accent">yes</span><span>VS Code notebooks are the editor to support first.</span></div>
+            <div class="row top"><span class="pill accent">yes</span><span>Hugging Face Chat UI with ML Intern mode is the chat front end; DCLab plugs in over MCP.</span></div>
+            <div class="row top"><span class="pill warn">open</span><span>Owner worksheet: prediction moment and outcome window for HyperAck and Telco churn.</span></div>
+          </div>
+        </div>
+        <div class="panel dashed">
+          <div class="panel-body small stack tight">
+            <div class="eyebrow">How to use this page</div>
+            <p>1. Turn on the <b>Blueprint layer</b> in the sidebar and walk through the pages; each feature shows its status in place.</p>
+            <p>2. Mark features here or in the side panel on each page.</p>
+            <p>3. Share the link, or paste the Markdown into the chat. When the decisions save to the shared plan, Claude can read them directly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="dh-text"><div id="drawer-eyebrow" class="row"></div><h2 id="drawer-title"></h2><div id="drawer-actions" class="row"></div></div>
+    <button type="button" class="icon-btn" id="drawer-close" aria-label="Close panel"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+<div class="modal-wrap">
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+    <div class="modal-head"><div id="modal-eyebrow"></div><h2 id="modal-title"></h2></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot"><button type="button" class="btn" id="modal-cancel">Cancel</button><button type="button" class="btn primary" id="modal-confirm">Confirm</button></div>
+  </div>
+</div>
+<div class="palette" id="palette" hidden>
+  <div class="palette-box" role="dialog" aria-label="Search">
+    <label class="sr-only" for="pal-input">Search pages, actions and evidence</label>
+    <input id="pal-input" type="search" placeholder="Search pages, actions and evidence (try EXP-007 or leakage)" autocomplete="off">
+    <div class="palette-list" id="pal-list"></div>
+  </div>
+</div>
+<aside class="bp-panel min" id="bp-panel" hidden aria-label="Blueprint for this page">
+  <div class="bp-head">
+    <div class="spread"><div class="eyebrow">Blueprint · this page</div><span class="bp-tools"><button type="button" class="btn sm ghost" id="bp-expand" aria-expanded="false">Show list</button><button type="button" class="icon-btn" id="bp-close" aria-label="Turn off the blueprint layer"><svg viewBox="0 0 24 24" aria-hidden="true" data-style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div>
+    <div class="small" id="bp-summary"></div>
+    <div class="bp-legend"><span data-bp="built"><i></i>Built today</span><span data-bp="partial"><i></i>Partly built</span><span data-bp="todo"><i></i>To build</span><span data-bp="research"><i></i>Needs research</span></div>
+    <div class="xs muted" id="bp-backend"></div>
+    <a href="#blueprint" class="link-btn small bp-more">Open the full blueprint and roadmap →</a>
+  </div>
+  <div class="bp-list" id="bp-list"></div>
+</aside>
+<div class="tour-bar" id="tour-bar" hidden role="region" aria-label="Guided tour">
+  <div class="tb-top"><span class="tb-step" id="tb-step"></span><span class="tb-dots" id="tb-dots"></span></div>
+  <div class="tb-title" id="tb-title"></div>
+  <div class="tb-text" id="tb-text"></div>
+  <div class="tb-actions"><button type="button" class="btn sm" id="tb-exit">Exit tour</button><button type="button" class="btn sm" id="tb-back">Back</button><button type="button" class="btn sm primary" id="tb-next">Next</button></div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="/static/app/js/records.js"></script>
+<script src="/static/app/js/review.js"></script>
+<script src="/static/app/js/sft.js"></script>
+<script src="/static/app/js/data.js"></script>
+<script src="/static/app/js/features.js"></script>
+<script src="/static/app/js/core.js"></script>
+<script src="/static/app/js/views/home.js"></script>
+<script src="/static/app/js/views/new.js"></script>
+<script src="/static/app/js/views/project.js"></script>
+<script src="/static/app/js/views/contract.js"></script>
+<script src="/static/app/js/views/notebook.js"></script>
+<script src="/static/app/js/views/audit.js"></script>
+<script src="/static/app/js/views/models.js"></script>
+<script src="/static/app/js/views/reliability.js"></script>
+<script src="/static/app/js/views/brief.js"></script>
+<script src="/static/app/js/views/intern.js"></script>
+<script src="/static/app/js/views/compute.js"></script>
+<script src="/static/app/js/views/evidence.js"></script>
+<script src="/static/app/js/views/lab.js"></script>
+<script src="/static/app/js/views/benchmark.js"></script>
+<script src="/static/app/js/views/policy.js"></script>
+<script src="/static/app/js/views/packs.js"></script>
+<script src="/static/app/js/views/integrations.js"></script>
+<script src="/static/app/js/views/admin.js"></script>
+<script src="/static/app/js/views/blueprint.js"></script>
+</body>
+</html>

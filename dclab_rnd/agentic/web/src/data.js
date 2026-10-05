@@ -1,0 +1,85 @@
+/* Shared demo data. Numbers that cite a record ID come from the repository's evidence; the rest is sample data. */
+window.DEMO = {
+  team: [
+    { id: 'SM', name: 'Shahriyar', role: 'Owner · ML lead', cls: '' },
+    { id: 'AV', name: 'Ava', role: 'ML engineer', cls: 'b' },
+    { id: 'RZ', name: 'Reza', role: 'Retention lead (business)', cls: 'c' },
+    { id: 'AI', name: 'DCLab intern', role: 'Agent · works inside the graph', cls: 'ai' },
+  ],
+  projects: [
+    { id: 'bank', name: 'Term-deposit calls', dataset: 'bank_marketing', pack: 'Tabular · binary', states: 'dddddddddc', at: 'WF-10 · Knowledge capture',
+      score: 'ROC-AUC 0.7718', ci: '0.7126–0.8290', note: 'holdout, opened once', ev: 'EXP-010', leaks: 1, status: 'Awaits sign-off', cls: 'warn', updated: '2 h ago', owner: 'SM', filter: 'active', open: 'project' },
+    { id: 'hyperack', name: 'HyperAck order acceptance', dataset: 'hyperack', pack: 'Tabular · binary · time', states: 'b---------', at: 'WF-01 · Prediction contract',
+      score: 'safe CV ROC-AUC 0.9455', ci: '', note: 'unsafe 0.9802 is blocked', ev: 'LEAK-hyperack', leaks: 2, status: 'Owner question', cls: 'warn', updated: 'yesterday', owner: 'SM', filter: 'waiting', open: 'hyperack' },
+    { id: 'telco', name: 'Telco churn', dataset: 'telco_churn', pack: 'Tabular · binary', states: 'bdddddd---', at: 'WF-01 · reopened',
+      score: 'dev CV ROC-AUC 0.8499', ci: '', note: 'AP 0.6708 · logistic won', ev: 'FINDING-churn-linear', leaks: 1, status: 'Contract reopened', cls: 'warn', updated: '3 d ago', owner: 'AV', filter: 'waiting', open: 'telco' },
+    { id: 'fraud', name: 'Card fraud screening', dataset: 'credit_card_fraud', pack: 'Imbalanced · time split', states: 'dddddddddd', at: 'Done',
+      score: 'PR-AUC 0.8139', ci: '0.7317–0.8847', note: 'last 56,961 rows by time', ev: 'EXP-055', leaks: 1, status: 'Research result', cls: 'ok', updated: '5 d ago', owner: 'AV', filter: 'done' },
+    { id: 'bike', name: 'Daily bike demand', dataset: 'bike_sharing_daily', pack: 'Time series · regression', states: 'dddddddddd', at: 'Done',
+      score: 'MAE 680.0', ci: '484.0–890.1', note: 'lag-2 baseline 1,156.4', ev: 'EXP-065', leaks: 2, status: 'Research result', cls: 'ok', updated: '6 d ago', owner: 'SM', filter: 'done' },
+    { id: 'reviews', name: 'Review → recommend', dataset: 'ecommerce_clothing_reviews', pack: 'Text + tabular', states: 'dddddddddd', at: 'Done',
+      score: 'ROC-AUC 0.9459', ci: '0.9391–0.9525', note: 'unseen products', ev: 'EXP-070', leaks: 2, status: 'Research result', cls: 'ok', updated: '6 d ago', owner: 'AV', filter: 'done' },
+    { id: 'letters', name: 'Letter recognition', dataset: 'letter_recognition', pack: 'Tabular · multiclass', states: 'dddddddddd', at: 'Done',
+      score: 'macro-F1 0.9751', ci: '0.9704–0.9798', note: '26 classes', ev: 'EXP-060', leaks: 0, status: 'Research result', cls: 'ok', updated: '1 w ago', owner: 'SM', filter: 'done' },
+    { id: 'ped', name: 'Pedestrians at night and in rain', dataset: 'sample video frames', pack: 'Vision · detection · preview', states: 'dc--------', at: 'WF-02 · Source and lineage',
+      score: '—', ci: '', note: 'operating domain drafted', ev: '', leaks: 0, status: 'Preview pack', cls: 'info', updated: 'today', owner: 'AV', filter: 'active', sample: true },
+  ],
+  wf: [
+    ['WF-01', 'Prediction contract'], ['WF-02', 'Source and lineage'], ['WF-03', 'Split design'], ['WF-04', 'Train-only EDA'], ['WF-05', 'Leakage audit'],
+    ['WF-06', 'Feature ladder'], ['WF-07', 'Algorithm screen'], ['WF-08', 'Conservative optimization'], ['WF-09', 'Reliability challenge'], ['WF-10', 'Knowledge capture'],
+  ],
+  bank: {
+    rows: 45211, features: 16, positive: 0.117, analyzed: 4000, train: 3200, holdout: 800,
+    holdoutAuc: 0.7718, holdoutLo: 0.7126, holdoutHi: 0.8290, cvAuc: 0.7523,
+    ap: 0.3915, precision: 0.5652, recall: 0.1383, f1: 0.2222, brier: 0.0870, ece: 0.0272,
+    callCost: 8, subValue: 110, customers: 20000, capacity: 2000,
+  },
+  tours: {
+    developer: {
+      name: 'Developer tour', role: 'developer', blurb: 'Build the term-deposit model end to end: contract, leakage, models, holdout, brief.',
+      steps: [
+        { view: 'home', target: 'composer', title: 'Start from one sentence', text: 'Describe the model you need. DCLab turns the sentence into a draft contract, picks a domain pack and proposes a plan.' },
+        { view: 'new', target: 'new-data', title: 'Bring data from anywhere', text: 'Upload a file, pick a studied sample, or import from Kaggle, Hugging Face or a warehouse. DCLab profiles it and records where it came from.' },
+        { view: 'contract', target: 'timeline', title: 'The prediction moment comes first', text: 'Every column sits on a timeline. duration is only known after the call ends, so it can never be an input. This one picture prevents most leakage.' },
+        { view: 'contract', target: 'costs', title: 'Costs choose the metric', text: 'The owner enters what a call costs and what a subscription is worth. DCLab turns that into the threshold and the call volume.' },
+        { view: 'project', target: 'graph', title: 'A graph decides which moves exist', text: 'The intern can propose any move, but only edges in this graph can run. A blocked move is logged with the rule that blocked it.' },
+        { view: 'notebook', target: 'nb-companion', title: 'Proof beside every cell', text: 'This teammate notebook got 10 findings from the real copilot. Each names the rule, the measured precedent and the fix.' },
+        { view: 'audit', target: 'ablation', title: 'Severity is measured', text: 'With duration, training-CV ROC-AUC jumps from 0.7130 to 0.8972. The jump shows the damage; the timeline is the proof.' },
+        { view: 'models', target: 'screen', title: 'The rule picks the model', text: 'Five families on identical folds, ranked by mean minus a quarter of the spread, then runtime. Overrides need a written reason.' },
+        { view: 'reliability', target: 'holdout', title: 'The holdout opens once', text: 'ROC-AUC 0.7718 with a 95% interval of 0.7126–0.8290. The seal records who opened it and under which checklist.' },
+        { view: 'brief', target: 'brief-summary', title: 'A brief the business can act on', text: 'Plain words, the value at the chosen call volume, the risks, and what is still unproven. In English or Persian.' },
+        { view: 'intern', target: 'intern-thread', title: 'Or hand it all to the intern', text: 'The same workflow, driven by the intern inside a budget. It stops and asks when only a person can answer.' },
+      ],
+    },
+    business: {
+      name: 'Business tour', role: 'business', blurb: 'What a manager sees: decisions to make, the brief, the value, the limits.',
+      steps: [
+        { view: 'home', target: 'inbox', title: 'What needs your decision', text: 'Business users see decisions, not code: a contract to sign, a brief to approve, a question only the owner can answer.' },
+        { view: 'brief', target: 'brief-summary', title: 'Read the brief', text: 'What the model does, how good it honestly is, and what it would mean for the call centre next month.' },
+        { view: 'brief', target: 'value', title: 'Choose the operating point', text: 'Move the call volume and see expected subscriptions, cost and net value, with the range that comes from the holdout interval.' },
+        { view: 'contract', target: 'costs', title: 'Your numbers set the target', text: 'The costs you enter decide the threshold. Change them and the recommendation changes with them.' },
+        { view: 'reliability', target: 'gate', title: 'A research result is not a launch', text: 'A good score is not approval. This checklist shows what must happen before a real rollout.' },
+      ],
+    },
+    researcher: {
+      name: 'Researcher tour', role: 'researcher', blurb: 'Evidence, campaigns, the judgment benchmark, the policy model and the domain packs.',
+      steps: [
+        { view: 'evidence', target: 'ev-search', title: 'The evidence library', text: 'The real records: rules, workflow blocks, experiments, leakage precedents, pitfalls. Every suggestion in the product cites them.' },
+        { view: 'lab', target: 'lab-registry', title: 'Where evidence comes from', text: 'Campaigns run on real datasets. LLM critiques are checked against the numbers before they are kept.' },
+        { view: 'benchmark', target: 'bench-board', title: 'Proof that the agent judges well', text: 'Unseen notebooks with planted traps. Each policy is scored on valid moves, leaks caught, citation accuracy and unsafe actions.' },
+        { view: 'policy', target: 'policy-curriculum', title: 'Teach a small model the workflow', text: 'Trajectories from the graph become training data. The model learns the next move, when to stop and when to ask.' },
+        { view: 'packs', target: 'pack-map', title: 'One engine, many domains', text: 'The same ten steps, mapped to vision, driving, maps and software. Each pack adds its own rules, tools and metrics.' },
+        { view: 'blueprint', target: 'bp-table', title: 'Decide what to build', text: 'Every feature in this demo, marked built, partial, to build or research. Mark each one Must, Later or Cut.' },
+      ],
+    },
+    admin: {
+      name: 'Admin tour', role: 'admin', blurb: 'Policies, model routing, compute and integrations.',
+      steps: [
+        { view: 'admin', target: 'policies', title: 'Rules become settings', text: 'The R&D rules are enforced in code today. Here they become visible switches with an audit trail; the core ones are locked.' },
+        { view: 'admin', target: 'routing', title: 'Models and the cost ladder', text: 'Typed decisions first, NOOA next, the full model only for open questions. Keys stay on the server.' },
+        { view: 'compute', target: 'jobs', title: 'Compute and spend', text: 'Sandboxes and GPU jobs with logs, artifacts, a reproducibility record and a spend cap.' },
+        { view: 'integrations', target: 'mcp', title: 'Plug DCLab into other tools', text: 'The MCP endpoint, Chat UI with ML Intern mode, VS Code and the REST API.' },
+      ],
+    },
+  },
+};

@@ -28,6 +28,9 @@ from .. import mcp_server
 
 load_dotenv(ROOT / ".env", override=False)
 STATIC = Path(__file__).with_name("static")
+# No inline scripts or styles anywhere; the only outside source is Google Fonts (stylesheet + font files).
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
+       "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
 
 def version(package):
     try: return importlib.metadata.version(package)
@@ -73,7 +76,7 @@ def create_app(home=None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Cache-Control"] = "no-store"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+        response.headers["Content-Security-Policy"] = CSP
         return response
     def get(run_id):
         try: return store.get(run_id)
@@ -411,7 +414,13 @@ def create_app(home=None):
         if not path.is_file(): raise HTTPException(404, "Build the field guide with: .venv/bin/python -m dclab_rnd.master_review build")
         return FileResponse(path, media_type="text/html")
     @app.get("/")
-    async def index(): return FileResponse(STATIC / "index.html")
+    async def index():
+        # The product frontend (built from dclab_rnd/agentic/web); the earlier UI stays at /classic until the new one covers it.
+        page = STATIC / "app" / "index.html"
+        if not page.is_file(): raise HTTPException(404, "Build the frontend with: python -m dclab_rnd.agentic.web.build")
+        return FileResponse(page)
+    @app.get("/classic")
+    async def classic(): return FileResponse(STATIC / "index.html")
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon(): return Response(status_code=204)
     if mcp is not None:

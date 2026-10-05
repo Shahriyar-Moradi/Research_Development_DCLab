@@ -1,0 +1,179 @@
+<section class="view" id="view-home" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow">Workspace · Shahriyar's lab</div>
+      <h1>Good afternoon, Shahriyar</h1>
+      <p class="lede dev-only">Three things need you today. Everything else runs inside its budget, and every score shown is the honest one.</p>
+      <p class="lede biz-only">Two decisions are waiting for you, each with a one-page brief in plain words.</p>
+    </div>
+    <div class="vh-actions">
+      <a class="btn primary" href="#new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New project</a>
+    </div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" data-f="home.kpis">
+      <div class="stat"><span class="v">9</span><span class="l">leaky columns blocked before training · duration, final fares, PageValues…</span></div>
+      <div class="stat"><span class="v ok">6 <small>/ 6</small></span><span class="l">holdouts opened exactly once · no reuse for selection</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">unsafe moves stopped by the workflow graph, each logged with its rule</span></div>
+      <div class="stat"><span class="v">€18.40 <small>/ €60</small></span><span class="l">spend this month · sample data</span><span class="row">${spark}</span></div>
+    </div>
+
+    <div class="grid g-3-1">
+      <div class="stack">
+        <div class="panel raised dev-only" data-f="home.composer" data-tour="composer">
+          <div class="panel-body stack tight">
+            <div class="spread"><div class="eyebrow">Start from one sentence</div><span class="small muted">DCLab drafts the contract first, then the plan.</span></div>
+            <div class="composer">
+              <label class="sr-only" for="home-task">Describe the model you need</label>
+              <textarea id="home-task">Rank our clients for next month's term-deposit call campaign. A call costs about €8 and a subscription is worth about €110. Tell me the honest score and which columns we must not use.</textarea>
+              <div class="composer-bar">
+                <button type="button" class="btn sm ghost" data-toast="In the product: attach a file, pick a sample, or connect Kaggle, Hugging Face or a warehouse."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>Attach data</button>
+                <span class="pill outline">bank_marketing · 45,211 rows</span>
+                <div class="seg" data-seg="mode" id="home-mode" role="group" aria-label="Who drives">
+                  <button type="button" data-v="notebook" aria-pressed="true">I drive · notebook</button>
+                  <button type="button" data-v="intern" aria-pressed="false">Intern drives</button>
+                </div>
+                <label class="sr-only" for="home-budget">Budget</label>
+                <select id="home-budget" data-style="width:auto">
+                  <option>Budget · 24 tool calls · 20 min · €5</option>
+                  <option>Budget · 48 tool calls · 60 min · €15</option>
+                  <option>Budget · 12 tool calls · 5 min · €1</option>
+                </select>
+                <button type="button" class="btn primary send" id="home-start">Draft the contract<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+              </div>
+            </div>
+            <div class="row small muted" data-f="home.quickstarts">
+              <span>Examples:</span>
+              <div class="chips">
+                <button type="button" class="chip" data-example="Find card fraud at authorization time; the positives are 0.17% of rows, so do not trust accuracy.">Fraud · 0.17% positives</button>
+                <button type="button" class="chip" data-example="Forecast tomorrow's bike rentals and beat the lag-2 baseline honestly.">Daily demand forecast</button>
+                <button type="button" class="chip" data-example="Predict whether a reviewer recommends a product from the review text, on products the model has never seen.">Text + tabular</button>
+                <button type="button" class="chip" data-example="Detect pedestrians at night and in rain; split by drive so frames from one drive never land in both train and test.">Vision · pedestrians</button>
+                <button type="button" class="chip" data-example="Fine-tune a small model that knows our ten workflow steps and when to stop and ask.">Fine-tune a small model</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel biz-only">
+          <div class="panel-head"><div class="panel-title"><h2>Decisions waiting for you</h2><span class="sub">Each one links to a brief written for people who do not read code.</span></div></div>
+          <div class="list">
+            <a class="list-item" href="#brief">
+              <span class="avatar c">RZ</span>
+              <div class="li-main"><span class="li-title">Approve a pilot of the term-deposit call list</span><span class="li-sub">Calling the top 2,000 of 20,000 clients: about 39 subscriptions per 100 calls (range 31–48), against 12 when calling at random. The range comes from one 800-row holdout.</span></div>
+              <div class="li-side"><span class="pill warn">Due Friday</span><span>Open brief →</span></div>
+            </a>
+            <a class="list-item" href="#project" data-project="hyperack">
+              <span class="avatar">SM</span>
+              <div class="li-main"><span class="li-title">HyperAck: when is the prediction made?</span><span class="li-sub">Only the owner can answer. Until then the project waits at step 1 of 10.</span></div>
+              <div class="li-side"><span class="pill warn">Blocks a project</span><span>Answer →</span></div>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="panel" data-f="home.inbox" data-tour="inbox">
+        <div class="panel-head"><h2>Needs you</h2><span class="pill bad">3</span></div>
+        <div class="list">
+          <a class="list-item" href="#project" data-project="hyperack">
+            <span class="avatar ai">AI</span>
+            <div class="li-main"><span class="li-title">When is the HyperAck prediction made?</span><span class="li-sub">At order creation, at the courier offer, or after assignment? This decides which columns are allowed.</span><span class="row"><span class="pill warn">Question</span><span class="tag">WF-01</span></span></div>
+          </a>
+          <a class="list-item" href="#brief">
+            <span class="avatar c">RZ</span>
+            <div class="li-main"><span class="li-title">Sign the term-deposit brief</span><span class="li-sub">Reza reviewed it and asked one question about the call cost.</span><span class="row"><span class="pill info">Sign-off</span><span class="tag">WF-10</span></span></div>
+          </a>
+          <a class="list-item" href="#project" data-project="telco">
+            <span class="avatar b">AV</span>
+            <div class="li-main"><span class="li-title">Telco churn: choose the outcome window</span><span class="li-sub">30 or 90 days after the snapshot? The contract was reopened and later steps are on hold.</span><span class="row"><span class="pill warn">Revisit</span><span class="tag">WF-01</span></span></div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="projects" data-label="Projects" data-count="8">
+      <div class="panel" data-f="home.projects">
+        <div class="panel-head">
+          <div class="panel-title"><h2>Projects</h2><span class="sub">A score appears only once it is honest: leakage-safe, with an interval and a source record.</span></div>
+          <div class="seg" data-seg="proj-filter" id="proj-filter" role="group" aria-label="Filter projects">
+            <button type="button" data-v="all" aria-pressed="true">All</button>
+            <button type="button" data-v="active" aria-pressed="false">Active</button>
+            <button type="button" data-v="waiting" aria-pressed="false">Waiting</button>
+            <button type="button" data-v="done" aria-pressed="false">Done</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="data clickable" id="home-projects">
+            <thead><tr><th>Project</th><th>Progress</th><th>Honest score</th><th class="num">Leaks blocked</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="panel-foot bar"><span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Click a row to open it. Term-deposit calls, HyperAck and Telco churn open in full.</span></div>
+      </div>
+  </div>
+
+  <div class="pane" data-pane="activity" data-label="Activity">
+    <div class="grid g2">
+      <div class="panel" data-f="home.activity">
+        <div class="panel-head"><h2>Live</h2><a class="link-btn small" href="#compute">Compute →</a></div>
+        <div class="list">
+          <a class="list-item" href="#intern"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Intern · HyperAck contract</span><span class="li-sub">Paused at a question · 9 of 48 tool calls</span></div></a>
+          <a class="list-item" href="#compute"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">GPU job · pedestrian detector screen</span><span class="li-sub">A10G · 41% · €0.62 so far</span></div></a>
+          <a class="list-item" href="#lab"><span class="dot accent" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Campaign · expansion_v2</span><span class="li-sub">Queued · 20 experiments on 4 new datasets</span></div></a>
+        </div>
+      </div>
+      <div class="panel" data-f="home.evidence">
+        <div class="panel-head"><h2>New in the evidence</h2><a class="link-btn small" href="#evidence">Library →</a></div>
+        <div class="panel-body stack tight small">
+          <div class="row top"><span class="pill proof">+3</span><span>Lessons from Term-deposit calls are waiting for review before they join the index.</span></div>
+          <div class="row top"><span class="pill ok">rule</span><span>${chip:DCLAB-R07} now has another supporting experiment: the smallest feature set within tolerance won again.</span></div>
+          <div class="row top"><span class="pill warn">pitfall</span><span>${chip:PIT-006}: choosing among 30 configurations by holdout score overstated ROC-AUC by +0.0072 on average.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+DC.view('home', {
+  init(el) {
+    const { $, $$, esc, chip, charts } = DC;
+    // fill inline tokens like ${chip:ID} and ${spark}
+    el.innerHTML = el.innerHTML
+      .replace(/\$\{chip:([A-Z0-9_-]+)\}/g, (m, id) => chip(id))
+      .replace('${spark}', charts.spark([2.1, 3.4, 4.0, 6.2, 7.9, 9.4, 12.6, 14.1, 16.0, 18.4], { width: 110, height: 22 }));
+    const tbody = $('#home-projects tbody', el);
+    const segClass = { d: 'd', c: 'c', b: 'b', '-': '' };
+    function rows(filter) {
+      tbody.innerHTML = DEMO.projects.filter(p => filter === 'all' || p.filter === filter).map(p => `
+        <tr data-open="${esc(p.open || '')}" data-name="${esc(p.name)}">
+          <td><div class="cell-main">${esc(p.name)}${p.sample ? ' <span class="pill outline">sample</span>' : ''}</div><div class="cell-sub">${esc(p.dataset)} · ${esc(p.pack)}</div></td>
+          <td><span class="wf-mini" aria-label="${esc(p.at)}">${p.states.split('').map(s => `<i class="${segClass[s] || ''}"></i>`).join('')}</span><div class="cell-sub">${esc(p.at)}</div></td>
+          <td><div class="score">${esc(p.score)}${p.ci ? ` <span class="ci">[${esc(p.ci)}]</span>` : ''}</div><div class="cell-sub">${esc(p.note)} ${p.ev ? chip(p.ev) : ''}</div></td>
+          <td class="num">${p.leaks}</td>
+          <td><span class="pill ${esc(p.cls)}">${esc(p.status)}</span><div class="cell-sub row" data-style="margin-top:4px"><span class="avatar sm ${p.owner === 'AV' ? 'b' : ''}">${esc(p.owner)}</span>${esc(p.updated)}</div></td>
+        </tr>`).join('');
+    }
+    rows('all');
+    $('#proj-filter', el).addEventListener('segchange', e => rows(e.detail));
+    tbody.addEventListener('click', e => {
+      if (e.target.closest('[data-record]')) return;
+      const tr = e.target.closest('tr'); if (!tr) return;
+      const open = tr.dataset.open;
+      if (open === 'project') { DC.state.project = 'bank'; location.hash = 'project'; }
+      else if (open === 'hyperack' || open === 'telco') { DC.state.project = open; location.hash = 'project'; }
+      else DC.toast(`In the demo, ${tr.dataset.name} opens as a summary only. Its numbers come from the cited record.`);
+    });
+    el.addEventListener('click', e => {
+      const ex = e.target.closest('[data-example]');
+      if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
+      const link = e.target.closest('[data-project]');
+      if (link) DC.state.project = link.dataset.project;
+    });
+    $('#home-start', el).addEventListener('click', () => {
+      const mode = $('#home-mode button[aria-pressed="true"]', el).dataset.v;
+      if (mode === 'intern') { DC.toast('Handed to the intern. It drafts the contract and asks before anything irreversible.'); location.hash = 'intern'; }
+      else { DC.toast('Contract draft ready. Check the goal, then the data.'); location.hash = 'new'; }
+    });
+  },
+});
+</script>

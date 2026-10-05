@@ -1,0 +1,121 @@
+<section class="view" id="view-lab" hidden>
+  <header class="vh">
+    <div class="vh-text">
+      <div class="eyebrow accent">Research lab · where the evidence comes from</div>
+      <h1>Research lab</h1>
+      <p class="lede">Campaigns run controlled experiments on real datasets. A critic challenges every claim, a gate checks it against the numbers, and what survives becomes citable records.</p>
+    </div>
+    <div class="vh-actions"><button type="button" class="btn primary" id="lab-new">Design a campaign</button></div>
+  </header>
+
+  <div class="pane" data-pane="overview" data-label="Overview">
+    <div class="stats" data-f="lab.registry" data-tour="lab-registry">
+      <div class="stat"><span class="v">579</span><span class="l">experiments in the registry · 483 eligible results · 11 datasets</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">campaigns · 76 records in the evidence index</span></div>
+      <div class="stat"><span class="v">157</span><span class="l">critic challenges · 147 kept · 10 contradicted by the numbers</span><div class="row"><button type="button" class="link-btn small" data-pane-go="critic">How the gate works →</button></div></div>
+      <div class="stat"><span class="v warn">61%</span><span class="l">blind auditor recall · 11 of 18 known leaks, no hints</span></div>
+    </div>
+
+      <div class="panel" data-f="lab.campaigns">
+        <div class="panel-head"><div class="panel-title"><h2>Campaigns</h2><span class="sub">Each one tests a question on real datasets; its results become records</span></div></div>
+        <div class="table-wrap"><table class="data"><thead><tr><th>Campaign</th><th>What it tested</th><th class="num">Experiments</th><th>Status</th><th>Evidence</th></tr></thead><tbody>
+          <tr><td><span class="cell-main">model_building_50_v1</span><div class="cell-sub">10 public datasets × 5 stages</div></td><td class="small">The full workflow on each dataset: data, leakage, features, models, holdout. Critic review on every record.</td><td class="num">50</td><td><span class="pill ok">done</span></td><td>${chips:EXP-006,EXP-007,EXP-010}</td></tr>
+          <tr><td><span class="cell-main">expansion_v1</span><div class="cell-sub">fraud · multiclass · time series · text</div></td><td class="small">The same workflow on four new task types: imbalanced, 26 classes, daily forecasting, text with tabular fields.</td><td class="num">20</td><td><span class="pill ok">done</span></td><td>${chips:EXP-055,EXP-060,EXP-065,EXP-070}</td></tr>
+          <tr><td><span class="cell-main">pitfalls_v1</span><div class="cell-sub">six classic mistakes</div></td><td class="small">How much each mistake inflates the score, measured on real data.</td><td class="num">6</td><td><span class="pill ok">done</span></td><td>${chips:PIT-003,PIT-006}</td></tr>
+          <tr><td><span class="cell-main">agent_verification_v1</span><div class="cell-sub">blind leakage-auditor replay</div></td><td class="small">Without hints, does the column auditor find the leaks the R&amp;D already confirmed?</td><td class="num">7 datasets</td><td><span class="pill ok">done</span></td><td><span class="tag">recall 11/18</span></td></tr>
+          <tr><td><span class="cell-main">expansion_v2</span><div class="cell-sub">sample · planned</div></td><td class="small">Four new datasets with timestamps, so forward-in-time validation can be measured everywhere.</td><td class="num">20</td><td><span class="pill info">queued</span></td><td><span class="faint">—</span></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="panel" data-f="lab.designer">
+        <div class="panel-head"><div class="panel-title"><h3>New campaign</h3><span class="sub">The LLM proposes; deterministic code runs and scores</span></div></div>
+        <div class="panel-body grid g2">
+          <div class="stack tight">
+          <div class="field"><label for="cd-h">Hypothesis</label><textarea id="cd-h" rows="3">Target encoding beats one-hot for categories with more than 50 levels, when fitted inside folds.</textarea></div>
+          <label class="check small"><input type="checkbox" checked> Critic review on every record, checked by the gate</label>
+          </div>
+          <div class="stack tight">
+          <div class="field"><label for="cd-d">Datasets</label><select id="cd-d"><option>adult, bank_marketing, hyperack, telco_churn</option><option>All 16 studied datasets</option></select></div>
+          <div class="grid g2"><div class="field"><label for="cd-f">Protocol</label><select id="cd-f"><option>5×2 repeated CV</option><option>3-fold CV</option></select></div><div class="field"><label for="cd-m">Decision margin</label><input id="cd-m" type="text" value="+0.005 ROC-AUC"></div></div>
+          <button type="button" class="btn primary" data-toast="Campaign queued: 8 experiments. Results become records after the critic gate.">Queue campaign</button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <div class="pane" data-pane="champions" data-label="Champions">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><h2>Best eligible result per dataset</h2><span class="sub">From <code>python -m dclab_rnd status</code>. Eligible means leakage-safe and validated, not production-ready.</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="champ-table"><thead><tr><th>Dataset</th><th>Family</th><th>Recipe</th><th class="num">ROC-AUC</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">A ROC-AUC of 1.0000 on breast_cancer and mushroom says those benchmarks are easy, not that the method is perfect.</div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="pitfalls" data-label="Pitfalls" data-count="6">
+    <div class="panel" data-f="lab.pitfalls">
+      <div class="panel-head"><div class="panel-title"><h2>What each mistake costs</h2><span class="sub">Measured on real datasets by running the wrong way and the right way side by side</span></div></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Pitfall</th><th>Measured cost</th><th>Lesson</th><th></th></tr></thead><tbody>
+        <tr><td class="strong">Preprocess before the split</td><td class="mono">≤ +0.0001 ROC-AUC</td><td class="small">Tiny for scaling, but the same habit is costly with selection, resampling or encoding.</td><td>${chip:PIT-001}</td></tr>
+        <tr><td class="strong">Select features before CV</td><td class="mono">0.859 on pure noise (honest 0.512)</td><td class="small">Danger grows with features per row: text, genomics, wide tables.</td><td>${chip:PIT-002}</td></tr>
+        <tr><td class="strong">Oversample before the split</td><td class="mono">up to +0.3003</td><td class="small">online_shoppers: 0.9019 reported, 0.6016 honest.</td><td>${chip:PIT-003}</td></tr>
+        <tr><td class="strong">Target-encode before the split</td><td class="mono">+0.1840 on an ID</td><td class="small">customerID on Telco: 1.0000 reported, 0.8160 honest.</td><td>${chip:PIT-004}</td></tr>
+        <tr><td class="strong">Random split on time data</td><td class="mono">−0.0038 on HyperAck</td><td class="small">The direction is not fixed; measure forward in time.</td><td>${chip:PIT-005}</td></tr>
+        <tr><td class="strong">Choose by holdout score</td><td class="mono">+0.0072 avg, +0.0177 max</td><td class="small">Best of 30 configurations; the pick ranked 7.2 of 30 on untouched data.</td><td>${chip:PIT-006}</td></tr>
+      </tbody></table></div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="critic" data-label="Critic gate">
+    <div class="grid g2" data-f="lab.critic">
+      <div class="panel">
+        <div class="panel-head"><h3>How the gate works</h3>${chip:DCLAB-R20}</div>
+        <div class="panel-body small stack tight">
+          <p>1. Deterministic code runs the experiment and writes the numbers.</p>
+          <p>2. An LLM critic reads the record and challenges each claim.</p>
+          <p>3. The gate checks every challenge against the recorded numbers. A challenge that misreads them is dropped; the rest stay attached to the record.</p>
+          <p>4. The record enters the index with its surviving challenges as caveats.</p>
+          <div class="inset"><b>So far:</b> 147 challenges kept, 10 dropped as contradicted by the numbers.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>A dropped challenge</h3>${chip:EXP-008}</div>
+        <div class="panel-body small stack tight">
+          <p class="muted">“The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.”</p>
+          <p><b>Gate:</b> contradicted. The chosen recipe is <code>ratios</code> at 0.7172, the best mean. The 0.7029 belongs to a different recipe that happens to be called <code>selected</code>.</p>
+          <p class="muted">Why it matters: without the gate, a confident but wrong critique would have become a "lesson" in the training data.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="map" data-label="Research map" data-count="22">
+    <div class="panel" data-f="lab.map">
+      <div class="panel-head"><div class="panel-title"><h2>Research map</h2><span class="sub">One folder per idea, the same shape everywhere: README, index, experiments, notebooks, evaluation, reports</span></div><span class="pill">22 tracks · 6 active · 7 proposed · 9 planned</span></div>
+      <div class="panel-body grid g3" id="tracks"></div>
+    </div>
+  </div>
+</section>
+<script>
+DC.view('lab', {
+  init(el) {
+    const { $, esc, chip, chips } = DC;
+    el.innerHTML = el.innerHTML.replace(/\$\{chips:([A-Za-z0-9_,-]+)\}/g, (m, ids) => chips(ids.split(','))).replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id));
+    const CH = [['adult', 'catboost', 'catboost', 0.9274], ['bank_marketing', 'lightgbm', 'baseline_lightgbm', 0.8029], ['breast_cancer', 'lightgbm', 'fe_ratios', 1.0], ['credit_default', 'ensemble', 'stacking_ensemble', 0.8005], ['german_credit', 'catboost', 'catboost', 0.8112], ['heart_disease', 'hist_gradient_boosting', 'hist_gradient_boosting', 0.9740], ['hyperack', 'ensemble', 'softvote_etbag_lgbmwinner_xgb', 0.9455], ['mushroom', 'catboost', 'catboost', 1.0], ['online_shoppers', 'xgboost', 'tuned_xgboost', 0.7737], ['spambase', 'lightgbm', 'lightgbm', 0.9878], ['wine_quality', 'extra_trees', 'extra_trees', 0.9160]];
+    $('#champ-table tbody', el).innerHTML = CH.map(([d, f, r, v]) => `<tr><td><span class="cell-main">${d}</span></td><td>${f}</td><td class="mono small">${r}</td><td class="num mono">${v.toFixed(4)}</td></tr>`).join('');
+    const TR = [
+      ['tabular-classification', 'Tabular classification', 'active', 'the most mature track'], ['ml-methodology', 'ML methodology (evidence campaigns)', 'active', 'campaigns and rules'],
+      ['agentic-ml-copilot', 'Agentic ML copilot', 'active', 'code lives in dclab_rnd/'], ['churn-prediction', 'Churn prediction', 'active', 'Telco'],
+      ['llm-fine-tuning', 'LLM fine-tuning', 'active', 'data ready, no training run yet'], ['tabular-foundation-models', 'Tabular foundation models', 'active', 'needs a leakage-safe rerun'],
+      ['workflow-model', 'Focused model for ML workflows', 'proposed', 'the policy model'], ['workflow-actions', 'Workflow-sized action units', 'proposed', 'the "cake" idea'],
+      ['evaluation-and-trust', 'Evaluation and trust', 'proposed', 'end-to-end value unproven'], ['cross-industry-workflows', 'Workflows beyond data science', 'proposed', 'software bug-fixing first'],
+      ['vision-scene-graphs', 'Vision and scene graphs', 'proposed', 'no implementation yet'], ['temporal-gnn', 'Temporal GNNs', 'proposed', 'object interactions over frames'],
+      ['driving-maps', 'Driving and road-map graphs', 'proposed', 'safety-critical'], ['computer-vision', 'Computer vision', 'planned', ''], ['graph-neural-networks', 'Graph neural networks', 'planned', ''],
+      ['time-series-forecasting', 'Time-series forecasting', 'planned', ''], ['nlp-and-text', 'NLP and text', 'planned', ''], ['anomaly-and-fraud-detection', 'Anomaly and fraud detection', 'planned', ''],
+      ['recommender-systems', 'Recommender systems', 'planned', ''], ['causal-inference-and-experimentation', 'Causal inference', 'planned', ''], ['mlops-and-deployment', 'MLOps and deployment', 'planned', ''], ['data-science-foundations', 'Data science foundations', 'planned', ''],
+    ];
+    const cls = { active: 'ok', proposed: 'proof', planned: 'outline' };
+    $('#tracks', el).innerHTML = TR.map(([k, t, s, n]) => `<div class="inset stack tight"><div class="spread"><b class="small">${esc(t)}</b><span class="pill ${cls[s]}">${s}</span></div><span class="mono xs muted">research/${k}</span>${n ? `<span class="xs muted">${esc(n)}</span>` : ''}</div>`).join('');
+    $('#lab-new', el).addEventListener('click', () => { DC.reveal($('#cd-h', el)); $('#cd-h', el).focus(); });
+    DC.hydrate(el);
+  },
+});
+</script>

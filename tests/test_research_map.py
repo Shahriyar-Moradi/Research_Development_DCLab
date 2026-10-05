@@ -70,7 +70,7 @@ class ResearchApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/research/file", params={"path": "../.env"}).status_code, 404)
 
     def test_page_loads_split_assets(self):
-        page = self.client.get("/").text
+        page = self.client.get("/classic").text  # the earlier UI; "/" now serves the product frontend
         self.assertIn('id="map-view"', page)
         for asset in ("/static/js/app.js", "/static/css/map.css"):
             self.assertIn(asset, page)
