@@ -12,7 +12,8 @@ sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.agentic.pages import learn  # noqa: E402
 from dclab_rnd.draft.pack import PACKS  # noqa: E402
-from dclab_rnd.draft.store import DraftStore  # noqa: E402
+from dclab_rnd.draft.store import DraftStore
+from dclab_rnd.storage import open_stores  # noqa: E402
 from dclab_rnd.studio.store import ProjectStore  # noqa: E402
 
 SOLUTION = {"target": "churn", "task": "binary", "positive_label": "1", "prediction_moment": "At the monthly billing run, before the call.",
@@ -163,7 +164,7 @@ class ApiTests(unittest.TestCase):
         self.addCleanup(self.client.__exit__, None, None, None)
 
     def test_policy_route(self):
-        projects = ProjectStore(self.home / "projects")
+        projects = open_stores(self.home)[0]  # the app's own store
         p = projects.create("Churn")
         projects.transition(p["id"], move("agent", "blocked", "2026-10-01T10:00:00+00:00"))
         r = self.client.get("/api/learn/policy")
@@ -179,10 +180,9 @@ class ApiTests(unittest.TestCase):
         self.assertGreater(d["critic_gate"]["experiments"], 0)
 
     def test_pack_usage_route(self):
-        drafts = DraftStore(self.home / "drafts")
+        projects, drafts, _ = open_stores(self.home)
         drafts.create("Detect pedestrians in camera frames", pack="vision")
         drafts.create("Something")
-        projects = ProjectStore(self.home / "projects")
         p = projects.create("Frames")
         p["draft"] = {"id": "x", "pack": {"key": "vision", "source": "user"}}
         projects.save(p)

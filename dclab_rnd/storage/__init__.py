@@ -28,7 +28,7 @@ class Projects(Protocol):
     def get(self, project_id: str) -> Document: ...                      # KeyError when unknown
     def save(self, project: Document) -> Document: ...
     def update(self, project_id: str, **values: Any) -> Document: ...
-    def list(self) -> list[Document]: ...
+    def list(self, limit: int | None = None, offset: int = 0) -> list[Document]: ...   # newest first
     def delete(self, project_id: str) -> None: ...
     # stage records: written once per run, cleared together from a stage onward
     def write_stage(self, project_id: str, stage: str, record: Document) -> Any: ...
@@ -37,7 +37,7 @@ class Projects(Protocol):
     def records(self, project_id: str) -> dict[str, Document]: ...
     def clear_stages(self, project_id: str, from_stage: str = "data") -> None: ...
     # append-only logs
-    def log(self, project_id: str, kind: str, payload: Any) -> None: ...
+    def log(self, project_id: str, kind: str, payload: Any, at: str | None = None) -> None: ...   # ``at`` is for importing history
     def activity(self, project_id: str, limit: int = 60) -> list[Document]: ...
     def transition(self, project_id: str, entry: Document) -> None: ...
     def transitions(self, project_id: str, limit: int = 200) -> list[Document]: ...
@@ -68,8 +68,31 @@ class Sessions(Protocol):
     def create(self, task: str, *, mode: str, model: str | None, budget: Document | None = None, project_id: str | None = None) -> Document: ...
     def get(self, session_id: str) -> Document: ...                      # KeyError when unknown
     def save(self, session: Document) -> Document: ...
-    def list(self) -> list[Document]: ...
+    def list(self, limit: int | None = None, offset: int = 0) -> list[Document]: ...   # newest first, without messages and steps
     def delete(self, session_id: str) -> None: ...
 
 
-__all__ = ["Document", "Projects", "Drafts", "Sessions"]
+def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects, Drafts, Sessions]:
+    """The projects, drafts and intern sessions for the workspace in ``home``.
+
+    With DCLAB_DATABASE_URL set they are PostgreSQL stores (the home folder keeps the files and names the workspace);
+    without it they are the file stores. The three environment variables below move one store's folder, as before.
+    """
+    import os
+
+    from . import db
+
+    if db.database_url(required=False):
+        from .postgres import open_stores as postgres
+
+        return postgres(home)
+    from ..draft.store import DraftStore
+    from ..intern.sessions import SessionStore
+    from ..studio.store import ProjectStore
+
+    projects = ProjectStore(Path(projects_home or os.environ.get("DCLAB_STUDIO_HOME") or (home / "projects")))
+    return (projects, DraftStore(Path(os.environ.get("DCLAB_DRAFT_HOME") or (projects.home.parent / "drafts"))),
+            SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern"))))
+
+
+__all__ = ["Document", "Projects", "Drafts", "Sessions", "open_stores"]

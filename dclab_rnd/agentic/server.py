@@ -19,6 +19,7 @@ from .projects import project_catalog
 from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .. import research_map
+from ..storage import open_stores
 from ..studio import ProjectStore, agent as studio_agent, solution as studio_solution, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, sft as studio_sft
 from ..intern import Intern, SessionStore
 from ..intern import llm as intern_llm
@@ -41,12 +42,10 @@ def version(package):
 
 def create_app(home=None):
     store = Store(Path(home or os.environ.get("DCLAB_AGENT_HOME", ROOT / "agent_runs")))
-    projects = ProjectStore(Path(os.environ.get("DCLAB_STUDIO_HOME") or (store.home / "projects")))
+    projects, drafts, intern_sessions = open_stores(store.home)  # files, or PostgreSQL when DCLAB_DATABASE_URL is set
     tasks = {}
     jobs = {}
-    intern_sessions = SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
     intern_jobs = {}
-    drafts = DraftStore(Path(os.environ.get("DCLAB_DRAFT_HOME") or (projects.home.parent / "drafts")))
     draft_jobs = {}
     def llm_client():
         return intern_llm.ChatClient() if intern_llm.settings()["available"] else None

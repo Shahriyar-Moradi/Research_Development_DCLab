@@ -25,6 +25,18 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def new_draft(draft_id: str, problem: str = "", pack: str | None = None) -> dict[str, Any]:
+    """A fresh draft document. Shared by every store."""
+    return {
+        "id": draft_id, "created": now(), "updated": now(), "status": "open", "project_id": None,
+        "problem": problem.strip(),
+        "pack": {"key": pack, "source": "user", "why": "Chosen on Home"} if pack else None,
+        "messages": [], "questions": [], "assets": [], "active_asset": None,
+        "cleaning_log": [], "structure": None, "analysis": None, "workflow": None,
+        "understanding": {}, "agent": {"mode": None, "turns": 0},
+    }
+
+
 class DraftStore:
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -64,15 +76,7 @@ class DraftStore:
     def create(self, problem: str = "", pack: str | None = None) -> dict[str, Any]:
         draft_id = secrets.token_hex(6)
         self.directory(draft_id).mkdir(parents=True)
-        draft = {
-            "id": draft_id, "created": now(), "updated": now(), "status": "open", "project_id": None,
-            "problem": problem.strip(),
-            "pack": {"key": pack, "source": "user", "why": "Chosen on Home"} if pack else None,
-            "messages": [], "questions": [], "assets": [], "active_asset": None,
-            "cleaning_log": [], "structure": None, "analysis": None, "workflow": None,
-            "understanding": {}, "agent": {"mode": None, "turns": 0},
-        }
-        return self.save(draft)
+        return self.save(new_draft(draft_id, problem, pack))
 
     def get(self, draft_id: str) -> dict[str, Any]:
         path = self.directory(draft_id) / "draft.json"

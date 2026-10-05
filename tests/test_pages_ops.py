@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.agentic.pages import Context, ops  # noqa: E402
 from dclab_rnd.agentic.store import Store  # noqa: E402
+from dclab_rnd.storage import open_stores  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
 from dclab_rnd.intern import SessionStore  # noqa: E402
 from dclab_rnd.studio import ProjectStore  # noqa: E402
@@ -42,7 +43,7 @@ def make_fixtures(home: Path) -> dict:
     session, one draft with a ready asset and one stuck before the server started, and one legacy research run."""
     now = datetime.now(timezone.utc)
     t = lambda s: iso(now - timedelta(seconds=s))  # noqa: E731
-    projects = ProjectStore(home / "projects")
+    projects, drafts, sessions = open_stores(home)  # the app's own stores: files, or PostgreSQL when DCLAB_DATABASE_URL is set
     p = projects.create("Churn", goal="Predict churn")
     pid = p["id"]
     p["solution"] = SOLUTION
@@ -52,8 +53,7 @@ def make_fixtures(home: Path) -> dict:
     projects.save(p)
     for at, kind, payload in [(t(120), "stage_started", {"stage": "data"}), (t(119), "stage_failed", {"stage": "data", "error": "TypeError: boom"}),
                               (t(50), "stage_started", {"stage": "data"}), (t(48), "stage_completed", {"stage": "data", "elapsed_seconds": 1.8, "summary": "Profiled 80 rows"})]:
-        with (projects.directory(pid) / "activity.jsonl").open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps({"at": at, "kind": kind, "payload": payload}) + "\n")
+        projects.log(pid, kind, payload, at=at)
     for at, actor, outcome in [(t(119), "human", "failed: TypeError: boom"), (t(80), "agent", "failed: DataError: unreadable file"), (t(48), "agent", "done: profiled")]:
         projects.transition(pid, {"at": at, "actor": actor, "move": "run_stage", "args": {"stage": "data"}, "status": "allowed", "outcome": outcome})
     projects.write_stage(pid, "data", {
@@ -65,7 +65,6 @@ def make_fixtures(home: Path) -> dict:
         "provenance": {"data_sha256": "ab" * 32, "filename": "telco.csv", "random_state": 42, "cv": "StratifiedKFold(3)", "holdout": "random 20 of 100",
                        "sampling": {"source_rows": 100, "rows_used": 100, "rule": "all rows"}}})
 
-    sessions = SessionStore(home / "intern")
     s = sessions.create("Forecast daily bike rentals", mode="standard", model=None, budget={"max_steps": 12, "max_minutes": 5}, project_id=pid)
     s.update(status="completed", plan="1. pick the data", used={"steps": 2, "minutes": 0.5, "input_tokens": 0, "output_tokens": 0},
              steps=[{"n": 1, "tool": "list_samples", "arguments": {}, "summary": "16 samples", "ok": True, "elapsed_seconds": 0.1, "at": t(30)},
@@ -73,7 +72,6 @@ def make_fixtures(home: Path) -> dict:
              final="Stopped: the sample does not exist.", created=t(31))
     sessions.save(s)
 
-    drafts = DraftStore(home / "drafts")
     d = drafts.create("Rank clients for the call campaign")
     ready = {"id": "a1111aaaa", "kind": "sample", "name": "bank_marketing", "filename": "bank_marketing.parquet", "status": "ready",
              "added": t(20), "synthetic": False, "rows": 45211, "columns": 17, "structure": {"format": "parquet", "parse_rate": 1.0}}

@@ -23,6 +23,19 @@ def now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def new_session(session_id: str, task: str, *, mode: str, model: str | None, budget: dict[str, Any] | None = None, project_id: str | None = None) -> dict[str, Any]:
+    """A fresh intern session document, with its budget clamped. Shared by every store."""
+    budget = {**DEFAULT_BUDGET, **{k: int(v) for k, v in (budget or {}).items() if k in DEFAULT_BUDGET}}
+    budget["max_steps"] = max(3, min(budget["max_steps"], 80))
+    budget["max_minutes"] = max(1, min(budget["max_minutes"], 240))
+    return {
+        "id": session_id, "task": task.strip()[:4000], "status": "queued", "mode": mode, "model": model,
+        "budget": budget, "used": {"steps": 0, "minutes": 0.0, "input_tokens": 0, "output_tokens": 0},
+        "plan": None, "steps": [], "messages": [], "final": None, "project_id": project_id, "error": None,
+        "created": now(), "updated": now(),
+    }
+
+
 class SessionStore:
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -34,16 +47,7 @@ class SessionStore:
         return self.home / f"{session_id}.json"
 
     def create(self, task: str, *, mode: str, model: str | None, budget: dict[str, Any] | None = None, project_id: str | None = None) -> dict[str, Any]:
-        budget = {**DEFAULT_BUDGET, **{k: int(v) for k, v in (budget or {}).items() if k in DEFAULT_BUDGET}}
-        budget["max_steps"] = max(3, min(budget["max_steps"], 80))
-        budget["max_minutes"] = max(1, min(budget["max_minutes"], 240))
-        session = {
-            "id": uuid.uuid4().hex[:12], "task": task.strip()[:4000], "status": "queued", "mode": mode, "model": model,
-            "budget": budget, "used": {"steps": 0, "minutes": 0.0, "input_tokens": 0, "output_tokens": 0},
-            "plan": None, "steps": [], "messages": [], "final": None, "project_id": project_id, "error": None,
-            "created": now(), "updated": now(),
-        }
-        return self.save(session)
+        return self.save(new_session(uuid.uuid4().hex[:12], task, mode=mode, model=model, budget=budget, project_id=project_id))
 
     def get(self, session_id: str) -> dict[str, Any]:
         path = self.path(session_id)
@@ -59,7 +63,7 @@ class SessionStore:
         temp.replace(path)
         return session
 
-    def list(self) -> list[dict[str, Any]]:
+    def list(self, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
         out = []
         for path in self.home.glob("*.json"):
             try:
@@ -67,7 +71,8 @@ class SessionStore:
             except (OSError, json.JSONDecodeError):
                 continue
             out.append({k: v for k, v in s.items() if k not in ("messages", "steps")} | {"steps": len(s.get("steps", []))})
-        return sorted(out, key=lambda s: s.get("updated", ""), reverse=True)
+        out.sort(key=lambda s: s.get("updated", ""), reverse=True)
+        return out[offset:offset + limit] if limit is not None else out
 
     def delete(self, session_id: str) -> None:
         path = self.path(session_id)

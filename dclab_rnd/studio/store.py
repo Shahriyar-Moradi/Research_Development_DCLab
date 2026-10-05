@@ -49,6 +49,26 @@ def migrate(project: dict[str, Any]) -> bool:
     return changed
 
 
+def new_project(project_id: str, name: str, industry: str = "general", goal: str = "") -> dict[str, Any]:
+    """A fresh project document. Shared by every store, so a project looks the same wherever it is kept."""
+    return {
+        "id": project_id,
+        "name": (name or "Untitled project").strip()[:120],
+        "industry": industry if industry in INDUSTRIES else "general",
+        "goal": (goal or "").strip()[:4000],
+        "created": now(),
+        "updated": now(),
+        "data": None,
+        "solution": None,
+        "proposal": None,
+        "settings": {"max_rows": 20000, "quick": False},
+        "stages": {key: {"status": "pending"} for key in STAGE_KEYS},
+        "decisions": {},
+        "holdout_uses": 0,
+        "running": None,
+    }
+
+
 class ProjectStore:
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -83,28 +103,12 @@ class ProjectStore:
 
     # ------------------------------------------------------------------ CRUD
     def create(self, name: str, industry: str = "general", goal: str = "") -> dict[str, Any]:
-        project_id = uuid.uuid4().hex[:12]
-        project = {
-            "id": project_id,
-            "name": (name or "Untitled project").strip()[:120],
-            "industry": industry if industry in INDUSTRIES else "general",
-            "goal": (goal or "").strip()[:4000],
-            "created": now(),
-            "updated": now(),
-            "data": None,
-            "solution": None,
-            "proposal": None,
-            "settings": {"max_rows": 20000, "quick": False},
-            "stages": {key: {"status": "pending"} for key in STAGE_KEYS},
-            "decisions": {},
-            "holdout_uses": 0,
-            "running": None,
-        }
-        directory = self.directory(project_id)
+        project = new_project(uuid.uuid4().hex[:12], name, industry, goal)
+        directory = self.directory(project["id"])
         (directory / "data").mkdir(parents=True)
         (directory / "stages").mkdir()
         self.save(project)
-        self.log(project_id, "created", {"name": project["name"]})
+        self.log(project["id"], "created", {"name": project["name"]})
         return project
 
     def get(self, project_id: str) -> dict[str, Any]:
@@ -129,7 +133,7 @@ class ProjectStore:
         project.update(values)
         return self.save(project)
 
-    def list(self) -> list[dict[str, Any]]:
+    def list(self, limit: int | None = None, offset: int = 0) -> list[dict[str, Any]]:
         projects = []
         for path in self.home.glob("*/project.json"):
             try:
@@ -138,7 +142,8 @@ class ProjectStore:
                 projects.append(project)
             except (OSError, json.JSONDecodeError):
                 continue
-        return sorted(projects, key=lambda p: p.get("updated", ""), reverse=True)
+        projects.sort(key=lambda p: p.get("updated", ""), reverse=True)
+        return projects[offset:offset + limit] if limit is not None else projects
 
     def delete(self, project_id: str) -> None:
         import shutil
@@ -178,8 +183,8 @@ class ProjectStore:
         project["decisions"] = {k: v for k, v in project["decisions"].items() if STAGE_KEYS.index(k) < start} if project["decisions"] else {}
         self.save(project)
 
-    def log(self, project_id: str, kind: str, payload: Any) -> None:
-        line = json.dumps({"at": now(), "kind": kind, "payload": payload}, ensure_ascii=False)
+    def log(self, project_id: str, kind: str, payload: Any, at: str | None = None) -> None:
+        line = json.dumps({"at": at or now(), "kind": kind, "payload": payload}, ensure_ascii=False)
         with (self.directory(project_id) / "activity.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(line + "\n")
 
