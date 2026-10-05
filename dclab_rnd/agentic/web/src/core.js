@@ -842,6 +842,37 @@
     return () => { stopped = true; clearTimeout(timer); };
   }
 
+  /* ---------------- the open project (project pages share it) ----------------
+     DC.state.project is "p:<id>" for a real project (set by the Workflow page) or a sample key. With no choice yet,
+     the most recent real project opens; with none at all, the pages keep their sample. */
+  const currentProject = {
+    _cache: null,
+    async id() {
+      const key = state.project;
+      if (typeof key === 'string' && key.startsWith('p:')) return key.slice(2);
+      if (key) return null;  // a sample was chosen on purpose
+      try { const ws = await api('/workspace'); if (ws.projects.length) { state.project = 'p:' + ws.projects[0].id; return ws.projects[0].id; } } catch (e) { /* offline */ }
+      return null;
+    },
+    /* The project with its stage records, transitions and graph; cached for two seconds across pages. */
+    async get(force) {
+      const id = await this.id();
+      if (!id) return null;
+      const c = this._cache;
+      if (!force && c && c.id === id && Date.now() - c.at < 2000) return c.project;
+      const project = await api(`/projects/${id}`);
+      this._cache = { id, at: Date.now(), project };
+      setProjectLabel(project.name);
+      return project;
+    },
+    clear() { this._cache = null; },
+  };
+  /* Shows or hides the "Sample data" pill in the top bar and a page's own sample note. */
+  function markSample(isSample) {
+    const pill = $('.demo-pill');
+    if (pill) pill.textContent = isSample ? 'Sample data · Demo' : 'Your data';
+  }
+
   /* ---------------- data connectors (Home and the wizard share them) ----------------
      Credentials and connection strings live on the server; the page only names a configured connection. */
   const connectors = {
@@ -943,6 +974,6 @@
     if (bpOn) setBlueprint(true);
   }
 
-  window.DC = { connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

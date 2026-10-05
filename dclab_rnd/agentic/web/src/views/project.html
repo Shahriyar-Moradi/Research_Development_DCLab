@@ -386,6 +386,7 @@ DC.view('project', {
       $('#proj-lede', el).textContent = P[p].lede;
       $('#proj-actions', el).innerHTML = P[p].actions;
       const r = $('#replay', el); r.max = P[p].log.length; r.value = step;
+      DC.state.project = p; DC.markSample(!isReal(p)); DC.currentProject.clear();
       if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
       else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
       drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
