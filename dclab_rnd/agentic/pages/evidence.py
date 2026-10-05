@@ -127,9 +127,12 @@ def ask(question: str, client=None, path: Path = INDEX) -> dict[str, Any]:
             text = (reply.get("content") or "").strip()
         except RuntimeError as error:  # the model is optional; the records stand alone
             return out | {"mode": "records", "covered": None, "note": f"The model request failed ({error}); these are the closest records."}
+        report = getattr(client, "output", None) or (lambda passed, reason="": None)
         if text.startswith(NOT_COVERED):
+            report(True)
             return out | {"mode": "model", "covered": False, "note": NOT_COVERED}
         kept, dropped = check(text, hits)
+        report(bool(kept), "" if kept else "no sentence kept a citation and numbers found in the records")
         if kept:
             return out | {"mode": "model", "covered": True, "sentences": kept, "dropped": dropped,
                           "note": "Written by the model from these records only; sentences with an uncited claim or a number "

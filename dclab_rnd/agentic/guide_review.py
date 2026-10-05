@@ -160,10 +160,19 @@ async def run(model):
     for name,agent_type in roles.items():
         context=section_contexts[name];allowed=ids_for(context);context["allowed_evidence_ids"]=allowed
         agent=agent_type(llm=client,context={"dclab_contract":POLICY})
-        result=(await agent.review(json.dumps(context,ensure_ascii=False))).model_dump()
+        from ..models import installed
+        gw_model=str(client.model).removeprefix("openai/")
+        try:
+            result=(await agent.review(json.dumps(context,ensure_ascii=False))).model_dump()
+        except Exception as exc:
+            if "budget" not in str(exc).lower(): installed().check("campaign_review",gw_model,False,f"the typed answer did not parse ({type(exc).__name__})")
+            raise
         cited=set(result["evidence_ids"])
         for rule in result["proposed_rules"]: cited.update(rule["evidence_ids"])
-        if not cited <= set(allowed): raise ValueError(f"{name} returned unrecognized evidence IDs: {sorted(cited-set(allowed))}")
+        if not cited <= set(allowed):
+            installed().check("campaign_review",gw_model,False,"cited evidence IDs that were not given")
+            raise ValueError(f"{name} returned unrecognized evidence IDs: {sorted(cited-set(allowed))}")
+        installed().check("campaign_review",gw_model,True)
         results[name]=result
         print(f"completed {name}",flush=True)
     payload={"schema_version":1,"model":model,"provider":"OpenAI Responses API","store":False,"generated_at":datetime.now(timezone.utc).isoformat(),"calls":client.calls,"usage":client.usage,"evidence_pack_sha256":hashlib.sha256((KNOWLEDGE/"master_evidence_pack.json").read_bytes()).hexdigest(),"advisory_only":True,"sections":results}

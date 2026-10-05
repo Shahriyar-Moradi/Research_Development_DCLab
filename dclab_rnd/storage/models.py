@@ -137,4 +137,16 @@ model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usa
     sa.Index("ix_model_request_workspace_at", "workspace_id", "at"),
     sa.Index("ix_model_request_project_id", "project_id"))
 
+model_output_check = sa.Table(  # whether a model's output passed the code that checks it (package A1.3)
+    "model_output_check", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("purpose", sa.Text, nullable=False),
+    sa.Column("tier", sa.Text, nullable=False),
+    sa.Column("model", sa.Text, nullable=False),
+    sa.Column("passed", sa.Boolean, nullable=False),
+    sa.Column("reason", sa.Text),  # why it failed, in words; never the model's output or the user's data
+    sa.Index("ix_model_output_check_workspace_at", "workspace_id", "at"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

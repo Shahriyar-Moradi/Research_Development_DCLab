@@ -147,11 +147,23 @@ class Gateway:
             pass
         return eur
 
+    def check(self, purpose: str, model: str, passed: bool, reason: str = "") -> None:
+        """Record whether a model's output passed the code that checks it (never the output itself)."""
+        if self.usage is None:
+            return
+        try:
+            self.usage.record_check({"at": now(), "purpose": purpose, "tier": settings.purpose(purpose).tier, "model": model,
+                                     "passed": bool(passed), "reason": (reason or "")[:300] or None})
+        except Exception:  # noqa: BLE001 — a check that cannot be logged must not change the answer
+            pass
+
     def summary(self) -> dict[str, Any]:
-        """What the pages show: tiers without keys, purposes with what they may see, and usage."""
+        """What the pages show: tiers without keys, purposes with what they may see, usage, and models that keep failing."""
         return {"tiers": [settings.public(t) for t in settings.TIERS],
-                "purposes": [{"purpose": k, "tier": v.tier, "timeout": v.timeout, "may_see": v.may_see} for k, v in settings.PURPOSES.items()],
-                "usage": self.usage.totals() if self.usage else None}
+                "purposes": [{"purpose": k, "tier": v.tier, "timeout": v.timeout, "may_see": v.may_see, "cell_values": v.cell_values}
+                             for k, v in settings.PURPOSES.items()],
+                "usage": self.usage.totals() if self.usage else None,
+                "failing": self.usage.failing(month_start()) if self.usage else []}
 
 
 class Bound:
@@ -162,6 +174,10 @@ class Bound:
         self.run_limit_eur: float | None = None  # a cap for one run (an intern session); set by the caller
         self.spent_eur = 0.0  # what this run has cost so far (the intern restores it from the session before each request)
         self.reserved_eur = 0.0
+
+    def output(self, passed: bool, reason: str = "") -> None:
+        """The caller's verdict on this client's last answer: it passed the code that checks it, or why not."""
+        self.gateway.check(self.purpose, self.model, passed, reason)
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
         return self._call(lambda: self._transport.complete(messages, tools, max_tokens, **options), messages, can_retry=lambda: True,

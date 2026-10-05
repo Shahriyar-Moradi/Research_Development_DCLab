@@ -451,6 +451,75 @@ class MoneyTests(unittest.TestCase):
             self.assertEqual((pg.spent(month_start()), pg.spent(month_start(), "p1"), pg.totals()["unpriced"]), (0.25, 0.25, 1))
 
 
+class OutputCheckTests(unittest.TestCase):
+    """Package A1.3: a model that fails a purpose's output check twice is reported, with the purpose and tier."""
+
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "k", "OPENAI_MODEL": "m1", "DCLAB_INTERN_MODEL": ""})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def check_reporting(self, usage):
+        gw = Gateway(usage, transport=lambda tier, purpose: Scripted([], tier, purpose))
+        client = gw.client("parse_pattern")
+        self.assertEqual(gw.summary()["failing"], [])
+        client.output(True)
+        client.output(False, "read only 10% of the sample lines")
+        self.assertEqual(gw.summary()["failing"], [])  # one failure is not reported
+        client.output(False, "not a valid regular expression")
+        gw.client("home_agent").output(False, "the tool call was refused")  # another purpose, once
+        failing = gw.summary()["failing"]
+        self.assertEqual([(f["purpose"], f["tier"], f["model"], f["failed"], f["checked"]) for f in failing], [("parse_pattern", "cheap", "m1", 2, 3)])
+        self.assertEqual(failing[0]["last_reason"], "not a valid regular expression")
+
+    def test_failures_are_reported_from_two_on_files(self):
+        self.check_reporting(FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl"))
+
+    def test_failures_are_reported_from_two_in_postgresql(self):
+        url = pgtest.require()
+        pgtest.empty(url)
+        from dclab_rnd.models import PgUsage
+        from dclab_rnd.storage import db
+        self.check_reporting(PgUsage(db.workspace("/checks", "c", url), url))
+
+    def test_the_log_never_keeps_the_models_output(self):
+        from dclab_rnd.draft import synthetic
+        usage = FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl")
+        bad = json.dumps({"name": "t", "description": "d", "seed": 1, "time_order": False, "target": None,
+                          "columns": [{"name": "patient_ssn_Q7Kxsecret", "type": "categorical", "description": "x", "null_rate": 0, "categories": ["a", "a"]}]})
+        gw = Gateway(usage, transport=lambda tier, purpose: Scripted([{"content": bad, "usage": {}}, {"content": bad, "usage": {}}], tier, purpose))
+        synthetic.spec_from_model(gw.client("synthetic_schema"), "x", None, 200)
+        self.assertNotIn("Q7Kxsecret", usage.checks.read_text())
+        self.assertEqual(gw.summary()["failing"][0]["purpose"], "synthetic_schema")
+
+    def test_the_intern_reports_refused_and_unknown_tool_calls(self):
+        from dclab_rnd.intern import Intern, SessionStore
+        from dclab_rnd.intern.tools import Toolbox
+        from dclab_rnd.studio import ProjectStore
+
+        def call(name, args, n):
+            return {"content": "", "tool_calls": [{"id": f"c{n}", "name": name, "arguments": args}], "usage": {"input_tokens": 0, "output_tokens": 0},
+                    "assistant_message": {"role": "assistant", "content": "", "tool_calls": [{"id": f"c{n}", "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}]}}
+        usage = FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl")
+        plan = [call("no_such_tool", {}, 1), call("get_results", {"project_id": "000000000000", "stage": "final"}, 2), call("list_samples", {}, 3), call("finish", {"report": "done"}, 4)]
+        gw = Gateway(usage, transport=lambda tier, purpose: Scripted(plan, tier, purpose))
+        home = Path(tempfile.mkdtemp())
+        intern = Intern(SessionStore(home / "intern"), Toolbox(ProjectStore(home / "projects")), gw.client("intern"))
+        intern.run(intern.start("Try some tools")["id"])
+        rows = [json.loads(l) for l in usage.checks.read_text().splitlines()]
+        self.assertEqual([(r["passed"], r["reason"]) for r in rows], [(False, "called a tool that does not exist"), (False, "the tool call was refused"), (True, None)])
+
+    def test_the_critic_passes_only_a_json_object(self):
+        from dclab_rnd import llm_review
+        root = Path(tempfile.mkdtemp())
+        (root / "r.json").write_text(json.dumps({"experiment_id": "E"}))
+        usage = FileUsage(Path(tempfile.mkdtemp()) / "u.jsonl")
+        gw = Gateway(usage, transport=lambda tier, purpose: Scripted([{"content": "[1, 2]", "usage": {}}], tier, purpose))
+        with self.assertRaises(ValueError):
+            llm_review.review_one(gw.client("campaign_review"), root, {"evidence_path": "r.json"}, model="m1")
+        self.assertEqual(json.loads(usage.checks.read_text())["reason"], "the critique is not a JSON object")
+
+
 class PgUsageTests(unittest.TestCase):
     def test_rows_in_postgresql_per_workspace(self):
         url = pgtest.require()

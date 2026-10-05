@@ -48,13 +48,13 @@ DC.view('admin', {
   },
 
   async enter(el) {
-    const [pol, lim, intern] = await Promise.allSettled([DC.api('/platform/policies'), DC.api('/platform/limits'), DC.api('/intern')]);
+    const [pol, lim, intern, gw] = await Promise.allSettled([DC.api('/platform/policies'), DC.api('/platform/limits'), DC.api('/intern'), DC.api('/models')]);
     if (pol.status !== 'fulfilled') { DC.markSample(true); return; }
     this.S.real = true;
     DC.markSample(false);
     this.paintPolicies(el, pol.value);
     if (lim.status === 'fulfilled') this.paintLimits(el, lim.value);
-    if (intern.status === 'fulfilled') this.paintModels(el, intern.value);
+    if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
     await this.loadAudit(el);
@@ -115,20 +115,21 @@ DC.view('admin', {
     DC.hydrate(el);
   },
 
-  paintModels(el, m) {
+  paintModels(el, m, gw) {
     const { $, esc } = DC;
-    $('#models-sub', el).textContent = 'Routing between tiers is a plan; today the intern and the Home agent use one model, or none';
+    $('#models-sub', el).textContent = gw ? 'Every request goes through one gateway: each purpose uses a tier, and a local model can serve the cheap one' : 'Model status';
     const pill = $('#tier3-pill', el);
-    pill.className = 'pill ' + (m.available ? 'ok' : 'warn');
-    pill.textContent = m.available ? 'configured' : 'not configured';
-    $('#tier3-body', el).innerHTML = `<dl class="kv">
-        <dt>Mode</dt><dd>${m.available ? 'The model plans and calls the tools; deterministic code runs every stage.' : 'Standard plan: no model, the intern follows the DCLab plan step by step.'}</dd>
-        <dt>Endpoint</dt><dd class="mono">${esc(m.endpoint)}</dd>
-        <dt>Model</dt><dd class="mono">${esc(m.model)}</dd>
-        <dt data-f="admin.keys">Key</dt><dd><span class="row"><span class="pill ${m.key_configured ? 'ok' : 'outline'}">${m.key_configured ? 'set on the server' : 'not set'}</span><span class="xs muted">never sent to the browser</span></span></dd>
-        <dt>SDK</dt><dd>${m.sdk_installed ? 'openai package installed' : 'openai package missing on the server'}</dd>
-      </dl>
-      <span class="xs muted">To change: set <code>OPENAI_API_KEY</code>, <code>OPENAI_BASE_URL</code> (or <code>DCLAB_LLM_BASE_URL</code>) and <code>DCLAB_INTERN_MODEL</code> in <code>.env</code>, then restart the server.</span>`;
+    const live = gw ? gw.tiers.some(t => t.available) : m.available;
+    pill.className = 'pill ' + (live ? 'ok' : 'warn');
+    pill.textContent = live ? 'configured' : 'not configured';
+    if (!gw) { $('#tier3-body', el).innerHTML = `<span class="muted">${m.available ? esc(m.model) + ' via ' + esc(m.endpoint) : 'No model is configured: every part of DCLab uses its deterministic path.'}</span>`; return; }
+    const tiers = gw.tiers.map(t => `<tr><td><b>${esc(t.name)}</b></td><td class="mono small">${esc(t.endpoint)}${t.local ? ' <span class="pill ok">this machine</span>' : ''}</td><td class="mono small">${esc(t.model)}</td><td><span class="pill ${t.available ? 'ok' : 'outline'}">${t.available ? 'ready' : (t.key_configured ? 'SDK missing' : 'no key')}</span></td></tr>`).join('');
+    const purposes = gw.purposes.map(p => `<tr><td class="mono small">${esc(p.purpose)}</td><td>${esc(p.tier)}</td><td class="small muted">${esc(p.may_see)}</td></tr>`).join('');
+    const failing = (gw.failing || []).map(f => `<div class="callout warn small"><span><b>${esc(f.model)}</b> failed the ${esc(f.purpose)} output check ${f.failed} of ${f.checked} times this month (${esc(f.tier)} tier)${f.last_reason ? ': ' + esc(f.last_reason) : ''}. Consider another model for this tier.</span></div>`).join('');
+    $('#tier3-body', el).innerHTML = `${failing}
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Tier</th><th>Endpoint</th><th>Model</th><th></th></tr></thead><tbody>${tiers}</tbody></table></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Purpose</th><th>Tier</th><th>What it may be shown</th></tr></thead><tbody>${purposes}</tbody></table></div>
+      <span class="xs muted">Keys stay on the server. To change a tier set <code>DCLAB_TIER_&lt;TIER&gt;_BASE_URL</code>, <code>_MODEL</code> and <code>_API_KEY</code> in <code>.env</code> (unset tiers use <code>OPENAI_*</code>), then restart the server.</span>`;
   },
 
   paintLimits(el, l) {

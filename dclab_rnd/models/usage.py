@@ -21,11 +21,30 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+CHECK_FIELDS = ("at", "purpose", "tier", "model", "passed", "reason")
+
+
+def _failing(entries: list[dict[str, Any]], at_least: int = 2) -> list[dict[str, Any]]:
+    """Purpose and model pairs whose output failed its check at least ``at_least`` times, newest reason first."""
+    groups: dict[tuple, dict[str, Any]] = {}
+    for e in entries:
+        key = (e.get("purpose"), e.get("tier"), e.get("model"))
+        g = groups.setdefault(key, {"purpose": key[0], "tier": key[1], "model": key[2], "checked": 0, "failed": 0, "last_reason": None, "last_at": None})
+        g["checked"] += 1
+        if not e.get("passed"):
+            g["failed"] += 1
+            if not g["last_at"] or str(e.get("at")) >= g["last_at"]:
+                g["last_reason"], g["last_at"] = e.get("reason"), str(e.get("at"))
+    return sorted((g for g in groups.values() if g["failed"] >= at_least), key=lambda g: -g["failed"])
+
+
 class UsageLog(Protocol):
     def record(self, entry: dict[str, Any]) -> None: ...
     def recent(self, limit: int = 50) -> list[dict[str, Any]]: ...
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]: ...
     def spent(self, since: str, project_id: str | None = None) -> float: ...
+    def record_check(self, entry: dict[str, Any]) -> None: ...
+    def failing(self, since: str) -> list[dict[str, Any]]: ...
 
 
 def _totals(entries: list[dict[str, Any]]) -> dict[str, Any]:
@@ -65,6 +84,7 @@ class FileUsage:
     def __init__(self, path: Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.checks = self.path.with_name(self.path.stem + "_checks.jsonl")
         self._lock = threading.Lock()
 
     def record(self, entry: dict[str, Any]) -> None:
@@ -85,6 +105,17 @@ class FileUsage:
 
     def recent(self, limit: int = 50) -> list[dict[str, Any]]:
         return list(reversed(self._all()[-limit:]))
+
+    def record_check(self, entry: dict[str, Any]) -> None:
+        line = json.dumps({k: entry.get(k) for k in CHECK_FIELDS}, ensure_ascii=False, default=str)
+        with self._lock, self.checks.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+
+    def failing(self, since: str) -> list[dict[str, Any]]:
+        if not self.checks.is_file():
+            return []
+        rows = [json.loads(line) for line in self.checks.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return _failing([r for r in rows if str(r.get("at")) >= since])
 
     def spent(self, since: str, project_id: str | None = None) -> float:
         return round(sum(float(e.get("cost_eur") or 0) for e in self._all()
@@ -126,6 +157,23 @@ class PgUsage:
 
     def recent(self, limit: int = 50) -> list[dict[str, Any]]:
         return self._query(limit=limit)
+
+    def record_check(self, entry: dict[str, Any]) -> None:
+        import sqlalchemy as sa
+
+        from ..storage.models import model_output_check
+
+        with self.engine.begin() as c:
+            c.execute(sa.insert(model_output_check).values(workspace_id=self.workspace_id, **{k: entry.get(k) for k in CHECK_FIELDS}))
+
+    def failing(self, since: str) -> list[dict[str, Any]]:
+        import sqlalchemy as sa
+
+        from ..storage.models import model_output_check as t
+
+        with self.engine.connect() as c:
+            rows = [dict(r._mapping) for r in c.execute(sa.select(*[t.c[k] for k in CHECK_FIELDS]).where(t.c.workspace_id == self.workspace_id, t.c.at >= since))]
+        return _failing(rows)
 
     def spent(self, since: str, project_id: str | None = None) -> float:
         import sqlalchemy as sa

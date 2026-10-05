@@ -227,7 +227,16 @@ def review_one(
         response_format={"type": "json_object"},
     )
     content = response.get("content") or "{}"
-    review = _parse_json_response(content)
+    report = getattr(client, "output", None) or (lambda passed, reason="": None)
+    try:
+        review = _parse_json_response(content)
+    except Exception as error:
+        report(False, f"the critique is not valid JSON ({type(error).__name__})")
+        raise
+    if not isinstance(review, dict):
+        report(False, "the critique is not a JSON object")
+        raise ValueError("The critique is not a JSON object")
+    report(True)
     review["experiment_id"] = task.get("experiment_id")
     review["dataset"] = task.get("dataset")
     review["evidence_path"] = evidence_rel

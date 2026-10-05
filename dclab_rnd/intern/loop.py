@@ -14,7 +14,7 @@ import time
 from typing import Any
 
 from .sessions import SessionStore, now
-from .tools import Toolbox, summarize, truncate
+from .tools import LEGACY_TOOLS, Toolbox, summarize, truncate
 
 POLICY = """You are the DCLab intern: a careful ML engineer who builds models with evidence, not opinions.
 You work only through the tools. Deterministic code owns splits, metrics and selection rules; you plan, choose, explain and cite.
@@ -172,8 +172,25 @@ class Intern:
                         result = {"error": "budget exhausted; call finish with what you have"}
                     else:
                         result = self._step(session, name, arguments, started)
+                        self._verdict(name, arguments, result)
                 session["messages"].append({"role": "tool", "tool_call_id": call["id"], "content": truncate(result)})
             self.sessions.save(session)
+
+    def _verdict(self, name: str, arguments: dict[str, Any], result: Any) -> None:
+        """Tell the model gateway whether the model's tool call was usable (fixed reasons: never the model's text)."""
+        report = getattr(self.client, "output", None)
+        if not report:
+            return
+        if name not in self.toolbox.names() and name not in LEGACY_TOOLS:  # old names still work
+            report(False, "called a tool that does not exist")
+        elif "_raw" in arguments:
+            report(False, "tool arguments were not valid JSON")
+        elif isinstance(result, dict) and isinstance(result.get("verdict"), dict) and result["verdict"].get("status") == "blocked":
+            report(False, "the workflow validator refused the move")
+        elif isinstance(result, dict) and "error" in result:
+            report(False, "the tool call was refused")
+        else:
+            report(True)
 
     def _progress_note(self, session: dict[str, Any]) -> str:
         pid = session.get("project_id")

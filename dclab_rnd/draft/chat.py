@@ -163,6 +163,8 @@ class HomeAgent:
         problems: list[str] = []
         if proposed:
             wf, problems = wflow.validate(proposed, key)
+            if getattr(self.client, "output", None):  # the model proposed it: tell the gateway whether code accepted it
+                self.client.output(not problems, "; ".join(problems)[:200])
         else:
             wf = None
         if wf is None:
@@ -377,6 +379,8 @@ class HomeAgent:
             used_tool = True
             for call in calls:
                 result = self.run_tool(draft_id, call["name"], call.get("arguments") or {})
+                if call["name"] != "propose_workflow" and getattr(self.client, "output", None):  # proposals report their own verdict
+                    self.client.output("error" not in result, "" if "error" not in result else "the tool call was refused")
                 # a question waits for the user; a simulation ends the turn too (the data pipeline speaks next)
                 asked = asked or call["name"] == "ask_user" or bool(result.get("simulating"))
                 messages.append({"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)[:4000]})

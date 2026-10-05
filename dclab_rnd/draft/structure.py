@@ -774,6 +774,13 @@ MODEL_PROMPT = (
 MODEL_TYPES = ("int", "float", "datetime", "str")
 
 
+def _verdict(client: Any, passed: bool, reason: str = "") -> None:
+    """Tell the model gateway whether the model's pattern passed the checks (a plain client has no ``output``)."""
+    report = getattr(client, "output", None)
+    if report:
+        report(passed, reason)
+
+
 def _ask_model(client: Any, lines: list[str], baseline: float, info: dict[str, Any]) -> tuple[re.Pattern[str], dict[str, str], float] | None:
     """One request for a pattern; code validates it and returns it only when it is better than the built-ins."""
     shown = [line[:MODEL_LINE_CHARS] for line in lines[:MODEL_LINES]]
@@ -792,22 +799,27 @@ def _ask_model(client: Any, lines: list[str], baseline: float, info: dict[str, A
     spec = _json_object(content)
     if not spec or not isinstance(spec.get("regex"), str):
         info["notes"].append("The model's answer held no usable pattern; used the built-in parser.")
+        _verdict(client, False, "no usable pattern in the answer")
         return None
     try:
         pattern = re.compile(spec["regex"])
     except Exception:  # noqa: BLE001 - re.error, RecursionError, OverflowError
         info["notes"].append("The model's pattern is not a valid regular expression; used the built-in parser.")
+        _verdict(client, False, "not a valid regular expression")
         return None
     if len(pattern.groupindex) < 2:
         info["notes"].append("The model's pattern names fewer than two fields; used the built-in parser.")
+        _verdict(client, False, "fewer than two named fields")
         return None
     sample = lines[:SAMPLE_LINES]
     rate = _share(lambda line: _model_row(pattern, line), sample)
     if rate < GOOD_PARSE or rate <= baseline:
         info["notes"].append(f"The model's pattern read only {rate:.0%} of the first {len(sample)} lines; used the built-in parser.")
+        _verdict(client, False, f"read only {rate:.0%} of the sample lines")
         return None
     raw_types = spec.get("types") if isinstance(spec.get("types"), dict) else {}
     types = {str(k): str(v) for k, v in raw_types.items() if k in pattern.groupindex and v in MODEL_TYPES}
+    _verdict(client, True)
     return pattern, types, rate
 
 

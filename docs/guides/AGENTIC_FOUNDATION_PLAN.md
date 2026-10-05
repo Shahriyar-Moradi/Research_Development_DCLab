@@ -15,6 +15,7 @@ Read the playbook's "Shared preamble" first and paste it before any prompt below
 |---|---|---|
 | A1.1 | Done | Every model request goes through `dclab_rnd/models` (the intern too). NOOA's research clients cannot be swapped and report each request to the usage log. Tests cannot reach a live model (`DCLAB_NO_LIVE_MODELS=1` in the make targets). |
 | A1.2 | Done | Costs from a dated price table (`models/prices.py` or `DCLAB_PRICES_FILE`; none is guessed, local is free). A request whose upper-bound cost could pass a run, project or workspace cap is refused before it is sent, under a lock. Open: no price is configured yet, so remote requests are counted in tokens until prices are added. |
+| A1.3 | Done | Each purpose names its tier and the most cell values it may contain; `tests/test_model_data_limits.py` runs every caller on a table of findable values (text, numbers, dates; all five stages) and fails on a leak (shown to fail on a deliberate one). Every caller that checks a model's output reports a verdict; a model failing a purpose twice in a month is listed on Admin with its tier. Run on a local model (qwen2.5-coder 1.5B in Ollama) for the cheap tier: both cheap purposes ran on it, logged as local at €0; its answers failed both checks and the code fell back. |
 
 ## 1. What exists today
 

@@ -136,6 +136,15 @@ class AuditedClient(ResponsesClient):
 async def ask(agent_type, method, client, context):
     # A fresh specialist per node prevents hidden cross-node conversation state;
     # LangGraph's persisted context is the explicit source of memory.
+    from ..models import installed
     agent = agent_type(llm=client, context={"dclab_contract": POLICY})
-    result = await getattr(agent, method)(json.dumps(context, ensure_ascii=False))
-    return result.model_dump()
+    model = str(getattr(client, "model", "")).removeprefix("openai/")
+    try:
+        result = await getattr(agent, method)(json.dumps(context, ensure_ascii=False))
+        dumped = result.model_dump()
+    except Exception as exc:
+        if "budget" not in str(exc).lower():  # a cap or a refusal is not the model's fault
+            installed().check("campaign", model, False, f"the typed answer did not parse ({type(exc).__name__})")
+        raise
+    installed().check("campaign", model, True)
+    return dumped

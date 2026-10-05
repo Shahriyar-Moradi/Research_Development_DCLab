@@ -844,9 +844,14 @@ def spec_from_model(client: Any, prompt: str, context: dict | None = None, rows:
             reply = client.complete(messages, max_tokens=4000)
             content = str((reply or {}).get("content") or "")
             spec = _parse_reply(content, rows)
+            if getattr(client, "output", None):
+                client.output(True)
             return spec, {"source": "model", "attempts": attempt}
         except Exception as error:  # noqa: BLE001 — any failure means one retry, then the template
             reason = (str(error) if isinstance(error, ValueError) else f"{type(error).__name__}: {error}")[:600]
+            if content is not None and getattr(client, "output", None):  # the model answered, and the answer failed validation
+                # a fixed reason: the validation message quotes the model's spec (column names, values), which the log never keeps
+                client.output(False, f"the table design failed validation ({type(error).__name__})")
         if attempt == 1 and content is not None:
             messages = [*messages, {"role": "assistant", "content": content[:8000]},
                         {"role": "user", "content": f"That spec was not valid: {reason}. Reply with the corrected JSON object only."}]

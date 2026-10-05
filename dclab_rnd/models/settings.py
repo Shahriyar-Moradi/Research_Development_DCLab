@@ -28,19 +28,20 @@ class Purpose:
     timeout: float  # seconds per attempt
     may_see: str  # in words, for the Admin page and for reviewers of a caller
     stream: bool = False
+    cell_values: int = 0  # most distinct cell values of the user's data one request may contain (tests/test_model_data_limits.py)
 
 
 PURPOSES: dict[str, Purpose] = {
     "home_agent": Purpose("standard", 90, "the problem sentence, the user's answers, column summaries (name, kind, missing rate, unique count) "
-                                          "and descriptive findings; never rows or cell values", stream=True),
+                                          "and descriptive findings; never rows or cell values", stream=True, cell_values=0),
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "
-                                          "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off"),
+                                          "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off", cell_values=20 * 40),
     "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data"),
     "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved; no project data"),
     "stage_notes": Purpose("standard", 60, "a stage record's title, summary and claims (aggregate results with their intervals); no rows"),
     "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records; no rows"),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
-                                     "column from describe_data), stage records and evidence records; never whole rows"),
+                                     "column from describe_data), stage records and evidence records; never whole rows", cell_values=3 * 200),
     "campaign": Purpose("strong", 180, "research campaign context: the plan, dataset cards and experiment summaries of evidence/campaigns; "
                                        "no project or user data"),
     "campaign_review": Purpose("strong", 180, "one research campaign result's compact evidence (metrics, claims, setup) from evidence/campaigns; "
