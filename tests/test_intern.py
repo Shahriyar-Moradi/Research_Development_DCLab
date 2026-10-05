@@ -1,10 +1,12 @@
 """The DCLab intern: the toolbox, the standard plan, the LLM loop with a scripted model, budgets and the API."""
 
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -140,13 +142,18 @@ class ApiTests(unittest.TestCase):
             from dclab_rnd.agentic.server import create_app
         except ImportError as error:
             self.skipTest(f"Studio dependencies not installed: {error}")
+        # The server loads .env, so a developer's real key would send these tests to a live model.
+        # Without a key the intern follows the deterministic standard plan, the same as in CI.
+        env = mock.patch.dict(os.environ, {"OPENAI_API_KEY": "", "DCLAB_LLM_BASE_URL": "https://api.openai.com/v1"})
+        env.start()
+        self.addCleanup(env.stop)
         self.client = TestClient(create_app(Path(tempfile.mkdtemp())))
         self.headers = {"X-DCLab-Token": self.client.get("/api/config").json()["csrf"]}
 
     def test_sessions_over_http(self):
         c = self.client
         info = c.get("/api/intern").json()
-        self.assertIn(info["mode"], ("llm", "standard"))
+        self.assertEqual(info["mode"], "standard")
         self.assertTrue(info["examples"])
         self.assertEqual(c.post("/api/intern/sessions", json={"task": "x"}, headers=self.headers).status_code, 422)
         with fast_profile():
