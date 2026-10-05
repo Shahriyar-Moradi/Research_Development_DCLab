@@ -31,9 +31,9 @@ from ..draft.store import DraftStore
 
 load_dotenv(ROOT / ".env", override=False)
 STATIC = Path(__file__).with_name("static")
-# No inline scripts or styles anywhere; the only outside source is Google Fonts (stylesheet + font files).
-CSP = ("default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; "
-       "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
+# No inline scripts or styles anywhere, and nothing is loaded from outside this app: the fonts are served from /static/app/fonts.
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
+       "font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
 
 def version(package):
     try: return importlib.metadata.version(package)

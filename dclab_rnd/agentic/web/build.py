@@ -7,7 +7,7 @@
 Sources live in dclab_rnd/agentic/web/src/, copied from demo v1 (docs/product-demo/src, frozen):
 shell.html (layout), styles.css (design system), core.js (router, page tabs, server API, charts),
 data.js and features.js (sample data and the blueprint registry), data/*.json (records extracted from
-the repository) and views/*.html (one per page). Unlike the demo build, nothing is inlined: the page
+the repository), fonts/ (copied as they are) and views/*.html (one per page). Unlike the demo build, nothing is inlined: the page
 links app.css and loads every script from a file, because the server's CSP is script-src 'self' and
 style-src 'self'. Per-element styles are written as data-style="" and applied by core.js.
 """
@@ -67,6 +67,12 @@ def assemble() -> dict[str, str]:
     return files
 
 
+def assets() -> dict[str, bytes]:
+    """Binary files copied as they are: the fonts (SIL Open Font License; see fonts/README.md)."""
+    folder = SRC / "fonts"
+    return {f"fonts/{p.name}": p.read_bytes() for p in sorted(folder.iterdir()) if p.is_file()} if folder.is_dir() else {}
+
+
 def problems(files: dict[str, str]) -> list[str]:
     """Things the CSP would block: inline scripts, inline style blocks or attributes."""
     found = []
@@ -88,13 +94,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="exit 1 if static/app/ is out of date")
     args = parser.parse_args(argv)
     files = assemble()
+    binary = assets()
     issues = problems(files)
     if issues:
         print("\n".join(issues), file=sys.stderr)
         return 1
     if args.check:
         stale = [p for p, text in files.items() if not (OUT / p).exists() or (OUT / p).read_text(encoding="utf-8") != text]
-        extra = [str(p.relative_to(OUT)) for p in OUT.rglob("*") if p.is_file() and str(p.relative_to(OUT)) not in files] if OUT.exists() else []
+        stale += [p for p, data in binary.items() if not (OUT / p).exists() or (OUT / p).read_bytes() != data]
+        extra = [str(p.relative_to(OUT)) for p in OUT.rglob("*") if p.is_file() and str(p.relative_to(OUT)) not in files and str(p.relative_to(OUT)) not in binary] if OUT.exists() else []
         if stale or extra:
             print("dclab_rnd/agentic/static/app is stale: run python -m dclab_rnd.agentic.web.build"
                   + (f"\n  changed: {', '.join(stale)}" if stale else "") + (f"\n  extra: {', '.join(extra)}" if extra else ""), file=sys.stderr)
@@ -105,12 +113,16 @@ def main(argv: list[str] | None = None) -> int:
         target = OUT / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8")
+    for path, data in binary.items():
+        target = OUT / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
     if OUT.exists():
         for p in OUT.rglob("*"):
-            if p.is_file() and str(p.relative_to(OUT)) not in files:
+            if p.is_file() and str(p.relative_to(OUT)) not in files and str(p.relative_to(OUT)) not in binary:
                 p.unlink()
-    size = sum(len(t.encode("utf-8")) for t in files.values())
-    print(f"wrote dclab_rnd/agentic/static/app ({len(files)} files, {size / 1024:.0f} KB)")
+    size = sum(len(t.encode("utf-8")) for t in files.values()) + sum(len(d) for d in binary.values())
+    print(f"wrote dclab_rnd/agentic/static/app ({len(files) + len(binary)} files, {size / 1024:.0f} KB)")
     return 0
 
 

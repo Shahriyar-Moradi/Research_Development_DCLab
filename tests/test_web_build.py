@@ -24,6 +24,32 @@ class BuildTests(unittest.TestCase):
         self.assertIn('id="view-home"', page)
         self.assertIn("/static/app/js/core.js", page)
 
+    def test_fonts_are_served_by_the_app_and_nothing_loads_from_outside(self):
+        files, binary = build.assemble(), build.assets()
+        css, page = files["app.css"], files["index.html"]
+        loads = r'(<link[^>]+href|<script[^>]+src|<img[^>]+src|<iframe[^>]+src)\s*=\s*["\']?(https?:)?//|@import\s+(url\()?["\']?(https?:)?//|url\(\s*["\']?(https?:)?//'
+        for name, text in (("index.html", page), ("app.css", css)):
+            self.assertNotRegex(text, loads, f"{name} must not load anything from another host")
+        urls = re.findall(r'url\("([^"]+)"\)', css)
+        self.assertGreaterEqual(len(urls), 5)
+        for url in urls:
+            self.assertIn(url, binary, f"@font-face points at a file the build does not copy: {url}")
+        for family in ("Inter", "JetBrains Mono", "Vazirmatn"):
+            self.assertIn(f'font-family: "{family}"; font-style: normal', css)
+        for name in ("Inter", "JetBrains Mono", "Vazirmatn"):  # each family ships its licence
+            self.assertTrue(any(p.startswith("fonts/LICENSE-") and name.replace(" ", "") in p for p in binary), name)
+
+    def test_a_stale_or_missing_font_fails_the_check(self):
+        original = build.assets
+        try:
+            build.assets = lambda: {**original(), "fonts/inter-latin.woff2": b"changed"}
+            self.assertEqual(build.main(["--check"]), 1)
+            build.assets = lambda: {k: v for k, v in original().items() if k != "fonts/vazirmatn-arabic.woff2"}
+            self.assertEqual(build.main(["--check"]), 1)  # the file in static/app is now an extra
+        finally:
+            build.assets = original
+        self.assertEqual(build.main(["--check"]), 0)
+
     def test_inline_style_attributes_are_caught(self):
         files = {"index.html": "<div class=\"app\"></div>", "js/views/x.js": "el.innerHTML = '<b style=\"color:red\">x</b>';"}
         self.assertTrue(any("inline style" in p for p in build.problems(files)))
@@ -47,8 +73,12 @@ class ServeTests(unittest.TestCase):
         csp = page.headers["Content-Security-Policy"]
         self.assertIn("script-src 'self';", csp)
         self.assertNotIn("unsafe-inline", csp)
+        self.assertNotRegex(csp, r"https?:", "nothing is allowed from another host")
+        self.assertIn("font-src 'self';", csp)
         for asset in ("/static/app/app.css", "/static/app/js/core.js", "/static/app/js/views/home.js"):
             self.assertEqual(self.client.get(asset).status_code, 200, asset)
+        font = self.client.get("/static/app/fonts/inter-latin.woff2")
+        self.assertEqual((font.status_code, font.content[:4]), (200, b"wOF2"))
         self.assertIn('id="map-view"', self.client.get("/classic").text)
 
 
