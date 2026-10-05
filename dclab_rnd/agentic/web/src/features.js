@@ -19,7 +19,7 @@ window.FEATURES = [
   { id: 'home.quickstarts', view: 'home', name: 'Example tasks per domain pack', status: 'built', phase: 'Now', where: 'intern/sessions.py EXAMPLE_TASKS', note: '' },
 
   // ---- new project
-  { id: 'home.bring', view: 'home', name: 'Bring the data on Home: upload, samples, connectors, synthetic', status: 'partial', phase: 'Now', where: 'draft/api.py · draft/pipeline.py', note: 'Upload, studied samples and synthetic data work; Kaggle, Hugging Face and warehouse connectors come next.' },
+  { id: 'home.bring', view: 'home', name: 'Bring the data on Home: upload, samples, connectors, synthetic', status: 'built', phase: 'Now', where: 'draft/api.py · draft/pipeline.py', note: 'Upload, studied samples, Kaggle, Hugging Face, databases, S3/GCS and synthetic data, all through the same pipeline.' },
   { id: 'home.chat', view: 'home', name: 'Home conversation: a few questions, data analysis as it gets ready', status: 'built', phase: 'Now', where: 'draft/chat.py · draft/analyze.py', note: 'A model when configured; a deterministic question script otherwise.' },
   { id: 'home.solution', view: 'home', name: 'Solution workflow for this problem, updated from the chat', status: 'built', phase: 'Now', where: 'draft/workflow.py', note: 'Every step maps to a WF block; gates added by code; a model proposal is validated first.' },
   { id: 'home.pack', view: 'home', name: 'Optional domain pack choice on Home', status: 'built', phase: 'Now', where: 'draft/pack.py', note: '' },
@@ -29,8 +29,8 @@ window.FEATURES = [
   { id: 'new.pack', view: 'new', name: 'Domain pack picker with maturity labels', status: 'built', phase: 'Now', where: 'draft/pack.py', note: 'Detected from the problem and the data; the user can change it. Packs beyond tabular still run the tabular engine.' },
   { id: 'new.upload', view: 'new', name: 'Upload CSV / Parquet / Excel', status: 'built', phase: 'Now', where: 'draft/structure.py · draft/clean.py', note: 'Any file: tables, JSON, JSON lines, logs and text are turned into a table, then cleaned with a logged, lossless step list.' },
   { id: 'new.samples', view: 'new', name: 'Sample library: 16 studied datasets with their solutions', status: 'built', phase: 'Now', where: 'studio/data.py sample_catalog', note: '' },
-  { id: 'new.hub', view: 'new', name: 'Import from Kaggle and Hugging Face', status: 'partial', phase: 'P2', where: 'dclab_rnd/expansion/datasets.py', note: 'Four named datasets download today; a general importer with license capture is planned.' },
-  { id: 'new.warehouse', view: 'new', name: 'Read-only warehouse connectors', status: 'todo', phase: 'P2', where: '', note: 'Postgres, BigQuery, Snowflake, S3.' },
+  { id: 'new.hub', view: 'new', name: 'Import from Kaggle and Hugging Face', status: 'partial', phase: 'Now', where: 'connectors/kaggle.py · connectors/hf.py', note: 'Search and import are wired with licence, version and SHA-256 recorded; not yet tested against the live Kaggle and Hugging Face services.' },
+  { id: 'new.warehouse', view: 'new', name: 'Read-only warehouse connectors', status: 'built', phase: 'Now', where: 'connectors/db.py · connectors/cloud.py', note: 'Read-only SELECT on server-defined connections (DCLAB_DB_<NAME>); S3 and GCS objects. Postgres and MySQL need their drivers installed.' },
   { id: 'new.profile', view: 'new', name: 'Data profile: kinds, missing, unique, candidates', status: 'built', phase: 'Now', where: 'studio/data.py profile_table · tool describe_data', note: '' },
   { id: 'new.lineage', view: 'new', name: 'Lineage capture: source, license, snapshot hash, time range', status: 'partial', phase: 'P1', where: 'dclab_rnd/provenance.py', note: 'Provenance exists for campaigns, not yet for user uploads.' },
   { id: 'new.solution', view: 'new', name: 'Solution draft with forbidden columns and proof', status: 'built', phase: 'Now', where: 'studio/solution.py propose · tools._audit_frame', note: '' },

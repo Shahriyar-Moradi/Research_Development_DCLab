@@ -283,9 +283,14 @@ DC.view('new', {
       catch (e) { toast(e.message, { ok: false }); }
     });
     el.addEventListener('click', async e => {
+      const X = DC.connectors, k = e.target.closest('[data-kaggle-ref]');
+      if (k && W.draft) { try { await X.importKaggle(W.draft.id, k.dataset.kaggleRef); k.disabled = true; k.textContent = 'Importing…'; refresh(); } catch (err) { toast(err.message, { ok: false }); } return; }
       const c = e.target.closest('[data-connect]'); if (!c || !W.draft) return;
-      try { await api(`/drafts/${W.draft.id}/data/${c.dataset.connect}`, { method: 'POST', body: {} }); toast('Import started.'); }
-      catch (err) { toast(err.status === 404 || err.status === 405 ? 'This connector is not switched on in this build yet. Upload a file or use a studied sample.' : err.message, { ok: false }); }
+      const kind = c.dataset.connect;
+      if (kind === 'kaggle') X.kaggleSearch($('#wz-kaggle-q', el).value, $('#wz-kaggle-list', el));
+      if (kind === 'hf') X.importHF(W.draft.id, { dataset: $('#hf-id', el).value.trim(), revision: $('#hf-rev', el).value.trim(), split: $('#hf-split', el).value.trim(), config: $('#hf-cfg', el).value.trim() }).then(refresh).catch(err => { if (err.message !== 'no dataset') toast(err.message, { ok: false }); });
+      if (kind === 'database') X.database(W.draft.id, refresh);
+      if (kind === 'cloud') X.cloud(W.draft.id, refresh);
     });
     $('#wz-data-next', el).addEventListener('click', () => { show(3); window.scrollTo({ top: 0, behavior: 'smooth' }); });
 

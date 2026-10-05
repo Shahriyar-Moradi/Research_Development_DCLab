@@ -805,7 +805,7 @@
     if (!server.config) server.config = await fetch('/api/config', { headers: { Accept: 'application/json' } }).then(r => r.json());
     return server.config;
   }
-  async function api(path, opts = {}) {
+  async function api(path, opts = {}, retried = false) {
     const cfg = await config();
     const headers = Object.assign({ Accept: 'application/json', 'X-DCLab-Token': cfg.csrf }, opts.headers || {});
     let body = opts.body;
@@ -813,6 +813,11 @@
       body = JSON.stringify(body); headers['Content-Type'] = 'application/json';
     }
     const res = await fetch('/api' + path, Object.assign({}, opts, { headers, body }));
+    if (res.status === 403 && !retried && (opts.method || 'GET') !== 'GET') {
+      // The server restarted and issued a new request token; fetch it once and try again.
+      server.config = null;
+      return api(path, opts, true);
+    }
     if (res.status === 204) return null;
     const type = res.headers.get('content-type') || '';
     const data = type.includes('json') ? await res.json() : await res.text();
@@ -836,6 +841,64 @@
     tick();
     return () => { stopped = true; clearTimeout(timer); };
   }
+
+  /* ---------------- data connectors (Home and the wizard share them) ----------------
+     Credentials and connection strings live on the server; the page only names a configured connection. */
+  const connectors = {
+    _status: null,
+    async status() { if (!this._status) { try { this._status = await api('/connectors'); } catch (e) { this._status = {}; } } return this._status; },
+    async kaggleSearch(query, listEl) {
+      const st = await this.status();
+      if (st.kaggle && !st.kaggle.configured) { listEl.innerHTML = `<div class="empty">${esc(st.kaggle.note)}</div>`; return; }
+      if (!query.trim()) { toast('Type what to search for.', { ok: false }); return; }
+      listEl.innerHTML = '<div class="empty">Searching Kaggle…</div>';
+      try {
+        const rows = await api('/connectors/kaggle/search', { method: 'POST', body: { query } });
+        listEl.innerHTML = rows.length ? rows.slice(0, 8).map(r => `<div class="list-item"><div class="li-main"><span class="li-title">${esc(r.ref)}</span><span class="li-sub">${esc(r.title || '')}${r.size_bytes ? ' · ' + (r.size_bytes / 1048576).toFixed(1) + ' MB' : ''}${r.license ? ' · licence ' + esc(r.license) : ''}</span></div><button type="button" class="btn sm" data-kaggle-ref="${esc(r.ref)}">Import</button></div>`).join('')
+          : '<div class="empty">No dataset matched. Try other words.</div>';
+      } catch (e) { listEl.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+    },
+    importKaggle(draftId, ref) { return api(`/drafts/${draftId}/data/kaggle`, { method: 'POST', body: { ref } }); },
+    importHF(draftId, f) {
+      if (!f.dataset) { toast('Give the dataset ID, for example scikit-learn/adult-census-income.', { ok: false }); return Promise.reject(new Error('no dataset')); }
+      return api(`/drafts/${draftId}/data/hf`, { method: 'POST', body: { dataset: f.dataset, revision: f.revision || null, split: f.split || 'train', config: f.config || null } });
+    },
+    async database(draftId, done) {
+      const st = await this.status(), conns = (st.database && st.database.connections) || [];
+      if (!conns.length) {
+        modal.open({ eyebrow: '<span class="eyebrow">Warehouse</span>', title: 'No database connection yet', hideConfirm: true, cancel: 'Close',
+          html: `<p>${esc((st.database && st.database.note) || '')}</p><pre class="code">DCLAB_DB_WAREHOUSE=postgresql+psycopg2://reader:…@host/db</pre><p class="small muted">Use a read-only database user. The connection string stays on the server; this page only sees the name.</p>` });
+        return;
+      }
+      modal.open({
+        eyebrow: '<span class="eyebrow">Warehouse · read-only</span>', title: 'Import from a database', confirm: 'Import',
+        html: `<div class="field"><label for="cx-conn">Connection</label><select id="cx-conn">${conns.map(c => `<option>${esc(c)}</option>`).join('')}</select></div>
+          <div class="field"><label for="cx-table">Table</label><input id="cx-table" type="text" placeholder="schema.table"></div>
+          <div class="field"><label for="cx-query">…or a SELECT query</label><textarea id="cx-query" placeholder="SELECT * FROM orders WHERE created_at >= '2025-01-01'"></textarea><span class="hint">One SELECT (or WITH) statement. Nothing that writes is accepted.</span></div>
+          <div class="field"><label for="cx-limit">Row limit</label><input id="cx-limit" type="number" value="200000" min="1" max="1000000"></div>`,
+        onConfirm: m => {
+          const table = $('#cx-table', m).value.trim(), query = $('#cx-query', m).value.trim();
+          if (!table === !query) { toast('Give a table or a query, not both.', { ok: false }); return false; }
+          api(`/drafts/${draftId}/data/database`, { method: 'POST', body: { connection: $('#cx-conn', m).value, table: table || null, query: query || null, limit: Number($('#cx-limit', m).value) } })
+            .then(a => { modal.close(); toast('Import started.'); done && done(a); }).catch(e => toast(e.message, { ok: false }));
+          return false;
+        },
+      });
+    },
+    async cloud(draftId, done) {
+      const st = await this.status();
+      modal.open({
+        eyebrow: '<span class="eyebrow">Cloud storage</span>', title: 'Import a file from S3 or Google Cloud Storage', confirm: 'Import',
+        html: `<div class="field"><label for="cx-uri">Object</label><input id="cx-uri" type="text" placeholder="s3://bucket/path/data.parquet or gs://bucket/path/data.csv"><span class="hint">${esc((st.cloud && st.cloud.note) || '')}</span></div>`,
+        onConfirm: m => {
+          const uri = $('#cx-uri', m).value.trim();
+          if (!/^(s3|gs):\/\/./.test(uri)) { toast('Give an s3:// or gs:// path.', { ok: false }); return false; }
+          api(`/drafts/${draftId}/data/cloud`, { method: 'POST', body: { uri } }).then(a => { modal.close(); toast('Import started.'); done && done(a); }).catch(e => toast(e.message, { ok: false }));
+          return false;
+        },
+      });
+    },
+  };
 
   /* ---------------- boot ---------------- */
   function boot() {
@@ -880,6 +943,6 @@
     if (bpOn) setBlueprint(true);
   }
 
-  window.DC = { setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

@@ -10,6 +10,12 @@
     PUT    /api/drafts/{id}/data?filename=    upload a file (raw body), processed in the background
     POST   /api/drafts/{id}/data/sample {key} a dataset the R&D already studied
     POST   /api/drafts/{id}/data/synthetic {prompt?, rows?}  simulated rows, labelled synthetic
+    GET    /api/connectors                    what each data connector can do on this server (no secrets)
+    POST   /api/connectors/kaggle/search {query, page?}       Kaggle datasets
+    POST   /api/drafts/{id}/data/kaggle {ref, file?}           a Kaggle dataset (largest table, or one file)
+    POST   /api/drafts/{id}/data/hf {dataset, revision?, split?, config?}  a Hugging Face dataset split
+    POST   /api/drafts/{id}/data/database {connection, table? | query?, limit?}  a read-only query on a server-defined connection
+    POST   /api/drafts/{id}/data/cloud {uri}                  one s3:// or gs:// object
     GET    /api/drafts/{id}/events            server-sent events (resume with Last-Event-ID or ?after=)
     PATCH  /api/drafts/{id} {problem}         edit the problem sentence (wizard step 1)
     POST   /api/drafts/{id}/solution/proposal {target, task?}  the column audit on the cleaned table (step 3)
@@ -29,6 +35,7 @@ from typing import Any, Callable
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from .. import connectors
 from . import pack as packs
 from . import pipeline
 from .chat import HomeAgent
@@ -261,6 +268,114 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         rows = max(100, min(int(body.get("rows") or 5000), 200_000))
         background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows)
         return {"accepted": True, "rows": rows}
+
+    # ------------------------------------------------------------------ data connectors (dclab_rnd/connectors)
+    # Each import downloads into the draft's data folder in a worker thread, then registers the file as an
+    # asset and processes it in the background exactly like an upload. Credentials live on the server only.
+    async def json_body(request: Request) -> dict[str, Any]:
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(422, "Send a JSON object") from None
+        if not isinstance(body, dict):
+            raise HTTPException(422, "Send a JSON object")
+        return body
+
+    def text_field(body: dict[str, Any], key: str, required: bool = False, limit: int = 300) -> str | None:
+        value = body.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            if required:
+                raise HTTPException(422, f"{key} is required")
+            return None
+        if not isinstance(value, str) or len(value) > limit:
+            raise HTTPException(422, f"{key} must be text of at most {limit:,} characters")
+        return value.strip()
+
+    async def connect(draft_id: str, kind: str, name: str, fetch: Callable[[Path], dict[str, Any]]) -> dict[str, Any]:
+        get(draft_id)
+        directory = drafts.data_dir(draft_id)
+        try:
+            meta = await asyncio.to_thread(fetch, directory)
+        except connectors.BadInput as exc:
+            raise HTTPException(422, str(exc)) from None
+        except connectors.ConnectorError as exc:
+            raise HTTPException(400, str(exc)) from None
+        size = (directory / meta["filename"]).stat().st_size
+        asset = pipeline.new_asset(drafts, draft_id, kind, name, meta["filename"], source=meta["source"], bytes=size)
+        background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
+        return asset
+
+    @app.get("/api/connectors")
+    async def connectors_status():
+        return await asyncio.to_thread(connectors.status)
+
+    @app.post("/api/connectors/kaggle/search")
+    async def kaggle_search(request: Request):
+        from ..connectors import kaggle
+
+        body = await json_body(request)
+        query = text_field(body, "query", required=True, limit=200)
+        try:
+            page = int(body.get("page") or 1)
+        except (TypeError, ValueError):
+            raise HTTPException(422, "page must be a number") from None
+        try:
+            return await asyncio.to_thread(kaggle.search, query, page)
+        except connectors.BadInput as exc:
+            raise HTTPException(422, str(exc)) from None
+        except connectors.ConnectorError as exc:
+            raise HTTPException(400, str(exc)) from None
+
+    @app.post("/api/drafts/{draft_id}/data/kaggle")
+    async def data_kaggle(draft_id: str, request: Request):
+        from ..connectors import kaggle
+
+        get(draft_id)
+        body = await json_body(request)
+        ref = text_field(body, "ref", required=True, limit=200)
+        file = text_field(body, "file", limit=255)
+        if not kaggle.valid_ref(ref):
+            raise HTTPException(422, "A Kaggle dataset is written owner/dataset-name")
+        name = ref + (f" · {file}" if file else "")
+        return await connect(draft_id, "kaggle", name, lambda directory: kaggle.download(ref, directory, file))
+
+    @app.post("/api/drafts/{draft_id}/data/hf")
+    async def data_hf(draft_id: str, request: Request):
+        from ..connectors import hf
+
+        get(draft_id)
+        body = await json_body(request)
+        dataset = text_field(body, "dataset", required=True, limit=200)
+        revision, config = text_field(body, "revision", limit=200), text_field(body, "config", limit=100)
+        split = text_field(body, "split", limit=100) or "train"
+        name = f"{dataset} · {config + ' · ' if config else ''}{split}"
+        return await connect(draft_id, "hf", name, lambda directory: hf.fetch(dataset, directory, revision, split, config))
+
+    @app.post("/api/drafts/{draft_id}/data/database")
+    async def data_database(draft_id: str, request: Request):
+        from ..connectors import db
+
+        get(draft_id)
+        body = await json_body(request)
+        connection = text_field(body, "connection", required=True, limit=60)
+        table, query = text_field(body, "table", limit=200), text_field(body, "query", limit=db.MAX_QUERY)
+        if (table is None) == (query is None):
+            raise HTTPException(422, "Give either a table name or a query")
+        try:
+            limit = int(body.get("limit") or 200_000)
+        except (TypeError, ValueError):
+            raise HTTPException(422, "limit must be a number") from None
+        name = f"{connection.lower()} · {table or 'query'}"
+        return await connect(draft_id, "database", name, lambda directory: db.fetch(connection, directory, table, query, limit))
+
+    @app.post("/api/drafts/{draft_id}/data/cloud")
+    async def data_cloud(draft_id: str, request: Request):
+        from ..connectors import cloud
+
+        get(draft_id)
+        body = await json_body(request)
+        uri = text_field(body, "uri", required=True, limit=1100)
+        return await connect(draft_id, "cloud", uri, lambda directory: cloud.fetch(uri, directory))
 
     @app.get("/api/drafts/{draft_id}/events")
     async def events(draft_id: str, request: Request, after: int = 0, wait: float = STREAM_SECONDS):

@@ -270,15 +270,21 @@ DC.view('home', {
       const b = e.target.closest('[data-build]'); if (b) { build(); return; }
       const c = e.target.closest('[data-connect]');
       if (c) {
-        try { await ensureDraft(); await api(`/drafts/${S.draft.id}/data/${c.dataset.connect}`, { method: 'POST', body: connectBody(c.dataset.connect) }); toast('Import started.'); }
-        catch (err) { if (err.message !== 'no problem') toast(err.status === 404 || err.status === 405 ? 'This connector is not switched on in this build yet. Upload a file or use a studied sample.' : err.message, { ok: false }); }
+        const kind = c.dataset.connect, X = DC.connectors;
+        if (kind === 'kaggle') { X.kaggleSearch($('#home-kaggle-q', el).value, $('#home-kaggle-list', el)); return; }
+        try { await ensureDraft(); } catch (err) { return; }
+        const started = () => $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (kind === 'hf') X.importHF(S.draft.id, { dataset: $('#home-hf-id', el).value.trim(), revision: $('#home-hf-rev', el).value.trim(), split: $('#home-hf-split', el).value.trim(), config: $('#home-hf-cfg', el).value.trim() }).then(started).catch(err => { if (err.message !== 'no dataset') toast(err.message, { ok: false }); });
+        if (kind === 'database') X.database(S.draft.id, started);
+        if (kind === 'cloud') X.cloud(S.draft.id, started);
+        return;
+      }
+      const k = e.target.closest('[data-kaggle-ref]');
+      if (k) {
+        try { await ensureDraft(); await DC.connectors.importKaggle(S.draft.id, k.dataset.kaggleRef); k.disabled = true; k.textContent = 'Importing…'; $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        catch (err) { if (err.message !== 'no problem') toast(err.message, { ok: false }); }
       }
     });
-    function connectBody(kind) {
-      if (kind === 'kaggle') return { query: $('#home-kaggle-q', el).value };
-      if (kind === 'hf') return { dataset: $('#home-hf-id', el).value, revision: $('#home-hf-rev', el).value, split: $('#home-hf-split', el).value, config: $('#home-hf-cfg', el).value };
-      return {};
-    }
     async function uploadFile(file) {
       if (!file) return;
       try { await ensureDraft(); } catch (e) { return; }
