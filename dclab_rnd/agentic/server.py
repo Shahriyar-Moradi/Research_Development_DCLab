@@ -26,6 +26,7 @@ from ..intern import Intern, SessionStore
 from ..models import settings as model_settings
 from ..intern.sessions import EXAMPLE_TASKS
 from ..intern.tools import Toolbox
+from ..agents.traces import open_traces
 from .. import mcp_server
 from . import pages
 from ..draft import api as draft_api
@@ -56,8 +57,9 @@ def create_app(home=None):
     jobs = {}
     intern_jobs = {}
     draft_jobs = {}
+    traces = open_traces(store.home)  # a row per agent step (package A2.3)
     def intern():
-        return Intern(intern_sessions, Toolbox(projects), gateway.client("intern"))
+        return Intern(intern_sessions, Toolbox(projects), gateway.client("intern"), traces=traces)
     csrf = secrets.token_urlsafe(32)
     mcp = mcp_server.session_manager(Toolbox(projects)) if mcp_server.available() else None
     @asynccontextmanager
@@ -426,8 +428,11 @@ def create_app(home=None):
         job = start_intern_job(s["id"], lambda: agent.run(s["id"]), wait)
         if wait: await job
         return public(session(s["id"]))
+    def trace_of(session_id):
+        try: return traces.steps(session_id)
+        except Exception: return []  # a damaged trace never breaks the session page
     @app.get("/api/intern/sessions/{session_id}")
-    async def intern_get(session_id: str): return public(session(session_id))
+    async def intern_get(session_id: str): return {**public(session(session_id)), "trace": trace_of(session_id)}
     @app.post("/api/intern/sessions/{session_id}/message")
     async def intern_message(session_id: str, request: Request, wait: bool = False):
         s = session(session_id)
@@ -443,6 +448,8 @@ def create_app(home=None):
         session(session_id)
         if session_id in intern_jobs and not intern_jobs[session_id].done(): raise HTTPException(409, "The session is still working")
         intern_sessions.delete(session_id)
+        try: traces.delete(session_id)
+        except Exception: pass  # the session is gone either way; a stray trace row is harmless
         return Response(status_code=204)
     @app.get("/api/evidence/{record_id}")
     async def evidence_record(record_id: str):

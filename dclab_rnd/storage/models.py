@@ -149,4 +149,23 @@ model_output_check = sa.Table(  # whether a model's output passed the code that 
     sa.Column("reason", sa.Text),  # why it failed, in words; never the model's output or the user's data
     sa.Index("ix_model_output_check_workspace_at", "workspace_id", "at"))
 
+agent_step = sa.Table(  # one row per step of an agent run (dclab_rnd/agents/traces.py, package A2.3); never a cell value
+    "agent_step", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("run_id", sa.String(64), nullable=False),  # an intern session id, or a draft id and its turn
+    sa.Column("agent", sa.Text, nullable=False),
+    sa.Column("n", sa.Integer, nullable=False),
+    sa.Column("reply", sa.Integer),  # which model reply asked for the step; null when no model chose it (the standard plan)
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("state", sa.Text),  # a summary of what the agent saw (for a project, the graph state string)
+    sa.Column("tool", sa.Text, nullable=False),
+    sa.Column("arguments", JSONB, nullable=False),
+    sa.Column("verdict", sa.Text, nullable=False),  # ok, error, blocked, needs_approval
+    sa.Column("result", sa.Text),  # the tool's one-line summary
+    sa.Column("input_tokens", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("output_tokens", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("seconds", sa.Float, nullable=False, server_default="0"),
+    sa.Index("ix_agent_step_workspace_id_run_id", "workspace_id", "run_id"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

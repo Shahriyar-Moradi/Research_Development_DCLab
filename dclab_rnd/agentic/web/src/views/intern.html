@@ -274,13 +274,20 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       const text = f ? f() : Object.entries(a).filter(([k]) => k !== 'project_id').map(([k, v]) => `${k} ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
       return short(text || r, 140);
     }
-    function realStep(st, fresh) {
+    /* The step's trace row (package A2.3): the verdict, the graph state the intern saw, and the tokens of the model reply that asked for it. */
+    function traceLine(tr) {
+      if (!tr) return '';
+      const tok = (tr.input_tokens || tr.output_tokens) ? ` · ${int(tr.input_tokens)} tokens in, ${int(tr.output_tokens)} out` : '';
+      const reply = tr.reply != null ? ` · model reply ${int(tr.reply + 1)}` : ' · standard plan';
+      return `<div class="small muted">Trace: ${esc(String(tr.verdict).replace('_', ' '))} · graph ${esc(tr.state || '')}${reply}${tok}</div>`;
+    }
+    function realStep(st, fresh, tr) {
       const t = st.elapsed_seconds != null ? Number(st.elapsed_seconds).toFixed(1) + ' s' : '';
       const res = st.result != null ? (typeof st.result === 'string' ? st.result : JSON.stringify(st.result, null, 1)) : (st.summary || '');
       const bad = st.ok === false;
       return `<details class="tool-call${bad ? ' blocked' : ''}${fresh ? ' reveal' : ''}" data-step="${esc(st.n)}"><summary><span class="tname">${esc(st.tool)}</span><span class="tsum">${esc(shortSum(st))}</span><span class="ttime">${esc(t)}</span></summary>
         <div class="tc-body"><pre class="term" data-style="white-space:pre-wrap;overflow-wrap:anywhere"><span class="t-dim">arguments</span>\n${esc(clip(JSON.stringify(st.arguments || {}, null, 1), 1200))}</pre>
-        <pre class="term" data-style="white-space:pre-wrap;overflow-wrap:anywhere"><span class="${bad ? 't-bad' : 't-dim'}">${bad ? 'error' : 'result'}</span>\n${esc(clip(res, 1200))}</pre></div></details>`;
+        <pre class="term" data-style="white-space:pre-wrap;overflow-wrap:anywhere"><span class="${bad ? 't-bad' : 't-dim'}">${bad ? 'error' : 'result'}</span>\n${esc(clip(res, 1200))}</pre>${traceLine(tr)}</div></details>`;
     }
     /* The plan as a checklist. In the standard plan each item maps to its tools, so done / now is known; a model's own plan is shown without marks. */
     const PLAN_IDX = { list_samples: 0, create_project: 1, use_sample: 1, describe_data: 1, propose_solution: 2, set_solution: 2, set_settings: 3, run_stage: 3, run_all: 3, approve_stage: 3, export_notebook: 3 };
@@ -327,14 +334,15 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       return mem.concat(derived).sort((x, y) => x.at - y.at);
     }
     function realThread(s) {
-      const fol = followUps(s), steps = s.steps || [], seen = R.seen[s.id];
+      const fol = followUps(s), steps = s.steps || [], seen = R.seen[s.id], trace = {};
+      (s.trace || []).forEach(r => { trace[r.n] = r; });
       let h = realUser(s.task, s.created);
       const plan = realPlan(s);
       if (plan) h += msgAgent(plan);
       else if (isLive(s)) h += msgAgent('<div class="small muted"><span class="dot live"></span> Reading the task…</div>');
       let fi = 0;
       const follow = (f, k) => (f.prevFinal ? realReport(f.prevFinal, s, k ? 'Answer' : 'Report') : '') + realUser(f.text, f.when);
-      steps.forEach((st, i) => { while (fi < fol.length && fol[fi].at <= i) { h += follow(fol[fi], fi); fi++; } h += realStep(st, seen != null && i >= seen); });
+      steps.forEach((st, i) => { while (fi < fol.length && fol[fi].at <= i) { h += follow(fol[fi], fi); fi++; } h += realStep(st, seen != null && i >= seen, trace[st.n]); });
       while (fi < fol.length) { h += follow(fol[fi], fi); fi++; }
       if (s.error) h += `<div class="callout bad"><span class="ic">${icon('alert')}</span><span><b>The session stopped with an error.</b> ${esc(s.error)}</span></div>`;
       else if (s.status === 'budget_exhausted') h += `<div class="callout warn"><span class="ic">${icon('alert')}</span><span><b>The budget is used up.</b> The intern stopped at its limit of ${esc(s.budget.max_steps)} tool calls or ${esc(s.budget.max_minutes)} minutes; the work so far is kept.</span></div>`;

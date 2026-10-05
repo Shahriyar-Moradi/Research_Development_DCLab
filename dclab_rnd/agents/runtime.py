@@ -43,6 +43,7 @@ class Step:
     result: Any
     seconds: float
     ok: bool
+    reply: int = 0  # which model reply (0, 1, ...) in this run() asked for it
 
 
 @dataclass
@@ -60,8 +61,11 @@ def _text(result: Any) -> str:
 
 def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str, Any]], context: Any = None,
         on_step: Callable[[Step], None] | None = None, stream: Callable[[str], None] | None = None,
-        steps_used: int = 0, started: float | None = None) -> RunResult:
-    """Run the policy until it answers, ends, or uses its budget. ``messages`` is extended in place and returned."""
+        steps_used: int = 0, started: float | None = None, trace: Any = None) -> RunResult:
+    """Run the policy until it answers, ends, or uses its budget. ``messages`` is extended in place and returned.
+
+    ``trace`` (a ``traces.Tracer``) gets one row per step, with the reply's tokens on its first step (package A2.3).
+    """
     started = time.monotonic() if started is None else started
     unknown = [n for n in policy.tools if registry.get(n) is None]
     if unknown:
@@ -72,6 +76,9 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
     schemas = registry.schemas(names=allowed)
     result = RunResult(messages=messages)
     count = steps_used
+    reply = -1
+    if trace is not None:
+        trace.next_call()  # a tracer reused across run() calls continues its reply numbers
 
     def spent() -> str | None:
         if count >= policy.max_steps:
@@ -89,8 +96,10 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
             out = client.stream(messages, schemas, on_text=stream)
         else:
             out = client.complete(messages, schemas)
-        for key in ("input_tokens", "output_tokens"):
-            result.usage[key] += int((out.get("usage") or {}).get(key) or 0)
+        reply += 1
+        tokens = {key: int((out.get("usage") or {}).get(key) or 0) for key in ("input_tokens", "output_tokens")}
+        for key in tokens:
+            result.usage[key] += tokens[key]
         messages.append(out["assistant_message"])
         calls = out.get("tool_calls") or []
         if not calls:
@@ -104,6 +113,8 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
             if end in ("terminal", "steps", "time"):
                 messages.append({"role": "tool", "tool_call_id": call["id"], "content": _text({"error": f"Not run: the run ended ({end})."})})
                 continue
+            if trace is not None:
+                trace.before()  # the row records what the agent saw, not the state after its move
             clock = time.monotonic()
             name = call["name"]
             tool = registry.get(name)
@@ -113,8 +124,12 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
                 value = registry.call(name, call.get("arguments") or {}, context)
             count += 1
             step = Step(count, name, call.get("arguments") or {}, value, round(time.monotonic() - clock, 3),
-                        not (isinstance(value, dict) and "error" in value))
+                        not (isinstance(value, dict) and "error" in value), reply)
             result.steps.append(step)
+            if trace is not None:
+                first = sum(1 for s in result.steps if s.reply == reply) == 1
+                trace(step.tool, step.arguments, step.result, step.seconds, reply=reply,
+                      tokens=tokens if first else None)
             if on_step:
                 on_step(step)
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": _text(value)})

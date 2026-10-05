@@ -13,6 +13,9 @@ import re
 import time
 from typing import Any
 
+from dclab_rnd.agents.traces import Tracer
+from dclab_rnd.studio import graph as studio_graph
+
 from .sessions import SessionStore, now
 from .tools import LEGACY_TOOLS, Toolbox, summarize, truncate
 
@@ -37,8 +40,11 @@ SAMPLE_HINTS = [
 
 
 class Intern:
-    def __init__(self, sessions: SessionStore, toolbox: Toolbox, client: Any | None = None):
-        self.sessions, self.toolbox, self.client = sessions, toolbox, client
+    def __init__(self, sessions: SessionStore, toolbox: Toolbox, client: Any | None = None, traces: Any = None):
+        self.sessions, self.toolbox, self.client, self.traces = sessions, toolbox, client, traces
+        self.tracer: Tracer | None = None
+        self._reply: int | None = None  # which model reply asked for the current step; None in the standard plan
+        self._tokens: dict[str, int] | None = None  # that reply's tokens, written on its first step only
 
     # ------------------------------------------------------------------ public
     def start(self, task: str, budget: dict[str, Any] | None = None, project_id: str | None = None, model: str | None = None) -> dict[str, Any]:
@@ -47,8 +53,16 @@ class Intern:
         session["messages"] = [{"role": "system", "content": POLICY}, {"role": "user", "content": self._task_message(session)}]
         return self.sessions.save(session)
 
+    def _trace(self, session: dict[str, Any]) -> Tracer:
+        """The session's trace (package A2.3), continued across follow-ups; its state is the project's graph state."""
+        def state() -> str:
+            pid = session.get("project_id")
+            return studio_graph.state_string(self.toolbox.projects.get(pid)) if pid else "no project"
+        return Tracer.resume(self.traces, session["id"], "intern", state)
+
     def run(self, session_id: str) -> dict[str, Any]:
         session = self.sessions.get(session_id)
+        self.tracer, self._reply, self._tokens = self._trace(session), None, None
         session["status"] = "running"
         session["error"] = None
         session["used"]["minutes_before"] = session["used"]["minutes"]
@@ -79,6 +93,7 @@ class Intern:
         started = time.monotonic()
         session["status"] = "running"
         session["used"]["minutes_before"] = session["used"]["minutes"]
+        self.tracer, self._reply, self._tokens = self._trace(session), None, None
         if session.get("project_id"):
             result = self._step(session, "ask_project", {"project_id": session["project_id"], "question": text}, started)
             session["final"] = result.get("answer", "") + ("\n\nProof: " + ", ".join(result.get("proof", [])) if result.get("proof") else "")
@@ -104,6 +119,8 @@ class Intern:
         return None
 
     def _step(self, session: dict[str, Any], tool: str, arguments: dict[str, Any], started: float) -> Any:
+        if self.tracer is not None:
+            self.tracer.before()
         clock = time.perf_counter()
         result = self.toolbox.call(tool, arguments)
         step = {"n": len(session["steps"]) + 1, "tool": tool, "arguments": arguments if len(json.dumps(arguments, default=str)) <= 1200 else {"_truncated": truncate(arguments, 1200)},
@@ -111,11 +128,17 @@ class Intern:
                 "elapsed_seconds": round(time.perf_counter() - clock, 2), "at": now()}
         if tool == "create_project" and isinstance(result, dict) and result.get("project_id"):
             session["project_id"] = result["project_id"]
+        self._record(tool, arguments, result, step["elapsed_seconds"], step["n"])
         session["steps"].append(step)
         session["used"]["steps"] += 1
         session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
         self.sessions.save(session)
         return result
+
+    def _record(self, tool: str, arguments: dict[str, Any], result: Any, seconds: float, n: int) -> None:
+        if self.tracer is not None:
+            self.tracer(tool, arguments, result, seconds, reply=self._reply, tokens=self._tokens, n=n)
+            self._tokens = None
 
     # ------------------------------------------------------------------ LLM mode
     def _llm_loop(self, session: dict[str, Any], started: float) -> None:
@@ -148,6 +171,8 @@ class Intern:
                     session["used"]["eur"] = round(float(self.client.spent_eur), 6)
             session["used"]["input_tokens"] += response["usage"]["input_tokens"]
             session["used"]["output_tokens"] += response["usage"]["output_tokens"]
+            self._reply = 0 if self._reply is None else self._reply + 1
+            self._tokens = {k: response["usage"][k] for k in ("input_tokens", "output_tokens")}
             session["messages"].append(response["assistant_message"])
             if not response["tool_calls"]:
                 session["final"] = response["content"].strip() or self._progress_note(session)
@@ -160,6 +185,7 @@ class Intern:
                     session["plan"] = str(arguments.get("plan", ""))[:2000]
                     result: Any = {"ok": True}
                     session["steps"].append({"n": len(session["steps"]) + 1, "tool": "write_plan", "arguments": {}, "summary": session["plan"][:200], "ok": True, "elapsed_seconds": 0, "at": now()})
+                    self._record("write_plan", {"plan": session["plan"]}, {"ok": True}, 0, session["steps"][-1]["n"])
                     session["used"]["steps"] += 1
                 elif name == "finish":
                     session["final"] = str(arguments.get("report", "")).strip() or self._progress_note(session)
