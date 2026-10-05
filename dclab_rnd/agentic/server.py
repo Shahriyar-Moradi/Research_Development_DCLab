@@ -44,7 +44,13 @@ def version(package):
 def create_app(home=None):
     store = Store(Path(home or os.environ.get("DCLAB_AGENT_HOME", ROOT / "agent_runs")))
     projects, drafts, intern_sessions = open_stores(store.home)  # files, or PostgreSQL when DCLAB_DATABASE_URL is set
-    gateway = models.Gateway(models.open_usage(store.home))  # every model request outside the intern goes through it
+    def project_cap(project_id: str) -> float | None:  # the wizard's euro budget is the project's monthly cap
+        try:
+            value = (projects.get(project_id).get("budget") or {}).get("eur")
+        except KeyError:
+            return None
+        return float(value) if value not in (None, "") else None
+    gateway = models.Gateway(models.open_usage(store.home), project_cap=project_cap)  # every model request goes through it
     models.install(gateway)  # the engine's stage notes run outside a request
     tasks = {}
     jobs = {}
@@ -415,7 +421,8 @@ def create_app(home=None):
         project_id = body.get("project_id") or None
         if project_id: project(project_id)
         agent = intern()
-        s = agent.start(task, body.get("budget") if isinstance(body.get("budget"), dict) else None, project_id)
+        try: s = agent.start(task, body.get("budget") if isinstance(body.get("budget"), dict) else None, project_id)
+        except (TypeError, ValueError) as exc: raise HTTPException(422, f"budget: {exc}") from None
         job = start_intern_job(s["id"], lambda: agent.run(s["id"]), wait)
         if wait: await job
         return public(session(s["id"]))

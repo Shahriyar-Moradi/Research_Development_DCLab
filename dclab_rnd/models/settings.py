@@ -58,6 +58,17 @@ def _host(url: str) -> str:
     return (parsed.hostname or url) + (f":{parsed.port}" if parsed.port else "")
 
 
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def is_local(url: str, tier_name: str | None = None) -> bool:
+    """A model server on this machine: its host is localhost (a substring such as "localhost.example.com" or ":11434"
+    is not enough). A server elsewhere on a private network counts as local only with DCLAB_TIER_<TIER>_LOCAL=1."""
+    if tier_name and _env(tier_name, "LOCAL") == "1":
+        return True
+    return (urlparse(url).hostname or "") in LOCAL_HOSTS
+
+
 def tier(name: str) -> dict[str, Any]:
     """A tier's endpoint, model and key. The key is returned for the transport only; never put it in a response or a log.
 
@@ -79,7 +90,7 @@ def tier(name: str) -> dict[str, Any]:
         model = _env(name, "MODEL") or standard["model"]
         same_host = not own_url or _host(own_url) == _host(standard["base_url"])
         key = _env(name, "API_KEY") or (standard["api_key"] if same_host else "")
-    if not key and any(h in base_url for h in ("127.0.0.1", "localhost", ":11434")):
+    if not key and is_local(base_url, name):
         key = "local"  # a local server (Ollama, LM Studio) needs no key; the SDK still wants one
     return {"name": name, "base_url": base_url, "model": model, "api_key": key}
 
@@ -94,7 +105,7 @@ def public(name: str) -> dict[str, Any]:
         sdk = False
     return {"name": name, "endpoint": _host(t["base_url"]), "model": t["model"], "sdk_installed": sdk,
             "key_configured": bool(t["api_key"]), "available": bool(t["api_key"]) and sdk,
-            "local": any(h in t["base_url"] for h in ("127.0.0.1", "localhost", "11434"))}
+            "local": is_local(t["base_url"], name)}
 
 
 def purpose(name: str) -> Purpose:

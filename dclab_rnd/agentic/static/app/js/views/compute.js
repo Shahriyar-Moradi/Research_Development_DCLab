@@ -1,7 +1,7 @@
 DC.view('compute', {
   /* Compute & jobs, real data only: /api/ops/jobs lists what ran on this machine (project stage runs, intern sessions,
      draft data pipelines, legacy research runs) and /api/ops/jobs/{id} gives one job's logs, metrics, artifacts and
-     reproducibility record. Spend is not metered and sandboxes / GPU jobs are not switched on; the page says so. */
+     reproducibility record. Model spend comes from the gateway's usage log; sandboxes / GPU jobs are not switched on; the page says so. */
   init(el) {
     const { $, $$, esc, api, toast } = DC;
     const S = { data: null, sel: null, sig: '', stop: null };
@@ -35,11 +35,15 @@ DC.view('compute', {
       st[0].innerHTML = `<span class="v">${t.running}</span><span class="l">job${t.running === 1 ? '' : 's'} running now · this machine${t.queued ? ` · ${t.queued} queued` : ''}</span>`;
       st[1].innerHTML = `<span class="v${t.approvals ? ' warn' : ''}">${t.approvals}</span><span class="l">waiting for approval · ${t.failed} failed or interrupted run${t.failed === 1 ? '' : 's'} in total</span>${t.approvals ? '<div class="row"><button type="button" class="link-btn small" data-pane-go="spend">Review →</button></div>' : ''}`;
       st[2].innerHTML = `<span class="v">${esc(secs(local))}</span><span class="l">compute time this month · stages ${esc(secs(sec.stage))} · data ${esc(secs(sec.data))}${sec.research ? ' · research ' + esc(secs(sec.research)) : ''} · intern sessions ${esc(secs(sec.intern))} (their stages are counted above)</span>`;
-      st[3].innerHTML = `<span class="v">—</span><span class="l">spend this month · not metered: local runs are not billed; model calls are counted in tokens (${int(t.tokens_this_month.input)} in · ${int(t.tokens_this_month.output)} out), not priced</span>`;
+      const sp = d.spend || {};
+      st[3].innerHTML = sp.requests
+        ? `<span class="v">€${Number(sp.eur || 0).toFixed(2)}</span><span class="l">model spend this month · ${int(sp.requests)} request${sp.requests === 1 ? '' : 's'} (${int(sp.input_tokens)} in · ${int(sp.output_tokens)} out tokens)${sp.unpriced ? ` · <b>${int(sp.unpriced)} without a price</b>, counted in tokens only` : ''}${sp.local ? ` · ${int(sp.local)} on a local model, free` : ''} · jobs on this machine are not billed</span>`
+        : `<span class="v">€0.00</span><span class="l">model spend this month · no model request yet · jobs on this machine are not billed</span>`;
       $('#jobs-pill', el).textContent = `${t.total} job${t.total === 1 ? '' : 's'} · this machine`;
-      $('#spend-sub', el).textContent = 'not metered';
-      $('#spend-chart', el).innerHTML = `<div class="empty">Not metered yet. Nothing on this page is billed: every job ran on this machine.${t.tokens_this_month.input || t.tokens_this_month.output
-        ? ` Model calls this month: ${int(t.tokens_this_month.input)} input and ${int(t.tokens_this_month.output)} output tokens, counted but not priced.` : ' No model tokens were used this month.'}</div>`;
+      $('#spend-sub', el).textContent = sp.requests ? (sp.metered ? 'model requests, this month' : 'model requests, this month · some without a price') : 'no model request this month';
+      $('#spend-chart', el).innerHTML = (sp.by_project || []).length && sp.eur > 0
+        ? DC.charts.barsH(sp.by_project.map(p => ({ label: p.name, value: p.eur, valueText: '€' + p.eur.toFixed(2) })), { width: 520, labelW: 160, valW: 70, min: 0, aria: 'Model spend by project this month' }) + `<p class="xs muted">${esc(sp.note || '')}</p>`
+        : `<div class="empty">${esc(sp.note || 'No model request this month.')}</div>`;
       const ap = d.approvals;
       const pill = $('#approvals-pill', el);
       pill.textContent = ap.length; pill.className = 'pill ' + (ap.length ? 'warn' : 'outline');
@@ -96,7 +100,7 @@ DC.view('compute', {
         : '<span class="t-dim">No log lines for this job.</span>';
       const note = $('#jd-log-note', el); note.hidden = !d.log_note; note.textContent = d.log_note || '';
       $('#jd-metrics', el).innerHTML = d.metrics.length ? `<dl class="kv small">${d.metrics.map(m => `<dt>${esc(m.label)}</dt><dd class="mono">${esc(m.value)}</dd>`).join('')}</dl>
-        <p class="xs muted">Measured on this machine. No cost is shown because nothing is metered.</p>` : '<div class="empty">No metrics for this job.</div>';
+        <p class="xs muted">Measured on this machine, which is not billed. Model spend is on the Spend &amp; approvals tab.</p>` : '<div class="empty">No metrics for this job.</div>';
       $('#jd-artifacts', el).innerHTML = (d.artifacts.length ? `<div class="list small">${d.artifacts.map(a => a.href
         ? `<a class="list-item" href="${esc(a.href)}" download><code>${esc(a.label)}</code><span class="li-side">${esc(a.note || '')}</span></a>`
         : `<a class="list-item" href="#project" data-ops-project="${esc(a.project_id)}"><code>${esc(a.label)}</code><span class="li-side">${esc(a.note || '')} · open →</span></a>`).join('')}</div>` : '')

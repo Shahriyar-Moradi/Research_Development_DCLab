@@ -133,7 +133,19 @@ class Intern:
                 return
             if hasattr(self.client, "project_id"):  # the gateway counts each request against the session's project (it can change mid-session)
                 self.client.project_id = session.get("project_id")
-            response = self.client.complete(session["messages"], tools)
+                self.client.run_limit_eur = (session.get("budget") or {}).get("max_eur")  # an optional euro cap for this session
+                self.client.spent_eur = float(session["used"].get("eur") or 0.0)  # across turns and restarts, not per client
+            try:
+                response = self.client.complete(session["messages"], tools)
+            except RuntimeError as error:
+                if not str(error).startswith("BudgetExceeded"):
+                    raise
+                session["status"] = "budget_exhausted"  # the same ending as the step and minute budgets
+                session["final"] = f"Stopped: {str(error).split(': ', 1)[-1]}. " + self._progress_note(session)
+                return
+            finally:
+                if hasattr(self.client, "spent_eur"):
+                    session["used"]["eur"] = round(float(self.client.spent_eur), 6)
             session["used"]["input_tokens"] += response["usage"]["input_tokens"]
             session["used"]["output_tokens"] += response["usage"]["output_tokens"]
             session["messages"].append(response["assistant_message"])

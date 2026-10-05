@@ -32,6 +32,12 @@ join key and availability contract are verified; never invent missing input data
 
 PREDICT = PredictStrategy(config=PredictConfig(max_retries=1, max_tokens=6000, max_param_chars=220000))
 
+
+def _endpoint() -> str:
+    """Where NOOA (litellm) sends requests: OPENAI_BASE_URL, else OpenAI."""
+    import os
+    return os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+
 class ResearchPlanner(Agent):
     """Interpret the user's research goal and make a bounded scientific agenda."""
     @strategy(PREDICT)
@@ -108,17 +114,18 @@ class AuditedClient(ResponsesClient):
             raise RuntimeError("LLM call budget exhausted")
         self.ledger.update(self.run_id, llm_calls=run["llm_calls"] + 1)
         self.ledger.event(self.run_id, "llm_request", {"model": self.model, "messages": messages, "max_output_tokens": 6000})
-        from ..models import installed  # NOOA keeps its own HTTP client; the gateway still counts every request
+        from ..models.gateway import check_external, installed  # NOOA keeps its own HTTP client; the gateway still checks and counts
+        check_external("campaign")  # a cap already reached stops the request here
         started = time.monotonic()
         try:
             response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
         except Exception as exc:
-            installed().record("campaign", self.model, None, time.monotonic() - started, 1, f"{type(exc).__name__}: the model request failed")
+            installed().record("campaign", self.model.removeprefix("openai/"), None, time.monotonic() - started, 1, f"{type(exc).__name__}: the model request failed", base_url=_endpoint())
             raise
         usage = response.usage or {}
-        installed().record("campaign", self.model, {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
+        installed().record("campaign", self.model.removeprefix("openai/"), {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
                                                      "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")},
-                           time.monotonic() - started, 1, "ok")
+                           time.monotonic() - started, 1, "ok", base_url=_endpoint())
         total = self.ledger.get(self.run_id)["usage"]
         for key, value in usage.items():
             if isinstance(value, (int, float)): total[key] = total.get(key, 0) + value

@@ -1250,7 +1250,7 @@
       <div class="stat"><span class="v">—</span><span class="l">jobs running now · this machine</span></div>
       <div class="stat"><span class="v">—</span><span class="l">waiting · failed</span></div>
       <div class="stat"><span class="v">—</span><span class="l">compute time this month</span></div>
-      <div class="stat"><span class="v">—</span><span class="l">spend this month · not metered</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">model spend this month</span></div>
     </div>
 
     <div class="panel" data-tour="jobs">
@@ -1278,9 +1278,9 @@
   <div class="pane" data-pane="spend" data-label="Spend &amp; approvals">
     <div class="grid g2">
       <div class="panel" data-f="compute.spend">
-        <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub" id="spend-sub">not metered</span></div></div>
-        <div class="panel-body"><div id="spend-chart"><div class="empty">Not metered yet.</div></div></div>
-        <div class="panel-foot">The intern stops at its tool-call and minute limits. Euro caps set in the wizard are stored with the project, but nothing enforces them until spend is metered.</div>
+        <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub" id="spend-sub">model requests, this month</span></div></div>
+        <div class="panel-body"><div id="spend-chart"><div class="empty">Loading the model spend…</div></div></div>
+        <div class="panel-foot">The intern stops at its tool-call and minute limits. The euro budget set in the wizard is the project's monthly cap: a priced model request that would pass it is refused before it is sent. A model without a configured price is counted in tokens and cannot be stopped in euros.</div>
       </div>
       <div class="panel">
         <div class="panel-head"><h3>Approval needed</h3><span class="pill outline" id="approvals-pill">0</span></div>
@@ -1916,7 +1916,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
     <div class="grid g2">
       <div class="panel" data-f="admin.budgets">
-        <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not metered</span></div>
+        <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not tracked</span></div>
         <div class="panel-body grid g2 small" id="budget-body">
           <div class="field"><label for="b1">Per intern session</label><input id="b1" type="text" value="24 calls · 20 min · €5"></div>
           <div class="field"><label for="b2">Per GPU job, no approval</label><input id="b2" type="text" value="€5"></div>

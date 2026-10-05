@@ -56,7 +56,7 @@
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
     <div class="grid g2">
       <div class="panel" data-f="admin.budgets">
-        <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not metered</span></div>
+        <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not tracked</span></div>
         <div class="panel-body grid g2 small" id="budget-body">
           <div class="field"><label for="b1">Per intern session</label><input id="b1" type="text" value="24 calls · 20 min · €5"></div>
           <div class="field"><label for="b2">Per GPU job, no approval</label><input id="b2" type="text" value="€5"></div>
@@ -171,7 +171,7 @@ DC.view('admin', {
       stat(pol.invariants.length + pol.switches.length, `policies · ${pol.invariants.length} locked, ${holding} of ${checked.length} checked against the validator just now${holding === checked.length ? '' : ' · <b>some do not hold</b>'} · ${pol.switches.length} per-project gate switches`) +
       stat('0', 'user accounts or roles · one local workspace; the validator tells a person from the intern') +
       stat(intern ? (intern.available ? '1' : '0') : '—', intern ? (intern.available ? `model configured: ${esc(intern.model)} via ${esc(intern.endpoint)}` : 'models configured · the intern follows the standard DCLab plan') : 'model status unavailable') +
-      stat(b ? b.max_steps : '—', b ? `tool calls and ${b.max_minutes} min per intern session by default · spend is not metered yet` : 'budget defaults unavailable');
+      stat(b ? b.max_steps : '—', b ? `tool calls and ${b.max_minutes} min per intern session by default · model requests are counted by the gateway` : 'budget defaults unavailable');
     if (pol.switches.length) $('#policy-sub', el).textContent = `Locked rules hold in every project; the two gate switches are set per project (${sw}).`;
   },
 
@@ -235,7 +235,9 @@ DC.view('admin', {
       box('Per intern session', `<b>${i.defaults.max_steps} tool calls · ${i.defaults.max_minutes} min</b> <span class="pill ok">enforced</span>`, `Caps: ${i.caps.max_steps[0]}–${i.caps.max_steps[1]} calls, ${i.caps.max_minutes[0]}–${i.caps.max_minutes[1]} min. ${esc(i.note)}`) +
       box('Per project (new-project wizard)', `${d.defaults.calls} calls · ${d.defaults.minutes} min · €${d.defaults.eur}`, `Caps: ${d.caps.calls[0]}–${d.caps.calls[1]} calls, ${d.caps.minutes[0]}–${d.caps.minutes[1]} min, €${d.caps.eur[0]}–${n(d.caps.eur[1])}. ${esc(d.note)}`) +
       box('Rows and folds', `${n(d.defaults.max_rows)} rows · ${d.defaults.folds} folds by default`, `Quick mode uses ${n(l.rows.quick)} rows; full runs ${n(l.rows.caps[0])}–${n(l.rows.caps[1])}. Folds ${d.caps.folds[0]}–${d.caps.folds[1]}.`) +
-      box('GPU jobs and monthly spend', '<span class="muted">Not tracked yet</span>', esc(l.spend.note));
+      box('Model spend this month', l.spend.tracked
+        ? `<b>€${Number(l.spend.eur_this_month || 0).toFixed(2)}</b>${l.spend.unpriced_this_month ? ` <span class="pill warn">${n(l.spend.unpriced_this_month)} request${l.spend.unpriced_this_month === 1 ? '' : 's'} without a price</span>` : ''}${l.spend.workspace_cap != null ? ` · workspace cap €${l.spend.workspace_cap}` : ''}`
+        : '<span class="muted">Not tracked</span>', esc(l.spend.note));
     const mb = v => Math.round(v / 1048576) + ' MB';
     $('#privacy-body', el).innerHTML = l.privacy.map(p => `<div class="inset stack tight"><div class="spread"><b>${esc(p.title)}</b><span class="pill ${p.on ? 'ok' : 'outline'}">${p.on ? 'yes' : 'no'}</span></div><span class="muted">${esc(p.text)}</span></div>`).join('') +
       `<dl class="kv"><dt>Upload limit</dt><dd>${mb(l.upload_max_bytes)} per file · ${mb(l.connector_max_bytes)} per connector import</dd><dt>Workspace folder</dt><dd class="mono xs">${esc(l.storage)}</dd></dl>`;

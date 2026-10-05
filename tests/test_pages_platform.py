@@ -139,7 +139,9 @@ class PlatformApiTests(unittest.TestCase):
         self.assertEqual(got, d["draft_settings"]["caps"])
         self.assertIn("200 * 1024 * 1024", (ROOT / "dclab_rnd/agentic/server.py").read_text(encoding="utf-8"))
         self.assertEqual(d["upload_max_bytes"], platform.UPLOAD_MAX_BYTES)
-        self.assertFalse(d["spend"]["tracked"])
+        self.assertTrue(d["spend"]["tracked"])  # the gateway counts every model request (package A1.2)
+        self.assertEqual((d["spend"]["eur_this_month"], d["spend"]["priced_models"]), (0.0, []))
+        self.assertIn("No model has a configured price yet", d["spend"]["note"])  # nothing is guessed
         sees = next(p for p in d["privacy"] if p["title"] == "What a model sees")
         self.assertFalse(sees["on"])
         self.assertIn("nothing is sent", sees["text"])

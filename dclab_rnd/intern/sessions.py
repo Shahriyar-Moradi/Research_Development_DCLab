@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import uuid
 from datetime import datetime, timezone
@@ -25,12 +26,21 @@ def now() -> str:
 
 def new_session(session_id: str, task: str, *, mode: str, model: str | None, budget: dict[str, Any] | None = None, project_id: str | None = None) -> dict[str, Any]:
     """A fresh intern session document, with its budget clamped. Shared by every store."""
+    budget_raw = budget
     budget = {**DEFAULT_BUDGET, **{k: int(v) for k, v in (budget or {}).items() if k in DEFAULT_BUDGET}}
     budget["max_steps"] = max(3, min(budget["max_steps"], 80))
     budget["max_minutes"] = max(1, min(budget["max_minutes"], 240))
+    if (budget_in := (budget_raw or {})).get("max_eur") not in (None, ""):  # optional: a euro cap for this session's model requests
+        try:
+            cap = float(budget_in["max_eur"])
+        except (TypeError, ValueError):
+            raise ValueError("max_eur must be a number of euros") from None
+        if not math.isfinite(cap):
+            raise ValueError("max_eur must be a finite number of euros")
+        budget["max_eur"] = max(0.0, min(cap, 1000.0))
     return {
         "id": session_id, "task": task.strip()[:4000], "status": "queued", "mode": mode, "model": model,
-        "budget": budget, "used": {"steps": 0, "minutes": 0.0, "input_tokens": 0, "output_tokens": 0},
+        "budget": budget, "used": {"steps": 0, "minutes": 0.0, "input_tokens": 0, "output_tokens": 0, "eur": 0.0},
         "plan": None, "steps": [], "messages": [], "final": None, "project_id": project_id, "error": None,
         "created": now(), "updated": now(),
     }

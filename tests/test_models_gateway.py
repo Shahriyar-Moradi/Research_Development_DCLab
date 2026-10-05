@@ -276,6 +276,181 @@ class CallerPathTests(unittest.TestCase):
         self.assertEqual(self.usage.recent()[0]["model"], "critic-model")
 
 
+class MoneyTests(unittest.TestCase):
+    """Package A1.2: prices, costs and caps."""
+
+    def setUp(self):
+        env = mock.patch.dict(os.environ, {**CLEAN, "OPENAI_API_KEY": "k", "DCLAB_INTERN_MODEL": "", "OPENAI_MODEL": "priced-model",
+                                           "DCLAB_WORKSPACE_MONTHLY_EUR": "", "DCLAB_PRICES_FILE": ""})
+        env.start()
+        self.addCleanup(env.stop)
+        self.dir = Path(tempfile.mkdtemp())
+        (self.dir / "prices.json").write_text(json.dumps({"priced-model": {"input": 2.0, "output": 8.0, "as_of": "2026-10-01", "source": "test"}}))
+        self.usage = FileUsage(self.dir / "u.jsonl")
+        self.sent = []
+
+    def gateway(self, project_cap=None, tokens=(500_000, 100_000)):
+        outer = self
+
+        class Counting(Scripted):
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                outer.sent.append(1)
+                return {"content": "ok", "usage": {"input_tokens": tokens[0], "output_tokens": tokens[1]}}
+        return Gateway(self.usage, transport=lambda tier, purpose: Counting([], tier, purpose), project_cap=project_cap)
+
+    def test_a_price_is_never_guessed(self):
+        from dclab_rnd.models import prices
+        self.assertEqual(prices.cost("unknown-model", False, 1000, 1000), (None, "no price"))
+        self.assertEqual(prices.cost("unknown-model", True, 1000, 1000), (0.0, "local"))
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            self.assertEqual(prices.cost("priced-model", False, 500_000, 100_000), (1.8, "price"))  # 0.5 M x 2 + 0.1 M x 8
+        (self.dir / "bad.json").write_text(json.dumps({"m": {"input": -1, "output": 1, "as_of": "2026-10-01"}}))
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "bad.json")}), self.assertRaises(ValueError):
+            prices.load()
+
+    def test_costs_are_logged_and_unpriced_requests_are_counted_in_tokens(self):
+        self.gateway().client("home_agent").complete([])
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            self.gateway().client("home_agent", project_id="p1").complete([])
+        first, second = list(reversed(self.usage.recent()))
+        self.assertEqual((first["cost_eur"], first["cost_basis"]), (None, "no price"))
+        self.assertEqual((second["cost_eur"], second["cost_basis"]), (1.8, "price"))
+        t = self.usage.totals()
+        self.assertEqual((t["eur"], t["priced"], t["unpriced"], t["by_project_eur"]), (1.8, 1, 1, {"p1": 1.8}))
+
+    def test_a_request_that_could_pass_the_cap_is_refused_before_sending(self):
+        # price 2 / 8 euros per million tokens; 30,000 characters of prompt and max_tokens 1000:
+        # upper bound (30,000 / 3) x 2 + 1,000 x 8 = 0.028 euros; the scripted reply costs 9,000 x 2 + 1,000 x 8 = 0.026
+        prompt = [{"role": "user", "content": "x" * 30_000}]
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            gw = self.gateway(project_cap=lambda pid: 0.05 if pid == "p1" else None, tokens=(9_000, 1_000))
+            gw.client("home_agent", project_id="p1").complete(prompt, max_tokens=1000)  # 0 + 0.028 <= 0.05: sent, costs 0.026
+            with self.assertRaises(RuntimeError) as caught:
+                gw.client("home_agent", project_id="p1").complete(prompt, max_tokens=1000)  # 0.026 + 0.028 > 0.05: never sent
+            self.assertIn("this project has used its budget: €0.03 of €0.05 this month, €0.02 left", str(caught.exception))
+            self.assertEqual(len(self.sent), 1)
+            self.assertTrue(self.usage.recent()[0]["outcome"].startswith("refused: this project has used its budget"))
+            gw.client("home_agent", project_id="p2").complete(prompt, max_tokens=1000)  # another project is not affected
+            with mock.patch.dict(os.environ, {"DCLAB_WORKSPACE_MONTHLY_EUR": "0.06"}):
+                with self.assertRaises(RuntimeError) as ws:
+                    gw.client("home_agent", project_id="p2").complete(prompt, max_tokens=1000)
+                self.assertIn("the workspace has used its monthly budget", str(ws.exception))
+
+    def test_requests_sent_at_the_same_time_cannot_together_pass_a_cap(self):
+        import threading
+        prompt = [{"role": "user", "content": "x" * 30_000}]
+        gate, outcomes = threading.Event(), []
+
+        class Slow(Scripted):
+            def complete(self, messages, tools=None, max_tokens=1800, **options):
+                gate.wait(5)
+                return {"content": "ok", "usage": {"input_tokens": 9_000, "output_tokens": 1_000}}
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            gw = Gateway(self.usage, transport=lambda tier, purpose: Slow([], tier, purpose), project_cap=lambda pid: 0.05)
+
+            def one():
+                try:
+                    gw.client("home_agent", project_id="p1").complete(prompt, max_tokens=1000)
+                    outcomes.append("sent")
+                except RuntimeError:
+                    outcomes.append("refused")
+            threads = [threading.Thread(target=one) for _ in range(3)]
+            [t.start() for t in threads]
+            import time
+            time.sleep(0.3)
+            gate.set()
+            [t.join(5) for t in threads]
+        self.assertEqual(sorted(outcomes), ["refused", "refused", "sent"])  # one 0.028 hold fits under 0.05; a second does not
+        self.assertEqual(gw._held, {"p:p1": 0.0})
+
+    def test_a_run_cap_stops_one_session(self):
+        prompt = [{"role": "user", "content": "x" * 30_000}]
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            client = self.gateway(tokens=(9_000, 1_000)).client("intern")
+            client.run_limit_eur = 0.05
+            client.complete(prompt, max_tokens=1000)
+            with self.assertRaises(RuntimeError) as caught:
+                client.complete(prompt, max_tokens=1000)
+            self.assertIn("this run has used its budget", str(caught.exception))
+            self.assertFalse(getattr(caught.exception, "transient", True))  # never retried
+        with mock.patch.dict(os.environ, {"OPENAI_BASE_URL": "http://127.0.0.1:11434/v1", "DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            local = self.gateway().client("intern")  # a free (local) model is never stopped by a zero cap
+            local.run_limit_eur = 0.0
+            local.complete([{"role": "user", "content": "x" * 30_000}], max_tokens=1000)
+            self.assertEqual(self.usage.recent()[0]["cost_basis"], "local")
+
+    def test_a_broken_price_file_stops_before_sending_and_never_loses_an_answer(self):
+        (self.dir / "broken.json").write_text(json.dumps({"priced-model": {"input": 1, "output": 1}}))  # no as_of
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "broken.json")}):
+            with self.assertRaises(RuntimeError) as caught:
+                self.gateway().client("home_agent").complete([])
+            self.assertIn("DCLAB_PRICES_FILE is not valid", str(caught.exception))
+            self.assertEqual(self.sent, [])
+            eur = Gateway(self.usage).record("campaign", "priced-model", {"input_tokens": 1, "output_tokens": 1}, 0.1, 1, "ok")
+            self.assertIsNone(eur)  # recording after a request never raises
+
+    def test_local_means_this_machine(self):
+        for url, local in (("http://127.0.0.1:11434/v1", True), ("http://localhost:1234/v1", True), ("http://[::1]:8000/v1", True),
+                           ("https://api.example.com:11434/v1", False), ("https://localhost.example.com/v1", False),
+                           ("https://proxy.example.com/v1?via=127.0.0.1", False)):
+            self.assertEqual(settings.is_local(url), local, url)
+        with mock.patch.dict(os.environ, {"DCLAB_TIER_CHEAP_BASE_URL": "http://10.0.0.5:11434/v1", "DCLAB_TIER_CHEAP_LOCAL": "1"}):
+            self.assertTrue(settings.public("cheap")["local"])  # a server on the private network, declared local
+
+    def test_clients_the_gateway_does_not_send_for_are_stopped_by_a_reached_cap(self):
+        from dclab_rnd import models
+        from dclab_rnd.models.gateway import check_external
+        from dclab_rnd.models.usage import month_start
+        self.usage.record({"at": month_start(), "purpose": "campaign", "tier": "strong", "model": "m", "endpoint": "e", "input_tokens": 1,
+                           "output_tokens": 1, "seconds": 0, "attempts": 1, "outcome": "ok", "cost_eur": 2.0, "cost_basis": "price"})
+        models.install(Gateway(self.usage))
+        self.addCleanup(models.install, None)
+        check_external("campaign")  # no workspace cap: allowed
+        with mock.patch.dict(os.environ, {"DCLAB_WORKSPACE_MONTHLY_EUR": "2"}), self.assertRaises(RuntimeError):
+            check_external("campaign")
+        Gateway(self.usage).record("campaign", "gpt-x", {"input_tokens": 1, "output_tokens": 1}, 0.1, 1, "ok", base_url="https://api.openai.com/v1")
+        self.assertEqual((self.usage.recent()[0]["endpoint"], self.usage.recent()[0]["cost_basis"]), ("api.openai.com", "no price"))
+
+    def test_the_intern_keeps_its_spend_across_turns_and_stops_as_budget_used_up(self):
+        from dclab_rnd.intern import Intern, SessionStore
+        from dclab_rnd.intern.tools import Toolbox
+        from dclab_rnd.studio import ProjectStore
+        reply = {"content": "Not done yet.", "tool_calls": [], "usage": {"input_tokens": 9_000, "output_tokens": 1_000},
+                 "assistant_message": {"role": "assistant", "content": "Not done yet."}}
+        with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
+            gw = Gateway(self.usage, transport=lambda tier, purpose: Scripted([dict(reply) for _ in range(5)], tier, purpose))
+            home = Path(tempfile.mkdtemp())
+            sessions = SessionStore(home / "intern")
+            s = Intern(sessions, Toolbox(ProjectStore(home / "projects")), gw.client("intern")).start("A task for the budget test", budget={"max_eur": 0.04})
+            first = Intern(sessions, Toolbox(ProjectStore(home / "projects")), gw.client("intern")).run(s["id"])
+            self.assertEqual(first["status"], "completed")
+            self.assertGreater(first["used"]["eur"], 0)
+            later = Intern(sessions, Toolbox(ProjectStore(home / "projects")), gw.client("intern")).message(s["id"], "x" * 60_000)  # a new client
+            self.assertEqual(later["status"], "budget_exhausted")  # the earlier spend still counts
+            self.assertIn("this run has used its budget", later["final"])
+        for bad in ("abc", "nan", float("inf")):
+            with self.assertRaises(ValueError):
+                sessions.create("task", mode="llm", model=None, budget={"max_eur": bad})
+        self.assertEqual(sessions.create("task", mode="llm", model=None, budget={"max_eur": 5000})["budget"]["max_eur"], 1000.0)
+
+    def test_spent_is_the_same_on_both_backends(self):
+        from dclab_rnd.models.usage import month_start
+        entry = {"at": month_start(), "purpose": "home_agent", "tier": "standard", "model": "m", "endpoint": "e", "project_id": "p1",
+                 "input_tokens": 1, "output_tokens": 1, "seconds": 0, "attempts": 1, "outcome": "ok", "cost_eur": 0.25, "cost_basis": "price"}
+        self.usage.record(entry)
+        self.usage.record({**entry, "project_id": "p2", "cost_eur": None, "cost_basis": "no price"})
+        self.assertEqual((self.usage.spent(month_start()), self.usage.spent(month_start(), "p1"), self.usage.spent("2999-01")), (0.25, 0.25, 0.0))
+        url = pgtest.url()
+        if url:
+            pgtest.empty(url)
+            from dclab_rnd.models import PgUsage
+            from dclab_rnd.storage import db
+            pg = PgUsage(db.workspace("/m", "m", url), url)
+            pg.record(entry)
+            pg.record({**entry, "project_id": "p2", "cost_eur": None, "cost_basis": "no price"})
+            self.assertEqual((pg.spent(month_start()), pg.spent(month_start(), "p1"), pg.totals()["unpriced"]), (0.25, 0.25, 1))
+
+
 class PgUsageTests(unittest.TestCase):
     def test_rows_in_postgresql_per_workspace(self):
         url = pgtest.require()

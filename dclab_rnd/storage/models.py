@@ -132,6 +132,8 @@ model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usa
     sa.Column("attempts", sa.Integer, nullable=False, server_default="1"),
     sa.Column("outcome", sa.Text, nullable=False),
     sa.Column("prompt", sa.Text),  # only with DCLAB_LOG_PROMPTS=1
+    sa.Column("cost_eur", sa.Float),  # null when the model has no configured price
+    sa.Column("cost_basis", sa.Text),  # "price", "local" or "no price" (dclab_rnd/models/prices.py)
     sa.Index("ix_model_request_workspace_at", "workspace_id", "at"),
     sa.Index("ix_model_request_project_id", "project_id"))
 

@@ -29,6 +29,12 @@ for an outside reader, counterexamples, and the next discriminating experiment.
 Return concise structured review, not private chain-of-thought. Cite only IDs in
 allowed_evidence_ids. Raw rows, credentials and proprietary data are absent."""
 
+
+def _endpoint() -> str:
+    """Where NOOA (litellm) sends requests: OPENAI_BASE_URL, else OpenAI."""
+    import os
+    return os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
+
 class Strict(BaseModel): model_config=ConfigDict(extra="forbid")
 class ProposedRule(Strict):
     rule: str
@@ -81,18 +87,19 @@ class AuditedReviewClient(ResponsesClient):
         super().__init__(model="openai/"+model,store=False,max_tokens=5000,retry_config=RetryConfig(max_retries=0,rate_limit_extra_retries=0),num_retries=0)
         self.calls=0;self.usage={}
     async def acall(self,messages,**kwargs):
-        from ..models import installed  # NOOA keeps its own HTTP client; the gateway still counts every request
+        from ..models.gateway import check_external, installed  # NOOA keeps its own HTTP client; the gateway still checks and counts
         self.calls+=1
+        check_external("campaign_review")  # a cap already reached stops the request here
         started=time.monotonic()
         try:
             response=await asyncio.wait_for(super().acall(messages,**kwargs),timeout=240)
         except Exception as exc:
-            installed().record("campaign_review",self.model,None,time.monotonic()-started,1,f"{type(exc).__name__}: the model request failed")
+            installed().record("campaign_review", self.model.removeprefix("openai/"),None,time.monotonic()-started,1,f"{type(exc).__name__}: the model request failed", base_url=_endpoint())
             raise
         usage=response.usage or {}
-        installed().record("campaign_review",self.model,{"input_tokens":usage.get("prompt_tokens") or usage.get("input_tokens"),
+        installed().record("campaign_review", self.model.removeprefix("openai/"),{"input_tokens":usage.get("prompt_tokens") or usage.get("input_tokens"),
                                                         "output_tokens":usage.get("completion_tokens") or usage.get("output_tokens")},
-                           time.monotonic()-started,1,"ok")
+                           time.monotonic()-started,1,"ok",base_url=_endpoint())
         for key,value in (response.usage or {}).items():
             if isinstance(value,(int,float)): self.usage[key]=self.usage.get(key,0)+value
         return response

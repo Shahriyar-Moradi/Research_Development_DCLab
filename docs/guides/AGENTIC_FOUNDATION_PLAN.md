@@ -14,6 +14,7 @@ Read the playbook's "Shared preamble" first and paste it before any prompt below
 | Package | Status | Notes |
 |---|---|---|
 | A1.1 | Done | Every model request goes through `dclab_rnd/models` (the intern too). NOOA's research clients cannot be swapped and report each request to the usage log. Tests cannot reach a live model (`DCLAB_NO_LIVE_MODELS=1` in the make targets). |
+| A1.2 | Done | Costs from a dated price table (`models/prices.py` or `DCLAB_PRICES_FILE`; none is guessed, local is free). A request whose upper-bound cost could pass a run, project or workspace cap is refused before it is sent, under a lock. Open: no price is configured yet, so remote requests are counted in tokens until prices are added. |
 
 ## 1. What exists today
 

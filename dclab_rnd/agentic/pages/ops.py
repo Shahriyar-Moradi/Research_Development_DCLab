@@ -9,7 +9,8 @@ There is no sandbox or GPU job system yet. What really runs, and is listed here 
 - ``data``      one asset of a draft's data pipeline on Home (structure → clean → analyse)
 - ``research``  a legacy LLM research run (the SQLite store behind /classic)
 
-Every job runs on this machine and nothing is metered, so ``cost`` is always null. Routes are read-only.
+Every job runs on this machine, which is not billed, so a job's ``cost`` is null; model spend comes from the gateway's usage log
+(``spend``). Routes are read-only.
 """
 
 from __future__ import annotations
@@ -383,6 +384,29 @@ class Jobs:
         jobs.sort(key=_sort_key, reverse=True)
         return jobs, projects
 
+    def spend(self) -> dict[str, Any]:
+        """Model spend this month from the gateway's usage log. Jobs on this machine are not billed."""
+        from ...models.gateway import workspace_cap
+        from ...models.usage import month_start
+
+        gateway = self.ctx.models
+        if gateway is None or gateway.usage is None:
+            return {"metered": False, "note": "No usage log: model requests are not counted."}
+        t = gateway.usage.totals(since=month_start())
+        names = {p["id"]: p.get("name") or p["id"] for p in self.ctx.projects.list()}
+        by_project = [{"project_id": k, "name": names.get(k, k), "eur": v} for k, v in sorted(t["by_project_eur"].items(), key=lambda kv: -kv[1])]
+        metered = t["requests"] > 0 and t["unpriced"] == 0
+        if not t["requests"]:
+            note = "No model request this month. Jobs on this machine are not billed."
+        elif t["unpriced"]:
+            note = (f"{t['unpriced']} of {t['requests']} model requests this month have no configured price, so they are counted in tokens only "
+                    "and euro caps cannot stop them (dclab_rnd/models/prices.py or DCLAB_PRICES_FILE). Jobs on this machine are not billed.")
+        else:
+            note = "Every model request this month is priced" + (" (local models cost nothing)" if t["local"] else "") + ". Jobs on this machine are not billed."
+        return {"metered": metered, "eur": t["eur"], "requests": t["requests"], "priced": t["priced"], "local": t["local"], "unpriced": t["unpriced"],
+                "input_tokens": t["input_tokens"], "output_tokens": t["output_tokens"], "by_project": by_project, "by_purpose": t["by_purpose"],
+                "workspace_cap": workspace_cap(), "note": note}
+
     def listing(self, limit: int = 200) -> dict[str, Any]:
         jobs, projects = self.collect()
         now = _now()
@@ -406,7 +430,7 @@ class Jobs:
             "approvals": approvals,
             "machine": {"name": WHERE, "cpus": os.cpu_count(), "system": platform.system(), "arch": platform.machine(),
                         "python": platform.python_version()},
-            "spend": {"metered": False, "note": "Nothing is metered yet: every job runs on this machine and model calls are counted in tokens, not priced."},
+            "spend": self.spend(),
             "targets": [{"key": "local", "name": "This machine", "state": "ready"},
                         {"key": "sandbox", "name": "Sandboxes", "state": "not switched on"},
                         {"key": "gpu", "name": "Hugging Face Jobs", "state": "not switched on"},

@@ -276,15 +276,33 @@ def _endpoints() -> str:
     return "; ".join(f"{host} ({', '.join(names)} tier{'s' if len(names) > 1 else ''})" for host, names in hosts.items()) or "no endpoint"
 
 
+def _spend() -> dict[str, Any]:
+    from ...models import installed
+    from ...models.gateway import workspace_cap
+    from ...models.prices import load
+    from ...models.usage import month_start
+
+    gateway = installed()
+    t = gateway.usage.totals(since=month_start()) if gateway.usage else None
+    priced = sorted(load())
+    return {"tracked": gateway.usage is not None, "eur_this_month": t["eur"] if t else None, "unpriced_this_month": t["unpriced"] if t else None,
+            "workspace_cap": workspace_cap(), "priced_models": priced,
+            "note": ("Model requests are metered through the gateway: each project's wizard budget is its monthly cap, an intern session can carry "
+                     "its own cap, and DCLAB_WORKSPACE_MONTHLY_EUR caps the workspace. A request that would pass a cap is refused before it is sent. "
+                     + ("Prices are configured for: " + ", ".join(priced) + "." if priced else
+                        "No model has a configured price yet, so spend is counted in tokens and euro caps cannot stop remote requests; local models cost nothing.")
+                     + " GPU jobs are not switched on.")}
+
+
 def limits(projects) -> dict[str, Any]:
     cfg = model_settings.public("standard")  # the gateway's default tier; GET /api/models lists every tier and purpose
     return {
         "intern_session": {"defaults": dict(DEFAULT_BUDGET), "caps": {k: list(v) for k, v in INTERN_CAPS.items()}, "enforced": True,
                            "note": "The intern stops when either the tool calls or the minutes run out."},
         "draft_settings": {"defaults": DRAFT_DEFAULTS, "caps": {k: list(v) for k, v in DRAFT_CAPS.items()},
-                           "note": "Set in the new-project wizard and saved with the project. Rows, quick mode and folds reach the stages; the split follows the solution's time or group column. The call, minute and euro budgets are stored with the project but nothing meters spend yet."},
+                           "note": "Set in the new-project wizard and saved with the project. Rows, quick mode and folds reach the stages; the split follows the solution's time or group column. The euro budget is the project's monthly cap on priced model requests."},
         "rows": {"quick": QUICK_ROWS, "caps": list(DRAFT_CAPS["max_rows"])},
-        "spend": {"tracked": False, "note": "No GPU job or model spend is metered yet, so per-job, per-project and workspace caps are not enforced."},
+        "spend": _spend(),
         "upload_max_bytes": UPLOAD_MAX_BYTES, "connector_max_bytes": connectors.MAX_BYTES,
         "storage": projects.location(),
         "model": {"key_configured": bool(cfg["key_configured"]), "available": bool(cfg["available"]), "endpoint": cfg["endpoint"], "model": cfg["model"]},
