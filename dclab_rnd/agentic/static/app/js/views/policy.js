@@ -1,46 +1,121 @@
 DC.view('policy', {
   init(el) {
-    const { $, esc, chip, charts, codeBlock, toast } = DC;
-    const S = window.DEMO_SFT || {};
-    const by = (S.manifest && S.manifest.by_task) || {};
-    const names = { critique_claim: 'critique a claim', grounded_qa: 'grounded Q&A', explain_experiment: 'explain an experiment', apply_selection_rule: 'apply a selection rule', leakage_judgment: 'leakage judgment', rule_reasoning: 'rule reasoning', workflow_steps: 'workflow steps' };
-    $('#sft-chart', el).innerHTML = charts.barsH(Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: names[k] || k, value: v, valueText: String(v), cls: k === 'leakage_judgment' || k === 'workflow_steps' ? 'proof' : '' })),
-      { width: 360, labelW: 140, valW: 30, min: 0, max: 80, rowH: 24, ticks: [0, 40, 80], tickFmt: v => v, aria: 'Examples per task' });
-    let full = false;
-    function ex() {
-      const msgs = (S.example && S.example.messages) || [];
-      $('#sft-example', el).innerHTML = msgs.map(m => {
-        const t = full ? m.content : m.content.slice(0, m.role === 'assistant' ? 700 : 360) + (m.content.length > (m.role === 'assistant' ? 700 : 360) ? '…' : '');
-        return `<div class="inset small"><div class="eyebrow ${m.role === 'assistant' ? 'accent' : ''}" data-style="margin-bottom:4px">${esc(m.role)}</div><div data-style="white-space:pre-wrap;overflow-wrap:anywhere">${DC.linkIds(t)}</div></div>`;
-      }).join('') || '<div class="empty">Example not available.</div>';
-      $('#sft-more', el).textContent = full ? 'Show less' : 'Show the full example';
+    const { $, esc, charts, codeBlock, int } = DC;
+    const NAMES = { critique_claim: 'critique a claim', grounded_qa: 'grounded Q&A', explain_experiment: 'explain an experiment', apply_selection_rule: 'apply a selection rule', leakage_judgment: 'leakage judgment', rule_reasoning: 'rule reasoning', workflow_steps: 'workflow steps' };
+    const STAGE = { data: 'data', leakage: 'leakage', features: 'features', models: 'models', final: 'final', solution: 'solution' };
+    const plural = (n, one, many) => `${int(n)} ${n === 1 ? one : (many || one + 's')}`;
+    const P = this.P = { data: null, ex: 0, full: false };
+
+    function drawExample() {
+      const list = (P.data && P.data.examples) || [];
+      const x = list[P.ex % Math.max(1, list.length)];
+      $('#sft-next', el).hidden = list.length < 2;
+      $('#sft-more', el).hidden = !x;
+      if (!x) { $('#sft-example', el).innerHTML = '<div class="empty">No example: the corpus files are missing.</div>'; $('#sft-ex-meta', el).textContent = ''; return; }
+      const m = x.metadata || {};
+      $('#sft-ex-meta', el).textContent = `· ${NAMES[x.task] || x.task} · ${x.split === 'val' ? 'validation' : 'train'} line ${x.line}` + (m.experiment_id ? ` · ${m.experiment_id}` : m.rule_id ? ` · ${m.rule_id}` : m.workflow_id ? ` · ${m.workflow_id}` : m.record_id ? ` · ${m.record_id}` : '') + (m.dataset ? ` · ${m.dataset}` : '');
+      $('#sft-example', el).innerHTML = x.messages.map(msg => {
+        const lim = msg.role === 'assistant' ? 700 : 360;
+        const t = P.full ? msg.content : msg.content.slice(0, lim) + (msg.content.length > lim ? '…' : '');
+        const cut = P.full && msg.truncated ? `<div class="xs muted" data-style="margin-top:4px">Shown up to ${int(msg.content.length)} of ${int(msg.length)} characters; the full record is in ${esc(x.file)}.</div>` : '';
+        return `<div class="inset small"><div class="eyebrow ${msg.role === 'assistant' ? 'accent' : ''}" data-style="margin-bottom:4px">${esc(msg.role)}</div><div data-style="white-space:pre-wrap;overflow-wrap:anywhere">${DC.linkIds(t)}</div>${cut}</div>`;
+      }).join('');
+      $('#sft-more', el).textContent = P.full ? 'Show less' : 'Show the full example';
       DC.hydrate(el);
     }
-    $('#sft-more', el).addEventListener('click', () => { full = !full; ex(); });
-    ex();
-    $('#traj-json', el).replaceWith(Object.assign(document.createElement('div'), { innerHTML: codeBlock(`{
-  "project": "term-deposit-calls", "move": 15, "solution": "v2",
-  "state": {"node": "WF-07", "done": ["WF-01", "WF-02", "WF-03", "WF-04", "WF-05", "WF-06"],
-            "holdout": "sealed", "evidence": ["EXP-009"]},
-  "proposal": {"by": "intern", "move": "open_holdout",
-               "reason": "compare extra_trees with lightgbm"},
-  "validator": {"valid": false, "edge": "WF-07 -> WF-09 does not exist",
-                "rules": ["DCLAB-R17"], "precedent": "PIT-006"},
-  "next": {"move": "proceed", "node": "WF-08", "tool": "tune", "result": "kept C02"}
-}`) }).firstChild);
-    const RQ = [
-      ['HyperAck · WF-05', 'Intern kept deliverey_category_id as an input after the auditor flagged it.', 'Strong signal, plausibly known at order time. Was keeping it with a flag right?'],
-      ['Card fraud · WF-08', 'Intern rejected tuning: gain −0.0048 against a required +0.0050.', 'Was the margin right for PR-AUC on 0.17% positives?'],
-      ['Telco churn · WF-07', 'Intern proposed reopening the solution after the critic\'s note.', 'Should it have asked the owner first?'],
-    ];
-    let left = RQ.length;
-    $('#review-queue', el).innerHTML = RQ.map(([where, what, q], i) => `<div class="list-item" data-rq="${i}"><div class="li-main"><span class="li-sub">${esc(where)}</span><span class="li-title">${esc(what)}</span><span class="small muted">${esc(q)}</span></div><div class="li-side"><div class="decide"><button type="button" data-rv="right">Right</button><button type="button" data-rv="edit">Edit</button><button type="button" data-rv="wrong">Wrong</button></div></div></div>`).join('');
-    $('#review-queue', el).addEventListener('click', e => {
-      const b = e.target.closest('[data-rv]'); if (!b) return;
-      const item = b.closest('[data-rq]'); if (item.dataset.done) return;
-      item.dataset.done = '1'; item.style.opacity = '.55'; b.setAttribute('aria-pressed', 'true');
-      left--; $('#rq-count', el).textContent = left ? `${left} to review` : 'all reviewed'; $('#rq-count', el).className = 'pill ' + (left ? 'warn' : 'ok');
-      toast(b.dataset.rv === 'edit' ? 'Opened for editing. Your corrected move becomes the training target.' : 'Label saved. It becomes training data and benchmark ground truth.');
-    });
+    $('#sft-more', el).addEventListener('click', () => { P.full = !P.full; drawExample(); });
+    $('#sft-next', el).addEventListener('click', () => { P.ex += 1; P.full = false; drawExample(); });
+
+    this.render = d => {
+      P.data = d;
+      const c = d.corpus || {}, q = c.quality_gates || {}, g = d.critic_gate || {}, runs = (d.training && d.training.runs) || [];
+      const ready = d.curriculum.filter(s => s.ready).length;
+      // Overview stats
+      if (c.available) {
+        $('#ps-total', el).textContent = int(c.total);
+        $('#ps-total-l', el).textContent = `examples in SFT corpus v3 · ${int(c.train)} train · ${int(c.val)} validation`;
+        $('#ps-kept', el).textContent = int(q.challenges_kept || 0);
+        $('#ps-kept-l', el).textContent = `critic challenges kept · ${plural(q.contradicted_challenges_dropped || 0, 'contradicted one')} dropped`;
+        $('#ps-held', el).textContent = int((c.held_out_datasets || []).length);
+      } else {
+        $('#ps-total', el).textContent = '0'; $('#ps-total-l', el).textContent = 'examples: the SFT corpus v3 is not built';
+        $('#ps-kept', el).textContent = '—'; $('#ps-kept-l', el).textContent = 'critic challenges kept (no corpus)';
+        $('#ps-held', el).textContent = '—';
+      }
+      $('#ps-ready', el).innerHTML = `${ready} <small>of ${d.curriculum.length}</small>`;
+      $('#ps-ready-l', el).textContent = 'curriculum stages with data ready · ' + (runs.length ? plural(runs.length, 'training run') + ' found' : 'no training run yet');
+
+      // Curriculum, readiness computed by the server from the corpus and the project logs
+      const F = { sft: 'policy.sft', traj: 'policy.traj' };
+      $('#pol-curriculum', el).innerHTML = d.curriculum.map(s => `<div class="inset stack tight"${F[s.key] ? ` data-f="${F[s.key]}"` : ''}><div class="spread"><span class="eyebrow">Stage ${s.stage}</span><span class="pill ${esc(s.cls)}">${esc(s.status)}</span></div><b>${esc(s.name)}</b><span class="small muted">${esc(s.detail)}</span></div>`).join('');
+      const t = d.trajectories;
+      $('#pol-curriculum-foot', el).textContent = `Stage 2 counts as data ready at ${t.target} project logs with at least ${t.min_moves} moves each: holding out whole projects for validation, as the v3 corpus holds out whole datasets, then leaves about ${Math.round(t.target / 5)} unseen projects to measure on.`;
+
+      // Training data
+      $('#sft-pill', el).textContent = c.available ? 'real' : 'not built'; $('#sft-pill', el).className = 'pill ' + (c.available ? 'ok' : 'warn');
+      $('#sft-sub', el).textContent = c.available ? `Built from the evidence index on ${String(c.built).slice(0, 10)}; datasets held out entirely: ${(c.held_out_datasets || []).join(', ')}` : 'Not built: run make knowledge to write the corpus.';
+      const by = c.by_task || {}, split = c.by_split_and_task || {};
+      const rows = Object.entries(by).sort((a, b) => b[1] - a[1]);
+      const max = Math.max(10, ...rows.map(r => r[1]));
+      const top = Math.ceil(max / 20) * 20;
+      $('#sft-chart', el).innerHTML = rows.length ? charts.barsH(rows.map(([k, v]) => ({ label: NAMES[k] || k, value: v, valueText: `${v} · ${(split.val || {})[k] || 0} val`, cls: k === 'leakage_judgment' || k === 'workflow_steps' ? 'proof' : '' })),
+        { width: 380, labelW: 140, valW: 60, min: 0, max: top, rowH: 24, ticks: [0, top / 2, top], tickFmt: v => v, aria: 'Examples per task, with the validation share' }) : '<div class="empty">No corpus to chart.</div>';
+      const linked = ids => ids.slice(0, 3).map(i => DC.linkIds(i)).join(', ') + (ids.length > 3 ? ` and ${ids.length - 3} more` : '');
+      $('#sft-kv', el).innerHTML = c.available ? `<dt>Examples</dt><dd>${int(c.total)} · ${int(c.train)} train · ${int(c.val)} validation</dd>
+        <dt>Files</dt><dd>${Object.entries(c.lines || {}).map(([f, n]) => `${esc(f)} ${int(n)} lines`).join(' · ')}${c.lines_match_manifest ? ' · match the manifest' : ' · <b>differ from the manifest</b>'}</dd>
+        <dt>Formats</dt><dd>${Object.keys(c.formats || {}).length ? 'chat (TRL messages), Alpaca, ShareGPT' : '—'}</dd>
+        <dt>Quality gates</dt><dd>${int(q.challenges_kept || 0)} critic challenges kept · ${int(q.contradicted_challenges_dropped || 0)} contradicted ones dropped · ${int(q.duplicates_removed || 0)} duplicates · ${int(q.rejected_by_path_or_hash_or_length || 0)} rejected for paths, hashes or length</dd>
+        <dt>Critic gate now</dt><dd>${int(g.critic_challenges || 0)} challenges over ${int(g.experiments || 0)} experiments; ${int(g.contradicted_challenges || 0)} contradicted by recomputing the rule${(g.experiments_with_contradicted_challenges || []).length ? ` (in ${linked(g.experiments_with_contradicted_challenges)})` : ''}; ${int(g.rule_inconsistencies || 0)} recorded selections disagree with the rule</dd>
+        <dt>Answer shape</dt><dd>Evidence · Interpretation · Decision · Risks · Next test</dd>`
+        : `<dt>Corpus</dt><dd>${esc(c.reason || 'missing')}</dd>`;
+      const pj = d.projects;
+      const named = pj.items.filter(i => i.examples).slice(0, 4).map(i => `${esc(i.name)} ${i.examples}`).join(', ');
+      const stages = Object.entries(pj.by_stage || {}).map(([k, v]) => `${STAGE[k] || k} ${v}`).join(', ');
+      $('#sft-projects', el).innerHTML = `<b>From projects:</b> each project adds one example per completed stage, and one more when its solution forbids columns. ` +
+        (pj.examples ? `Today ${plural(pj.with_examples, 'project gives', 'projects give')} ${plural(pj.examples, 'example')} (${named}${pj.with_examples > 4 ? ', …' : ''}; by stage: ${esc(stages)}). They are not in corpus v3 yet: export them with <code>python -m dclab_rnd.studio.sft</code>.`
+          : pj.projects ? `None of the ${plural(pj.projects, 'project')} has a completed stage with a saved solution yet, so the notebook adds no example today.` : 'No project yet, so the notebook adds no example today.');
+      drawExample();
+
+      // Trajectory record: a real move from a transition log
+      const s = t.sample;
+      if (s) {
+        const r = s.record;
+        $('#traj-sub', el).textContent = `Move ${s.index} of ${s.of} in ${s.project.name}: ${r.move} by the ${r.actor === 'agent' ? 'agent' : 'person'}, ${String(r.status).replace('_', ' ')}${r.status === 'blocked' ? ' (the latest blocked move)' : ' (no move has been blocked yet, so this is the latest)'}`;
+        $('#traj-pill', el).textContent = 'logged'; $('#traj-pill', el).className = 'pill ok';
+        $('#traj-body', el).innerHTML = codeBlock(JSON.stringify(r, null, 2));
+        const actors = Object.entries(t.by_actor).map(([a, v]) => `${a === 'agent' ? 'agent' : a === 'human' ? 'people' : esc(a)} ${v.moves} (${v.blocked} blocked, ${v.needs_approval} sent for approval)`).join(' · ');
+        $('#traj-foot', el).innerHTML = `${plural(t.moves, 'move')} logged in ${plural(t.projects_with_log, 'project')}: ${actors}. Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.`;
+      } else {
+        $('#traj-sub', el).textContent = 'One move from a project\'s transition log, as the model will see it';
+        $('#traj-pill', el).textContent = 'none logged'; $('#traj-pill', el).className = 'pill outline';
+        $('#traj-body', el).innerHTML = '<div class="empty">No project has logged a move yet. Every move on a project\'s Workflow page, and every move the intern makes, is written to the project\'s transition log (state → move → verdict).</div>';
+        $('#traj-foot', el).textContent = 'Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.';
+      }
+
+      // Expert review: no review store exists
+      const rv = d.review || {};
+      $('#review-queue', el).innerHTML = `<div class="empty">No examples queued for review. ${esc(rv.note || '')}${rv.awaiting_person ? ` Separately, ${plural(rv.awaiting_person, 'move')} in the transition logs waited for a person's approval; those approvals happen on each project's Workflow page.` : ''}</div>`;
+      $('#rq-count', el).textContent = 'none queued';
+
+      // Training runs found on disk
+      const scripts = (d.training && d.training.scripts) || {};
+      $('#runs-pill', el).textContent = runs.length ? plural(runs.length, 'run') + ' found' : 'none run yet';
+      $('#runs-pill', el).className = 'pill ' + (runs.length ? 'ok' : 'outline');
+      const runRows = runs.map(r => `<div class="list-item"><div class="li-main"><span class="li-title">${esc(r.name)}${r.base_model ? ' · ' + esc(r.base_model) : ''}${r.rank ? ' · LoRA r' + esc(r.rank) : ''}</span><span class="li-sub"><code>${esc(r.path)}</code> · ${esc(String(r.updated).slice(0, 10))}${r.epochs != null ? ` · ${Number(r.epochs).toFixed(1)} epochs` : ''}${r.eval_loss != null ? ` · last validation loss ${Number(r.eval_loss).toFixed(4)}` : ''}${r.unreadable ? ' · state file unreadable' : ''}</span></div><span class="pill ${r.adapter ? 'ok' : 'warn'}">${r.adapter ? 'adapter saved' : 'no adapter'}</span></div>`);
+      if (!runs.length) runRows.push(`<div class="list-item"><div class="li-main"><span class="li-title">No training run on disk</span><span class="li-sub">Looked for an adapter or a trainer state under ${(d.training.searched || []).map(p => `<code>${esc(p)}</code>`).join(' and ')}.</span></div></div>`);
+      runRows.push(`<div class="list-item"><div class="li-main"><span class="li-title">qwen2.5-1.5b · LoRA · corpus v3</span><span class="li-sub">${scripts['train_lora.py'] ? 'Script ready: <code>sft/train_lora.py</code>.' : 'Script missing: <code>sft/train_lora.py</code>.'} Teaches the answer format and the habit of reasoning from given evidence. Needs a GPU; not run in CI.</span></div><span class="pill ${scripts['train_lora.py'] ? 'ok' : 'warn'}">${scripts['train_lora.py'] ? 'ready' : 'missing'}</span></div>`);
+      runRows.push(`<div class="list-item"><div class="li-main"><span class="li-title">open 8B · QLoRA · trajectories</span><span class="li-sub">Waits for stage 2 data: ${t.trajectories} of ${t.target} project logs. No script, hardware or cost estimate yet.</span></div><span class="pill outline">plan</span></div>`);
+      $('#runs-list', el).innerHTML = runRows.join('');
+      $('#runs-foot', el).innerHTML = `Evaluation: <code>sft/eval_sft.py</code> on held-out datasets${scripts['eval_sft.py'] ? '' : ' (script missing)'}, then the judgment benchmark. ${runs.length ? '' : 'No evaluation has been run because no model has been trained.'}`;
+      DC.hydrate(el);
+    };
+    this.fail = e => {
+      const msg = `<div class="empty">Could not load the policy-model data: ${esc(e.message)}</div>`;
+      ['#pol-curriculum', '#traj-body', '#sft-example', '#runs-list'].forEach(s => { $(s, el).innerHTML = msg; });
+    };
+  },
+  async enter() {
+    DC.markSample(false);
+    try { this.render(await DC.api('/learn/policy')); } catch (e) { this.fail(e); }
   },
 });

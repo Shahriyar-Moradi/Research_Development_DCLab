@@ -241,19 +241,11 @@
     <div class="grid g2">
       <div class="panel" data-f="home.activity">
         <div class="panel-head"><h2>Live</h2><a class="link-btn small" href="#compute">Compute →</a></div>
-        <div class="list">
-          <a class="list-item" href="#intern"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Intern · HyperAck solution</span><span class="li-sub">Paused at a question · 9 of 48 tool calls</span></div></a>
-          <a class="list-item" href="#compute"><span class="dot live" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">GPU job · pedestrian detector screen</span><span class="li-sub">A10G · 41% · €0.62 so far</span></div></a>
-          <a class="list-item" href="#lab"><span class="dot accent" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">Campaign · expansion_v2</span><span class="li-sub">Queued · 20 experiments on 4 new datasets</span></div></a>
-        </div>
+        <div class="list" id="home-live"><div class="empty">Loading…</div></div>
       </div>
       <div class="panel" data-f="home.evidence">
         <div class="panel-head"><h2>New in the evidence</h2><a class="link-btn small" href="#evidence">Library →</a></div>
-        <div class="panel-body stack tight small">
-          <div class="row top"><span class="pill proof">+3</span><span>Lessons from Term-deposit calls are waiting for review before they join the index.</span></div>
-          <div class="row top"><span class="pill ok">rule</span><span>${chip:DCLAB-R07} now has another supporting experiment: the smallest feature set within tolerance won again.</span></div>
-          <div class="row top"><span class="pill warn">pitfall</span><span>${chip:PIT-006}: choosing among 30 configurations by holdout score overstated ROC-AUC by +0.0072 on average.</span></div>
-        </div>
+        <div class="panel-body stack tight small" id="home-ev-new"><div class="empty">Loading…</div></div>
       </div>
     </div>
   </div>
@@ -1249,25 +1241,25 @@
     <div class="vh-text">
       <div class="eyebrow accent">Compute and jobs</div>
       <h1>Compute &amp; jobs</h1>
-      <p class="lede">Tabular work runs on this machine, intern code in a sandbox, vision and fine-tuning on GPU jobs. Every run leaves a record that is enough to reproduce it.</p>
+      <p class="lede">Everything runs on this machine today: project stages, intern sessions and the data pipelines on Home. Every stage run leaves a record that is enough to reproduce it. Sandboxes and GPU jobs are not switched on yet.</p>
     </div>
-    <div class="vh-actions"><button type="button" class="btn" data-toast="In the product: pick hardware, image and data snapshot; the graph decides whether the job may start.">New job</button></div>
+    <div class="vh-actions"><button type="button" class="btn" data-toast="Not switched on yet. Today a job starts from a project's stages, the intern or a draft on Home; choosing hardware comes with sandboxes and GPU jobs.">New job</button></div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
-      <div class="stat"><span class="v">1</span><span class="l">job running · GPU · A10G</span></div>
-      <div class="stat"><span class="v warn">1</span><span class="l">waiting for approval · over the €5 per-job cap</span><div class="row"><button type="button" class="link-btn small" data-pane-go="spend">Review →</button></div></div>
-      <div class="stat"><span class="v">1.6 <small>h</small></span><span class="l">GPU hours this month · 20 included</span></div>
-      <div class="stat"><span class="v">€18.40</span><span class="l">spend this month · cap €60 · alert at 80%</span></div>
+    <div class="stats" id="ops-stats">
+      <div class="stat"><span class="v">—</span><span class="l">jobs running now · this machine</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">waiting · failed</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">compute time this month</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">spend this month · not metered</span></div>
     </div>
 
     <div class="panel" data-tour="jobs">
-      <div class="panel-head"><div class="panel-title"><h2>Jobs</h2><span class="sub">Click a row for logs, metrics and the reproducibility record</span></div><span class="pill outline">sample jobs</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Jobs</h2><span class="sub">Click a row for logs, metrics and the reproducibility record</span></div><span class="pill outline" id="jobs-pill">loading</span></div>
       <div class="table-wrap"><table class="data compact clickable" id="jobs-table"><thead><tr><th>Job</th><th>Project · task</th><th>Hardware</th><th>Status</th><th class="num">Time</th><th class="num">Cost</th><th>Started by</th></tr></thead><tbody></tbody></table></div>
     </div>
 
-    <div class="panel" id="job-detail">
+    <div class="panel" id="job-detail" hidden>
       <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="jd-eyebrow"></span><h3 id="jd-title"></h3></div><div class="row" id="jd-actions"></div></div>
       <div class="tabs" data-tabs="jd" role="tablist">
         <button type="button" class="tab" data-tab="logs" role="tab" aria-selected="true">Logs</button>
@@ -1276,7 +1268,7 @@
         <button type="button" class="tab" data-tab="repro" role="tab" aria-selected="false">Reproduce</button>
       </div>
       <div class="panel-body">
-        <div data-tab-panel="jd:logs"><pre class="term" id="jd-logs"></pre></div>
+        <div data-tab-panel="jd:logs"><pre class="term" id="jd-logs" data-style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><p class="xs muted" id="jd-log-note" hidden></p></div>
         <div data-tab-panel="jd:metrics" hidden><div id="jd-metrics"></div></div>
         <div data-tab-panel="jd:artifacts" hidden><div id="jd-artifacts"></div></div>
         <div data-tab-panel="jd:repro" hidden data-f="compute.repro"><div id="jd-repro"></div></div>
@@ -1284,30 +1276,26 @@
     </div>
   </div>
 
-  <div class="pane" data-pane="spend" data-label="Spend &amp; approvals" data-count="1">
+  <div class="pane" data-pane="spend" data-label="Spend &amp; approvals">
     <div class="grid g2">
       <div class="panel" data-f="compute.spend">
-        <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub">October · €18.40 of €60</span></div></div>
-        <div class="panel-body"><div id="spend-chart"></div></div>
-        <div class="panel-foot">Jobs above €5 wait for the owner. The intern sees its remaining budget before every call.</div>
+        <div class="panel-head"><div class="panel-title"><h3>Spend by project</h3><span class="sub" id="spend-sub">not metered</span></div></div>
+        <div class="panel-body"><div id="spend-chart"><div class="empty">Not metered yet.</div></div></div>
+        <div class="panel-foot">The intern stops at its tool-call and minute limits. Euro caps set in the wizard are stored with the project, but nothing enforces them until spend is metered.</div>
       </div>
       <div class="panel">
-        <div class="panel-head"><h3>Approval needed</h3><span class="pill warn">1</span></div>
-        <div class="panel-body small stack tight">
-          <p><b>QLoRA on trajectories v0</b> · A100 80 GB · estimated 2.1 h · <b>€6.40</b></p>
-          <p class="muted">Above the per-job cap. Requested by Shahriyar for the policy model.</p>
-          <div class="row"><button type="button" class="btn sm primary" data-toast="Approved. The job starts when an A100 is free; spend alerts stay on.">Approve</button><button type="button" class="btn sm" data-toast="Declined. The request stays in the log with your reason.">Decline</button></div>
-        </div>
+        <div class="panel-head"><h3>Approval needed</h3><span class="pill outline" id="approvals-pill">0</span></div>
+        <div class="list" id="approvals-list"><div class="empty">Loading…</div></div>
       </div>
     </div>
   </div>
 
   <div class="pane" data-pane="where" data-label="Where it runs">
     <div class="grid g2">
-      <div class="panel" data-f="compute.local"><div class="panel-body stack tight"><div class="spread"><b>This machine</b><span class="pill ok">ready</span></div><span class="small muted">8 CPU cores · tabular stages, evidence index, notebook export. Free.</span></div></div>
-      <div class="panel" data-f="compute.sandbox"><div class="panel-body stack tight"><div class="spread"><b>Sandboxes</b><span class="pill ok">1 active</span></div><span class="small muted">One per project. No secrets, read-only data, network limited to the Hub and Kaggle.</span></div></div>
-      <div class="panel" data-f="compute.gpu"><div class="panel-body stack tight"><div class="spread"><b>Hugging Face Jobs</b><span class="pill ok">connected</span></div><span class="small muted">T4 · L4 · A10G · A100 · H100. Billed to the workspace account.</span></div></div>
-      <div class="panel"><div class="panel-body stack tight"><div class="spread"><b>Your cluster</b><span class="pill outline">not set up</span></div><span class="small muted">Kubernetes or Slurm with a service account. For data that cannot leave.</span></div></div>
+      <div class="panel" data-f="compute.local"><div class="panel-body stack tight"><div class="spread"><b>This machine</b><span class="pill ok">ready</span></div><span class="small muted" id="where-local">Project stages, intern sessions, data pipelines and notebook export. Not metered.</span></div></div>
+      <div class="panel" data-f="compute.sandbox"><div class="panel-body stack tight"><div class="spread"><b>Sandboxes</b><span class="pill outline">not switched on</span></div><span class="small muted">Planned: one per project, no secrets, read-only data, network limited to the Hub and Kaggle. Today the intern's tools run inside this server, on this machine.</span></div></div>
+      <div class="panel" data-f="compute.gpu"><div class="panel-body stack tight"><div class="spread"><b>Hugging Face Jobs</b><span class="pill outline">not switched on</span></div><span class="small muted">Planned: T4 · L4 · A10G · A100 · H100, billed to the workspace account. No GPU job has run.</span></div></div>
+      <div class="panel"><div class="panel-body stack tight"><div class="spread"><b>Your cluster</b><span class="pill outline">not switched on</span></div><span class="small muted">Planned: Kubernetes or Slurm with a service account, for data that cannot leave.</span></div></div>
     </div>
   </div>
 </section>
@@ -1419,7 +1407,7 @@
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats" data-f="lab.registry" data-tour="lab-registry">
+    <div class="stats" data-f="lab.registry" data-tour="lab-registry" id="lab-stats">
       <div class="stat"><span class="v">579</span><span class="l">experiments in the registry · 483 eligible results · 11 datasets</span></div>
       <div class="stat"><span class="v">4</span><span class="l">campaigns · 76 records in the evidence index</span></div>
       <div class="stat"><span class="v">157</span><span class="l">critic challenges · 147 kept · 10 contradicted by the numbers</span><div class="row"><button type="button" class="link-btn small" data-pane-go="critic">How the gate works →</button></div></div>
@@ -1428,17 +1416,18 @@
 
       <div class="panel" data-f="lab.campaigns">
         <div class="panel-head"><div class="panel-title"><h2>Campaigns</h2><span class="sub">Each one tests a question on real datasets; its results become records</span></div></div>
-        <div class="table-wrap"><table class="data"><thead><tr><th>Campaign</th><th>What it tested</th><th class="num">Experiments</th><th>Status</th><th>Evidence</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="data"><thead><tr><th>Campaign</th><th>What it tested</th><th class="num">Experiments</th><th>Status</th><th>Evidence</th></tr></thead><tbody id="lab-camps">
           <tr><td><span class="cell-main">model_building_50_v1</span><div class="cell-sub">10 public datasets × 5 stages</div></td><td class="small">The full workflow on each dataset: data, leakage, features, models, holdout. Critic review on every record.</td><td class="num">50</td><td><span class="pill ok">done</span></td><td>${chips:EXP-006,EXP-007,EXP-010}</td></tr>
           <tr><td><span class="cell-main">expansion_v1</span><div class="cell-sub">fraud · multiclass · time series · text</div></td><td class="small">The same workflow on four new task types: imbalanced, 26 classes, daily forecasting, text with tabular fields.</td><td class="num">20</td><td><span class="pill ok">done</span></td><td>${chips:EXP-055,EXP-060,EXP-065,EXP-070}</td></tr>
           <tr><td><span class="cell-main">pitfalls_v1</span><div class="cell-sub">six classic mistakes</div></td><td class="small">How much each mistake inflates the score, measured on real data.</td><td class="num">6</td><td><span class="pill ok">done</span></td><td>${chips:PIT-003,PIT-006}</td></tr>
           <tr><td><span class="cell-main">agent_verification_v1</span><div class="cell-sub">blind leakage-auditor replay</div></td><td class="small">Without hints, does the column auditor find the leaks the R&amp;D already confirmed?</td><td class="num">7 datasets</td><td><span class="pill ok">done</span></td><td><span class="tag">recall 11/18</span></td></tr>
           <tr><td><span class="cell-main">expansion_v2</span><div class="cell-sub">sample · planned</div></td><td class="small">Four new datasets with timestamps, so forward-in-time validation can be measured everywhere.</td><td class="num">20</td><td><span class="pill info">queued</span></td><td><span class="faint">—</span></td></tr>
         </tbody></table></div>
+        <div class="panel-foot" id="lab-camps-foot" hidden></div>
       </div>
       <div class="panel" data-f="lab.designer">
-        <div class="panel-head"><div class="panel-title"><h3>New campaign</h3><span class="sub">The LLM proposes; deterministic code runs and scores</span></div></div>
-        <div class="panel-body grid g2">
+        <div class="panel-head"><div class="panel-title"><h3>New campaign</h3><span class="sub" id="cd-sub">The LLM proposes; deterministic code runs and scores</span></div></div>
+        <div class="panel-body grid g2" id="lab-designer">
           <div class="stack tight">
           <div class="field"><label for="cd-h">Hypothesis</label><textarea id="cd-h" rows="3">Target encoding beats one-hot for categories with more than 50 levels, when fitted inside folds.</textarea></div>
           <label class="check small"><input type="checkbox" checked> Critic review on every record, checked by the gate</label>
@@ -1456,14 +1445,14 @@
     <div class="panel">
       <div class="panel-head"><div class="panel-title"><h2>Best eligible result per dataset</h2><span class="sub">From <code>python -m dclab_rnd status</code>. Eligible means leakage-safe and validated, not production-ready.</span></div></div>
       <div class="table-wrap"><table class="data compact" id="champ-table"><thead><tr><th>Dataset</th><th>Family</th><th>Recipe</th><th class="num">ROC-AUC</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-foot">A ROC-AUC of 1.0000 on breast_cancer and mushroom says those benchmarks are easy, not that the method is perfect.</div>
+      <div class="panel-foot" id="champ-foot">A ROC-AUC of 1.0000 on breast_cancer and mushroom says those benchmarks are easy, not that the method is perfect.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="pitfalls" data-label="Pitfalls" data-count="6">
     <div class="panel" data-f="lab.pitfalls">
       <div class="panel-head"><div class="panel-title"><h2>What each mistake costs</h2><span class="sub">Measured on real datasets by running the wrong way and the right way side by side</span></div></div>
-      <div class="table-wrap"><table class="data"><thead><tr><th>Pitfall</th><th>Measured cost</th><th>Lesson</th><th></th></tr></thead><tbody>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Pitfall</th><th>Measured cost</th><th>Lesson</th><th></th></tr></thead><tbody id="pit-body">
         <tr><td class="strong">Preprocess before the split</td><td class="mono">≤ +0.0001 ROC-AUC</td><td class="small">Tiny for scaling, but the same habit is costly with selection, resampling or encoding.</td><td>${chip:PIT-001}</td></tr>
         <tr><td class="strong">Select features before CV</td><td class="mono">0.859 on pure noise (honest 0.512)</td><td class="small">Danger grows with features per row: text, genomics, wide tables.</td><td>${chip:PIT-002}</td></tr>
         <tr><td class="strong">Oversample before the split</td><td class="mono">up to +0.3003</td><td class="small">online_shoppers: 0.9019 reported, 0.6016 honest.</td><td>${chip:PIT-003}</td></tr>
@@ -1471,6 +1460,7 @@
         <tr><td class="strong">Random split on time data</td><td class="mono">−0.0038 on HyperAck</td><td class="small">The direction is not fixed; measure forward in time.</td><td>${chip:PIT-005}</td></tr>
         <tr><td class="strong">Choose by holdout score</td><td class="mono">+0.0072 avg, +0.0177 max</td><td class="small">Best of 30 configurations; the pick ranked 7.2 of 30 on untouched data.</td><td>${chip:PIT-006}</td></tr>
       </tbody></table></div>
+      <div class="panel-foot" id="pit-foot" hidden></div>
     </div>
   </div>
 
@@ -1483,10 +1473,10 @@
           <p>2. An LLM critic reads the record and challenges each claim.</p>
           <p>3. The gate checks every challenge against the recorded numbers. A challenge that misreads them is dropped; the rest stay attached to the record.</p>
           <p>4. The record enters the index with its surviving challenges as caveats.</p>
-          <div class="inset"><b>So far:</b> 147 challenges kept, 10 dropped as contradicted by the numbers.</div>
+          <div class="inset" id="crit-sofar"><b>So far:</b> 147 challenges kept, 10 dropped as contradicted by the numbers.</div>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel" id="crit-example">
         <div class="panel-head"><h3>A dropped challenge</h3>${chip:EXP-008}</div>
         <div class="panel-body small stack tight">
           <p class="muted">“The selection rule is not satisfied because the selected stage mean ROC-AUC is 0.7029, not within 0.002 of the best stage mean 0.7172.”</p>
@@ -1499,7 +1489,7 @@
 
   <div class="pane" data-pane="map" data-label="Research map" data-count="22">
     <div class="panel" data-f="lab.map">
-      <div class="panel-head"><div class="panel-title"><h2>Research map</h2><span class="sub">One folder per idea, the same shape everywhere: README, index, experiments, notebooks, evaluation, reports</span></div><span class="pill">22 tracks · 6 active · 7 proposed · 9 planned</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Research map</h2><span class="sub">One folder per idea, the same shape everywhere: README, index, experiments, notebooks, evaluation, reports</span></div><span class="pill" id="map-pill">22 tracks · 6 active · 7 proposed · 9 planned</span></div>
       <div class="panel-body grid g3" id="tracks"></div>
     </div>
   </div>
@@ -1508,23 +1498,23 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow">Judgment benchmark · unseen work, planted traps</div>
-      <h1>Benchmark <span class="pill warn">pilots real · suites planned</span></h1>
+      <h1>Benchmark <span class="pill warn" id="bench-pill">pilots real · suites planned</span></h1>
       <p class="lede">Unseen notebooks and projects carry planted traps. Every policy is scored on the same cases, so "DCLab judges well" becomes a number.</p>
     </div>
-    <div class="vh-actions"><button type="button" class="btn primary" data-toast="In the product: runs every policy on the frozen suites in a sandbox and posts the scorecard here.">Run the suites</button></div>
+    <div class="vh-actions"><button type="button" class="btn primary" data-toast="Planned: no suite is frozen yet, so there is nothing to run. The measured pilot today is the blind auditor replay (make verify-auditor).">Run the suites</button></div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="bench-stats">
       <div class="stat"><span class="v warn">11 / 18 <small>61%</small></span><span class="l">known leaks the blind auditor found · 7 datasets</span></div>
       <div class="stat"><span class="v">6 / 7</span><span class="l">labelled problems flagged in the notebook pilot</span></div>
       <div class="stat"><span class="v">120</span><span class="l">planned cases in 5 suites, the same for every policy</span></div>
-      <div class="stat"><span class="v">4</span><span class="l">policies compared · standard plan, general LLM, policy model, human reviewer</span></div>
+      <div class="stat"><span class="v">4</span><span class="l">policies planned · standard plan, general LLM, policy model, human reviewer · none scored yet</span></div>
     </div>
 
     <div class="panel" data-f="bench.pilot">
       <div class="panel-head"><div class="panel-title"><h2>Measured today: blind auditor replay</h2><span class="sub">No catalog, no precedents: does the column auditor find the leaks the R&amp;D already confirmed?</span></div><span class="pill ok">real</span></div>
-      <div class="table-wrap"><table class="data compact"><thead><tr><th>Dataset</th><th class="num">Known</th><th>Found</th><th>Missed</th></tr></thead><tbody>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Dataset</th><th class="num">Known</th><th>Found</th><th>Missed</th></tr></thead><tbody id="aud-body">
         <tr><td>bank_marketing</td><td class="num">1</td><td><code>duration</code></td><td class="faint">—</td></tr>
         <tr><td>online_shoppers</td><td class="num">9</td><td class="small">PageValues and 3 duration columns</td><td class="small">5 page counts and rates</td></tr>
         <tr><td>hyperack</td><td class="num">2</td><td class="small">both final fares</td><td class="faint">—</td></tr>
@@ -1533,12 +1523,12 @@
         <tr><td>bike_sharing_daily</td><td class="num">2</td><td class="small">casual, registered</td><td class="faint">—</td></tr>
         <tr><td>ecommerce_clothing_reviews</td><td class="num">2</td><td><code>Rating</code></td><td class="small">Positive Feedback Count</td></tr>
       </tbody></table></div>
-      <div class="panel-foot"><b>11 of 18 found (61%).</b> The misses look like ordinary numbers; only the solution's "when is this written?" catches them. That is why the agent must ask for the solution and never treat a clean scan as proof.</div>
+      <div class="panel-foot" id="aud-foot"><b>11 of 18 found (61%).</b> The misses look like ordinary numbers; only the solution's "when is this written?" catches them. That is why the agent must ask for the solution and never treat a clean scan as proof.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="pilot" data-label="Notebook pilot">
-    <div class="panel">
+    <div class="panel" id="pilot-panel">
       <div class="panel-head"><div class="panel-title"><h2>Measured today: notebook pilot</h2><span class="sub">7 labelled cells from real notebooks, frozen by hash</span></div><span class="pill ok">real</span></div>
       <div class="panel-body stack">
         <div class="row" data-style="gap:18px"><div class="score" data-style="font-size:34px;font-weight:600;color:var(--ink)">6 / 7</div><div class="small muted">The first copilot prototype flagged six of seven labelled problems. The current copilot replaced it; this pilot stays as its regression test.</div></div>
@@ -1549,16 +1539,16 @@
   </div>
 
   <div class="pane" data-pane="leaderboard" data-label="Leaderboard">
-    <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>This tab shows the planned benchmark.</b> The leaderboard and case replay show how it will look. Their numbers are samples until the suites run.</span></div>
+    <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>Planned — no policy scored yet.</b> The suites are not frozen, so the leaderboard has no numbers. The case replay below is an illustration of one planned case, not a result.</span></div>
 
     <div class="panel" data-f="bench.board" data-tour="bench-board">
-      <div class="panel-head"><div class="panel-title"><h2>Policy leaderboard</h2><span class="sub">Same 120 cases for every policy · higher is better except unsafe actions and cost</span></div><span class="pill outline">sample numbers</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Policy leaderboard</h2><span class="sub" id="board-sub">Same 120 cases for every policy · higher is better except unsafe actions and cost</span></div><span class="pill outline">planned — no policy scored yet</span></div>
       <div class="table-wrap"><table class="data compact" id="board"><thead><tr><th>Policy</th><th class="num">Valid moves</th><th class="num">Leaks caught</th><th class="num">False alarms</th><th class="num">Citations correct</th><th class="num">Asked when needed</th><th class="num">Unsafe actions</th><th class="num">Cost per case</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-foot">The standard plan cannot make an invalid move, but it never asks: it has no judgment to offer. The policy model has to beat a general LLM on judgment while staying as safe as the standard plan.</div>
+      <div class="panel-foot">The goal: the policy model has to beat a general LLM on judgment while staying as safe as the standard plan, which cannot make an invalid move but never asks. Every cell stays empty until the suites run.</div>
     </div>
 
     <div class="panel" data-f="bench.case">
-      <div class="panel-head"><div class="panel-title"><h2>Case replay</h2><span class="sub">case B-07 · split traps · an unseen delivery notebook</span></div><div class="seg" data-seg="pol" id="case-pol" role="group" aria-label="Policy"><button type="button" data-v="std" aria-pressed="true">Standard plan</button><button type="button" data-v="llm" aria-pressed="false">General LLM</button><button type="button" data-v="pol" aria-pressed="false">Policy model</button></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>Case replay</h2><span class="sub">illustration · a planned split-trap case on an unseen delivery notebook</span></div><div class="seg" data-seg="pol" id="case-pol" role="group" aria-label="Policy"><button type="button" data-v="std" aria-pressed="true">Standard plan</button><button type="button" data-v="llm" aria-pressed="false">General LLM</button><button type="button" data-v="pol" aria-pressed="false">Policy model</button></div></div>
       <div class="panel-body grid g2">
         <div class="stack tight">
           <div class="eyebrow">Planted trap</div>
@@ -1568,7 +1558,7 @@ df["zone"] = km.labels_                      # fitted on every row
 X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.y)</pre>
           <div class="small"><b>Expected:</b> flag the clustering as fitted before the split ${chip:DCLAB-R03}, move it into the pipeline, and keep going. No question to the owner is needed.</div>
         </div>
-        <div class="stack tight"><div class="eyebrow">What the policy did</div><div id="case-traj"></div></div>
+        <div class="stack tight"><div class="eyebrow">What the policy would do <span class="pill outline">illustration</span></div><div id="case-traj"></div></div>
       </div>
     </div>
   </div>
@@ -1576,8 +1566,8 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
   <div class="pane" data-pane="suites" data-label="Suites & scoring">
     <div class="grid g2">
       <div class="panel" data-f="bench.suites">
-        <div class="panel-head"><h3>Suites</h3><span class="pill outline">planned · 120 cases</span></div>
-        <div class="list small">
+        <div class="panel-head"><h3>Suites</h3><span class="pill outline" id="suites-pill">planned · 120 cases</span></div>
+        <div class="list small" id="suites-list">
           <div class="list-item"><span class="pill bad">A</span><div class="li-main"><span class="li-title">Leakage traps · 30</span><span class="li-sub">post-outcome columns, target encodings, duplicates, proxies</span></div></div>
           <div class="list-item"><span class="pill warn">B</span><div class="li-main"><span class="li-title">Split traps · 20</span><span class="li-sub">time order, groups, resampling, fitted transforms</span></div></div>
           <div class="list-item"><span class="pill info">C</span><div class="li-main"><span class="li-title">Metric and threshold · 15</span><span class="li-sub">costs, imbalance, calibration</span></div></div>
@@ -1614,84 +1604,78 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
 
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats">
-      <div class="stat"><span class="v">326</span><span class="l">examples in SFT corpus v3 · 260 train · 66 validation</span></div>
-      <div class="stat"><span class="v">147</span><span class="l">critic challenges kept · 10 contradicted ones dropped</span></div>
-      <div class="stat"><span class="v">3</span><span class="l">datasets held out entirely from training</span></div>
-      <div class="stat"><span class="v">1 <small>of 4</small></span><span class="l">curriculum stages with data ready · no training run yet</span></div>
+      <div class="stat"><span class="v" id="ps-total">…</span><span class="l" id="ps-total-l">examples in SFT corpus v3</span></div>
+      <div class="stat"><span class="v" id="ps-kept">…</span><span class="l" id="ps-kept-l">critic challenges kept</span></div>
+      <div class="stat"><span class="v" id="ps-held">…</span><span class="l">datasets held out entirely from training</span></div>
+      <div class="stat"><span class="v" id="ps-ready">…</span><span class="l" id="ps-ready-l">curriculum stages with data ready</span></div>
     </div>
 
     <div class="panel" data-tour="policy-curriculum">
       <div class="panel-head"><div class="panel-title"><h2>Curriculum</h2><span class="sub">Each stage needs the one before it. The graph's log is what turns stage 2 from an idea into data.</span></div></div>
-      <div class="panel-body grid g4">
-        <div class="inset stack tight" data-f="policy.sft"><div class="spread"><span class="eyebrow">Stage 1</span><span class="pill ok">data ready</span></div><b>Declarative SFT</b><span class="small muted">Rules, experiments, critiques and leakage judgments as question-answer pairs. 326 examples.</span></div>
-        <div class="inset stack tight" data-f="policy.traj"><div class="spread"><span class="eyebrow">Stage 2</span><span class="pill outline">needs the graph log</span></div><b>Trajectory SFT</b><span class="small muted">State → proposed move → evidence → validator result, from every project. Includes blocked moves and recoveries.</span></div>
-        <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 3</span><span class="pill outline">planned</span></div><b>Rejection sampling</b><span class="small muted">Sample several moves per state; keep the ones the validator accepts and the benchmark scores well.</span></div>
-        <div class="inset stack tight"><div class="spread"><span class="eyebrow">Stage 4</span><span class="pill">research</span></div><b>Reinforcement learning</b><span class="small muted">Rewards from the validator and the benchmark: valid moves, leaks caught, correct citations, no unsafe action.</span></div>
-      </div>
+      <div class="panel-body grid g4" id="pol-curriculum"><div class="empty">Loading the corpus and the project logs…</div></div>
+      <div class="panel-foot small muted" id="pol-curriculum-foot"></div>
     </div>
   </div>
 
   <div class="pane" data-pane="data" data-label="Training data">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title"><h2>Training data · SFT corpus v3</h2><span class="sub">Built from the evidence index; datasets held out entirely: heart_disease, spambase, ecommerce_clothing_reviews</span></div><span class="pill ok">real</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>Training data · SFT corpus v3</h2><span class="sub" id="sft-sub">Built from the evidence index</span></div><span class="pill" id="sft-pill">…</span></div>
       <div class="panel-body grid g2">
         <div id="sft-chart"></div>
         <div class="stack tight small">
-          <div class="kv"><dt>Examples</dt><dd>326 · 260 train · 66 validation</dd><dt>Formats</dt><dd>chat (TRL messages), Alpaca, ShareGPT</dd><dt>Quality gates</dt><dd>147 critic challenges kept · 10 contradicted ones dropped</dd><dt>Answer shape</dt><dd>Evidence · Interpretation · Decision · Risks · Next test</dd></div>
-          <div class="inset" data-f="policy.projectsft"><b>From projects:</b> each finished project adds a solution example and one per stage. Term-deposit calls added 11.</div>
+          <div class="kv" id="sft-kv"></div>
+          <div class="inset" data-f="policy.projectsft" id="sft-projects"><b>From projects:</b> …</div>
         </div>
       </div>
       <div class="panel-body" data-style="border-top:1px solid var(--line)">
-        <div class="spread"><b class="small">A real training example</b><button type="button" class="link-btn small" id="sft-more">Show the full example</button></div>
+        <div class="spread"><span><b class="small">A real training example</b> <span class="small muted" id="sft-ex-meta"></span></span><span class="row"><button type="button" class="link-btn small" id="sft-next">Another task</button> <button type="button" class="link-btn small" id="sft-more">Show the full example</button></span></div>
         <div id="sft-example" class="stack tight" data-style="margin-top:8px"></div>
       </div>
     </div>
 
     <div class="panel" data-f="policy.traj">
-      <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub">Move 15 of Term-deposit calls: the blocked holdout request, as the model will see it</span></div><span class="pill outline">format draft</span></div>
-      <div class="panel-body"><pre class="code" id="traj-json"></pre></div>
-      <div class="panel-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
+      <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub" id="traj-sub">One move from a project's transition log, as the model will see it</span></div><span class="pill outline" id="traj-pill">…</span></div>
+      <div class="panel-body" id="traj-body"><div class="empty">Loading the transition logs…</div></div>
+      <div class="panel-foot" id="traj-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="review" data-label="Expert review">
     <div class="panel" data-f="policy.review">
-      <div class="panel-head"><div class="panel-title"><h2>Expert review queue</h2><span class="sub">Reviewers label whether a move was right. Labels become training data and benchmark ground truth.</span></div><span class="pill warn" id="rq-count">3 to review</span></div>
-      <div class="list" id="review-queue"></div>
+      <div class="panel-head"><div class="panel-title"><h2>Expert review queue</h2><span class="sub">Reviewers label whether a move was right. Labels become training data and benchmark ground truth.</span></div><span class="pill outline" id="rq-count">none queued</span></div>
+      <div class="list" id="review-queue"><div class="empty">No examples queued for review.</div></div>
     </div>
   </div>
 
   <div class="pane" data-pane="serving" data-label="Training & serving">
     <div class="grid g2">
       <div class="panel" data-f="policy.train">
-        <div class="panel-head"><h3>Training runs</h3><span class="pill outline">none run yet</span></div>
-        <div class="list small">
-          <div class="list-item"><div class="li-main"><span class="li-title">qwen2.5-1.5b · LoRA · corpus v3</span><span class="li-sub">Script ready: <code>sft/train_lora.py</code>. Teaches the answer format and the habit of reasoning from given evidence.</span></div><span class="pill ok">ready</span></div>
-          <div class="list-item"><div class="li-main"><span class="li-title">open 8B · QLoRA · trajectories v0</span><span class="li-sub">A100 80 GB · about 2.1 h · €6.40 · waits for approval</span></div><span class="pill warn">approval</span></div>
-        </div>
-        <div class="panel-foot">Evaluation: <code>sft/eval_sft.py</code> on held-out datasets, then the judgment benchmark.</div>
+        <div class="panel-head"><h3>Training runs</h3><span class="pill outline" id="runs-pill">…</span></div>
+        <div class="list small" id="runs-list"></div>
+        <div class="panel-foot" id="runs-foot">Evaluation: <code>sft/eval_sft.py</code> on held-out datasets, then the judgment benchmark.</div>
       </div>
 
       <div class="panel" data-f="policy.deploy">
-        <div class="panel-head"><div class="panel-title"><h3>Deploy as the intern's model</h3><span class="sub">Served through any OpenAI-compatible endpoint</span></div></div>
+        <div class="panel-head"><div class="panel-title"><h3>Deploy as the intern's model</h3><span class="sub">Served through any OpenAI-compatible endpoint</span></div><span class="pill outline">plan</span></div>
         <div class="panel-body stack tight small">
-          <div class="eyebrow">Gates before any traffic</div>
+          <div class="eyebrow">Gates before any traffic (targets, not measured yet)</div>
           <ul class="plan-list">
             <li><span class="pi"></span><span>Valid moves ≥ 98% on suites A–E</span></li>
             <li><span class="pi"></span><span>Zero unsafe actions</span></li>
             <li><span class="pi"></span><span>Leaks caught ≥ the general LLM</span></li>
             <li><span class="pi"></span><span>Citations correct ≥ 95%</span></li>
           </ul>
-          <div class="field"><label for="ab">Share of intern sessions</label><input type="range" id="ab" min="0" max="100" value="0" disabled><span class="hint">Locked at 0% until the gates pass. Then 10%, compared with the general model on the same tasks.</span></div>
+          <div class="field"><label for="ab">Share of intern sessions</label><input type="range" id="ab" min="0" max="100" value="0" disabled><span class="hint">Locked at 0%: no policy model is trained, so no gate has been run. Once the gates pass, 10%, compared with the general model on the same tasks.</span></div>
         </div>
       </div>
 
       <div class="panel" data-f="policy.ladder">
-        <div class="panel-head"><div class="panel-title"><h3>Cost ladder</h3><span class="sub">The cheapest tier that can decide, decides</span></div><span class="pill outline">sample</span></div>
+        <div class="panel-head"><div class="panel-title"><h3>Cost ladder</h3><span class="sub">The cheapest tier that can decide, decides</span></div><span class="pill outline">plan</span></div>
         <div class="panel-body stack tight small">
-          <div class="inset stack tight"><div class="spread"><b>1 · Typed classifier</b><span class="mono">~2 ms · €0</span></div><span class="muted">Is this column an ID, a timestamp, a target proxy? Answers with a type and a confidence.</span></div>
-          <div class="inset stack tight"><div class="spread"><b>2 · NOOA structured call</b><span class="mono">~1 s</span></div><span class="muted">Fill one solution field from evidence references, without re-sending the whole conversation.</span></div>
-          <div class="inset stack tight"><div class="spread"><b>3 · Full model</b><span class="mono">~6 s</span></div><span class="muted">Plan, explain, ask the owner. The policy model takes this tier once it passes the gates.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>1 · Typed classifier</b><span class="mono">no LLM call</span></div><span class="muted">Is this column an ID, a timestamp, a target proxy? Answers with a type and a confidence. Not in the repository yet.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>2 · NOOA structured call</b><span class="mono">one short call</span></div><span class="muted">Fill one solution field from evidence references, without re-sending the whole conversation.</span></div>
+          <div class="inset stack tight"><div class="spread"><b>3 · Full model</b><span class="mono">full conversation</span></div><span class="muted">Plan, explain, ask the owner. The policy model takes this tier once it passes the gates.</span></div>
+          <span class="xs muted">No latency or cost is measured for these tiers yet.</span>
         </div>
       </div>
 
@@ -1711,29 +1695,30 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
     <div class="vh-text">
       <div class="eyebrow">Domain packs · one engine, ten universal steps</div>
       <h1>Domain packs</h1>
-      <p class="lede">One reliable engine with ten universal steps, not one giant generic agent. Each pack maps those steps to a domain with its own rules, tools, metrics and validators.</p>
+      <p class="lede">One reliable engine with ten universal steps, not one giant generic agent. Each pack maps those steps to a domain with its own rules, tools, metrics and validators. Today the engine runs the five tabular stages for every pack.</p>
     </div>
     <div class="vh-actions"><button type="button" class="btn" id="pack-builder-btn" data-f="packs.builder">Build a pack</button></div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
     <div class="stats">
-      <div class="stat"><span class="v">8</span><span class="l">packs on one engine · 1 GA · 2 beta · 1 preview · 4 research</span></div>
+      <div class="stat"><span class="v" id="pk-n">…</span><span class="l" id="pk-n-l">packs on one engine</span></div>
       <div class="stat"><span class="v">10</span><span class="l">universal steps every pack maps, WF-01 to WF-10</span></div>
-      <div class="stat"><span class="v ok">1</span><span class="l">generally available: Tabular · five stages cover WF-04 to WF-09</span></div>
-      <div class="stat"><span class="v">4</span><span class="l">research packs: driving, maps, scene graphs, software</span></div>
+      <div class="stat"><span class="v ok">1</span><span class="l">pack runs end to end: Tabular, stages WF-04 to WF-09 · every other pack runs those same stages on a table</span></div>
+      <div class="stat"><span class="v" id="pk-use">…</span><span class="l" id="pk-use-l">projects with a pack</span></div>
     </div>
 
-    <div class="grid g4" id="pack-cards"></div>
+    <div class="grid g4" id="pack-cards"><div class="empty">Loading the packs…</div></div>
 
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title"><span class="eyebrow" id="pk-eyebrow"></span><h2 id="pk-title"></h2><span class="sub" id="pk-sub"></span></div>
         <span class="pill" id="pk-maturity"></span>
       </div>
-      <div class="panel-body grid g3">
+      <div class="panel-body stack tight small" id="pk-usage"></div>
+      <div class="panel-body grid g3" data-style="border-top:1px solid var(--line)">
         <div class="stack tight"><div class="eyebrow">Pack rules (draft)</div><div id="pk-rules" class="small stack tight"></div></div>
-        <div class="stack tight"><div class="eyebrow">Tools it adds</div><div id="pk-tools" class="chips"></div></div>
+        <div class="stack tight"><div class="eyebrow" id="pk-tools-h">Tools it adds</div><div id="pk-tools" class="chips"></div></div>
         <div class="stack tight"><div class="eyebrow">Metrics</div><div id="pk-metrics" class="small stack tight"></div></div>
       </div>
       <div class="panel-foot spread"><span id="pk-foot"></span><button type="button" class="link-btn" data-pane-go="steps">See the ten steps mapped →</button></div>
@@ -1742,7 +1727,7 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
 
   <div class="pane" data-pane="steps" data-label="Ten steps mapped">
     <div class="panel" data-tour="pack-map">
-      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="pk-steps-name"></span><h2>The ten steps, mapped</h2><span class="sub">Pick a pack on the Overview; this map follows it.</span></div></div>
+      <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="pk-steps-name"></span><h2>The ten steps, mapped</h2><span class="sub" id="pk-steps-sub">Pick a pack on the Overview; this map follows it.</span></div></div>
       <div class="table-wrap"><table class="data" id="pk-table"><thead><tr><th data-style="width:190px">Universal step</th><th>In this pack</th><th data-style="width:250px">What the validator checks</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -1751,13 +1736,13 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow">Integrations · MCP, Chat UI, VS Code, REST, CLI</div>
-      <h1>Integrations <span class="pill ok">MCP built · tested</span></h1>
+      <h1>Integrations <span class="pill ok" id="int-pill">MCP built · tested</span></h1>
       <p class="lede">The same tools, graph and evidence behind every door. Use DCLab from Hugging Face Chat UI, any MCP client, VS Code, the REST API or the command line.</p>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="int-stats">
       <div class="stat"><span class="v">18</span><span class="l">DCLab tools on the MCP endpoint · built and tested</span></div>
       <div class="stat"><span class="v">32</span><span class="l">tools in ML Intern mode: DCLab plus plan, research, sandbox and Trackio</span></div>
       <div class="stat"><span class="v">8</span><span class="l">REST route groups the web app uses today</span></div>
@@ -1765,26 +1750,27 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
     </div>
 
     <div class="panel" data-f="int.mcp" data-tour="mcp">
-      <div class="panel-head"><div class="panel-title"><h2>MCP endpoint</h2><span class="sub">Streamable HTTP, stateless, JSON responses. Deterministic code owns every split, metric and selection rule; the client's model only proposes.</span></div><span class="pill ok">built · tested</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>MCP endpoint</h2><span class="sub">Streamable HTTP, stateless, JSON responses. Deterministic code owns every split, metric and selection rule; the client's model only proposes.</span></div><span class="pill ok" id="mcp-pill">built · tested</span></div>
       <div class="panel-body stack">
-        <div class="row"><code class="inset" data-style="flex:1;min-width:220px" id="mcp-url">http://127.0.0.1:8765/mcp</code><button type="button" class="btn sm" data-copy="#mcp-url" data-copy-label="Endpoint">Copy</button><span class="small muted">or standalone: <code>python -m dclab_rnd.mcp_server --port 8777</code></span></div>
+        <div class="callout warn" id="mcp-note" hidden></div>
+        <div class="row"><code class="inset" data-style="flex:1;min-width:220px" id="mcp-url">http://127.0.0.1:8765/mcp</code><button type="button" class="btn sm" data-copy="#mcp-url" data-copy-label="Endpoint">Copy</button><span class="small muted" id="mcp-standalone">or standalone: <code>python -m dclab_rnd.mcp_server --port 8777</code></span></div>
         <div class="tabs" data-tabs="mcpcfg" role="tablist">
           <button type="button" class="tab" data-tab="chatui" role="tab" aria-selected="true">Chat UI</button>
           <button type="button" class="tab" data-tab="claude" role="tab" aria-selected="false">Claude Code</button>
           <button type="button" class="tab" data-tab="generic" role="tab" aria-selected="false">Any MCP client</button>
         </div>
         <div data-tab-panel="mcpcfg:chatui"><pre class="code" id="cfg-chatui">MCP_SERVERS=[{"name": "DCLab notebook", "url": "http://127.0.0.1:8765/mcp"}]
-MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy="#cfg-chatui" data-copy-label="Config" data-style="margin-top:6px">Copy</button></div>
+MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy="#cfg-chatui" data-copy-label="Config" data-style="margin-top:6px">Copy</button><p class="small muted" id="cfg-chatui-note" data-style="margin-top:6px" hidden></p></div>
         <div data-tab-panel="mcpcfg:claude" hidden><pre class="code" id="cfg-claude">claude mcp add --transport http dclab http://127.0.0.1:8765/mcp</pre><button type="button" class="btn sm" data-copy="#cfg-claude" data-copy-label="Command" data-style="margin-top:6px">Copy</button></div>
         <div data-tab-panel="mcpcfg:generic" hidden><pre class="code" id="cfg-generic">{"mcpServers": {"dclab": {"type": "http", "url": "http://127.0.0.1:8765/mcp"}}}</pre><button type="button" class="btn sm" data-copy="#cfg-generic" data-copy-label="Config" data-style="margin-top:6px">Copy</button></div>
       </div>
-      <div class="panel-foot"><button type="button" class="link-btn" data-pane-go="tools">See the 18 tools →</button></div>
+      <div class="panel-foot"><button type="button" class="link-btn" data-pane-go="tools" id="mcp-tools-link">See the 18 tools →</button></div>
     </div>
   </div>
 
   <div class="pane" data-pane="tools" data-label="MCP tools" data-count="18">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title"><h2>Tools on the endpoint</h2><span class="sub">Evidence tools read the index; project tools drive the notebook stages</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>Tools on the endpoint</h2><span class="sub" id="tool-sub">Evidence tools read the index; project tools drive the notebook stages</span></div></div>
       <div class="table-wrap"><table class="data compact" id="tool-table"><thead><tr><th>Tool</th><th>What it does</th><th>Group</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -1793,15 +1779,16 @@ MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy
     <div class="panel" data-f="int.chatui">
       <div class="panel-head"><div class="panel-title"><h3>Hugging Face Chat UI</h3><span class="sub">Local, with ML Intern mode</span></div><span class="pill ok">built · tested</span></div>
       <div class="panel-body stack tight small">
-        <pre class="term"><span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp on :8765</span>
+        <pre class="term" id="chatui-term"><span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp on :8765</span>
 <span class="t-dim">$</span> make chat-ui-intern   <span class="t-dim"># Chat UI on :5173</span></pre>
-        <p>Plain mode offered the 18 DCLab tools; ML Intern mode offered 32, the DCLab ones plus plan, research, sandbox and Trackio tools. A tool-capable model built a heart-disease project end to end over MCP.</p>
-        <p class="muted">Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.</p>
+        <p id="chatui-verified">Plain mode offered the 18 DCLab tools; ML Intern mode offered 32, the DCLab ones plus plan, research, sandbox and Trackio tools. A tool-capable model built a heart-disease project end to end over MCP.</p>
+        <p class="muted" id="chatui-where">Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.</p>
       </div>
     </div>
     <div class="panel" data-f="int.vscode">
-      <div class="panel-head"><div class="panel-title"><h2>VS Code companion</h2><span class="sub">The notebook companion inside the editor: findings beside the cell, proof one click away</span></div><span class="pill warn">engine built · extension planned</span></div>
-      <div class="panel-body">
+      <div class="panel-head"><div class="panel-title"><h2>VS Code companion</h2><span class="sub">The notebook companion inside the editor: findings beside the cell, proof one click away</span></div><span class="pill warn" id="vscode-pill">engine built · extension planned</span></div>
+      <div class="panel-body stack tight">
+        <p class="small muted" id="vscode-note" hidden></p>
         <div class="vs-frame">
           <div class="vs-title"><i></i><i></i><i></i><span>first-pass.ipynb — bank-marketing — Visual Studio Code</span></div>
           <div class="vs-body">
@@ -1829,8 +1816,8 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 
   <div class="pane" data-pane="api" data-label="API & CLI">
     <div class="panel" data-f="int.api">
-      <div class="panel-head"><div class="panel-title"><h2>REST API</h2><span class="sub">The routes the web app uses today</span></div><span class="pill ok">built</span></div>
-      <div class="table-wrap"><table class="data compact"><tbody>
+      <div class="panel-head"><div class="panel-title"><h2>REST API</h2><span class="sub" id="rest-sub">The routes the web app uses today</span></div><span class="pill ok">built</span></div>
+      <div class="table-wrap" id="rest-wrap" data-style="max-height:560px;overflow:auto"><table class="data compact"><tbody id="rest-body">
         <tr><td class="mono small">GET · POST /api/projects</td><td class="small">list and create projects</td></tr>
         <tr><td class="mono small">PUT /api/projects/{id}/data · POST …/data/sample</td><td class="small">attach a table or a studied sample</td></tr>
         <tr><td class="mono small">POST …/solution/proposal · PUT …/solution</td><td class="small">propose and save the solution</td></tr>
@@ -1840,6 +1827,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <tr><td class="mono small">GET · POST /api/intern/sessions · …/message</td><td class="small">intern sessions with a budget</td></tr>
         <tr><td class="mono small">GET /api/evidence/{record_id} · /api/knowledge</td><td class="small">evidence records and the knowledge view</td></tr>
       </tbody></table></div>
+      <div class="panel-foot" id="rest-foot" hidden>Write requests (POST, PUT, PATCH, DELETE) need the <code>X-DCLab-Token</code> header from <code>GET /api/config</code>; the server answers only on 127.0.0.1 and localhost.</div>
     </div>
     <div class="panel" data-f="int.cli">
       <div class="panel-head"><h3>Command line</h3><span class="pill ok">built</span></div>
@@ -1849,14 +1837,15 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <span class="t-dim">$</span> make rd-check     <span class="t-dim"># tests + evidence + freshness</span>
 <span class="t-dim">$</span> make knowledge    <span class="t-dim"># evidence index + SFT corpus</span></pre>
       </div>
+      <div class="table-wrap" id="cli-wrap" hidden><table class="data compact"><thead><tr><th>make target</th><th>What it does</th></tr></thead><tbody id="cli-body"></tbody></table></div>
     </div>
   </div>
 
   <div class="pane" data-pane="connectors" data-label="Connectors">
     <div class="grid g2">
       <div class="panel" data-f="int.connectors">
-        <div class="panel-head"><h3>Data connectors</h3></div>
-        <div class="list small">
+        <div class="panel-head"><h3>Data connectors</h3><span class="small muted" id="conn-max"></span></div>
+        <div class="list small" id="conn-list">
           <div class="list-item"><div class="li-main"><span class="li-title">Kaggle</span><span class="li-sub">four named datasets download today</span></div><span class="pill warn">partial</span></div>
           <div class="list-item"><div class="li-main"><span class="li-title">Hugging Face Hub</span><span class="li-sub">datasets by ID, revision and split</span></div><span class="pill warn">partial</span></div>
           <div class="list-item"><div class="li-main"><span class="li-title">S3 · GCS</span><span class="li-sub">read-only bucket and prefix</span></div><span class="pill outline">planned</span></div>
@@ -1881,7 +1870,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="admin-stats">
       <div class="stat"><span class="v">10</span><span class="l">policies · 4 locked as product guarantees</span></div>
       <div class="stat"><span class="v">5</span><span class="l">roles · the intern is a member with the narrowest rights</span></div>
       <div class="stat"><span class="v">3</span><span class="l">model tiers · the cheapest tier that can decide, decides</span></div>
@@ -1889,29 +1878,37 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     </div>
 
     <div class="panel" data-f="admin.policies" data-tour="policies">
-      <div class="panel-head"><div class="panel-title"><h2>Policies</h2><span class="sub">Locked policies are product guarantees; the others are workspace choices</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>Policies</h2><span class="sub" id="policy-sub">Locked policies are product guarantees; the others are workspace choices</span></div></div>
       <div class="list" id="policy-list"></div>
     </div>
   </div>
 
   <div class="pane" data-pane="roles" data-label="Roles">
     <div class="panel" data-f="admin.roles">
-      <div class="panel-head"><div class="panel-title"><h2>Roles and permissions</h2><span class="sub">The intern is a member too, with the narrowest rights</span></div><button type="button" class="btn sm" data-toast="In the product: invite by email and pick a role.">Invite</button></div>
+      <div class="panel-head"><div class="panel-title"><h2>Roles and permissions</h2><span class="sub" id="roles-sub">The intern is a member too, with the narrowest rights</span></div><button type="button" class="btn sm" id="invite-btn" data-toast="In the product: invite by email and pick a role.">Invite</button></div>
+      <div class="panel-body stack tight small" id="roles-real" hidden>
+        <div class="callout info" id="roles-note"></div>
+        <div class="spread"><b>What the validator lets each actor do today</b><span class="pill ok">enforced in code</span></div>
+        <div class="table-wrap"><table class="matrix" id="actor-matrix"></table></div>
+        <div class="spread" data-style="margin-top:12px"><b>Roles for a shared workspace</b><span class="pill outline">plan · not enforced</span></div>
+      </div>
       <div class="table-wrap" data-style="padding:0 0 4px"><table class="matrix" id="role-matrix"></table></div>
-      <div class="panel-foot">"Asks" means the move is allowed but waits for a person with the right.</div>
+      <div class="panel-foot" id="roles-foot">"Asks" means the move is allowed but waits for a person with the right.</div>
     </div>
   </div>
 
   <div class="pane" data-pane="models" data-label="Models & routing">
     <div class="panel" data-f="admin.models" data-tour="routing">
-      <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub">Cheapest tier that can decide</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub" id="models-sub">Cheapest tier that can decide</span></div></div>
       <div class="panel-body stack tight small">
         <div class="inset stack tight"><div class="spread"><b>Tier 1 · typed classifier</b><span class="pill outline">planned</span></div><span class="muted">Column types, ID and timestamp detection, proxy checks. Runs locally.</span></div>
         <div class="inset stack tight"><div class="spread"><b>Tier 2 · NOOA structured calls</b><span class="pill warn">partial</span></div><span class="muted">Typed, non-code-executing calls that pass evidence by reference.</span></div>
-        <div class="inset stack tight"><div class="spread"><b>Tier 3 · full model</b><span class="pill ok">built</span></div>
-          <div class="field"><label for="m-base">Endpoint (OpenAI-compatible)</label><select id="m-base"><option>https://router.huggingface.co/v1</option><option>http://127.0.0.1:11434/v1 (Ollama)</option><option>https://api.openai.com/v1</option></select></div>
-          <div class="field"><label for="m-id">Model</label><input id="m-id" type="text" value="an open instruct model with tool calling"></div>
-          <div class="field" data-f="admin.keys"><span class="label">Key</span><span class="row"><span class="pill ok">stored on the server</span><span class="xs muted">never sent to the browser · set in .env</span></span></div>
+        <div class="inset stack tight"><div class="spread"><b>Tier 3 · full model</b><span class="pill ok" id="tier3-pill">built</span></div>
+          <div class="stack tight" id="tier3-body">
+            <div class="field"><label for="m-base">Endpoint (OpenAI-compatible)</label><select id="m-base"><option>https://router.huggingface.co/v1</option><option>http://127.0.0.1:11434/v1 (Ollama)</option><option>https://api.openai.com/v1</option></select></div>
+            <div class="field"><label for="m-id">Model</label><input id="m-id" type="text" value="an open instruct model with tool calling"></div>
+            <div class="field" data-f="admin.keys"><span class="label">Key</span><span class="row"><span class="pill ok">stored on the server</span><span class="xs muted">never sent to the browser · set in .env</span></span></div>
+          </div>
         </div>
         <div class="inset stack tight"><div class="spread"><b>Policy model</b><span class="pill outline">phase 4</span></div><span class="muted">Takes tier 3 for workflow moves once it passes the benchmark gates.</span></div>
       </div>
@@ -1921,8 +1918,8 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
     <div class="grid g2">
       <div class="panel" data-f="admin.budgets">
-        <div class="panel-head"><h3>Budgets</h3></div>
-        <div class="panel-body grid g2 small">
+        <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not metered</span></div>
+        <div class="panel-body grid g2 small" id="budget-body">
           <div class="field"><label for="b1">Per intern session</label><input id="b1" type="text" value="24 calls · 20 min · €5"></div>
           <div class="field"><label for="b2">Per GPU job, no approval</label><input id="b2" type="text" value="€5"></div>
           <div class="field"><label for="b3">Per project, monthly</label><input id="b3" type="text" value="€25"></div>
@@ -1931,7 +1928,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       </div>
       <div class="panel" data-f="admin.data">
         <div class="panel-head"><h3>Data and privacy</h3></div>
-        <div class="panel-body stack tight small">
+        <div class="panel-body stack tight small" id="privacy-body">
           <label class="switch"><input type="checkbox" checked><span class="track"></span><span>Data stays on this machine unless a job needs a GPU</span></label>
           <label class="switch"><input type="checkbox" checked><span class="track"></span><span>Scan uploads for personal data and warn</span></label>
           <label class="switch"><input type="checkbox"><span class="track"></span><span>Use finished projects to train the policy model (opt-in)</span></label>
@@ -1943,8 +1940,8 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 
   <div class="pane" data-pane="audit" data-label="Audit log">
     <div class="panel" data-f="admin.audit">
-      <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div></div>
-      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody>
+      <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub" id="audit-sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody id="audit-body">
         <tr><td class="mono small">Oct 4 11:20</td><td>Shahriyar</td><td>Replied on the term-deposit brief</td></tr>
         <tr><td class="mono small">Oct 2 11:40</td><td>Shahriyar</td><td>Approved opening the holdout · Term-deposit calls</td></tr>
         <tr><td class="mono small">Sep 29 14:31</td><td>Validator</td><td>Blocked open_holdout from WF-07 · DCLAB-R17</td></tr>
@@ -1952,6 +1949,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <tr><td class="mono small">Sep 25 16:02</td><td>Shahriyar</td><td>Raised the per-job GPU cap from €3 to €5</td></tr>
         <tr><td class="mono small">Sep 25 15:58</td><td>Shahriyar</td><td>Rotated the model-endpoint key (stored on the server)</td></tr>
       </tbody></table></div>
+      <div class="panel-foot bar" id="audit-foot" hidden><span id="audit-range"></span><span data-style="flex:1"></span><button type="button" class="btn sm" id="audit-newer">Newer</button><button type="button" class="btn sm" id="audit-older">Older</button></div>
     </div>
   </div>
 </section>

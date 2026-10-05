@@ -1,65 +1,149 @@
 DC.view('compute', {
+  /* Compute & jobs, real data only: /api/ops/jobs lists what ran on this machine (project stage runs, intern sessions,
+     draft data pipelines, legacy research runs) and /api/ops/jobs/{id} gives one job's logs, metrics, artifacts and
+     reproducibility record. Spend is not metered and sandboxes / GPU jobs are not switched on; the page says so. */
   init(el) {
-    const { $, $$, esc, charts, chip } = DC;
-    const JOBS = [
-      { id: 'job-80c1', proj: 'Pedestrians at night and in rain', task: 'detector screen · 3 families', hw: 'A10G 24 GB', st: ['running 41%', 'accent'], time: '18 min', cost: '€0.62', by: 'AV', kind: 'gpu' },
-      { id: 'job-81d9', proj: 'Policy model', task: 'QLoRA on trajectories v0', hw: 'A100 80 GB', st: ['needs approval', 'warn'], time: '—', cost: 'est. €6.40', by: 'SM', kind: 'queued' },
-      { id: 'sbx-41c', proj: 'HyperAck', task: 'calendar features (intern)', hw: 'sandbox 2 vCPU', st: ['done', 'ok'], time: '3.1 s', cost: '€0.00', by: 'AI', kind: 'sandbox' },
-      { id: 'job-7e02', proj: 'Card fraud screening', task: 'final fit on 227,846 rows', hw: 'CPU 8 vCPU', st: ['done', 'ok'], time: '6 min', cost: '€0.09', by: 'AI', kind: 'cpu' },
-      { id: 'local-3a', proj: 'Term-deposit calls', task: 'WF-02 → WF-09', hw: 'this machine', st: ['done', 'ok'], time: '54 s', cost: '€0', by: 'AI', kind: 'local' },
-    ];
-    const WHO = { AV: 'b', SM: '', AI: 'ai' };
-    const tbody = $('#jobs-table tbody', el);
-    tbody.innerHTML = JOBS.map((j, i) => `<tr data-i="${i}" class="${i === 0 ? 'selected' : ''}"><td class="mono small">${j.id}</td><td><div class="cell-main">${esc(j.proj)}</div><div class="cell-sub">${esc(j.task)}</div></td><td class="small">${esc(j.hw)}</td><td><span class="pill ${j.st[1]}">${esc(j.st[0])}</span></td><td class="num mono">${j.time}</td><td class="num mono">${j.cost}</td><td><span class="avatar sm ${WHO[j.by]}">${j.by}</span></td></tr>`).join('');
-    const LOGS = {
-      gpu: `<span class="t-dim">12:01:04</span> pull image dclab/vision:0.3 <span class="t-dim">sha256:4e1f…a90c</span>
-<span class="t-dim">12:01:31</span> snapshot ped-night-rain v1 · 18,420 frames · 212 drives
-<span class="t-dim">12:01:31</span> split by drive: train 170 · val 21 · test 21 <span class="t-acc">(sealed)</span>
-<span class="t-dim">12:01:33</span> solution ODD v1: night · rain · urban · 30–50 km/h
-<span class="t-dim">12:01:33</span> forbidden inputs: frame index, drive id, GPS time
-<span class="t-dim">12:02:10</span> screen 1/3 detector-s   epoch  6/15  loss 1.84  val mAP@0.5 0.512
-<span class="t-dim">12:09:44</span> screen 1/3 detector-s   epoch 15/15  loss 1.31  val mAP@0.5 0.604 <span class="t-ok">✓</span>
-<span class="t-dim">12:10:02</span> screen 2/3 detector-m   epoch  4/15  loss 1.97  val mAP@0.5 0.488
-<span class="t-warn">12:10:02</span> note: 3 val drives have no rain frames; slice "rain" uses 11 drives
-<span class="t-dim">12:18:40</span> screen 2/3 detector-m   epoch 10/15  loss 1.42  val mAP@0.5 0.611 <span class="t-acc">▍</span>`,
-      queued: `<span class="t-warn">waiting</span> estimated cost €6.40 is above the €5 per-job cap
-<span class="t-dim">plan</span> base model: open 8B instruct · QLoRA r=16 · 2 epochs
-<span class="t-dim">data</span> trajectories v0 (412 moves from 19 projects) + SFT corpus v3 (260 train · 66 val)
-<span class="t-dim">eval</span> judgment benchmark suites A–C after training`,
-      sandbox: `<span class="t-dim">15:14:02</span> sandbox sbx-41c · image dclab/tabular:0.9 · 2 vCPU · no network · data read-only
-<span class="t-dim">15:14:02</span> exec cell (5 lines) from the intern
-<span class="t-ok">15:14:05</span> 3 features added: hour_sin, hour_cos, is_weekend
-<span class="t-dim">15:14:05</span> exit 0 · 3.1 s · no files written outside /work`,
-      cpu: `<span class="t-dim">09:41:10</span> refit extra_trees_baseline on 227,846 training rows (time-ordered)
-<span class="t-dim">09:47:02</span> holdout: last 56,961 rows by Time · scored once
-<span class="t-ok">09:47:03</span> average precision 0.8139 [0.7317, 0.8847]`,
-      local: `<span class="t-dim">11:40:12</span> WF-08 → WF-09 gate: owner approval ✓
-<span class="t-ok">11:41:06</span> holdout ROC-AUC 0.7718 [0.7126, 0.8290] · Brier 0.0870 · ECE 0.0272`,
-    };
-    function show(i) {
-      const j = JOBS[i];
-      $$('tr', tbody).forEach(r => r.classList.toggle('selected', Number(r.dataset.i) === i));
-      $('#jd-eyebrow', el).textContent = `${j.id} · ${j.hw}`;
-      $('#jd-title', el).textContent = `${j.proj} · ${j.task}`;
-      $('#jd-actions', el).innerHTML = j.kind === 'gpu' ? '<button type="button" class="btn sm danger" data-toast="Stop requested. Checkpoints so far are kept as artifacts.">Stop</button><button type="button" class="btn sm" data-toast="In the product: reruns with the same seed, image and snapshot.">Rerun same seed</button>' : '<button type="button" class="btn sm" data-toast="In the product: reruns with the same seed, image and snapshot.">Rerun same seed</button>';
-      $('#jd-logs', el).innerHTML = LOGS[j.kind];
-      $('#jd-metrics', el).innerHTML = j.kind === 'gpu'
-        ? charts.line([
-            { pts: [[1, 0.21], [3, 0.38], [6, 0.512], [9, 0.57], [12, 0.596], [15, 0.604]], endLabel: 'detector-s 0.604' },
-            { pts: [[1, 0.18], [4, 0.488], [7, 0.56], [10, 0.611]], cls: 's2', endLabel: 'detector-m 0.611' },
-          ], { width: 640, height: 230, xMin: 1, xMax: 15, yMin: 0, yMax: 0.7, xLabel: 'epoch', yLabel: 'val mAP@0.5', xTicks: [1, 5, 10, 15], yTicks: [0, 0.2, 0.4, 0.6], yFmt: v => v.toFixed(1), aria: 'Validation mAP per epoch' }) + '<p class="xs muted">Sample curves. Validation drives only; the test drives stay sealed until WF-09.</p>'
-        : `<div class="empty">No time series for this run. Its record holds the final numbers${j.kind === 'cpu' ? ' ' + chip('EXP-055') : j.kind === 'local' ? ' ' + chip('EXP-010') : ''}.</div>`;
-      $('#jd-artifacts', el).innerHTML = j.kind === 'gpu'
-        ? '<div class="list small"><div class="list-item"><code>checkpoints/detector-s/best.pt</code><span class="li-side">94 MB</span></div><div class="list-item"><code>eval/val_by_slice.json</code><span class="li-side">night · rain · occlusion</span></div><div class="list-item"><code>samples/failures_rain.png</code><span class="li-side">24 frames</span></div></div>'
-        : '<div class="list small"><div class="list-item"><code>record.json</code><span class="li-side">stage record with evidence</span></div><div class="list-item"><code>notebook.ipynb</code><span class="li-side">runnable export</span></div></div>';
-      $('#jd-repro', el).innerHTML = `<dl class="kv small"><dt>Seed</dt><dd class="mono">42</dd><dt>Data snapshot</dt><dd class="mono">${j.kind === 'gpu' ? 'ped-night-rain v1 · sha256 77ab…1f02' : j.kind === 'local' ? 'bank_marketing · sha256 9c1e…4b07' : 'sha256 3d90…c2e1'}</dd><dt>Solution</dt><dd>${j.kind === 'gpu' ? 'ODD v1' : 'v2 (signed)'}</dd><dt>Image</dt><dd class="mono">${j.kind === 'gpu' ? 'dclab/vision:0.3@sha256:4e1f…a90c' : 'dclab/tabular:0.9@sha256:b20e…77d1'}</dd><dt>Lockfile</dt><dd class="mono">requirements/agent.lock.txt · sha256 51c4…e8a0</dd><dt>Code</dt><dd class="mono">git 8175dea</dd><dt>Command</dt><dd class="mono" data-style="overflow-wrap:anywhere">dclab run --project ${j.proj.toLowerCase().replace(/[^a-z]+/g, '-')} --stage ${j.kind === 'gpu' ? 'WF-07' : 'all'} --seed 42</dd></dl>`;
-      DC.hydrate(el);
+    const { $, $$, esc, api, toast } = DC;
+    const S = { data: null, sel: null, sig: '', stop: null };
+    const KIND = { stage: 'Stage run', intern: 'Intern session', data: 'Data pipeline', research: 'Research run' };
+    const PILL = { running: 'accent', queued: 'outline', done: 'ok', failed: 'bad' };
+    const pillCls = j => (j.label === 'interrupted' || j.label === 'budget used up' || j.label === 'paused' ? 'warn' : PILL[j.status] || '');
+    const int = v => Number(v).toLocaleString('en-US');
+    const secs = v => (v == null ? '—' : v < 90 ? Number(v).toFixed(1) + ' s' : v < 5400 ? (v / 60).toFixed(1) + ' min' : (v / 3600).toFixed(1) + ' h');
+    const when = iso => { const d = new Date(iso); return iso && !isNaN(d) ? d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : ''; };
+    const clock = iso => { const d = new Date(iso); return iso && !isNaN(d) ? d.toLocaleTimeString('en-GB', { hour12: false }) : ''; };
+    function shortId(j) {
+      const parts = j.id.split('-');
+      if (j.kind === 'stage') return `${(j.project_id || '').slice(0, 6)}·${j.stage}·${parts[parts.length - 1]}`;
+      if (j.kind === 'data') return 'data·' + parts[parts.length - 1].slice(0, 7);
+      if (j.kind === 'intern') return 'intern·' + (j.session_id || '').slice(0, 6);
+      return 'run·' + (j.run_id || '').slice(0, 6);
     }
-    tbody.addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) show(Number(tr.dataset.i)); });
-    show(0);
-    $('#spend-chart', el).innerHTML = charts.barsH([
-      { label: 'Pedestrians (GPU)', value: 9.8, valueText: '€9.80' }, { label: 'Term-deposit calls', value: 3.1, valueText: '€3.10' },
-      { label: 'HyperAck', value: 2.6, valueText: '€2.60' }, { label: 'Card fraud', value: 1.9, valueText: '€1.90' }, { label: 'Model calls (intern)', value: 1.0, valueText: '€1.00', cls: 'proof' },
-    ], { width: 320, labelW: 124, valW: 50, min: 0, max: 12, rowH: 26, ticks: [0, 4, 8, 12], tickFmt: v => '€' + v, aria: 'Spend by project' });
+    function cells(j) {
+      if (j.kind === 'stage') return [j.project || 'Project', `${j.title} · ${j.subtitle}`];
+      if (j.kind === 'intern') return [j.title, `${j.subtitle}${j.project ? ' · ' + j.project : ''}`];
+      if (j.kind === 'data') return [j.project || 'Draft on Home', `${j.subtitle} · ${j.title}`];
+      return [j.title, `${j.subtitle}${j.project ? ' · ' + j.project : ''}`];
+    }
+    const who = by => (by === 'agent' ? '<span class="avatar sm ai" title="Started by the intern or an agent">AI</span>'
+      : by === 'human' ? '<span class="avatar sm" title="Started by a person in this workspace">You</span>' : '<span class="muted small">—</span>');
+
+    /* ---------- overview, spend, where ---------- */
+    function drawStats(d) {
+      const t = d.totals, sec = t.seconds_this_month, st = $$('#ops-stats .stat', el);
+      const local = sec.stage + sec.data + sec.research;
+      st[0].innerHTML = `<span class="v">${t.running}</span><span class="l">job${t.running === 1 ? '' : 's'} running now · this machine${t.queued ? ` · ${t.queued} queued` : ''}</span>`;
+      st[1].innerHTML = `<span class="v${t.approvals ? ' warn' : ''}">${t.approvals}</span><span class="l">waiting for approval · ${t.failed} failed or interrupted run${t.failed === 1 ? '' : 's'} in total</span>${t.approvals ? '<div class="row"><button type="button" class="link-btn small" data-pane-go="spend">Review →</button></div>' : ''}`;
+      st[2].innerHTML = `<span class="v">${esc(secs(local))}</span><span class="l">compute time this month · stages ${esc(secs(sec.stage))} · data ${esc(secs(sec.data))}${sec.research ? ' · research ' + esc(secs(sec.research)) : ''} · intern sessions ${esc(secs(sec.intern))} (their stages are counted above)</span>`;
+      st[3].innerHTML = `<span class="v">—</span><span class="l">spend this month · not metered: local runs are not billed; model calls are counted in tokens (${int(t.tokens_this_month.input)} in · ${int(t.tokens_this_month.output)} out), not priced</span>`;
+      $('#jobs-pill', el).textContent = `${t.total} job${t.total === 1 ? '' : 's'} · this machine`;
+      $('#spend-sub', el).textContent = 'not metered';
+      $('#spend-chart', el).innerHTML = `<div class="empty">Not metered yet. Nothing on this page is billed: every job ran on this machine.${t.tokens_this_month.input || t.tokens_this_month.output
+        ? ` Model calls this month: ${int(t.tokens_this_month.input)} input and ${int(t.tokens_this_month.output)} output tokens, counted but not priced.` : ' No model tokens were used this month.'}</div>`;
+      const ap = d.approvals;
+      const pill = $('#approvals-pill', el);
+      pill.textContent = ap.length; pill.className = 'pill ' + (ap.length ? 'warn' : 'outline');
+      $('#approvals-list', el).innerHTML = ap.length ? ap.map(a => `<a class="list-item" href="#${a.page}" data-ops-project="${esc(a.project_id)}">
+          <div class="li-main"><span class="li-title">${esc(a.project || a.project_id)}: ${a.gate === 'solution' ? 'sign the solution' : 'approve opening the holdout'}</span><span class="li-sub">${esc(a.what)} The project's policy requires it.</span></div>
+          <div class="li-side"><span class="pill warn">${esc(a.gate)} gate</span><span>Open →</span></div></a>`).join('')
+        : '<div class="empty">No approval is waiting. Gates are off by default; a project\'s policy can require the owner to sign the solution or to approve opening the holdout.</div>';
+      const tab = $('.ptab[data-ptab="spend"]', el);
+      if (tab) { let n = $('.n', tab); if (ap.length && !n) { tab.insertAdjacentHTML('beforeend', '<span class="n"></span>'); n = $('.n', tab); } if (n) { if (ap.length) n.textContent = ap.length; else n.remove(); } }
+      const m = d.machine || {};
+      $('#where-local', el).textContent = `${m.cpus ? m.cpus + ' CPU cores · ' : ''}${[m.system, m.arch].filter(Boolean).join(' ')}${m.python ? ' · Python ' + m.python : ''}. Runs project stages, intern sessions, data pipelines and notebook export: ${int(t.total)} job${t.total === 1 ? '' : 's'} so far. Not metered.`;
+      DC.setNavCount('compute', t.running || '');
+    }
+
+    /* ---------- jobs table ---------- */
+    function drawJobs(jobs) {
+      const tbody = $('#jobs-table tbody', el);
+      if (!jobs.length) {
+        tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No jobs yet. Stage runs, intern sessions and data pipelines on Home appear here as they run.</div></td></tr>';
+        $('#job-detail', el).hidden = true;
+        return;
+      }
+      tbody.innerHTML = jobs.map(j => {
+        const [main, sub] = cells(j);
+        const t = esc(secs(j.seconds)) + (j.status === 'running' ? '<div class="cell-sub">so far</div>' : '');
+        return `<tr data-job="${esc(j.id)}" class="${j.id === S.sel ? 'selected' : ''}"><td class="mono small" title="${esc(j.id)}">${esc(shortId(j))}</td><td><div class="cell-main">${esc(main)}</div><div class="cell-sub">${esc(sub)}</div></td><td class="small">${esc(j.where)}</td><td><span class="pill ${pillCls(j)}">${esc(j.label)}</span><div class="cell-sub">${esc(when(j.started))}</div></td><td class="num mono">${t}</td><td class="num mono"><span class="muted" title="Not metered">—</span></td><td>${who(j.by)}</td></tr>`;
+      }).join('');
+    }
+    $('#jobs-table tbody', el).addEventListener('click', e => { const tr = e.target.closest('tr[data-job]'); if (tr) select(tr.dataset.job, true); });
+
+    /* ---------- one job ---------- */
+    async function select(id, user) {
+      S.sel = id;
+      $$('#jobs-table tbody tr', el).forEach(r => r.classList.toggle('selected', r.dataset.job === id));
+      let d;
+      try { d = await api(`/ops/jobs/${encodeURIComponent(id)}`); } catch (err) { if (user) toast(err.message, { ok: false }); return; }
+      if (S.sel !== id) return;
+      drawDetail(d);
+    }
+    function drawDetail(d) {
+      const j = d.job;
+      $('#job-detail', el).hidden = false;
+      $('#jd-eyebrow', el).textContent = `${KIND[j.kind] || j.kind} · ${j.where} · ${j.label}`;
+      $('#jd-title', el).textContent = cells(j).join(' · ');
+      const acts = [];
+      if (j.kind === 'intern') acts.push(`<a class="btn sm" href="#intern" data-ops-session="${esc(j.session_id)}">Open the session →</a>`);
+      if (j.project_id && (j.kind !== 'data' || !j.draft_open)) acts.push(`<a class="btn sm" href="#project" data-ops-project="${esc(j.project_id)}">Open the project →</a>`);
+      if (j.kind === 'data' && j.draft_open) acts.push(`<a class="btn sm" href="#home" data-ops-draft="${esc(j.draft_id)}">Open the draft on Home →</a>`);
+      if (j.kind === 'research') acts.push('<a class="btn sm" href="/classic">Open in the classic UI →</a>');
+      // No Stop button: there is no route that stops a stage run, an intern session or a data pipeline yet.
+      $('#jd-actions', el).innerHTML = acts.join('');
+      const lvl = { dim: 't-dim', ok: 't-ok', warn: 't-warn', bad: 't-bad', acc: 't-acc' };
+      $('#jd-logs', el).innerHTML = d.logs.length ? d.logs.map(l => `${l.at ? `<span class="t-dim">${esc(clock(l.at))}</span> ` : '         '}<span class="${lvl[l.level] || ''}">${esc(l.text)}</span>${l.proof ? ` <span class="t-dim">[${esc(l.proof.join(', '))}]</span>` : ''}`).join('\n')
+        : '<span class="t-dim">No log lines for this job.</span>';
+      const note = $('#jd-log-note', el); note.hidden = !d.log_note; note.textContent = d.log_note || '';
+      $('#jd-metrics', el).innerHTML = d.metrics.length ? `<dl class="kv small">${d.metrics.map(m => `<dt>${esc(m.label)}</dt><dd class="mono">${esc(m.value)}</dd>`).join('')}</dl>
+        <p class="xs muted">Measured on this machine. No cost is shown because nothing is metered.</p>` : '<div class="empty">No metrics for this job.</div>';
+      $('#jd-artifacts', el).innerHTML = (d.artifacts.length ? `<div class="list small">${d.artifacts.map(a => a.href
+        ? `<a class="list-item" href="${esc(a.href)}" download><code>${esc(a.label)}</code><span class="li-side">${esc(a.note || '')}</span></a>`
+        : `<a class="list-item" href="#project" data-ops-project="${esc(a.project_id)}"><code>${esc(a.label)}</code><span class="li-side">${esc(a.note || '')} · open →</span></a>`).join('')}</div>` : '')
+        + (d.artifact_note ? `<div class="empty">${esc(d.artifact_note)}</div>` : '');
+      $('#jd-repro', el).innerHTML = (d.repro.length ? `<dl class="kv small">${d.repro.map(r => `<dt>${esc(r.label)}</dt><dd class="${r.mono ? 'mono' : ''}" data-style="overflow-wrap:anywhere">${esc(r.value)}</dd>`).join('')}</dl>` : '')
+        + (d.repro_note ? `<p class="xs muted">${esc(d.repro_note)}</p>` : '');
+      DC.hydrate($('#job-detail', el));
+    }
+
+    /* ---------- links to the pages that own each job ---------- */
+    el.addEventListener('click', e => {
+      const p = e.target.closest('[data-ops-project]');
+      if (p) { DC.state.project = 'p:' + p.dataset.opsProject; DC.state.projectId = null; DC.currentProject.clear(); return; }
+      const s = e.target.closest('[data-ops-session]');
+      if (s) { DC.state.internSession = s.dataset.opsSession; return; }
+      const d = e.target.closest('[data-ops-draft]');
+      if (d) { try { localStorage.setItem('dclab-home-draft', d.dataset.opsDraft); } catch (err) { /* storage blocked */ } }
+    });
+
+    /* ---------- loading and polling while something runs ---------- */
+    async function load() {
+      let d;
+      try { d = await api('/ops/jobs'); } catch (err) {
+        $('#jobs-table tbody', el).innerHTML = `<tr><td colspan="7"><div class="empty">Could not read the jobs: ${esc(err.message)}</div></td></tr>`;
+        return false;
+      }
+      S.data = d;
+      DC.markSample(false);
+      drawStats(d);
+      const jobs = d.jobs;
+      const sig = jobs.map(j => `${j.id}:${j.status}:${j.label}:${j.seconds}`).join('|');
+      if (sig !== S.sig) {
+        S.sig = sig;
+        drawJobs(jobs);
+        const sel = jobs.find(j => j.id === S.sel) || jobs[0];
+        if (sel) select(sel.id, false);
+      }
+      return d.totals.running + d.totals.queued > 0;
+    }
+    this.load = load;
+    // Loads now, then every 2.5 s while a job runs or waits and the page is open.
+    this.watch = () => {
+      if (S.stop) S.stop();
+      S.stop = DC.poll(async () => DC.state.view !== 'compute' || !(await load()), 2500);
+    };
+  },
+  enter() {
+    this.watch();
   },
 });

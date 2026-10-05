@@ -330,12 +330,70 @@ DC.view('home', {
     }
     $('#home-build', el).addEventListener('click', build);
 
+    /* ---------- activity: what runs now (/api/ops/jobs) and what is new in the evidence (/api/ops/evidence-recent) ---------- */
+    const ACT = { stop: null };
+    const actSecs = v => (v == null ? '' : v < 90 ? Number(v).toFixed(0) + ' s' : v < 5400 ? (v / 60).toFixed(1) + ' min' : (v / 3600).toFixed(1) + ' h');
+    function liveItem(j) {
+      const state = j.status === 'running' && j.seconds != null ? `${j.label} · ${actSecs(j.seconds)} so far` : j.label;
+      const main = { stage: `Stage · ${j.project || 'project'} · ${j.title}`, intern: `Intern · ${j.title}`, data: `Data · ${j.title}`, research: `Research run · ${j.title}` }[j.kind] || j.title;
+      const link = j.kind === 'stage' ? `href="#project" data-live-project="${esc(j.project_id)}"`
+        : j.kind === 'intern' ? `href="#intern" data-live-session="${esc(j.session_id)}"`
+          : j.kind === 'data' && j.draft_open ? `href="#home" data-resume="${esc(j.draft_id)}"` : 'href="#compute"';
+      return `<a class="list-item" ${link}><span class="dot ${j.status === 'running' ? 'live' : 'accent'}" data-style="margin-top:6px"></span><div class="li-main"><span class="li-title">${esc(main)}</span><span class="li-sub">${esc(`${state} · ${j.where}${j.detail ? ' · ' + j.detail : ''}`)}</span></div></a>`;
+    }
+    async function loadLive() {
+      let d;
+      try { d = await api('/ops/jobs'); } catch (e) { $('#home-live', el).innerHTML = `<div class="empty">Could not read the jobs: ${esc(e.message)}</div>`; return false; }
+      const live = d.jobs.filter(j => j.status === 'running' || j.status === 'queued');
+      $('#home-live', el).innerHTML = live.length ? live.slice(0, 6).map(liveItem).join('')
+        : `<div class="empty">Nothing is running. Stage runs, intern sessions and data pipelines show here while they work; ${fmtN(d.totals.total)} job${d.totals.total === 1 ? '' : 's'} ran on this machine so far.</div>`;
+      DC.setNavCount('compute', d.totals.running || '');
+      return live.length > 0;
+    }
+    const EV_SHORT = { rule: 'rule', workflow: 'workflow', dataset: 'dataset', experiment: 'experiment', leakage_precedent: 'leak', pitfall: 'pitfall', finding: 'finding' };
+    const evRef = id => (DC.REC[id] ? chip(id) : `<button type="button" class="ev-chip" data-ev-live="${esc(id)}" title="Open ${esc(id)}">${esc(id)}</button>`);
+    async function loadEvidence() {
+      const box = $('#home-ev-new', el);
+      let d;
+      try { d = await api('/ops/evidence-recent?limit=3'); } catch (e) { box.innerHTML = `<div class="empty">Could not read the evidence index: ${esc(e.message)}</div>`; return; }
+      // The index has no dates of its own: the server dates a record by the campaign result it cites (see ops.py).
+      box.innerHTML = d.records.length ? d.records.map(r => {
+        const title = r.title.startsWith(r.id) ? r.title.slice(r.id.length).replace(/^\s*[·:—-]\s*/, '') : r.title;
+        return `<div class="row top"><span class="pill ${DC.TYPE_CLS[r.type] || ''}">${esc(EV_SHORT[r.type] || r.type)}</span><span>${evRef(r.id)} ${esc(title)} <span class="muted">· ${r.date ? esc(r.date.slice(0, 10)) : 'undated'}${r.campaign ? ' · ' + esc(r.campaign) : ''}</span>${r.related.length ? ' ' + r.related.slice(0, 2).map(evRef).join(' ') : ''}</span></div>`;
+      }).join('') + `<div class="xs muted">${esc(d.note)} ${fmtN(d.total)} records in the index.</div>`
+        : `<div class="empty">${esc(d.note || 'The evidence index is empty.')}</div>`;
+      DC.hydrate(box);
+    }
+    $('#home-live', el).addEventListener('click', e => {
+      const p = e.target.closest('[data-live-project]');
+      if (p) { DC.state.project = 'p:' + p.dataset.liveProject; DC.state.projectId = null; DC.currentProject.clear(); return; }
+      const s = e.target.closest('[data-live-session]');
+      if (s) DC.state.internSession = s.dataset.liveSession;  // a draft link uses data-resume, handled above
+    });
+    $('#home-ev-new', el).addEventListener('click', async e => {
+      const b = e.target.closest('[data-ev-live]'); if (!b) return;  // records outside the demo snapshot come from /api/evidence/{id}
+      try {
+        const r = await api(`/evidence/${encodeURIComponent(b.dataset.evLive)}`);
+        DC.drawer.open({ eyebrow: `<span class="pill ${DC.TYPE_CLS[r.type] || ''}">${esc(DC.TYPE_LABEL[r.type] || r.type)}</span> <span class="tag">${esc(r.record_id)}</span>`, title: r.title,
+          html: `<div class="record-text">${DC.linkIds(r.text)}</div>${(r.citations || []).length ? `<div class="stack tight"><div class="eyebrow">Citations</div>${r.citations.map(c => `<code class="small" data-style="overflow-wrap:anywhere">${esc(c)}</code>`).join('')}</div>` : ''}` });
+      } catch (err) { toast(err.message, { ok: false }); }
+    });
+    // While the Activity tab is open, the live list refreshes every 3 s as long as something runs.
+    el.addEventListener('paneshow', e => {
+      if (e.detail !== 'activity') return;
+      if (ACT.stop) ACT.stop();
+      ACT.stop = DC.poll(async () => DC.state.view !== 'home' || $('[data-pane="activity"]', el).hidden || !(await loadLive()), 3000);
+    });
+    this.loadActivity = () => { loadLive(); loadEvidence(); };
+
     this.loadWorkspace = loadWorkspace;
     this.resume = resume;
     loadPacks();
   },
   enter(el) {
+    DC.markSample(false);
     this.loadWorkspace();
+    this.loadActivity();
     try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
   },
 });

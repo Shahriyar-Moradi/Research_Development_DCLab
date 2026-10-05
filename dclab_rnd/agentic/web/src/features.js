@@ -14,8 +14,8 @@ window.FEATURES = [
   { id: 'home.inbox', view: 'home', name: '"Needs you" inbox: questions, approvals, sign-offs', status: 'built', phase: 'Now', where: 'server.py /api/workspace', note: 'Open questions from drafts and projects without a solution.' },
   { id: 'home.projects', view: 'home', name: 'Projects table with 10-step progress and honest score', status: 'partial', phase: 'P1', where: 'server.py /api/workspace · views/home.html', note: 'Real projects with their ten-step state; they open in the classic notebook until their pages are wired.' },
   { id: 'home.kpis', view: 'home', name: 'Workspace health: leaks blocked, holdout discipline, spend', status: 'built', phase: 'Now', where: 'server.py /api/workspace', note: 'Counted from projects and the transition log. Spend is not metered yet.' },
-  { id: 'home.activity', view: 'home', name: 'Live activity (intern sessions, jobs, approvals)', status: 'partial', phase: 'P1', where: 'intern/sessions.py', note: 'Intern sessions list exists; a unified feed does not.' },
-  { id: 'home.evidence', view: 'home', name: 'Evidence updates (new records, rules strengthened)', status: 'todo', phase: 'P2', where: '', note: '' },
+  { id: 'home.activity', view: 'home', name: 'Live activity (intern sessions, jobs, approvals)', status: 'built', phase: 'Now', where: 'pages/ops.py /api/ops/jobs · views/home.html', note: 'One feed of running and queued stage runs, intern sessions, data pipelines and research runs; refreshes while something runs.' },
+  { id: 'home.evidence', view: 'home', name: 'Evidence updates (new records, rules strengthened)', status: 'built', phase: 'Now', where: 'pages/ops.py /api/ops/evidence-recent', note: 'Newest records from the evidence index, dated by the campaign result they cite; undated records follow in file order.' },
   { id: 'home.quickstarts', view: 'home', name: 'Example tasks per domain pack', status: 'built', phase: 'Now', where: 'intern/sessions.py EXAMPLE_TASKS', note: '' },
 
   // ---- new project
@@ -123,11 +123,11 @@ window.FEATURES = [
   { id: 'intern.ladder', view: 'intern', name: 'Cost ladder accounting (typed → NOOA → LLM)', status: 'todo', phase: 'P4', where: '', note: '' },
 
   // ---- compute
-  { id: 'compute.local', view: 'compute', name: 'Local runs on this machine', status: 'built', phase: 'Now', where: 'studio runs in-process', note: '' },
+  { id: 'compute.local', view: 'compute', name: 'Local runs on this machine', status: 'built', phase: 'Now', where: 'pages/ops.py · views/compute.html', note: 'Every stage run, intern session, data pipeline and research run, with logs, metrics, artifacts and the reproduce fields.' },
   { id: 'compute.sandbox', view: 'compute', name: 'Sandboxes per project', status: 'todo', phase: 'P2', where: '', note: '' },
   { id: 'compute.gpu', view: 'compute', name: 'GPU jobs with logs, metrics and artifacts', status: 'todo', phase: 'P2', where: '', note: '' },
-  { id: 'compute.repro', view: 'compute', name: 'Reproducibility record (seed, data hash, environment)', status: 'partial', phase: 'P2', where: 'dclab_rnd/provenance.py', note: '' },
-  { id: 'compute.spend', view: 'compute', name: 'Spend caps and usage', status: 'todo', phase: 'P2', where: '', note: '' },
+  { id: 'compute.repro', view: 'compute', name: 'Reproducibility record (seed, data hash, environment)', status: 'partial', phase: 'P2', where: 'pages/ops.py job detail · stage records', note: 'Seed, data sha256, sampling, folds, holdout and prediction moment per stage; the code version is not recorded yet.' },
+  { id: 'compute.spend', view: 'compute', name: 'Spend caps and usage', status: 'todo', phase: 'P2', where: '', note: 'Compute time and tokens are counted; money is not metered, so caps are not enforced.' },
 
   // ---- evidence
   { id: 'ev.search', view: 'evidence', name: 'Evidence search (filter, then rank)', status: 'built', phase: 'Now', where: 'dclab_rnd/evidence_index.py', note: 'The search on this page runs over the real records.' },
@@ -157,9 +157,9 @@ window.FEATURES = [
   { id: 'bench.human', view: 'benchmark', name: 'Human agreement study', status: 'todo', phase: 'P4', where: '', note: '' },
 
   // ---- policy model
-  { id: 'policy.sft', view: 'policy', name: 'SFT corpus v3 (326 examples, 7 tasks)', status: 'built', phase: 'Now', where: 'research/llm-fine-tuning/experiments/sft/out_v3', note: '' },
+  { id: 'policy.sft', view: 'policy', name: 'SFT corpus v3 (330 examples, 7 tasks)', status: 'built', phase: 'Now', where: 'pages/learn.py · sft/out_v3 manifest', note: '' },
   { id: 'policy.projectsft', view: 'policy', name: 'Training examples from finished projects', status: 'built', phase: 'Now', where: 'studio/sft.py', note: '' },
-  { id: 'policy.traj', view: 'policy', name: 'Graph trajectories (state → move → evidence)', status: 'todo', phase: 'P4', where: '', note: 'The P1 transition log now records every move; the exporter to training records is next.' },
+  { id: 'policy.traj', view: 'policy', name: 'Graph trajectories (state → move → evidence)', status: 'partial', phase: 'P4', where: 'pages/learn.py · transitions.jsonl', note: 'Every move is logged and counted; the exporter that turns logs into training records is not built.' },
   { id: 'policy.review', view: 'policy', name: 'Expert review queue for decisions', status: 'todo', phase: 'P4', where: '', note: '' },
   { id: 'policy.train', view: 'policy', name: 'Training runs (LoRA / QLoRA)', status: 'partial', phase: 'P4', where: 'sft/train_lora.py', note: 'Script ready; no run yet.' },
   { id: 'policy.eval', view: 'policy', name: 'Evaluation against the benchmark', status: 'partial', phase: 'P4', where: 'sft/eval_sft.py', note: '' },
@@ -181,20 +181,20 @@ window.FEATURES = [
   { id: 'packs.builder', view: 'packs', name: 'Pack builder (steps, rules, tools, metrics, validators)', status: 'todo', phase: 'P3', where: '', note: '' },
 
   // ---- integrations
-  { id: 'int.mcp', view: 'integrations', name: 'MCP endpoint /mcp with 18 tools', status: 'built', phase: 'Now', where: 'dclab_rnd/mcp_server.py', note: '' },
+  { id: 'int.mcp', view: 'integrations', name: 'MCP endpoint /mcp with 20 tools', status: 'built', phase: 'Now', where: 'dclab_rnd/mcp_server.py', note: '' },
   { id: 'int.chatui', view: 'integrations', name: 'Hugging Face Chat UI + ML Intern mode', status: 'built', phase: 'Now', where: 'scripts/chat_ui.py · make chat-ui', note: '' },
   { id: 'int.api', view: 'integrations', name: 'REST API', status: 'built', phase: 'Now', where: 'dclab_rnd/agentic/server.py', note: '' },
   { id: 'int.cli', view: 'integrations', name: 'CLI (python -m dclab_rnd, copilot review)', status: 'built', phase: 'Now', where: 'dclab_rnd/cli.py', note: '' },
   { id: 'int.vscode', view: 'integrations', name: 'VS Code companion extension', status: 'partial', phase: 'P2', where: 'dclab_rnd/notebook_assist.py', note: 'The engine exists; the extension does not.' },
-  { id: 'int.connectors', view: 'integrations', name: 'Data connectors (Kaggle, HF Hub, S3, warehouses)', status: 'partial', phase: 'P2', where: 'expansion/datasets.py', note: '' },
+  { id: 'int.connectors', view: 'integrations', name: 'Data connectors (Kaggle, HF Hub, S3, warehouses)', status: 'built', phase: 'Now', where: 'dclab_rnd/connectors/ (Kaggle, Hugging Face, databases, S3/GCS)', note: 'Credentials stay on the server; every import goes through the draft pipeline.' },
   { id: 'int.github', view: 'integrations', name: 'GitHub: open a PR with notebook and report', status: 'todo', phase: 'P2', where: '', note: '' },
 
   // ---- admin
   { id: 'admin.models', view: 'admin', name: 'Model endpoints and routing per tier', status: 'partial', phase: 'P2', where: '.env OPENAI_BASE_URL / model', note: '' },
   { id: 'admin.keys', view: 'admin', name: 'Keys stay on the server, never in the browser', status: 'built', phase: 'Now', where: 'server reads .env', note: '' },
-  { id: 'admin.policies', view: 'admin', name: 'Governance policies as switches', status: 'partial', phase: 'P1', where: 'rules enforced in code', note: 'Enforced today but not configurable or visible.' },
+  { id: 'admin.policies', view: 'admin', name: 'Governance policies as switches', status: 'built', phase: 'Now', where: 'pages/platform.py · PATCH /api/projects/{id}', note: 'Locked invariants are checked live; the two gate switches are set per project and every change is audited.' },
   { id: 'admin.roles', view: 'admin', name: 'Roles and permissions', status: 'todo', phase: 'P2', where: '', note: '' },
-  { id: 'admin.budgets', view: 'admin', name: 'Budgets and caps', status: 'partial', phase: 'P2', where: 'intern budgets', note: '' },
-  { id: 'admin.audit', view: 'admin', name: 'Audit log', status: 'partial', phase: 'P1', where: 'project activity log', note: '' },
-  { id: 'admin.data', view: 'admin', name: 'Data retention and privacy', status: 'todo', phase: 'P2', where: '', note: '' },
+  { id: 'admin.budgets', view: 'admin', name: 'Budgets and caps', status: 'partial', phase: 'P2', where: 'pages/platform.py /api/platform/limits', note: 'Intern budgets are enforced; project call, minute and euro budgets are stored but not metered.' },
+  { id: 'admin.audit', view: 'admin', name: 'Audit log', status: 'built', phase: 'Now', where: 'pages/platform.py /api/platform/audit', note: 'Validated moves, gate approvals and gate switch changes across every project, newest first.' },
+  { id: 'admin.data', view: 'admin', name: 'Data retention and privacy', status: 'partial', phase: 'P2', where: 'pages/platform.py limits.privacy', note: 'What a model sees is stated from the code; no personal-data scan and no timed retention yet.' },
 ];

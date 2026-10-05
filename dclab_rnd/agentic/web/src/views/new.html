@@ -460,6 +460,7 @@ DC.view('new', {
     loadPacks();
   },
   async enter() {
+    DC.markSample(false);
     let id = DC.state.draftId || null;
     try { id = id || localStorage.getItem('dclab-home-draft'); } catch (e) { /* blocked */ }
     if (id) { try { await this.load(id); this.show(DC.state.draftId ? 2 : 1); DC.state.draftId = null; return; } catch (e) { /* gone */ } }

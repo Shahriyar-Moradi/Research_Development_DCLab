@@ -2,13 +2,13 @@
   <header class="vh">
     <div class="vh-text">
       <div class="eyebrow">Integrations · MCP, Chat UI, VS Code, REST, CLI</div>
-      <h1>Integrations <span class="pill ok">MCP built · tested</span></h1>
+      <h1>Integrations <span class="pill ok" id="int-pill">MCP built · tested</span></h1>
       <p class="lede">The same tools, graph and evidence behind every door. Use DCLab from Hugging Face Chat UI, any MCP client, VS Code, the REST API or the command line.</p>
     </div>
   </header>
 
   <div class="pane" data-pane="overview" data-label="Overview">
-    <div class="stats">
+    <div class="stats" id="int-stats">
       <div class="stat"><span class="v">18</span><span class="l">DCLab tools on the MCP endpoint · built and tested</span></div>
       <div class="stat"><span class="v">32</span><span class="l">tools in ML Intern mode: DCLab plus plan, research, sandbox and Trackio</span></div>
       <div class="stat"><span class="v">8</span><span class="l">REST route groups the web app uses today</span></div>
@@ -16,26 +16,27 @@
     </div>
 
     <div class="panel" data-f="int.mcp" data-tour="mcp">
-      <div class="panel-head"><div class="panel-title"><h2>MCP endpoint</h2><span class="sub">Streamable HTTP, stateless, JSON responses. Deterministic code owns every split, metric and selection rule; the client's model only proposes.</span></div><span class="pill ok">built · tested</span></div>
+      <div class="panel-head"><div class="panel-title"><h2>MCP endpoint</h2><span class="sub">Streamable HTTP, stateless, JSON responses. Deterministic code owns every split, metric and selection rule; the client's model only proposes.</span></div><span class="pill ok" id="mcp-pill">built · tested</span></div>
       <div class="panel-body stack">
-        <div class="row"><code class="inset" data-style="flex:1;min-width:220px" id="mcp-url">http://127.0.0.1:8765/mcp</code><button type="button" class="btn sm" data-copy="#mcp-url" data-copy-label="Endpoint">Copy</button><span class="small muted">or standalone: <code>python -m dclab_rnd.mcp_server --port 8777</code></span></div>
+        <div class="callout warn" id="mcp-note" hidden></div>
+        <div class="row"><code class="inset" data-style="flex:1;min-width:220px" id="mcp-url">http://127.0.0.1:8765/mcp</code><button type="button" class="btn sm" data-copy="#mcp-url" data-copy-label="Endpoint">Copy</button><span class="small muted" id="mcp-standalone">or standalone: <code>python -m dclab_rnd.mcp_server --port 8777</code></span></div>
         <div class="tabs" data-tabs="mcpcfg" role="tablist">
           <button type="button" class="tab" data-tab="chatui" role="tab" aria-selected="true">Chat UI</button>
           <button type="button" class="tab" data-tab="claude" role="tab" aria-selected="false">Claude Code</button>
           <button type="button" class="tab" data-tab="generic" role="tab" aria-selected="false">Any MCP client</button>
         </div>
         <div data-tab-panel="mcpcfg:chatui"><pre class="code" id="cfg-chatui">MCP_SERVERS=[{"name": "DCLab notebook", "url": "http://127.0.0.1:8765/mcp"}]
-MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy="#cfg-chatui" data-copy-label="Config" data-style="margin-top:6px">Copy</button></div>
+MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy="#cfg-chatui" data-copy-label="Config" data-style="margin-top:6px">Copy</button><p class="small muted" id="cfg-chatui-note" data-style="margin-top:6px" hidden></p></div>
         <div data-tab-panel="mcpcfg:claude" hidden><pre class="code" id="cfg-claude">claude mcp add --transport http dclab http://127.0.0.1:8765/mcp</pre><button type="button" class="btn sm" data-copy="#cfg-claude" data-copy-label="Command" data-style="margin-top:6px">Copy</button></div>
         <div data-tab-panel="mcpcfg:generic" hidden><pre class="code" id="cfg-generic">{"mcpServers": {"dclab": {"type": "http", "url": "http://127.0.0.1:8765/mcp"}}}</pre><button type="button" class="btn sm" data-copy="#cfg-generic" data-copy-label="Config" data-style="margin-top:6px">Copy</button></div>
       </div>
-      <div class="panel-foot"><button type="button" class="link-btn" data-pane-go="tools">See the 18 tools →</button></div>
+      <div class="panel-foot"><button type="button" class="link-btn" data-pane-go="tools" id="mcp-tools-link">See the 18 tools →</button></div>
     </div>
   </div>
 
   <div class="pane" data-pane="tools" data-label="MCP tools" data-count="18">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title"><h2>Tools on the endpoint</h2><span class="sub">Evidence tools read the index; project tools drive the notebook stages</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>Tools on the endpoint</h2><span class="sub" id="tool-sub">Evidence tools read the index; project tools drive the notebook stages</span></div></div>
       <div class="table-wrap"><table class="data compact" id="tool-table"><thead><tr><th>Tool</th><th>What it does</th><th>Group</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -44,15 +45,16 @@ MCP_ALLOW_INSECURE_URLS=true</pre><button type="button" class="btn sm" data-copy
     <div class="panel" data-f="int.chatui">
       <div class="panel-head"><div class="panel-title"><h3>Hugging Face Chat UI</h3><span class="sub">Local, with ML Intern mode</span></div><span class="pill ok">built · tested</span></div>
       <div class="panel-body stack tight small">
-        <pre class="term"><span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp on :8765</span>
+        <pre class="term" id="chatui-term"><span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp on :8765</span>
 <span class="t-dim">$</span> make chat-ui-intern   <span class="t-dim"># Chat UI on :5173</span></pre>
-        <p>Plain mode offered the 18 DCLab tools; ML Intern mode offered 32, the DCLab ones plus plan, research, sandbox and Trackio tools. A tool-capable model built a heart-disease project end to end over MCP.</p>
-        <p class="muted">Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.</p>
+        <p id="chatui-verified">Plain mode offered the 18 DCLab tools; ML Intern mode offered 32, the DCLab ones plus plan, research, sandbox and Trackio tools. A tool-capable model built a heart-disease project end to end over MCP.</p>
+        <p class="muted" id="chatui-where">Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.</p>
       </div>
     </div>
     <div class="panel" data-f="int.vscode">
-      <div class="panel-head"><div class="panel-title"><h2>VS Code companion</h2><span class="sub">The notebook companion inside the editor: findings beside the cell, proof one click away</span></div><span class="pill warn">engine built · extension planned</span></div>
-      <div class="panel-body">
+      <div class="panel-head"><div class="panel-title"><h2>VS Code companion</h2><span class="sub">The notebook companion inside the editor: findings beside the cell, proof one click away</span></div><span class="pill warn" id="vscode-pill">engine built · extension planned</span></div>
+      <div class="panel-body stack tight">
+        <p class="small muted" id="vscode-note" hidden></p>
         <div class="vs-frame">
           <div class="vs-title"><i></i><i></i><i></i><span>first-pass.ipynb — bank-marketing — Visual Studio Code</span></div>
           <div class="vs-body">
@@ -80,8 +82,8 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 
   <div class="pane" data-pane="api" data-label="API & CLI">
     <div class="panel" data-f="int.api">
-      <div class="panel-head"><div class="panel-title"><h2>REST API</h2><span class="sub">The routes the web app uses today</span></div><span class="pill ok">built</span></div>
-      <div class="table-wrap"><table class="data compact"><tbody>
+      <div class="panel-head"><div class="panel-title"><h2>REST API</h2><span class="sub" id="rest-sub">The routes the web app uses today</span></div><span class="pill ok">built</span></div>
+      <div class="table-wrap" id="rest-wrap" data-style="max-height:560px;overflow:auto"><table class="data compact"><tbody id="rest-body">
         <tr><td class="mono small">GET · POST /api/projects</td><td class="small">list and create projects</td></tr>
         <tr><td class="mono small">PUT /api/projects/{id}/data · POST …/data/sample</td><td class="small">attach a table or a studied sample</td></tr>
         <tr><td class="mono small">POST …/solution/proposal · PUT …/solution</td><td class="small">propose and save the solution</td></tr>
@@ -91,6 +93,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
         <tr><td class="mono small">GET · POST /api/intern/sessions · …/message</td><td class="small">intern sessions with a budget</td></tr>
         <tr><td class="mono small">GET /api/evidence/{record_id} · /api/knowledge</td><td class="small">evidence records and the knowledge view</td></tr>
       </tbody></table></div>
+      <div class="panel-foot" id="rest-foot" hidden>Write requests (POST, PUT, PATCH, DELETE) need the <code>X-DCLab-Token</code> header from <code>GET /api/config</code>; the server answers only on 127.0.0.1 and localhost.</div>
     </div>
     <div class="panel" data-f="int.cli">
       <div class="panel-head"><h3>Command line</h3><span class="pill ok">built</span></div>
@@ -100,14 +103,15 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 <span class="t-dim">$</span> make rd-check     <span class="t-dim"># tests + evidence + freshness</span>
 <span class="t-dim">$</span> make knowledge    <span class="t-dim"># evidence index + SFT corpus</span></pre>
       </div>
+      <div class="table-wrap" id="cli-wrap" hidden><table class="data compact"><thead><tr><th>make target</th><th>What it does</th></tr></thead><tbody id="cli-body"></tbody></table></div>
     </div>
   </div>
 
   <div class="pane" data-pane="connectors" data-label="Connectors">
     <div class="grid g2">
       <div class="panel" data-f="int.connectors">
-        <div class="panel-head"><h3>Data connectors</h3></div>
-        <div class="list small">
+        <div class="panel-head"><h3>Data connectors</h3><span class="small muted" id="conn-max"></span></div>
+        <div class="list small" id="conn-list">
           <div class="list-item"><div class="li-main"><span class="li-title">Kaggle</span><span class="li-sub">four named datasets download today</span></div><span class="pill warn">partial</span></div>
           <div class="list-item"><div class="li-main"><span class="li-title">Hugging Face Hub</span><span class="li-sub">datasets by ID, revision and split</span></div><span class="pill warn">partial</span></div>
           <div class="list-item"><div class="li-main"><span class="li-title">S3 · GCS</span><span class="li-sub">read-only bucket and prefix</span></div><span class="pill outline">planned</span></div>
@@ -140,6 +144,98 @@ DC.view('integrations', {
       ['export_notebook', 'Write the runnable notebook and the report', 'project'],
     ];
     $('#tool-table tbody', el).innerHTML = T.map(([n, d, g]) => `<tr><td class="mono small">${n}</td><td class="small">${esc(d)}</td><td><span class="pill ${g === 'evidence' ? 'proof' : 'accent'}">${g}</span></td></tr>`).join('');
+    DC.hydrate(el);
+  },
+
+  /* Real mode: everything below comes from GET /api/platform/integrations (this server's own routes, tools and Makefile). */
+  async enter(el) {
+    const { $, esc } = DC;
+    const md = t => esc(t || '').replace(/`([^`]+)`/g, '<code>$1</code>');
+    let d;
+    try { d = await DC.api('/platform/integrations'); } catch (e) { DC.markSample(true); return; }
+    DC.markSample(false);
+    const m = d.mcp, n = m.count, mi = m.ml_intern_tools || {};
+    const stat = (v, l) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${l}</span></div>`;
+    const c = d.connectors, ready = c.ready || {}, readyN = Object.values(ready).filter(Boolean).length;
+    const missing = [!ready.kaggle && 'Kaggle needs credentials', !ready.database && 'no database connection', !ready.cloud && 'no cloud storage library'].filter(Boolean);
+
+    /* header and overview */
+    const pill = $('#int-pill', el);
+    pill.className = 'pill ' + (m.mounted ? 'ok' : 'warn');
+    pill.textContent = m.mounted ? 'MCP mounted at /mcp' : 'MCP not mounted here';
+    $('#int-stats', el).innerHTML =
+      stat(n, `DCLab tools on the MCP endpoint · ${m.mounted ? 'mounted on this server' : 'not mounted on this server'}`) +
+      stat(mi.verified_total != null ? mi.verified_total : '—', mi.verified_total != null
+        ? `tools in ML Intern mode when last verified (${mi.verified_dclab} DCLab + ${mi.own} of its own)${mi.current ? '' : ` · DCLab now has ${n}, so expect ${mi.expected_now}; not re-verified`}`
+        : 'tools in ML Intern mode: no recorded verification') +
+      stat(d.rest.length, `REST routes in ${d.rest_groups.length} groups on this server`) +
+      stat(readyN, `of 4 data connectors ready on this server${missing.length ? ' · ' + esc(missing.join(' · ')) : ''}`);
+
+    /* MCP endpoint panel: real URL in every snippet */
+    const url = m.mounted ? m.url : m.standalone.url;
+    $('#mcp-pill', el).className = 'pill ' + (m.mounted ? 'ok' : 'warn');
+    $('#mcp-pill', el).textContent = m.mounted ? 'mounted · tested' : 'not mounted';
+    const note = $('#mcp-note', el);
+    note.hidden = m.mounted;
+    if (!m.mounted) note.innerHTML = `<span class="ic">${DC.icon('alert')}</span><span>${md(m.note)} The snippets below point at the standalone server (<code>${esc(m.standalone.make)}</code>).</span>`;
+    $('#mcp-url', el).textContent = url;
+    $('#mcp-standalone', el).innerHTML = m.mounted ? `or standalone: <code>${esc(m.standalone.command)}</code>` : `start it with <code>${esc(m.standalone.make)}</code>`;
+    $('#cfg-chatui', el).textContent = `MCP_SERVERS=[{"name": "DCLab notebook", "url": ${JSON.stringify(url)}}]\nMCP_ALLOW_INSECURE_URLS=true`;
+    const cn = $('#cfg-chatui-note', el);
+    cn.hidden = false;
+    cn.innerHTML = `<code>${esc(d.chat_ui.command)}</code> writes these two lines into Chat UI's <code>.env.local</code> for you.`;
+    $('#cfg-claude', el).textContent = `claude mcp add --transport http dclab ${url}`;
+    $('#cfg-generic', el).textContent = JSON.stringify({ mcpServers: { dclab: { type: 'http', url } } });
+    $('#mcp-tools-link', el).textContent = `See the ${n} tools →`;
+
+    /* MCP tools tab */
+    const tab = $('.ptab[data-ptab="tools"] .n', el);
+    if (tab) tab.textContent = n;
+    const groups = m.tools.reduce((a, t) => (a[t.group] = (a[t.group] || 0) + 1, a), {});
+    $('#tool-sub', el).textContent = `${groups.evidence || 0} evidence tools read the index · ${groups.project || 0} project tools drive the notebook stages · ${groups.graph || 0} graph tools ask the validator. Every project move is checked as the actor “agent”.`;
+    const gcls = { evidence: 'proof', project: 'accent', graph: 'info' };
+    $('#tool-table tbody', el).innerHTML = m.tools.map(t => `<tr><td class="mono small">${esc(t.name)}</td><td class="small">${esc(t.description)}${t.required.length ? `<div class="xs muted mono">needs: ${t.required.map(esc).join(', ')}</div>` : ''}</td><td><span class="pill ${gcls[t.group] || ''}">${esc(t.group)}</span></td></tr>`).join('');
+
+    /* Chat UI & VS Code */
+    $('#chatui-term', el).innerHTML = `<span class="t-dim">$</span> make notebook        <span class="t-dim"># DCLab + /mcp</span>\n<span class="t-dim">$</span> ${esc(d.chat_ui.command)}         <span class="t-dim"># Chat UI on ${esc(d.chat_ui.url)}</span>\n<span class="t-dim">$</span> ${esc(d.chat_ui.intern_command)}  <span class="t-dim"># with ML Intern mode: ${esc(d.chat_ui.intern_url)}</span>`;
+    $('#chatui-verified', el).textContent = mi.verified_total != null
+      ? `Last verified with the real Chat UI: plain mode offered the ${mi.verified_dclab} DCLab tools; ML Intern mode offered ${mi.verified_total} (${mi.breakdown || `${mi.own} of ML Intern's own`}).` + (mi.current ? '' : ` DCLab serves ${n} tools now, so ML Intern mode should offer ${mi.expected_now}; that has not been re-verified.`)
+      : 'No recorded verification of ML Intern mode was found.';
+    $('#chatui-where', el).innerHTML = `${md(mi.where)} Sign-in with a Hugging Face OAuth app enables Jobs (GPU) from ML Intern mode.`;
+    $('#vscode-pill', el).textContent = 'not packaged yet';
+    $('#vscode-pill', el).className = 'pill outline';
+    const vn = $('#vscode-note', el);
+    vn.hidden = false;
+    vn.innerHTML = `The extension is not packaged yet. The engine it would call is built: ${md(d.vscode.engine)}. The editor below is an <b>illustration</b> of the plan, not a running extension.`;
+
+    /* API & CLI */
+    const byPath = [];
+    d.rest.forEach(r => { const last = byPath[byPath.length - 1]; if (last && last.path === r.path) last.methods.push(r.method); else byPath.push({ path: r.path, group: r.group, summary: r.summary, methods: [r.method] }); });
+    $('#rest-sub', el).textContent = `${d.rest.length} routes in ${d.rest_groups.length} groups, read from this server (hidden aliases left out)`;
+    let group = null;
+    $('#rest-body', el).innerHTML = byPath.map(r => {
+      const head = r.group !== group ? `<tr><td colspan="2" class="xs muted"><b>${esc(r.group)}</b></td></tr>` : '';
+      group = r.group;
+      return head + `<tr><td class="mono small">${esc(r.methods.join(' · '))} ${esc(r.path)}</td><td class="small muted">${esc(r.summary || '')}</td></tr>`;
+    }).join('');
+    $('#rest-foot', el).hidden = false;
+    let section = null;
+    $('#cli-body', el).innerHTML = d.cli.map(t => {
+      const head = t.section !== section && t.section ? `<tr><td colspan="2" class="xs muted"><b>${esc(t.section)}</b></td></tr>` : '';
+      section = t.section;
+      return head + `<tr><td class="mono small">make ${esc(t.target)}</td><td class="small">${esc(t.help)}</td></tr>`;
+    }).join('');
+    $('#cli-wrap', el).hidden = !d.cli.length;
+
+    /* Connectors: configured or not, and what to set; names and booleans only */
+    const item = (title, sub, ok, label) => `<div class="list-item"><div class="li-main"><span class="li-title">${title}</span><span class="li-sub">${sub}</span></div><span class="pill ${ok ? 'ok' : 'warn'}">${esc(label)}</span></div>`;
+    const db = c.database || {}, cl = c.cloud || {};
+    $('#conn-list', el).innerHTML =
+      item('Kaggle', esc(c.kaggle.note), c.kaggle.configured, c.kaggle.configured ? 'ready' : 'not configured') +
+      item('Hugging Face Hub', esc(c.hf.note), c.hf.configured, c.hf.token ? 'ready · token' : 'ready · public only') +
+      item('Databases <span class="muted small">read-only SQL</span>', esc(db.note) + (db.connections && db.connections.length ? ` Connections: ${db.connections.map(x => `<code>${esc(x)}</code>`).join(', ')}.` : ''), db.configured, db.configured ? `ready · ${db.connections.length}` : 'not configured') +
+      item('S3 · Google Cloud Storage', esc(cl.note), cl.s3 || cl.gcs, [cl.s3 && 'S3', cl.gcs && 'GCS'].filter(Boolean).join(' · ') + (cl.s3 || cl.gcs ? ' ready' : 'not available'));
+    $('#conn-max', el).textContent = c.max_bytes ? `up to ${Math.round(c.max_bytes / 1048576)} MB per import` : '';
     DC.hydrate(el);
   },
 });
