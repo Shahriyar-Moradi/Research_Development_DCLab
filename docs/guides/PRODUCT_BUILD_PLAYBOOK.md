@@ -8,7 +8,7 @@ or a decision (section 8). Every done package names the commit that did it, so t
 plan to the code.
 
 **Part 2 (sections 9 to 13) is the software foundation underneath**: a database, accounts, durable jobs, the model
-gateway and agent runtime, and the infrastructure to run it for more than one person. **Of Part 2, packages 9.1 and 11.4 are built.**
+gateway and agent runtime, and the infrastructure to run it for more than one person. **Of Part 2, packages 9.1, 9.2 and 11.4 are built.**
 Today the product is a single-user program on one machine that keeps everything as files in a folder.
 
 **خلاصه فارسی.** این سند برنامه‌ی «از دموی نسخه‌ی ۱ تا محصول واقعی DCLab» را به **۴۰ برنامه‌ی کوچک** تقسیم می‌کند.
@@ -739,7 +739,7 @@ must survive a restart. Part 2 builds that, without changing the UI or the scien
 | # | Package | Status |
 |---|---|---|
 | 9.1 | A storage interface in front of the three stores | Done (`dclab_rnd/storage`, `tests/test_storage_interface.py`) |
-| 9.2 | The database schema and migrations | Open |
+| 9.2 | The database schema and migrations | Done (`dclab_rnd/storage/{models,db,postgres}.py`, `migrations/`) |
 | 9.3 | File storage for tables and artifacts | Open |
 | 9.4 | Move an existing workspace into the database | Open |
 | 10.1 | Settings, routers and typed request and response models | Open |
@@ -793,6 +793,14 @@ PgBouncer in front in production). Index every column a list filters or sorts on
 of about 1,000 users will hold thousands of projects. Tests run against a real PostgreSQL in a temporary
 database, never a mock. No raw SQL built from request input.
 ```
+
+**What 9.2 built, and what it left for later packages.**
+- Ten tables: `workspace`, `app_user`, `membership` (ready for 10.2), `project`, `stage_record`, `activity`, `transition`, `draft`, `draft_event`, `intern_session`. A document read whole is JSONB; what a list filters or sorts on is a column with an index.
+- `DCLAB_DATABASE_URL` switches the whole product to PostgreSQL (`dclab_rnd.storage.open_stores`); without it the file stores run, so both stay tested. One folder (`DCLAB_AGENT_HOME`) is one workspace until accounts arrive.
+- Row locks make `update` safe across app instances; draft event numbers come from an UPDATE of the draft row; an agent turn is a PostgreSQL advisory lock.
+- Measured: with 10,000 projects, a page of 50 takes about 1 ms and uses the workspace index; reading one project takes 0.5 ms.
+- The whole suite (343 tests) and `make product-e2e` pass on both backends with the same scores.
+- **Not done yet:** the `/api/projects` route still returns every project of the workspace (package 10.1 gives it paging); tables and exports are still files (9.3); old workspaces are not imported (9.4); the research-run store (`agentic/store.py`) is still its own SQLite file.
 
 ### 9.3 File storage for tables and artifacts
 
@@ -902,6 +910,10 @@ when it resets, and show usage against limits on the Admin page. Limits are sett
 ```
 
 ## 11. AI and agents
+
+The full design of the AI and agent layer (principles, architecture, and phases A1 to A6 with a prompt per package)
+is in [AGENTIC_FOUNDATION_PLAN.md](AGENTIC_FOUNDATION_PLAN.md). Packages 11.1 to 11.3 below are its phases A1, A2 and
+A4 in short form.
 
 ### 11.1 The model gateway
 
