@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from dclab_rnd.agentic.catalog import DATASETS, ROOT
+from dclab_rnd.categoricals import declared_categorical
 
 from .store import INDUSTRIES, safe_name  # noqa: F401  (re-exported for the server)
 
@@ -298,11 +299,22 @@ def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     return store.get(project_id)
 
 
+def sample_categorical(key: str, columns: list[str]) -> list[str]:
+    """The columns the R&D declared categorical for a sample (dataset catalog or expansion spec)."""
+    expansion = _expansion_specs()
+    if key in expansion.SPECS:
+        declared = set(expansion.SPECS[key].categorical_columns)
+        return [c for c in columns if c in declared]
+    return declared_categorical(key, columns) or []
+
+
 def use_sample(store, project_id: str, key: str, root: Path = ROOT) -> dict[str, Any]:
     """Copy a sample dataset into the project and remember the contract the R&D wrote for it."""
     frame, suggestion = load_sample(key, root)
     name = f"{key}.csv"
     frame.to_csv(store.data_dir(project_id) / name, index=False)
     project = attach_data(store, project_id, name)
+    # The cached samples hold factorized category codes; the declaration spares the engine a guess.
+    project["data"]["categorical"] = sample_categorical(key, [c for c in frame.columns if c != suggestion["target"]])
     project["suggestion"] = {**suggestion, "sample": key}
     return store.save(project)

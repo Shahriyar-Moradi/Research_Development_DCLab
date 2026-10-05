@@ -107,6 +107,7 @@ from sklearn.metrics import (
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
+from dclab_rnd.categoricals import declared_categorical
 from general_pipeline.playbook.policy import get_policy
 from general_pipeline.playbook.features import build_feature_matrix
 from general_pipeline.playbook.ladder import results_frame
@@ -126,6 +127,8 @@ DATA = ROOT / "data/public" / KEY
 X_raw = pd.read_parquet(DATA / "X.parquet")
 y_raw = pd.read_parquet(DATA / "y.parquet")["target"].astype(int)
 meta = pd.read_json(DATA / "meta.json", typ="series")
+CATEGORICAL = declared_categorical(KEY, X_raw.columns)  # factorized category codes, not quantities
+print("category codes:", CATEGORICAL)
 
 df = X_raw.copy()
 df["target"] = y_raw.values
@@ -290,12 +293,14 @@ Add one idea at a time (HyperAck playbook):
 | `interactions` | Products of top-MI features |
 | `full_fe` | + KMeans clusters + quantile bins (**fit on train only**) |
 | `selected` | Top mutual-information subset |
+
+Category codes (`CATEGORICAL`) stay in the matrix but feed no log, ratio, product, cluster or bin: their order and scale are arbitrary (DCLAB-R11).
 """))
     cells.append(_code("""
 fe_rows = []
 for mode, Xtr, Xte in [("safe", Xtr_s, Xte_s), ("unsafe", Xtr_u, Xte_u)]:
     for stage in ["raw", "logs", "ratios", "interactions", "full_fe", "selected"]:
-        A, B, fe_meta = build_feature_matrix(Xtr, ytr, Xte, stage=stage)
+        A, B, fe_meta = build_feature_matrix(Xtr, ytr, Xte, stage=stage, categorical=CATEGORICAL)
         model = Pipeline([
             ("imputer", SimpleImputer(strategy="median")),
             ("model", LGBMClassifier(random_state=RANDOM_STATE, n_jobs=-1, verbosity=-1)),
@@ -328,7 +333,7 @@ Train classic baselines on **safe + full FE** (honest feature set):
 - XGBoost  
 """))
     cells.append(_code("""
-Xtr_safe_fe, Xte_safe_fe, _ = build_feature_matrix(Xtr_s, ytr, Xte_s, stage="full_fe")
+Xtr_safe_fe, Xte_safe_fe, _ = build_feature_matrix(Xtr_s, ytr, Xte_s, stage="full_fe", categorical=CATEGORICAL)
 
 safe_baselines = {
     "safe/baseline/logistic": Pipeline([
@@ -357,7 +362,7 @@ for name, model in safe_baselines.items():
 Same algorithms on **unsafe + full FE**. If leakage columns exist, scores may jump — that lift is usually **not deployable**.
 """))
     cells.append(_code("""
-Xtr_unsafe_fe, Xte_unsafe_fe, _ = build_feature_matrix(Xtr_u, ytr, Xte_u, stage="full_fe")
+Xtr_unsafe_fe, Xte_unsafe_fe, _ = build_feature_matrix(Xtr_u, ytr, Xte_u, stage="full_fe", categorical=CATEGORICAL)
 
 unsafe_baselines = {
     "unsafe/baseline/logistic": Pipeline([

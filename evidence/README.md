@@ -16,6 +16,16 @@
 
 Track-specific results (for example HyperAck's 83 experiments) stay inside their track under `research/`. The registry in `knowledge/` indexes both.
 
+## Caveat: category codes inside older derived features
+
+The cached UCI tables store categories as factorized codes (bank_marketing: May=0, Jun=1, …). Until rule DCLAB-R11 was enforced in the feature code, the recipes treated those codes as quantities. `logs` built `log1p_month`, `ratios` divided by `month`, and interactions, KMeans clusters and quantile bins used codes too. Recipes now leave the categorical columns declared in [`dclab_rnd/agentic/catalog.py`](../dclab_rnd/agentic/catalog.py) out of every derived feature ([`dclab_rnd/categoricals.py`](../dclab_rnd/categoricals.py)). Records produced before that stay as they are:
+
+- `model_building_50_v1`: the feature ladders of the seven datasets with categorical columns (EXP-003, -008, -018, -023, -028, -033, -043), and the later stages that kept a derived recipe: bank_marketing `ratios` (EXP-009, EXP-010, whose top features include `log1p_poutcome` and `log1p_month`) and german_credit `interactions` (EXP-029, EXP-030).
+- The playbook ladders under `research/tabular-classification/experiments/external_projects/*/results/ladder/` for the same datasets.
+- DCLab notebook projects whose `log_numeric` or `poly2` recipe ran before the change.
+
+breast_cancer, spambase, wine_quality and `expansion_v1` have no category codes and are unaffected. To re-measure, rerun into new result files.
+
 ## Rules
 
 - Result files are immutable records. Rerun an experiment into a new file; never edit a result by hand.

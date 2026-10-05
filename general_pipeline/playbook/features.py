@@ -1,6 +1,9 @@
 """Reusable feature-engineering stages for external tabular datasets (HyperAck ladder).
 
 All stateful decisions are fit on train only, then applied to test with aligned columns.
+Columns that hold category codes stay in the matrix as they are, but never feed a log,
+ratio, interaction, cluster or bin feature (DCLAB-R11): pass the dataset's declared
+categorical columns, or leave ``categorical=None`` to let a conservative heuristic decide.
 """
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.preprocessing import KBinsDiscretizer
+
+from dclab_rnd.categoricals import category_code_columns
 
 
 def _numeric_frame(X: pd.DataFrame) -> pd.DataFrame:
@@ -32,9 +37,11 @@ def _align(X: pd.DataFrame, columns: Sequence[str]) -> pd.DataFrame:
 class FeatureEngineer:
     """Train-fitted FE pipeline producing aligned train/test matrices."""
 
-    def __init__(self, stage: str = "full_fe", random_state: int = 42):
+    def __init__(self, stage: str = "full_fe", random_state: int = 42, categorical: Optional[Sequence[str]] = None):
         self.stage = stage
         self.random_state = random_state
+        self.categorical = None if categorical is None else list(categorical)
+        self.categorical_: List[str] = []
         self.log_cols_: List[str] = []
         self.ratio_pairs_: List[Tuple[str, str]] = []
         self.interaction_pairs_: List[Tuple[str, str]] = []
@@ -48,10 +55,15 @@ class FeatureEngineer:
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "FeatureEngineer":
         Xn = _numeric_frame(X)
+        # category codes: declared, else flagged on these training rows; excluded from every derived feature
+        self.categorical_ = category_code_columns(Xn, self.categorical)
+        codes = set(self.categorical_)
         # log cols from train skew
         self.log_cols_ = []
         if self.stage in {"logs", "ratios", "interactions", "full_fe", "selected"}:
             for c in Xn.columns:
+                if c in codes:
+                    continue
                 s = Xn[c]
                 if s.notna().sum() < 5:
                     continue
@@ -65,7 +77,7 @@ class FeatureEngineer:
         self.ratio_pairs_ = []
         if self.stage in {"ratios", "interactions", "full_fe", "selected"}:
             variances = base.var(numeric_only=True).sort_values(ascending=False)
-            cols = [c for c in variances.index.tolist()[:6] if c in base.columns]
+            cols = [c for c in variances.index.tolist() if c in base.columns and c not in codes][:6]
             for i, a in enumerate(cols):
                 for b in cols[i + 1 :]:
                     self.ratio_pairs_.append((a, b))
@@ -83,7 +95,7 @@ class FeatureEngineer:
 
         self.interaction_pairs_ = []
         if self.stage in {"interactions", "full_fe", "selected"}:
-            top = self.mi_order_[:8]
+            top = [c for c in self.mi_order_ if c not in codes][:8]
             n = 0
             for i, a in enumerate(top):
                 for b in top[i + 1 :]:
@@ -98,7 +110,7 @@ class FeatureEngineer:
 
         if self.stage in {"full_fe", "selected"}:
             filled2 = with_inter.fillna(with_inter.median())
-            var_cols = filled2.var().sort_values(ascending=False).index.tolist()[: min(6, filled2.shape[1])]
+            var_cols = [c for c in filled2.var().sort_values(ascending=False).index.tolist() if c not in codes][:6]
             self.kmeans_cols_ = var_cols
             if len(var_cols) >= 2 and len(filled2) >= 50:
                 k = 5 if len(filled2) >= 200 else 3
@@ -108,7 +120,7 @@ class FeatureEngineer:
             # refresh MI after interactions
             mi2 = mutual_info_classif(filled2, y, random_state=self.random_state)
             self.mi_order_ = [c for c, _ in sorted(zip(filled2.columns, mi2), key=lambda t: t[1], reverse=True)]
-            self.bin_cols_ = self.mi_order_[: min(4, len(self.mi_order_))]
+            self.bin_cols_ = [c for c in self.mi_order_ if c not in codes][:4]
             if self.bin_cols_ and len(filled2) >= 50:
                 self.bins_ = KBinsDiscretizer(n_bins=5, encode="ordinal", strategy="quantile", subsample=None)
                 try:
@@ -180,6 +192,7 @@ class FeatureEngineer:
         return {
             "stage": self.stage,
             "top_mi": self.mi_order_[:15],
+            "categorical": self.categorical_,
             "log_cols": self.log_cols_,
             "n_ratio_pairs": len(self.ratio_pairs_),
             "n_interaction_pairs": len(self.interaction_pairs_),
@@ -194,7 +207,8 @@ def build_feature_matrix(
     X_test: pd.DataFrame,
     *,
     stage: str,
+    categorical: Optional[Sequence[str]] = None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, dict]:
-    fe = FeatureEngineer(stage=stage)
+    fe = FeatureEngineer(stage=stage, categorical=categorical)
     fe.fit(X_train, y_train)
     return fe.transform(X_train), fe.transform(X_test), fe.meta()
