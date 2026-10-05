@@ -49,6 +49,16 @@ class PackTests(unittest.TestCase):
         d = pack.detect("Predict churn")
         self.assertEqual((d["key"], d["source"]), ("tabular", "default"))
 
+    def test_a_horizon_alone_does_not_make_a_classification_a_time_series(self):
+        for sentence in ("Predict which subscribers will cancel next month so support can call them first.",
+                         "Rank telecom customers by their risk of leaving next month", "Who will renew their plan next year?",
+                         "Which daily active users will churn?"):
+            self.assertEqual(pack.detect(sentence)["key"], "tabular", sentence)
+        for sentence in ("How many units will each store sell next week?", "Forecast daily unit sales per store", "Predict tomorrow's energy load",
+                         "Estimate hourly call volume", "Forecast which products run out next month"):
+            self.assertEqual(pack.detect(sentence)["key"], "timeseries", sentence)
+        self.assertEqual(pack.detect("Flag fraudulent payments daily")["key"], "imbalanced")  # the more specific pack still wins
+
 
 class WorkflowTests(unittest.TestCase):
     def test_template_has_gates_and_revisits_from_code(self):
@@ -178,7 +188,45 @@ class AgentTests(unittest.TestCase):
         HomeAgent(self.store, None).next_turn(d["id"])
         question = self.store.get(d["id"])["questions"][-1]
         self.assertEqual((question["field"], question["options"][0]), ("target", "units_sold"))
-        self.assertEqual(len(question["options"]), 4)  # three columns and "Something else"
+        self.assertEqual((len(question["options"]), question["options"][-1]), (4, "Something else"))
+
+    def test_columns_the_problem_sentence_names_are_offered_first(self):
+        from dclab_rnd.draft.chat import rank_targets
+
+        col = lambda name, unique=3, **kw: {"name": name, "kind": "categorical", "unique": unique, "id_like": False, "target_name_like": False, "low_cardinality": unique <= 20, **kw}  # noqa: E731
+        profile = {"target_candidates": ["plan", "monthly_fee", "paperless"],
+                   "columns": [col("customer", 400, id_like=True), col("tenure_months", 60), col("plan"), col("monthly_fee", 7), col("paperless", 2), col("cancelled", 2),
+                               col("cancel_reason_text", 300, kind="text")]}
+        ranked = rank_targets(profile, "Predict which subscribers will cancel next month so support can call them first.")
+        self.assertEqual(ranked[0], "cancelled")  # "cancel" names it; "month" and "customers" name the setting, not the outcome
+        self.assertEqual(ranked[1:], ["plan", "monthly_fee", "paperless"])
+        self.assertNotIn("customer", ranked)  # identifiers and free text are never outcomes
+        self.assertNotIn("cancel_reason_text", ranked)
+        fraud = {"target_candidates": ["amount"], "columns": [col("paymentAmount", 900), col("is_fraud", 2, target_name_like=True), col("amount", 800)]}
+        self.assertEqual(rank_targets(fraud, "Flag fraudulent card payments before they are approved")[0], "is_fraud")
+        self.assertEqual(rank_targets({"target_candidates": ["a", "b"], "columns": []}, ""), ["a", "b"])
+
+    def test_the_model_reads_column_summaries_and_findings_but_never_values(self):
+        d = self.store.create("Predict which customers cancel")
+        agent = HomeAgent(self.store, None)
+        self.assertIn("error", agent.run_tool(d["id"], "get_profile", {}))  # nothing prepared yet
+
+        def with_data(x):
+            x["analysis"] = {"summary": {"rows": 500, "columns": 45}, "correlations": [{"a": "c1", "b": "c2", "rho": 0.9}],
+                             "columns": [{"name": f"c{i}", "kind": "categorical", "missing_rate": 0.0, "unique": 3, "top": [["SECRET-VALUE", 9]]} for i in range(45)],
+                             "highlights": [{"severity": "info", "title": "Duplicate rows", "text": "12 rows (2.4%) repeat another row exactly.", "columns": []}],
+                             "profile": {"target_candidates": ["c44"], "time_candidates": [], "id_candidates": ["c0"], "text_candidates": []}}
+        self.store.update(d["id"], with_data)
+        page = agent.run_tool(d["id"], "get_profile", {"offset": 40})
+        self.assertEqual((page["total_columns"], [c["name"] for c in page["columns"]], page["target_candidates"]), (45, ["c40", "c41", "c42", "c43", "c44"], ["c44"]))
+        self.assertEqual(set(page["columns"][0]), {"name", "kind", "missing_rate", "unique"})
+        named = agent.run_tool(d["id"], "get_profile", {"columns": ["c7", "nope"], "offset": "x"})
+        self.assertEqual([c["name"] for c in named["columns"]], ["c7"])
+        findings = agent.run_tool(d["id"], "get_analysis", {})
+        self.assertEqual((findings["summary"]["rows"], findings["highlights"][0]["title"], findings["correlations"][0]["rho"]), (500, "Duplicate rows", 0.9))
+        everything = json.dumps([page, named, findings, agent.context(self.store.get(d["id"]))])
+        self.assertNotIn("SECRET-VALUE", everything)  # top values are data: they stay on this machine
+        self.assertLessEqual(len(json.loads(agent.context(self.store.get(d["id"])))["data"]["columns"]), 40)
 
     def test_the_model_can_start_a_simulation_and_the_turn_ends_there(self):
         asked = []

@@ -283,7 +283,8 @@ def limits(projects) -> dict[str, Any]:
              "text": "The server answers only on 127.0.0.1 and localhost. Uploads, connector imports, projects and logs are files in the workspace folder."},
             {"title": "What a model sees", "on": bool(cfg["available"]),
              "text": ("A model is configured, so these go to " + cfg["endpoint"] + ": " if cfg["available"] else "No model is configured, so nothing is sent. With one: ")
-             + "the Home agent gets the problem, your answers and column summaries (name, kind, missing rate, unique count, up to 40 columns), never rows; "
+             + "the Home agent gets the problem, your answers, column summaries (name, kind, missing rate, unique count; 40 columns at a time) "
+               "and the descriptive findings (counts and shares), never rows or cell values; "
                "the intern gets its tool results, and describe_data includes up to three example values per column."},
             {"title": "Scan uploads for personal data", "on": False, "text": "Not built yet: uploads are not scanned for personal data."},
             {"title": "Retention", "on": False, "text": "No timed retention: raw uploads stay until their project or draft is deleted."},

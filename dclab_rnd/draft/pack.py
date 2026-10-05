@@ -31,10 +31,16 @@ KEYWORDS: list[tuple[str, str]] = [
     ("vision", r"\b(image|images|photo|camera|vision|detect(ion)? (in|on) (frames|images)|frames|x-ray|scan)"),
     ("maps", r"\b(road|traffic|route|map|segment speed|gps|trajector)"),
     ("llm", r"\b(fine[- ]tun|lora|llm|language model|slm|chatbot|instruction data)"),
-    ("timeseries", r"\b(forecast|next (day|week|month)|tomorrow|demand|time series|per (day|week|hour)|daily|weekly|hourly)"),
+    ("timeseries", r"\b(forecast|demand|time series|per (day|week|hour))"),
     ("imbalanced", r"\b(fraud|rare|anomal|default(s|ed)? on|chargeback|intrusion|0\.\d+ ?% positive)"),
     ("text", r"\b(review|ticket|text|comment|email|note|description|sentiment|complaint)s?\b"),
 ]
+
+
+# A horizon ("next month", "daily") suggests forecasting only when the sentence asks how much, not which ones:
+# "which subscribers will cancel next month" is a classification with a horizon, not a time series.
+HORIZON = r"\b(next (day|week|month|quarter|year)|tomorrow|daily|weekly|hourly)"
+WHICH_ONES = r"\b(which|who|whether)\b|\b(churn|cancel|leav(e|es|ing)|convert|respond|defaults?|renew)"
 
 
 def by_key(key: str | None) -> dict[str, Any] | None:
@@ -51,6 +57,9 @@ def detect(problem: str, analysis: dict[str, Any] | None = None, chosen: str | N
     if from_text:
         word = re.search(dict(KEYWORDS)[from_text], text).group(0).strip()
         signals.append(f'the problem mentions "{word}"')
+    elif re.search(HORIZON, text) and not re.search(WHICH_ONES, text):
+        from_text = "timeseries"
+        signals.append(f'the problem mentions "{re.search(HORIZON, text).group(0).strip()}"')
     data_key = None
     if analysis:
         profile = analysis.get("profile") or {}

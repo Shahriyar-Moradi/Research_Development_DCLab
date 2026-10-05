@@ -27,6 +27,8 @@ from .store import DraftStore, now
 
 MAX_QUESTIONS = 4
 TOKEN_CHUNK = 48  # characters per streamed ``token`` event
+PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get_profile
+PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
 FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan")
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
@@ -41,7 +43,9 @@ is descriptive only. Use tools: ask_user to ask (with 2-4 short options when nat
 you understood, set_pack when the problem clearly fits another domain pack, propose_workflow to replace the
 workflow (every step tied to a block WF-01..WF-10, in order; keep WF-01, WF-03, WF-05, WF-09), request_data to
 offer upload / connect / simulate, and simulate_data only after the user asked for simulated data (describe the
-table they need; it is generated and labelled synthetic). Reply to the user in plain English, 1-3 sentences."""
+table they need; it is generated and labelled synthetic). get_profile and get_analysis read the prepared table's
+column summaries and descriptive findings (aggregates only) when the state below does not show enough.
+Reply to the user in plain English, 1-3 sentences."""
 
 TOOLS = [
     {"type": "function", "function": {"name": "ask_user", "description": "Ask the user one short question.", "parameters": {
@@ -59,6 +63,10 @@ TOOLS = [
         "required": ["nodes"]}}},
     {"type": "function", "function": {"name": "request_data", "description": "Offer the user ways to bring data.", "parameters": {
         "type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}}},
+    {"type": "function", "function": {"name": "get_profile", "description": "Column summaries of the prepared table: name, kind, missing rate, unique count, and which columns look like outcomes, timestamps, identifiers or text. Aggregates only, never values. Name columns, or page through a wide table with offset.", "parameters": {
+        "type": "object", "properties": {"columns": {"type": "array", "items": {"type": "string"}}, "offset": {"type": "integer"}}}}},
+    {"type": "function", "function": {"name": "get_analysis", "description": "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.", "parameters": {
+        "type": "object", "properties": {}}}},
     {"type": "function", "function": {"name": "simulate_data", "description": "Generate a synthetic table. Only after the user asked for simulated data.", "parameters": {
         "type": "object", "properties": {"description": {"type": "string", "description": "The table to simulate: rows, columns, the outcome and its rate."},
                                          "rows": {"type": "integer"}}, "required": ["description"]}}},
@@ -82,6 +90,36 @@ def turn(method):
         with lock:
             return method(self, draft_id, *args, **kwargs)
     return locked
+
+
+# Words of a problem sentence that name the setting, not the outcome ("customers", "next month"); compared as 5-letter stems.
+GENERIC_STEMS = {w[:5] for w in (
+    "predict which what will would could should model models build make want need using based data dataset team first before after "
+    "their them they this that with from into each every next last month monthly week weekly year yearly daily today tomorrow "
+    "customer customers client clients user users member members people person order orders store stores product products "
+    "transaction transactions payment payments account accounts case cases time times").split()}
+OPTION_COUNT = 3  # outcome columns offered as buttons, before "Something else" (a question shows at most four options)
+
+
+def _stems(text: str) -> set[str]:
+    words = re.findall(r"[a-z]{4,}", re.sub(r"([a-z])([A-Z])", r"\1 \2", str(text)).lower())
+    return {w[:5] for w in words} - GENERIC_STEMS
+
+
+def rank_targets(profile: dict[str, Any], problem: str) -> list[str]:
+    """Outcome candidates, with the columns the problem sentence names first ("will cancel" finds `cancelled`).
+
+    Only column names and the sentence are compared: no value is read and nothing is related to any column, so this
+    is safe before the split. Among named columns, outcome-like names and few distinct values come first; the
+    profile's own candidates follow in their order.
+    """
+    candidates = [str(c) for c in profile.get("target_candidates") or []]
+    words = _stems(problem)
+    eligible = [c for c in profile.get("columns") or [] if c.get("kind") != "text" and (c.get("unique") or 0) >= 2 and not c.get("id_like")]
+    named = [c for c in eligible if _stems(c.get("name", "")) & words]
+    named.sort(key=lambda c: (-int(bool(c.get("target_name_like"))), -int(bool(c.get("low_cardinality")))))
+    first = [str(c["name"]) for c in named]
+    return (first + [c for c in candidates if c not in first])[:max(8, len(candidates))]
 
 
 def moment_options(pack: str | None) -> list[str]:
@@ -267,7 +305,7 @@ class HomeAgent:
         asked = {q["field"] for q in draft["questions"] if not q.get("superseded")}
         if "target" not in u and "target" not in asked:
             if candidates:
-                self.ask(draft_id, "target", "Which column is the outcome the model should predict?", candidates[:3] + ["Something else"],
+                self.ask(draft_id, "target", "Which column is the outcome the model should predict?", candidates[:OPTION_COUNT] + ["Something else"],
                          "The outcome decides the task, the metric and which columns could leak it.")
                 return
             if not has_data or opening:
@@ -308,7 +346,7 @@ class HomeAgent:
     # ------------------------------------------------------------------ the model
     def context(self, draft: dict[str, Any]) -> str:
         a = draft.get("analysis") or {}
-        cols = [{k: c.get(k) for k in ("name", "kind", "missing_rate", "unique")} for c in (a.get("columns") or [])[:40]]
+        cols = [{k: c.get(k) for k in PROFILE_FIELDS} for c in (a.get("columns") or [])[:PROFILE_PAGE]]
         return json.dumps({
             "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
@@ -402,6 +440,24 @@ class HomeAgent:
             self.say(draft_id, str(args.get("text", ""))[:400] or "You can upload a sample, connect a source, or ask me to simulate data.",
                      kind="text", actions=["upload", "connect", "simulate"])
             return {"offered": True}
+        if name in ("get_profile", "get_analysis"):
+            analysis = self.store.get(draft_id).get("analysis") or {}
+            columns = analysis.get("columns") or []
+            if not columns:
+                return {"error": "No table has been prepared yet."}
+            if name == "get_analysis":  # descriptive only: the analysis never relates a column to the outcome
+                return {"summary": analysis.get("summary"), "correlations": (analysis.get("correlations") or [])[:10],
+                        "highlights": [{k: h.get(k) for k in ("severity", "title", "text", "columns")} for h in (analysis.get("highlights") or [])[:12]]}
+            wanted = {str(c) for c in args.get("columns") or []}
+            try:
+                offset = max(0, int(args.get("offset") or 0))
+            except (TypeError, ValueError):
+                offset = 0
+            picked = [c for c in columns if c.get("name") in wanted] if wanted else columns[offset:offset + PROFILE_PAGE]
+            profile = analysis.get("profile") or {}
+            return {"total_columns": len(columns), "offset": 0 if wanted else offset,
+                    "columns": [{k: c.get(k) for k in PROFILE_FIELDS} for c in picked[:PROFILE_PAGE]],  # aggregates, never cell values
+                    **{k: profile.get(k) or [] for k in ("target_candidates", "time_candidates", "id_candidates", "text_candidates")}}
         if name == "simulate_data":
             draft = self.store.get(draft_id)
             if any(a.get("status") in ("queued", "structuring", "cleaning", "analysing") for a in draft["assets"]):

@@ -64,6 +64,9 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
         set_asset(store, draft_id, asset_id, status="analysing")
         target = (draft.get("understanding") or {}).get("target")
         report = analyze.analyze(frame, target=target if target in frame.columns else None)
+        from .chat import rank_targets  # names only: the columns the problem sentence mentions are offered first
+
+        report["profile"]["target_candidates"] = rank_targets(report["profile"], draft.get("problem") or "")
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)
         final = set_asset(store, draft_id, asset_id, status="ready", rows=int(len(frame)), columns=int(frame.shape[1]),
