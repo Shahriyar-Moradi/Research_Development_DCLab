@@ -46,7 +46,8 @@ MAX_UPLOAD = 200 * 1024 * 1024
 STREAM_SECONDS = 600  # the browser's EventSource reconnects and resumes from Last-Event-ID
 
 
-def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callable[[], Any], jobs: dict[str, asyncio.Task]) -> None:
+def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task]) -> None:
+    """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted."""
     from ..studio import data as studio_data
 
     def get(draft_id: str) -> dict[str, Any]:
@@ -55,9 +56,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         except KeyError:
             raise HTTPException(404, "Draft not found") from None
 
-    def agent() -> HomeAgent:
-        client = client_factory()
-        return HomeAgent(drafts, client, on_request=lambda did, what, args: requests(did, what, args))
+    def agent(draft_id: str | None = None) -> HomeAgent:
+        return HomeAgent(drafts, models.client("home_agent", draft_id=draft_id), on_request=lambda did, what, args: requests(did, what, args))
 
     def background(key: str, fn, *args) -> None:
         async def go():
@@ -74,8 +74,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
             simulate(draft_id, args.get("prompt", ""), int(args.get("rows") or 5000))
 
     def process(draft_id: str, asset_id: str) -> None:
-        client = client_factory()
-        pipeline.run(drafts, draft_id, asset_id, HomeAgent(drafts, client, on_request=lambda did, what, a: requests(did, what, a)), client)
+        pipeline.run(drafts, draft_id, asset_id, agent(draft_id), models.client("parse_pattern", draft_id=draft_id))
 
     def simulate(draft_id: str, prompt: str, rows: int, template: str | None = None) -> dict[str, Any]:
         from . import synthetic
@@ -87,7 +86,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         else:
             context = {"problem": draft["problem"], "understanding": draft.get("understanding") or {}, "pack": (draft.get("pack") or {}).get("key")}
             drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Designing a synthetic dataset from the conversation"})
-            spec, info = synthetic.spec_from_model(client_factory(), prompt or draft["problem"], context, rows)
+            spec, info = synthetic.spec_from_model(models.client("synthetic_schema", draft_id=draft_id), prompt or draft["problem"], context, rows)
         note = synthetic.template_note(spec, info)
         if note:  # never let template rows pass for a table designed from the user's description
             drafts.emit(draft_id, "status", {"note": note})
@@ -97,7 +96,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
                                    synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name,
                                    **({"suggestion": {"target": spec.target.name}} if spec.target else {}),  # the generator knows its outcome column
                                    **({"template": info["template"], "template_note": note} if info.get("template") else {}))
-        pipeline.run(drafts, draft_id, asset["id"], agent(), client_factory())
+        pipeline.run(drafts, draft_id, asset["id"], agent(draft_id), models.client("parse_pattern", draft_id=draft_id))
         return asset
 
     async def json_body(request: Request, optional: bool = False) -> dict[str, Any]:
@@ -129,7 +128,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
             raise HTTPException(422, "Describe the problem in one sentence first")
         key = body.get("pack") if body.get("pack") in packs.KEYS else None
         draft = drafts.create(problem[:2000], key)
-        background(draft["id"] + ":agent", lambda: agent().start(draft["id"]))
+        background(draft["id"] + ":agent", lambda: agent(draft["id"]).start(draft["id"]))
         return draft
 
     @app.get("/api/drafts/{draft_id}")
@@ -247,14 +246,14 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
             raise HTTPException(422, "Write a message first")
         if (draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done():
             raise HTTPException(409, "The agent is still answering")
-        background(draft_id + ":agent", lambda: agent().reply(draft_id, text))
+        background(draft_id + ":agent", lambda: agent(draft_id).reply(draft_id, text))
         return {"accepted": True}
 
     @app.post("/api/drafts/{draft_id}/pack")
     async def choose_pack(draft_id: str, request: Request):
         get(draft_id)
         key = (await json_body(request)).get("key")
-        a = agent()
+        a = agent(draft_id)
         if key in (None, "", "auto"):
             det = packs.detect(drafts.get(draft_id)["problem"], drafts.get(draft_id).get("analysis"))
             a.set_pack(draft_id, det["key"], det["source"], det["why"])
@@ -312,7 +311,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, client_factory: Callabl
         """The built-in synthetic tables, and whether a model is configured to design one from a description instead."""
         from . import synthetic
 
-        return {"model": client_factory() is not None, "templates": synthetic.template_catalog()}
+        return {"model": models.available("synthetic_schema"), "templates": synthetic.template_catalog()}
 
     # ------------------------------------------------------------------ data connectors (dclab_rnd/connectors)
     # Each import downloads into the draft's data folder in a worker thread, then registers the file as an

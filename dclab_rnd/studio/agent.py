@@ -9,7 +9,6 @@ decides anything.
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from dclab_rnd import tools
@@ -72,7 +71,7 @@ def _fmt(value: Any, digits: int = 4) -> str:
 # ---------------------------------------------------------------------- notes per stage
 
 
-def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_type: str) -> list[dict[str, Any]]:
+def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_type: str, project_id: str | None = None) -> list[dict[str, Any]]:
     ev = record["evidence"]
     rules = STAGE_RULES[stage]
     notes: list[dict[str, Any]] = []
@@ -200,7 +199,7 @@ def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_t
             if rule and len(notes) < 8:
                 fillers += 1
                 notes.append(_note("info", rule["title"], rule["text"].split(" Why: ")[1].split(" Failure signal:")[0] if " Why: " in rule["text"] else rule["text"][:300], [rid]))
-    critique = llm_critique(stage, record, notes)
+    critique = llm_critique(stage, record, notes, project_id)
     if critique:
         notes.insert(0, critique)
     return notes
@@ -245,7 +244,7 @@ def answer(question: str, project: dict[str, Any], records: dict[str, dict[str, 
     if not text:
         text = "I could not match that to the project or the evidence. Try naming a column, a stage or a rule."
     result = {"question": q, "answer": text, "proof": proof[:8], "source": "evidence"}
-    llm = llm_answer(q, facts, hits)
+    llm = llm_answer(q, facts, hits, project.get("id"))
     if llm:
         result["llm_answer"] = llm
     return result
@@ -255,13 +254,10 @@ def answer(question: str, project: dict[str, Any], records: dict[str, dict[str, 
 
 
 def llm_available() -> bool:
-    if not os.environ.get("OPENAI_API_KEY"):
-        return False
-    try:
-        import openai  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    """A model serves the stage notes (through the model gateway; see dclab_rnd/models/settings.py)."""
+    from ..models import installed
+
+    return installed().available("stage_notes")
 
 
 _POLICY = ("You are the DCLab notebook agent. Explain the stage result below in plain language for a data scientist, in at most 120 words. "
@@ -269,28 +265,28 @@ _POLICY = ("You are the DCLab notebook agent. Explain the stage result below in 
            "Point out one risk and the smallest next test.")
 
 
-def _chat(prompt: str) -> str | None:
-    if not llm_available():
+def _chat(prompt: str, purpose: str, project_id: str | None = None) -> str | None:
+    from ..models import installed
+
+    client = installed().client(purpose, project_id=project_id)
+    if client is None:
         return None
     try:
-        import openai
-
-        client = openai.OpenAI()
-        response = client.responses.create(model=os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"), input=prompt, max_output_tokens=400, store=False)
-        return (response.output_text or "").strip() or None
+        reply = client.complete([{"role": "user", "content": prompt}], max_tokens=400)
+        return (reply.get("content") or "").strip() or None
     except Exception:  # noqa: BLE001 — the LLM is optional; the deterministic notes stand alone
         return None
 
 
-def llm_critique(stage: str, record: dict[str, Any], notes: list[dict[str, Any]]) -> dict[str, Any] | None:
+def llm_critique(stage: str, record: dict[str, Any], notes: list[dict[str, Any]], project_id: str | None = None) -> dict[str, Any] | None:
     ids = sorted({rid for n in notes for rid in n["proof"]})
     prompt = f"{_POLICY}\n\nStage: {record['title']}\nSummary: {record['setup_summary']}\nClaims: " + " | ".join(c["statement"] for c in record["claims"]) + f"\nAllowed record IDs: {ids}"
-    text = _chat(prompt)
+    text = _chat(prompt, "stage_notes", project_id)
     if not text:
         return None
     return {"severity": "info", "title": "LLM critique (advisory)", "text": text, "proof": [i for i in ids if i in text], "action": None, "source": "llm"}
 
 
-def llm_answer(question: str, facts: list[str], hits: list[dict[str, Any]]) -> str | None:
+def llm_answer(question: str, facts: list[str], hits: list[dict[str, Any]], project_id: str | None = None) -> str | None:
     context = "\n".join(f"[{h['record_id']}] {h['text'][:500]}" for h in hits)
-    return _chat(f"{_POLICY}\n\nQuestion: {question}\nProject facts: {' '.join(facts) or 'none yet'}\nEvidence:\n{context}")
+    return _chat(f"{_POLICY}\n\nQuestion: {question}\nProject facts: {' '.join(facts) or 'none yet'}\nEvidence:\n{context}", "project_answer", project_id)

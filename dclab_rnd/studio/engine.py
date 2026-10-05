@@ -684,7 +684,7 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
                            "cv": p.bundle.cv_description, "holdout": p.bundle.holdout_description, "random_state": ds.RANDOM_STATE},
         }
         record = rn._jsonable(record)
-        record["notes"] = agent.narrate(stage, record, p.solution.model_dump(), p.bundle.task_type)
+        record["notes"] = agent.narrate(stage, record, p.solution.model_dump(), p.bundle.task_type, project_id)
         store.write_stage(project_id, stage, record)
         project = store.get(project_id)
         project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed)}

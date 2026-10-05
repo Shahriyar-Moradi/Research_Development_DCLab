@@ -23,7 +23,7 @@ from fastapi.routing import APIRoute
 from starlette.routing import Mount
 
 from ... import connectors
-from ...intern import llm as intern_llm
+from ...models import settings as model_settings
 from ...intern.sessions import DEFAULT_BUDGET
 from ...intern.tools import EVIDENCE_TOOLS, Toolbox
 from ...studio import graph as studio_graph
@@ -266,8 +266,18 @@ def policies(projects) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------- limits and privacy
+def _endpoints() -> str:
+    """Where each tier sends requests, host only (GET /api/models lists every purpose with its tier)."""
+    tiers = [model_settings.public(t) for t in model_settings.TIERS]
+    hosts: dict[str, list[str]] = {}
+    for t in tiers:
+        if t["available"]:
+            hosts.setdefault(t["endpoint"], []).append(t["name"])
+    return "; ".join(f"{host} ({', '.join(names)} tier{'s' if len(names) > 1 else ''})" for host, names in hosts.items()) or "no endpoint"
+
+
 def limits(projects) -> dict[str, Any]:
-    cfg = intern_llm.settings()
+    cfg = model_settings.public("standard")  # the gateway's default tier; GET /api/models lists every tier and purpose
     return {
         "intern_session": {"defaults": dict(DEFAULT_BUDGET), "caps": {k: list(v) for k, v in INTERN_CAPS.items()}, "enforced": True,
                            "note": "The intern stops when either the tool calls or the minutes run out."},
@@ -282,7 +292,7 @@ def limits(projects) -> dict[str, Any]:
             {"title": "Data stays on this machine", "on": True,
              "text": "The server answers only on 127.0.0.1 and localhost. Uploads, connector imports, projects and logs are files in the workspace folder."},
             {"title": "What a model sees", "on": bool(cfg["available"]),
-             "text": ("A model is configured, so these go to " + cfg["endpoint"] + ": " if cfg["available"] else "No model is configured, so nothing is sent. With one: ")
+             "text": ("A model is configured, so these go to " + _endpoints() + ": " if cfg["available"] else "No model is configured, so nothing is sent. With one: ")
              + "the Home agent gets the problem, your answers, column summaries (name, kind, missing rate, unique count; 40 columns at a time) "
                "and the descriptive findings (counts and shares), never rows or cell values; "
                "a file that no built-in reader can parse is the one exception: up to 20 of its lines (400 characters each) go to the "

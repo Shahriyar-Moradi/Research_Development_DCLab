@@ -1,5 +1,6 @@
 """Real NOOA agent classes with typed, non-code-executing PredictStrategy."""
 import asyncio
+import time
 import json
 from nooa import Agent, PredictStrategy, strategy
 from nooa.config import PredictConfig
@@ -107,8 +108,17 @@ class AuditedClient(ResponsesClient):
             raise RuntimeError("LLM call budget exhausted")
         self.ledger.update(self.run_id, llm_calls=run["llm_calls"] + 1)
         self.ledger.event(self.run_id, "llm_request", {"model": self.model, "messages": messages, "max_output_tokens": 6000})
-        response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
+        from ..models import installed  # NOOA keeps its own HTTP client; the gateway still counts every request
+        started = time.monotonic()
+        try:
+            response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
+        except Exception as exc:
+            installed().record("campaign", self.model, None, time.monotonic() - started, 1, f"{type(exc).__name__}: the model request failed")
+            raise
         usage = response.usage or {}
+        installed().record("campaign", self.model, {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
+                                                     "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")},
+                           time.monotonic() - started, 1, "ok")
         total = self.ledger.get(self.run_id)["usage"]
         for key, value in usage.items():
             if isinstance(value, (int, float)): total[key] = total.get(key, 0) + value

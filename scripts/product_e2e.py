@@ -231,7 +231,8 @@ def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
     home = tempfile.TemporaryDirectory(prefix="dclab-e2e-")
-    env = {**os.environ, "DCLAB_AGENT_HOME": home.name, "OPENAI_API_KEY": "", "DCLAB_LLM_BASE_URL": "https://api.openai.com/v1"}
+    env = {**{k: v for k, v in os.environ.items() if not k.startswith("DCLAB_TIER_")}, "DCLAB_AGENT_HOME": home.name, "OPENAI_API_KEY": "",
+           "DCLAB_LLM_BASE_URL": "https://api.openai.com/v1", "DCLAB_NO_LIVE_MODELS": "1"}  # no model, whatever .env says
     process = subprocess.Popen([sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
                                cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     base = f"http://127.0.0.1:{port}"

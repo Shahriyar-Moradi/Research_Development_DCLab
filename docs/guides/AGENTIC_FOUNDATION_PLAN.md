@@ -9,6 +9,12 @@ Read the playbook's "Shared preamble" first and paste it before any prompt below
 محاسبه نمی‌کند؛ هر حرکت ایجنت از اعتبارسنج گراف می‌گذرد؛ همه‌ی درخواست‌های مدل از یک دروازه عبور می‌کنند؛ و هر ایجنت
 با مجموعه‌ی آزمونی سنجیده می‌شود که تله‌های واقعی (نشت) دارد.
 
+## Status
+
+| Package | Status | Notes |
+|---|---|---|
+| A1.1 | Done | Every model request goes through `dclab_rnd/models` (the intern too). NOOA's research clients cannot be swapped and report each request to the usage log. Tests cannot reach a live model (`DCLAB_NO_LIVE_MODELS=1` in the make targets). |
+
 ## 1. What exists today
 
 Three agents, built separately, plus the tools they share.

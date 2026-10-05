@@ -1,6 +1,7 @@
 """Small, frozen pilot of real specialist calls; never a release certification."""
 import argparse
 import asyncio
+import time
 import hashlib
 import json
 import os
@@ -28,8 +29,18 @@ class MeteredClient(ResponsesClient):
         self.usage = {}
 
     async def acall(self, messages, **kwargs):
+        from ..models import installed  # NOOA keeps its own HTTP client; the gateway still counts every request
         self.calls += 1
-        response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
+        started = time.monotonic()
+        try:
+            response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
+        except Exception as exc:
+            installed().record("campaign", self.model, None, time.monotonic() - started, 1, f"{type(exc).__name__}: the model request failed")
+            raise
+        usage = response.usage or {}
+        installed().record("campaign", self.model, {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
+                                                     "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")},
+                           time.monotonic() - started, 1, "ok")
         for key, value in (response.usage or {}).items():
             if isinstance(value, (int, float)):
                 self.usage[key] = self.usage.get(key, 0) + value
@@ -82,6 +93,8 @@ async def evaluate(manifest, model, limit=None):
 
 
 def main():
+    from ..models import for_workspace, install
+    install(for_workspace())  # count this tool's model requests in the workspace's usage log
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=ROOT / "evaluation/live_cases_v1.json")
     parser.add_argument("--output", type=Path, required=True)

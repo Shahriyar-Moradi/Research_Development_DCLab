@@ -33,7 +33,6 @@ from typing import Any
 from fastapi import HTTPException, Request
 
 from ...evidence_index import EvidenceIndex
-from ...intern import llm as intern_llm
 
 ROOT = Path(__file__).resolve().parents[3]
 INDEX = ROOT / "evidence" / "knowledge" / "rag" / "records.jsonl"
@@ -143,6 +142,12 @@ def ask(question: str, client=None, path: Path = INDEX) -> dict[str, Any]:
     return out | {"mode": "records", "covered": None, "note": "No model is configured, so nothing is written: these are the closest records."}
 
 
+def _offline():
+    from ...models import installed
+
+    return installed()
+
+
 def register(app, ctx) -> None:
     @app.get("/api/evidence")
     async def evidence_library():
@@ -158,5 +163,5 @@ def register(app, ctx) -> None:
             raise HTTPException(422, "Ask a question")
         if len(question) > MAX_QUESTION:
             raise HTTPException(422, f"Keep the question under {MAX_QUESTION} characters")
-        client = intern_llm.ChatClient() if intern_llm.settings()["available"] else None
+        client = (ctx.models or _offline()).client("evidence_answer")
         return await asyncio.to_thread(ask, question, client)

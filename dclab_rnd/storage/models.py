@@ -115,4 +115,24 @@ intern_session = sa.Table(
     sa.Column("updated", TIME, nullable=False, server_default=NOW),
     sa.Index("ix_intern_session_workspace_updated", "workspace_id", sa.text("updated DESC")))
 
+model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usage.py); one row per request
+    "model_request", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("purpose", sa.Text, nullable=False),
+    sa.Column("tier", sa.Text, nullable=False),
+    sa.Column("model", sa.Text, nullable=False),
+    sa.Column("endpoint", sa.Text, nullable=False),  # host only: never a key or a full URL with credentials
+    sa.Column("project_id", sa.String(64)),
+    sa.Column("draft_id", sa.String(64)),
+    sa.Column("input_tokens", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("output_tokens", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("seconds", sa.Float, nullable=False, server_default="0"),
+    sa.Column("attempts", sa.Integer, nullable=False, server_default="1"),
+    sa.Column("outcome", sa.Text, nullable=False),
+    sa.Column("prompt", sa.Text),  # only with DCLAB_LOG_PROMPTS=1
+    sa.Index("ix_model_request_workspace_at", "workspace_id", "at"),
+    sa.Index("ix_model_request_project_id", "project_id"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

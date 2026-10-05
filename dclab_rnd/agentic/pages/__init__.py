@@ -30,6 +30,7 @@ class Context:
     jobs: dict = field(default_factory=dict)          # project stage jobs (asyncio tasks) by project id
     intern_jobs: dict = field(default_factory=dict)   # intern sessions working now
     draft_jobs: dict = field(default_factory=dict)    # draft pipeline and agent jobs
+    models: Any = None                                # dclab_rnd.models.Gateway: every model request goes through it
 
 
 def register_all(app, ctx: Context) -> list[str]:

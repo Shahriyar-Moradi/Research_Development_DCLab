@@ -131,6 +131,8 @@ class Intern:
                 session["status"] = "budget_exhausted"
                 session["final"] = f"Stopped: {reason}. " + self._progress_note(session)
                 return
+            if hasattr(self.client, "project_id"):  # the gateway counts each request against the session's project (it can change mid-session)
+                self.client.project_id = session.get("project_id")
             response = self.client.complete(session["messages"], tools)
             session["used"]["input_tokens"] += response["usage"]["input_tokens"]
             session["used"]["output_tokens"] += response["usage"]["output_tokens"]

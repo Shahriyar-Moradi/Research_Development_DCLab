@@ -1,6 +1,7 @@
 """Typed GPT-6 Astra advisory review of the deterministic DCLab field guide."""
 import argparse
 import asyncio
+import time
 import hashlib
 import json
 import os
@@ -80,8 +81,18 @@ class AuditedReviewClient(ResponsesClient):
         super().__init__(model="openai/"+model,store=False,max_tokens=5000,retry_config=RetryConfig(max_retries=0,rate_limit_extra_retries=0),num_retries=0)
         self.calls=0;self.usage={}
     async def acall(self,messages,**kwargs):
+        from ..models import installed  # NOOA keeps its own HTTP client; the gateway still counts every request
         self.calls+=1
-        response=await asyncio.wait_for(super().acall(messages,**kwargs),timeout=240)
+        started=time.monotonic()
+        try:
+            response=await asyncio.wait_for(super().acall(messages,**kwargs),timeout=240)
+        except Exception as exc:
+            installed().record("campaign_review",self.model,None,time.monotonic()-started,1,f"{type(exc).__name__}: the model request failed")
+            raise
+        usage=response.usage or {}
+        installed().record("campaign_review",self.model,{"input_tokens":usage.get("prompt_tokens") or usage.get("input_tokens"),
+                                                        "output_tokens":usage.get("completion_tokens") or usage.get("output_tokens")},
+                           time.monotonic()-started,1,"ok")
         for key,value in (response.usage or {}).items():
             if isinstance(value,(int,float)): self.usage[key]=self.usage.get(key,0)+value
         return response
@@ -154,6 +165,8 @@ async def run(model):
     return payload
 
 def main():
+    from ..models import for_workspace, install
+    install(for_workspace())  # count this tool's model requests in the workspace's usage log
     parser=argparse.ArgumentParser();parser.add_argument("--model",default=os.environ.get("OPENAI_MODEL","gpt-5.6-terra"));args=parser.parse_args()
     try:
         payload=asyncio.run(run(args.model))

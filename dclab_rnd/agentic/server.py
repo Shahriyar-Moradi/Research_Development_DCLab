@@ -20,9 +20,10 @@ from .schemas import RunRequest, DEFAULT_GOAL
 from .store import Store
 from .. import research_map
 from ..storage import open_stores
+from .. import models
 from ..studio import ProjectStore, agent as studio_agent, solution as studio_solution, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, sft as studio_sft
 from ..intern import Intern, SessionStore
-from ..intern import llm as intern_llm
+from ..models import settings as model_settings
 from ..intern.sessions import EXAMPLE_TASKS
 from ..intern.tools import Toolbox
 from .. import mcp_server
@@ -43,16 +44,14 @@ def version(package):
 def create_app(home=None):
     store = Store(Path(home or os.environ.get("DCLAB_AGENT_HOME", ROOT / "agent_runs")))
     projects, drafts, intern_sessions = open_stores(store.home)  # files, or PostgreSQL when DCLAB_DATABASE_URL is set
+    gateway = models.Gateway(models.open_usage(store.home))  # every model request outside the intern goes through it
+    models.install(gateway)  # the engine's stage notes run outside a request
     tasks = {}
     jobs = {}
     intern_jobs = {}
     draft_jobs = {}
-    def llm_client():
-        return intern_llm.ChatClient() if intern_llm.settings()["available"] else None
     def intern():
-        cfg = intern_llm.settings()
-        client = intern_llm.ChatClient() if cfg["available"] else None
-        return Intern(intern_sessions, Toolbox(projects), client)
+        return Intern(intern_sessions, Toolbox(projects), gateway.client("intern"))
     csrf = secrets.token_urlsafe(32)
     mcp = mcp_server.session_manager(Toolbox(projects)) if mcp_server.available() else None
     @asynccontextmanager
@@ -70,7 +69,7 @@ def create_app(home=None):
         if active: await asyncio.gather(*active, return_exceptions=True)
     app = FastAPI(title="DCLab notebook", lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
-    app.state.store, app.state.tasks, app.state.projects, app.state.drafts = store, tasks, projects, drafts
+    app.state.store, app.state.tasks, app.state.projects, app.state.drafts, app.state.models = store, tasks, projects, drafts, gateway
     @app.middleware("http")
     async def protect(request: Request, call_next):
         # /mcp is JSON-RPC for local MCP clients (Chat UI, Claude Desktop…); the host check still applies to it.
@@ -97,6 +96,10 @@ def create_app(home=None):
     @app.get("/api/config")
     async def configuration():
         return {"csrf": csrf, "api_key_configured": bool(os.environ.get("OPENAI_API_KEY")), "ml_python_available": Path(os.environ.get("DCLAB_ML_PYTHON", ROOT / ".venv/bin/python")).exists(), "default_goal": DEFAULT_GOAL, "default_model": os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"), "default_project": "general", "projects": project_catalog(), "datasets": catalog(), "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"], "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4", "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"}, "privacy": "When a model is configured, aggregate data profiles (with up to three example values per column) and scientific evidence are sent to it; the Home agent sends summaries only. Full rows and API keys are never sent. store=false; provider policies still apply."}
+    @app.get("/api/models")
+    async def model_overview():
+        """Which model serves which purpose, what each purpose may be shown, and the usage so far (no keys)."""
+        return await asyncio.to_thread(gateway.summary)
     @app.get("/api/runs")
     async def runs(): return store.list()
     @app.post("/api/runs", status_code=201)
@@ -395,8 +398,8 @@ def create_app(home=None):
         return job
     @app.get("/api/intern")
     async def intern_status(request: Request):
-        cfg = intern_llm.settings()
-        return {**cfg, "mode": "llm" if cfg["available"] else "standard", "examples": EXAMPLE_TASKS,
+        cfg = model_settings.public(model_settings.purpose("intern").tier)  # the tier the intern's requests go to (no key)
+        return {**cfg, "mode": "llm" if gateway.available("intern") else "standard", "examples": EXAMPLE_TASKS,
                 "mcp_url": (str(request.base_url).rstrip("/") + "/mcp") if mcp is not None else None,
                 "chat_ui": {"command": "make chat-ui", "intern_command": "make chat-ui-intern", "url": "http://localhost:5173/", "intern_url": "http://localhost:5173/?mode=ml-intern"},
                 "tools": Toolbox(projects).names(), "default_budget": {"max_steps": 24, "max_minutes": 20},
@@ -455,8 +458,8 @@ def create_app(home=None):
         return FileResponse(page)
     @app.get("/classic")
     async def classic(): return FileResponse(STATIC / "index.html")
-    draft_api.register(app, drafts, projects, llm_client, draft_jobs)
-    pages.register_all(app, pages.Context(store=store, projects=projects, drafts=drafts, intern_sessions=intern_sessions,
+    draft_api.register(app, drafts, projects, gateway, draft_jobs)
+    pages.register_all(app, pages.Context(store=store, projects=projects, drafts=drafts, intern_sessions=intern_sessions, models=gateway,
                                           jobs=jobs, intern_jobs=intern_jobs, draft_jobs=draft_jobs))
     @app.get("/api/workspace")
     async def workspace():

@@ -42,6 +42,8 @@ def main():
     replay.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     store = Store(Path(os.environ.get("DCLAB_AGENT_HOME", ROOT / "agent_runs")))
+    from ..models import for_workspace, install
+    install(for_workspace(store.home))  # campaign requests made from the command line are counted in the workspace's usage log
     if args.command == "serve":
         import uvicorn
         from .server import app

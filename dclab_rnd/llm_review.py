@@ -1,4 +1,4 @@
-"""Run pending campaign LLM critic reviews via OpenAI.
+"""Run pending campaign LLM critic reviews through the model gateway (purpose ``campaign_review``, the strong tier).
 
 The LLM may challenge claims and propose next experiments. It must not rewrite
 observed metrics or approve deployment. Deterministic evidence stays authoritative.
@@ -12,8 +12,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-from openai import OpenAI
 
 from .campaign import CAMPAIGN_DIR, CAMPAIGN_ID, sync_campaign_outputs
 
@@ -138,14 +136,17 @@ def _parse_json_response(text: str) -> dict[str, Any]:
     return json.loads(text)
 
 
-def _client(root: Path) -> OpenAI:
+def _client(root: Path, model: str):
+    """The gateway's client for campaign reviews; each request is counted in the workspace's usage log."""
+    from .models import for_workspace
+
     _load_env(root)
-    key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not key:
+    client = for_workspace().client("campaign_review", model=model)
+    if client is None:
         raise RuntimeError(
-            "OPENAI_API_KEY missing. Add it to .env at the repo root, then retry."
+            "No model is configured. Add OPENAI_API_KEY (or DCLAB_TIER_STRONG_*) to .env at the repo root, then retry."
         )
-    return OpenAI(api_key=key)
+    return client
 
 
 def load_queue(root: Path) -> list[dict[str, Any]]:
@@ -193,7 +194,7 @@ def load_all_review_tasks(root: Path) -> list[dict[str, Any]]:
 
 
 def review_one(
-    client: OpenAI,
+    client: Any,
     root: Path,
     task: dict[str, Any],
     *,
@@ -210,11 +211,8 @@ def review_one(
         "claims": task.get("claims"),
         "evidence_bundle": _compact_evidence(result),
     }
-    response = client.chat.completions.create(
-        model=model,
-        temperature=0.2,
-        response_format={"type": "json_object"},
-        messages=[
+    response = client.complete(
+        [
             {"role": "system", "content": SYSTEM_PROMPT},
             {
                 "role": "user",
@@ -224,8 +222,11 @@ def review_one(
                 ),
             },
         ],
+        max_tokens=None,  # no cap, as before: a cut-off JSON critique cannot be parsed
+        temperature=0.2,
+        response_format={"type": "json_object"},
     )
-    content = response.choices[0].message.content or "{}"
+    content = response.get("content") or "{}"
     review = _parse_json_response(content)
     review["experiment_id"] = task.get("experiment_id")
     review["dataset"] = task.get("dataset")
@@ -233,12 +234,12 @@ def review_one(
     review["model"] = model
     review["reviewed_at"] = _utc_now()
     review["role"] = "critic_and_hypothesis_generator_only"
-    usage = getattr(response, "usage", None)
-    if usage is not None:
+    usage = response.get("usage") or {}
+    if usage:
         review["usage"] = {
-            "prompt_tokens": getattr(usage, "prompt_tokens", None),
-            "completion_tokens": getattr(usage, "completion_tokens", None),
-            "total_tokens": getattr(usage, "total_tokens", None),
+            "prompt_tokens": usage.get("input_tokens"),
+            "completion_tokens": usage.get("output_tokens"),
+            "total_tokens": (usage.get("input_tokens") or 0) + (usage.get("output_tokens") or 0),
         }
 
     # Persist onto the experiment result
@@ -295,7 +296,7 @@ def run_llm_reviews(
     sleep_s: float = 0.4,
     force: bool = False,
 ) -> int:
-    client = _client(root)
+    client = _client(root, model)
     tasks = load_all_review_tasks(root) if force else load_queue(root)
     if experiment_ids:
         wanted = {eid.strip() for eid in experiment_ids}
