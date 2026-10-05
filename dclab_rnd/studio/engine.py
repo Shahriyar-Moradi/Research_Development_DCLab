@@ -96,6 +96,11 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         return _BUNDLES[key]
     frame = load_table(path)
     solution.check_columns(list(frame.columns))
+    # Yes/no columns arrive as booleans (cleaned uploads, CSVs with True/False); numpy cannot take quantiles or
+    # differences of booleans, so features become 0/1 with missing kept missing. The target is compared as text.
+    for column in frame.columns:
+        if column != solution.target and (pd.api.types.is_bool_dtype(frame[column]) or str(frame[column].dtype) == "boolean"):
+            frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
     source_rows = len(frame)
     frame = frame[frame[solution.target].notna()].reset_index(drop=True)
     y, class_labels = _target_series(frame, solution)

@@ -144,6 +144,34 @@ class AgentTests(unittest.TestCase):
         self.assertTrue(any("RateLimitError" in n for n in notes))
 
 
+class BooleanFeatureTests(unittest.TestCase):
+    """Cleaning turns yes/no columns into booleans; the engine must accept them as features (and as the target)."""
+
+    def test_data_stage_runs_with_boolean_columns(self):
+        import numpy as np
+        import pandas as pd
+        from dclab_rnd.studio import ProjectStore, data, engine
+
+        rng = np.random.default_rng(3)
+        n = 400
+        frame = pd.DataFrame({"tenure": rng.integers(1, 72, n), "paperless": pd.array(rng.random(n) > 0.5, dtype="boolean"),
+                              "partner": rng.random(n) > 0.4, "charges": rng.normal(60, 20, n).round(2)})
+        frame.loc[3, "paperless"] = pd.NA
+        frame["churned"] = (rng.random(n) < 0.2 + 0.2 * frame["partner"]).astype(bool)
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        pid = store.create("bools", "general", "who leaves")["id"]
+        frame.to_parquet(store.data_dir(pid) / "t.parquet", index=False)
+        data.attach_data(store, pid, "t.parquet")
+        project = store.get(pid)
+        project["solution"] = {"target": "churned", "task": "binary", "positive_label": "True", "prediction_moment": "At the monthly snapshot of each customer.",
+                               "forbidden": [], "identifiers": [], "time_column": None, "group_column": None, "text_columns": [], "metric": "roc_auc", "notes": ""}
+        project["settings"]["quick"] = True
+        store.save(project)
+        record = engine.execute(store, pid, "data", "human")
+        rate = record["evidence"]["target_summary"]["positive_rate_train"]
+        self.assertTrue(0.15 < rate < 0.6, rate)  # True was read as the positive class, not "nothing is positive"
+
+
 class ApiTests(unittest.TestCase):
     def setUp(self):
         try:

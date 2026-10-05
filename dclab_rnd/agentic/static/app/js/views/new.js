@@ -249,8 +249,8 @@ DC.view('new', {
           toast('Handed to the intern with its budget. It asks before anything only you can decide.');
           location.href = '/classic#intern/' + s.id;
         } else {
-          toast('Project created. Run the stages in the notebook; the solution is already saved.');
-          location.href = '/classic#project/' + project.id;
+          toast('Project created with its data, solution and settings. Run the stages from the workflow.');
+          location.hash = 'project';
         }
       } catch (e) { toast(e.message, { ok: false }); }
     }

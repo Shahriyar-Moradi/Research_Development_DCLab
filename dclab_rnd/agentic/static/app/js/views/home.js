@@ -30,7 +30,7 @@ DC.view('home', {
       const inbox = $('[data-f="home.inbox"]', el);
       if (inbox) {
         $('.pill', inbox).textContent = ws.needs.length;
-        $('.list', inbox).innerHTML = ws.needs.length ? ws.needs.map(n => `<a class="list-item" href="${n.draft ? '#home' : '/classic#project/' + esc(n.project)}" ${n.draft ? `data-resume="${esc(n.draft)}"` : ''}>
+        $('.list', inbox).innerHTML = ws.needs.length ? ws.needs.map(n => `<a class="list-item" href="${n.draft ? '#home' : '#project'}" ${n.draft ? `data-resume="${esc(n.draft)}"` : `data-open-project="${esc(n.project)}"`}>
             <span class="avatar ai">AI</span>
             <div class="li-main"><span class="li-title">${esc(n.title)}</span><span class="li-sub">${esc(n.sub || '')}</span><span class="row"><span class="pill warn">${n.kind === 'question' ? 'Question' : 'Solution'}</span><span class="tag">${esc(n.tag)}</span></span></div></a>`).join('')
           : '<div class="empty">Nothing waits for you. Start from one sentence above.</div>';
@@ -47,12 +47,12 @@ DC.view('home', {
           </tr>`).join('');
         const tab = $(`.ptab[data-ptab="projects"] .n`, el);
         if (tab) tab.textContent = ws.projects.length;
-        $('.panel-foot', pane).innerHTML = '<span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Projects open in the classic notebook until their pages are wired.</span>';
+        $('.panel-foot', pane).innerHTML = '<span class="dot ok"></span>done <span class="dot accent"></span>current <span class="dot warn"></span>waiting on a person <span class="muted">· Click a project to open its workflow.</span>';
       }
     }
     $('#home-projects tbody', el).addEventListener('click', e => {
       const real = e.target.closest('tr[data-real]');
-      if (real) { location.href = '/classic#project/' + real.dataset.real; return; }
+      if (real) { e.stopPropagation(); DC.state.projectId = real.dataset.real; location.hash = 'project'; return; }
     }, true);
 
     /* ---------- domain packs (optional) ---------- */
@@ -121,6 +121,8 @@ DC.view('home', {
     el.addEventListener('click', async e => {
       const ex = e.target.closest('[data-example]');
       if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
+      const op = e.target.closest('[data-open-project]');
+      if (op) { DC.state.projectId = op.dataset.openProject; }
       const res = e.target.closest('[data-resume]');
       if (res) { e.preventDefault(); if (await resume(res.dataset.resume)) { DC.selectPane(el, 'overview'); $('#home-chat', el).scrollIntoView({ behavior: 'smooth' }); } }
     });

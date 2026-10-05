@@ -136,6 +136,15 @@
       `<a class="nav-item" href="#${it.id}" data-nav="${it.id}">${icon(it.icon)}<span>${esc(it.label)}</span>${it.count != null ? `<span class="count">${esc(it.count)}</span>` : ''}</a>`).join('')}</div>`).join('');
   }
 
+  /* The sidebar's project group follows the project that is open on the project pages. */
+  function setProjectLabel(name) {
+    const label = $$('#nav .nav-label').find(l => l.textContent.startsWith('Project'));
+    if (label) label.textContent = 'Project · ' + (name || 'none');
+    PROJECT_VIEWS.forEach(v => { if (VIEW_META[v]) VIEW_META[v].crumbs = [name || 'Project']; });
+    const meta = VIEW_META[state.view];
+    if (meta && PROJECT_VIEWS.includes(state.view)) $('#crumbs').innerHTML = meta.crumbs.map(c => `<span>${esc(c)}</span><span class="sep">›</span>`).join('') + `<b>${esc(meta.label)}</b>`;
+  }
+
   /* ---------------- toast / drawer / modal ---------------- */
   function toast(text, opts = {}) {
     const box = $('#toasts');
@@ -871,6 +880,6 @@
     if (bpOn) setBlueprint(true);
   }
 
-  window.DC = { graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

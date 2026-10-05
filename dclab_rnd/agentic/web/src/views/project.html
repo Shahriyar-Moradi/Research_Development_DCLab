@@ -285,6 +285,7 @@ DC.view('project', {
         <div class="row small"><span class="muted">Evidence returned to the intern:</span>${chips(v.ev)}</div>`;
     }
     function drawTeam() {
+      if (isReal(proj)) { $('#team-list', el).innerHTML = '<div class="list-item"><span class="avatar sm">SM</span><div class="li-main"><span class="li-title">Shahriyar</span><span class="li-sub">Owner · the only member of this local workspace</span></div></div>'; return; }
       $('#team-list', el).innerHTML = DEMO.team.map(t => `<div class="list-item"><span class="avatar sm ${t.cls}">${t.id}</span><div class="li-main"><span class="li-title">${esc(t.name)}</span><span class="li-sub">${esc(t.role)}</span></div></div>`).join('');
     }
     function drawStats() {
@@ -297,7 +298,87 @@ DC.view('project', {
         <div class="stat"><span class="v ${blocked ? 'bad' : back ? 'warn' : ''}">${blocked || back}</span><span class="l">${blocked ? 'unsafe move blocked by the graph' : back ? 'revisit: the solution was reopened' : 'blocked moves'}</span></div>
         <div class="stat"><span class="v warn">${esc(WHO[last[1]][0])}</span><span class="l">${esc(last[3])}</span></div>`;
     }
-    function setProject(p) {
+    /* ---------- real projects: the API's project, graph and transition log in the sample's shape ---------- */
+    const { api } = DC;
+    const REAL = {};
+    let poller = null;
+    const isReal = k => typeof k === 'string' && k.startsWith('p:');
+    const st8 = s => (s || 'c---------').replace(/[wf]/g, 'b').replace(/r/g, 'c');
+    const when = at => { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }); };
+    function moveText(t) {
+      const a = t.args || {};
+      if (t.move === 'run_stage') return `Run the ${a.stage} stage`;
+      if (t.move === 'set_solution') return 'Save the solution' + (a.target ? ` · target ${a.target}` : '');
+      if (t.move === 'approve_gate') return `Approve the ${a.gate} gate`;
+      if (t.move === 'approve_stage') return `Approve ${a.stage}${a.choice ? ' · ' + a.choice : ''}`;
+      if (t.move === 'capture') return 'Capture the knowledge';
+      return t.move;
+    }
+    function fromApi(p) {
+      const g = p.graph || {}, moves = p.transitions || [];
+      const ids = x => (x || []).filter(id => DC.REC[id] || /^DCLAB-R\d\d$/.test(id));
+      let log = moves.map(t => [when(t.at), t.actor === 'agent' ? 'AI' : 'SM', t.actor === 'agent' ? 'agent' : 'human', moveText(t) + (t.status !== 'allowed' && t.message ? ' — ' + t.message : ''),
+        t.to || t.from || '', ids([...(t.rules || []), ...(t.evidence || [])]), { allowed: 'ok', blocked: 'blocked', needs_approval: 'wait' }[t.status] || 'note',
+        t.outcome || t.status, '']);
+      if (!log.length) log = [[when(p.created), 'SM', 'human', 'Create the project', 'WF-01', [], 'ok', 'proceed', '']];
+      // each row shows the state after its move: the state before the next move, and now for the last one
+      log.forEach((r, i) => { r[8] = st8(i + 1 < moves.length ? moves[i + 1].state : g.state); });
+      const d = p.data || {}, sol = p.solution || {};
+      const next = (g.moves || []).find(m => m.move === 'run_stage' && m.status === 'allowed' && (p.stages[m.stage] || {}).status !== 'completed');
+      const running = p.running && (p.running.stage || p.running);
+      const actions = running ? `<button type="button" class="btn" disabled>Running ${esc(String(running))}…</button>`
+        : `${next ? `<button type="button" class="btn primary" data-run-stage="${esc(next.stage)}">Run the ${esc(next.stage)} stage</button><button type="button" class="btn" data-run-all="1">Run all remaining</button>` : ''}<a class="btn" href="/classic#project/${esc(p.id)}">Open the notebook</a>`;
+      return { title: p.name, sub: [d.filename, d.rows ? Number(d.rows).toLocaleString('en-US') + ' rows' : '', sol.task, d.synthetic ? 'synthetic data' : '', 'started ' + (p.created || '').slice(0, 10)].filter(Boolean).join(' · '),
+        lede: p.goal || 'No goal written yet.', actions, current: g.current || 'WF-10', log, real: true, project: p };
+    }
+    function realValidator() {
+      const p = REAL[proj], moves = (p.graph.moves || []);
+      const opts = [...moves.map(m => ({ move: m.move, stage: m.stage, actor: 'human', label: `You: ${m.move === 'capture' ? 'capture the knowledge' : 'run the ' + m.stage + ' stage'}` })),
+        { move: 'run_stage', stage: 'final', actor: 'agent', label: 'Intern: score the holdout now' },
+        { move: 'set_solution', actor: 'agent', label: 'Intern: change the solution' },
+        { move: 'approve_gate', gate: 'holdout', actor: 'agent', label: 'Intern: approve its own holdout gate' }];
+      $('#move-select', el).innerHTML = opts.map((o, i) => `<option value="${i}">${esc(o.label)}</option>`).join('');
+      $('#move-select', el).dataset.real = JSON.stringify(opts);
+    }
+    async function drawRealVerdict() {
+      const opts = JSON.parse($('#move-select', el).dataset.real || '[]'), o = opts[Number($('#move-select', el).value)];
+      if (!o) return;
+      try {
+        const v = await api(`/projects/${REAL[proj].id}/graph/check`, { method: 'POST', body: { move: o.move, actor: o.actor, stage: o.stage, gate: o.gate } });
+        const cls = v.status === 'blocked' ? 'bad' : v.status === 'allowed' ? 'ok' : 'warn';
+        $('#validator-out', el).innerHTML = `<div class="callout ${cls}"><span class="ic">${icon(v.status === 'blocked' ? 'alert' : v.status === 'allowed' ? 'check' : 'info')}</span><span><b>${v.status === 'blocked' ? 'Blocked' : v.status === 'allowed' ? 'Allowed' : 'Valid, waits for approval'}.</b> ${esc(v.message || '')}</span></div>
+          <ul class="plan-list">${(v.checks || []).map(c => `<li class="${c.ok ? 'done' : 'blocked'}"><span class="pi">${c.ok ? '✓' : '!'}</span><span><b>${esc(c.name)}</b> · <span class="muted">${DC.linkIds(c.detail || '')}</span></span></li>`).join('')}</ul>
+          ${(v.rules || []).length ? `<div class="row small"><span class="muted">Rules:</span>${chips(v.rules.filter(r => DC.REC[r]))}</div>` : ''}<div class="xs muted">A check only: nothing is run or logged from here.</div>`;
+        DC.hydrate($('#validator-out', el));
+      } catch (e) { $('#validator-out', el).innerHTML = `<div class="callout bad"><span class="ic">${icon('alert')}</span><span>${esc(e.message)}</span></div>`; }
+    }
+    async function openReal(key, keepStep) {
+      const p = await api(`/projects/${key.slice(2)}`);
+      REAL[key] = p; P[key] = fromApi(p);
+      setProject(key, keepStep);
+      clearTimeout(poller);
+      if (p.running) poller = setTimeout(() => { if (proj === key && DC.state.view === 'project') openReal(key, true); }, 1500);
+    }
+    async function switcher() {
+      let list = [];
+      try { list = (await api('/workspace')).projects.slice(0, 3); } catch (e) { /* offline: samples only */ }
+      $('#proj-switch', el).innerHTML = list.map(p => `<button type="button" data-v="p:${esc(p.id)}" aria-pressed="false">${esc(p.name)}</button>`).join('')
+        + '<button type="button" data-v="bank" aria-pressed="false">Term-deposit calls · sample</button><button type="button" data-v="hyperack" aria-pressed="false">HyperAck · sample</button><button type="button" data-v="telco" aria-pressed="false">Telco churn · sample</button>';
+      return list;
+    }
+    el.addEventListener('click', async e => {
+      const run = e.target.closest('[data-run-stage], [data-run-all]');
+      if (!run || !isReal(proj)) return;
+      const id = REAL[proj].id;
+      try {
+        if (run.dataset.runAll) await api(`/projects/${id}/run`, { method: 'POST' });
+        else await api(`/projects/${id}/stages/${run.dataset.runStage}/run`, { method: 'POST' });
+        toast('Started. The graph checked the move first; the log shows it.');
+        openReal(proj, true);
+      } catch (err) { toast(err.message, { ok: false }); openReal(proj, true); }
+    });
+
+    function setProject(p, keepStep) {
       proj = p; step = P[p].log.length;
       $$('#proj-switch button', el).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === p)));
       $('#proj-title', el).textContent = P[p].title;
@@ -305,10 +386,13 @@ DC.view('project', {
       $('#proj-lede', el).textContent = P[p].lede;
       $('#proj-actions', el).innerHTML = P[p].actions;
       const r = $('#replay', el); r.max = P[p].log.length; r.value = step;
-      drawStats(); drawGraph(); drawLog(); drawNode(P[p].current); DC.hydrate(el);
+      if (isReal(p)) { realValidator(); drawRealVerdict(); DC.setProjectLabel && DC.setProjectLabel(P[p].title); }
+      else { $('#move-select', el).innerHTML = SAMPLE_MOVES; delete $('#move-select', el).dataset.real; drawValidator(); DC.setProjectLabel && DC.setProjectLabel(P[p].title + ' · sample'); }
+      drawStats(); drawGraph(); drawLog(); drawNode(keepStep && selected ? selected : P[p].current); drawTeam(); DC.hydrate(el);
     }
-    this.setProject = setProject;
-    $('#proj-switch', el).addEventListener('segchange', e => { DC.state.project = e.detail; setProject(e.detail); });
+    this.setProject = setProject; this.openReal = openReal; this.switcher = switcher;
+    const SAMPLE_MOVES = $('#move-select', el).innerHTML;
+    $('#proj-switch', el).addEventListener('segchange', e => { DC.state.project = e.detail; if (isReal(e.detail)) openReal(e.detail); else setProject(e.detail); });
     $('#replay', el).addEventListener('input', e => { step = Number(e.target.value); drawGraph(); drawLog($('#log-filter button[aria-pressed="true"]', el).dataset.v); drawNode(selected); });
     let timer = null;
     $('#replay-play', el).addEventListener('click', () => {
@@ -316,7 +400,7 @@ DC.view('project', {
       timer = setInterval(() => { $('#replay', el).value = step; drawGraph(); drawLog(); drawNode(selected); if (++step > max) { clearInterval(timer); step = max; } }, 450);
     });
     $('#log-filter', el).addEventListener('segchange', e => drawLog(e.detail));
-    $('#move-select', el).addEventListener('change', drawValidator);
+    $('#move-select', el).addEventListener('change', () => (isReal(proj) ? drawRealVerdict() : drawValidator()));
     el.addEventListener('click', e => {
       const n = e.target.closest('[data-node]'); if (n) { drawNode(n.dataset.node); if (n.classList.contains('wf-step')) { DC.reveal($('#node-panel', el)); $('#graph-box', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
       const a = e.target.closest('[data-ans]');
@@ -329,6 +413,13 @@ DC.view('project', {
     el.addEventListener('keydown', e => { const n = e.target.closest('.node'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); drawNode(n.dataset.node); } });
     drawValidator(); drawTeam(); setProject('bank');
   },
-  enter() { const p = DC.state.project || 'bank'; if (this.setProject) this.setProject(p); },
+  async enter() {
+    // a project just created by the wizard, else the most recent real project, else the bank sample
+    const list = await this.switcher();
+    const want = DC.state.projectId ? 'p:' + DC.state.projectId : DC.state.project || (list.length ? 'p:' + list[0].id : 'bank');
+    DC.state.projectId = null; DC.state.project = want;
+    if (want.startsWith('p:')) { try { await this.openReal(want); return; } catch (e) { DC.toast(e.message, { ok: false }); } }
+    this.setProject(want.startsWith('p:') ? 'bank' : want);
+  },
 });
 </script>
