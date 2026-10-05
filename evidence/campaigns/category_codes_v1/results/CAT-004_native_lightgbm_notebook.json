@@ -1,0 +1,1064 @@
+{
+  "schema_version": 1,
+  "campaign_id": "category_codes_v1",
+  "experiment_id": "CAT-004",
+  "kind": "category_code_encoding",
+  "name": "native_lightgbm_notebook",
+  "dataset": "multiple",
+  "datasets": [
+    "bank_marketing",
+    "german_credit",
+    "adult",
+    "credit_default",
+    "heart_disease",
+    "online_shoppers",
+    "mushroom"
+  ],
+  "question": "Do LightGBM's native categorical splits on the declared code columns beat both numeric codes and one-hot encoding on the same training folds?",
+  "hypothesis": "Native splits group levels by target statistics, so they keep the signal trees found in numeric codes without assuming an order, and beat one-hot for trees.",
+  "setup_summary": "7 public datasets with declared codes; CAT-002's DCLab notebook projects and the engine's own 3 stratified training folds, its raw recipe and its LightGBM (300 trees, lr 0.05, 31 leaves). Codes are kept out of derived features and recoded to fit-fold category ids (missing and unseen levels get their own ids; credit_default's negative codes would otherwise read as missing), then passed as categorical_feature. Arms: native (LightGBM defaults: min_data_per_group 100, cat_smooth 10, max_cat_threshold 32, max_cat_to_onehot 4) and one pre-declared sensitivity variant native_mdpg20 (min_data_per_group 20), each compared fold-by-fold with the stored numbers and one-hot arms of CAT-002; Nadeau-Bengio corrected 95% intervals. No holdout row is read.",
+  "holdout_policy": "Training rows only; every locked holdout stays unread.",
+  "evidence": {
+    "protocol": {
+      "source_experiment": "CAT-002",
+      "variants": {
+        "native": {},
+        "native_mdpg20": {
+          "min_data_per_group": 20
+        }
+      },
+      "recoding": "fit-fold levels -> 0..k-1 (sorted), missing -> k, unseen -> k+1",
+      "uncertainty": "paired fold differences; corrected_ci95 uses Nadeau-Bengio variance s^2(1/n + 1/(k-1))"
+    },
+    "datasets": [
+      {
+        "dataset": "bank_marketing",
+        "train_rows": 16000,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "job",
+          "marital",
+          "education",
+          "default",
+          "housing",
+          "loan",
+          "contact",
+          "day_of_week",
+          "month",
+          "poutcome"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          0.7668770254136107,
+          0.7641867065912078,
+          0.776826338844143
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 0.7694824794186884,
+            "std": 0.005591280889586421,
+            "min": 0.7639289018446446,
+            "max": 0.775110715922759
+          },
+          "fold_metric": [
+            0.7639289018446446,
+            0.7694078204886615,
+            0.775110715922759
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 0.7714575595977333,
+            "std": 0.0029164252837080716,
+            "min": 0.7681960316106657,
+            "max": 0.7738145211040919
+          },
+          "fold_metric": [
+            0.7681960316106657,
+            0.7723621260784423,
+            0.7738145211040919
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": 0.0001857891357012198,
+            "std": 0.004404047689774832,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.010754471814679784,
+              0.011126050086082223
+            ],
+            "corrected_ci95": [
+              -0.017112282264199943,
+              0.017483860535602382
+            ],
+            "differences": [
+              -0.002948123568966121,
+              0.005221113897453722,
+              -0.0017156229213839413
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": 0.00166556795466144,
+            "std": 0.008056793506755526,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.018348616631007127,
+              0.021679752540330006
+            ],
+            "corrected_ci95": [
+              -0.02997963644621158,
+              0.03331077235553446
+            ],
+            "differences": [
+              -0.002287931334494564,
+              0.010935417361239153,
+              -0.003650782162760269
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": 0.0021608693147461646,
+            "std": 0.0056409324873276,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.011851983806288265,
+              0.016173722435780594
+            ],
+            "corrected_ci95": [
+              -0.019995396875187796,
+              0.024317135504680128
+            ],
+            "differences": [
+              0.0013190061970550504,
+              0.008175419487234548,
+              -0.0030118177400511037
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": 0.0036406481337063847,
+            "std": 0.0095276244374409,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.020027283034441276,
+              0.027308579301854048
+            ],
+            "corrected_ci95": [
+              -0.033781636864011734,
+              0.0410629331314245
+            ],
+            "differences": [
+              0.0019791984315266076,
+              0.013889722951019978,
+              -0.004946976981427431
+            ]
+          }
+        }
+      },
+      {
+        "dataset": "german_credit",
+        "train_rows": 800,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "Attribute1",
+          "Attribute3",
+          "Attribute4",
+          "Attribute6",
+          "Attribute7",
+          "Attribute9",
+          "Attribute10",
+          "Attribute12",
+          "Attribute14",
+          "Attribute15",
+          "Attribute17",
+          "Attribute19",
+          "Attribute20"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          0.7223930481283423,
+          0.7591577540106951,
+          0.7254704301075269
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 0.7320275813160064,
+            "std": 0.0063056834263857265,
+            "min": 0.7270053475935828,
+            "max": 0.7391042780748663
+          },
+          "fold_metric": [
+            0.7270053475935828,
+            0.7391042780748663,
+            0.7299731182795699
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 0.7380959739712112,
+            "std": 0.006956424562369912,
+            "min": 0.7338235294117648,
+            "max": 0.7461229946524065
+          },
+          "fold_metric": [
+            0.7338235294117648,
+            0.7461229946524065,
+            0.7343413978494624
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": -0.003646162766181719,
+            "std": 0.014209255706899408,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.038943910723156706,
+              0.03165158519079327
+            ],
+            "corrected_ci95": [
+              -0.059456802675479745,
+              0.05216447714311631
+            ],
+            "differences": [
+              0.004612299465240555,
+              -0.020053475935828735,
+              0.004502688172043023
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": -0.01611082360607981,
+            "std": 0.011123933689911639,
+            "folds": 3,
+            "wins": 0,
+            "losses": 3,
+            "naive_ci95": [
+              -0.04374420678785687,
+              0.011522559575697252
+            ],
+            "corrected_ci95": [
+              -0.05980303876138292,
+              0.027581391549223292
+            ],
+            "differences": [
+              -0.02840909090909105,
+              -0.006751336898395688,
+              -0.013172043010752699
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": 0.0024222298890231495,
+            "std": 0.013447180553405848,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.030982418439994035,
+              0.035826878218040335
+            ],
+            "corrected_ci95": [
+              -0.05039515668929285,
+              0.05523961646733915
+            ],
+            "differences": [
+              0.0114304812834225,
+              -0.013034759358288572,
+              0.00887096774193552
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": -0.010042430950874945,
+            "std": 0.010981662892706058,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.03732239388003722,
+              0.017237531978287327
+            ],
+            "corrected_ci95": [
+              -0.053175839621430646,
+              0.03309097771968075
+            ],
+            "differences": [
+              -0.021590909090909105,
+              0.0002673796791444749,
+              -0.008803763440860202
+            ]
+          }
+        }
+      },
+      {
+        "dataset": "adult",
+        "train_rows": 16000,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "workclass",
+          "education",
+          "marital-status",
+          "occupation",
+          "relationship",
+          "race",
+          "sex",
+          "native-country"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          0.9216063805238262,
+          0.9216125400536939,
+          0.9227280775189322
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 0.9218173093678302,
+            "std": 0.0010933692533507387,
+            "min": 0.9207731685959797,
+            "max": 0.9229540209991924
+          },
+          "fold_metric": [
+            0.9229540209991924,
+            0.9207731685959797,
+            0.9217247385083186
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 0.9217573589136593,
+            "std": 0.0007408828526694392,
+            "min": 0.9209872697203955,
+            "max": 0.9224650943487005
+          },
+          "fold_metric": [
+            0.9209872697203955,
+            0.9224650943487005,
+            0.9218197126718821
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": -0.00016502333098714997,
+            "std": 0.0013125681631403758,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.0034256234042466106,
+              0.003095576742272311
+            ],
+            "corrected_ci95": [
+              -0.005320484716193037,
+              0.004990438054218736
+            ],
+            "differences": [
+              0.0013476404753662852,
+              -0.0008393714577141775,
+              -0.0010033390106135576
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": -0.0005509457442475219,
+            "std": 0.0022313740061255744,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.006093986061814782,
+              0.004992094573319738
+            ],
+            "corrected_ci95": [
+              -0.009315262027075312,
+              0.008213370538580268
+            ],
+            "differences": [
+              0.0012074535594787106,
+              -0.0030611125544875994,
+              0.0002008217622663233
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": -0.00022497378515802988,
+            "std": 0.0009443077083742607,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.002570764174997994,
+              0.002120816604681934
+            ],
+            "corrected_ci95": [
+              -0.003933994057772326,
+              0.0034840464874562656
+            ],
+            "differences": [
+              -0.0006191108034306891,
+              0.0008525542950066356,
+              -0.0009083648470500361
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": -0.0006108961984184017,
+            "std": 0.0008423533280950598,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.002703417867331807,
+              0.001481625470495004
+            ],
+            "corrected_ci95": [
+              -0.00391946346192996,
+              0.0026976710650931566
+            ],
+            "differences": [
+              -0.0007592977193182637,
+              -0.0013691868017667863,
+              0.0002957959258298448
+            ]
+          }
+        }
+      },
+      {
+        "dataset": "credit_default",
+        "train_rows": 16000,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "X2",
+          "X3",
+          "X4",
+          "X6",
+          "X7",
+          "X8",
+          "X9",
+          "X10",
+          "X11"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          0.7721303751091567,
+          0.7811317309776343,
+          0.7642044819168736
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 0.771911844886462,
+            "std": 0.009126151679584853,
+            "min": 0.7645185105061827,
+            "max": 0.7821116343678418
+          },
+          "fold_metric": [
+            0.7691053897853616,
+            0.7821116343678418,
+            0.7645185105061827
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 0.7729731736555504,
+            "std": 0.010038706005863401,
+            "min": 0.7633925213008774,
+            "max": 0.7834145124515538
+          },
+          "fold_metric": [
+            0.7721124872142204,
+            0.7834145124515538,
+            0.7633925213008774
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": -0.000577017781426196,
+            "std": 0.0021459860505107556,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.00590794265832405,
+              0.004753907095471657
+            ],
+            "corrected_ci95": [
+              -0.00900595010455117,
+              0.00785191454169878
+            ],
+            "differences": [
+              -0.0030249853237951374,
+              0.0009799033902074816,
+              0.00031402858930906774
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": -0.001725956499701568,
+            "std": 0.003584422964774967,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.010630156761252642,
+              0.007178243761849507
+            ],
+            "corrected_ci95": [
+              -0.01580473328408577,
+              0.012352820284682634
+            ],
+            "differences": [
+              -0.005031173722357063,
+              -0.0022308330734219783,
+              0.0020841372966743377
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": 0.0004843109876623286,
+            "std": 0.0016073300653681479,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.0035085182428993295,
+              0.004477140218223987
+            ],
+            "corrected_ci95": [
+              -0.005828906350673887,
+              0.006797528325998544
+            ],
+            "differences": [
+              -1.7887894936285953e-05,
+              0.0022827814739194707,
+              -0.000811960615996199
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": -0.0006646277306130433,
+            "std": 0.001508450033796908,
+            "folds": 3,
+            "wins": 1,
+            "losses": 2,
+            "naive_ci95": [
+              -0.0044118253458125655,
+              0.003082569884586479
+            ],
+            "corrected_ci95": [
+              -0.006589467384003881,
+              0.005260211922777794
+            ],
+            "differences": [
+              -0.0020240762934982115,
+              -0.0009279549897099892,
+              0.000958148091369071
+            ]
+          }
+        }
+      },
+      {
+        "dataset": "heart_disease",
+        "train_rows": 242,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "sex",
+          "cp",
+          "fbs",
+          "restecg",
+          "exang",
+          "slope",
+          "ca",
+          "thal"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          0.7954545454545455,
+          0.8839066339066339,
+          0.8830923947203018
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 0.7978877397482048,
+            "std": 0.014420428244551938,
+            "min": 0.7813267813267813,
+            "max": 0.8076681332495286
+          },
+          "fold_metric": [
+            0.7813267813267813,
+            0.8046683046683047,
+            0.8076681332495286
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 0.8641030036378874,
+            "std": 0.04335303767614455,
+            "min": 0.8157248157248158,
+            "max": 0.8994343180389692
+          },
+          "fold_metric": [
+            0.8157248157248158,
+            0.8771498771498771,
+            0.8994343180389692
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": -0.05626345161228885,
+            "std": 0.03654037353502321,
+            "folds": 3,
+            "wins": 0,
+            "losses": 3,
+            "naive_ci95": [
+              -0.14703477151095884,
+              0.03450786828638115
+            ],
+            "corrected_ci95": [
+              -0.19978551016206963,
+              0.08725860693749193
+            ],
+            "differences": [
+              -0.014127764127764175,
+              -0.07923832923832919,
+              -0.07542426147077319
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": -0.0746385920804525,
+            "std": 0.025610909964103618,
+            "folds": 3,
+            "wins": 0,
+            "losses": 3,
+            "naive_ci95": [
+              -0.13825961935373615,
+              -0.011017564807168825
+            ],
+            "corrected_ci95": [
+              -0.17523226871208655,
+              0.025955084551181562
+            ],
+            "differences": [
+              -0.04606879606879599,
+              -0.08230958230958219,
+              -0.09553739786297932
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": 0.009951812277393649,
+            "std": 0.014602745865753133,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.026323419422380402,
+              0.046227043977167696
+            ],
+            "corrected_ci95": [
+              -0.047404365133419994,
+              0.0673079896882073
+            ],
+            "differences": [
+              0.020270270270270285,
+              -0.006756756756756799,
+              0.01634192331866746
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": -0.00842332819077,
+            "std": 0.004132864005320092,
+            "folds": 3,
+            "wins": 0,
+            "losses": 3,
+            "naive_ci95": [
+              -0.01868993152379393,
+              0.0018432751422539292
+            ],
+            "corrected_ci95": [
+              -0.024656253373685898,
+              0.007809596992145897
+            ],
+            "differences": [
+              -0.011670761670761531,
+              -0.009828009828009798,
+              -0.0037712130735386706
+            ]
+          }
+        }
+      },
+      {
+        "dataset": "online_shoppers",
+        "train_rows": 9864,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "Month",
+          "OperatingSystems",
+          "Browser",
+          "Region",
+          "TrafficType",
+          "VisitorType",
+          "Weekend"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          0.6741931258143092,
+          0.6585996856864316,
+          0.6582462066396091
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 0.6577971917703516,
+            "std": 0.0007337507244077105,
+            "min": 0.6570175134728539,
+            "max": 0.6584742006248097
+          },
+          "fold_metric": [
+            0.6578998612133914,
+            0.6584742006248097,
+            0.6570175134728539
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 0.6587985074726203,
+            "std": 0.002702192483162233,
+            "min": 0.657092804509827,
+            "max": 0.6619140514360164
+          },
+          "fold_metric": [
+            0.6619140514360164,
+            0.657092804509827,
+            0.6573886664720174
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": -0.005882480943098327,
+            "std": 0.009032861080978132,
+            "folds": 3,
+            "wins": 0,
+            "losses": 3,
+            "naive_ci95": [
+              -0.028321351799079887,
+              0.016556389912883232
+            ],
+            "corrected_ci95": [
+              -0.04136145095673522,
+              0.029596489070538568
+            ],
+            "differences": [
+              -0.016293264600917845,
+              -0.00012548506162191053,
+              -0.0012286931667552237
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": 0.0045034342017810465,
+            "std": 0.011561721997177275,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.024217475423824443,
+              0.03322434382738654
+            ],
+            "corrected_ci95": [
+              -0.04090831124260256,
+              0.04991517964616465
+            ],
+            "differences": [
+              -0.00507633263467977,
+              0.0173459237856759,
+              0.00124071145434701
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": -0.004881165240829673,
+            "std": 0.00641499849112349,
+            "folds": 3,
+            "wins": 0,
+            "losses": 3,
+            "naive_ci95": [
+              -0.020816904913253515,
+              0.011054574431594171
+            ],
+            "corrected_ci95": [
+              -0.030077782023012114,
+              0.02031545154135277
+            ],
+            "differences": [
+              -0.012279074378292787,
+              -0.0015068811766045798,
+              -0.0008575401675916527
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": 0.0055047499040496994,
+            "std": 0.009156570939765078,
+            "folds": 3,
+            "wins": 2,
+            "losses": 1,
+            "naive_ci95": [
+              -0.01724143327745601,
+              0.02825093308555541
+            ],
+            "corrected_ci95": [
+              -0.030460123560436904,
+              0.0414696233685363
+            ],
+            "differences": [
+              -0.0010621424120547118,
+              0.01596452767069323,
+              0.0016118644535105808
+            ]
+          }
+        }
+      },
+      {
+        "dataset": "mushroom",
+        "train_rows": 6499,
+        "cv_protocol": "StratifiedKFold(3, shuffle, random_state=42) on training rows",
+        "primary_metric": "roc_auc",
+        "code_columns": [
+          "cap-shape",
+          "cap-surface",
+          "cap-color",
+          "bruises",
+          "odor",
+          "gill-attachment",
+          "gill-spacing",
+          "gill-size",
+          "gill-color",
+          "stalk-shape",
+          "stalk-root",
+          "stalk-surface-above-ring",
+          "stalk-surface-below-ring",
+          "stalk-color-above-ring",
+          "stalk-color-below-ring",
+          "veil-type",
+          "veil-color",
+          "ring-number",
+          "ring-type",
+          "spore-print-color",
+          "population",
+          "habitat"
+        ],
+        "folds_identical_to_cat002": true,
+        "numbers_raw_rerun_fold_metric": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "native_raw": {
+          "metric": {
+            "mean": 1.0,
+            "std": 0.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "fold_metric": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "native_mdpg20_raw": {
+          "metric": {
+            "mean": 1.0,
+            "std": 7.850462293418876e-17,
+            "min": 0.9999999999999999,
+            "max": 1.0
+          },
+          "fold_metric": [
+            1.0,
+            0.9999999999999999,
+            1.0
+          ]
+        },
+        "paired": {
+          "native_minus_numbers_raw": {
+            "mean": 0.0,
+            "std": 0.0,
+            "folds": 3,
+            "wins": 0,
+            "losses": 0,
+            "naive_ci95": [
+              0.0,
+              0.0
+            ],
+            "corrected_ci95": [
+              0.0,
+              0.0
+            ],
+            "differences": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "native_minus_one_hot_raw": {
+            "mean": 0.0,
+            "std": 0.0,
+            "folds": 3,
+            "wins": 0,
+            "losses": 0,
+            "naive_ci95": [
+              0.0,
+              0.0
+            ],
+            "corrected_ci95": [
+              0.0,
+              0.0
+            ],
+            "differences": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "native_mdpg20_minus_numbers_raw": {
+            "mean": -3.700743415417188e-17,
+            "std": 6.409875621278547e-17,
+            "folds": 3,
+            "wins": 0,
+            "losses": 1,
+            "naive_ci95": [
+              -1.962375717366698e-16,
+              1.2222270342832604e-16
+            ],
+            "corrected_ci95": [
+              -2.887723876055072e-16,
+              2.1475751929716343e-16
+            ],
+            "differences": [
+              0.0,
+              -1.1102230246251565e-16,
+              0.0
+            ]
+          },
+          "native_mdpg20_minus_one_hot_raw": {
+            "mean": -3.700743415417188e-17,
+            "std": 6.409875621278547e-17,
+            "folds": 3,
+            "wins": 0,
+            "losses": 1,
+            "naive_ci95": [
+              -1.962375717366698e-16,
+              1.2222270342832604e-16
+            ],
+            "corrected_ci95": [
+              -2.887723876055072e-16,
+              2.1475751929716343e-16
+            ],
+            "differences": [
+              0.0,
+              -1.1102230246251565e-16,
+              0.0
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "claims": [
+    {
+      "claim_id": "CAT-004-C1",
+      "kind": "fact",
+      "statement": "The numbers arm re-run through this experiment's loop matches CAT-002's stored fold scores exactly on 7 of 7 datasets (bank_marketing, german_credit, adult, credit_default, heart_disease, online_shoppers, mushroom), so every comparison below is paired on identical folds.",
+      "evidence": [
+        "evidence.datasets[*].folds_identical_to_cat002"
+      ],
+      "limitations": [
+        "Training-CV evidence only; not holdout confirmation and not production approval.",
+        "Only LightGBM's native handling is tested, at defaults plus one pre-declared variant; XGBoost and HistGradientBoosting also split categories natively and are untested here.",
+        "Some declared codes are ordinal in meaning (credit_default's PAY_x repayment delays, education levels); for those, numeric codes carry a real order that native and one-hot both discard.",
+        "Repeated folds share training rows; even the corrected interval is approximate."
+      ]
+    },
+    {
+      "claim_id": "CAT-004-C2",
+      "kind": "fact",
+      "statement": "Native LightGBM categorical splits (default parameters) minus codes as numbers, raw matrix: bank_marketing +0.0002 [-0.0171, +0.0175] (within noise); german_credit -0.0036 [-0.0595, +0.0522] (within noise); adult -0.0002 [-0.0053, +0.0050] (within noise); credit_default -0.0006 [-0.0090, +0.0079] (within noise); heart_disease -0.0563 [-0.1998, +0.0873] (within noise); online_shoppers -0.0059 [-0.0414, +0.0296] (within noise); mushroom +0.0000 [+0.0000, +0.0000] (within noise). Across datasets: mean -0.0095, 0 better, 0 worse, 7 within noise.",
+      "evidence": [
+        "evidence.datasets[*].paired.native_minus_numbers_raw"
+      ],
+      "limitations": [
+        "Training-CV evidence only; not holdout confirmation and not production approval.",
+        "Only LightGBM's native handling is tested, at defaults plus one pre-declared variant; XGBoost and HistGradientBoosting also split categories natively and are untested here.",
+        "Some declared codes are ordinal in meaning (credit_default's PAY_x repayment delays, education levels); for those, numeric codes carry a real order that native and one-hot both discard.",
+        "Repeated folds share training rows; even the corrected interval is approximate."
+      ]
+    },
+    {
+      "claim_id": "CAT-004-C3",
+      "kind": "fact",
+      "statement": "Native minus one-hot, raw matrix: bank_marketing +0.0017 [-0.0300, +0.0333] (within noise); german_credit -0.0161 [-0.0598, +0.0276] (within noise); adult -0.0006 [-0.0093, +0.0082] (within noise); credit_default -0.0017 [-0.0158, +0.0124] (within noise); heart_disease -0.0746 [-0.1752, +0.0260] (within noise); online_shoppers +0.0045 [-0.0409, +0.0499] (within noise); mushroom +0.0000 [+0.0000, +0.0000] (within noise). Across datasets: mean -0.0124, 0 better, 0 worse, 7 within noise.",
+      "evidence": [
+        "evidence.datasets[*].paired.native_minus_one_hot_raw"
+      ],
+      "limitations": [
+        "Training-CV evidence only; not holdout confirmation and not production approval.",
+        "Only LightGBM's native handling is tested, at defaults plus one pre-declared variant; XGBoost and HistGradientBoosting also split categories natively and are untested here.",
+        "Some declared codes are ordinal in meaning (credit_default's PAY_x repayment delays, education levels); for those, numeric codes carry a real order that native and one-hot both discard.",
+        "Repeated folds share training rows; even the corrected interval is approximate."
+      ]
+    },
+    {
+      "claim_id": "CAT-004-C4",
+      "kind": "fact",
+      "statement": "Pre-declared sensitivity variant min_data_per_group=20 minus codes as numbers: bank_marketing +0.0022 [-0.0200, +0.0243] (within noise); german_credit +0.0024 [-0.0504, +0.0552] (within noise); adult -0.0002 [-0.0039, +0.0035] (within noise); credit_default +0.0005 [-0.0058, +0.0068] (within noise); heart_disease +0.0100 [-0.0474, +0.0673] (within noise); online_shoppers -0.0049 [-0.0301, +0.0203] (within noise); mushroom -0.0000 [-0.0000, +0.0000] (within noise). Across datasets: mean +0.0014, 0 better, 0 worse, 7 within noise.",
+      "evidence": [
+        "evidence.datasets[*].paired.native_mdpg20_minus_numbers_raw"
+      ],
+      "limitations": [
+        "Training-CV evidence only; not holdout confirmation and not production approval.",
+        "Only LightGBM's native handling is tested, at defaults plus one pre-declared variant; XGBoost and HistGradientBoosting also split categories natively and are untested here.",
+        "Some declared codes are ordinal in meaning (credit_default's PAY_x repayment delays, education levels); for those, numeric codes carry a real order that native and one-hot both discard.",
+        "Repeated folds share training rows; even the corrected interval is approximate."
+      ]
+    }
+  ],
+  "status": "completed",
+  "started_at": "2026-10-05T11:58:13+00:00",
+  "completed_at": "2026-10-05T11:58:49+00:00",
+  "elapsed_seconds": 35.6,
+  "provenance": {
+    "git_commit": "cb2caa02159639793b6b0c37da7fd050c2d7b9d9",
+    "git_dirty": true,
+    "python": "3.10.19",
+    "python_implementation": "CPython",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+    "random_state": 42,
+    "packages": {
+      "numpy": "2.2.6",
+      "pandas": "2.3.3",
+      "scikit-learn": "1.7.2",
+      "lightgbm": "4.7.0",
+      "xgboost": "3.2.0",
+      "catboost": "1.2.10",
+      "optuna": "5.0.0",
+      "torch": "2.12.1"
+    },
+    "data_sha256": {
+      "data/public/adult/X.parquet": "5d9166c4bbedbadf14b132f704bb21d858d180eaf74570b1e196054ca4bd7304",
+      "data/public/adult/y.parquet": "e1602b8fbee0817742870165b4e0eb5982e36f671e4b3b5c3909dbe1863ccd74",
+      "data/public/bank_marketing/X.parquet": "cb08d5147dad00ac1f65791b89afb411c4df0bf38a2d294e6e2f684c15bc40c4",
+      "data/public/bank_marketing/y.parquet": "b9aa6ad73e0b95f6a038fe072888ac21eb1e8fadca97a0789817f6ecbdbe3237",
+      "data/public/credit_default/X.parquet": "b11d5884e900aed4e4151e410a0d84eb44fdc102dce2edd430db7bc34303bd59",
+      "data/public/credit_default/y.parquet": "92819db23b03620a405cef2046230d4cfb1fce76756082cd2db5049bf08e214f",
+      "data/public/german_credit/X.parquet": "1d2be3a8a406f921579ad460f321f4e4e3f45346b59a0ab4218b2e6488693d1e",
+      "data/public/german_credit/y.parquet": "8f1646b976d8a89770981d7b3debe01229abd62bf1779f27df8a0667ffa7aeec",
+      "data/public/heart_disease/X.parquet": "dc9853eed0f23b887072dbcd01b679a224441053034ad69964ab6017d24e3e28",
+      "data/public/heart_disease/y.parquet": "0724ec4ec92b4061944a8c5407ea98882b00452e3f1a460acf3f92b52ab094ae",
+      "data/public/mushroom/X.parquet": "9bcb0540091036661b04b82c8ed6ba76686ee2fda708d8c7c312a1b77e731092",
+      "data/public/mushroom/y.parquet": "eef564aa188593897d5c2b171b5140a96fa9573dbe1d9396151fe7c5f2a62b1a",
+      "data/public/online_shoppers/X.parquet": "17ca0f691a5745b81354757194c6ee55ed815eeb2e8d784a6e24237eb857473a",
+      "data/public/online_shoppers/y.parquet": "01d1aefa6566d5b1ee657c75ffe6ff010b7d0ff65be7ed107cc9f6ffb6e0be78"
+    }
+  }
+}

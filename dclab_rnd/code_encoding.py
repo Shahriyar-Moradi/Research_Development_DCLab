@@ -9,11 +9,17 @@ training folds only (no locked holdout is read), three treatments of each datase
 legacy   codes are numbers and feed derived features (the model_building_50_v1 behaviour)
 numbers  codes are numbers and feed no derived feature (DCLAB-R11 since 1cf5ae5)
 one_hot  codes are one-hot encoded inside each fit fold and feed no derived feature
+native   codes feed no derived feature and LightGBM splits them as categories (``categorical_feature``)
 
 CAT-001  the playbook ladder (FeatureEngineer + LightGBM, the model_building_50_v1 protocol) and a
          five-family screen on the raw matrix, 3x3 repeated stratified folds; the first repeat is the
          campaign's own folds, so the legacy arm must reproduce its recorded stage results exactly
 CAT-002  the DCLab notebook: the recipes its engine registers for each sample, on the engine's own folds
+CAT-003  native LightGBM categorical splits on CAT-001's folds (the whole ladder)
+CAT-004  native LightGBM categorical splits on CAT-002's folds (the notebook's raw recipe)
+
+CAT-003 and CAT-004 first re-run the numbers arm through their own loop and require it to match the stored
+CAT-001/CAT-002 fold scores exactly, so every comparison is paired on provably identical folds.
 
 Results are written to ``evidence/campaigns/category_codes_v1/`` and never overwritten without --force.
 
@@ -37,6 +43,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 CAMPAIGN_ID = "category_codes_v1"
@@ -233,20 +240,27 @@ def cat_playbook_ladder() -> dict[str, Any]:
 # --------------------------------------------------------------------------- CAT-002
 
 
+def _notebook_prepared(store: Any, key: str) -> Any:
+    """A DCLab notebook project on sample ``key`` with the catalog's contract, prepared with default settings."""
+    from dclab_rnd.studio import data as sd, engine
+    from dclab_rnd.studio.contract import Contract
+
+    project = store.create(f"codes {key}", "general", "category-code encoding measurement")
+    project = sd.use_sample(store, project["id"], key)
+    s = project["suggestion"]
+    project["contract"] = Contract(target=s["target"], task="binary", positive_label="1", forbidden=s["forbidden"],
+                                   prediction_moment=s["prediction_moment"]).model_dump()
+    return engine.prepare(store, store.save(project))  # default settings: up to 20,000 rows, 3 folds
+
+
 def cat_notebook_recipes() -> dict[str, Any]:
     from dclab_rnd.expansion import runner as rn
-    from dclab_rnd.studio import ProjectStore, data as sd, engine
-    from dclab_rnd.studio.contract import Contract
+    from dclab_rnd.studio import ProjectStore
 
     store = ProjectStore(Path(tempfile.mkdtemp(prefix="dclab_codes_")))
     datasets, used_paths = [], []
     for key in DATASETS:
-        project = store.create(f"codes {key}", "general", "category-code encoding measurement")
-        project = sd.use_sample(store, project["id"], key)
-        s = project["suggestion"]
-        project["contract"] = Contract(target=s["target"], task="binary", positive_label="1", forbidden=s["forbidden"],
-                                       prediction_moment=s["prediction_moment"]).model_dump()
-        p = engine.prepare(store, store.save(project))  # default settings: up to 20,000 rows, 3 folds
+        p = _notebook_prepared(store, key)
         bundle, spec = p.bundle, p.bundle.spec
         used_paths += [ROOT / "data/public" / key / "X.parquet", ROOT / "data/public" / key / "y.parquet"]
         metric, higher = spec.primary_metric, spec.higher_is_better
@@ -333,10 +347,238 @@ def cat_notebook_recipes() -> dict[str, Any]:
     }
 
 
+# --------------------------------------------------------------------------- CAT-003 / CAT-004
+
+# Declared before any native result was seen: LightGBM's default min_data_per_group=100 is large next to
+# 800-3,200 training rows, so one sensitivity variant lowers it. No other native parameter is varied.
+NATIVE_VARIANTS = {"native": {}, "native_mdpg20": {"min_data_per_group": 20}}
+
+
+def native_codes(fit: pd.DataFrame, apply: pd.DataFrame, codes: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Recode code columns as LightGBM category ids learned on the fit rows.
+
+    LightGBM reads a negative category value as missing (credit_default's PAY codes run from -2), so each
+    fit-fold level becomes 0..k-1 in sorted order, a missing value its own id k, and a level the fit rows
+    never saw k+1, a category with no training rows. No NaN remains, so the median imputer leaves them alone.
+    """
+    fit, apply = fit.copy(), apply.copy()
+    for column in codes:
+        levels = np.sort(pd.Series(fit[column]).dropna().unique())
+        lookup = {float(v): i for i, v in enumerate(levels)}
+
+        def recode(series: pd.Series) -> pd.Series:
+            ids = series.astype(float).map(lookup)
+            ids[series.isna()] = len(levels)
+            return ids.fillna(len(levels) + 1).astype(float)
+
+        fit[column], apply[column] = recode(fit[column]), recode(apply[column])
+    return fit, apply
+
+
+def _native_ladder_cv(X: pd.DataFrame, y: pd.Series, *, stage: str, categorical: list[str], native: dict[str, Any] | None) -> list[float]:
+    """science.evaluate_cv's loop for LightGBM (same splitter, FeatureEngineer seeds and model factory), with
+    ``native`` None meaning codes as numbers and a dict meaning categorical_feature plus those LightGBM params."""
+    from sklearn.model_selection import RepeatedStratifiedKFold
+
+    from dclab_rnd import science
+
+    cv = RepeatedStratifiedKFold(n_splits=FOLDS, n_repeats=REPEATS, random_state=science.RANDOM_STATE)
+    scores = []
+    for fold_index, (train_idx, valid_idx) in enumerate(cv.split(X, y), start=1):
+        X_fit, y_fit = X.iloc[train_idx].reset_index(drop=True), y.iloc[train_idx].reset_index(drop=True)
+        X_valid, y_valid = X.iloc[valid_idx].reset_index(drop=True), y.iloc[valid_idx].reset_index(drop=True)
+        engineer = science.FeatureEngineer(stage=stage, random_state=science.RANDOM_STATE + fold_index, categorical=categorical)
+        engineer.fit(X_fit, y_fit)
+        fit_matrix, valid_matrix = engineer.transform(X_fit), engineer.transform(X_valid)
+        model = science._bounded_model("lightgbm")
+        fit_kwargs: dict[str, Any] = {}
+        if native is not None:
+            codes = [c for c in engineer.categorical_ if c in fit_matrix.columns]
+            fit_matrix, valid_matrix = native_codes(fit_matrix, valid_matrix, codes)
+            if native:
+                model.set_params(**{f"model__{k}": v for k, v in native.items()})
+            if codes:
+                fit_kwargs["model__categorical_feature"] = [list(fit_matrix.columns).index(c) for c in codes]
+        model.fit(fit_matrix, y_fit, **fit_kwargs)
+        scores.append(science.probability_metrics(y_valid, science._predict_probabilities(model, valid_matrix))["roc_auc"])
+    return scores
+
+
+def _stored(cat_id: str) -> dict[str, dict[str, Any]]:
+    path = result_path(cat_id)
+    if not path.exists():
+        raise FileNotFoundError(f"{cat_id} must exist before its native follow-up: python -m dclab_rnd.code_encoding run --only {cat_id}")
+    return {d["dataset"]: d for d in json.loads(path.read_text(encoding="utf-8"))["evidence"]["datasets"]}
+
+
+def cat_native_ladder() -> dict[str, Any]:
+    from dclab_rnd import science
+
+    stored = _stored("CAT-001")
+    datasets, used_paths = [], []
+    ratio = 1 / (FOLDS - 1)
+    for key in DATASETS:
+        bundle = science.load_dataset(ROOT, key, max_rows=MAX_ROWS)
+        used_paths += bundle["data_paths"]
+        X, y = science.safe_features(bundle["X_train"], bundle["policy"]), bundle["y_train"]  # X_test is never read
+        codes = [c for c in (bundle["categorical"] or []) if c in X.columns]
+        ladder = stored[key]["ladder"]
+        check = _native_ladder_cv(X, y, stage="raw", categorical=codes, native=None)
+        identical = bool(np.allclose(check, ladder["numbers"]["raw"]["fold_roc_auc"], rtol=0, atol=1e-12))
+        native = {stage: _native_ladder_cv(X, y, stage=stage, categorical=codes, native={}) for stage in science.FEATURE_STAGES}
+        small = _native_ladder_cv(X, y, stage="raw", categorical=codes, native=NATIVE_VARIANTS["native_mdpg20"])
+        rows = {stage: {"roc_auc": _summary(v), "fold_roc_auc": v, "first_repeat_roc_auc_mean": float(np.mean(v[:FOLDS])),
+                        "feature_count_mean": ladder["numbers"][stage]["feature_count_mean"]} for stage, v in native.items()}
+        selection = {"all_folds": _select_stage(rows, "all"), "first_repeat": _select_stage(rows, "first")}
+        print(f"  CAT-003 {key}: folds identical {identical}; native " + ", ".join(f"{s} {np.mean(v):.4f}" for s, v in native.items())
+              + f"; native_mdpg20 raw {np.mean(small):.4f}", flush=True)
+        legacy_stage = stored[key]["legacy_recorded_stage_minus_raw"]["stage"]
+        datasets.append({
+            "dataset": key, "train_rows": int(len(X)), "code_columns": codes, "code_levels": stored[key]["code_levels"],
+            "folds_identical_to_cat001": identical, "numbers_raw_rerun_fold_roc_auc": check,
+            "native_ladder": rows, "native_selection": selection,
+            "native_mdpg20_raw": {"roc_auc": _summary(small), "fold_roc_auc": small},
+            "paired_roc_auc": {
+                "native_minus_numbers_raw": paired(native["raw"], ladder["numbers"]["raw"]["fold_roc_auc"], ratio),
+                "native_minus_one_hot_raw": paired(native["raw"], ladder["one_hot"]["raw"]["fold_roc_auc"], ratio),
+                "native_mdpg20_minus_numbers_raw": paired(small, ladder["numbers"]["raw"]["fold_roc_auc"], ratio),
+                "native_mdpg20_minus_native_raw": paired(small, native["raw"], ratio),
+                "native_raw_minus_legacy_recorded_stage": {"legacy_stage": legacy_stage,
+                                                           **paired(native["raw"], ladder["legacy"][legacy_stage]["fold_roc_auc"], ratio)},
+                "native_minus_numbers_by_stage": {stage: paired(native[stage], ladder["numbers"][stage]["fold_roc_auc"], ratio) for stage in native},
+            },
+        })
+    return _native_body("CAT-003", datasets, used_paths)
+
+
+def cat_native_notebook() -> dict[str, Any]:
+    from dclab_rnd.expansion import runner as rn
+    from dclab_rnd.studio import ProjectStore
+
+    stored = _stored("CAT-002")
+    store = ProjectStore(Path(tempfile.mkdtemp(prefix="dclab_codes_")))
+    datasets, used_paths = [], []
+    for key in DATASETS:
+        p = _notebook_prepared(store, key)
+        bundle, spec = p.bundle, p.bundle.spec
+        used_paths += [ROOT / "data/public" / key / "X.parquet", ROOT / "data/public" / key / "y.parquet"]
+        metric, family = spec.primary_metric, rn._fallback_family("lightgbm")
+        codes = list(spec.categorical_columns)
+        ratio = 1 / (len(bundle.cv_splits) - 1)
+
+        def run_cv(native: dict[str, Any] | None) -> list[float]:
+            """rn.cross_validate's raw recipe and LightGBM, codes as numbers; ``native`` adds categorical_feature."""
+            scores = []
+            for fit_idx, valid_idx in bundle.cv_splits:  # training rows only
+                X_fit, y_fit = bundle.X_train.iloc[fit_idx].reset_index(drop=True), bundle.y_train.iloc[fit_idx].reset_index(drop=True)
+                X_valid, y_valid = bundle.X_train.iloc[valid_idx].reset_index(drop=True), bundle.y_train.iloc[valid_idx].reset_index(drop=True)
+                recipe = rn.make_recipe(bundle, "raw").fit(X_fit, y_fit)
+                fit_m, names = recipe.transform(X_fit)
+                valid_m, _ = recipe.transform(X_valid)
+                model = rn.make_model(family, bundle.task_type)
+                fit_kwargs: dict[str, Any] = {}
+                if native is not None:
+                    present = [c for c in codes if c in names]
+                    fit_df, valid_df = native_codes(pd.DataFrame(fit_m, columns=names), pd.DataFrame(valid_m, columns=names), present)
+                    fit_m, valid_m = fit_df.to_numpy(dtype=np.float32), valid_df.to_numpy(dtype=np.float32)
+                    if native:
+                        model.set_params(**{f"model__{k}": v for k, v in native.items()})
+                    if present:
+                        fit_kwargs["model__categorical_feature"] = [names.index(c) for c in present]
+                model.fit(fit_m, y_fit.to_numpy(), **fit_kwargs)
+                predictions = rn.predict_scores(model, valid_m, bundle.task_type, rn._n_classes(bundle))
+                scores.append(rn.compute_metrics(bundle.task_type, y_valid, predictions)[metric])
+            return scores
+
+        before = bundle.spec
+        try:
+            bundle.spec = replace(spec, settings={**spec.settings, "one_hot_codes": False})  # codes stay numeric columns
+            check = run_cv(None)
+            native = run_cv({})
+            small = run_cv(NATIVE_VARIANTS["native_mdpg20"])
+        finally:
+            bundle.spec = before
+        config = f"raw/{family}"
+        numbers = stored[key]["results"]["numbers"][config]["fold_metric"]
+        one_hot = stored[key]["results"]["one_hot"][config]["fold_metric"]
+        identical = bool(np.allclose(check, numbers, rtol=0, atol=1e-12))
+        print(f"  CAT-004 {key}: folds identical {identical}; native {np.mean(native):.4f}, native_mdpg20 {np.mean(small):.4f}", flush=True)
+        datasets.append({
+            "dataset": key, "train_rows": int(len(bundle.X_train)), "cv_protocol": bundle.cv_description, "primary_metric": metric,
+            "code_columns": codes, "folds_identical_to_cat002": identical, "numbers_raw_rerun_fold_metric": check,
+            "native_raw": {"metric": _summary(native), "fold_metric": native},
+            "native_mdpg20_raw": {"metric": _summary(small), "fold_metric": small},
+            "paired": {"native_minus_numbers_raw": paired(native, numbers, ratio), "native_minus_one_hot_raw": paired(native, one_hot, ratio),
+                       "native_mdpg20_minus_numbers_raw": paired(small, numbers, ratio), "native_mdpg20_minus_one_hot_raw": paired(small, one_hot, ratio)},
+        })
+    return _native_body("CAT-004", datasets, used_paths)
+
+
+def _native_body(cat_id: str, datasets: list[dict[str, Any]], used_paths: list[Path]) -> dict[str, Any]:
+    ladder = cat_id == "CAT-003"
+    pairs = (lambda d: d["paired_roc_auc"]) if ladder else (lambda d: d["paired"])
+    flag = "folds_identical_to_cat001" if ladder else "folds_identical_to_cat002"
+    identical = [d["dataset"] for d in datasets if d[flag]]
+
+    def row(name: str) -> str:
+        return "; ".join(f"{d['dataset']} {_ci(pairs(d)[name])} ({_verdict(pairs(d)[name])})" for d in datasets)
+
+    def tally(name: str) -> str:
+        verdicts = [_verdict(pairs(d)[name]) for d in datasets]
+        means = [pairs(d)[name]["mean"] for d in datasets]
+        return f"mean {np.mean(means):+.4f}, {verdicts.count('better')} better, {verdicts.count('worse')} worse, {verdicts.count('within noise')} within noise"
+
+    source = "CAT-001" if ladder else "CAT-002"
+    claims = [
+        ("fact", f"The numbers arm re-run through this experiment's loop matches {source}'s stored fold scores exactly on {len(identical)} of {len(datasets)} "
+                 f"datasets ({', '.join(identical) or 'none'}), so every comparison below is paired on identical folds.",
+         [f"evidence.datasets[*].{flag}"]),
+        ("fact", "Native LightGBM categorical splits (default parameters) minus codes as numbers, raw matrix: " + row("native_minus_numbers_raw")
+                 + ". Across datasets: " + tally("native_minus_numbers_raw") + ".",
+         [f"evidence.datasets[*].{'paired_roc_auc' if ladder else 'paired'}.native_minus_numbers_raw"]),
+        ("fact", "Native minus one-hot, raw matrix: " + row("native_minus_one_hot_raw") + ". Across datasets: " + tally("native_minus_one_hot_raw") + ".",
+         [f"evidence.datasets[*].{'paired_roc_auc' if ladder else 'paired'}.native_minus_one_hot_raw"]),
+        ("fact", "Pre-declared sensitivity variant min_data_per_group=20 minus codes as numbers: " + row("native_mdpg20_minus_numbers_raw")
+                 + ". Across datasets: " + tally("native_mdpg20_minus_numbers_raw") + ".",
+         [f"evidence.datasets[*].{'paired_roc_auc' if ladder else 'paired'}.native_mdpg20_minus_numbers_raw"]),
+    ]
+    if ladder:
+        focus = [d for d in datasets if d["dataset"] in ("bank_marketing", "german_credit")]
+        claims.append(("fact", "Native raw against the legacy arm's recorded derived stage (the EXP-008/EXP-028 question): "
+                       + "; ".join(f"{d['dataset']} vs `{d['paired_roc_auc']['native_raw_minus_legacy_recorded_stage']['legacy_stage']}` "
+                                   f"{_ci(d['paired_roc_auc']['native_raw_minus_legacy_recorded_stage'])}" for d in focus)
+                       + ". Native ladder selection over 9 folds: " + ", ".join(f"{d['dataset']} `{d['native_selection']['all_folds']['selected_stage']}`" for d in datasets) + ".",
+                       ["evidence.datasets[*].paired_roc_auc.native_raw_minus_legacy_recorded_stage", "evidence.datasets[*].native_selection"]))
+    where = ("CAT-001's RepeatedStratifiedKFold(3x3, seed 42) on the model_building_50_v1 training rows (4,000 stratified rows, 80% split), "
+             "the playbook FeatureEngineer and the campaign's LightGBM factory (median imputer + LGBMClassifier defaults)" if ladder else
+             "CAT-002's DCLab notebook projects and the engine's own 3 stratified training folds, its raw recipe and its LightGBM (300 trees, lr 0.05, 31 leaves)")
+    return {
+        "name": "native_lightgbm_ladder" if ladder else "native_lightgbm_notebook",
+        "question": "Do LightGBM's native categorical splits on the declared code columns beat both numeric codes and one-hot encoding on the same training folds?",
+        "hypothesis": "Native splits group levels by target statistics, so they keep the signal trees found in numeric codes without assuming an order, and beat one-hot for trees.",
+        "setup_summary": (f"{len(datasets)} public datasets with declared codes; {where}. Codes are kept out of derived features and recoded to fit-fold category ids "
+                          "(missing and unseen levels get their own ids; credit_default's negative codes would otherwise read as missing), then passed as "
+                          "categorical_feature. Arms: native (LightGBM defaults: min_data_per_group 100, cat_smooth 10, max_cat_threshold 32, max_cat_to_onehot 4) "
+                          "and one pre-declared sensitivity variant native_mdpg20 (min_data_per_group 20), each compared fold-by-fold with the stored "
+                          f"numbers and one-hot arms of {source}; Nadeau-Bengio corrected 95% intervals. No holdout row is read."),
+        "datasets_used": list(DATASETS), "data_paths": used_paths,
+        "evidence": {"protocol": {"source_experiment": source, "variants": NATIVE_VARIANTS,
+                                  "recoding": "fit-fold levels -> 0..k-1 (sorted), missing -> k, unseen -> k+1",
+                                  "uncertainty": "paired fold differences; corrected_ci95 uses Nadeau-Bengio variance s^2(1/n + 1/(k-1))"},
+                     "datasets": datasets},
+        "claims": claims,
+        "limitations": ["Training-CV evidence only; not holdout confirmation and not production approval.",
+                        "Only LightGBM's native handling is tested, at defaults plus one pre-declared variant; XGBoost and HistGradientBoosting also split categories natively and are untested here.",
+                        "Some declared codes are ordinal in meaning (credit_default's PAY_x repayment delays, education levels); for those, numeric codes carry a real order that native and one-hot both discard.",
+                        "Repeated folds share training rows; even the corrected interval is approximate."],
+    }
+
+
 # --------------------------------------------------------------------------- persistence
 
-EXPERIMENTS: dict[str, Callable[[], dict[str, Any]]] = {"CAT-001": cat_playbook_ladder, "CAT-002": cat_notebook_recipes}
-NAMES = {"CAT-001": "playbook_ladder", "CAT-002": "notebook_recipes"}
+EXPERIMENTS: dict[str, Callable[[], dict[str, Any]]] = {"CAT-001": cat_playbook_ladder, "CAT-002": cat_notebook_recipes,
+                                                         "CAT-003": cat_native_ladder, "CAT-004": cat_native_notebook}
+NAMES = {"CAT-001": "playbook_ladder", "CAT-002": "notebook_recipes", "CAT-003": "native_lightgbm_ladder", "CAT-004": "native_lightgbm_notebook"}
 
 
 def result_path(cat_id: str) -> Path:
@@ -421,6 +663,19 @@ def write_report() -> None:
             lines.append(f"| {d['dataset']} | {d['primary_metric']} | {_ci(pairs['raw/' + d['stage_model']])} | {_ci(pairs['raw/logistic_regression'])} | "
                          f"{_ci(pairs['raw/extra_trees'])} | {d['selected_recipe']['numbers']} → {d['selected_recipe']['one_hot']} |")
         lines += [""] + [f"- **{c['kind']}**: {c['statement']}" for c in notebook["claims"]] + [""]
+    for cat_id, title, key in (("CAT-003", "native LightGBM categorical splits, playbook ladder folds", "paired_roc_auc"),
+                               ("CAT-004", "native LightGBM categorical splits, DCLab notebook folds", "paired")):
+        native = results.get(cat_id)
+        if not native:
+            continue
+        lines += [f"## {cat_id} · {title}", "", f"**Setup.** {native['setup_summary']}", "",
+                  "| Dataset | Same folds | Native − numbers | Native − one-hot | mdpg20 − numbers |", "|---|---|---|---|---|"]
+        for d in native["evidence"]["datasets"]:
+            pairs = d[key]
+            same = d.get("folds_identical_to_cat001", d.get("folds_identical_to_cat002"))
+            lines.append(f"| {d['dataset']} | {'yes' if same else 'no'} | {_ci(pairs['native_minus_numbers_raw'])} | "
+                         f"{_ci(pairs['native_minus_one_hot_raw'])} | {_ci(pairs['native_mdpg20_minus_numbers_raw'])} |")
+        lines += [""] + [f"- **{c['kind']}**: {c['statement']}" for c in native["claims"]] + [""]
     for r in results.values():
         lines += [f"Limitations ({r['experiment_id']}): " + " ".join(r["claims"][0]["limitations"]) if r["claims"] else "", ""]
     lines += ["Re-run: `python -m dclab_rnd.code_encoding run --force` (results under `results/`, never edited by hand).", ""]

@@ -110,6 +110,38 @@ class PairedDifferenceTests(unittest.TestCase):
         self.assertGreater(corrected[1], naive[1])
 
 
+class NativeCategoricalTests(unittest.TestCase):
+    def test_codes_become_fit_fold_category_ids(self):
+        from dclab_rnd.code_encoding import native_codes
+
+        fit = pd.DataFrame({"pay": [-2.0, -1.0, 0.0, 2.0, np.nan], "x": [1.0, 2.0, 3.0, 4.0, 5.0]})
+        apply = pd.DataFrame({"pay": [2.0, 7.0, np.nan, -2.0], "x": [1.0, 1.0, 1.0, 1.0]})
+        fit_ids, apply_ids = native_codes(fit, apply, ["pay"])
+        self.assertEqual(fit_ids["pay"].tolist(), [0.0, 1.0, 2.0, 3.0, 4.0])  # negatives no longer read as missing; NaN gets id k
+        self.assertEqual(apply_ids["pay"].tolist(), [3.0, 5.0, 4.0, 0.0])  # unseen level 7 gets k+1
+        self.assertEqual(apply_ids["x"].tolist(), [1.0] * 4)  # other columns untouched
+        self.assertTrue(fit["pay"].isna().any())  # inputs are not modified
+
+    @unittest.skipUnless(importlib.util.find_spec("lightgbm"), "lightgbm not installed")
+    def test_lightgbm_splits_the_codes_as_categories(self):
+        from dclab_rnd.code_encoding import native_codes
+        from dclab_rnd.expansion.runner import make_model
+
+        X, y = _xy(bank_like(2000))
+        X_ids, _ = native_codes(X, X, ["month"])
+        model = make_model("lightgbm", "binary_imbalanced").fit(X_ids.to_numpy(), y.to_numpy(), model__categorical_feature=[0])
+        trees = model.named_steps["model"].booster_.dump_model()["tree_info"]
+
+        def splits(node):
+            if "split_feature" not in node:
+                return []
+            return [(node["split_feature"], node["decision_type"])] + splits(node["left_child"]) + splits(node["right_child"])
+
+        found = {s for tree in trees for s in splits(tree["tree_structure"])}
+        self.assertIn((0, "=="), found)  # month split by category membership
+        self.assertFalse([s for s in found if s[0] == 0 and s[1] != "=="])  # never by a threshold on the code
+
+
 class FeatureEngineerTests(unittest.TestCase):
     def setUp(self):
         self.X, self.y = _xy(bank_like())
