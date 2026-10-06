@@ -145,7 +145,9 @@ class DataLimitTests(unittest.TestCase):
         for stage in ("data", "leakage", "features", "models", "final"):  # every stage's notes
             engine.execute(store, pid, stage, "human")
         agent.answer("Which model is best, and is there a leak?", store.get(pid), store.records(pid), "binary")
-        for purpose in ("stage_notes", "project_answer"):
+        from dclab_rnd import lessons
+        lessons.propose(store.get(pid), store.read_stage(pid, "final"), models.installed().client("lesson_proposal", project_id=pid))  # A5.3
+        for purpose in ("stage_notes", "project_answer", "lesson_proposal"):
             self.assertEqual(self.assertWithinLimit(purpose), set(), purpose)
 
     def test_the_intern_sees_at_most_three_examples_per_column(self):
@@ -196,7 +198,7 @@ class DataLimitTests(unittest.TestCase):
         self.assertFalse([p for p in Capture.prompts["notebook_review"] if "Q7Kx" in p or "read_csv" in p])
 
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "intern", "leakage_review", "notebook_review"}
+        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern", "leakage_review", "notebook_review"}
         no_user_data = {"campaign", "campaign_review"}  # research tools: evidence/campaigns only, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

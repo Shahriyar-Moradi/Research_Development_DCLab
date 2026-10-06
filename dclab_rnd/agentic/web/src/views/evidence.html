@@ -67,15 +67,19 @@
         </div>
       </div>
     </div>
+    <div class="panel" id="ev-lessons-panel" hidden>
+      <div class="panel-head"><div class="panel-title"><h3>Lessons from this workspace's projects</h3><span class="sub">Each holds for its scope only. Proposed lessons wait for a reviewer.</span></div></div>
+      <div class="panel-body"><div class="list" id="ev-lessons"></div></div>
+    </div>
     <p class="pane-intro">How the library grows.</p>
     <div class="grid g3">
       <div class="panel" data-f="ev.contribute">
-        <div class="panel-head"><h3>From projects</h3><span class="pill outline">not built</span></div>
+        <div class="panel-head"><h3>From projects</h3><span class="pill outline" id="ev-lessons-pill">no lessons yet</span></div>
         <div class="panel-body small stack tight">
-          <p>Lessons stay inside their project for now. The step that reviews a project's lesson and adds it to this index is not built yet.</p>
-          <p class="muted">Today the index grows from the R&amp;D campaigns: <code>make knowledge</code> rebuilds it after new results.</p>
+          <p>When a person approves a project's final stage, DCLab proposes up to three lessons from its records. A reviewer accepts, edits or rejects each one.</p>
+          <p class="muted">Accepted lessons are searched with these records, labelled as workspace lessons. A lesson from synthetic data is never offered as evidence. The R&amp;D index itself still grows only from <code>make knowledge</code>.</p>
         </div>
-        <div class="panel-foot">A lesson joins the index only after review, with its scope and the record it came from.</div>
+        <div class="panel-foot">A lesson joins the search only after review, with its scope and the project it came from.</div>
       </div>
       <div class="panel" data-f="ev.kaggle">
         <div class="panel-head"><h3>From public solutions</h3><span class="pill outline">planned</span></div>
@@ -144,7 +148,8 @@ DC.view('evidence', {
       docs.forEach(d => new Set(tok(d.text)).forEach(w => { df[w] = (df[w] || 0) + 1; }));
       search();
       const most = Math.max(10, ...types.map(n)), top = Math.ceil(most / 10) * 10;
-      $('#ev-mix', el).innerHTML = charts.barsH(types.map(t => ({ label: TYPE_LABEL[t], value: n(t), valueText: String(n(t)), cls: t === 'leakage_precedent' ? 'bad' : t === 'rule' ? 'proof' : '' })),
+      const mix = types.concat(RECORDS.some(r => r.type === 'workspace_lesson') ? ['workspace_lesson'] : []);
+      $('#ev-mix', el).innerHTML = charts.barsH(mix.map(t => ({ label: TYPE_LABEL[t], value: n(t), valueText: String(n(t)), cls: t === 'leakage_precedent' ? 'bad' : t === 'rule' ? 'proof' : '' })),
         { width: 320, labelW: 132, valW: 34, min: 0, max: top, rowH: 24, ticks: [0, top / 2, top], tickFmt: v => v, aria: 'Records by type' });
       const cites = id => RECORDS.filter(r => r.id !== id && r.text.includes(id)).length;
       $('#rules-table tbody', el).innerHTML = RECORDS.filter(r => r.type === 'rule').map(r => `<tr data-record="${esc(r.id)}"><td>${chip(r.id)}</td><td>${esc(r.title)}</td><td class="small">${esc(((r.meta && r.meta.category) || '').replace(/_/g, ' '))}</td><td class="num">${cites(r.id)}</td></tr>`).join('');
@@ -174,12 +179,63 @@ DC.view('evidence', {
       out.innerHTML = `<div class="inset stack tight">${lead}${note}${recs ? `<div class="list small">${recs}</div>` : ''}</div>`;
       DC.hydrate(out);
     });
+    /* Workspace lessons (A5.3): proposed after a project's final stage, reviewed here, then searched with the records. */
+    const lessonsEl = $('#ev-lessons', el);
+    this.loadLessons = async () => {
+      let d;
+      try { d = await DC.api('/lessons'); } catch (err) { return; }
+      const all = (d && d.lessons) || [], waiting = all.filter(l => l.status === 'proposed').length;
+      $('#ev-lessons-panel', el).hidden = !all.length;
+      const pill = $('#ev-lessons-pill', el);
+      pill.textContent = all.length ? `${all.filter(l => l.status === 'accepted').length} accepted · ${waiting} to review` : 'no lessons yet';
+      pill.className = 'pill ' + (waiting ? 'warn' : all.length ? 'ok' : 'outline');
+      const cite = (l, id) => `<span class="tag" title="${esc((l.sources || {})[id] || id)}">${esc(id.replace(/^PRJ-[^-]+-/, ''))}</span>`;
+      lessonsEl.innerHTML = all.slice().reverse().map(l => {
+        const s = l.scope || {}, r = l.review || {};
+        const scope = [s.project && 'project ' + s.project, s.dataset, s.task, s.rows && s.rows + ' rows', s.metric && 'metric ' + s.metric].filter(Boolean).join(' · ');
+        const acts = l.status === 'rejected' || l.status === 'superseded' ? '' : (l.status === 'proposed' ? ['accept', 'edit', 'reject'] : ['reject'])
+          .map(a => `<button type="button" class="link-btn small" data-lesson="${esc(l.id)}" data-act="${a}">${a === 'reject' && l.status === 'accepted' ? 'Withdraw' : a[0].toUpperCase() + a.slice(1)}</button>`).join('');
+        return `<div class="list-item"><div class="li-main stack tight"><span class="row"><span class="pill ${l.status === 'accepted' ? 'ok' : l.status === 'rejected' ? 'bad' : 'outline'}" title="${l.status === 'superseded' ? 'The final stage ran again; review the latest run\'s lessons' : ''}">${esc(l.status)}</span>`
+          + (l.synthetic ? '<span class="pill warn">synthetic data: not evidence</span>' : '')
+          + `<span class="pill outline">${l.written_by === 'model' ? 'written by a model, checked' : 'written by code'}</span></span>`
+          + `<span class="li-title">${esc(l.claim)} ${(l.cites || []).map(id => cite(l, id)).join('')}</span>`
+          + `<span class="li-sub"><b>Scope:</b> ${esc(scope)}</span><span class="li-sub"><b>Against it:</b> ${esc(l.against)}</span><span class="li-sub"><b>Next test:</b> ${esc(l.next_test)}</span>`
+          + (r.by ? `<span class="xs muted">${esc(r.action)} by the ${esc(r.by)} · ${esc((r.at || '').slice(0, 10))}${r.reason ? ' · ' + esc(r.reason) : ''}</span>` : '')
+          + (acts ? `<span class="row">${acts}</span>` : '') + '</div></div>';
+      }).join('');
+      this.lessons = all;
+    };
+    lessonsEl.addEventListener('click', e => {
+      const b = e.target.closest('[data-lesson]'); if (!b) return;
+      const l = (this.lessons || []).find(x => x.id === b.dataset.lesson), act = b.dataset.act; if (!l) return;
+      const field = (k, label) => `<label class="small" for="lesson-${k}">${label}</label><textarea id="lesson-${k}" rows="2">${esc(l[k])}</textarea>`;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Workspace lesson</span>',
+        title: act === 'accept' ? 'Accept this lesson?' : act === 'edit' ? 'Edit and accept' : l.status === 'accepted' ? 'Withdraw this lesson?' : 'Reject this lesson?',
+        confirm: act === 'accept' ? 'Accept' : act === 'edit' ? 'Save and accept' : act === 'reject' && l.status === 'accepted' ? 'Withdraw' : 'Reject',
+        html: (act === 'edit' ? field('claim', 'Claim') + field('against', 'Against it') + field('next_test', 'Next test') : `<p>${esc(l.claim)}</p>`)
+          + '<label class="small" for="lesson-reason">Reason</label><textarea id="lesson-reason" rows="2" placeholder="Why"></textarea>'
+          + '<label class="row small"><input type="checkbox" id="lesson-role"> I review this as the workspace\'s reviewer</label>'
+          + '<p class="xs muted">Until accounts exist, the role is the one you declare here; the project log records it.</p>',
+        onConfirm: () => {
+          const v = id => (document.getElementById(id) || {}).value || '';
+          if (!(document.getElementById('lesson-role') || {}).checked) { DC.toast('Only a reviewer reviews a lesson: tick the box.', { ok: false }); return false; }
+          const body = { action: act, reason: v('lesson-reason') };
+          if (act === 'edit') Object.assign(body, { claim: v('lesson-claim'), against: v('lesson-against'), next_test: v('lesson-next_test') });
+          DC.api(`/lessons/${encodeURIComponent(l.id)}/review`, { method: 'POST', headers: { 'X-DCLab-Role': 'reviewer' }, body })
+            .then(() => { DC.modal.close(); DC.toast(act === 'reject' ? 'Lesson kept out of the evidence.' : l.synthetic ? 'Lesson accepted. It came from synthetic data, so it is never offered as evidence.' : 'Lesson accepted: it is searched with the records.'); this.loadLessons(); DC.loadRecords(true).then(() => this.render && this.render()); })
+            .catch(err => DC.toast(err.message, { ok: false }));
+          return false;
+        },
+      });
+    });
     DC.hydrate(el);
   },
   async enter() {
     DC.markSample(false);
     const live = await DC.loadRecords();
     if (this.render) this.render();
+    if (this.loadLessons) this.loadLessons();
     const pill = DC.$('#ev-guide-pill');
     if (live && pill) { pill.textContent = live.guide ? 'exists' : 'not built here'; pill.className = 'pill ' + (live.guide ? 'ok' : 'outline'); }
   },

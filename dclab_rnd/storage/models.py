@@ -168,4 +168,16 @@ agent_step = sa.Table(  # one row per step of an agent run (dclab_rnd/agents/tra
     sa.Column("seconds", sa.Float, nullable=False, server_default="0"),
     sa.Index("ix_agent_step_workspace_id_run_id", "workspace_id", "run_id"))
 
+workspace_lesson = sa.Table(  # a lesson from a finished project, proposed, then accepted or rejected by a reviewer (dclab_rnd/lessons.py, A5.3)
+    "workspace_lesson", metadata, _id(),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("project_id", sa.String(64), nullable=False),  # kept when the project is deleted: an accepted lesson is evidence on its own
+    sa.Column("status", sa.Text, nullable=False),
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("created", TIME, nullable=False, server_default=NOW),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW),
+    sa.CheckConstraint("status in ('proposed', 'accepted', 'rejected', 'superseded')", name="status"),
+    sa.Index("ix_workspace_lesson_workspace_id_status", "workspace_id", "status"),
+    sa.Index("ix_workspace_lesson_project_id", "project_id"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

@@ -27,7 +27,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 CITE = re.compile(r"\[([A-Za-z][A-Za-z0-9_.-]*)\]")
-IDS = re.compile(r"\b(?:DCLAB-R\d+|WF-\d+|EXP-\d+|PIT-\d+|CAT-\d+|LEAK-[a-z_]+|FINDING-[a-z-]+|DATASET-[a-z_]+|PRJ-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)\b")
+IDS = re.compile(r"\b(?:DCLAB-R\d+|WF-\d+|EXP-\d+|PIT-\d+|CAT-\d+|LEAK-[a-z_]+|FINDING-[a-z-]+|DATASET-[a-z_]+|PRJ-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*|LESSON-[A-Za-z0-9]+)\b")
 # a number as written: sign, digits (or .99), and the unit that changes what it means (%, k, M, thousand, million, percent)
 NUMBER = re.compile(r"(?<![\d.])([-+]?)(\d+(?:[.,]\d+)*|\.\d+)(?:\s?(%|percent\b|[kKmMbB]\b|thousand\b|million\b|billion\b))?")
 # number words that stand for a digit are read as digits ("ten folds" is 10 folds); the others (half, twice, million…) cannot be

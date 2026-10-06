@@ -109,7 +109,7 @@ window.FEATURES = [
   { id: 'brief.risks', view: 'brief', name: 'Risks, assumptions and what is not proven', status: 'built', phase: 'Now', where: 'report sections · critic reviews', note: 'Stage notes with warnings.' },
   { id: 'brief.fa', view: 'brief', name: 'Brief in English and Persian', status: 'built', phase: 'Now', where: '', note: 'The same brief in Persian, with Persian digits.' },
   { id: 'brief.signoff', view: 'brief', name: 'Business sign-off and next decision', status: 'built', phase: 'Now', where: '', note: 'Signs the solution gate with a reason.' },
-  { id: 'brief.capture', view: 'brief', name: 'Knowledge capture: lessons to evidence, examples to SFT (WF-10)', status: 'partial', phase: 'P1', where: 'studio/sft.py', note: 'SFT examples from projects exist; project lessons into the evidence index do not.' },
+  { id: 'brief.capture', view: 'brief', name: 'Knowledge capture: lessons to evidence, examples to SFT (WF-10)', status: 'partial', phase: 'P1', where: 'studio/sft.py', note: 'SFT examples from projects exist; reviewed project lessons join the evidence search (A5.3).' },
   { id: 'brief.share', view: 'brief', name: 'Share link and exports', status: 'partial', phase: 'P2', where: 'report export', note: '' },
 
   // ---- intern
@@ -140,7 +140,7 @@ window.FEATURES = [
   { id: 'ev.ask', view: 'evidence', name: 'Ask the evidence (answers cite records)', status: 'partial', phase: 'P1', where: 'pages/evidence.py POST /api/evidence/ask', note: 'Search, then a model answer kept only where citations and numbers check out, or the closest records. The page asks four fixed questions; the route takes any.' },
   { id: 'ev.guide', view: 'evidence', name: 'Field guide and outside-reader narrative', status: 'built', phase: 'Now', where: 'evidence/knowledge/MODEL_BUILDING_FIELD_GUIDE.html', note: '' },
   { id: 'ev.kaggle', view: 'evidence', name: 'Kaggle solution corpus ("50 challenges solved")', status: 'todo', phase: 'P3', where: '', note: '' },
-  { id: 'ev.contribute', view: 'evidence', name: 'Project lessons flow into the evidence', status: 'todo', phase: 'P1', where: '', note: '' },
+  { id: 'ev.contribute', view: 'evidence', name: 'Project lessons flow into the evidence', status: 'built', phase: 'Now', where: 'lessons.py · /api/lessons', note: 'Proposed after the final stage is approved; a reviewer accepts, edits or rejects each; accepted lessons are searched with the records, labelled. The role is declared, not a login, until accounts exist.' },
 
   // ---- lab
   { id: 'lab.registry', view: 'lab', name: 'Experiment registry (569 of 579 validated)', status: 'built', phase: 'Now', where: 'dclab_rnd/registry.py', note: '' },

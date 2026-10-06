@@ -38,10 +38,13 @@ POST_OUTCOME_NAME = re.compile(
 
 
 def _index() -> EvidenceIndex:
+    """The repository's evidence index, with the workspace's accepted lessons when a workspace installed them (A5.3)."""
     global _INDEX
     if _INDEX is None:
         _INDEX = EvidenceIndex.load(ROOT)
-    return _INDEX
+    from . import lessons
+
+    return lessons.merged(_INDEX)
 
 
 def _brief(record: dict[str, Any], chars: int = 700) -> dict[str, Any]:

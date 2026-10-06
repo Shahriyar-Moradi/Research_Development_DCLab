@@ -32,7 +32,7 @@ from typing import Any
 from fastapi import HTTPException, Request
 
 from dclab_rnd import prompts
-from ... import cited, retrieval
+from ... import cited, lessons, retrieval
 from ...evidence_index import EvidenceIndex
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -75,11 +75,13 @@ def _index(path: Path = INDEX) -> tuple[tuple[dict[str, Any], ...], EvidenceInde
 def library(path: Path = INDEX) -> dict[str, Any]:
     loaded = _index(path)
     raw = loaded[0] if loaded else ()
-    records = [_page_record(r) for r in raw]
+    accepted = lessons.offered()  # A5.3: the workspace's accepted lessons, labelled; never written into the index file
+    records = [_page_record(r) for r in raw] + [_page_record(r) for r in lessons.records(accepted)]
     updated = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(timespec="seconds") if loaded else None
     return {"records": records, "total": len(records), "counts": dict(Counter(r["type"] for r in records)),
-            "datasets": len({r["meta"].get("dataset") for r in records if r["meta"].get("dataset")}),
-            "source": _rel(path), "updated": updated, "guide": GUIDE.is_file(), "guide_path": _rel(GUIDE)}
+            "datasets": len({r["meta"].get("dataset") for r in records if r["meta"].get("dataset") and r["type"] != lessons.TYPE}),  # the R&D's datasets
+            "source": _rel(path), "updated": updated, "guide": GUIDE.is_file(), "guide_path": _rel(GUIDE),
+            "workspace_lessons": len(accepted), "lesson_label": lessons.LABEL}
 
 
 def check(answer: str, hits: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
@@ -98,7 +100,7 @@ def _brief(h: dict[str, Any]) -> dict[str, Any]:
 def ask(question: str, client=None, path: Path = INDEX) -> dict[str, Any]:
     loaded = _index(path)
     # the product's index searches by the measured method (A5.1: the hybrid only if it is not worse on any question group)
-    hits = retrieval.search(question, k=K, index=loaded[1]) if loaded else []
+    hits = retrieval.search(question, k=K, index=lessons.merged(loaded[1])) if loaded else []  # with the workspace's accepted lessons (A5.3)
     out: dict[str, Any] = {"question": question, "records": [_brief(h) for h in hits], "sentences": [], "dropped": 0}
     if not hits:
         return out | {"mode": "none", "covered": False, "note": NOT_COVERED}

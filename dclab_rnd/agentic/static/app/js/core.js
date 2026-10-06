@@ -211,8 +211,8 @@
   };
 
   /* ---------------- evidence records ---------------- */
-  const TYPE_LABEL = { rule: 'Rule', workflow: 'Workflow block', dataset: 'Dataset card', experiment: 'Experiment', leakage_precedent: 'Leakage precedent', pitfall: 'Pitfall experiment', finding: 'Cross-dataset finding' };
-  const TYPE_CLS = { rule: 'proof', workflow: 'accent', dataset: 'info', experiment: '', leakage_precedent: 'bad', pitfall: 'warn', finding: 'ok' };
+  const TYPE_LABEL = { rule: 'Rule', workflow: 'Workflow block', dataset: 'Dataset card', experiment: 'Experiment', leakage_precedent: 'Leakage precedent', pitfall: 'Pitfall experiment', finding: 'Cross-dataset finding', workspace_lesson: 'Workspace lesson' };
+  const TYPE_CLS = { rule: 'proof', workflow: 'accent', dataset: 'info', experiment: '', leakage_precedent: 'bad', pitfall: 'warn', finding: 'ok', workspace_lesson: 'info' };
   function chip(id, label) {
     const cls = id.startsWith('DCLAB-R') ? ' rule' : id.startsWith('WF-') ? ' wf' : '';
     return `<button type="button" class="ev-chip${cls}" data-record="${esc(id)}" title="${esc((REC[id] && REC[id].title) || id)}">${esc(label || id)}</button>`;

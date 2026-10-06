@@ -21,6 +21,7 @@ from .store import Store
 from .. import research_map
 from ..storage import open_stores
 from .. import models
+from .. import lessons as workspace_lessons
 from ..studio import ProjectStore, agent as studio_agent, solution as studio_solution, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, memory as studio_memory, sft as studio_sft
 from ..intern import Intern, SessionStore
 from ..models import settings as model_settings
@@ -58,6 +59,8 @@ def create_app(home=None):
     intern_jobs = {}
     draft_jobs = {}
     traces = open_traces(store.home)  # a row per agent step (package A2.3)
+    lesson_store = workspace_lessons.open_lessons(store.home)  # the workspace's lessons table (A5.3)
+    workspace_lessons.install(lesson_store)  # accepted lessons join every evidence search
     def intern():
         return Intern(intern_sessions, Toolbox(projects), gateway.client("intern"), traces=traces)
     csrf = secrets.token_urlsafe(32)
@@ -327,7 +330,45 @@ def create_app(home=None):
         body = await request.json() if int(request.headers.get("content-length", "0") or 0) else {}
         try: studio_engine.approve(projects, project_id, stage, (body or {}).get("choice"))
         except (ValueError, KeyError) as exc: raise HTTPException(409, str(exc))
+        if stage == "final":  # A5.3: a finished project proposes what it taught, for a reviewer
+            try: await asyncio.to_thread(propose_lessons, project_id)
+            except Exception as exc:  # noqa: BLE001 — the approval is saved; POST /lessons proposes them again later
+                projects.log(project_id, "lessons_not_proposed", {"error": type(exc).__name__})
         return with_records(projects.get(project_id))
+    def propose_lessons(project_id):
+        p = projects.get(project_id)
+        record = projects.read_stage(project_id, "final")
+        return workspace_lessons.propose_for(lesson_store, p, record, gateway.client("lesson_proposal", project_id=project_id))
+    @app.post("/api/projects/{project_id}/lessons")
+    async def project_lessons(project_id: str):
+        """Propose the lessons of a finished project (once per final stage record; a second call returns the same ones)."""
+        p = project(project_id)
+        if (p["stages"].get("final") or {}).get("status") != "approved":
+            raise HTTPException(409, "Lessons are proposed after a person approves the final stage")
+        return {"lessons": await asyncio.to_thread(propose_lessons, project_id), "label": workspace_lessons.LABEL}
+    @app.get("/api/lessons")
+    async def list_lessons(project_id: str | None = None, status: str | None = None):
+        """The workspace's lessons, for the Evidence library's "From projects" panel and a project's page."""
+        return {"lessons": lesson_store.list(project_id=project_id, status=status), "label": workspace_lessons.LABEL,
+                "reviewers": list(workspace_lessons.REVIEWERS)}
+    @app.post("/api/lessons/{lesson_id}/review")
+    async def review_lesson(lesson_id: str, request: Request):
+        """A reviewer accepts, edits or rejects a lesson. Until accounts exist the role is the one the request declares
+        (X-DCLab-Role), so this keeps an honest record of who reviewed in which role, not a verified login."""
+        try: body = await request.json()
+        except ValueError: raise HTTPException(422, "The body must be JSON") from None
+        body = body if isinstance(body, dict) else {}
+        role = (request.headers.get("x-dclab-role") or "").strip().lower() or None
+        try:
+            lesson = workspace_lessons.review(lesson_store, lesson_id, str(body.get("action", "")), role, str(body.get("reason") or ""),
+                                              {k: body.get(k) for k in ("claim", "against", "next_test")})
+        except PermissionError as exc: raise HTTPException(403, str(exc)) from None
+        except KeyError: raise HTTPException(404, "No such lesson") from None
+        except workspace_lessons.ReviewError as exc: raise HTTPException(422, str(exc)) from None
+        try: projects.log(lesson["project_id"], "lesson_reviewed", {"lesson": lesson_id, "action": lesson["review"]["action"], "by": role,
+                                                                   "status": lesson["status"], "synthetic": lesson.get("synthetic", False)})
+        except (KeyError, OSError): pass  # the project was deleted (KeyError on PostgreSQL, a missing folder on files); the lesson stands on its own
+        return lesson
     @app.get("/api/projects/{project_id}/graph")
     async def project_graph(project_id: str):
         p = project(project_id)

@@ -37,17 +37,22 @@ PURPOSES: dict[str, Purpose] = {
     "parse_pattern": Purpose("cheap", 60, "up to 20 lines of a file no built-in reader can parse (400 characters each); "
                                           "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off", cell_values=20 * 40),
     "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data"),
-    "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved; no project data"),
+    "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved, which can include this workspace's accepted "
+                                            "lessons (a project's aggregate results, its name, dataset file name, row count and split); no rows"),
     "stage_notes": Purpose("standard", 60, "a stage record's title, summary, claims with their limits (aggregate results with their intervals), its notes "
                                            "and the rule records they cite; no rows"),
-    "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records; no rows"),
+    "lesson_proposal": Purpose("standard", 60, "a project's final stage claims with their limits (aggregate results with their intervals, "
+                                               "the model, the recipe and the tuning decision); no rows"),
+    "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records (with this "
+                                           "workspace's accepted lessons: other projects' aggregate results and scope); no rows"),
     "notebook_review": Purpose("standard", 60, "the notebook copilot's findings (title, message and suggestion, which name columns, variables and functions of the "
                                                "notebook; a path, a string selector or a line of code is replaced before the request) and the text of the rule and "
                                                "pitfall records they cite; never the notebook's code or any data"),
     "leakage_review": Purpose("standard", 60, "the prediction moment, the target's name, column names with their kind, missing rate and unique "
                                               "count, the column audit's flags, and the ids and titles of rule and leakage-precedent records; never rows or cell values"),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
-                                     "column from describe_data), stage records and evidence records; never whole rows", cell_values=3 * 200),
+                                     "column from describe_data), stage records and evidence records (with this workspace's accepted lessons: other "
+                                     "projects' aggregate results and scope); never whole rows", cell_values=3 * 200),
     "campaign": Purpose("strong", 180, "research campaign context: the plan, dataset cards and experiment summaries of evidence/campaigns; "
                                        "no project or user data"),
     "campaign_review": Purpose("strong", 180, "one research campaign result's compact evidence (metrics, claims, setup) from evidence/campaigns; "

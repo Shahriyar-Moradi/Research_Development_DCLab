@@ -1375,15 +1375,19 @@
         </div>
       </div>
     </div>
+    <div class="panel" id="ev-lessons-panel" hidden>
+      <div class="panel-head"><div class="panel-title"><h3>Lessons from this workspace's projects</h3><span class="sub">Each holds for its scope only. Proposed lessons wait for a reviewer.</span></div></div>
+      <div class="panel-body"><div class="list" id="ev-lessons"></div></div>
+    </div>
     <p class="pane-intro">How the library grows.</p>
     <div class="grid g3">
       <div class="panel" data-f="ev.contribute">
-        <div class="panel-head"><h3>From projects</h3><span class="pill outline">not built</span></div>
+        <div class="panel-head"><h3>From projects</h3><span class="pill outline" id="ev-lessons-pill">no lessons yet</span></div>
         <div class="panel-body small stack tight">
-          <p>Lessons stay inside their project for now. The step that reviews a project's lesson and adds it to this index is not built yet.</p>
-          <p class="muted">Today the index grows from the R&amp;D campaigns: <code>make knowledge</code> rebuilds it after new results.</p>
+          <p>When a person approves a project's final stage, DCLab proposes up to three lessons from its records. A reviewer accepts, edits or rejects each one.</p>
+          <p class="muted">Accepted lessons are searched with these records, labelled as workspace lessons. A lesson from synthetic data is never offered as evidence. The R&amp;D index itself still grows only from <code>make knowledge</code>.</p>
         </div>
-        <div class="panel-foot">A lesson joins the index only after review, with its scope and the record it came from.</div>
+        <div class="panel-foot">A lesson joins the search only after review, with its scope and the project it came from.</div>
       </div>
       <div class="panel" data-f="ev.kaggle">
         <div class="panel-head"><h3>From public solutions</h3><span class="pill outline">planned</span></div>

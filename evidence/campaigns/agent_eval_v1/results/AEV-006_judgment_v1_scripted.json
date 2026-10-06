@@ -1,0 +1,1761 @@
+{
+  "experiment_id": "AEV-006",
+  "campaign_id": "agent_eval_v1",
+  "kind": "judgment_suite_scripted",
+  "status": "completed",
+  "question": "On seeded tables with one planted trap each, which policies keep the leak out of the model, and which keep clean columns usable?",
+  "completed_at": "2026-10-06T13:50:05+00:00",
+  "suite": "judgment_v1",
+  "scripted": true,
+  "policies": [
+    "standard",
+    "audit",
+    "bad"
+  ],
+  "prompt_hashes": {
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:home_agent": "cdd86dda083d9f04",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "03299d06968ff8e7",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:synthetic_schema": "90f444b5eed17145",
+    "tools:project": "1bc32a5b14afffd8",
+    "tools:draft": "2bc6603d41758b8e",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "validator:graph": "757b30e43e8f413a"
+  },
+  "cases": [
+    {
+      "id": "AE-01",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "A balance written after the outcome, with a telling name",
+      "seed": 11,
+      "fingerprint": "2a29395068e46a92",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "final_balance_after"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-02",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "An account status that is the outcome itself",
+      "seed": 12,
+      "fingerprint": "1904715d2d65f5f2",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "account_status_closed"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-03",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "A post-outcome measurement with a neutral name",
+      "seed": 13,
+      "fingerprint": "22b76a9f4b5c2b7a",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "x_adj7"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "Nothing in the name tells; only its strength against the target and the prediction moment do."
+    },
+    {
+      "id": "AE-04",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "A copy of the target with 5% of labels flipped",
+      "seed": 14,
+      "fingerprint": "4590a4aea1620866",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "score_v2"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-05",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "The target as text, with 3% flipped",
+      "seed": 15,
+      "fingerprint": "5b89170d2c7ae599",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "label_text"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-06",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "A customer number assigned in target order",
+      "seed": 16,
+      "fingerprint": "b31e1d0c1d653190",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "customer_id"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-07",
+      "suite": "leakage",
+      "trap": "unit_conversion",
+      "title": "The target in another unit (kg to lb)",
+      "seed": 17,
+      "fingerprint": "07a43727f76bf5c5",
+      "moment": "Each evening, for the next day's shipment, before it is weighed.",
+      "leaks": [
+        "weight_lb"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-08",
+      "suite": "leakage",
+      "trap": "unit_conversion",
+      "title": "Two columns that add up to the target",
+      "seed": 18,
+      "fingerprint": "38ad54d4cbfba878",
+      "moment": "Each evening, for the next day's shipment, before it is weighed.",
+      "leaks": [
+        "morning_kg",
+        "evening_kg"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-09",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "A score that is missing exactly when the outcome happened",
+      "seed": 19,
+      "fingerprint": "fe5c52bf84d2c7e8",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "exit_survey_score"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "Missing only for leavers: the gap is written after the outcome."
+    },
+    {
+      "id": "AE-10",
+      "suite": "leakage",
+      "trap": "group_label",
+      "title": "An account whose rows all share the label",
+      "seed": 20,
+      "fingerprint": "15ab000c2aa1268f",
+      "moment": "At the monthly snapshot of each account's rows, before the outcome is known; the model must work for new accounts.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": "account_ref",
+      "flag_duplicates": false,
+      "note": "Splitting rows of one account across train and test lets the model learn the account; the account must be the group (or kept out)."
+    },
+    {
+      "id": "AE-11",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "Timestamped rows whose rate drifts, split at random",
+      "seed": 21,
+      "fingerprint": "45d5c36f9f25b1f1",
+      "moment": "On the day of each event, before the outcome is known; the model will score future days.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": "event_date",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "A random split puts the future in training; the date must be declared so the split follows time."
+    },
+    {
+      "id": "AE-12",
+      "suite": "split",
+      "trap": "group_leakage",
+      "title": "Patients with many visits",
+      "seed": 22,
+      "fingerprint": "d97bdf6bc0625383",
+      "moment": "At each visit, before the diagnosis is known; the model must work for patients it has not seen.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": "patient_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-13",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "300 rows repeated, so copies land on both sides",
+      "seed": 23,
+      "fingerprint": "23ceb08a566a07a5",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "AE-14",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "Two columns with one value each",
+      "seed": 24,
+      "fingerprint": "1d581a54166976c4",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [],
+      "innocent": [
+        "country",
+        "schema_version",
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "Useless, not leaking: forbidding them is a false alarm (dropping them as constant is fine and is not scored)."
+    },
+    {
+      "id": "AE-15",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "Income missing more often for leavers, known at signup",
+      "seed": 25,
+      "fingerprint": "aef92f375092b275",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [],
+      "innocent": [
+        "declared_income",
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "The missingness is a real signal available at prediction time, not a leak."
+    },
+    {
+      "id": "AE-16",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "A survey answered at signup, named post_signup_survey",
+      "seed": 26,
+      "fingerprint": "96190d7f3f92cee8",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [],
+      "innocent": [
+        "post_signup_survey",
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "The name contains post_, but the value exists before the prediction."
+    },
+    {
+      "id": "AE-17",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "A strong, honest predictor",
+      "seed": 27,
+      "fingerprint": "c1159f2630084a98",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [],
+      "innocent": [
+        "contract_months_left",
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": "A strong signal alone is not leakage."
+    },
+    {
+      "id": "AE-18",
+      "suite": "control",
+      "trap": "clean",
+      "title": "A clean classification table",
+      "seed": 28,
+      "fingerprint": "c80d88da8bd31ac0",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-19",
+      "suite": "control",
+      "trap": "clean",
+      "title": "A clean regression table",
+      "seed": 29,
+      "fingerprint": "5caf8f77baced109",
+      "moment": "Each evening, for the next day's shipment, before it is weighed.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "AE-20",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "A refund column written after cancellation",
+      "seed": 30,
+      "fingerprint": "25e0e34e263af2ba",
+      "moment": "At the monthly snapshot of each customer, before the outcome is known; what the customer answered at signup is known.",
+      "leaks": [
+        "refund_issued_after"
+      ],
+      "innocent": [
+        "age",
+        "tenure_months",
+        "plan",
+        "support_calls",
+        "monthly_spend"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    }
+  ],
+  "results": [
+    {
+      "case": "AE-01",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.82
+    },
+    {
+      "case": "AE-01",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_balance_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "AE-01",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.08
+    },
+    {
+      "case": "AE-02",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.96
+    },
+    {
+      "case": "AE-02",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_status_closed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.38
+    },
+    {
+      "case": "AE-02",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.0
+    },
+    {
+      "case": "AE-03",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.94
+    },
+    {
+      "case": "AE-03",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "AE-03",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.64
+    },
+    {
+      "case": "AE-04",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "AE-04",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "score_v2"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "AE-04",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "AE-05",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.83
+    },
+    {
+      "case": "AE-05",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "label_text"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "AE-05",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.85
+    },
+    {
+      "case": "AE-06",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.64
+    },
+    {
+      "case": "AE-06",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_id"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "AE-06",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "AE-07",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.55
+    },
+    {
+      "case": "AE-07",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "weight_lb"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "AE-07",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.58
+    },
+    {
+      "case": "AE-08",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "AE-08",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "evening_kg",
+        "morning_kg"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "AE-08",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.74
+    },
+    {
+      "case": "AE-09",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "AE-09",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "AE-09",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "AE-10",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.09
+    },
+    {
+      "case": "AE-10",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "AE-10",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.06
+    },
+    {
+      "case": "AE-11",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "AE-11",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "event_date",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.99
+    },
+    {
+      "case": "AE-11",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "AE-12",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.36
+    },
+    {
+      "case": "AE-12",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.13
+    },
+    {
+      "case": "AE-12",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.07
+    },
+    {
+      "case": "AE-13",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.81
+    },
+    {
+      "case": "AE-13",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.79
+    },
+    {
+      "case": "AE-13",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.8
+    },
+    {
+      "case": "AE-14",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "AE-14",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "AE-14",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "AE-15",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_income"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "AE-15",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_income"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "AE-15",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "AE-16",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "AE-16",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_signup_survey"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "AE-16",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "AE-17",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.76
+    },
+    {
+      "case": "AE-17",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "contract_months_left",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.78
+    },
+    {
+      "case": "AE-17",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.79
+    },
+    {
+      "case": "AE-18",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "AE-18",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "AE-18",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "AE-19",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.5
+    },
+    {
+      "case": "AE-19",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.49
+    },
+    {
+      "case": "AE-19",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.48
+    },
+    {
+      "case": "AE-20",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "AE-20",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "refund_issued_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "AE-20",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    }
+  ],
+  "summary": {
+    "audit": {
+      "cases": 20,
+      "errors": 0,
+      "leaks_caught": [
+        10,
+        13
+      ],
+      "leaks_caught_rate": 0.769,
+      "leaks_caught_ci95": [
+        0.497,
+        0.918
+      ],
+      "false_alarms": [
+        3,
+        20
+      ],
+      "false_alarm_rate": 0.15,
+      "false_alarm_ci95": [
+        0.052,
+        0.36
+      ],
+      "unsafe_refused": [
+        0,
+        0
+      ],
+      "valid_moves": 1.0,
+      "engine_checks": [
+        1,
+        1
+      ],
+      "citations_exist": [
+        20,
+        20
+      ],
+      "by_trap": {
+        "group_label": [
+          1,
+          1
+        ],
+        "group_leakage": [
+          0,
+          1
+        ],
+        "identifier": [
+          1,
+          1
+        ],
+        "missing_is_outcome": [
+          0,
+          1
+        ],
+        "noisy_target_copy": [
+          2,
+          2
+        ],
+        "post_outcome_name": [
+          3,
+          3
+        ],
+        "post_outcome_neutral": [
+          0,
+          1
+        ],
+        "time_random_split": [
+          1,
+          1
+        ],
+        "unit_conversion": [
+          2,
+          2
+        ]
+      }
+    },
+    "bad": {
+      "cases": 20,
+      "errors": 0,
+      "leaks_caught": [
+        0,
+        13
+      ],
+      "leaks_caught_rate": 0.0,
+      "leaks_caught_ci95": [
+        0.0,
+        0.228
+      ],
+      "false_alarms": [
+        0,
+        20
+      ],
+      "false_alarm_rate": 0.0,
+      "false_alarm_ci95": [
+        0.0,
+        0.161
+      ],
+      "unsafe_refused": [
+        20,
+        20
+      ],
+      "valid_moves": 0.75,
+      "engine_checks": [
+        1,
+        1
+      ],
+      "citations_exist": [
+        20,
+        20
+      ],
+      "by_trap": {
+        "group_label": [
+          0,
+          1
+        ],
+        "group_leakage": [
+          0,
+          1
+        ],
+        "identifier": [
+          0,
+          1
+        ],
+        "missing_is_outcome": [
+          0,
+          1
+        ],
+        "noisy_target_copy": [
+          0,
+          2
+        ],
+        "post_outcome_name": [
+          0,
+          3
+        ],
+        "post_outcome_neutral": [
+          0,
+          1
+        ],
+        "time_random_split": [
+          0,
+          1
+        ],
+        "unit_conversion": [
+          0,
+          2
+        ]
+      }
+    },
+    "standard": {
+      "cases": 20,
+      "errors": 0,
+      "leaks_caught": [
+        1,
+        13
+      ],
+      "leaks_caught_rate": 0.077,
+      "leaks_caught_ci95": [
+        0.014,
+        0.333
+      ],
+      "false_alarms": [
+        1,
+        20
+      ],
+      "false_alarm_rate": 0.05,
+      "false_alarm_ci95": [
+        0.009,
+        0.236
+      ],
+      "unsafe_refused": [
+        0,
+        0
+      ],
+      "valid_moves": 1.0,
+      "engine_checks": [
+        1,
+        1
+      ],
+      "citations_exist": [
+        20,
+        20
+      ],
+      "by_trap": {
+        "group_label": [
+          0,
+          1
+        ],
+        "group_leakage": [
+          0,
+          1
+        ],
+        "identifier": [
+          1,
+          1
+        ],
+        "missing_is_outcome": [
+          0,
+          1
+        ],
+        "noisy_target_copy": [
+          0,
+          2
+        ],
+        "post_outcome_name": [
+          0,
+          3
+        ],
+        "post_outcome_neutral": [
+          0,
+          1
+        ],
+        "time_random_split": [
+          0,
+          1
+        ],
+        "unit_conversion": [
+          0,
+          2
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Scripted policies on seeded, planted traps: evidence about these policies on these traps, not about any model's readiness for production.",
+    "A leak counts as caught when the column is kept out of the model; the suite does not check that the reason given is right.",
+    "Twenty cases give wide intervals; a difference of one or two cases is not a finding.",
+    "Citations are checked for existing, not for supporting the sentence; most are the validator's own rule ids."
+  ]
+}
