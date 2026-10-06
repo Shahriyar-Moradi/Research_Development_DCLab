@@ -640,12 +640,27 @@ DRAFT_MOVES = {"ask_user": "ask", "record": "record", "set_pack": "set_pack", "p
 PREPARING = ("queued", "structuring", "cleaning", "analysing")
 
 
+REFUSED = {"record": "The answer was not backed by the user's own words", "ask": "Not the question the plan asks now",
+           "set_pack": "Not a known pack, or the user chose the pack", "simulate": "Data was already being prepared",
+           "propose_workflow": "The workflow did not pass the workflow checks"}
+
+
 class DraftGuard:
     """The Home agent's writes change a draft, not a project, so they have their own checks (package A2.2):
     the pack must be on the list and the user's choice stands; a workflow must pass ``workflow.validate``; one
     simulation (or any data preparation) at a time."""
 
     def __call__(self, tool: Tool, turn: Turn, arguments: dict[str, Any], proceed: Callable[[], Any]) -> Any:
+        refusal = self.refusal(tool, turn, arguments)
+        if refusal is None:
+            return proceed()
+        from .. import audit  # a refused move is audited like a project's (package 10.4), with a fixed reason: nothing the model wrote
+
+        audit.record_for(turn.agent.store, "move", "agent", "Home agent", draft_id=turn.draft_id, move=tool.move, status="blocked",
+                         message=REFUSED.get(tool.move, "The draft's checks refused this move"))
+        return refusal
+
+    def refusal(self, tool: Tool, turn: Turn, arguments: dict[str, Any]) -> dict[str, Any] | None:
         agent, draft_id = turn.agent, turn.draft_id
         if tool.move == "record" and arguments.get("field") in plans.FIELDS:
             draft = agent.store.get(draft_id)
@@ -678,7 +693,7 @@ class DraftGuard:
                     agent.client.output(False, "; ".join(problems)[:200])
                 agent.store.emit(draft_id, "workflow", {"workflow": draft.get("workflow"), "rejected": problems})
                 return {"error": "The workflow was not accepted: " + "; ".join(problems)[:400], "accepted": False, "problems": problems}
-        return proceed()
+        return None
 
 
 def register(registry: Registry) -> None:

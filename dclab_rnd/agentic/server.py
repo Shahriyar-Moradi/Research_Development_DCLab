@@ -90,7 +90,7 @@ def create_app(home=None) -> FastAPI:
         app.include_router(router)
     draft_api.register(app, s.drafts, s.projects, s.gateway, s.draft_tasks, s.traces, services=s)
     pages.register_all(app, pages.Context(store=s.store, projects=s.projects, drafts=s.drafts, intern_sessions=s.intern_sessions, models=s.gateway,
-                                          jobs=s.jobs, intern_jobs=s.intern_jobs, draft_jobs=s.draft_jobs, job_store=s.job_store))
+                                          jobs=s.jobs, intern_jobs=s.intern_jobs, draft_jobs=s.draft_jobs, job_store=s.job_store, audit=s.audit))
     if s.mcp is not None:
         app.mount("/mcp", app=s.mcp.handle_request, name="mcp")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")

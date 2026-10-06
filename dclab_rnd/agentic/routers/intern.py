@@ -107,6 +107,11 @@ async def review_lesson(lesson_id: str, body: LessonReview, request: Request, s:
     except workspace_lessons.ReviewError as exc:
         raise HTTPException(422, str(exc)) from None
     try:
+        from ... import audit
+
+        audit.record(s.audit, "lesson_review", "human", (role or "reviewer").capitalize(), project_id=lesson["project_id"],
+                     move="review_lesson", status="allowed", args={"lesson": lesson_id, "action": lesson["review"]["action"], "status": lesson["status"]},
+                     message=str(body.reason or "")[:300])
         s.projects.log(lesson["project_id"], "lesson_reviewed", {"lesson": lesson_id, "action": lesson["review"]["action"], "by": role,
                                                                 "status": lesson["status"], "synthetic": lesson.get("synthetic", False)})
     except (KeyError, OSError):

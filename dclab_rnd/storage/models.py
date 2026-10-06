@@ -230,4 +230,23 @@ job = sa.Table(  # a piece of background work: a stage run, a data pipeline, syn
     # one queued or running job per key: two app instances cannot start the same project's stages at once
     sa.Index("uq_job_active_key", "workspace_id", "kind", "key", unique=True, postgresql_where=sa.text("status in ('queued', 'running')")))
 
+audit_event = sa.Table(  # every governed action, append-only: a trigger refuses update and delete (dclab_rnd/audit.py, 10.4)
+    "audit_event", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),  # no cascade: an audit outlives what it records
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("actor", sa.Text, nullable=False),  # human or agent
+    sa.Column("who", sa.Text, nullable=False),  # how the page names them
+    sa.Column("user_id", sa.String(64)),  # the signed-in user, once accounts exist (10.2)
+    sa.Column("project_id", sa.String(64)),  # kept when the project is deleted
+    sa.Column("project_name", sa.Text),
+    sa.Column("draft_id", sa.String(64)),
+    sa.Column("move", sa.Text),
+    sa.Column("status", sa.Text),
+    sa.Column("detail", JSONB, nullable=False),
+    sa.Index("ix_audit_event_workspace_id_id", "workspace_id", "id"),
+    sa.Index("ix_audit_event_workspace_id_kind", "workspace_id", "kind"),
+    sa.Index("ix_audit_event_workspace_id_project_id", "workspace_id", "project_id"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

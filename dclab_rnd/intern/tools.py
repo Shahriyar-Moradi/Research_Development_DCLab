@@ -205,7 +205,7 @@ class Toolbox:
         return {"project_id": project["id"], "name": project["name"], "url": f"#project/{project['id']}", "settings": project["settings"]}
 
     def use_sample(self, project_id: str, key: str) -> dict[str, Any]:
-        project = studio_data.use_sample(self.projects, project_id, key)
+        project = studio_data.use_sample(self.projects, project_id, key, actor="agent")
         return self.describe_data(project_id) | {"suggestion": project.get("suggestion")}
 
     def describe_data(self, project_id: str) -> dict[str, Any]:
@@ -263,6 +263,10 @@ class Toolbox:
         if before != project["solution"]:
             studio_memory.solution_saved(project, before, project["solution"], "agent")  # A5.2: the project remembers why
         self.projects.save(project)
+        if before != project["solution"]:
+            from .. import audit
+
+            audit.solution(self.projects, project, project["solution"], "agent")
         self.projects.clear_stages(project_id)
         self.projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden], "by": "intern"})
         return {"saved": True, "solution": project["solution"], "next": "run_stage('data') or run_all"}

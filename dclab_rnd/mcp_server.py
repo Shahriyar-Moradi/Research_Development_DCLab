@@ -78,7 +78,9 @@ def standalone_app(home: Path):
     from starlette.applications import Starlette
     from starlette.routing import Mount
 
-    manager = session_manager(Toolbox(ProjectStore(home)))
+    store = ProjectStore(home)
+    store.audit_path = Path(home).parent / "audit.jsonl"  # the workspace's audit (10.4), as the notebook server's stores write it
+    manager = session_manager(Toolbox(store))
 
     @asynccontextmanager
     async def lifespan(app):

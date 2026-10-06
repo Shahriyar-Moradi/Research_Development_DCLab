@@ -34,7 +34,7 @@ DC.view('admin', {
       try {
         await DC.api(`/projects/${project}`, { method: 'PATCH', body: { policy: { [key]: box.checked } } });
         DC.currentProject.clear();
-        toast(`Saved on this project: the gate is now ${box.checked ? 'required' : 'off'}. Switch changes are not written to the audit log yet.`);
+        toast(`Saved on this project: the gate is now ${box.checked ? 'required' : 'off'}, and the change is in the audit log.`);
         await this.loadPolicies(el);
       } catch (err) { box.checked = !box.checked; box.disabled = false; toast(err.message, { ok: false }); }
     });
@@ -70,6 +70,10 @@ DC.view('admin', {
       });
     });
     $('#audit-newer', el).addEventListener('click', () => { S.offset = Math.max(0, S.offset - S.limit); this.loadAudit(el); });
+    ['kind', 'status', 'actor', 'project'].forEach(f => $(`#audit-${f}`, el).addEventListener('change', e => { S[f] = e.target.value; S.offset = 0; this.loadAudit(el); }));
+    DC.api('/projects').then(list => {
+      $('#audit-project', el).insertAdjacentHTML('beforeend', list.map(p => `<option value="${DC.esc(p.id)}">${DC.esc(p.name || p.id)}</option>`).join(''));
+    }).catch(() => { /* the filter keeps "Every project" */ });
     $('#audit-older', el).addEventListener('click', () => { S.offset += S.limit; this.loadAudit(el); });
     DC.hydrate(el);
   },
@@ -197,7 +201,8 @@ DC.view('admin', {
     const { $, esc, linkIds } = DC;
     const S = this.S;
     let a;
-    try { a = await DC.api(`/platform/audit?limit=${S.limit}&offset=${S.offset}`); } catch (e) { $('#audit-body', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(e.message)}</div></td></tr>`; return; }
+    const filters = ['kind', 'status', 'actor', 'project'].filter(f => S[f]).map(f => `&${f}=${encodeURIComponent(S[f])}`).join('');
+    try { a = await DC.api(`/platform/audit?limit=${S.limit}&offset=${S.offset}${filters}`); } catch (e) { $('#audit-body', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(e.message)}</div></td></tr>`; return; }
     const when = s => { const t = new Date(s); return isNaN(t) ? esc(s || '') : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }); };
     const what = e => {
       const g = e.args || {};
@@ -209,18 +214,25 @@ DC.view('admin', {
         capture: 'Exported the notebook and report',
         use_approval: `Used the ${esc(g.gate || '')} approval`,
         set_policy: `Turned ${g.on ? 'on' : 'off'} the ${esc(g.label || g.policy || '')} switch`,
+        set_training_opt_in: `Turned ${g.on ? 'on' : 'off'} sharing this project's runs for training the policy model`,
+        attach_data: `Attached the table <code>${esc((e.detail || {}).filename || '')}</code>${(e.detail || {}).rows ? ' · ' + Number(e.detail.rows).toLocaleString() + ' rows' : ''}${(e.detail || {}).source && e.detail.source.kind !== 'upload' ? ' from ' + esc(e.detail.source.kind === 'sample' ? 'the sample ' + (e.detail.source.key || '') : e.detail.source.kind) : ''}`,
+        add_asset: `Brought <code>${esc((e.detail || {}).filename || '')}</code> into a draft${(e.detail || {}).source ? ' · ' + esc(e.detail.source.kind || '') : ''}${(e.detail || {}).synthetic ? ' (synthetic)' : ''}`,
+        review_lesson: `${g.action === 'reject' ? 'Rejected' : 'Accepted'} a workspace lesson`,
+        remove_memory_note: 'Removed a note from the project memory',
         set_routing: g.setting === 'serve' ? `Moved <code>${esc(g.purpose || '')}</code> from ${esc(g.from || 'its own tier')} to ${esc(g.to || 'its own tier')}`
           : `${g.to ? 'Set' : 'Removed'} the shadow of <code>${esc(g.purpose || '')}</code>${g.to ? ': ' + esc(g.to) : ''}`,
       }[e.move] || esc(e.move || '');
       const failed = (e.outcome || '').startsWith('failed');
       const pill = e.status === 'blocked' ? '<span class="pill bad">refused</span>' : e.status === 'needs_approval' ? '<span class="pill warn">waited for a person</span>' : failed ? '<span class="pill bad">failed</span>' : '';
-      const detail = e.status !== 'allowed' ? e.message : (e.kind === 'approval' || e.kind === 'routing') && e.message ? 'Reason: ' + e.message : (e.outcome || '').replace(/^done: /, '');
-      const where = e.project ? `<a href="#project" data-open-project="${esc(e.project.id)}">${esc(e.project.name)}</a>` : 'workspace';
+      const sha = (e.detail || {}).sha256 ? 'SHA-256 ' + e.detail.sha256.slice(0, 16) + '…' : (e.detail || {}).solution_hash ? 'solution hash ' + String(e.detail.solution_hash).slice(0, 12) : '';
+      const detail = e.status !== 'allowed' ? e.message : ['approval', 'routing', 'lesson_review', 'memory_removed'].includes(e.kind) && e.message ? 'Reason: ' + e.message : sha || (e.outcome || '').replace(/^done: /, '');
+      const where = e.project ? `<a href="#project" data-open-project="${esc(e.project.id)}">${esc(e.project.name)}</a>` : e.draft_id ? 'a draft on Home' : 'workspace';
       return `<div class="row">${verb} ${pill}<span class="muted">· ${where}</span></div>${detail ? `<div class="xs muted">${linkIds(detail.length > 220 ? detail.slice(0, 220) + '…' : detail)}</div>` : ''}`;
     };
-    $('#audit-sub', el).textContent = `Every move the workflow validator checked, allowed or refused, every gate approval and every gate switch change, across ${a.projects} project${a.projects === 1 ? '' : 's'}. Written by the app to each project's transition and activity logs.`;
+    $('#audit-sub', el).textContent = `Every move the workflow validator checked, allowed or refused, every gate approval and switch change, solution saved and table imported, across ${a.projects} project${a.projects === 1 ? '' : 's'}. One append-only log: the app can add to it, never change or delete it.`;
+    $('#audit-filters', el).hidden = !a.counts.all;
     $('#audit-body', el).innerHTML = a.items.length ? a.items.map(e => `<tr><td class="mono small" data-style="white-space:nowrap">${when(e.at)}</td><td>${esc(e.who)}</td><td class="small">${what(e)}</td></tr>`).join('')
-      : `<tr><td colspan="3"><div class="empty">${a.total ? 'No more entries.' : 'Nothing logged yet: the log starts when a project saves its solution.'}</div></td></tr>`;
+      : `<tr><td colspan="3"><div class="empty">${a.total ? 'No more entries.' : a.counts.all ? 'Nothing matches these filters.' : 'Nothing logged yet: the log starts with the first table, solution or move.'}</div></td></tr>`;
     $('#audit-foot', el).hidden = !a.total;
     $('#audit-range', el).textContent = a.total ? `${a.offset + 1}–${Math.min(a.offset + a.items.length, a.total)} of ${a.total} · ${a.counts.blocked} refused · ${a.counts.waiting} waited for a person · ${a.counts.approvals} approvals` : '';
     $('#audit-newer', el).disabled = a.offset === 0;

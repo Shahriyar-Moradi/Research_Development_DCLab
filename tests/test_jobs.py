@@ -184,10 +184,10 @@ class WorkerTests(unittest.TestCase):
         wait_for(lambda: self.jobs.get(job["id"])["progress"].get("step") == 1)
         # a beat that landed since the job was found stale wins: nothing is interrupted
         self.assertIsNone(self.jobs.interrupt(job["id"], self.worker.id, "x", older_than=30))
-        # another worker marked it interrupted (this one looked dead) and retried it elsewhere: this one stops, and writes nothing
+        # another worker marked it interrupted (this one looked dead) and a retry ran it there: this one stops, and writes nothing.
+        # One change of the row, as the retry and the other worker's claim leave it (this worker's own dispatcher must not win the claim).
         self.jobs.interrupt(job["id"], self.worker.id, "x")
-        self.jobs.retry(job["id"])
-        self.jobs.claim("other-worker", job_id=job["id"])
+        self.jobs._change(job["id"], lambda j: j.update(status="running", worker="other-worker", attempts=2, progress={}) or True)
         self.gate.set()
         wait_for(lambda: job["id"] not in self.worker.running)
         row = self.jobs.get(job["id"])

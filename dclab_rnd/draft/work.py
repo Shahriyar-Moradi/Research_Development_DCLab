@@ -27,9 +27,9 @@ class DraftWork:
         """The agent asked for something that runs in the background (today: simulate data)."""
         if what != "simulate":
             return
-        payload = {"draft_id": draft_id, "prompt": args.get("prompt", ""), "rows": int(args.get("rows") or 5000), "template": None}
+        payload = {"draft_id": draft_id, "prompt": args.get("prompt", ""), "rows": int(args.get("rows") or 5000), "template": None, "by": "agent"}
         if self.jobs is None:
-            self.simulate(draft_id, payload["prompt"], payload["rows"])
+            self.simulate(draft_id, payload["prompt"], payload["rows"], actor="agent")
             return
         from ..jobs import ActiveJob
 
@@ -42,7 +42,7 @@ class DraftWork:
     def process(self, draft_id: str, asset_id: str) -> dict[str, Any]:
         return pipeline.run(self.drafts, draft_id, asset_id, self.agent(draft_id), self.models.client("parse_pattern", draft_id=draft_id))
 
-    def simulate(self, draft_id: str, prompt: str, rows: int, template: str | None = None) -> dict[str, Any]:
+    def simulate(self, draft_id: str, prompt: str, rows: int, template: str | None = None, actor: str = "human") -> dict[str, Any]:
         from ..jobs import TEXT, Stopped, checkpoint
         from . import synthetic
 
@@ -61,7 +61,7 @@ class DraftWork:
             drafts.emit(draft_id, "status", {"note": note})
         frame = synthetic.generate(spec)
         saved = synthetic.save(frame, spec, drafts.data_dir(draft_id))
-        asset = pipeline.new_asset(drafts, draft_id, "synthetic", f"Synthetic · {spec.name}", Path(saved["path"]).name,
+        asset = pipeline.new_asset(drafts, draft_id, "synthetic", f"Synthetic · {spec.name}", Path(saved["path"]).name, actor=actor,
                                    synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name,
                                    **({"suggestion": {"target": spec.target.name}} if spec.target else {}),  # the generator knows its outcome column
                                    **({"template": info["template"], "template_note": note} if info.get("template") else {}))

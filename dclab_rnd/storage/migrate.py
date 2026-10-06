@@ -8,7 +8,7 @@ each other. Copied, with their own ids and timestamps (so every list keeps its o
 - projects: the document (solution, approvals, settings, memory…), the stage records, the transition log and the
   activity log, and the files of ``data/`` and ``exports/`` through file storage (``storage/files.py``);
 - drafts: the document, its events and its ``data/`` files;
-- intern sessions; the agent traces, the model usage and output checks, the lessons, the model routing and the shadow log.
+- intern sessions; the agent traces, the model usage and output checks, the lessons, the model routing, the shadow log and the audit trail.
 
 The source folder is only read (a project document in an old format is upgraded in memory, never written back).
 Nothing the target already holds is copied again: a project, draft, session or lesson already there is left as it
@@ -68,7 +68,7 @@ class Source:
     """The file workspace, read without writing (the file stores' get can upgrade and save an old document)."""
 
     LOG_FILES = {"agent_steps": "agent_steps.jsonl", "model_requests": "model_requests.jsonl",
-                 "model_output_checks": "model_requests_checks.jsonl", "model_shadow": "model_shadow.jsonl"}
+                 "model_output_checks": "model_requests_checks.jsonl", "model_shadow": "model_shadow.jsonl", "audit": "audit.jsonl"}
 
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -122,14 +122,18 @@ def _storage(target: Path, wid: str, url: str | None):
     return S3Files(target, bucket, records) if bucket.startswith("s3://") else LocalFiles(target, records)
 
 
+AUDIT_FIELDS = ("at", "kind", "actor", "who", "user_id", "project_id", "project_name", "draft_id", "move", "status", "detail")
+
+
 def _log_tables():
-    from .models import agent_step, model_output_check, model_request, model_shadow
+    from .models import agent_step, audit_event, model_output_check, model_request, model_shadow
     from ..agents.traces import FIELDS as TRACE_FIELDS
     from ..models.shadow import FIELDS as SHADOW_FIELDS
     from ..models.usage import CHECK_FIELDS, FIELDS as USAGE_FIELDS
 
     return {"agent_steps": (agent_step, TRACE_FIELDS), "model_requests": (model_request, USAGE_FIELDS),
-            "model_output_checks": (model_output_check, CHECK_FIELDS), "model_shadow": (model_shadow, SHADOW_FIELDS)}
+            "model_output_checks": (model_output_check, CHECK_FIELDS), "model_shadow": (model_shadow, SHADOW_FIELDS),
+            "audit": (audit_event, AUDIT_FIELDS)}  # the audit trail (10.4): in its order, so the ids keep it
 
 
 def _count(table, wid: str, url: str | None) -> int:

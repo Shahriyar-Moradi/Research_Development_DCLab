@@ -1951,7 +1951,13 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
 
   <div class="pane" data-pane="audit" data-label="Audit log">
     <div class="panel" data-f="admin.audit">
-      <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub" id="audit-sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div></div>
+      <div class="panel-head"><div class="panel-title"><h2>Audit log</h2><span class="sub" id="audit-sub">Append-only: policies, approvals, holdout openings, overrides, keys</span></div>
+        <div class="row" id="audit-filters" hidden>
+          <label class="sr-only" for="audit-kind">What</label><select id="audit-kind" data-style="width:auto"><option value="">Every kind</option><option value="move">Validated moves</option><option value="approval">Gate approvals</option><option value="approval_used">Approvals used</option><option value="policy">Gate switches</option><option value="routing">Model routing</option><option value="solution">Solutions saved</option><option value="data_import">Data imports</option><option value="lesson_review">Lesson reviews</option><option value="memory_removed">Memory notes removed</option></select>
+          <label class="sr-only" for="audit-status">Outcome</label><select id="audit-status" data-style="width:auto"><option value="">Any outcome</option><option value="allowed">Allowed</option><option value="blocked">Refused</option><option value="needs_approval">Waited for a person</option></select>
+          <label class="sr-only" for="audit-actor">Who</label><select id="audit-actor" data-style="width:auto"><option value="">Anyone</option><option value="human">People</option><option value="agent">Agents</option></select>
+          <label class="sr-only" for="audit-project">Project</label><select id="audit-project" data-style="width:auto"><option value="">Every project</option></select>
+        </div></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead><tbody id="audit-body">
         <tr><td class="mono small">Oct 4 11:20</td><td>Shahriyar</td><td>Replied on the term-deposit brief</td></tr>
         <tr><td class="mono small">Oct 2 11:40</td><td>Shahriyar</td><td>Approved opening the holdout · Term-deposit calls</td></tr>

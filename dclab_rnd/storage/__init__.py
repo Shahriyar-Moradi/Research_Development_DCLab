@@ -91,8 +91,9 @@ def open_stores(home: Path, projects_home: Path | None = None) -> tuple[Projects
     from ..studio.store import ProjectStore
 
     projects = ProjectStore(Path(projects_home or os.environ.get("DCLAB_STUDIO_HOME") or (home / "projects")))
-    return (projects, DraftStore(Path(os.environ.get("DCLAB_DRAFT_HOME") or (projects.home.parent / "drafts"))),
-            SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern"))))
+    drafts = DraftStore(Path(os.environ.get("DCLAB_DRAFT_HOME") or (projects.home.parent / "drafts")))
+    projects.audit_path = drafts.audit_path = Path(home) / "audit.jsonl"  # one audit per workspace, wherever its folders are (10.4)
+    return projects, drafts, SessionStore(Path(os.environ.get("DCLAB_INTERN_HOME") or (projects.home.parent / "intern")))
 
 
 __all__ = ["Document", "Projects", "Drafts", "Sessions", "open_stores"]

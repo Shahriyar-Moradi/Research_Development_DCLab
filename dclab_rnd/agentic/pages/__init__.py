@@ -32,6 +32,7 @@ class Context:
     draft_jobs: Any = field(default_factory=dict)     # draft pipelines, synthetic data and the Home agent's turns
     models: Any = None                                # dclab_rnd.models.Gateway: every model request goes through it
     job_store: Any = None                             # jobs.Jobs: what Stop and Retry act on (package 10.3)
+    audit: Any = None                                 # audit.AuditLog: the workspace's audit trail (package 10.4)
 
 
 def register_all(app, ctx: Context) -> list[str]:

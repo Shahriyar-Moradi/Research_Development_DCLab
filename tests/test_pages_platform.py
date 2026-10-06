@@ -159,34 +159,75 @@ class PlatformApiTests(unittest.TestCase):
         self.assertNotIn("sk-test-secret-789", limits.text + intern.text)
 
     # ------------------------------------------------------------------ audit
-    def test_audit_merges_every_project_newest_first_with_paging(self):
-        from dclab_rnd.studio import graph
-        a = self.projects.create("Churn", "general", "")
-        b = self.projects.create("Fraud", "general", "")
+    def test_the_history_before_the_audit_table_is_imported_once_newest_first_with_paging(self):
+        """A workspace from before package 10.4: its project logs are imported into the empty audit on the first start."""
+        from fastapi.testclient import TestClient
+
+        from dclab_rnd.agentic.server import create_app
+
+        home = Path(tempfile.mkdtemp())
+        projects = create_app(home).state.projects  # an older server: the logs, no audit rows
+        a = projects.create("Churn", "general", "")
+        b = projects.create("Fraud", "general", "")
         move = lambda at, actor, mv, status, **args: {"at": at, "actor": actor, "move": mv, "args": args, "status": status, "message": "m",
                                                       "from": None, "to": None, "state": "", "failed_checks": [], "rules": [], "evidence": [], "side_effects": []}
-        self.projects.transition(a["id"], move("2026-10-01T10:00:00+00:00", "human", "set_solution", "allowed", target="Churn"))
-        self.projects.transition(a["id"], move("2026-10-01T10:00:00+00:00", "human", "run_stage", "allowed", stage="data"))
-        self.projects.transition(b["id"], move("2026-10-02T09:00:00+00:00", "agent", "run_stage", "blocked", stage="final"))
-        self.projects.transition(b["id"], move("2026-10-03T09:00:00+00:00", "agent", "approve_gate", "blocked", gate="holdout"))
-        p = self.projects.get(b["id"])
-        p["solution"] = {"target": "y"}
-        self.projects.save(p)
-        graph.approve_gate(self.projects, b["id"], "holdout", "owner", "checked the split")  # logs an allowed approve_gate too
-        d = self.client.get("/api/platform/audit").json()
-        self.assertEqual(d["projects"], 2)
-        self.assertEqual(d["total"], 5)  # the allowed approve_gate transition is folded into its approval
-        first = d["items"][0]
-        self.assertEqual((first["kind"], first["who"], first["message"], first["project"]["name"]), ("approval", "Owner", "checked the split", "Fraud"))
-        moves = [(e["move"], e["status"], e["who"]) for e in d["items"][1:]]
-        self.assertEqual(moves, [("approve_gate", "blocked", "Intern"), ("run_stage", "blocked", "Intern"),
-                                 ("run_stage", "allowed", "Person"), ("set_solution", "allowed", "Person")])  # same second: later line first
-        self.assertEqual(d["counts"], {"moves": 4, "approvals": 1, "blocked": 2, "waiting": 0, "policy_changes": 0, "routing_changes": 0})
-        page = self.client.get("/api/platform/audit?limit=2&offset=3").json()
-        self.assertEqual([e["move"] for e in page["items"]], ["run_stage", "set_solution"])
-        self.assertEqual((page["total"], page["offset"], page["limit"]), (5, 3, 2))
+        projects.transition(a["id"], move("2026-10-01T10:00:00+00:00", "human", "set_solution", "allowed", target="Churn"))
+        projects.transition(a["id"], move("2026-10-01T10:00:00+00:00", "human", "run_stage", "allowed", stage="data"))
+        projects.transition(b["id"], move("2026-10-02T09:00:00+00:00", "agent", "run_stage", "blocked", stage="final"))
+        projects.transition(b["id"], move("2026-10-03T09:00:00+00:00", "agent", "approve_gate", "blocked", gate="holdout"))
+        projects.transition(b["id"], move("2026-10-04T09:00:00+00:00", "human", "approve_gate", "allowed", gate="holdout"))
+        p = projects.get(b["id"])
+        p["approvals"] = [{"gate": "holdout", "by": "owner", "at": "2026-10-04T09:00:00+00:00", "reason": "checked the split"}]
+        projects.save(p)
+        with TestClient(create_app(home)) as client:
+            d = client.get("/api/platform/audit").json()
+            self.assertEqual(d["projects"], 2)
+            self.assertEqual(d["total"], 5)  # the allowed approve_gate transition is folded into its approval
+            first = d["items"][0]
+            self.assertEqual((first["kind"], first["who"], first["message"], first["project"]["name"]), ("approval", "Owner", "checked the split", "Fraud"))
+            moves = [(e["move"], e["status"], e["who"]) for e in d["items"][1:]]
+            self.assertEqual(moves, [("approve_gate", "blocked", "Intern"), ("run_stage", "blocked", "Intern"),
+                                     ("run_stage", "allowed", "Person"), ("set_solution", "allowed", "Person")])  # same second: later line first
+            self.assertEqual({k: d["counts"][k] for k in ("moves", "approvals", "blocked", "waiting", "policy_changes", "routing_changes")},
+                             {"moves": 4, "approvals": 1, "blocked": 2, "waiting": 0, "policy_changes": 0, "routing_changes": 0})
+            page = client.get("/api/platform/audit?limit=2&offset=3").json()
+            self.assertEqual([e["move"] for e in page["items"]], ["run_stage", "set_solution"])
+            self.assertEqual((page["total"], page["offset"], page["limit"]), (5, 3, 2))
+            self.assertTrue(all(e["detail"].get("imported") for e in d["items"]))
+        with TestClient(create_app(home)) as client:  # started again: nothing is imported twice
+            self.assertEqual(client.get("/api/platform/audit").json()["total"], 5)
         self.assertEqual(self.client.get("/api/platform/audit?limit=0").status_code, 422)
         self.assertEqual(self.client.get("/api/platform/audit?offset=-1").status_code, 422)
+
+    def test_governed_actions_are_written_as_they_happen_and_filtered(self):
+        from dclab_rnd.studio import graph
+        a = self.projects.create("Churn", "general", "")
+        p = self.projects.get(a["id"])
+        graph.log(self.projects, a["id"], graph.check(p, "run_stage", "agent", stage="final"), p)  # refused: nothing before it ran
+        graph.log(self.projects, a["id"], graph.check(p, "run_stage", "human", stage="data"), p)
+        p["solution"] = {"target": "y"}
+        self.projects.save(p)
+        graph.approve_gate(self.projects, a["id"], "holdout", "owner", "checked the split")
+        self.client.patch(f"/api/projects/{a['id']}", json={"policy": {"require_holdout_approval": True}}, headers=self.h)
+        d = self.client.get("/api/platform/audit").json()
+        kinds = [e["kind"] for e in d["items"]]
+        self.assertEqual(kinds, ["policy", "approval", "move", "move"])  # newest first; the allowed approve_gate is the approval
+        self.assertEqual(d["items"][1]["who"], "Owner")
+        self.assertEqual(d["items"][3]["status"], "blocked")
+        self.assertEqual(d["items"][3]["who"], "Intern")
+        self.assertEqual(d["items"][3]["project"], {"id": a["id"], "name": "Churn"})
+        self.assertEqual([e["kind"] for e in self.client.get("/api/platform/audit?kind=approval").json()["items"]], ["approval"])
+        blocked = self.client.get("/api/platform/audit?status=blocked&actor=agent").json()
+        self.assertEqual((blocked["total"], blocked["items"][0]["move"]), (1, "run_stage"))
+        self.assertEqual(self.client.get(f"/api/platform/audit?project={a['id']}").json()["total"], 4)
+        self.assertEqual(self.client.get("/api/platform/audit?project=nope").json()["total"], 0)
+        for bad in ("kind=nope", "status=x", "actor=robot", "project=../x"):
+            self.assertEqual(self.client.get(f"/api/platform/audit?{bad}").status_code, 422, bad)
+        log = self.app.state.services.audit  # the application can append and read, nothing else
+        self.assertFalse(any(hasattr(log, name) for name in ("update", "delete", "remove", "clear", "save")))
+        self.projects.delete(a["id"])  # the audit outlives the project it records
+        after = self.client.get(f"/api/platform/audit?project={a['id']}").json()
+        self.assertEqual((after["total"], after["items"][0]["project"]["name"]), (4, "Churn"))
 
     def test_gate_switch_changes_are_logged_and_audited(self):
         p = self.projects.create("Churn", "general", "")

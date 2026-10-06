@@ -100,6 +100,7 @@ class MigrateTests(unittest.TestCase):
     def test_every_page_shows_the_same_projects_records_and_logs(self):
         self.assertTrue(self.first["ok"], self.first)
         self.assertEqual(len(self.first["projects"]["copied"]), 2)
+        self.assertGreater(self.first["logs"]["audit"]["copied"], 0)  # the audit trail moves with the workspace (10.4)
         self.assertEqual(pages(self.source, self.files_env), pages(self.target, self.db_env))
 
     def test_the_source_is_not_changed(self):
@@ -112,6 +113,7 @@ class MigrateTests(unittest.TestCase):
         self.assertEqual(self.second["files"]["copied"], 0)  # nothing copied over what the target holds
         self.assertEqual(self.second["sessions"]["copied"], 0)
         self.assertEqual(self.second["logs"]["agent_steps"]["copied"], 0)
+        self.assertEqual(self.second["logs"]["audit"]["copied"], 0)
         self.assertEqual(pages(self.source, self.files_env), pages(self.target, self.db_env))  # still the same: nothing doubled
 
     def test_the_data_files_are_copied_and_recorded_with_their_hash(self):

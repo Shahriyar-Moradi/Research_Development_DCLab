@@ -295,8 +295,9 @@ def data_path(store, project: dict[str, Any]) -> Path:
         raise DataError(str(exc)) from None
 
 
-def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
-    """Register ``data/<filename>`` (already written) as the project's table and profile it."""
+def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | None = None, actor: str = "human") -> dict[str, Any]:
+    """Register ``data/<filename>`` (already written) as the project's table and profile it. ``source`` says where it
+    came from (an upload, a studied sample, a draft); the audit keeps it with the table's SHA-256 (package 10.4)."""
     path = store.data_dir(project_id) / filename
     try:
         frame = load_table(path)
@@ -334,6 +335,11 @@ def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     store.save(project)
     store.clear_stages(project_id)
     store.log(project_id, "data_attached", {"filename": filename, "rows": project["data"]["rows"], "columns": len(project["data"]["columns"])})
+    from .. import audit
+
+    audit.record_for(store, "data_import", actor, project=project, move="attach_data", status="allowed",
+                     source=source or {"kind": "upload"}, filename=filename, sha256=stored["sha256"], rows=project["data"]["rows"],
+                     columns=len(project["data"]["columns"]))
     return store.get(project_id)
 
 
@@ -346,12 +352,12 @@ def sample_categorical(key: str, columns: list[str]) -> list[str]:
     return declared_categorical(key, columns) or []
 
 
-def use_sample(store, project_id: str, key: str, root: Path = ROOT) -> dict[str, Any]:
+def use_sample(store, project_id: str, key: str, root: Path = ROOT, actor: str = "human") -> dict[str, Any]:
     """Copy a sample dataset into the project and remember the solution the R&D wrote for it."""
     frame, suggestion = load_sample(key, root)
     name = f"{key}.csv"
     frame.to_csv(store.data_dir(project_id) / name, index=False)
-    project = attach_data(store, project_id, name)
+    project = attach_data(store, project_id, name, source={"kind": "sample", "key": key}, actor=actor)
     # The cached samples hold factorized category codes; the declaration spares the engine a guess.
     project["data"]["categorical"] = sample_categorical(key, [c for c in frame.columns if c != suggestion["target"]])
     project["suggestion"] = {**suggestion, "sample": key}

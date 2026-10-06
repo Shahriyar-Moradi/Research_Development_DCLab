@@ -328,71 +328,14 @@ def limits(projects) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------- audit log
-def _entries(project: dict[str, Any], moves: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    ref = {"id": project["id"], "name": project.get("name") or project["id"]}
-    out = []
-    for m in moves:
-        if m.get("move") == "approve_gate" and m.get("status") == "allowed":
-            continue  # the approval below carries who, when and the reason
-        out.append({"kind": "move", "at": m.get("at"), "actor": m.get("actor"), "who": "Intern" if m.get("actor") == "agent" else "Person",
-                    "move": m.get("move"), "args": m.get("args") or {}, "status": m.get("status"), "message": m.get("message"),
-                    "outcome": m.get("outcome"), "rules": m.get("rules") or [], "from": m.get("from"), "to": m.get("to"), "project": ref})
-    for a in project.get("approvals") or []:
-        gate = studio_graph.LEGACY_GATES.get(a.get("gate"), a.get("gate"))
-        out.append({"kind": "approval", "at": a.get("at"), "actor": "human", "who": (a.get("by") or "owner").capitalize(),
-                    "move": "approve_gate", "args": {"gate": gate}, "status": "allowed", "message": a.get("reason") or "",
-                    "outcome": None, "rules": ["DCLAB-R01"] if gate == "solution" else ["DCLAB-R17"], "project": ref})
-        if a.get("used"):
-            out.append({"kind": "approval_used", "at": a.get("used"), "actor": "agent", "who": "Intern",
-                        "move": "use_approval", "args": {"gate": gate}, "status": "allowed", "message": "The final stage used this approval.",
-                        "outcome": None, "rules": ["DCLAB-R17"], "project": ref})
-    return out
+STATUSES = ("allowed", "blocked", "needs_approval")
 
 
-POLICY_NAMES = {"require_solution_signoff": "solution sign-off", "require_holdout_approval": "holdout approval"}
+def audit_log(ctx) -> Any:
+    """The workspace's audit (package 10.4): the server's, or the one the project store belongs to."""
+    from ... import audit
 
-
-def _policy_entries(project: dict[str, Any], activity: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Gate switch changes from the project's activity log (PATCH /api/projects/{id} writes them)."""
-    ref = {"id": project["id"], "name": project.get("name") or project["id"]}
-    out = []
-    for a in activity:
-        if a.get("kind") != "policy_changed":
-            continue
-        for key, change in ((a.get("payload") or {}).get("changes") or {}).items():
-            out.append({"kind": "policy", "at": a.get("at"), "actor": "human", "who": "Person", "move": "set_policy",
-                        "args": {"policy": key, "label": POLICY_NAMES.get(key, key), "on": bool((change or {}).get("to"))},
-                        "status": "allowed", "message": "", "outcome": None, "rules": [], "project": ref})
-    return out
-
-
-def _routing_entries(routing: Any) -> list[dict[str, Any]]:
-    """Model routing changes (A6.4): a purpose moved to another model, or a shadow set; workspace-wide, not a project's."""
-    if routing is None:
-        return []
-    try:
-        history = routing.get().get("history") or []
-    except Exception:  # noqa: BLE001 — the audit shows what it can read
-        return []
-    return [{"kind": "routing", "at": h.get("at"), "actor": "human", "who": (h.get("by") or "person").capitalize(), "move": "set_routing",
-             "args": {"purpose": h.get("purpose"), "setting": h.get("setting"), "from": h.get("from"), "to": h.get("to")},
-             "status": "allowed", "message": h.get("reason") or "", "outcome": None, "rules": [], "project": None} for h in history]
-
-
-def audit(projects, limit: int, offset: int, routing: Any = None) -> dict[str, Any]:
-    keyed = []
-    keyed += [((e.get("at") or "", i), e) for i, e in enumerate(_routing_entries(routing))]
-    plist = projects.list()
-    for p in plist:
-        # (time, position in the project's own log) so moves logged in the same second keep their order, newest first
-        entries = _entries(p, projects.transitions(p["id"], 1_000_000)) + _policy_entries(p, projects.activity(p["id"], 1_000_000))
-        keyed += [((e.get("at") or "", i), e) for i, e in enumerate(entries)]
-    keyed.sort(key=lambda pair: pair[0], reverse=True)
-    items = [e for _, e in keyed]
-    counts = {"moves": sum(1 for e in items if e["kind"] == "move"), "approvals": sum(1 for e in items if e["kind"] == "approval"),
-              "blocked": sum(1 for e in items if e.get("status") == "blocked"), "waiting": sum(1 for e in items if e.get("status") == "needs_approval"),
-              "policy_changes": sum(1 for e in items if e["kind"] == "policy"), "routing_changes": sum(1 for e in items if e["kind"] == "routing")}
-    return {"total": len(items), "limit": limit, "offset": offset, "items": items[offset:offset + limit], "projects": len(plist), "counts": counts}
+    return getattr(ctx, "audit", None) or audit.for_store(ctx.projects)
 
 
 # ---------------------------------------------------------------------------- routes
@@ -414,10 +357,19 @@ def register(app, ctx) -> None:
         return await asyncio.to_thread(limits, ctx.projects)
 
     @router.get("/api/platform/audit", response_model=Page)
-    async def platform_audit(limit: int = 50, offset: int = 0):
-        """Newest validated moves, gate approvals and gate switch changes across every project, newest first."""
+    async def platform_audit(limit: int = 50, offset: int = 0, kind: str | None = None, status: str | None = None,
+                             actor: str | None = None, project: str | None = None):
+        """The workspace's audit trail, newest first: one query on the append-only table (package 10.4), with filters."""
+        from ... import audit
+
         if limit < 1 or limit > 500 or offset < 0:
             raise HTTPException(422, "limit is 1 to 500 and offset is 0 or more")
-        return await asyncio.to_thread(audit, ctx.projects, limit, offset, getattr(ctx.models, "routing", None))
+        for name, value, allowed in (("kind", kind, audit.KINDS), ("status", status, STATUSES), ("actor", actor, ("human", "agent"))):
+            if value not in (None, "") and value not in allowed:
+                raise HTTPException(422, f"{name} is one of {', '.join(allowed)}")
+        if project not in (None, "") and not re.fullmatch(r"[0-9a-zA-Z_-]{1,64}", project):
+            raise HTTPException(422, "project is a project id")
+        return await asyncio.to_thread(audit.page, audit_log(ctx), ctx.projects, limit, offset,
+                                       kind=kind, status=status, actor=actor, project_id=project)
 
     app.include_router(router)

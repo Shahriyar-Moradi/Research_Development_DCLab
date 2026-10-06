@@ -57,7 +57,11 @@ async def change_routing(body: RoutingChange, request: Request, s: Services = De
     role = (request.headers.get("x-dclab-role") or "").strip().lower() or None
     tier = body.tier
     try:
-        model_routing.change(s.gateway.routing, str(body.purpose or ""), str(body.setting or ""), tier if isinstance(tier, str) and tier else None,
+        kept = len(s.gateway.routing.get().get("history") or [])
+    except Exception:  # noqa: BLE001 — the change below reports what is wrong with the routing
+        kept = None
+    try:
+        doc = model_routing.change(s.gateway.routing, str(body.purpose or ""), str(body.setting or ""), tier if isinstance(tier, str) and tier else None,
                              role, str(body.reason or ""))
     except PermissionError as exc:
         raise HTTPException(403, str(exc)) from None
@@ -65,6 +69,13 @@ async def change_routing(body: RoutingChange, request: Request, s: Services = De
         raise HTTPException(422, str(exc).strip("'\"")) from None
     except model_routing.RoutingError as exc:
         raise HTTPException(422, str(exc)) from None
+    from ... import audit
+
+    history = (doc or {}).get("history") or []
+    if kept is not None and len(history) > kept:  # a change was made (the same setting again changes nothing and is not audited)
+        change = history[-1]
+        audit.record(s.audit, "routing", "human", (change.get("by") or role or "person").capitalize(), move="set_routing", status="allowed",
+                     args={k: change.get(k) for k in ("purpose", "setting", "from", "to")}, message=change.get("reason") or "")
     return await asyncio.to_thread(s.gateway.summary)
 
 

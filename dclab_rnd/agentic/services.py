@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 
-from .. import lessons as workspace_lessons, models
+from .. import audit, lessons as workspace_lessons, models
 from ..agents.traces import open_traces
 from ..intern import Intern
 from ..intern.tools import Toolbox
@@ -51,6 +51,12 @@ class Services:
         self.intern_jobs = Live(self.job_store, "intern")  # by session id
         self.draft_jobs = Live(self.job_store, ("pipeline", "synthetic"), tasks=self.draft_tasks)  # by "draft:asset" or "draft:synthetic"
         self.draft_work = DraftWork(self.drafts, self.gateway, self.traces, self)
+        # Package 10.4: one append-only audit for the workspace; the history the per-project logs hold is imported once
+        self.audit = audit.for_store(self.projects) or audit.open_audit(self.store.home)  # the same log the stores write
+        try:
+            audit.backfill(self.audit, self.projects, self.gateway.routing)
+        except Exception as exc:  # noqa: BLE001 — the history stays in the project logs; the server starts either way
+            print(f"audit: the earlier history was not imported ({type(exc).__name__})", flush=True)
         self.lesson_store = workspace_lessons.open_lessons(self.store.home)  # the workspace's lessons table (A5.3)
         workspace_lessons.install(self.lesson_store)  # accepted lessons join every evidence search
         self.csrf = secrets.token_urlsafe(32)

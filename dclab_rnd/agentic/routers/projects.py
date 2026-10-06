@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import Response
 
-from ... import lessons as workspace_lessons
+from ... import audit, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
 from ...studio import graph as studio_graph, memory as studio_memory, sft as studio_sft, solution as studio_solution
 from ..api_models import (OCTET, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
@@ -69,9 +69,14 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
         changed = {k: {"from": before.get(k), "to": v} for k, v in p["policy"].items() if before.get(k) != v}
     projects.save(p)
     if changed:
-        projects.log(project_id, "policy_changed", {"changes": changed, "actor": "human"})  # the platform audit reads it
+        projects.log(project_id, "policy_changed", {"changes": changed, "actor": "human"})
+        for key, change in changed.items():
+            audit.record(s.audit, "policy", "human", project=p, move="set_policy", status="allowed",
+                         args={"policy": key, "label": audit.POLICY_NAMES.get(key, key), "on": bool(change["to"]), "was": change["from"]})
     if opted:
         projects.log(project_id, "training_opt_in_changed", opted)
+        audit.record(s.audit, "policy", "human", project=p, move="set_training_opt_in", status="allowed",
+                     args={"policy": "share_for_training", "label": audit.POLICY_NAMES["share_for_training"], "on": opted["share_for_training"]})
     return s.with_records(projects.get(project_id))
 
 
@@ -174,6 +179,7 @@ async def _save_solution(project_id: str, payload: SolutionBody, s: Services) ->
         studio_memory.solution_saved(p, before, p["solution"], "human")  # A5.2: a correction when it changes the agent's
     projects.save(p)
     if changed:
+        audit.solution(projects, p, p["solution"], "human")
         projects.clear_stages(project_id)
         projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden]})
     return s.with_records(projects.get(project_id))
@@ -275,6 +281,8 @@ async def remove_memory_note(project_id: str, note_id: str, body: Any = Body(Non
         studio_memory.remove(s.projects, project_id, note_id, "human", str(reason or ""))
     except KeyError:
         raise HTTPException(404, "No such note") from None
+    audit.record(s.audit, "memory_removed", "human", project=s.projects.get(project_id), move="remove_memory_note", status="allowed",
+                 args={"note": note_id}, message=str(reason or "")[:300])
     return s.with_records(s.projects.get(project_id))
 
 

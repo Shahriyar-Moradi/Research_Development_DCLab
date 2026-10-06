@@ -223,6 +223,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             if d.get("settings"):
                 d["settings"]["split"] = split_of(d)
         drafts.update(draft_id, put)
+        from .. import audit
+
+        if draft.get("solution") != value:
+            audit.solution(drafts, draft, value, "human", draft=True)
         HomeAgent(drafts, None).refresh_workflow(draft_id)
         return drafts.get(draft_id)
 
@@ -283,7 +287,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if len(body) > MAX_UPLOAD:
             raise HTTPException(413, "Files up to 200 MB; for larger tables connect the source instead")
         (drafts.data_dir(draft_id) / name).write_bytes(body)
-        asset = pipeline.new_asset(drafts, draft_id, "upload", name, name, bytes=len(body))
+        asset = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, "upload", name, name, bytes=len(body))
         process(draft_id, asset["id"])
         return asset
 
@@ -296,7 +300,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         frame, policy = await asyncio.to_thread(studio_data.load_sample, key)
         name = f"{key}.parquet"
         await asyncio.to_thread(pipeline._to_parquet, frame, drafts.data_dir(draft_id) / name)
-        asset = pipeline.new_asset(drafts, draft_id, "sample", key, name, suggestion=_suggestion(policy))
+        asset = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, "sample", key, name, suggestion=_suggestion(policy))
         process(draft_id, asset["id"])
         return asset
 
@@ -347,7 +351,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except connectors.ConnectorError as exc:
             raise HTTPException(400, str(exc)) from None
         size = (directory / meta["filename"]).stat().st_size
-        asset = pipeline.new_asset(drafts, draft_id, kind, name, meta["filename"], source=meta["source"], bytes=size)
+        asset = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, kind, name, meta["filename"], source=meta["source"], bytes=size)
         process(draft_id, asset["id"])
         return asset
 
@@ -493,7 +497,8 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         filename = Path(asset["name"]).stem[:40] or "data"
         filename = studio_data.safe_name(filename + ".parquet")
         shutil.copyfile(source, projects.data_dir(pid) / filename)
-        studio_data.attach_data(projects, pid, filename)
+        studio_data.attach_data(projects, pid, filename, source={"kind": "draft", "draft_id": draft_id, "asset": asset["id"],
+                                                                 "asset_kind": asset.get("kind"), "synthetic": bool(asset.get("synthetic"))})
     project = projects.get(pid)
     if asset is not None and project.get("data"):
         project["data"]["synthetic"] = bool(asset.get("synthetic"))
@@ -526,6 +531,9 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             project["solution"] = draft["solution"]
             studio_memory.solution_saved(project, None, draft["solution"], "human")  # A5.2: the person saved it in the wizard
             projects.save(project)
+            from .. import audit
+
+            audit.solution(projects, project, draft["solution"], "human")
 
     def done(d):
         d["status"], d["project_id"] = "built", pid

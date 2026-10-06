@@ -626,15 +626,32 @@ def execute(store: ProjectStore, project_id: str, stage: str, actor: str = "huma
     if stage != "final" and project["stages"][stage].get("status") in ("completed", "approved") and later:
         store.clear_stages(project_id, STAGE_KEYS[index + 1])  # a rerun makes every later result stale
         project = store.get(project_id)
-    if stage == "final" and actor == "agent":
-        graph.consume_holdout_approval(project)
+    used = graph.consume_holdout_approval(project) if stage == "final" and actor == "agent" else None
     try:
         record = _execute(store, project_id, stage, project, reuse_reason)
     except Exception as exc:
         graph.log(store, project_id, verdict, state_before, outcome=f"failed: {type(exc).__name__}: {str(exc)[:200]}")
+        _audit_use(store, project_id, used)  # only when the saved project shows the approval used (a failed check saves nothing)
         raise
     graph.log(store, project_id, verdict, state_before, outcome="done: " + record["setup_summary"][:200])
+    _audit_use(store, project_id, used)
     return record
+
+
+def _audit_use(store: ProjectStore, project_id: str, used: dict[str, Any] | None) -> None:
+    """The audit row for a holdout approval the final stage used, written once the project saved it as used."""
+    if used is None:
+        return
+    try:
+        saved = store.get(project_id)
+    except KeyError:
+        return
+    if not any(a.get("gate") == "holdout" and a.get("at") == used.get("at") and a.get("used") == used.get("used") for a in saved.get("approvals") or []):
+        return
+    from .. import audit
+
+    audit.record_for(store, "approval_used", "agent", project=saved, move="use_approval", status="allowed", at=used["used"],
+                     args={"gate": "holdout"}, message="The final stage used this approval.", rules=["DCLAB-R17"], approved_at=used.get("at"))
 
 
 def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None) -> dict[str, Any]:

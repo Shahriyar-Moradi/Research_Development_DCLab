@@ -342,6 +342,11 @@ def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "own
     from . import memory
     memory.gate_approved(project, gate, "human", reason)  # A5.2
     store.save(project)
+    from .. import audit
+
+    audit.record_for(store, "approval", "human", (by or "owner").capitalize(), project=project, move="approve_gate", status="allowed",
+                     at=entry["at"], args={"gate": gate}, message=entry["reason"], rules=["DCLAB-R01"] if gate == "solution" else ["DCLAB-R17"],
+                     **({"solution_hash": entry["solution_hash"]} if "solution_hash" in entry else {}))
     return project
 
 
@@ -360,11 +365,13 @@ def capture(store: ProjectStore, project_id: str, actor: str = "human") -> Verdi
     return verdict
 
 
-def consume_holdout_approval(project: dict[str, Any]) -> None:
+def consume_holdout_approval(project: dict[str, Any]) -> dict[str, Any] | None:
+    """Mark the oldest unused holdout approval used; returns it (the caller audits the use), or None."""
     for approval in project.get("approvals", []):
         if approval.get("gate") == "holdout" and not approval.get("used"):
             approval["used"] = now()
-            return
+            return approval
+    return None
 
 
 def log(store: ProjectStore, project_id: str, verdict: Verdict, project: dict[str, Any] | None = None, outcome: str | None = None) -> dict[str, Any]:
@@ -382,6 +389,12 @@ def log(store: ProjectStore, project_id: str, verdict: Verdict, project: dict[st
     if outcome:
         entry["outcome"] = outcome
     store.transition(project_id, entry)
+    if not (verdict.move == "approve_gate" and verdict.allowed):  # an allowed approval is audited with who, when and why below
+        from .. import audit
+
+        audit.record_for(store, "move", verdict.actor, project=project, move=verdict.move, status=verdict.status, at=entry["at"],
+                         args=verdict.args, message=verdict.message, outcome=outcome, rules=verdict.rules,
+                         failed_checks=entry["failed_checks"], **{"from": verdict.node_from, "to": verdict.node_to})
     return entry
 
 
