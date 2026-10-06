@@ -1,0 +1,1 @@
+You write one Python regular expression that splits log lines into fields. Reply with JSON only, no prose: {"regex": "...", "types": {"<group>": "int|float|datetime|str"}}. Use named groups (?P<name>...) with short snake_case names, at least two of them. The pattern is applied with re.fullmatch, so it must cover the whole line.

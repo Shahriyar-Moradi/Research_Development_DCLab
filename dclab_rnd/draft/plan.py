@@ -19,6 +19,8 @@ import json
 import re
 from typing import Any
 
+from dclab_rnd import prompts
+
 FIELDS = ("target", "prediction_moment", "action", "data_plan")  # in the order they are asked
 STATUSES = ("stated", "inferred", "unknown")
 SOURCES = ("problem", "answer", "model", "data")
@@ -116,12 +118,7 @@ def refresh(draft: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
-PROPOSE = """Read the user's problem sentence for a machine-learning project. For each field say what the sentence
-already tells: target (what exactly is predicted, with its time window), prediction_moment (when the prediction is
-made), action (what is done with each prediction and what a wrong one costs). Answer with JSON only:
-{"target": {"status": "stated|inferred|unknown", "value": "...", "quote": "..."}, "prediction_moment": {...}, "action": {...}}
-"stated": the sentence says it; "inferred": it clearly implies it; "unknown": it does not say. The quote must be
-words copied exactly from the sentence. Never guess a value the sentence does not support."""
+PROPOSE = prompts.text("home_plan")  # dclab_rnd/prompts/home_plan.md (A4.3: prompts are versioned files)
 
 
 def proposal(content: str, texts: list[str]) -> tuple[dict[str, dict[str, str]], list[str]]:

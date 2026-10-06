@@ -206,6 +206,12 @@ def summarize(results: list[Result]) -> dict[str, Any]:
     return out
 
 
+def _prompt_hashes() -> dict[str, str]:
+    from dclab_rnd import prompts
+
+    return prompts.fingerprints()
+
+
 def _trap(case_id: str) -> str:
     return next(c.trap for c in CASES if c.id == case_id)
 
@@ -226,6 +232,9 @@ def run(policies: tuple[str, ...] = ("standard", "audit", "bad"), cases: tuple[C
         "question": "On seeded tables with one planted trap each, which policies keep the leak out of the model, and which keep clean columns usable?",
         "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "suite": SUITE, "scripted": True, "policies": list(policies),
+        # A4.3: only a complete run without errors (every policy, every case) vouches for the prompts, schemas and rules
+        "prompt_hashes": _prompt_hashes() if tuple(policies) == tuple(POLICIES) and tuple(cases) == tuple(CASES)
+                         and not any(r.error for r in results) else None,
         "cases": [{"id": c.id, "suite": c.suite, "trap": c.trap, "title": c.title, "seed": c.seed, "fingerprint": c.fingerprint(), "moment": c.moment,
                    "leaks": list(c.leaks), "innocent": list(c.clean_inputs), "time_column": c.time_column, "group_column": c.group_column,
                    "flag_duplicates": c.flag_duplicates, "note": c.note} for c in cases],

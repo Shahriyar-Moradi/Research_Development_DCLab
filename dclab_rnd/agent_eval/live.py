@@ -239,6 +239,38 @@ def summarize(runs: list[dict[str, Any]], cases: list[Case], repeats: int) -> di
             "note": "Intervals are over complete repeats only; per-case counts include every scored run."}
 
 
+def baseline(model: str, cases: list[Case], before: Path | None = None) -> tuple[Path, dict[str, Any]] | None:
+    """The latest earlier live result for the same model on the same cases (same fingerprints) that completed: the
+    baseline a new run is compared with. A smoke run on other cases, or a stopped run, is never a baseline."""
+    slug = re.sub(r"[^a-z0-9]+", "-", str(model or "model").lower()).strip("-")[:40]
+    wanted = {c.id: c.fingerprint() for c in cases}
+    for path in sorted((p for p in RESULTS.glob(f"AEV-*_{SUITE}_live_{slug}.json") if p != before), reverse=True):
+        try:
+            then = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if then.get("status") == "completed" and {c["id"]: c["fingerprint"] for c in then.get("cases") or []} == wanted and (then.get("summary") or {}).get("scores"):
+            return path, then
+    return None
+
+
+def compare(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    """The change per case (share of runs that kept the leak out, and that raised a false alarm) and per score."""
+    def share(pair):
+        return round(pair[0] / pair[1], 3) if pair and pair[1] else None
+    cases = {}
+    for case, now in current["by_case"].items():
+        then = (previous.get("by_case") or {}).get(case)
+        if not then:
+            continue
+        for key in ("leak_caught", "false_alarm"):
+            a, b = share(then.get(key)), share(now.get(key))
+            if a is not None and b is not None and a != b:
+                cases.setdefault(case, {})[key] = [a, b]
+    scores = {k: [previous["scores"].get(k, {}).get("mean"), v.get("mean")] for k, v in current["scores"].items()}
+    return {"cases": cases, "scores": scores}
+
+
 def next_path(model: str) -> Path:
     numbers = [int(m.group(1)) for p in RESULTS.glob("AEV-*.json") if (m := re.match(r"AEV-(\d+)_", p.name))]
     slug = re.sub(r"[^a-z0-9]+", "-", str(model or "model").lower()).strip("-")[:40]
@@ -308,13 +340,31 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
               "stopped": live["stopped"], "summary": summary, "runs": live["runs"],
               "cases": [{"id": c.id, "fingerprint": c.fingerprint()} for c in cases], "limitations": [SCOPE,
               f"{args.repeats} repeats per case: the interval is about this model's varying answers on these cases, not about other tables."]}
+    from dclab_rnd import prompts
+
+    report["prompt_hashes"] = prompts.fingerprints()
     path = args.output or next_path(p["model"])
+    try:  # A4.3: the last completed live result of this model on the same cases is the baseline; print what moved
+        base = baseline(p["model"], cases, before=path)
+        if base:
+            then_path, then = base
+            report["baseline"] = {"path": then_path.name, "same_prompts": then.get("prompt_hashes") == report["prompt_hashes"],
+                                  "change": compare(then["summary"], summary)}
+    except Exception as error:  # noqa: BLE001 — a damaged baseline never costs the run its result
+        report["baseline"] = {"error": f"{type(error).__name__}: the baseline could not be read"}
     report["experiment_id"] = (re.match(r"([A-Z]+-\d+)_", path.name) or re.match(r"(.*)", path.stem)).group(1)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x", encoding="utf-8") as handle:
         json.dump(report, handle, indent=2)
         handle.write("\n")
     print(f"Stored {path}")
+    moved = report.get("baseline") or {}
+    if moved.get("change"):
+        print(f"Against {moved['path']}" + ("" if moved["same_prompts"] else " (prompts, tool schemas or validator rules changed since)") + ":")
+        for name, (a, b) in moved["change"]["scores"].items():
+            print(f"  {name:16s} {a!s:6s} → {b!s}")
+        for case, change in moved["change"]["cases"].items():
+            print(f"  {case} " + ", ".join(f"{k} {v[0]} → {v[1]}" for k, v in change.items()))
     return 0
 
 

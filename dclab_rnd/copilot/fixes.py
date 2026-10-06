@@ -23,6 +23,7 @@ import json
 import re
 from typing import Any
 
+from dclab_rnd import prompts
 from .. import cited
 
 MAX_SENTENCES = 2
@@ -32,11 +33,7 @@ PER_REQUEST = 8  # findings per model request: the reply is JSON, and a long one
 NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.]{0,60}")
 PRECEDENT_TYPES = ("pitfall", "leakage_precedent", "finding")  # the measured records beside a rule
 LABEL = "Written by a model from the rule and the pitfall record this finding cites; the finding itself is deterministic."
-PROMPT = f"""You are the DCLab notebook copilot's writer. For each finding below, write a fix in at most {MAX_SENTENCES} sentences:
-what to change and why, using only the finding and its records. Put the id of the record in square brackets after the
-sentence that uses it, for example [DCLAB-R04]; cite the rule, and the pitfall or precedent record when the finding lists one.
-Copy any number exactly as the record writes it; never compute one. Never say the model is production-ready, safe or proven.
-Answer with JSON only: {{"fixes": [{{"finding": 0, "fix": "..."}}]}} with the finding numbers given."""
+PROMPT = prompts.text("notebook_fixes", max_sentences=MAX_SENTENCES)  # dclab_rnd/prompts/notebook_fixes.md (A4.3: prompts are versioned files)
 
 
 def sources_of(finding: dict[str, Any]) -> dict[str, str]:

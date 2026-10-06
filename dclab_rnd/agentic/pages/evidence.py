@@ -31,6 +31,7 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 
+from dclab_rnd import prompts
 from ... import cited
 from ...evidence_index import EvidenceIndex
 
@@ -41,11 +42,7 @@ K = 5
 WEAK = 4.0  # best BM25 score below this: only loose word overlap (on today's index, real matches score about 8 to 10)
 MAX_QUESTION = 500
 NOT_COVERED = "The evidence does not cover this yet."
-SYSTEM = ("You answer questions for data scientists from the DCLab evidence records given to you, and from nothing else. "
-          "Write at most 120 words in plain English. Put the record ID in square brackets after every sentence that uses it, "
-          "for example [DCLAB-R04]. Copy every number exactly as the record writes it; do not round or compute new numbers. "
-          f"If the records do not answer the question, reply exactly: {NOT_COVERED} "
-          "Never claim production readiness, causality or fairness.")
+SYSTEM = prompts.text("evidence_answer", not_covered=NOT_COVERED)  # dclab_rnd/prompts/evidence_answer.md (A4.3: prompts are versioned files)
 
 
 

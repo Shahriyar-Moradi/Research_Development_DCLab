@@ -15,16 +15,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from dclab_rnd import prompts
 from .. import cited
 
 WORDS = 120
 RECORD_CHARS = 400  # of each rule or precedent record the notes cite
 RECORDS = 6  # how many of them (the first the notes cite)
 LABEL = "Written by a model from the stage record; sentences with an uncited claim, a number not in a cited source, or a claim of production readiness were removed."
-PROMPT = f"""You explain one stage result of a machine-learning project to a data scientist, in plain English, in at most {WORDS} words.
-Use only the facts below. Put the id of the fact in square brackets after every sentence that uses it, for example [PRJ-ab12cd-final-C1].
-Copy every number exactly as the fact writes it: do not round, convert or compute a number. End with the limit that matters most,
-citing the fact that states it. Never say the model is production-ready, safe, proven or fair, and never claim a cause."""
+PROMPT = prompts.text("stage_explain", words=WORDS)  # dclab_rnd/prompts/stage_explain.md (A4.3: prompts are versioned files)
 
 
 def sources_of(record: dict[str, Any]) -> dict[str, str]:

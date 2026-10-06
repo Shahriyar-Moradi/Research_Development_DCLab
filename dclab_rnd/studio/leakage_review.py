@@ -19,6 +19,8 @@ import json
 import re
 from typing import Any
 
+from dclab_rnd import prompts
+
 VERDICTS = ("available", "after the moment")
 SOURCES = ("audit", "moment", "model")
 REASON_CHARS = 300
@@ -28,12 +30,7 @@ CLAUSES = re.compile(r"[.;]\s*|\s+\b(?:but|while|whereas|although)\b\s+", re.I) 
 STOP = {"the", "and", "are", "not", "for", "with", "from", "that", "this", "those", "these", "which", "only", "each", "every", "known",
         "avail", "forbi", "exclu", "post", "unkno", "unava", "itsel", "its", "own", "same", "use", "using"}
 
-PROMPT = """You review a machine-learning table for leakage. The prediction is made at the moment described below.
-For each column that would NOT be known at that moment (written later, or derived from the outcome), and for each
-column the audit flagged that you think IS known then, return an item. Answer with JSON only:
-{"columns": [{"column": "...", "verdict": "after the moment" | "available", "reason": "one sentence that quotes words of the moment", "records": ["DCLAB-R01"]}]}
-Cite only record ids from the list given. Leave out columns you are unsure about. You see names and summaries,
-never values."""
+PROMPT = prompts.text("leakage_review")  # dclab_rnd/prompts/leakage_review.md (A4.3: prompts are versioned files)
 
 
 def _stems(text: str) -> set[str]:

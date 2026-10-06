@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from dclab_rnd import prompts
 from dclab_rnd import cited, tools
 
 STAGE_RULES = {
@@ -260,9 +261,7 @@ def llm_available() -> bool:
     return installed().available("stage_notes")
 
 
-_POLICY = ("You are the DCLab notebook agent. Explain the stage result below in plain language for a data scientist, in at most 120 words. "
-           "Use only the numbers and record IDs given; cite record IDs in square brackets. Never claim production readiness, causality or fairness. "
-           "Point out one risk and the smallest next test.")
+_POLICY = prompts.text("stage_critique")  # dclab_rnd/prompts/stage_critique.md (A4.3: prompts are versioned files)
 
 
 def _chat(prompt: str, purpose: str, project_id: str | None = None) -> str | None:

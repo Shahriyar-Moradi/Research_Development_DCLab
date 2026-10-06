@@ -34,6 +34,7 @@ from typing import Any, Callable, Iterable
 import numpy as np
 import pandas as pd
 
+from dclab_rnd import prompts
 from dclab_rnd.studio.data import load_table
 
 try:  # pandas >= 2.2
@@ -766,11 +767,7 @@ def _text_frame(path: Path, info: dict[str, Any]) -> pd.DataFrame:
 
 # ---------------------------------------------------------------------- model-proposed pattern
 
-MODEL_PROMPT = (
-    "You write one Python regular expression that splits log lines into fields. Reply with JSON only, no prose: "
-    '{"regex": "...", "types": {"<group>": "int|float|datetime|str"}}. Use named groups (?P<name>...) with short '
-    "snake_case names, at least two of them. The pattern is applied with re.fullmatch, so it must cover the whole line."
-)
+MODEL_PROMPT = prompts.text("parse_pattern")  # dclab_rnd/prompts/parse_pattern.md (A4.3: prompts are versioned files)
 MODEL_TYPES = ("int", "float", "datetime", "str")
 
 
