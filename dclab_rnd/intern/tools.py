@@ -143,6 +143,10 @@ def register(registry: Registry) -> None:
     add("propose_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
         "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.",
         "write", "propose_solution", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "propose_solution"))
+    add("review_leakage", {**pid, "target": S, "prediction_moment": {**S, "description": "The moment to judge against; default: the saved solution's or the sample's."}},
+        ["project_id", "target"],
+        "Review which columns are written after the prediction moment. Returns forbid (the column audit's flags, each with a reason and proof records) "
+        "and consider (columns the moment or the reviewer says are later, each with a reason and records: weigh them, ask the person if unsure). Changes nothing.")
     add("set_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]},
         "prediction_moment": {**S, "description": "When the prediction is made and what is known then (at least one sentence)."},
         "forbidden": {"type": "array", "items": {"type": "object", "properties": {"column": S, "reason": S}, "required": ["column"]}},
@@ -224,6 +228,23 @@ class Toolbox:
         self.projects.save(project)
         return {k: proposal[k] for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
                                          "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint")}
+
+    def review_leakage(self, project_id: str, target: str, prediction_moment: str | None = None) -> dict[str, Any]:
+        """The leakage reviewer (A3.2): which columns are written after the prediction moment, each with a reason and a
+        record. The audit's flags are the ones to forbid; the rest are proposals to weigh, never applied by this call."""
+        project = self.projects.get(project_id)
+        if not project.get("data"):
+            return {"error": "The project has no data yet."}
+        from dclab_rnd.models import installed
+        from dclab_rnd.studio import leakage_review
+        frame = studio_data.load_table(self.projects.data_dir(project_id) / project["data"]["filename"])
+        proposal = studio_solution.propose(frame, project["data"]["profile"], target)
+        moment = prediction_moment or (project.get("solution") or {}).get("prediction_moment") or (project.get("suggestion") or {}).get("prediction_moment")
+        gateway = installed()
+        client = gateway.client("leakage_review", project_id=project_id) if gateway is not None else None
+        out = leakage_review.review(project["data"]["profile"], moment, proposal["forbidden"], target, proposal["identifiers"], client)
+        return {"prediction_moment": moment, "forbid": [i for i in out["items"] if i["apply"]], "consider": [i for i in out["items"] if not i["apply"]],
+                "disagreements": out["disagreements"], "mode": out["mode"], "note": out["note"]}
 
     def set_solution(self, project_id: str, **fields: Any) -> dict[str, Any]:
         project = self.projects.get(project_id)

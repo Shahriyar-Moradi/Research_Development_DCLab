@@ -40,6 +40,8 @@ PURPOSES: dict[str, Purpose] = {
     "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved; no project data"),
     "stage_notes": Purpose("standard", 60, "a stage record's title, summary and claims (aggregate results with their intervals); no rows"),
     "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records; no rows"),
+    "leakage_review": Purpose("standard", 60, "the prediction moment, the target's name, column names with their kind, missing rate and unique "
+                                              "count, the column audit's flags, and the ids and titles of rule and leakage-precedent records; never rows or cell values"),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
                                      "column from describe_data), stage records and evidence records; never whole rows", cell_values=3 * 200),
     "campaign": Purpose("strong", 180, "research campaign context: the plan, dataset cards and experiment summaries of evidence/campaigns; "

@@ -344,17 +344,51 @@ DC.view('new', {
     }
     /* keepTask: the user set the Task box and asked for the audit again. Otherwise the task is detected from the
        target, so a task chosen for another column (or another draft) is never forced onto this one. */
-    async function propose(keepTask) {
+    /* what the person chose on the sheet, so a review against a new moment never undoes it */
+    function choices() {
+      return {
+        ticked: $$('[data-forbid]:checked', el).map(i => ({ column: i.dataset.forbid, reason: i.dataset.reason || '' })),
+        unticked: new Set($$('[data-forbid]:not(:checked)', el).map(i => i.dataset.forbid)),
+        idents: new Set($$('[data-ident]:checked', el).map(i => i.dataset.ident)), identsOff: new Set($$('[data-ident]:not(:checked)', el).map(i => i.dataset.ident)),
+        time: ($('#wz-time', el) || {}).value, group: ($('#wz-group', el) || {}).value, metric: ($('#wz-metric', el) || {}).value,
+      };
+    }
+    function reapply(c) {
+      $$('[data-forbid]', el).forEach(i => { if (c.ticked.some(f => f.column === i.dataset.forbid)) i.checked = true; else if (c.unticked.has(i.dataset.forbid)) i.checked = false; });
+      $$('[data-ident]', el).forEach(i => { if (c.idents.has(i.dataset.ident)) i.checked = true; else if (c.identsOff.has(i.dataset.ident)) i.checked = false; });
+      [['#wz-time', c.time], ['#wz-group', c.group], ['#wz-metric', c.metric]].forEach(([id, v]) => { const sel = $(id, el); if (sel && v != null && [...sel.options].some(o => o.value === v)) sel.value = v; });
+    }
+    async function propose(keepTask, keepChoices) {
       const target = $('#wz-target', el).value; if (!target) return;
+      const kept = keepChoices ? choices() : null, accepted = W.draft.solution;
       $('#wz-sol-status', el).textContent = 'Auditing the columns…';
       try {
-        W.proposal = await api(`/drafts/${W.draft.id}/solution/proposal`, { method: 'POST', body: { target, task: (keepTask === true && $('#wz-task', el).value) || undefined } });
+        const moment = (($('#wz-moment', el) || {}).value || '').trim() || undefined;  // the reviewer judges the columns against this moment
+        const proposal = await api(`/drafts/${W.draft.id}/solution/proposal`, { method: 'POST', body: { target, task: (keepTask === true && $('#wz-task', el).value) || undefined, prediction_moment: moment } });
         $('#wz-sol-status', el).textContent = '';
+        if (W.draft.solution !== accepted) return;  // accepted while the review ran: the accepted sheet stays
+        if (kept) {  // a column the person ticked stays listed (and ticked) even if the new review no longer names it
+          const listed = new Set((proposal.forbidden || []).concat((proposal.review || {}).items || []).map(f => f.column));
+          proposal.forbidden = (proposal.forbidden || []).concat(kept.ticked.filter(f => !listed.has(f.column)));
+        }
+        W.proposal = proposal;
         drawSheet(null);
+        if (kept) reapply(kept);
       } catch (e) { $('#wz-sol-status', el).textContent = e.message; }
     }
     $('#wz-propose', el).addEventListener('click', () => propose(true));
     $('#wz-target', el).addEventListener('change', () => propose(false));
+    $('#wz-sheet', el).addEventListener('change', e => { if (e.target.id === 'wz-moment' && e.target.value.trim().length >= 12) propose(true, true); });  // a new moment: review again, keep the choices
+    /* the leakage reviewer (package A3.2): what the moment or the reviewer model says is written after the moment.
+       Shown unticked, never applied: the person decides. A flag the reviewer disputes stays ticked. */
+    const REVIEW_SOURCE = { moment: 'from the moment', model: 'reviewer model' };
+    function reviewRow(p, flagged, saved) {
+      const r = p.review || {}, taken = new Set(flagged.map(f => f.column).concat(saved ? saved.forbidden.map(f => f.column) : []));
+      const extra = (r.items || []).filter(i => !i.apply && !taken.has(i.column));
+      const disputes = r.disagreements || [];
+      if (!extra.length && !disputes.length) return '';
+      return `<div class="cs-row"><span class="cs-key">The reviewer also asks</span><span class="cs-val stack tight">${extra.map(i => `<label class="check"><input type="checkbox" data-forbid="${esc(i.column)}" data-reason="${esc(i.reason || '')}"><span><code>${esc(i.column)}</code> <span class="pill outline">${REVIEW_SOURCE[i.source] || esc(i.source)}</span> <span class="muted small">${esc(i.reason || '')}</span> ${(i.records || []).map(id => chip(id)).join('')}</span></label>`).join('')}${disputes.map(d => `<div class="small muted">The reviewer thinks <code>${esc(d.column)}</code> is known at the moment (${esc(d.reason)}); the audit's flag stays until you untick it.</div>`).join('')}<div class="small muted">Not applied: tick a column only if it is written after the prediction moment.</div></span>${chip('DCLAB-R01')}</div>`;
+    }
     function drawSheet(saved) {
       const p = W.proposal || {}, cols = columns().map(c => c.name).filter(c => c !== (saved ? saved.target : p.target));
       const forb = saved ? saved.forbidden : (p.forbidden || []).map(f => ({ column: f.column, reason: f.reason }));
@@ -367,7 +401,7 @@ DC.view('new', {
       $('#wz-sheet', el).innerHTML = `
         <div class="cs-row"><span class="cs-key">Target</span><span class="cs-val"><code>${esc(saved ? saved.target : p.target)}</code> · ${esc(task || '')}${(saved ? saved.positive_label : p.positive_label) != null ? ` · positive label <code>${esc(saved ? saved.positive_label : p.positive_label)}</code>` : ''}${p.detected && p.detected.note ? `<div class="small muted">${esc(p.detected.note)}</div>` : ''}</span><span></span></div>
         <div class="cs-row"><span class="cs-key">Prediction moment</span><span class="cs-val"><textarea id="wz-moment" rows="2" placeholder="For example: when the order is created, before dispatch.">${esc(saved ? saved.prediction_moment : p.prediction_moment || '')}</textarea><div class="small muted">${!saved && !p.prediction_moment && p.prediction_moment_hint ? esc(p.prediction_moment_hint) + ' ' : ''}Anything written after this moment must stay out of the model.</div></span>${chip('DCLAB-R01')}</div>
-        <div class="cs-row"><span class="cs-key">Forbidden</span><span class="cs-val stack tight">${flagged.length ? flagged.map(f => `<label class="check"><input type="checkbox" data-forbid="${esc(f.column)}" data-reason="${esc(f.reason || '')}" ${forbSet.has(f.column) ? 'checked' : ''}><span><code>${esc(f.column)}</code> <span class="muted small">${esc(f.reason || '')}</span> ${(f.proof || []).map(id => chip(id)).join('')}</span></label>`).join('') : '<span class="muted">The audit flagged no column. That is a heuristic scan, not proof: confirm against the prediction moment.</span>'}</span><span class="ev-list">${chip('DCLAB-R04')}</span></div>
+        <div class="cs-row"><span class="cs-key">Forbidden</span><span class="cs-val stack tight">${flagged.length ? flagged.map(f => `<label class="check"><input type="checkbox" data-forbid="${esc(f.column)}" data-reason="${esc(f.reason || '')}" ${forbSet.has(f.column) ? 'checked' : ''}><span><code>${esc(f.column)}</code> <span class="muted small">${esc(f.reason || '')}</span> ${(f.proof || []).map(id => chip(id)).join('')}</span></label>`).join('') : '<span class="muted">The audit flagged no column. That is a heuristic scan, not proof: confirm against the prediction moment.</span>'}</span><span class="ev-list">${chip('DCLAB-R04')}</span></div>${reviewRow(p, flagged, saved)}
         <div class="cs-row"><span class="cs-key">Identifiers</span><span class="cs-val">${cols.filter(c => ids.has(c) || columns().find(x => x.name === c && (x.id_like || x.name_id_like))).map(c => `<label class="check"><input type="checkbox" data-ident="${esc(c)}" ${ids.has(c) ? 'checked' : ''}><code>${esc(c)}</code></label>`).join('') || '<span class="muted">None found.</span>'}</span><span class="pill outline">never a feature</span></div>
         <div class="cs-row"><span class="cs-key">Time column</span><span class="cs-val">${sel('wz-time', cols, saved ? saved.time_column : (p.time_candidates || [])[0])} <span class="small muted">orders the split; nothing from the future enters a fold</span></span>${chip('PIT-005')}</div>
         <div class="cs-row"><span class="cs-key">Group column</span><span class="cs-val">${sel('wz-group', cols, saved ? saved.group_column : null)} <span class="small muted">rows of one group stay on one side</span></span><span></span></div>

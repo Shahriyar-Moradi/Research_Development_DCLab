@@ -613,6 +613,13 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(proposal.status_code, 200, proposal.text)
         prop = proposal.json()
         self.assertIn("duration", {f["column"] for f in prop["forbidden"]})  # the R&D's own solution for bank_marketing
+        review = {i["column"]: i for i in prop["review"]["items"]}  # the leakage reviewer (A3.2), without a model here
+        self.assertEqual((prop["review"]["mode"], review["duration"]["apply"]), ("rules", True))
+        self.assertTrue(all(i["records"] and i["reason"] for i in prop["review"]["items"]))
+        edited = c.post(f"/api/drafts/{d['id']}/solution/proposal", json={"target": y, "prediction_moment": "Before the call; the pdays counter is not available then"},
+                        headers=self.h).json()  # the moment as the sheet shows it, edited: the review reads it
+        self.assertEqual(edited["prediction_moment"], "Before the call; the pdays counter is not available then")
+        self.assertIn(("pdays", "moment", False), [(i["column"], i["source"], i["apply"]) for i in edited["review"]["items"]])
         self.assertEqual(prop["prediction_moment"], ready["suggestion"]["prediction_moment"])  # a real moment: the sample's own
         self.assertTrue(prop["prediction_moment_hint"].startswith("Describe the moment"))  # guidance, never a value
         solution = {"target": y, "task": prop["task"], "positive_label": str(prop["positive_label"]) if prop["task"] == "binary" else None,
@@ -659,13 +666,18 @@ class ApiTests(unittest.TestCase):
         rows = "tenure,plan,charges,left\n" + "\n".join(f"{i % 60},{'ab'[i % 2]},{20 + i % 70},{int(i % 5 == 0)}" for i in range(300))
         self.assertEqual(c.put(f"/api/drafts/{d['id']}/data?filename=c.csv", content=rows.encode(), headers=self.h).status_code, 200)
         wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
-        # the sentence gives the outcome in words ("cancel next month"), so the moment is asked first, then its column
+        # the sentence gives the outcome in words ("cancel next month"): its column is still asked, before or after the
+        # moment depending on whether the table was ready when the opening turn ran; answer whichever is open
         self.assertEqual(self.draft(d["id"])["plan"]["target"]["status"], "stated")
-        wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "At the monthly snapshot"}, headers=self.h).status_code == 202)
-        column = wait(lambda: next((q for q in self.draft(d["id"])["questions"] if q["field"] == "target" and not q.get("answered")), None))
-        self.assertIn("left", column["options"])
-        wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "left"}, headers=self.h).status_code == 202)
-        wait(lambda: self.draft(d["id"])["understanding"].get("target") == "left")
+        answers = {"target": "left", "prediction_moment": "At the monthly snapshot"}
+        for _ in range(2):
+            q = wait(lambda: next((q for q in self.draft(d["id"])["questions"] if not q.get("answered") and q["field"] in answers), None))
+            if q["field"] == "target":
+                self.assertIn("left", q["options"])
+            text = answers.pop(q["field"])
+            wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": text}, headers=self.h).status_code == 202)
+            wait(lambda: any(x["id"] == q["id"] and x.get("answered") for x in self.draft(d["id"])["questions"]))
+        self.assertEqual(self.draft(d["id"])["understanding"].get("target"), "left")
         p = c.post(f"/api/drafts/{d['id']}/build", json={}, headers=self.h).json()
         self.assertEqual(p["suggestion"], {"target": "left", "prediction_moment": "At the monthly snapshot"})
         proposal = c.post(f"/api/projects/{p['id']}/solution/proposal", json={"target": "left"}, headers=self.h)

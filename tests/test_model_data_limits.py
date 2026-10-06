@@ -164,8 +164,18 @@ class DataLimitTests(unittest.TestCase):
         self.assertTrue(per_column)
         self.assertTrue(all(len(v) <= 3 for v in per_column.values()), per_column)
 
+    def test_the_leakage_reviewer_sees_names_and_summaries_never_values(self):
+        from dclab_rnd.studio import data, leakage_review, solution
+        table = marked_table()
+        profile = data.profile_table(table)  # its previews hold markers: they must not reach the model
+        proposal = solution.propose(table, profile, "churned")
+        gw = gateway({"leakage_review": [{"content": "{\"columns\": []}", "tool_calls": [], "usage": {}}]})
+        leakage_review.review(profile, "At the monthly snapshot of each customer.", proposal["forbidden"], "churned", proposal["identifiers"],
+                              gw.client("leakage_review"))
+        self.assertEqual(self.assertWithinLimit("leakage_review"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "intern"}
+        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "intern", "leakage_review"}
         no_user_data = {"campaign", "campaign_review"}  # research tools: evidence/campaigns only, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

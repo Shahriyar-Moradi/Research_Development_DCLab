@@ -201,12 +201,18 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 proposal["prediction_moment"] = hint["prediction_moment"]
             if hint.get("time_column"):
                 proposal["time_candidates"] = [hint["time_column"]] + [c for c in proposal["time_candidates"] if c != hint["time_column"]]
-        moment = (draft.get("understanding") or {}).get("prediction_moment")
+        # the moment the wizard's sheet shows (the person may have edited it), else the chat's answer
+        moment = str(body.get("prediction_moment") or "").strip() or (draft.get("understanding") or {}).get("prediction_moment")
         if moment:
             proposal["prediction_moment"] = moment
         # "prediction_moment" is a real moment (the chat's answer, or the studied sample's own); when it is missing the
         # page shows "prediction_moment_hint" as guidance only, so an instruction is never saved as the moment (DCLAB-R01)
         proposal.setdefault("prediction_moment", None)
+        # The leakage reviewer (A3.2): the audit's flags stay ticked; what the moment or a model adds is shown, never applied.
+        from ..studio import leakage_review
+        proposal["review"] = await asyncio.to_thread(
+            leakage_review.review, profile, proposal["prediction_moment"] or hint.get("prediction_moment"), proposal["forbidden"], target,
+            proposal["identifiers"], models.client("leakage_review", draft_id=draft_id))
         drafts.update(draft_id, lambda d: d.update(proposal=proposal))
         return proposal
 

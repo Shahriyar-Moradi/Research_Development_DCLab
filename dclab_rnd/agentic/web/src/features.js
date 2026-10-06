@@ -181,7 +181,7 @@ window.FEATURES = [
   { id: 'packs.builder', view: 'packs', name: 'Pack builder (steps, rules, tools, metrics, validators)', status: 'todo', phase: 'P3', where: '', note: '' },
 
   // ---- integrations
-  { id: 'int.mcp', view: 'integrations', name: 'MCP endpoint /mcp with 20 tools', status: 'built', phase: 'Now', where: 'dclab_rnd/mcp_server.py', note: '' },
+  { id: 'int.mcp', view: 'integrations', name: 'MCP endpoint /mcp with 21 tools', status: 'built', phase: 'Now', where: 'dclab_rnd/mcp_server.py', note: '' },
   { id: 'int.chatui', view: 'integrations', name: 'Hugging Face Chat UI + ML Intern mode', status: 'built', phase: 'Now', where: 'scripts/chat_ui.py · make chat-ui', note: '' },
   { id: 'int.api', view: 'integrations', name: 'REST API', status: 'built', phase: 'Now', where: 'dclab_rnd/agentic/server.py', note: '' },
   { id: 'int.cli', view: 'integrations', name: 'CLI (python -m dclab_rnd, copilot review)', status: 'built', phase: 'Now', where: 'dclab_rnd/cli.py', note: '' },
