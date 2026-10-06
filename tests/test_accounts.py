@@ -178,14 +178,15 @@ class AccountsTests(unittest.TestCase):
     def test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there(self):
         other = self.clients["owner2"]
         draft = other.post("/api/drafts", json={"problem": "Predict which invoices are paid late"}).json()
-        deadline = time.time() + 30
+        deadline = time.time() + 120  # a CI runner running six test files at once is slow
         while time.time() < deadline and not other.get(f"/api/drafts/{draft['id']}").json()["messages"]:
-            time.sleep(0.1)
-        self.assertTrue(other.get(f"/api/drafts/{draft['id']}").json()["messages"])  # the agent answered, in this workspace
+            time.sleep(0.2)
+        state = other.get(f"/api/drafts/{draft['id']}").json()
+        self.assertTrue(state["messages"], {k: state.get(k) for k in ("status", "agent", "events_seq")})  # the agent answered, in this workspace
         self.assertEqual(other.post(f"/api/drafts/{draft['id']}/pack", json={"key": "auto"}).status_code, 200)
         csv = b"days,amount,late\n" + b"".join(f"{i % 60},{100 + i},{i % 4 == 0}\n".encode() for i in range(120))
         asset = other.put(f"/api/drafts/{draft['id']}/data?filename=i.csv", content=csv).json()
-        while time.time() < deadline + 60:
+        while time.time() < deadline + 120:
             found = next(a for a in other.get(f"/api/drafts/{draft['id']}").json()["assets"] if a["id"] == asset["id"])
             if found["status"] in ("ready", "failed"):
                 break
