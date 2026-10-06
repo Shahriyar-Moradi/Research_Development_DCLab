@@ -69,6 +69,22 @@ def new_project(project_id: str, name: str, industry: str = "general", goal: str
     }
 
 
+def _write_atomic(path: Path, text: str) -> None:
+    """Write a file so a concurrent reader sees the old content or the new, never half of it: a temporary file with
+    its own name (two writers never share one) in the same folder, then an atomic rename."""
+    import os
+    import tempfile
+
+    fd, temp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(temp, path)
+    except BaseException:
+        Path(temp).unlink(missing_ok=True)
+        raise
+
+
 class ProjectStore:
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -122,10 +138,7 @@ class ProjectStore:
 
     def save(self, project: dict[str, Any]) -> dict[str, Any]:
         project["updated"] = now()
-        path = self.directory(project["id"]) / "project.json"
-        temp = path.with_suffix(".json.tmp")
-        temp.write_text(json.dumps(project, indent=2, ensure_ascii=False), encoding="utf-8")
-        temp.replace(path)
+        _write_atomic(self.directory(project["id"]) / "project.json", json.dumps(project, indent=2, ensure_ascii=False))
         return project
 
     def update(self, project_id: str, **values: Any) -> dict[str, Any]:
@@ -156,7 +169,7 @@ class ProjectStore:
     def write_stage(self, project_id: str, stage: str, record: dict[str, Any]) -> Path:
         path = self.stage_path(project_id, stage)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(record, indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
+        _write_atomic(path, json.dumps(record, indent=2, ensure_ascii=False, allow_nan=False))  # a page reading it mid-run sees the old or the new record
         return path
 
     def read_stage(self, project_id: str, stage: str) -> dict[str, Any] | None:
