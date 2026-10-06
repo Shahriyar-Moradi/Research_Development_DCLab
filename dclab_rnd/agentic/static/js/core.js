@@ -7,7 +7,7 @@ export const labels = {adult:'Adult income',bank_marketing:'Bank marketing',brea
 export async function api(path, options = {}) {
   const response = await fetch('/api' + path, {...options, headers: {'Content-Type':'application/json','X-DCLab-Token':state.config?.csrf || '', ...options.headers}});
   const data = await response.json();
-  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+  if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : (data.detail && data.detail.message) || JSON.stringify(data.detail));
   return data;
 }
 export function notice(message) { $('notice').textContent = message; $('notice').classList.toggle('hidden', !message); }

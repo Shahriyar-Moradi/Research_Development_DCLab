@@ -14,7 +14,17 @@ from pathlib import Path
 from typing import Any, Protocol
 
 FIELDS = ("at", "purpose", "tier", "model", "endpoint", "project_id", "draft_id", "input_tokens", "output_tokens",
-          "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis")
+          "seconds", "attempts", "outcome", "prompt", "cost_eur", "cost_basis", "user_id")
+
+
+def _person(entry: dict[str, Any]) -> dict[str, Any]:
+    """The request's row with the signed-in person it was for (package 10.6), when nobody named one."""
+    if entry.get("user_id"):
+        return entry
+    from ..accounts.principal import current
+
+    who = current()
+    return {**entry, "user_id": who.user_id if who is not None else None}
 
 
 def now() -> str:
@@ -42,7 +52,7 @@ class UsageLog(Protocol):
     def record(self, entry: dict[str, Any]) -> None: ...
     def recent(self, limit: int = 50) -> list[dict[str, Any]]: ...
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]: ...
-    def spent(self, since: str, project_id: str | None = None) -> float: ...
+    def spent(self, since: str, project_id: str | None = None, user_id: str | None = None) -> float: ...
     def record_check(self, entry: dict[str, Any]) -> None: ...
     def failing(self, since: str) -> list[dict[str, Any]]: ...
 
@@ -88,6 +98,7 @@ class FileUsage:
         self._lock = threading.Lock()
 
     def record(self, entry: dict[str, Any]) -> None:
+        entry = _person(entry)
         line = json.dumps({k: entry.get(k) for k in FIELDS}, ensure_ascii=False, default=str)
         with self._lock, self.path.open("a", encoding="utf-8") as handle:
             handle.write(line + "\n")
@@ -117,9 +128,10 @@ class FileUsage:
         rows = [json.loads(line) for line in self.checks.read_text(encoding="utf-8").splitlines() if line.strip()]
         return _failing([r for r in rows if str(r.get("at")) >= since])
 
-    def spent(self, since: str, project_id: str | None = None) -> float:
+    def spent(self, since: str, project_id: str | None = None, user_id: str | None = None) -> float:
         return round(sum(float(e.get("cost_eur") or 0) for e in self._all()
-                         if str(e.get("at")) >= since and (project_id is None or e.get("project_id") == project_id)), 6)
+                         if str(e.get("at")) >= since and (project_id is None or e.get("project_id") == project_id)
+                         and (user_id is None or e.get("user_id") == user_id)), 6)
 
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]:
         return _totals([e for e in self._all() if (not since or str(e.get("at")) >= since) and (not project_id or e.get("project_id") == project_id)])
@@ -136,6 +148,7 @@ class PgUsage:
 
         from ..storage.models import model_request
 
+        entry = _person(entry)
         with self.engine.begin() as c:
             c.execute(sa.insert(model_request).values(workspace_id=self.workspace_id, **{k: entry.get(k) for k in FIELDS}))
 
@@ -175,14 +188,19 @@ class PgUsage:
             rows = [dict(r._mapping) for r in c.execute(sa.select(*[t.c[k] for k in CHECK_FIELDS]).where(t.c.workspace_id == self.workspace_id, t.c.at >= since))]
         return _failing(rows)
 
-    def spent(self, since: str, project_id: str | None = None) -> float:
+    def spent(self, since: str, project_id: str | None = None, user_id: str | None = None) -> float:
         import sqlalchemy as sa
 
         from ..storage.models import model_request as t
 
-        q = sa.select(sa.func.coalesce(sa.func.sum(t.c.cost_eur), 0.0)).where(t.c.workspace_id == self.workspace_id, t.c.at >= since)
+        # a person's spend is theirs in every workspace (package 10.6: the monthly limit is per person); the rest is this workspace's
+        q = sa.select(sa.func.coalesce(sa.func.sum(t.c.cost_eur), 0.0)).where(t.c.at >= since)
+        if user_id is None:
+            q = q.where(t.c.workspace_id == self.workspace_id)
         if project_id is not None:
             q = q.where(t.c.project_id == project_id)
+        if user_id is not None:
+            q = q.where(t.c.user_id == user_id)
         with self.engine.connect() as c:
             return round(float(c.execute(q).scalar() or 0.0), 6)
 

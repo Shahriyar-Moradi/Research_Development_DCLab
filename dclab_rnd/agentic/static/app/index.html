@@ -1952,6 +1952,10 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
   </div>
 
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
+    <div class="panel" data-f="admin.limits">
+      <div class="panel-head"><div class="panel-title"><h3>Limits</h3><span class="sub" id="limits-sub">So that one person cannot starve the rest</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="limits-table"><thead><tr><th>Limit</th><th class="num">You</th><th class="num">This workspace</th></tr></thead><tbody><tr><td colspan="3"><div class="empty">Loading…</div></td></tr></tbody></table></div>
+    </div>
     <div class="grid g2">
       <div class="panel" data-f="admin.budgets">
         <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not tracked</span></div>

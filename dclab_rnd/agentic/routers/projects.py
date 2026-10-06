@@ -15,7 +15,7 @@ from ...studio import agent as studio_agent, data as studio_data, engine as stud
 from ...studio import graph as studio_graph, memory as studio_memory, sft as studio_sft, solution as studio_solution
 from ..api_models import (OCTET, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
                           ProposalRequest, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, Verdict, download)
-from ..services import Services, services
+from ..services import charge_upload, Services, services
 
 router = Router()
 
@@ -123,6 +123,7 @@ async def upload_data(project_id: str, request: Request, filename: str = "data.c
         raise HTTPException(413, "Files above 200 MB are not supported in the local notebook")
     if not body:
         raise HTTPException(400, "Empty file")
+    await asyncio.to_thread(charge_upload, len(body))  # the day's allowance (package 10.6)
     name = studio_data.safe_name(filename)  # never a path: "../x" or "a/b" cannot leave the data folder
     if not name:
         raise HTTPException(422, "Give the file a name")

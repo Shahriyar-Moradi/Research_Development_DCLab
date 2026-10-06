@@ -333,6 +333,23 @@ def limits(projects) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------- rate limits and quotas (package 10.6)
+def quotas(ctx) -> dict[str, Any]:
+    from ... import limits
+    from ...accounts.principal import current
+    from ...models.usage import month_start
+
+    who = current()
+    if not limits.on() or who is None or not who.user_id:
+        return {"on": False, "note": "Limits apply when accounts are on (DCLAB_AUTH): one owner on their own machine is limited only by the machine."}
+    usage = getattr(ctx.models, "usage", None)
+    since = month_start()
+    active = ctx.job_store.list(active=True, limit=10_000)
+    return limits.summary(who.user_id, who.workspace_id,
+                          usage.spent(since, user_id=who.user_id) if usage is not None else None, usage.spent(since) if usage is not None else None,
+                          sum(1 for j in active if (j.get("user") or {}).get("user_id") == who.user_id), len(active))
+
+
 # ---------------------------------------------------------------------------- audit log
 STATUSES = ("allowed", "blocked", "needs_approval")
 
@@ -361,6 +378,11 @@ def register(app, ctx) -> None:
     async def platform_limits():
         """Budget defaults and caps, upload limits, and what leaves this machine."""
         return await asyncio.to_thread(limits, ctx.projects)
+
+    @router.get("/api/platform/quotas", response_model=Page)
+    async def platform_quotas():
+        """Rate limits and quotas (package 10.6): each limit per person and per workspace, with what is used now."""
+        return await asyncio.to_thread(quotas, ctx)
 
     @router.get("/api/platform/audit", response_model=Page)
     async def platform_audit(limit: int = 50, offset: int = 0, kind: str | None = None, status: str | None = None,

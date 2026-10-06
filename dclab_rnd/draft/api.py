@@ -302,6 +302,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, "The file is empty")
         if len(body) > MAX_UPLOAD:
             raise HTTPException(413, "Files up to 200 MB; for larger tables connect the source instead")
+        from ..agentic.services import charge_upload
+
+        if services is not None:
+            await asyncio.to_thread(services.job_room)  # its pipeline is a job: refused before anything is stored or charged (package 10.6)
+        await asyncio.to_thread(charge_upload, len(body))  # the day's allowance
         (drafts.data_dir(draft_id) / name).write_bytes(body)
         asset = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, "upload", name, name, bytes=len(body))
         process(draft_id, asset["id"])
@@ -310,6 +315,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     @router.post("/api/drafts/{draft_id}/data/sample", response_model=Doc)
     async def sample(draft_id: str, payload: AnyObject):
         get(draft_id)
+        if services is not None:
+            await asyncio.to_thread(services.job_room)  # its pipeline is a job (package 10.6): refused before a copy is made
         key = str(dump(payload).get("key", ""))
         if key not in {s["key"] for s in studio_data.sample_catalog()}:
             raise HTTPException(404, "Unknown sample dataset")
@@ -359,6 +366,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     async def connect(draft_id: str, kind: str, name: str, fetch: Callable[[Path], dict[str, Any]]) -> dict[str, Any]:
         get(draft_id)
+        if services is not None:
+            await asyncio.to_thread(services.job_room)  # its pipeline is a job (package 10.6): refused before anything is downloaded
         directory = drafts.data_dir(draft_id)
         try:
             meta = await asyncio.to_thread(fetch, directory)
@@ -367,6 +376,13 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except connectors.ConnectorError as exc:
             raise HTTPException(400, str(exc)) from None
         size = (directory / meta["filename"]).stat().st_size
+        from ..agentic.services import charge_upload
+
+        try:
+            await asyncio.to_thread(charge_upload, size)  # a connector's import counts against the day's allowance too (package 10.6)
+        except HTTPException:
+            (directory / meta["filename"]).unlink(missing_ok=True)
+            raise
         asset = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, kind, name, meta["filename"], source=meta["source"], bytes=size)
         process(draft_id, asset["id"])
         return asset

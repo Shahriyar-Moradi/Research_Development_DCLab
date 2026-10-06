@@ -135,16 +135,29 @@ class Services:
         """A row in the job table. ``here``: claimed at once by this process's worker, for a request that runs it now
         (``?wait=true``, or the Home agent's synthetic request inside its turn). ActiveJob when the key is held."""
         self.worker.start()  # once: the worker threads (or only the heartbeat, with DCLAB_WORKER=external)
-        job = self.job_store.enqueue(kind, key, payload, by=by, worker=self.worker.id if here else None)
+        from .. import limits
+        from ..accounts.principal import current
+
+        who = current()
+        if who is not None and who.user_id and limits.on():  # jobs at once, per person and per workspace (package 10.6)
+            with limits.job_slot(self.workspace_id):
+                limits.check_jobs(self.job_store, who.user_id, self.workspace_id)
+                job = self.job_store.enqueue(kind, key, payload, by=by, worker=self.worker.id if here else None)
+        else:
+            job = self.job_store.enqueue(kind, key, payload, by=by, worker=self.worker.id if here else None)
         if not here:
             self.worker.notify()
         return job
 
     def submit(self, kind: str, key: str, payload: dict[str, Any], by: str = "human", here: bool = False, busy: str | None = None) -> dict[str, Any]:
+        from .. import limits
+
         try:
             return self.queue_job(kind, key, payload, by=by, here=here)
         except ActiveJob:
             raise HTTPException(409, busy or BUSY[kind]) from None
+        except limits.LimitExceeded as over:
+            raise over_limit(over) from None
 
     async def run_here(self, job: dict[str, Any]) -> dict[str, Any]:
         return await asyncio.to_thread(self.worker.run_here, job)
@@ -168,15 +181,44 @@ class Services:
         p["running"] = before["running"]
         self.projects.save(p)
 
+    def job_slot(self):
+        """The workspace's job lock when limits apply (package 10.6), else nothing to hold."""
+        import contextlib
+
+        from .. import limits
+        from ..accounts.principal import current
+
+        who = current()
+        return limits.job_slot(self.workspace_id) if who is not None and who.user_id and limits.on() else contextlib.nullcontext()
+
+    def job_room(self) -> None:
+        """Refuse (429) before anything is written when the person or the workspace is at the job limit (package 10.6);
+        the check that counts is the one in ``queue_job``, under the lock."""
+        from .. import limits
+        from ..accounts.principal import current
+
+        who = current()
+        if who is not None and who.user_id and limits.on():
+            try:
+                limits.check_jobs(self.job_store, who.user_id, self.workspace_id)
+            except limits.LimitExceeded as over:
+                raise over_limit(over) from None
+
     def start_job(self, project_id: str, stages: list[str], wait: bool, reuse_reason: str | None = None) -> dict[str, Any]:
+        from .. import limits
+
         if self.job_store.active("stage", project_id) is not None:
             raise HTTPException(409, BUSY["stage"])
+        self.job_room()
         before = self.mark_queued(project_id, stages)
         try:
             return self.queue_job("stage", project_id, {"project_id": project_id, "stages": stages, "reuse_reason": reuse_reason}, here=wait)
         except ActiveJob:
             self.unmark_queued(project_id, before)
             raise HTTPException(409, BUSY["stage"]) from None
+        except limits.LimitExceeded as over:  # another request took the last slot between the two checks
+            self.unmark_queued(project_id, before)
+            raise over_limit(over) from None
 
     def prepare_retry(self, job: dict[str, Any]) -> Any:
         """Before a job is queued again: the same checks a new request passes, and its domain put back to "queued".
@@ -252,6 +294,25 @@ class Services:
             return self.traces.steps(session_id)
         except Exception:  # noqa: BLE001 — a damaged trace never breaks the session page
             return []
+
+
+def over_limit(over: Any) -> HTTPException:
+    """A limit passed (package 10.6): 429, with what, whose, and when it resets."""
+    return HTTPException(429, over.body, headers={"Retry-After": str(over.body["retry_after"])})
+
+
+def charge_upload(size: int) -> None:
+    """Count bytes brought in against the person's and the workspace's daily allowance; 429 when over."""
+    from .. import context, limits
+    from ..accounts.principal import current
+
+    who = current()
+    if who is None or not who.user_id or not limits.on():
+        return
+    try:
+        limits.charge("upload_bytes", size, who.user_id, getattr(context.services(), "workspace_id", None) or who.workspace_id)
+    except limits.LimitExceeded as over:
+        raise over_limit(over) from None
 
 
 def services(request: Request) -> Services:

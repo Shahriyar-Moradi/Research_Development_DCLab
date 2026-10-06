@@ -19,7 +19,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .catalog import ROOT
 from .current import Current
 from .pool import Pool
-from .. import context
+from .. import context, limits
 from ..accounts import api as accounts_api
 from ..accounts.guard import identify
 from ..accounts.principal import ANONYMOUS, LOCAL_OWNER, reset_current, set_current
@@ -108,6 +108,11 @@ def create_app(home=None) -> FastAPI:
             workspace = await asyncio.to_thread(pool.get, who.workspace_id) if who.signed_in else s  # opening one is slow: not on the loop
         except KeyError:
             return JSONResponse({"detail": "This workspace no longer exists"}, status_code=404)
+        if who.user_id and settings.auth != "none" and (request.url.path.startswith("/api/") or request.url.path.startswith("/mcp")):
+            try:  # requests a minute, per person and per workspace (package 10.6): one person cannot starve the rest
+                await asyncio.to_thread(limits.charge, "requests", 1, who.user_id, workspace.workspace_id)
+            except limits.LimitExceeded as over:
+                return JSONResponse({"detail": over.body}, status_code=429, headers={"Retry-After": str(over.body["retry_after"])})
         principal_token, services_token = set_current(who), context.set_services(workspace)
         try:
             response = await call_next(request)

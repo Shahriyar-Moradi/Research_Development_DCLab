@@ -856,7 +856,7 @@
     const type = res.headers.get('content-type') || '';
     const data = type.includes('json') ? await res.json() : await res.text();
     if (!res.ok) {
-      const msg = data && data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : `Request failed (${res.status})`;
+      const msg = data && data.detail ? (typeof data.detail === 'string' ? data.detail : data.detail.message || JSON.stringify(data.detail)) : `Request failed (${res.status})`;  // a limit's or a role's refusal says it in words
       const err = new Error(msg); err.status = res.status; err.data = data; throw err;
     }
     return data;

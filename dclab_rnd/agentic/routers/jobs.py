@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import Depends, HTTPException
 
 from ...jobs import ActiveJob
@@ -63,11 +65,19 @@ async def retry_job(job_id: str, s: Services = Depends(services)):
     if job["status"] not in ("failed", "cancelled", "interrupted"):
         raise HTTPException(409, f"Only a failed, stopped or interrupted job can be retried; this one is {job['status']}")
     before = s.prepare_retry(job)
+
+    def requeue():
+        with s.job_slot():  # counted and queued under the workspace's lock, like a new job (package 10.6)
+            s.job_room()
+            return s.job_store.retry(job_id)
     try:
-        queued = s.job_store.retry(job_id)
+        queued = await asyncio.to_thread(requeue)
     except (ActiveJob, ValueError):  # another instance took the key, or retried this job, since the checks above
         s.undo_retry(job, before)
         raise HTTPException(409, BUSY.get(job["kind"], "Another job holds this already")) from None
+    except HTTPException:  # the job limit
+        s.undo_retry(job, before)
+        raise
     s.worker.start()
     s.worker.notify()
     return public(queued)

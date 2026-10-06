@@ -31,11 +31,15 @@ class DraftWork:
         if self.jobs is None:
             self.simulate(draft_id, payload["prompt"], payload["rows"], actor="agent")
             return
+        from .. import limits
         from ..jobs import ActiveJob
 
         try:
             job = self.jobs.queue_job("synthetic", f"{draft_id}:synthetic", payload, by="agent", here=True)
         except ActiveJob:  # the Synthetic tab is generating a table for this draft already
+            return
+        except limits.LimitExceeded as over:  # at the job limit: say so plainly, in the chat
+            self.drafts.emit(draft_id, "status", {"note": f"No synthetic data now: {over.body['message']}"})
             return
         self.jobs.worker.run_here(job)
 

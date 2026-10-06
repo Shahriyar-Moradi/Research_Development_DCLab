@@ -136,6 +136,7 @@ model_request = sa.Table(  # the model gateway's usage log (dclab_rnd/models/usa
     sa.Column("prompt", sa.Text),  # only with DCLAB_LOG_PROMPTS=1
     sa.Column("cost_eur", sa.Float),  # null when the model has no configured price
     sa.Column("cost_basis", sa.Text),  # "price", "local" or "no price" (dclab_rnd/models/prices.py)
+    sa.Column("user_id", sa.String(64)),  # the signed-in person the request was for (package 10.6: a monthly limit per user)
     sa.Index("ix_model_request_workspace_at", "workspace_id", "at"),
     sa.Index("ix_model_request_project_id", "project_id"))
 
@@ -281,5 +282,12 @@ api_token = sa.Table(  # a personal API token for /mcp clients and scripts (10.2
     sa.Column("revoked", sa.Boolean, nullable=False, server_default=sa.false()),
     sa.UniqueConstraint("token_hash", name="uq_api_token_token_hash"),
     sa.Index("ix_api_token_user_id", "user_id"))
+
+usage_counter = sa.Table(  # requests and bytes counted per user and per workspace in a window (dclab_rnd/limits.py, 10.6)
+    "usage_counter", metadata,
+    sa.Column("scope", sa.Text, primary_key=True),  # user:<id> or workspace:<id>
+    sa.Column("kind", sa.Text, primary_key=True),   # requests or upload_bytes
+    sa.Column("window", sa.Float, primary_key=True),  # the window's start, seconds since the epoch
+    sa.Column("amount", sa.Float, nullable=False))
 
 TABLES = [t.name for t in metadata.sorted_tables]

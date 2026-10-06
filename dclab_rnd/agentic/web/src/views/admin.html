@@ -79,6 +79,10 @@
   </div>
 
   <div class="pane" data-pane="budgets" data-label="Budgets & data">
+    <div class="panel" data-f="admin.limits">
+      <div class="panel-head"><div class="panel-title"><h3>Limits</h3><span class="sub" id="limits-sub">So that one person cannot starve the rest</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="limits-table"><thead><tr><th>Limit</th><th class="num">You</th><th class="num">This workspace</th></tr></thead><tbody><tr><td colspan="3"><div class="empty">Loading…</div></td></tr></tbody></table></div>
+    </div>
     <div class="grid g2">
       <div class="panel" data-f="admin.budgets">
         <div class="panel-head"><h3>Budgets</h3><span class="pill outline" id="spend-pill" hidden>spend not tracked</span></div>
@@ -254,7 +258,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el)]);
+    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el)]);
   },
 
   async loadPolicies(el) {
@@ -356,6 +360,18 @@ DC.view('admin', {
     $('#member-role', el).innerHTML = roles.map(([k, l]) => `<option value="${k}" ${k === 'viewer' ? 'selected' : ''}>${l}</option>`).join('');
     $('#member-secret', el).hidden = auth.mode !== 'password';
     DC.hydrate(el);
+  },
+
+  async loadLimits(el) {
+    const { $, esc } = DC;
+    let q;
+    try { q = await DC.api('/platform/quotas'); } catch (err) { $('#limits-table tbody', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(err.message)}</div></td></tr>`; return; }
+    if (!q.on) { $('#limits-table tbody', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(q.note)}</div></td></tr>`; return; }
+    const fmt = (kind, v) => v == null ? '—' : kind === 'upload_bytes' ? `${(v / 1024 / 1024).toLocaleString('en-US', { maximumFractionDigits: 0 })} MB`
+      : kind === 'model_eur' ? `€${Number(v).toFixed(2)}` : Number(v).toLocaleString('en-US');
+    const cell = (kind, part) => `<td class="num mono">${fmt(kind, part.used)} <span class="muted">/ ${part.limit == null ? 'no limit' : fmt(kind, part.limit)}</span>${part.limit && part.used >= part.limit ? ' <span class="pill bad">reached</span>' : ''}</td>`;
+    $('#limits-sub', el).textContent = 'Per person and per workspace; a request over one gets 429 with what was reached and when it resets';
+    $('#limits-table tbody', el).innerHTML = q.limits.map(l => `<tr><td>${esc(l.words)}</td>${cell(l.kind, l.user)}${cell(l.kind, l.workspace)}</tr>`).join('');
   },
 
   async loadTokens(el) {
