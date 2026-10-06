@@ -161,7 +161,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if problem:
             if len(problem) < 8:
                 raise HTTPException(422, "Describe the problem in one sentence first")
+            before = drafts.get(draft_id)["problem"]
             drafts.update(draft_id, lambda d: d.update(problem=problem[:2000]))
+            if problem[:2000] != before:  # what was read from the old sentence is read again from the new one
+                await asyncio.to_thread(HomeAgent(drafts, None).replan, draft_id)
         return drafts.get(draft_id)
 
     def clean_frame(draft: dict[str, Any]):

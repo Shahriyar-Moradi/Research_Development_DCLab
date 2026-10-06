@@ -40,6 +40,7 @@ DC.view('new', {
       if (kind === 'pipeline' && ['ready', 'failed', 'queued', 'structured', 'cleaned'].includes(data.step)) refresh();
       if (kind === 'workflow' && W.draft) { W.draft.workflow = data.workflow; drawGraph(); }
       if (kind === 'status' && data.pack && W.draft) { W.draft.pack = data.pack; drawPacks(); drawStats(); }
+      if (kind === 'plan' && W.draft) { W.draft.plan = data.plan; W.draft.understanding = data.understanding || W.draft.understanding; drawUnderstood(); }
     }
     function render() {
       const d = W.draft; if (!d) return;
@@ -48,11 +49,23 @@ DC.view('new', {
     }
 
     /* ---------- step 1: goal ---------- */
+    /* the agent's plan (package A3.1): how each line is known, and the user's words behind it */
+    const PLAN_PILL = { problem: ['ok', 'from your sentence'], answer: ['ok', 'from your answer'], model: ['ok', 'read from your words'], data: ['ok', 'data attached'] };
+    function planPill(entry, next, field, v) {
+      if (!entry) return v ? '<span class="pill ok">from the chat</span>' : '<span class="pill warn">open</span>';
+      if (entry.status === 'inferred') return '<span class="pill warn" title="Implied by your words, not said outright">inferred: check it</span>';
+      if (entry.status === 'unknown') return next === field ? '<span class="pill accent">asked next</span>' : '<span class="pill warn">open</span>';
+      const [tone, label] = PLAN_PILL[entry.source] || ['ok', 'from the chat'];
+      return `<span class="pill ${tone}">${label}</span>`;
+    }
     function drawUnderstood() {
-      const u = (W.draft && W.draft.understanding) || {};
-      const rows = [['Target', u.target, 'What exactly is predicted'], ['Prediction moment', u.prediction_moment, 'When the prediction is made'],
-        ['Action', u.action, 'What happens with each prediction'], ['Costs', u.costs, 'What a wrong prediction costs'], ['Data', u.data_plan, 'Upload, connect or simulate']];
-      $('#wz-understood', el).innerHTML = rows.map(([k, v, hint]) => `<div class="cs-row"><span class="cs-key">${k}</span><span class="cs-val">${v ? esc(v) : `<span class="muted">${hint}: not stated yet</span>`}</span>${v ? '<span class="pill ok">from the chat</span>' : '<span class="pill warn">open</span>'}</div>`).join('');
+      const u = (W.draft && W.draft.understanding) || {}, plan = (W.draft && W.draft.plan) || {};
+      const rows = [['Target', 'target', 'What exactly is predicted'], ['Prediction moment', 'prediction_moment', 'When the prediction is made'],
+        ['Action', 'action', 'What happens with each prediction'], ['Costs', 'costs', 'What a wrong prediction costs'], ['Data', 'data_plan', 'Upload, connect or simulate']];
+      $('#wz-understood', el).innerHTML = rows.map(([k, f, hint]) => {
+        const v = u[f], entry = plan[f], quote = entry && entry.quote && entry.quote !== v ? `<span class="small muted"> · your words: “${esc(entry.quote)}”</span>` : '';
+        return `<div class="cs-row"><span class="cs-key">${k}</span><span class="cs-val">${v ? esc(v) + quote : `<span class="muted">${hint}: not stated yet</span>`}</span>${planPill(entry, plan.next, f, v)}</div>`;
+      }).join('');
     }
     $('#wz-goal-next', el).addEventListener('click', async () => {
       const problem = $('#new-goal', el).value.trim();

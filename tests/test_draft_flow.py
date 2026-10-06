@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dclab_rnd.draft import pack, workflow  # noqa: E402
-from dclab_rnd.draft.chat import HomeAgent, MAX_QUESTIONS  # noqa: E402
+from dclab_rnd.draft.chat import HomeAgent, MAX_QUESTIONS, Turn  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
 
 
@@ -175,6 +175,157 @@ class AgentTests(unittest.TestCase):
         draft = self.store.get(d["id"])
         self.assertEqual(draft["understanding"].get("target"), "left")
         self.assertNotIn("notes", draft["understanding"])
+
+    def test_a_sentence_that_states_the_outcome_and_the_moment_is_not_asked_them_again(self):
+        agent = HomeAgent(self.store, None)
+        d = self.store.create("Predict which subscribers cancel within 30 days, scored on the first day of each month")
+        agent.start(d["id"])
+        d = self.store.get(d["id"])
+        plan = d["plan"]
+        self.assertEqual((plan["target"]["status"], plan["target"]["source"], plan["target"]["quote"]),
+                         ("stated", "problem", "which subscribers cancel within 30 days"))
+        self.assertEqual((plan["prediction_moment"]["status"], plan["prediction_moment"]["quote"]), ("stated", "on the first day of each month"))
+        self.assertEqual(plan["action"]["status"], "unknown")
+        self.assertEqual([q["field"] for q in d["questions"]], ["action"])  # the moment before the cost; the stated ones are not asked
+        self.assertEqual(d["understanding"]["prediction_moment"], "on the first day of each month")
+        for answer in ["The team calls the top 200; a missed leaver costs a year of fees", "No data yet, plan only"]:
+            agent.reply(d["id"], answer)
+        d = self.store.get(d["id"])
+        self.assertEqual(len(d["questions"]), 2)  # four before: no field was lost on the way
+        self.assertEqual({f: d["plan"][f]["status"] for f in ("target", "prediction_moment", "action", "data_plan")},
+                         {"target": "stated", "prediction_moment": "stated", "action": "stated", "data_plan": "stated"})
+        self.assertEqual(d["plan"]["next"], None)
+        self.assertEqual(d["messages"][-1]["kind"], "summary")
+
+    def test_an_outcome_without_a_window_is_still_asked(self):
+        d = self.store.create("Predict which customers cancel their subscription")
+        HomeAgent(self.store, None).start(d["id"])
+        d = self.store.get(d["id"])
+        self.assertEqual(d["plan"]["target"]["status"], "unknown")
+        self.assertEqual((d["questions"][0]["field"], d["plan"]["next"]), ("target", "target"))
+
+    def test_an_answer_that_also_states_the_moment_fills_it(self):
+        agent = HomeAgent(self.store, None)
+        d = self.store.create("Predict which customers cancel their subscription")
+        agent.start(d["id"])
+        agent.reply(d["id"], "Customers who cancel within 30 days, scored every Monday morning")
+        d = self.store.get(d["id"])
+        self.assertEqual((d["plan"]["prediction_moment"]["status"], d["plan"]["prediction_moment"]["source"]), ("stated", "answer"))
+        self.assertEqual([q["field"] for q in d["questions"]], ["target", "action"])
+
+    def test_the_model_proposes_the_plan_and_code_checks_its_quotes(self):
+        verdicts = []
+
+        class Planner:
+            def complete(self, messages, tools=None, max_tokens=1800):
+                content = json.dumps({"target": {"status": "stated", "value": "cancels within 30 days", "quote": "cancel within 30 days"},
+                                      "prediction_moment": {"status": "inferred", "value": "before the renewal date", "quote": "before renewal"},
+                                      "action": {"status": "stated", "value": "call them", "quote": "the retention team calls them"}})  # not in the text
+                return {"content": content, "tool_calls": [], "assistant_message": {"role": "assistant", "content": content}}
+
+            def output(self, ok, reason=""):
+                verdicts.append((ok, reason))
+        d = self.store.create("Which members cancel within 30 days, checked before renewal?")
+        HomeAgent(self.store, Planner()).start(d["id"])
+        d = self.store.get(d["id"])
+        self.assertEqual({f: (d["plan"][f]["status"], d["plan"][f]["source"]) for f in ("target", "prediction_moment", "action")},
+                         {"target": ("stated", "model"), "prediction_moment": ("inferred", "model"), "action": ("unknown", None)})
+        self.assertEqual(d["understanding"]["prediction_moment"], "before the renewal date")
+        self.assertNotIn("action", d["understanding"])  # a quote that is not in the user's words is dropped
+        self.assertEqual([q["field"] for q in d["questions"]], ["action"])
+        self.assertEqual(verdicts, [(False, "a quote is not in the user's text")])
+
+    def test_a_model_record_needs_the_users_words_or_the_open_question(self):
+        d = self.store.create("Predict which customers cancel their subscription")
+        HomeAgent(self.store, None).start(d["id"])  # the outcome question is open
+        client = ScriptedClient([
+            ("record", {"field": "prediction_moment", "value": "monthly"}),  # neither quoted nor asked: refused
+            ("record", {"field": "prediction_moment", "value": "at renewal", "quote": "renewal time"}),  # not the user's words: refused
+            ("record", {"field": "target", "value": "cancels within 30 days"}),  # answers the open question
+        ])
+        agent = HomeAgent(self.store, client)
+        agent.reply(d["id"], "Cancels within 30 days")
+        d = self.store.get(d["id"])
+        self.assertNotIn("prediction_moment", d["understanding"])
+        self.assertEqual((d["plan"]["target"]["status"], d["plan"]["target"]["source"]), ("stated", "answer"))
+
+    def test_the_keyword_rules_claim_only_what_the_sentence_sets_out(self):
+        from dclab_rnd.draft.plan import extract
+
+        for sentence in ("Predict next month's revenue per store", "Forecast next week demand", "Predict the next 3 months of sales",
+                         "Score every lead within 24 hours of signup", "Predict which users abandon their cart before checkout",
+                         "Predict which customers will cancel before renewal", "Customers who cancel before renewal",
+                         "Predict whether a purchase is made at checkout", "Predict which users run every day"):
+            with self.subTest(sentence):
+                self.assertEqual(extract(sentence), {})  # a window alone is not an outcome; "before renewal" here is part of it
+        self.assertEqual(extract("Predict which orders arrive late within 2 days, 2 days before dispatch")["prediction_moment"],
+                         "2 days before dispatch")  # the offset is kept: dropping it would move the moment later
+        self.assertEqual(extract("Which subscribers cancel within 30 days, scored every Monday and the team calls them")["prediction_moment"], "every Monday")
+
+    def test_the_guard_wants_whole_words_that_support_the_value_and_a_real_answer(self):
+        d = self.store.create("Predict which customers cancel their subscription")
+        HomeAgent(self.store, None).start(d["id"])
+        self.store.update(d["id"], lambda x: x["questions"].clear() or x["messages"].clear())  # nothing open
+        client = ScriptedClient([
+            ("record", {"field": "prediction_moment", "value": "after the account is closed", "quote": "cus"}),  # a fragment of a word
+            ("record", {"field": "action", "value": "after the account is closed", "quote": "their subscription"}),  # says something else
+            ("ask_user", {"field": "action", "question": "What do you do with each prediction?"}),  # the outcome comes first
+            ("ask_user", {"field": "target", "question": "What is predicted?"}),
+        ])
+        HomeAgent(self.store, client).reply(d["id"], "Hello")
+        d = self.store.get(d["id"])
+        self.assertEqual(d["understanding"], {})
+        self.assertEqual([q["field"] for q in d["questions"]], ["target"])
+        # a question the model asks and "answers" in the same reply was never answered by the user
+        self.store.update(d["id"], lambda x: x["questions"].clear() or x["understanding"].update(target="cancels within 30 days"))
+        agent = HomeAgent(self.store, None)
+        out = agent.registry.call("ask_user", {"field": "prediction_moment", "question": "When?"}, Turn(agent, d["id"]))
+        self.assertTrue(out["asked"])
+        refused = agent.registry.call("record", {"field": "prediction_moment", "value": "after the account is closed"}, Turn(agent, d["id"]))
+        self.assertIn("has not answered", refused["error"])
+
+    def test_a_new_sentence_keeps_the_answers_and_asks_what_became_open(self):
+        agent = HomeAgent(self.store, None)
+        d = self.store.create("Predict which subscribers cancel within 30 days, scored every Monday")
+        agent.start(d["id"])
+        for answer in ["We call the top 200; a missed leaver costs a year of fees", "No data yet, plan only"]:
+            agent.reply(d["id"], answer)
+        self.assertEqual(self.store.get(d["id"])["messages"][-1]["kind"], "summary")
+        self.store.update(d["id"], lambda x: x.update(problem="Predict which subscribers cancel within 30 days"))
+        agent.replan(d["id"])
+        d = self.store.get(d["id"])
+        self.assertEqual(d["understanding"]["action"], "We call the top 200; a missed leaver costs a year of fees")  # answers stay
+        self.assertEqual((d["plan"]["prediction_moment"]["status"], d["questions"][-1]["field"]), ("unknown", "prediction_moment"))
+
+    def test_the_column_question_past_the_limit_ends_in_a_summary(self):
+        agent = HomeAgent(self.store, None)
+        d = self.store.create("Predict which customers cancel next month")
+        agent.start(d["id"])
+        for answer in ["At the monthly snapshot", "We call them", "Upload a sample"]:
+            agent.reply(d["id"], answer)
+        self.store.update(d["id"], lambda x: x["questions"].append({"id": "q9", "field": "notes", "text": "x", "options": [], "answered": "y"}))
+
+        def with_data(x):
+            x["assets"] = [{"id": "a1", "name": "c.csv", "status": "ready"}]
+            x["active_asset"] = "a1"
+            x["analysis"] = {"summary": {"rows": 10, "columns": 2}, "columns": [{"name": "left"}, {"name": "plan"}], "profile": {"target_candidates": ["left", "plan"]}}
+        self.store.update(d["id"], with_data)
+        agent.data_ready(d["id"], {"id": "a1", "name": "c.csv"})
+        self.assertEqual(self.store.get(d["id"])["messages"][-1]["kind"], "summary")  # four questions asked: no fifth, no silence
+
+    def test_a_failing_or_unreadable_planner_leaves_the_keyword_rules(self):
+        class Broken:
+            def complete(self, *a, **k):
+                raise RuntimeError("BudgetExceeded: the cap is reached")
+
+        class Chatty:
+            def complete(self, *a, **k):
+                return {"content": "Sure! The outcome is churn.", "tool_calls": [], "assistant_message": {"role": "assistant", "content": "x"}}
+        for client in (Broken(), Chatty()):
+            d = self.store.create("Predict which subscribers cancel within 30 days, scored every Monday")
+            HomeAgent(self.store, client).start(d["id"])
+            d = self.store.get(d["id"])
+            self.assertEqual({f: d["plan"][f]["source"] for f in ("target", "prediction_moment")}, {"target": "problem", "prediction_moment": "problem"})
 
     def test_a_source_that_knows_its_outcome_column_is_offered_first(self):
         d = self.store.create("Forecast daily unit sales per store")
@@ -492,6 +643,15 @@ class ApiTests(unittest.TestCase):
         ws = c.get("/api/workspace").json()
         self.assertEqual(ws["stats"]["projects"], 1)
 
+    def test_editing_the_sentence_reads_the_plan_again(self):
+        c = self.client
+        d = c.post("/api/drafts", json={"problem": "Predict which subscribers cancel within 30 days, scored every Monday"}, headers=self.h).json()
+        wait(lambda: self.draft(d["id"])["questions"])
+        self.assertEqual(self.draft(d["id"])["plan"]["prediction_moment"]["quote"], "every Monday")
+        edited = c.patch(f"/api/drafts/{d['id']}", json={"problem": "Predict which subscribers cancel within 30 days"}, headers=self.h).json()
+        self.assertEqual((edited["plan"]["prediction_moment"]["status"], edited["plan"]["target"]["status"]), ("unknown", "stated"))
+        self.assertNotIn("prediction_moment", edited["understanding"])  # read from the old sentence, gone with it
+
     def test_a_project_built_from_an_upload_can_be_audited_again(self):
         """Its suggestion holds only what the chat established (no forbidden list), which once crashed the proposal route."""
         c = self.client
@@ -499,10 +659,15 @@ class ApiTests(unittest.TestCase):
         rows = "tenure,plan,charges,left\n" + "\n".join(f"{i % 60},{'ab'[i % 2]},{20 + i % 70},{int(i % 5 == 0)}" for i in range(300))
         self.assertEqual(c.put(f"/api/drafts/{d['id']}/data?filename=c.csv", content=rows.encode(), headers=self.h).status_code, 200)
         wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] == "ready"), None))
+        # the sentence gives the outcome in words ("cancel next month"), so the moment is asked first, then its column
+        self.assertEqual(self.draft(d["id"])["plan"]["target"]["status"], "stated")
+        wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "At the monthly snapshot"}, headers=self.h).status_code == 202)
+        column = wait(lambda: next((q for q in self.draft(d["id"])["questions"] if q["field"] == "target" and not q.get("answered")), None))
+        self.assertIn("left", column["options"])
         wait(lambda: c.post(f"/api/drafts/{d['id']}/messages", json={"text": "left"}, headers=self.h).status_code == 202)
         wait(lambda: self.draft(d["id"])["understanding"].get("target") == "left")
         p = c.post(f"/api/drafts/{d['id']}/build", json={}, headers=self.h).json()
-        self.assertEqual(p["suggestion"], {"target": "left"})
+        self.assertEqual(p["suggestion"], {"target": "left", "prediction_moment": "At the monthly snapshot"})
         proposal = c.post(f"/api/projects/{p['id']}/solution/proposal", json={"target": "left"}, headers=self.h)
         self.assertEqual(proposal.status_code, 200, proposal.text)
         self.assertEqual(proposal.json()["task"], "binary")

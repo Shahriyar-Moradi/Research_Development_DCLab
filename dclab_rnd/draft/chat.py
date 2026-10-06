@@ -26,6 +26,7 @@ from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 
 from . import pack as packs
+from . import plan as plans
 from . import workflow as wflow
 from .store import DraftStore, now
 
@@ -52,6 +53,8 @@ workflow (every step tied to a block WF-01..WF-10, in order; keep WF-01, WF-03, 
 offer upload / connect / simulate, and simulate_data only after the user asked for simulated data (describe the
 table they need; it is generated and labelled synthetic). get_profile and get_analysis read the prepared table's
 column summaries and descriptive findings (aggregates only) when the state below does not show enough.
+The state has a plan: ask only about a field whose status is unknown, plan.next first. When the user's words say
+what a field is, record it with quote set to their exact words (an answer to the open question needs no quote).
 Reply to the user in plain English, 1-3 sentences."""
 
 def turn(method):
@@ -144,6 +147,61 @@ class HomeAgent:
             d.setdefault("understanding", {})[field] = value.strip()[:400]
         self.store.update(draft_id, put)
 
+    def note(self, draft_id: str, field: str, value: str, status: str, source: str, quote: str | None) -> None:
+        """Record a field with its plan entry: how it is known and the user's words that say it (package A3.1)."""
+        def put(d):
+            d.setdefault("understanding", {})[field] = value.strip()[:400]
+            d["plan"] = {**plans.empty(), **(d.get("plan") or {}), field: plans.entry(status, source, quote)}
+        self.store.update(draft_id, put)
+
+    def update_plan(self, draft_id: str) -> dict[str, Any]:
+        """Recompute the plan (what is known, what to ask next and why) and show it on the page."""
+        draft = self.store.update(draft_id, lambda d: d.update(plan=plans.refresh(d)))
+        self.store.emit(draft_id, "plan", {"plan": draft["plan"], "understanding": draft.get("understanding") or {}})
+        return draft["plan"]
+
+    def read_problem(self, draft_id: str) -> list[str]:
+        """Fill the plan from the problem sentence: a model's reading when one is configured (each quote checked
+        against the sentence), the keyword rules for what it leaves open. Returns the fields it filled."""
+        draft = self.store.get(draft_id)
+        filled: list[str] = []
+        u = draft.get("understanding") or {}
+        if self.client is not None:
+            try:
+                reply = self.client.complete([{"role": "system", "content": plans.PROPOSE}, {"role": "user", "content": draft["problem"]}], None)
+                kept, dropped = plans.proposal(reply.get("content") or "", [draft["problem"]])
+                if getattr(self.client, "output", None):
+                    self.client.output(not dropped, "; ".join(dropped)[:200])
+            except Exception:  # noqa: BLE001 — no model, no problem: the keyword rules still read the sentence
+                kept = {}
+            for field, item in kept.items():
+                if not u.get(field):
+                    self.note(draft_id, field, item["value"], item["status"], "model", item["quote"])
+                    filled.append(field)
+        for field, quote in plans.extract(draft["problem"]).items():
+            if field not in filled and not u.get(field):
+                self.note(draft_id, field, quote, "stated", "problem", quote)
+                filled.append(field)
+        return filled
+
+    @turn
+    def replan(self, draft_id: str) -> None:
+        """The problem sentence changed: forget what was read from the old one and read the new one (no model)."""
+        def forget(d):
+            plan = d.get("plan") or {}
+            for field in plans.FIELDS:
+                if (plan.get(field) or {}).get("source") in ("problem", "model"):
+                    (d.get("understanding") or {}).pop(field, None)
+                    plan[field] = {"status": "unknown", "source": None, "quote": None}
+        self.store.update(draft_id, forget)
+        client, self.client = self.client, None
+        try:
+            self.read_problem(draft_id)
+        finally:
+            self.client = client
+        self.update_plan(draft_id)
+        self.next_turn(draft_id)
+
     def refresh_workflow(self, draft_id: str, proposed: dict[str, Any] | None = None) -> dict[str, Any]:
         draft = self.store.get(draft_id)
         key = (draft.get("pack") or {}).get("key") or "tabular"
@@ -184,9 +242,15 @@ class HomeAgent:
         name = (packs.by_key(det["key"]) or {}).get("name", det["key"])
         has_data = bool(draft.get("assets"))
         why = det["why"].rstrip(".")
+        filled = self.read_problem(draft_id)
+        u = self.store.get(draft_id).get("understanding") or {}
+        labels = {"target": "the outcome", "prediction_moment": "the prediction moment", "action": "what happens with each prediction"}
+        known = [f"{labels[f]} (“{u[f]}”)" for f in plans.FIELDS if f in filled and f in labels]
         self.say(draft_id, f"I read the problem as: “{draft['problem']}”. I'll start from the {name} pack ({why[:1].lower() + why[1:]})."
+                 + (f" Your sentence already gives {' and '.join(known)}; check them on the sheet." if known else "")
                  + (" Your data is being prepared now; I'll describe it as soon as it is ready." if has_data else
                     " You can upload or connect data at any time, or we can plan the solution first."), kind="text")
+        self.update_plan(draft_id)
         self.refresh_workflow(draft_id)
         self.next_turn(draft_id, opening=True)
 
@@ -245,13 +309,21 @@ class HomeAgent:
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
         draft = self.store.get(draft_id)
-        self.record(draft_id, q["field"], value)
+        if q["field"] in plans.FIELDS:
+            self.note(draft_id, q["field"], value, "stated", "answer", value)
+        else:
+            self.record(draft_id, q["field"], value)
 
         def answered(d):
             for item in d["questions"]:
                 if item["id"] == q["id"]:
                     item["answered"] = value
         self.store.update(draft_id, answered)
+        u = self.store.get(draft_id).get("understanding") or {}
+        for field, quote in plans.extract(value).items():  # "…within 30 days, scored every Monday" also gives the moment
+            if field != q["field"] and not u.get(field):
+                self.note(draft_id, field, quote, "stated", "answer", quote)
+        self.update_plan(draft_id)
         if q["field"] == "data_plan" and SIMULATE_WORDS.search(value):
             self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
         self.refresh_workflow(draft_id)
@@ -280,7 +352,18 @@ class HomeAgent:
         draft = self.store.get(draft_id)
         if self.pending(draft):
             return
-        u = draft.get("understanding") or {}
+        self.update_plan(draft_id)
+        question = self.next_question(self.store.get(draft_id), opening)
+        if question is not None and self.ask(draft_id, *question):
+            return
+        if not opening:
+            self.summarize(draft_id)
+
+    def next_question(self, draft: dict[str, Any], opening: bool = False) -> tuple[str, str, list[str], str] | None:
+        """The question the plan asks next (field, text, options, why), or None when nothing needs asking. Only an
+        unknown field is asked, in the order of plans.FIELDS (the moment before the cost); an outcome known in words
+        is asked again only for its column, once a table with outcome-like columns is there."""
+        plan = plans.refresh(draft)
         key = (draft.get("pack") or {}).get("key")
         has_data = any(a.get("status") in ("ready", "queued", "structuring", "cleaning", "analysing") for a in draft["assets"])
         candidates = ((draft.get("analysis") or {}).get("profile") or {}).get("target_candidates") or []
@@ -291,31 +374,44 @@ class HomeAgent:
         if known and (known in candidates or known in columns):
             candidates = [known] + [c for c in candidates if c != known]
         asked = {q["field"] for q in draft["questions"] if not q.get("superseded")}
-        if "target" not in u and "target" not in asked:
-            if candidates:
-                self.ask(draft_id, "target", "Which column is the outcome the model should predict?", candidates[:OPTION_COUNT] + ["Something else"],
-                         "The outcome decides the task, the metric and which columns could leak it.")
-                return
-            if not has_data or opening:
-                self.ask(draft_id, "target", "What exactly should the model predict, and for whom? For example: will this customer leave in the next 30 days?",
-                         [], "Everything else follows from the outcome.")
-                return
-        if "prediction_moment" not in u and "prediction_moment" not in asked:
-            self.ask(draft_id, "prediction_moment", "When is the prediction made, and what is already known at that moment?", moment_options(key),
-                     "Anything written after this moment must stay out of the model; it is the main source of leakage.")
-            return
-        if "action" not in u and "action" not in asked:
-            self.ask(draft_id, "action", "What happens with each prediction, and what does a wrong one cost, roughly?",
-                     ["We contact or act on the top cases", "We block or review cases", "We plan capacity or stock", "It informs a person only"],
-                     "The cost of errors sets the metric and the operating point.")
-            return
-        if not has_data and "data_plan" not in u and "data_plan" not in asked:
-            self.ask(draft_id, "data_plan", "Can you share a sample of the data, connect a source, or should I simulate data from this conversation?",
-                     ["Upload a sample", "Connect a source", "Simulate data", "No data yet, plan only"],
-                     "A sample (even 1,000 rows) lets DCLab check the columns against the prediction moment.")
-            return
-        if not opening:
-            self.summarize(draft_id)
+        u = draft.get("understanding") or {}
+        column_asked = any(q["field"] == "target" and q.get("options") and not q.get("superseded") for q in draft["questions"])
+        for field in plans.FIELDS:
+            if field == "target" and plan[field]["status"] != "unknown" and candidates and columns and u.get("target") not in columns and not column_asked:
+                # the outcome is known in words, but the table needs its column: "cancel next month" is which one?
+                return ("target", f"You want to predict “{u['target']}”. Which column records that outcome?",
+                        candidates[:OPTION_COUNT] + ["Something else"], "The model learns from the column, so it must be the outcome you described.")
+            if plan[field]["status"] != "unknown" or field in asked:
+                continue
+            if field == "target":
+                if candidates:
+                    return ("target", "Which column is the outcome the model should predict?", candidates[:OPTION_COUNT] + ["Something else"],
+                            "The outcome decides the task, the metric and which columns could leak it.")
+                if not has_data or opening:
+                    return ("target", "What exactly should the model predict, and for whom? For example: will this customer leave in the next 30 days?",
+                            [], "Everything else follows from the outcome.")
+                continue  # a table without an outcome-like column: ask the rest first
+            if field == "prediction_moment":
+                return ("prediction_moment", "When is the prediction made, and what is already known at that moment?", moment_options(key),
+                        plans.WHY["prediction_moment"])
+            if field == "action":
+                return ("action", "What happens with each prediction, and what does a wrong one cost, roughly?",
+                        ["We contact or act on the top cases", "We block or review cases", "We plan capacity or stock", "It informs a person only"],
+                        plans.WHY["action"])
+            if field == "data_plan":
+                return ("data_plan", "Can you share a sample of the data, connect a source, or should I simulate data from this conversation?",
+                        ["Upload a sample", "Connect a source", "Simulate data", "No data yet, plan only"], plans.WHY["data_plan"])
+        return None
+
+    def answerable(self, draft: dict[str, Any]) -> dict[str, Any] | None:
+        """The open question, if the user has written since it was asked (so a message can answer it). A question the
+        model asked in this very reply has no answer yet, and recording one for it would put words in the user's mouth."""
+        q = self.pending(draft)
+        if q is None:
+            return None
+        messages = draft.get("messages") or []
+        at = next((i for i, m in enumerate(messages) if m.get("kind") == "question" and (m.get("question") or {}).get("id") == q["id"]), None)
+        return q if at is not None and any(m.get("role") == "user" for m in messages[at + 1:]) else None
 
     def summarize(self, draft_id: str) -> None:
         draft = self.store.get(draft_id)
@@ -339,6 +435,7 @@ class HomeAgent:
         cols = [{k: c.get(k) for k in PROFILE_FIELDS} for c in (a.get("columns") or [])[:PROFILE_PAGE]]
         return json.dumps({
             "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
+            "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.FIELDS}, "next": (draft.get("plan") or {}).get("next")},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
             "questions_left": MAX_QUESTIONS - len(draft["questions"]),
             "data": {"summary": a.get("summary"), "columns": cols, "highlights": [h.get("title") for h in (a.get("highlights") or [])][:8],
@@ -476,12 +573,21 @@ def ask_user(turn: Turn, /, **args: Any) -> dict[str, Any]:
 
 def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
     agent, draft_id = turn.agent, turn.draft_id
-    agent.record(draft_id, str(args.get("field", "notes")), str(args.get("value", "")))
-    pending = agent.pending(agent.store.get(draft_id))
-    if pending and pending["field"] == args.get("field"):
-        agent.store.update(draft_id, lambda d: [q.update(answered=str(args.get("value", ""))) for q in d["questions"] if q["id"] == pending["id"]])
+    field, value = str(args.get("field", "notes")), str(args.get("value", ""))
+    pending = agent.answerable(agent.store.get(draft_id))
+    if pending and pending["field"] == field:  # the user's message answers the open question
+        if field in plans.FIELDS:
+            agent.note(draft_id, field, value, "stated", "answer", value)
+        else:
+            agent.record(draft_id, field, value)
+        agent.store.update(draft_id, lambda d: [q.update(answered=value) for q in d["questions"] if q["id"] == pending["id"]])
+    elif field in plans.FIELDS and args.get("quote"):  # the user said it elsewhere; the guard checked the quote
+        agent.note(draft_id, field, value, args.get("status") or "stated", "model", str(args["quote"]))
+    else:
+        agent.record(draft_id, field, value)
+    agent.update_plan(draft_id)
     agent.refresh_workflow(draft_id)
-    return {"recorded": args.get("field")}
+    return {"recorded": field}
 
 
 def set_pack(turn: Turn, /, **args: Any) -> dict[str, Any]:
@@ -554,6 +660,21 @@ class DraftGuard:
 
     def __call__(self, tool: Tool, turn: Turn, arguments: dict[str, Any], proceed: Callable[[], Any]) -> Any:
         agent, draft_id = turn.agent, turn.draft_id
+        if tool.move == "record" and arguments.get("field") in plans.FIELDS:
+            draft = agent.store.get(draft_id)
+            pending = agent.answerable(draft)
+            if not (pending and pending["field"] == arguments["field"]):
+                if not arguments.get("quote"):
+                    return {"error": f"The user has not answered a question about {arguments['field']}: give quote, their exact words that say it."}
+                if not plans.quoted(arguments["quote"], plans.user_text(draft)):
+                    return {"error": "The quote is not in the user's words; copy whole words exactly from the problem or their messages."}
+                if not plans.supports(arguments["quote"], arguments.get("value")):
+                    return {"error": "The value does not say what the quote says; record what the user's words mean."}
+        if tool.move == "ask" and arguments.get("field") in plans.FIELDS:
+            question = agent.next_question(agent.store.get(draft_id))
+            if question is None or question[0] != arguments["field"]:
+                nxt = f"ask about {question[0]} next" if question else "nothing in the plan is open; summarise instead"
+                return {"error": f"The plan does not ask about {arguments['field']} now: {nxt}."}
         if tool.move == "set_pack":
             if arguments.get("key") not in packs.KEYS:
                 return {"error": f"Unknown pack {str(arguments.get('key'))[:40]!r}. Packs: {', '.join(packs.KEYS)}."}
@@ -585,8 +706,10 @@ def register(registry: Registry) -> None:
     S = {"type": "string"}
     add("ask_user", "Ask the user one short question.", {"question": S, "options": {"type": "array", "items": S},
         "field": {**S, "enum": list(FIELDS)}, "why": S}, ["question"], "write")  # no field: the answer goes to the notes
-    add("record", "Store an answer you understood.", {"field": {**S, "enum": list(FIELDS) + ["unit", "horizon", "constraints", "notes"]}, "value": S},
-        ["field", "value"], "write")
+    add("record", "Store what the user told you. For target, prediction_moment, action or data_plan, outside an answer to the open "
+        "question, give quote: the user's exact words that say it.",
+        {"field": {**S, "enum": list(FIELDS) + ["unit", "horizon", "constraints", "notes"]}, "value": S, "quote": S,
+         "status": {**S, "enum": ["stated", "inferred"]}}, ["field", "value"], "write")
     add("set_pack", "Switch the domain pack.", {"key": {**S, "enum": packs.KEYS}, "why": S}, ["key"], "write")
     add("propose_workflow", "Replace the solution workflow.", {"title": S, "nodes": {"type": "array", "items": {"type": "object", "properties": {
         "wf": S, "label": S, "detail": S}, "required": ["wf", "label"]}}}, ["nodes"], "write")
