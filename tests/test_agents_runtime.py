@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 from dclab_rnd.agents import EFFECTS, SCOPES, Policy, Registry, Tool, build_registry, default_registry, run  # noqa: E402
 from dclab_rnd.draft.chat import DRAFT_MOVES, HomeAgent  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
-from dclab_rnd.intern.loop import Intern  # noqa: E402
+from dclab_rnd.intern.loop import SESSION_MOVES, Intern  # noqa: E402
 from dclab_rnd.intern.sessions import SessionStore  # noqa: E402
 from dclab_rnd.intern.tools import LEGACY_TOOLS, Toolbox  # noqa: E402
 from dclab_rnd.studio import ProjectStore  # noqa: E402
@@ -133,6 +133,8 @@ class DclabRegistryTests(unittest.TestCase):
         registry = default_registry()
         self.assertEqual(len(registry.names("project")), 20)
         self.assertEqual(set(registry.names("draft")), {"ask_user", "record", "set_pack", "propose_workflow", "request_data", "get_profile", "get_analysis", "simulate_data"})
+        self.assertEqual(set(registry.names("session")), {"write_plan", "finish"})
+        self.assertEqual(registry.names("campaign"), ["run_experiment"])
         for tool in registry.tools.values():
             with self.subTest(tool.name):
                 jsonschema.Draft202012Validator.check_schema(tool.parameters)
@@ -140,7 +142,9 @@ class DclabRegistryTests(unittest.TestCase):
                 self.assertIn(tool.scope, SCOPES)
                 self.assertTrue(tool.description)
                 if tool.move is not None:
-                    self.assertIn(tool.move, studio_graph.MOVES if tool.scope == "project" else DRAFT_MOVES.values())
+                    moves = {"project": studio_graph.MOVES, "draft": DRAFT_MOVES.values(), "session": SESSION_MOVES.values(),
+                             "campaign": ("experiment",)}[tool.scope]
+                    self.assertIn(tool.move, moves)
                     self.assertEqual(tool.effect, "write")
         for old, new in LEGACY_TOOLS.items():
             self.assertEqual(registry.get(old).name, new)
@@ -265,6 +269,18 @@ class RunTests(unittest.TestCase):
         answers = [m for m in out.messages if m["role"] == "tool"]
         self.assertEqual(len(answers), 5)  # every call is answered, the last three with "not run"
         self.assertIn("Not run", answers[-1]["content"])
+
+    def test_a_used_up_budget_still_lets_the_run_end_in_the_same_reply(self):
+        model = Scripted(reply(calls=[("add", {"a": 1, "b": 1})] * 4 + [("finish", {"report": "my report"})]))
+        out = run(Policy("tight", "s", ("add", "finish"), max_steps=3, terminal=("finish",)), model, self.r, [])
+        self.assertEqual((out.stopped, [s.tool for s in out.steps]), ("terminal", ["add", "add", "add", "finish"]))
+        self.assertEqual(out.steps[-1].result, {"report": "my report"})
+
+    def test_a_refused_finish_or_question_goes_back_to_the_model(self):
+        model = Scripted(reply(calls=[("finish", {})]), reply(calls=[("ask", {"q": 3})]), reply(calls=[("finish", {"report": "r"})]))
+        out = run(self.policy, model, self.r, [])
+        self.assertEqual([(s.tool, s.ok) for s in out.steps], [("finish", False), ("ask", False), ("finish", True)])
+        self.assertEqual(out.stopped, "terminal")
 
     def test_nothing_runs_after_a_terminal_tool(self):
         ran = []

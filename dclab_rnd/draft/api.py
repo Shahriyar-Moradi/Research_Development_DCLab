@@ -46,8 +46,9 @@ MAX_UPLOAD = 200 * 1024 * 1024
 STREAM_SECONDS = 600  # the browser's EventSource reconnects and resumes from Last-Event-ID
 
 
-def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task]) -> None:
-    """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted."""
+def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task], traces: Any = None) -> None:
+    """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted.
+    ``traces`` (``agents.traces``) keeps a row per step of the Home agent's model turns, under the draft's id."""
     from ..studio import data as studio_data
 
     def get(draft_id: str) -> dict[str, Any]:
@@ -57,7 +58,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(404, "Draft not found") from None
 
     def agent(draft_id: str | None = None) -> HomeAgent:
-        return HomeAgent(drafts, models.client("home_agent", draft_id=draft_id), on_request=lambda did, what, args: requests(did, what, args))
+        return HomeAgent(drafts, models.client("home_agent", draft_id=draft_id), on_request=lambda did, what, args: requests(did, what, args),
+                         traces=traces)
 
     def background(key: str, fn, *args) -> None:
         async def go():
@@ -131,14 +133,25 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         background(draft["id"] + ":agent", lambda: agent(draft["id"]).start(draft["id"]))
         return draft
 
+    def trace_of(draft_id: str) -> list[dict[str, Any]]:
+        try:
+            return traces.steps(draft_id) if traces is not None else []
+        except Exception:  # noqa: BLE001 — a damaged trace never breaks the draft page
+            return []
+
     @app.get("/api/drafts/{draft_id}")
     async def read_draft(draft_id: str):
-        return get(draft_id)
+        return {**get(draft_id), "trace": trace_of(draft_id)}
 
     @app.delete("/api/drafts/{draft_id}", status_code=204)
     async def delete_draft(draft_id: str):
         get(draft_id)
         drafts.delete(draft_id)
+        try:
+            if traces is not None:
+                traces.delete(draft_id)
+        except Exception:  # noqa: BLE001 — the draft is gone either way; a stray trace row is harmless
+            pass
 
     @app.patch("/api/drafts/{draft_id}")
     async def edit_draft(draft_id: str, request: Request):

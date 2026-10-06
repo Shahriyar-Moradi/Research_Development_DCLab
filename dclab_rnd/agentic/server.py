@@ -472,7 +472,7 @@ def create_app(home=None):
         return FileResponse(page)
     @app.get("/classic")
     async def classic(): return FileResponse(STATIC / "index.html")
-    draft_api.register(app, drafts, projects, gateway, draft_jobs)
+    draft_api.register(app, drafts, projects, gateway, draft_jobs, traces)
     pages.register_all(app, pages.Context(store=store, projects=projects, drafts=drafts, intern_sessions=intern_sessions, models=gateway,
                                           jobs=jobs, intern_jobs=intern_jobs, draft_jobs=draft_jobs))
     @app.get("/api/workspace")

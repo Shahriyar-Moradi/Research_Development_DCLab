@@ -146,9 +146,10 @@ test-pg:  ## the whole suite on PostgreSQL: needs the local database dclab_test 
 # Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
 rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
 
-check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, and the end-to-end flows
+check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows
 	$(MAKE) rd-check
 	$(MAKE) test-pg
+	@if [ -x $(AGENT_PYTHON) ]; then $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi
 	$(MAKE) product-e2e
 
 product-e2e:  ## run the product's main flows end to end on a temporary server (upload, no data, synthetic, log file; ~3 min, no model)

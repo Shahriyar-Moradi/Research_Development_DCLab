@@ -228,6 +228,43 @@ class AgentTests(unittest.TestCase):
         self.assertNotIn("SECRET-VALUE", everything)  # top values are data: they stay on this machine
         self.assertLessEqual(len(json.loads(agent.context(self.store.get(d["id"])))["data"]["columns"]), 40)
 
+    def test_the_home_agent_runs_on_the_runtime_with_a_replayable_trace(self):
+        from dclab_rnd.agents import FileTraces, replay
+
+        traces = FileTraces(Path(tempfile.mkdtemp()) / "agent_steps.jsonl")
+        d = self.store.create("Predict which customers cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        client = ScriptedClient([
+            ("record", {"field": "outcome", "value": "cancels"}),  # not a field: the schema refuses it and the model reads why
+            ("record", {"field": "target", "value": "cancels within 30 days", "extra": 1}),  # an unknown key is refused too
+            ("record", {"field": "target", "value": "cancels within 30 days"}),
+            ("ask_user", {"question": "When is the prediction made?"}),  # no field: allowed, the answer goes to the notes
+        ])
+        agent = HomeAgent(self.store, client, traces=traces)
+        agent.reply(d["id"], "Whether they cancel")
+        rows = traces.steps(d["id"])
+        self.assertEqual([(r["tool"], r["verdict"]) for r in rows], [("record", "error"), ("record", "error"), ("record", "ok"), ("ask_user", "ok")])
+        self.assertEqual([r["state"] for r in rows], ["-----", "-----", "-----", "x----"])  # what the agent saw before each move
+        self.assertEqual(self.store.get(d["id"])["understanding"]["target"], "cancels within 30 days")
+        self.assertEqual(self.store.get(d["id"])["messages"][-1]["kind"], "question")
+        self.assertEqual(client.i, 4)  # the question ended the turn: no fifth request
+        self.assertTrue(replay(rows, agent.policy(), agent.registry)["same"])
+
+    def test_a_refused_question_or_proposal_is_corrected_and_reported(self):
+        verdicts = []
+        d = self.store.create("Predict which customers cancel")
+        HomeAgent(self.store, None).start(d["id"])
+        client = ScriptedClient([
+            ("ask_user", {"question": "When is the prediction made?", "field": "prediction_time"}),  # not a field: refused, the turn goes on
+            ("propose_workflow", {"title": "x"}),  # no nodes: refused by the schema, so the gateway hears it here
+            ("ask_user", {"question": "When is the prediction made?", "field": "prediction_moment"}),
+        ])
+        client.output = lambda ok, reason="": verdicts.append(ok)
+        HomeAgent(self.store, client).reply(d["id"], "Whether they cancel")
+        self.assertEqual(client.i, 3)
+        self.assertEqual(self.store.get(d["id"])["messages"][-1]["text"], "When is the prediction made?")
+        self.assertEqual(verdicts, [False, False, True])
+
     def test_the_model_can_start_a_simulation_and_the_turn_ends_there(self):
         asked = []
         d = self.store.create("Predict which customers cancel")
@@ -403,6 +440,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(c.post("/api/drafts", json={"problem": "x"}, headers=self.h).status_code, 422)
         d = c.post("/api/drafts", json={"problem": "Rank clients for the term-deposit call campaign"}, headers=self.h).json()
         wait(lambda: self.draft(d["id"])["questions"])
+        self.assertEqual(self.draft(d["id"])["trace"], [])  # the Home agent's model steps; the script makes none
         r = c.post(f"/api/drafts/{d['id']}/data/sample", json={"key": "bank_marketing"}, headers=self.h)
         self.assertEqual(r.status_code, 200, r.text)
         ready = wait(lambda: next((a for a in self.draft(d["id"])["assets"] if a["status"] in ("ready", "failed")), None))

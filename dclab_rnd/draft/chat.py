@@ -22,12 +22,17 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from dclab_rnd.agents.registry import Registry, Tool
+from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
+from dclab_rnd.agents.traces import Tracer
 
 from . import pack as packs
 from . import workflow as wflow
 from .store import DraftStore, now
 
 MAX_QUESTIONS = 4
+MODEL_REPLIES = 5  # model requests per user message
+MODEL_STEPS = 40  # tool calls per user message (a reply may make several)
+MODEL_SECONDS = 5 * 60
 TOKEN_CHUNK = 48  # characters per streamed ``token`` event
 PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get_profile
 PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
@@ -101,8 +106,8 @@ def moment_options(pack: str | None) -> list[str]:
 
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
-                 registry: Registry | None = None):
-        self.store, self.client = store, client
+                 registry: Registry | None = None, traces: Any = None):
+        self.store, self.client, self.traces = store, client, traces
         self.on_request = on_request or (lambda draft_id, what, args: None)
         if registry is None:
             from dclab_rnd.agents import default_registry
@@ -342,35 +347,41 @@ class HomeAgent:
             "workflow": [{k: n.get(k) for k in ("wf", "label")} for n in ((draft.get("workflow") or {}).get("nodes") or [])],
         }, ensure_ascii=False, default=str)
 
-    def model_turn(self, draft_id: str, max_steps: int = 5, text: str = "") -> None:
+    def policy(self, max_replies: int = MODEL_REPLIES) -> Policy:
+        """The Home agent as a policy on the runtime: a few model replies per user message; a question waits for the
+        user and a simulation ends the turn too (the data pipeline speaks next)."""
+        return Policy("home", POLICY, tuple(self.registry.names("draft")), max_steps=MODEL_STEPS, max_seconds=MODEL_SECONDS,
+                      stop_after=("ask_user",), stop_when=lambda step: isinstance(step.result, dict) and bool(step.result.get("simulating")),
+                      max_replies=max_replies)
+
+    def tracer(self, draft_id: str) -> Tracer | None:
+        if self.traces is None:
+            return None
+        return Tracer.resume(self.traces, draft_id, "home", lambda: understood(self.store.get(draft_id)))
+
+    def model_turn(self, draft_id: str, max_replies: int = MODEL_REPLIES, text: str = "") -> None:
         draft = self.store.get(draft_id)
         open_question = self.pending(draft)
-        used_tool = False
         history = [{"role": "user" if m["role"] == "user" else "assistant", "content": m["text"]} for m in draft["messages"][-12:] if m.get("text")]
         messages = [{"role": "system", "content": POLICY}, {"role": "system", "content": "Current state: " + self.context(draft)}, *history]
+
+        def on_step(step: Step) -> None:
+            # A proposal the guard or the workflow check saw reports its own verdict; one the schema refused does not.
+            own = step.tool == "propose_workflow" and isinstance(step.result, dict) and ("accepted" in step.result or step.ok)
+            if not own and getattr(self.client, "output", None):
+                self.client.output(step.ok, "" if step.ok else "the tool call was refused")
+
+        model = _Model(self, draft_id)
         self.store.emit(draft_id, "status", {"thinking": True})
-        asked = False
-        for _ in range(max_steps):
-            out, live = self.complete(draft_id, messages)
-            calls = out.get("tool_calls") or []
-            messages.append(out["assistant_message"])
-            if not calls:
-                if out.get("content"):
-                    self.say(draft_id, out["content"].strip(), message_id=live)  # the chat event replaces the live bubble
-                break
-            used_tool = True
-            for call in calls:
-                result = self.run_tool(draft_id, call["name"], call.get("arguments") or {})
-                if call["name"] != "propose_workflow" and getattr(self.client, "output", None):  # proposals report their own verdict
-                    self.client.output("error" not in result, "" if "error" not in result else "the tool call was refused")
-                # a question waits for the user; a simulation ends the turn too (the data pipeline speaks next)
-                asked = asked or call["name"] == "ask_user" or bool(result.get("simulating"))
-                messages.append({"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)[:4000]})
-            if asked:
-                break
-        self.store.emit(draft_id, "status", {"thinking": False})
+        try:
+            out = run_policy(self.policy(max_replies), model, self.registry, messages, context=Turn(self, draft_id), on_step=on_step,
+                             trace=self.tracer(draft_id))
+        finally:
+            self.store.emit(draft_id, "status", {"thinking": False})
+        if out.stopped == "answered" and out.final:
+            self.say(draft_id, out.final, message_id=model.live)  # the chat event replaces the live bubble
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
-        if not used_tool and text:
+        if not out.steps and text:
             # A model that only talks (small models often never call a tool) must not stall the conversation:
             # code records the answer to the open question and asks the next thing, as the script would.
             still_open = self.pending(self.store.get(draft_id))
@@ -381,7 +392,7 @@ class HomeAgent:
             else:
                 self.next_turn(draft_id)
 
-    def complete(self, draft_id: str, messages: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+    def complete(self, draft_id: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any], str | None]:
         """One model step. With a streaming client the reply reaches the page as ``token`` events while it is written.
 
         Returns the reply and the id of the live bubble (None when nothing was streamed). Deltas are sent in chunks
@@ -390,7 +401,7 @@ class HomeAgent:
         """
         stream = getattr(self.client, "stream", None)
         if stream is None:
-            return self.client.complete(messages, self.registry.schemas("draft")), None
+            return self.client.complete(messages, tools if tools is not None else self.registry.schemas("draft")), None
         live, buffer = "m" + secrets.token_hex(5), []
 
         def flush(force: bool = False) -> None:
@@ -403,7 +414,7 @@ class HomeAgent:
             flush()
 
         try:
-            out = stream(messages, self.registry.schemas("draft"), on_text=on_text)
+            out = stream(messages, tools if tools is not None else self.registry.schemas("draft"), on_text=on_text)
             flush(True)
         except Exception:
             self.store.emit(draft_id, "token", {"id": live, "drop": True})
@@ -416,7 +427,8 @@ class HomeAgent:
     def run_tool(self, draft_id: str, name: str, args: dict[str, Any]) -> dict[str, Any]:
         """Run one of the Home agent's tools on a draft, through the draft guard. The handlers are lenient (small models
         send strings for numbers, extra keys, and leave out what the handlers default): unknown keys are dropped and the
-        rest is the handlers' to coerce and default. The runtime checks the schemas instead once Home runs on it (A2.4)."""
+        rest is the handlers' to coerce and default. Used where code, not the model, makes the call; the model's calls go
+        through the runtime, which checks them against the schemas."""
         tool = self.registry.get(name)
         if tool is None or tool.scope != "draft":
             return {"error": f"unknown tool {name}"}
@@ -428,6 +440,24 @@ def title_for(draft: dict[str, Any], key: str) -> str:
     name = (packs.by_key(key) or {}).get("name", key)
     target = (draft.get("understanding") or {}).get("target")
     return f"{target} · {name}" if target else f"Solution workflow · {name}"
+
+
+def understood(draft: dict[str, Any]) -> str:
+    """The draft's state for a trace row: which of the fields are known (x) or open (-), in FIELDS order."""
+    u = draft.get("understanding") or {}
+    return "".join("x" if u.get(f) else "-" for f in FIELDS)
+
+
+class _Model:
+    """The gateway client as the runtime sees it for one Home turn: a streamed reply reaches the page as it is
+    written, and the id of the last reply's live bubble is kept so the final answer replaces it."""
+
+    def __init__(self, agent: HomeAgent, draft_id: str):
+        self.agent, self.draft_id, self.live = agent, draft_id, None
+
+    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        out, self.live = self.agent.complete(self.draft_id, messages, tools)
+        return out
 
 
 # ---------------------------------------------------------------------- tools
@@ -554,13 +584,13 @@ def register(registry: Registry) -> None:
 
     S = {"type": "string"}
     add("ask_user", "Ask the user one short question.", {"question": S, "options": {"type": "array", "items": S},
-        "field": {**S, "enum": list(FIELDS)}, "why": S}, ["question", "field"], "write")
+        "field": {**S, "enum": list(FIELDS)}, "why": S}, ["question"], "write")  # no field: the answer goes to the notes
     add("record", "Store an answer you understood.", {"field": {**S, "enum": list(FIELDS) + ["unit", "horizon", "constraints", "notes"]}, "value": S},
         ["field", "value"], "write")
-    add("set_pack", "Switch the domain pack.", {"key": {**S, "enum": packs.KEYS}, "why": S}, ["key", "why"], "write")
+    add("set_pack", "Switch the domain pack.", {"key": {**S, "enum": packs.KEYS}, "why": S}, ["key"], "write")
     add("propose_workflow", "Replace the solution workflow.", {"title": S, "nodes": {"type": "array", "items": {"type": "object", "properties": {
         "wf": S, "label": S, "detail": S}, "required": ["wf", "label"]}}}, ["nodes"], "write")
-    add("request_data", "Offer the user ways to bring data.", {"text": S}, ["text"], "write")
+    add("request_data", "Offer the user ways to bring data.", {"text": S}, [], "write")  # no text: a standard offer
     add("get_profile", "Column summaries of the prepared table: name, kind, missing rate, unique count, and which columns look like outcomes, timestamps, identifiers or text. Aggregates only, never values. Name columns, or page through a wide table with offset.",
         {"columns": {"type": "array", "items": S}, "offset": {"type": "integer"}}, [], "read")
     add("get_analysis", "The descriptive analysis of the prepared table: size, column kinds, missing share, duplicate rows, findings worth a question, and the strongest feature-to-feature correlations. Says nothing about the outcome.",

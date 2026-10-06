@@ -5,6 +5,8 @@ workflow move it makes. Scopes say who may call it:
 
     project   the intern, and MCP clients (Chat UI, ML Intern) at /mcp
     draft     the Home agent, on a draft before a project exists
+    session   the intern's own notes on its session (its plan, its report)
+    campaign  the research campaign's one write: an experiment
 
 A call is checked against the schema before the handler runs; a bad call comes back as ``{"error": ...}`` that a
 model can read and correct, never as an exception.
@@ -16,12 +18,13 @@ checks the Home agent's writes. A write in a scope without a guard never runs.
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
 
 import jsonschema
 
-SCOPES = ("project", "draft")
+SCOPES = ("project", "draft", "session", "campaign")
 EFFECTS = ("read", "write")
 
 
@@ -128,6 +131,22 @@ class Registry:
         def proceed() -> Any:
             return self._run(tool, lambda: tool.handler(context, **arguments) if tool.takes_context else tool.handler(**arguments))
         return self._run(tool, lambda: guard(tool, context, arguments, proceed))
+
+    async def acall(self, name: str, arguments: dict[str, Any] | None = None, context: Any = None, scope: str | None = None,
+                    check: str = "schema") -> Any:
+        """``call`` for a tool whose handler is a coroutine (the campaign's experiment): the same checks and guard, then
+        the handler is awaited and its expected failures come back as errors too."""
+        value = self.call(name, arguments, context, scope, check)
+        if not inspect.isawaitable(value):
+            return value
+        tool = self.get(name)
+        try:
+            return await value
+        except Exception as error:  # noqa: BLE001 — as in _run: expected failures are results, the rest raises
+            mapped = tool.errors(error) if tool is not None and tool.errors else None
+            if mapped is not None:
+                return mapped
+            raise
 
     @staticmethod
     def _run(tool: Tool, step: Callable[[], Any]) -> Any:

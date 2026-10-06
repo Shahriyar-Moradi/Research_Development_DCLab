@@ -135,6 +135,15 @@ class LlmLoopTests(unittest.TestCase):
         self.assertIn("budget", session["final"])
 
 
+    def test_a_refused_plan_or_report_does_not_break_the_session(self):
+        projects, sessions = make(tempfile.mkdtemp())
+        script = [("write_plan", {}), ("finish", {}), ("finish", {"report": "Nothing to build yet."})]
+        intern = Intern(sessions, Toolbox(projects), ScriptedModel(script))
+        session = intern.run(intern.start("Look around first", {"max_steps": 10, "max_minutes": 5})["id"])
+        self.assertEqual((session["status"], session["final"]), ("completed", "Nothing to build yet."))
+        self.assertEqual([(s["tool"], s["ok"]) for s in session["steps"]], [("write_plan", False), ("finish", False), ("finish", True)])
+
+
 class StreamingClientTests(unittest.TestCase):
     """ChatClient.stream joins a streamed reply into the shape complete() returns, without a network or a key."""
 

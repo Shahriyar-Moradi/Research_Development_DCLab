@@ -236,10 +236,13 @@ class InternTraceTests(unittest.TestCase):
         done = intern.run(s["id"])
         rows = traces.steps(s["id"])
         self.assertEqual([(r["tool"], r["reply"], r["verdict"]) for r in rows],
-                         [("write_plan", 0, "ok"), ("get_graph", 0, "ok"), ("run_stage", 1, "blocked")])
-        self.assertEqual(len(rows), len(done["steps"]))
-        self.assertEqual([r["input_tokens"] for r in rows], [50, 0, 60])
+                         [("write_plan", 0, "ok"), ("get_graph", 0, "ok"), ("run_stage", 1, "blocked"), ("finish", 2, "ok")])
+        self.assertEqual(len(rows), len(done["steps"]))  # finish is a step of the session too, so a replay checks it
+        self.assertEqual(done["final"], "Done.")
+        self.assertEqual([r["input_tokens"] for r in rows][:3], [50, 0, 60])
         self.assertEqual(rows[1]["state"], "c---------")  # the project's graph state as the intern saw it
+        again = replay(rows, intern.policy(done), intern.toolbox.registry)  # the intern runs on run(), so it replays
+        self.assertTrue(again["same"], again)
 
     def test_the_standard_plan_traces_without_reply_numbers(self):
         home = Path(tempfile.mkdtemp())

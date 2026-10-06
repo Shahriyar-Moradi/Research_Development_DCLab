@@ -1,6 +1,5 @@
 """Single LangGraph loop owner with durable checkpoints and bounded tools."""
 import asyncio
-import hashlib
 import json
 import os
 import sys
@@ -15,6 +14,9 @@ from .projects import historical_context
 from .schemas import Experiment
 from .store import Store
 from .agents import ResearchPlanner, DataScientist, ExperimentDesigner, ResultsCritic, KnowledgeCurator, AuditedClient, ask
+from .campaign_tools import CampaignTurn, check_citations, signature  # noqa: F401 — signature and check_citations are imported from here too
+from ..agents import registry_of
+from ..agents.traces import Tracer, open_traces
 
 class ResearchState(TypedDict, total=False):
     config: dict
@@ -45,14 +47,6 @@ def compact(trial):
             "evaluation": r.get("evaluation"), "wall_seconds": r["wall_seconds"],
             "limitations": r["limitations"]}
 
-def signature(plan):
-    return hashlib.sha256(json.dumps({k: plan[k] for k in ("dataset", "model", "parameters", "features", "drop_columns", "stress_columns")}, sort_keys=True).encode()).hexdigest()
-
-def check_citations(ids, trials, required=False):
-    allowed = {t["id"] for t in trials if t["status"] == "completed"}
-    if (required and not ids) or not set(ids) <= allowed:
-        raise ValueError("Agent output has missing or unrecognized successful evidence references")
-
 async def worker(request, timeout=300):
     python = Path(os.environ.get("DCLAB_ML_PYTHON", str(ROOT / ".venv/bin/python")))
     if not python.exists(): raise RuntimeError("ML Python is missing; set DCLAB_ML_PYTHON")
@@ -71,11 +65,29 @@ async def worker(request, timeout=300):
             proc.kill()
             await proc.wait()
 
-def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
+def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask, traces=None):
+    """The campaign as a LangGraph loop. Its specialists answer in typed objects (no tool calls), so their phases are
+    not runtime replies; its one write, an experiment, is the registered tool ``run_experiment`` behind the campaign
+    guard (package A2.4). Each phase and each experiment is a row of the agent trace (``traces``, under the run id)."""
+    registry = registry_of("campaign")
+    seen = {"trials": 0}  # the state a row records: how many trials the phase saw
+    tracer = Tracer.resume(traces, run_id, "campaign", lambda: f"{seen['trials']} trials") if traces is not None else None
+
+    def trace(name, arguments, value, started, trials):
+        if tracer is not None:
+            seen["trials"] = trials
+            tracer(name, arguments, value, time.monotonic() - started)
+
     async def phase(name, cls, method, context):
         store.update(run_id, phase=name)
         store.event(run_id, "phase", {"name": name})
-        value = await ask_fn(cls, method, client, context)
+        started = time.monotonic()
+        try:
+            value = await ask_fn(cls, method, client, context)
+        except Exception as exc:
+            trace(method, {}, {"error": type(exc).__name__}, started, context.get("attempted", 0))
+            raise
+        trace(method, {}, value, started, context.get("attempted", 0))
         return value
     def context(state):
         trials = state.get("trials", [])
@@ -114,22 +126,14 @@ def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
         store.update(run_id, phase=f"Execute experiment {index}")
         store.event(run_id, "tool_start", {"id": evidence_id, "plan": plan})
         trial = {"id": evidence_id, "status": "failed", "plan": plan}
+        started = time.monotonic()
         try:
-            if plan["dataset"] not in state["config"]["datasets"]:
-                raise ValueError("Dataset is outside this run's selected scope")
-            check_citations(plan["evidence_ids"], state.get("trials", []))
-            if plan.get("reference_evidence_id") and plan["reference_evidence_id"] not in plan["evidence_ids"]:
-                raise ValueError("Paired reference must also appear in evidence_ids")
-            if any(signature(plan) == signature(t["plan"]) for t in state.get("trials", [])):
-                raise ValueError("Duplicate experiment; propose a discriminating change")
-            # Durable tool result is idempotent if interruption occurred after
-            # execution but before LangGraph committed the node checkpoint.
-            completed = directory / "result.json"
-            if completed.exists():
-                result = json.loads(completed.read_text())
-                if result["plan"] != plan: raise ValueError("Immutable trial conflict")
-            else:
-                result = await tool({"action": "experiment", "plan": plan, "max_rows": state["config"]["max_rows"], "repeats": state["config"]["repeats"], "output": str(directory)})
+            # The registry checks the plan against its schema, the campaign guard checks scope, citations and
+            # duplicates, then the experiment runs; a refusal or an expected failure comes back as an error.
+            result = await registry.acall("run_experiment", plan, CampaignTurn(state, tool, directory), scope="campaign")
+            trace("run_experiment", plan, result, started, len(state.get("trials", [])))
+            if isinstance(result, dict) and set(result) <= {"error", "status"} and "error" in result:
+                raise ValueError(result["error"])
             trial.update(status="completed", result=result, artifact_directory=str(directory))
             references = [t for t in state.get("trials", []) if t["status"] == "completed" and t["result"]["dataset"] == result["dataset"] and t["result"]["split_hash"] == result["split_hash"] and t["result"]["data_hashes"] == result["data_hashes"]]
             if references:
@@ -179,6 +183,15 @@ def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask):
     graph.add_conditional_edges("critique", route)
     return graph.compile(checkpointer=checkpointer)
 
+def campaign_traces(home):
+    """The trace store for campaigns: the database when one is configured and its driver is installed, otherwise a file
+    beside the runs (the campaign's environment, .venv-agent, has no database libraries)."""
+    try:
+        return open_traces(home)
+    except ImportError:
+        from ..agents.traces import FileTraces
+        return FileTraces(Path(home) / "agent_steps.jsonl")
+
 async def run_research(store: Store, run_id: str, resume=False):
     run = store.get(run_id)
     started = time.monotonic()
@@ -190,7 +203,7 @@ async def run_research(store: Store, run_id: str, resume=False):
     try:
         client = AuditedClient(run["config"]["model"], store, run_id)
         async with AsyncSqliteSaver.from_conn_string(str(store.home / "checkpoints.sqlite3")) as saver:
-            graph = build_graph(store, run_id, client, saver)
+            graph = build_graph(store, run_id, client, saver, traces=campaign_traces(store.home))
             config = {"configurable": {"thread_id": run_id}, "recursion_limit": 250}
             snapshot = await graph.aget_state(config)
             project = run["config"].get("project", "general")

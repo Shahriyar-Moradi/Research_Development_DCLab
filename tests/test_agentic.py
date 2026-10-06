@@ -19,7 +19,6 @@ from dclab_rnd.agentic.agents import ResearchPlanner, ask
 from dclab_rnd.agentic.schemas import RunRequest, Experiment, Agenda, Feature
 from dclab_rnd.agentic.store import Store
 from dclab_rnd.agentic.engine import build_graph, check_citations, worker
-from dclab_rnd.agentic.server import create_app
 
 def experiment(model="logistic_regression"):
     return Experiment(dataset="bank_marketing", title="Transparent baseline", hypothesis="A transparent baseline establishes model-family comparison evidence.", model=model, parameters={}, features=[], drop_columns=[], stress_columns=["balance"], evidence_ids=[], reference_evidence_id=None, expected_learning="A useful development baseline").model_dump()
@@ -75,6 +74,42 @@ def test_graph_adapts_after_critique_and_persists():
         assert calls==["plan","review","propose","critique","propose","critique","synthesize"]
         assert len(store.knowledge())==1
         assert store.export("test")["training_ready"] is False
+
+def test_the_experiment_runs_through_the_registry_guard_and_every_phase_is_traced():
+    from dclab_rnd.agents import FileTraces
+    with tempfile.TemporaryDirectory() as directory:
+        store=Store(Path(directory)); request=RunRequest(max_experiments=3).model_dump(); store.create("g",request)
+        traces=FileTraces(Path(directory)/"agent_steps.jsonl")
+        ran=[]
+        proposals=[experiment(), experiment(), {**experiment(), "dataset":"adult"}]  # the second repeats the first; the third is out of scope
+        async def agent(cls, method, client, context):
+            if method=="propose": return proposals[context["attempted"]]
+            if method=="critique": return {"evidence_ids":[], "next_question":"", "continue_research":True}
+            if method=="synthesize": return {"summary":"s", "lessons":[], "theoretical_principles":[], "workflow_blocks":[], "unanswered_questions":[]}
+            return {}
+        async def tool(req):
+            if req["action"]=="profile": return []
+            ran.append(req["plan"]["dataset"])
+            return {"dataset":"bank_marketing", "plan":req["plan"], "metrics":{"roc_auc":.7},"fold_standard_deviation":{},"input_sensitivity":[],"stress_tests":[],"output_calibration":[],"wall_seconds":1,"limitations":["test"],"split_hash":"same", "data_hashes":{}, "folds":[{"roc_auc":.7}]*3}
+        async def check():
+            graph=build_graph(store,"g",None,InMemorySaver(),tool,agent,traces=traces)
+            return await graph.ainvoke({"config":request,"trials":[],"critiques":[]},{"configurable":{"thread_id":"g"}})
+        result=asyncio.run(check())
+        assert ran==["bank_marketing"]  # the guard refused the other two before the worker saw them
+        assert [t.get("error") for t in result["trials"]]==[None, "Duplicate experiment; propose a discriminating change", "Dataset is outside this run's selected scope"]
+        rows=traces.steps("g")
+        assert [(r["tool"], r["verdict"]) for r in rows if r["tool"]=="run_experiment"]==[("run_experiment","ok"),("run_experiment","error"),("run_experiment","error")]
+        assert [r["tool"] for r in rows][:3]==["plan","review","propose"]
+        assert rows[-1]["tool"]=="synthesize" and rows[-1]["state"]=="3 trials"
+        assert all(r["agent"]=="campaign" and r["reply"] is None for r in rows)
+
+def test_a_plan_that_breaks_the_schema_never_reaches_the_worker():
+    from dclab_rnd.agents import registry_of
+    from dclab_rnd.agentic.campaign_tools import CampaignTurn
+    async def tool(req): raise AssertionError("the worker must not run")
+    turn=CampaignTurn({"config":{"datasets":["bank_marketing"],"max_rows":100,"repeats":1},"trials":[]}, tool, Path(tempfile.mkdtemp()))
+    out=asyncio.run(registry_of("campaign").acall("run_experiment", {**experiment(), "shell":"rm -rf /"}, turn, scope="campaign"))
+    assert "error" in out and "shell" in out["error"]
 
 def test_archive_materializes_process_files_and_index():
     from dclab_rnd.agentic.archive import archive_run, write_studio_index, run_label
@@ -206,7 +241,9 @@ def test_clean_export_builds_compact_trials_and_sft():
 
 def test_local_api_security_and_missing_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    with tempfile.TemporaryDirectory() as directory, TestClient(create_app(Path(directory))) as client:
+    server = pytest.importorskip("dclab_rnd.agentic.server", reason="the product server needs pandas, which .venv-agent does not have",
+                                 exc_type=ImportError)
+    with tempfile.TemporaryDirectory() as directory, TestClient(server.create_app(Path(directory))) as client:
         assert client.get("/").status_code==200
         assert client.get("/api/config").json()["api_key_configured"] is False
         cfg=client.get("/api/config").json()

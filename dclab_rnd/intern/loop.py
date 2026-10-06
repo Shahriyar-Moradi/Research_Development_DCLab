@@ -13,11 +13,16 @@ import re
 import time
 from typing import Any
 
+from dclab_rnd.agents.registry import Registry, Tool
+from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
 from dclab_rnd.studio import graph as studio_graph
 
 from .sessions import SessionStore, now
-from .tools import LEGACY_TOOLS, Toolbox, summarize, truncate
+from .tools import LEGACY_TOOLS, RESULT_CHARS, Toolbox, summarize, truncate
+
+SESSION_TOOLS = ("write_plan", "finish")  # the intern's own notes on its session (scope "session")
+SESSION_MOVES = {"write_plan": "plan", "finish": "finish"}
 
 POLICY = """You are the DCLab intern: a careful ML engineer who builds models with evidence, not opinions.
 You work only through the tools. Deterministic code owns splits, metrics and selection rules; you plan, choose, explain and cite.
@@ -43,8 +48,6 @@ class Intern:
     def __init__(self, sessions: SessionStore, toolbox: Toolbox, client: Any | None = None, traces: Any = None):
         self.sessions, self.toolbox, self.client, self.traces = sessions, toolbox, client, traces
         self.tracer: Tracer | None = None
-        self._reply: int | None = None  # which model reply asked for the current step; None in the standard plan
-        self._tokens: dict[str, int] | None = None  # that reply's tokens, written on its first step only
 
     # ------------------------------------------------------------------ public
     def start(self, task: str, budget: dict[str, Any] | None = None, project_id: str | None = None, model: str | None = None) -> dict[str, Any]:
@@ -58,11 +61,11 @@ class Intern:
         def state() -> str:
             pid = session.get("project_id")
             return studio_graph.state_string(self.toolbox.projects.get(pid)) if pid else "no project"
-        return Tracer.resume(self.traces, session["id"], "intern", state)
+        return Tracer.resume(self.traces, session["id"], "intern", state, floor=len(session.get("steps") or []))
 
     def run(self, session_id: str) -> dict[str, Any]:
         session = self.sessions.get(session_id)
-        self.tracer, self._reply, self._tokens = self._trace(session), None, None
+        self.tracer = self._trace(session)
         session["status"] = "running"
         session["error"] = None
         session["used"]["minutes_before"] = session["used"]["minutes"]
@@ -93,7 +96,7 @@ class Intern:
         started = time.monotonic()
         session["status"] = "running"
         session["used"]["minutes_before"] = session["used"]["minutes"]
-        self.tracer, self._reply, self._tokens = self._trace(session), None, None
+        self.tracer = self._trace(session)
         if session.get("project_id"):
             result = self._step(session, "ask_project", {"project_id": session["project_id"], "question": text}, started)
             session["final"] = result.get("answer", "") + ("\n\nProof: " + ", ".join(result.get("proof", [])) if result.get("proof") else "")
@@ -136,71 +139,57 @@ class Intern:
         return result
 
     def _record(self, tool: str, arguments: dict[str, Any], result: Any, seconds: float, n: int) -> None:
+        """A standard-plan step's trace row: no model chose it, so it has no reply number."""
         if self.tracer is not None:
-            self.tracer(tool, arguments, result, seconds, reply=self._reply, tokens=self._tokens, n=n)
-            self._tokens = None
+            self.tracer(tool, arguments, result, seconds, n=n)
 
     # ------------------------------------------------------------------ LLM mode
+    def policy(self, session: dict[str, Any]) -> Policy:
+        """The intern as a policy on the runtime: its instructions, the project tools and its own two, its budget."""
+        budget = session["budget"]
+        return Policy("intern", POLICY, tuple(self.toolbox.names()) + SESSION_TOOLS, max_steps=int(budget["max_steps"]),
+                      max_seconds=float(budget["max_minutes"]) * 60, terminal=("finish",), result_chars=RESULT_CHARS)
+
     def _llm_loop(self, session: dict[str, Any], started: float) -> None:
-        tools = self.toolbox.schemas() + [
-            {"type": "function", "function": {"name": "write_plan", "description": "Record your plan for the person (3-6 short steps) before acting.",
-                                              "parameters": {"type": "object", "properties": {"plan": {"type": "string"}}, "required": ["plan"]}}},
-            {"type": "function", "function": {"name": "finish", "description": "End the session with the report for the person.",
-                                              "parameters": {"type": "object", "properties": {"report": {"type": "string"}}, "required": ["report"]}}},
-        ]
-        while True:
-            reason = self._exhausted(session, started)
-            if reason:
-                session["status"] = "budget_exhausted"
-                session["final"] = f"Stopped: {reason}. " + self._progress_note(session)
-                return
-            if hasattr(self.client, "project_id"):  # the gateway counts each request against the session's project (it can change mid-session)
-                self.client.project_id = session.get("project_id")
-                self.client.run_limit_eur = (session.get("budget") or {}).get("max_eur")  # an optional euro cap for this session
-                self.client.spent_eur = float(session["used"].get("eur") or 0.0)  # across turns and restarts, not per client
-            try:
-                response = self.client.complete(session["messages"], tools)
-            except RuntimeError as error:
-                if not str(error).startswith("BudgetExceeded"):
-                    raise
-                session["status"] = "budget_exhausted"  # the same ending as the step and minute budgets
-                session["final"] = f"Stopped: {str(error).split(': ', 1)[-1]}. " + self._progress_note(session)
-                return
-            finally:
-                if hasattr(self.client, "spent_eur"):
-                    session["used"]["eur"] = round(float(self.client.spent_eur), 6)
-            session["used"]["input_tokens"] += response["usage"]["input_tokens"]
-            session["used"]["output_tokens"] += response["usage"]["output_tokens"]
-            self._reply = 0 if self._reply is None else self._reply + 1
-            self._tokens = {k: response["usage"][k] for k in ("input_tokens", "output_tokens")}
-            session["messages"].append(response["assistant_message"])
-            if not response["tool_calls"]:
-                session["final"] = response["content"].strip() or self._progress_note(session)
-                session["status"] = "completed"
-                self.sessions.save(session)
-                return
-            for call in response["tool_calls"]:
-                name, arguments = call["name"], call["arguments"]
-                if name == "write_plan":
-                    session["plan"] = str(arguments.get("plan", ""))[:2000]
-                    result: Any = {"ok": True}
-                    session["steps"].append({"n": len(session["steps"]) + 1, "tool": "write_plan", "arguments": {}, "summary": session["plan"][:200], "ok": True, "elapsed_seconds": 0, "at": now()})
-                    self._record("write_plan", {"plan": session["plan"]}, {"ok": True}, 0, session["steps"][-1]["n"])
-                    session["used"]["steps"] += 1
-                elif name == "finish":
-                    session["final"] = str(arguments.get("report", "")).strip() or self._progress_note(session)
-                    session["status"] = "completed"
-                    session["messages"].append({"role": "tool", "tool_call_id": call["id"], "content": "ok"})
-                    self.sessions.save(session)
-                    return
-                else:
-                    if self._exhausted(session, started):
-                        result = {"error": "budget exhausted; call finish with what you have"}
-                    else:
-                        result = self._step(session, name, arguments, started)
-                        self._verdict(name, arguments, result)
-                session["messages"].append({"role": "tool", "tool_call_id": call["id"], "content": truncate(result)})
+        def on_step(step: Step) -> None:
+            entry = {"n": len(session["steps"]) + 1, "tool": step.tool, "ok": step.ok, "elapsed_seconds": round(step.seconds, 2), "at": now()}
+            if step.tool in SESSION_TOOLS:  # the plan and the report are on the session itself
+                entry.update(arguments={}, summary=((session.get("plan") if step.tool == "write_plan" else session.get("final")) or "")[:200])
+            else:
+                arguments = step.arguments
+                entry.update(arguments=arguments if len(json.dumps(arguments, default=str)) <= 1200 else {"_truncated": truncate(arguments, 1200)},
+                             summary=summarize(step.result))
+                if step.tool == "create_project" and isinstance(step.result, dict) and step.result.get("project_id"):
+                    session["project_id"] = step.result["project_id"]
+                self._verdict(step.tool, step.arguments, step.result)
+            session["steps"].append(entry)
+            if step.tool != "finish" or not step.ok:  # the budget counts tool calls; a report that ends the session is free
+                session["used"]["steps"] += 1
+            session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
             self.sessions.save(session)
+
+        try:
+            out = run_policy(self.policy(session), _Model(self, session), self.toolbox.registry, session["messages"],
+                             contexts={"project": self.toolbox, "session": InternTurn(self, session)}, on_step=on_step,
+                             steps_used=session["used"]["steps"], started=started - session["used"].get("minutes_before", 0.0) * 60,
+                             trace=self.tracer)
+        except RuntimeError as error:
+            if not str(error).startswith("BudgetExceeded"):
+                raise
+            session["status"] = "budget_exhausted"  # the same ending as the step and minute budgets
+            session["final"] = f"Stopped: {str(error).split(': ', 1)[-1]}. " + self._progress_note(session)
+            return
+        if out.stopped in ("steps", "time"):
+            budget = session["budget"]
+            reason = (f"the budget of {budget['max_steps']} tool calls is used up" if out.stopped == "steps"
+                      else f"the budget of {budget['max_minutes']} minutes is used up")
+            session["status"] = "budget_exhausted"
+            session["final"] = f"Stopped: {reason}. " + self._progress_note(session)
+            return
+        if out.stopped != "terminal":  # answered without finish: the answer is the report
+            session["final"] = out.final or self._progress_note(session)
+        session["status"] = "completed"
+        self.sessions.save(session)
 
     def _verdict(self, name: str, arguments: dict[str, Any], result: Any) -> None:
         """Tell the model gateway whether the model's tool call was usable (fixed reasons: never the model's text)."""
@@ -302,3 +291,63 @@ class Intern:
                          f"Tuning {'accepted' if final['numbers']['tuning_accepted'] else 'rejected'}. Not production-approved (DCLAB-R22).")
         lines.append("Next: open the project, review the notes with their proof, and change the solution if a flagged column is really unknown at prediction time.")
         return "\n".join(lines)
+
+
+class _Model:
+    """The gateway client as the runtime sees it, for one session: before each request it learns the session's project
+    and euro limit (both can change mid-session), and after it the session counts the tokens and euros."""
+
+    def __init__(self, intern: Intern, session: dict[str, Any]):
+        self.intern, self.session = intern, session
+
+    def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        client, session = self.intern.client, self.session
+        if hasattr(client, "project_id"):  # the gateway counts each request against the session's project
+            client.project_id = session.get("project_id")
+            client.run_limit_eur = (session.get("budget") or {}).get("max_eur")  # an optional euro cap for this session
+            client.spent_eur = float(session["used"].get("eur") or 0.0)  # across turns and restarts, not per client
+        try:
+            response = client.complete(messages, tools)
+        finally:
+            if hasattr(client, "spent_eur"):
+                session["used"]["eur"] = round(float(client.spent_eur), 6)
+        session["used"]["input_tokens"] += response["usage"]["input_tokens"]
+        session["used"]["output_tokens"] += response["usage"]["output_tokens"]
+        return response
+
+
+class InternTurn:
+    """What the session tools act on: the intern and the session it is running."""
+
+    def __init__(self, intern: Intern, session: dict[str, Any]):
+        self.intern, self.session = intern, session
+
+
+def write_plan(turn: InternTurn, /, plan: str) -> dict[str, Any]:
+    turn.session["plan"] = str(plan)[:2000]
+    return {"ok": True}
+
+
+def finish(turn: InternTurn, /, report: str) -> dict[str, Any]:
+    turn.session["final"] = str(report).strip() or turn.intern._progress_note(turn.session)
+    return {"ok": True}
+
+
+class SessionGuard:
+    """The session tools write the intern's own plan and report: no project or draft changes, so nothing for a validator
+    to refuse. The guard exists so that every write in the registry passes one."""
+
+    def __call__(self, tool: Tool, turn: InternTurn, arguments: dict[str, Any], proceed: Any) -> Any:
+        return proceed()
+
+
+def register(registry: Registry) -> None:
+    """Register the intern's session tools (scope "session")."""
+    registry.guards["session"] = SessionGuard()
+    S = {"type": "string"}
+    registry.register(Tool("write_plan", "Record your plan for the person (3-6 short steps) before acting.",
+                           {"type": "object", "properties": {"plan": S}, "required": ["plan"]}, write_plan,
+                           effect="write", scope="session", move=SESSION_MOVES["write_plan"], takes_context=True))
+    registry.register(Tool("finish", "End the session with the report for the person.",
+                           {"type": "object", "properties": {"report": S}, "required": ["report"]}, finish,
+                           effect="write", scope="session", move=SESSION_MOVES["finish"], takes_context=True))

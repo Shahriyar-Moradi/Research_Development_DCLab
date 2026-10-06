@@ -75,11 +75,21 @@ class TraceStore(Protocol):
     def delete(self, run_id: str) -> None: ...
 
 
+_LOCKS: dict[Path, threading.Lock] = {}
+_LOCKS_GUARD = threading.Lock()
+
+
+def _lock_for(path: Path) -> threading.Lock:
+    """One lock per file in this process: the server's store and a campaign's store on the same file share it."""
+    with _LOCKS_GUARD:
+        return _LOCKS.setdefault(path.resolve(), threading.Lock())
+
+
 class FileTraces:
     def __init__(self, path: Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.Lock()
+        self._lock = _lock_for(self.path)
 
     def record(self, row: dict[str, Any]) -> None:
         line = json.dumps({k: row.get(k) for k in FIELDS}, ensure_ascii=False, default=str)
@@ -168,7 +178,7 @@ class Tracer:
         self._seen: str | None = None  # the state before the current move (``before``)
 
     @classmethod
-    def resume(cls, store: TraceStore | None, run_id: str, agent: str, state: Callable[[], str] | None = None) -> "Tracer":
+    def resume(cls, store: TraceStore | None, run_id: str, agent: str, state: Callable[[], str] | None = None, floor: int = 0) -> "Tracer":
         rows = []
         if store is not None:
             try:
@@ -176,7 +186,7 @@ class Tracer:
             except Exception:  # noqa: BLE001 — start a fresh numbering rather than fail the run
                 rows = []
         replies = [int(r["reply"]) for r in rows if r.get("reply") is not None]
-        return cls(store, run_id, agent, state, start=max((int(r["n"]) for r in rows), default=0),
+        return cls(store, run_id, agent, state, start=max([floor, *(int(r["n"]) for r in rows)]),
                    reply_base=max(replies, default=-1) + 1)
 
     def _state(self) -> str:

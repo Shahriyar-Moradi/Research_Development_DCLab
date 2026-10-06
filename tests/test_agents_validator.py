@@ -18,6 +18,7 @@ from dclab_rnd.agents import Registry, Tool, build_registry, default_registry  #
 from dclab_rnd.draft import chat as home  # noqa: E402
 from dclab_rnd.draft.chat import HomeAgent  # noqa: E402
 from dclab_rnd.draft.store import DraftStore  # noqa: E402
+from dclab_rnd.intern.loop import SESSION_MOVES  # noqa: E402
 from dclab_rnd.intern.tools import Toolbox  # noqa: E402
 from dclab_rnd.studio import graph  # noqa: E402
 from dclab_rnd.studio.store import ProjectStore  # noqa: E402
@@ -66,10 +67,9 @@ class DeclaredMoveTests(unittest.TestCase):
                 continue
             with self.subTest(tool.name):
                 self.assertIsNotNone(tool.move)
-                if tool.scope == "project":
-                    self.assertIn(tool.move, graph.MOVES)
-                else:
-                    self.assertIn(tool.move, home.DRAFT_MOVES.values())
+                moves = {"project": graph.MOVES, "draft": home.DRAFT_MOVES.values(), "session": SESSION_MOVES.values(),
+                         "campaign": ("experiment",)}[tool.scope]
+                self.assertIn(tool.move, moves)
 
     def test_every_project_write_tool_has_a_refusal_case(self):
         writes = {t.name for t in default_registry().tools.values() if t.scope == "project" and t.effect == "write"}

@@ -16,14 +16,19 @@ from .runtime import Policy, RunResult, Step, run
 from .traces import FileTraces, PgTraces, Tracer, open_traces, replay
 
 
-def build_registry() -> Registry:
-    """A registry with every DCLab tool: the intern's evidence and project tools, and the Home agent's draft tools."""
-    from dclab_rnd.draft import chat as home_tools
-    from dclab_rnd.intern import tools as project_tools
+# Where each group of tools is registered. The campaign group imports no table library, so the campaign's own
+# environment (.venv-agent, no pandas) builds a registry of that group alone.
+GROUPS = {"project": "dclab_rnd.intern.tools", "draft": "dclab_rnd.draft.chat", "session": "dclab_rnd.intern.loop",
+          "campaign": "dclab_rnd.agentic.campaign_tools"}
+
+
+def build_registry(groups: tuple[str, ...] = tuple(GROUPS)) -> Registry:
+    """A registry with the given groups of DCLab tools (all of them by default)."""
+    import importlib
 
     registry = Registry()
-    project_tools.register(registry)
-    home_tools.register(registry)
+    for group in groups:
+        importlib.import_module(GROUPS[group]).register(registry)
     return registry
 
 
@@ -32,5 +37,11 @@ def default_registry() -> Registry:
     return build_registry()
 
 
+@functools.cache
+def registry_of(*groups: str) -> Registry:
+    """A process-wide registry of some groups only (the campaign worker's environment has no pandas)."""
+    return build_registry(tuple(groups))
+
+
 __all__ = ["EFFECTS", "SCOPES", "FileTraces", "PgTraces", "Policy", "Registry", "RunResult", "Step", "Tool", "Tracer",
-           "build_registry", "default_registry", "open_traces", "replay", "run"]
+           "build_registry", "default_registry", "open_traces", "registry_of", "replay", "run"]
