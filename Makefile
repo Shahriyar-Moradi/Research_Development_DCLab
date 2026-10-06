@@ -1,4 +1,4 @@
-.PHONY: help sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: help dev db-reset test-db sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -74,6 +74,15 @@ rd-campaign-review:  ## run pending LLM critic reviews (needs OPENAI_API_KEY)
 
 agent-serve:  ## start the web UI with the LLM campaigns enabled (agent environment)
 	$(AGENT_PYTHON) -m dclab_rnd.agentic serve
+
+dev:  ## local development on PostgreSQL: checks the server, creates and migrates dclab_dev, runs the API with reload and rebuilds the frontend on change
+	$(PYTHON) scripts/dev.py serve
+
+db-reset:  ## a clean development database (drops and recreates dclab_dev; needs CONFIRM=yes)
+	$(PYTHON) scripts/dev.py db-reset $(if $(filter yes,$(CONFIRM)),--yes,)
+
+test-db:  ## create and migrate the database the tests use (dclab_test)
+	$(PYTHON) scripts/dev.py test-db
 
 notebook:  ## start the DCLab notebook UI on http://127.0.0.1:8765 (ML environment; no LLM needed)
 	$(PYTHON) -m uvicorn dclab_rnd.agentic.server:app --host 127.0.0.1 --port $${DCLAB_PORT:-8765}

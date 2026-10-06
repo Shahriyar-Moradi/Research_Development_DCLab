@@ -102,6 +102,18 @@ Then install the environments as above and run `make rd-check`. Two things are n
 
 To keep working with Claude Code locally, run `claude` in the repository folder. [`CLAUDE.md`](CLAUDE.md) gives every new session the repository map, the commands and the rules, so it starts with the same context as this cloud session.
 
+## Develop locally (PostgreSQL, no containers)
+
+```bash
+brew services start postgresql@15   # once: a local PostgreSQL (Linux: sudo systemctl start postgresql)
+make dev                            # creates and migrates dclab_dev, serves http://127.0.0.1:8765, reloads on code changes
+make test-db                        # the database the tests use (dclab_test); make test-pg runs the suite on it
+make db-reset CONFIRM=yes           # a clean dclab_dev (deletes its projects, drafts and sessions)
+```
+
+`make dev` rebuilds the frontend when a file under `dclab_rnd/agentic/web/src` changes. Without PostgreSQL, `make notebook` runs the same app on files.
+`DCLAB_DATABASE_URL` (shell or `.env`) picks another database; it must be named `dclab_*` and live on this machine (`--remote` to override).
+
 ## Check that everything works
 
 ```bash

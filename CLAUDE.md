@@ -27,6 +27,7 @@ make test        # the suite in parallel (tests/run_parallel.py; JOBS=N to choos
 make rd-sync     # rebuild the registry and knowledge base after new results
 make knowledge   # rebuild the evidence index and SFT v3 corpus after new results
 make research-index   # regenerate every research/<track>/INDEX.md (champions, file maps)
+make dev              # local development on PostgreSQL: dclab_dev created and migrated, the API with reload, the frontend rebuilt on change (make db-reset CONFIRM=yes, make test-db)
 make notebook         # the web UI (DCLab notebook, intern, research map, knowledge) + the MCP endpoint /mcp
 make chat-ui          # Hugging Face Chat UI locally with DCLab as an MCP server (make chat-ui-intern: ML Intern mode)
 make product-demo     # rebuild docs/product-demo/index.html: demo v1, the frozen UI reference (tag demo-v1; do not change it)
