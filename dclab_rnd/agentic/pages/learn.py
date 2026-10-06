@@ -234,11 +234,25 @@ def trajectories(projects) -> dict[str, Any]:
                       "writes their moves and agent steps without cell values or free text, into its own folder, never into corpus v3."}
 
 
+def usable(ctx) -> dict[str, Any]:
+    """The real count for corpus v4 (A6.2): trajectories of opted-in projects, against both thresholds."""
+    from ...agents.traces import open_traces
+    from ...studio import corpus_v4
+
+    try:
+        records, meta = corpus_v4.workspace_records(ctx.projects, ctx.intern_sessions, open_traces(Path(ctx.store.home)))
+        return corpus_v4.status(corpus_v4.trajectories_of(records, meta), meta)
+    except Exception as exc:  # noqa: BLE001 — the page shows the logs it can read; the count says why it is missing
+        return {**corpus_v4.status([]), "error": type(exc).__name__}
+
+
 def curriculum(corp: dict[str, Any], runs: dict[str, Any], traj: dict[str, Any]) -> list[dict[str, Any]]:
     total = corp.get("total", 0) if corp.get("available") else 0
     n_runs = len(runs["runs"])
     sft_ready = total > 0
-    traj_ready = traj["trajectories"] >= TRAJECTORY_TARGET
+    use = traj.get("usable") or {"trajectories": 0, "projects": 0, "target": TRAJECTORY_TARGET, "min_projects": 10, "ready": False,
+                                 "held_out_projects": 0, "min_decisions": MIN_MOVES}
+    traj_ready = bool(use["ready"])  # A6.2: only at 50 trajectories from at least 10 opted-in projects
     return [
         {"stage": 1, "key": "sft", "name": "Declarative SFT", "ready": sft_ready,
          "status": "data ready" if sft_ready else "no corpus", "cls": "ok" if sft_ready else "warn",
@@ -247,8 +261,11 @@ def curriculum(corp: dict[str, Any], runs: dict[str, Any], traj: dict[str, Any])
          if sft_ready else "The v3 corpus is missing; build it with make knowledge."},
         {"stage": 2, "key": "traj", "name": "Trajectory SFT", "ready": traj_ready,
          "status": "data ready" if traj_ready else "needs the graph log", "cls": "ok" if traj_ready else "outline",
-         "detail": f"State → move → verdict from every project. {traj['trajectories']} of {TRAJECTORY_TARGET} project logs with "
-                   f"{MIN_MOVES}+ moves; {traj['moves']} moves logged, {traj['by_status'].get('blocked', 0)} blocked. "
+         "detail": (f"The count could not be read ({use['error']}). " if use.get("error") else "")
+                   + f"State → move → verdict from opted-in projects. {use['trajectories']} of {use['target']} trajectories from "
+                   f"{use['projects']} of {use['min_projects']} projects (a trajectory has {use['min_decisions']}+ decisions; "
+                   f"{use['held_out_projects']} project{'s' if use['held_out_projects'] != 1 else ''} would be held out). "
+                   f"{traj['moves']} moves logged in the workspace, {traj['by_status'].get('blocked', 0)} blocked; "
                    f"{traj.get('opted_in', 0)} of {len(traj.get('sharing') or [])} projects opted in to training (off by default)."},
         {"stage": 3, "key": "rejection", "name": "Rejection sampling", "ready": False, "status": "planned", "cls": "outline",
          "detail": "Sample several moves per state; keep the ones the validator accepts and the benchmark scores well. Needs a stage-2 model to sample from."},
@@ -261,6 +278,7 @@ def policy(ctx) -> dict[str, Any]:
     c = corpus()
     runs = training_runs()
     traj = trajectories(ctx.projects)
+    traj["usable"] = usable(ctx)
     return {
         "corpus": c["corpus"], "examples": c["examples"], "critic_gate": gate(), "training": runs,
         "projects": project_examples(ctx.projects), "trajectories": traj,

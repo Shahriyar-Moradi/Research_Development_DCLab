@@ -138,7 +138,10 @@ class ProjectDataTests(unittest.TestCase):
         steps = learn.curriculum({"available": True, "total": 10}, {"runs": []}, t)
         self.assertEqual([s["ready"] for s in steps], [True, False, False, False])
         self.assertEqual(steps[1]["status"], "needs the graph log")
-        self.assertTrue(learn.curriculum({"available": True, "total": 10}, {"runs": []}, {**t, "trajectories": learn.TRAJECTORY_TARGET})[1]["ready"])
+        logs_only = {**t, "trajectories": learn.TRAJECTORY_TARGET}  # 50 logs alone are not enough (A6.2): the opted-in count decides
+        self.assertFalse(learn.curriculum({"available": True, "total": 10}, {"runs": []}, logs_only)[1]["ready"])
+        ready = {"trajectories": 50, "projects": 10, "target": 50, "min_projects": 10, "min_decisions": 3, "ready": True, "held_out_projects": 2}
+        self.assertTrue(learn.curriculum({"available": True, "total": 10}, {"runs": []}, {**t, "usable": ready})[1]["ready"])
 
     def test_no_moves_no_sample(self):
         self.store.create("Fresh")

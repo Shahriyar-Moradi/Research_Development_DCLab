@@ -1,4 +1,4 @@
-.PHONY: help test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: help sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -149,6 +149,9 @@ category-codes:  ## re-measure one-hot vs numeric category codes on identical tr
 
 copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.html
 	$(PYTHON) -m dclab_rnd.copilot review dclab_rnd/copilot/examples/leaky_bank_marketing.ipynb --html docs/copilot_demo.html > /dev/null
+
+sft-v4:  ## corpus v4 (A6.2): v3 plus opted-in projects' trajectories, whole projects held out; writes nothing below 50 trajectories from 10 projects
+	$(PYTHON) -m dclab_rnd.studio.corpus_v4
 
 web:  ## rebuild the product frontend (dclab_rnd/agentic/web/src -> dclab_rnd/agentic/static/app)
 	$(PYTHON) -m dclab_rnd.agentic.web.build
