@@ -376,6 +376,8 @@ def log(store: ProjectStore, project_id: str, verdict: Verdict, project: dict[st
         "status": verdict.status, "message": verdict.message,
         "failed_checks": [c["name"] for c in verdict.checks if not c["ok"]],
         "rules": verdict.rules, "evidence": verdict.evidence, "side_effects": verdict.side_effects,
+        # the stage and capture moves the graph allowed this actor at this state: what a policy model chooses among (A6.1)
+        "allowed": [m["move"] + (f":{m['stage']}" if m.get("stage") else "") for m in describe(project, verdict.actor)["moves"] if m["status"] == "allowed"],
     }
     if outcome:
         entry["outcome"] = outcome

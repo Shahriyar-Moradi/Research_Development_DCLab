@@ -1646,6 +1646,7 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
     <div class="panel" data-f="policy.traj">
       <div class="panel-head"><div class="panel-title"><h2>A trajectory record</h2><span class="sub" id="traj-sub">One move from a project's transition log, as the model will see it</span></div><span class="pill outline" id="traj-pill">…</span></div>
       <div class="panel-body" id="traj-body"><div class="empty">Loading the transition logs…</div></div>
+      <div class="panel-body" id="traj-sharing" hidden><b class="small">Which projects train the model</b><div class="list small" id="traj-sharing-list"></div></div>
       <div class="panel-foot" id="traj-foot">Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.</div>
     </div>
   </div>

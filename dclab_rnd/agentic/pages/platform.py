@@ -319,7 +319,9 @@ def limits(projects) -> dict[str, Any]:
             {"title": "Scan uploads for personal data", "on": False, "text": "Not built yet: uploads are not scanned for personal data."},
             {"title": "Retention", "on": False, "text": "No timed retention: raw uploads stay until their project or draft is deleted."},
             {"title": "Training the policy model on your projects", "on": False,
-             "text": "Nothing is collected automatically. Training examples leave a project only when you export them (GET …/export/sft or python -m dclab_rnd.studio.sft)."},
+             "text": "Off for every project until its owner opts it in (the Policy model page; settings.share_for_training). Nothing is collected "
+                     "automatically: trajectory records leave only opted-in projects, and only when exported (python -m dclab_rnd.studio.sft --trajectories), "
+                     "without cell values or free text. Stage examples leave a project only when you export them (GET …/export/sft)."},
         ],
     }
 

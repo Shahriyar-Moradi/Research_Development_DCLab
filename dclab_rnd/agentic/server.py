@@ -234,6 +234,13 @@ def create_app(home=None):
             if "max_rows" in settings: p["settings"]["max_rows"] = max(200, min(int(settings["max_rows"]), 200000))
             if "quick" in settings: p["settings"]["quick"] = bool(settings["quick"])
             if "folds" in settings: p["settings"]["folds"] = max(studio_engine.FOLD_CAPS[0], min(int(settings["folds"]), studio_engine.FOLD_CAPS[1]))
+            if isinstance(settings.get("share_for_training"), bool) and settings["share_for_training"] != bool(p["settings"].get("share_for_training")):
+                p["settings"]["share_for_training"] = settings["share_for_training"]  # A6.1: only the owner's choice puts a project's runs in the export
+                opted = {"share_for_training": settings["share_for_training"], "actor": "human"}
+            else:
+                opted = None
+        else:
+            opted = None
         changed = {}
         if isinstance(body.get("policy"), dict):  # which gates wait for a person; the invariants hold either way
             named = {studio_graph.LEGACY_POLICY.get(k, k): v for k, v in body["policy"].items()}
@@ -242,6 +249,7 @@ def create_app(home=None):
             changed = {k: {"from": before.get(k), "to": v} for k, v in p["policy"].items() if before.get(k) != v}
         projects.save(p)
         if changed: projects.log(project_id, "policy_changed", {"changes": changed, "actor": "human"})  # the platform audit reads it
+        if opted: projects.log(project_id, "training_opt_in_changed", opted)
         return with_records(projects.get(project_id))
     @app.delete("/api/projects/{project_id}", status_code=204)
     async def delete_project(project_id: str):

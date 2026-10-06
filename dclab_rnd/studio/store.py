@@ -61,7 +61,7 @@ def new_project(project_id: str, name: str, industry: str = "general", goal: str
         "data": None,
         "solution": None,
         "proposal": None,
-        "settings": {"max_rows": 20000, "quick": False},
+        "settings": {"max_rows": 20000, "quick": False, "share_for_training": False},  # A6.1: the owner opts in
         "stages": {key: {"status": "pending"} for key in STAGE_KEYS},
         "decisions": {},
         "holdout_uses": 0,

@@ -206,7 +206,9 @@ def trajectories(projects) -> dict[str, Any]:
     by_actor: dict[str, Counter] = {}
     logs, full, moves = 0, 0, 0
     pick, pick_key = None, None
+    sharing = []
     for p in projects.list():
+        sharing.append({"id": p["id"], "name": p.get("name"), "on": bool((p.get("settings") or {}).get("share_for_training"))})
         rows = projects.transitions(p["id"], 10**6)
         if not rows:
             continue
@@ -225,7 +227,11 @@ def trajectories(projects) -> dict[str, Any]:
     actors = {a: {"moves": sum(c.values()), **{s: c[s] for s in STATUSES}} for a, c in sorted(by_actor.items())}
     return {"projects_with_log": logs, "trajectories": full, "min_moves": MIN_MOVES, "target": TRAJECTORY_TARGET,
             "moves": moves, "by_status": {s: by_status[s] for s in by_status}, "by_actor": actors,
-            "by_move": dict(by_move.most_common()), "sample": pick}
+            "by_move": dict(by_move.most_common()), "sample": pick,
+            # A6.1: the export takes only projects whose owner opted in (off by default)
+            "sharing": sharing, "opted_in": sum(1 for s in sharing if s["on"]),
+            "export": "Only projects whose owner opted in are exported (off by default): python -m dclab_rnd.studio.sft --trajectories "
+                      "writes their moves and agent steps without cell values or free text, into its own folder, never into corpus v3."}
 
 
 def curriculum(corp: dict[str, Any], runs: dict[str, Any], traj: dict[str, Any]) -> list[dict[str, Any]]:
@@ -242,7 +248,8 @@ def curriculum(corp: dict[str, Any], runs: dict[str, Any], traj: dict[str, Any])
         {"stage": 2, "key": "traj", "name": "Trajectory SFT", "ready": traj_ready,
          "status": "data ready" if traj_ready else "needs the graph log", "cls": "ok" if traj_ready else "outline",
          "detail": f"State → move → verdict from every project. {traj['trajectories']} of {TRAJECTORY_TARGET} project logs with "
-                   f"{MIN_MOVES}+ moves; {traj['moves']} moves logged, {traj['by_status'].get('blocked', 0)} blocked."},
+                   f"{MIN_MOVES}+ moves; {traj['moves']} moves logged, {traj['by_status'].get('blocked', 0)} blocked. "
+                   f"{traj.get('opted_in', 0)} of {len(traj.get('sharing') or [])} projects opted in to training (off by default)."},
         {"stage": 3, "key": "rejection", "name": "Rejection sampling", "ready": False, "status": "planned", "cls": "outline",
          "detail": "Sample several moves per state; keep the ones the validator accepts and the benchmark scores well. Needs a stage-2 model to sample from."},
         {"stage": 4, "key": "rl", "name": "Reinforcement learning", "ready": False, "status": "research", "cls": "",

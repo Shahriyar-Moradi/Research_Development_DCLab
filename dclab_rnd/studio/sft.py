@@ -13,6 +13,7 @@ IDs cited come from the agent notes.
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import sys
 from pathlib import Path
@@ -108,8 +109,22 @@ def examples_from_project(project: dict[str, Any], records: dict[str, dict[str, 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--home", type=Path, default=Path("agent_runs/projects"), help="where the notebook keeps projects")
-    parser.add_argument("--out", type=Path, required=True, help="JSONL file to write (chat format)")
+    parser.add_argument("--out", type=Path, help="JSONL file to write (chat format); with --trajectories, the folder to write into")
+    parser.add_argument("--trajectories", action="store_true",
+                        help="export the opted-in projects' runs as trajectory records (A6.1) instead of stage examples")
+    parser.add_argument("--workspace", type=Path, default=Path(os.environ.get("DCLAB_AGENT_HOME") or Path(__file__).resolve().parents[2] / "agent_runs"),
+                        help="with --trajectories: the workspace folder (projects, intern sessions, agent traces)")
     args = parser.parse_args(argv)
+    if args.trajectories:
+        from . import trajectories
+
+        out = args.out or args.workspace / "trajectories"
+        m = trajectories.export(args.workspace, out)
+        print(f"wrote {m['records']} trajectory records from {m['projects']} opted-in project(s) to {out} "
+              f"({m['not_opted_in']} project(s) not opted in, not exported)")
+        return 0
+    if args.out is None:
+        parser.error("--out is required")
     store = ProjectStore(args.home)
     rows = []
     for project in store.list():

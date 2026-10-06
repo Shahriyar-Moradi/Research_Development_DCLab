@@ -25,6 +25,16 @@ DC.view('policy', {
     }
     $('#sft-more', el).addEventListener('click', () => { P.full = !P.full; drawExample(); });
     $('#sft-next', el).addEventListener('click', () => { P.ex += 1; P.full = false; drawExample(); });
+    $('#traj-sharing-list', el).addEventListener('change', e => {
+      const box = e.target.closest('[data-share]'); if (!box) return;
+      DC.api(`/projects/${encodeURIComponent(box.dataset.share)}`, { method: 'PATCH', body: { settings: { share_for_training: box.checked } } })
+        .then(() => {
+          DC.toast(box.checked ? 'This project\'s runs can now be exported for training, without cell values or free text.' : 'This project is no longer exported for training.');
+          const boxes = [...el.querySelectorAll('#traj-sharing-list [data-share]')];
+          $('#traj-count', el).textContent = `${boxes.filter(b => b.checked).length} of ${boxes.length} projects opted in.`;
+        })
+        .catch(err => { box.checked = !box.checked; DC.toast(err.message, { ok: false }); });
+    });
 
     this.render = d => {
       P.data = d;
@@ -49,6 +59,10 @@ DC.view('policy', {
       const F = { sft: 'policy.sft', traj: 'policy.traj' };
       $('#pol-curriculum', el).innerHTML = d.curriculum.map(s => `<div class="inset stack tight"${F[s.key] ? ` data-f="${F[s.key]}"` : ''}><div class="spread"><span class="eyebrow">Stage ${s.stage}</span><span class="pill ${esc(s.cls)}">${esc(s.status)}</span></div><b>${esc(s.name)}</b><span class="small muted">${esc(s.detail)}</span></div>`).join('');
       const t = d.trajectories;
+      /* A6.1: a project's runs are exported for training only when its owner turns this on (off by default) */
+      $('#traj-sharing', el).hidden = !(t.sharing || []).length;
+      $('#traj-sharing-list', el).innerHTML = (t.sharing || []).map(s => `<div class="list-item"><label class="switch"><input type="checkbox" data-share="${esc(s.id)}"${s.on ? ' checked' : ''}><span class="track"></span><span>${esc(s.name || s.id)}</span></label></div>`).join('');
+      $('#traj-foot', el).innerHTML = `${esc(t.export || '')} <span id="traj-count">${t.opted_in || 0} of ${(t.sharing || []).length} projects opted in.</span> Blocked moves are as valuable as good ones: the model learns the boundary, and the recovery that followed.`;
       $('#pol-curriculum-foot', el).textContent = `Stage 2 counts as data ready at ${t.target} project logs with at least ${t.min_moves} moves each: holding out whole projects for validation, as the v3 corpus holds out whole datasets, then leaves about ${Math.round(t.target / 5)} unseen projects to measure on.`;
 
       // Training data

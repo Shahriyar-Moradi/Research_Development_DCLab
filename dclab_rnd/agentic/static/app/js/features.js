@@ -161,7 +161,7 @@ window.FEATURES = [
   // ---- policy model
   { id: 'policy.sft', view: 'policy', name: 'SFT corpus v3 (330 examples, 7 tasks)', status: 'built', phase: 'Now', where: 'pages/learn.py · sft/out_v3 manifest', note: '' },
   { id: 'policy.projectsft', view: 'policy', name: 'Training examples from finished projects', status: 'built', phase: 'Now', where: 'studio/sft.py', note: '' },
-  { id: 'policy.traj', view: 'policy', name: 'Graph trajectories (state → move → evidence)', status: 'partial', phase: 'P4', where: 'pages/learn.py · transitions.jsonl', note: 'Every move is logged and counted; the exporter that turns logs into training records is not built.' },
+  { id: 'policy.traj', view: 'policy', name: 'Graph trajectories (state → move → evidence)', status: 'partial', phase: 'P4', where: 'pages/learn.py · studio/trajectories.py', note: 'Every move is logged with the moves allowed then; python -m dclab_rnd.studio.sft --trajectories exports opted-in projects (off by default) without cell values or free text.' },
   { id: 'policy.review', view: 'policy', name: 'Expert review queue for decisions', status: 'todo', phase: 'P4', where: '', note: '' },
   { id: 'policy.train', view: 'policy', name: 'Training runs (LoRA / QLoRA)', status: 'partial', phase: 'P4', where: 'sft/train_lora.py', note: 'Script ready; no run yet.' },
   { id: 'policy.eval', view: 'policy', name: 'Evaluation against the benchmark', status: 'partial', phase: 'P4', where: 'sft/eval_sft.py', note: '' },
