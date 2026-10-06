@@ -38,6 +38,7 @@ from ... import critic_gate
 from ...draft.pack import PACKS
 from ...studio.sft import examples_from_project
 from ...studio.store import STAGE_KEYS
+from ..api_models import Page, Question, Router  # package 10.1
 
 ROOT = Path(__file__).resolve().parents[3]
 SFT_DIR = ROOT / "research" / "llm-fine-tuning" / "experiments" / "sft"
@@ -314,10 +315,13 @@ def pack_usage(ctx) -> dict[str, Any]:
 
 
 def register(app, ctx) -> None:
-    @app.get("/api/learn/policy")
+    router = Router()  # package 10.1: this page's routes are one router
+    @router.get("/api/learn/policy", response_model=Page)
     async def learn_policy():
         return await asyncio.to_thread(policy, ctx)
 
-    @app.get("/api/learn/packs")
+    @router.get("/api/learn/packs", response_model=Page)
     async def learn_packs():
         return await asyncio.to_thread(pack_usage, ctx)
+
+    app.include_router(router)

@@ -137,8 +137,13 @@ class PlatformApiTests(unittest.TestCase):
                "calls": [lo["budget"]["max_steps"], hi["budget"]["max_steps"]], "minutes": [lo["budget"]["max_minutes"], hi["budget"]["max_minutes"]],
                "eur": [lo["budget"]["eur"], hi["budget"]["eur"]]}
         self.assertEqual(got, d["draft_settings"]["caps"])
-        self.assertIn("200 * 1024 * 1024", (ROOT / "dclab_rnd/agentic/server.py").read_text(encoding="utf-8"))
+        from dclab_rnd import settings as app_settings
         self.assertEqual(d["upload_max_bytes"], platform.UPLOAD_MAX_BYTES)
+        self.assertEqual(platform.UPLOAD_MAX_BYTES, app_settings.UPLOAD_MAX_BYTES)  # the page states the limit the routes enforce
+        services = self.client.app.state.services
+        services.upload_max_bytes = 10  # the route reads the app's limit
+        p = self.client.post("/api/projects", json={"name": "Limit"}, headers=self.h).json()
+        self.assertEqual(self.client.put(f"/api/projects/{p['id']}/data?filename=t.csv", content=b"a,b\n1,2\n3,4", headers=self.h).status_code, 413)
         self.assertTrue(d["spend"]["tracked"])  # the gateway counts every model request (package A1.2)
         self.assertEqual((d["spend"]["eur_this_month"], d["spend"]["priced_models"]), (0.0, []))
         self.assertIn("No model has a configured price yet", d["spend"]["note"])  # nothing is guessed

@@ -30,6 +30,7 @@ from ...studio import graph as studio_graph
 from ...studio.engine import QUICK_ROWS
 from ...studio.store import STAGE_KEYS
 from ..catalog import ROOT
+from ..api_models import Page, Question, Router, api_routes  # package 10.1
 
 # The same Chat UI commands GET /api/intern returns (tests keep them equal).
 CHAT_UI = {"command": "make chat-ui", "intern_command": "make chat-ui-intern",
@@ -41,7 +42,7 @@ GRAPH_TOOLS = ("get_graph", "check_move")
 INTERN_CAPS = {"max_steps": (3, 80), "max_minutes": (1, 240)}                        # intern/sessions.py SessionStore.create
 DRAFT_DEFAULTS = {"max_rows": 20000, "folds": 3, "calls": 24, "minutes": 20, "eur": 5.0}  # draft/api.py PUT …/settings
 DRAFT_CAPS = {"max_rows": (200, 200000), "folds": (2, 10), "calls": (1, 80), "minutes": (1, 240), "eur": (0.0, 1000.0)}
-UPLOAD_MAX_BYTES = 200 * 1024 * 1024                                                    # server.py PUT /api/projects/{id}/data
+from ...settings import UPLOAD_MAX_BYTES  # noqa: E402 — the limit every upload route enforces (dclab_rnd/settings.py)
 
 
 # ---------------------------------------------------------------------------- integrations
@@ -118,8 +119,8 @@ METHOD_ORDER = {"GET": 0, "POST": 1, "PUT": 2, "PATCH": 3, "DELETE": 4}
 def rest_routes(app) -> list[dict[str, Any]]:
     """Every public ``/api/`` route on this server (hidden aliases excluded), one row per method."""
     rows = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute) or not route.include_in_schema or not route.path.startswith("/api/"):
+    for route in api_routes(app):  # included routers too (package 10.1)
+        if not route.include_in_schema or not route.path.startswith("/api/"):
             continue
         doc = (route.endpoint.__doc__ or "").strip().split("\n")[0].strip()
         for method in sorted(route.methods - {"HEAD", "OPTIONS"}, key=lambda m: METHOD_ORDER.get(m, 9)):
@@ -396,24 +397,27 @@ def audit(projects, limit: int, offset: int, routing: Any = None) -> dict[str, A
 
 # ---------------------------------------------------------------------------- routes
 def register(app, ctx) -> None:
-    @app.get("/api/platform/integrations")
+    router = Router()  # package 10.1: this page's routes are one router
+    @router.get("/api/platform/integrations", response_model=Page)
     async def platform_integrations(request: Request):
         """MCP endpoint and tools, data connectors, REST routes, make targets and Chat UI commands."""
         return await asyncio.to_thread(integrations, request.app, ctx.projects, str(request.base_url))
 
-    @app.get("/api/platform/policies")
+    @router.get("/api/platform/policies", response_model=Page)
     async def platform_policies():
         """Invariants the workflow validator enforces (checked now), per-project gate switches, and what each actor may do."""
         return await asyncio.to_thread(policies, ctx.projects)
 
-    @app.get("/api/platform/limits")
+    @router.get("/api/platform/limits", response_model=Page)
     async def platform_limits():
         """Budget defaults and caps, upload limits, and what leaves this machine."""
         return await asyncio.to_thread(limits, ctx.projects)
 
-    @app.get("/api/platform/audit")
+    @router.get("/api/platform/audit", response_model=Page)
     async def platform_audit(limit: int = 50, offset: int = 0):
         """Newest validated moves, gate approvals and gate switch changes across every project, newest first."""
         if limit < 1 or limit > 500 or offset < 0:
             raise HTTPException(422, "limit is 1 to 500 and offset is 0 or more")
         return await asyncio.to_thread(audit, ctx.projects, limit, offset, getattr(ctx.models, "routing", None))
+
+    app.include_router(router)

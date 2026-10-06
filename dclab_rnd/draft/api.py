@@ -33,8 +33,10 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi import Body, FastAPI, HTTPException, Request
+from fastapi.responses import Response, StreamingResponse
+
+from ..agentic.api_models import OCTET, AnyObject, Doc, Draft, DraftCreate, Page, Project, Router  # module level: annotations resolve here
 
 from .. import connectors
 from . import pack as packs
@@ -47,6 +49,10 @@ STREAM_SECONDS = 600  # the browser's EventSource reconnects and resumes from La
 
 
 def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task], traces: Any = None) -> None:
+    router = Router()  # package 10.1: the draft routes are one router; a body is a typed JSON object (a 422 otherwise)
+
+    def dump(payload: Any) -> dict[str, Any]:
+        return payload.model_dump(exclude_unset=True) if payload is not None else {}
     """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted.
     ``traces`` (``agents.traces``) keeps a row per step of the Home agent's model turns, under the draft's id."""
     from ..studio import data as studio_data
@@ -101,30 +107,18 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         pipeline.run(drafts, draft_id, asset["id"], agent(draft_id), models.client("parse_pattern", draft_id=draft_id))
         return asset
 
-    async def json_body(request: Request, optional: bool = False) -> dict[str, Any]:
-        """The request's JSON object; a 422 (not a 500) when it is missing or not an object."""
-        if optional and not await request.body():
-            return {}
-        try:
-            body = await request.json()
-        except ValueError:
-            raise HTTPException(422, "Send a JSON object") from None
-        if not isinstance(body, dict):
-            raise HTTPException(422, "Send a JSON object")
-        return body
-
-    @app.get("/api/packs")
+    @router.get("/api/packs", response_model=list[Doc])
     async def list_packs():
         return packs.PACKS
 
-    @app.get("/api/drafts")
+    @router.get("/api/drafts", response_model=list[Doc])
     async def list_drafts():
         return [{k: d.get(k) for k in ("id", "problem", "status", "updated", "project_id", "pack")} | {"assets": len(d.get("assets", []))}
                 for d in drafts.list()]
 
-    @app.post("/api/drafts", status_code=201)
-    async def create_draft(request: Request):
-        body = await json_body(request)
+    @router.post("/api/drafts", status_code=201, response_model=Draft)
+    async def create_draft(payload: DraftCreate):
+        body = dump(payload)
         problem = str(body.get("problem", "")).strip()
         if len(problem) < 8:
             raise HTTPException(422, "Describe the problem in one sentence first")
@@ -139,11 +133,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except Exception:  # noqa: BLE001 — a damaged trace never breaks the draft page
             return []
 
-    @app.get("/api/drafts/{draft_id}")
+    @router.get("/api/drafts/{draft_id}", response_model=Draft)
     async def read_draft(draft_id: str):
         return {**get(draft_id), "trace": trace_of(draft_id)}
 
-    @app.delete("/api/drafts/{draft_id}", status_code=204)
+    @router.delete("/api/drafts/{draft_id}", status_code=204, response_class=Response)
     async def delete_draft(draft_id: str):
         get(draft_id)
         from ..storage.files import files_for
@@ -164,10 +158,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except Exception:  # noqa: BLE001 — the draft is gone either way; a stray trace row is harmless
             pass
 
-    @app.patch("/api/drafts/{draft_id}")
-    async def edit_draft(draft_id: str, request: Request):
+    @router.patch("/api/drafts/{draft_id}", response_model=Draft)
+    async def edit_draft(draft_id: str, payload: AnyObject):
         get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         problem = str(body.get("problem", "")).strip()
         if problem:
             if len(problem) < 8:
@@ -186,12 +180,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(409, "Bring the data first: the solution draft is checked against the table")
         return pd.read_parquet(drafts.data_dir(draft["id"]) / asset.get("clean_file", "clean.parquet")), asset
 
-    @app.post("/api/drafts/{draft_id}/solution/proposal")
-    async def draft_proposal(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/solution/proposal", response_model=Doc)
+    async def draft_proposal(draft_id: str, payload: AnyObject | None = Body(None)):
         from ..studio import solution as studio_solution
 
         draft = get(draft_id)
-        body = await json_body(request, optional=True)
+        body = dump(payload)
         frame, asset = clean_frame(draft)
         profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
         # the target the caller names, else what the chat established, the sample's own, or the profile's first candidate
@@ -227,15 +221,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         drafts.update(draft_id, lambda d: d.update(proposal=proposal))
         return proposal
 
-    @app.put("/api/drafts/{draft_id}/solution")
-    async def draft_solution(draft_id: str, request: Request):
+    @router.put("/api/drafts/{draft_id}/solution", response_model=Draft)
+    async def draft_solution(draft_id: str, payload: AnyObject):
         from pydantic import ValidationError
         from ..studio import solution as studio_solution
 
         draft = get(draft_id)
         frame, _ = clean_frame(draft)
         try:
-            solution = studio_solution.Solution(**(await json_body(request)))
+            solution = studio_solution.Solution(**dump(payload))
             solution.check_columns([str(c) for c in frame.columns])
         except ValidationError as exc:
             raise HTTPException(422, "; ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors())) from None
@@ -252,10 +246,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         HomeAgent(drafts, None).refresh_workflow(draft_id)
         return drafts.get(draft_id)
 
-    @app.put("/api/drafts/{draft_id}/settings")
-    async def draft_settings(draft_id: str, request: Request):
+    @router.put("/api/drafts/{draft_id}/settings", response_model=Draft)
+    async def draft_settings(draft_id: str, payload: AnyObject):
         draft = get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         budget = body.get("budget") or {}
         settings = {
             # the solution decides the split (engine.split_for), so the stored value is what will run, whatever was sent
@@ -271,10 +265,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         drafts.update(draft_id, lambda d: d.update(settings=settings))
         return drafts.get(draft_id)
 
-    @app.post("/api/drafts/{draft_id}/messages", status_code=202)
-    async def message(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/messages", status_code=202, response_model=Doc)
+    async def message(draft_id: str, payload: AnyObject):
         get(draft_id)
-        text = str((await json_body(request)).get("text", "")).strip()
+        text = str(dump(payload).get("text", "")).strip()
         if not text:
             raise HTTPException(422, "Write a message first")
         if (draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done():
@@ -282,10 +276,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         background(draft_id + ":agent", lambda: agent(draft_id).reply(draft_id, text))
         return {"accepted": True}
 
-    @app.post("/api/drafts/{draft_id}/pack")
-    async def choose_pack(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/pack", response_model=Draft)
+    async def choose_pack(draft_id: str, payload: AnyObject):
         get(draft_id)
-        key = (await json_body(request)).get("key")
+        key = dump(payload).get("key")
         a = agent(draft_id)
         if key in (None, "", "auto"):
             det = packs.detect(drafts.get(draft_id)["problem"], drafts.get(draft_id).get("analysis"))
@@ -297,7 +291,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         a.refresh_workflow(draft_id)
         return drafts.get(draft_id)
 
-    @app.put("/api/drafts/{draft_id}/data")
+    @router.put("/api/drafts/{draft_id}/data", response_model=Doc, openapi_extra=OCTET)
     async def upload(draft_id: str, request: Request, filename: str):
         get(draft_id)
         name = studio_data.safe_name(filename)
@@ -313,10 +307,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
         return asset
 
-    @app.post("/api/drafts/{draft_id}/data/sample")
-    async def sample(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/data/sample", response_model=Doc)
+    async def sample(draft_id: str, payload: AnyObject):
         get(draft_id)
-        key = str((await json_body(request)).get("key", ""))
+        key = str(dump(payload).get("key", ""))
         if key not in {s["key"] for s in studio_data.sample_catalog()}:
             raise HTTPException(404, "Unknown sample dataset")
         frame, policy = await asyncio.to_thread(studio_data.load_sample, key)
@@ -326,10 +320,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
         return asset
 
-    @app.post("/api/drafts/{draft_id}/data/synthetic", status_code=202)
-    async def synthetic_data(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/data/synthetic", status_code=202, response_model=Doc)
+    async def synthetic_data(draft_id: str, payload: AnyObject):
         get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         from . import synthetic
 
         rows = max(100, min(int(body.get("rows") or 5000), 200_000))
@@ -339,7 +333,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows, template)
         return {"accepted": True, "rows": rows, "template": template}
 
-    @app.get("/api/synthetic/templates")
+    @router.get("/api/synthetic/templates", response_model=Page)
     async def synthetic_templates():
         """The built-in synthetic tables, and whether a model is configured to design one from a description instead."""
         from . import synthetic
@@ -373,15 +367,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
         return asset
 
-    @app.get("/api/connectors")
+    @router.get("/api/connectors", response_model=Page)
     async def connectors_status():
         return await asyncio.to_thread(connectors.status)
 
-    @app.post("/api/connectors/kaggle/search")
-    async def kaggle_search(request: Request):
+    @router.post("/api/connectors/kaggle/search", response_model=list[Doc])
+    async def kaggle_search(payload: AnyObject):
         from ..connectors import kaggle
 
-        body = await json_body(request)
+        body = dump(payload)
         query = text_field(body, "query", required=True, limit=200)
         try:
             page = int(body.get("page") or 1)
@@ -394,12 +388,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except connectors.ConnectorError as exc:
             raise HTTPException(400, str(exc)) from None
 
-    @app.post("/api/drafts/{draft_id}/data/kaggle")
-    async def data_kaggle(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/data/kaggle", response_model=Doc)
+    async def data_kaggle(draft_id: str, payload: AnyObject):
         from ..connectors import kaggle
 
         get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         ref = text_field(body, "ref", required=True, limit=200)
         file = text_field(body, "file", limit=255)
         if not kaggle.valid_ref(ref):
@@ -407,24 +401,24 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         name = ref + (f" · {file}" if file else "")
         return await connect(draft_id, "kaggle", name, lambda directory: kaggle.download(ref, directory, file))
 
-    @app.post("/api/drafts/{draft_id}/data/hf")
-    async def data_hf(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/data/hf", response_model=Doc)
+    async def data_hf(draft_id: str, payload: AnyObject):
         from ..connectors import hf
 
         get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         dataset = text_field(body, "dataset", required=True, limit=200)
         revision, config = text_field(body, "revision", limit=200), text_field(body, "config", limit=100)
         split = text_field(body, "split", limit=100) or "train"
         name = f"{dataset} · {config + ' · ' if config else ''}{split}"
         return await connect(draft_id, "hf", name, lambda directory: hf.fetch(dataset, directory, revision, split, config))
 
-    @app.post("/api/drafts/{draft_id}/data/database")
-    async def data_database(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/data/database", response_model=Doc)
+    async def data_database(draft_id: str, payload: AnyObject):
         from ..connectors import db
 
         get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         connection = text_field(body, "connection", required=True, limit=60)
         table, query = text_field(body, "table", limit=200), text_field(body, "query", limit=db.MAX_QUERY)
         if (table is None) == (query is None):
@@ -436,16 +430,16 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         name = f"{connection.lower()} · {table or 'query'}"
         return await connect(draft_id, "database", name, lambda directory: db.fetch(connection, directory, table, query, limit))
 
-    @app.post("/api/drafts/{draft_id}/data/cloud")
-    async def data_cloud(draft_id: str, request: Request):
+    @router.post("/api/drafts/{draft_id}/data/cloud", response_model=Doc)
+    async def data_cloud(draft_id: str, payload: AnyObject):
         from ..connectors import cloud
 
         get(draft_id)
-        body = await json_body(request)
+        body = dump(payload)
         uri = text_field(body, "uri", required=True, limit=1100)
         return await connect(draft_id, "cloud", uri, lambda directory: cloud.fetch(uri, directory))
 
-    @app.get("/api/drafts/{draft_id}/events")
+    @router.get("/api/drafts/{draft_id}/events", response_class=StreamingResponse, responses={200: {"content": {"text/event-stream": {}}, "description": "The draft's events, as server-sent events"}})
     async def events(draft_id: str, request: Request, after: int = 0, wait: float = STREAM_SECONDS):
         get(draft_id)
         start = int(request.headers.get("last-event-id") or after or 0)
@@ -474,7 +468,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 waited += 0.4
         return StreamingResponse(stream(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
-    @app.post("/api/drafts/{draft_id}/build", status_code=201)
+    @router.post("/api/drafts/{draft_id}/build", status_code=201, response_model=Project)
     async def build(draft_id: str):
         draft = get(draft_id)
         if draft.get("project_id"):
@@ -483,6 +477,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             except KeyError:
                 pass
         return await asyncio.to_thread(build_project, drafts, projects, draft_id)
+
+    app.include_router(router)
 
 
 def split_of(draft: dict[str, Any]) -> str:

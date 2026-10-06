@@ -31,6 +31,7 @@ from ...evidence_index import INDEX_PATH, ROOT
 from ...studio import engine as studio_engine
 from ...studio import graph as studio_graph
 from ...studio.store import STAGE_KEYS
+from ..api_models import Page, Question, Router  # package 10.1
 
 WHERE = "this machine"
 RECORDS = ROOT / INDEX_PATH  # the evidence index /api/evidence/{id} serves (via tools.get_record)
@@ -682,14 +683,15 @@ def _secs(value: Any) -> str:
 
 
 def register(app: FastAPI, ctx) -> None:
+    router = Router()  # package 10.1: this page's routes are one router
     jobs = Jobs(ctx)
 
-    @app.get("/api/ops/jobs")
+    @router.get("/api/ops/jobs", response_model=Page)
     async def ops_jobs(limit: int = 200):
         """Every job this machine ran or runs now, newest first, with totals and the approvals waiting for a person."""
         return await asyncio.to_thread(jobs.listing, limit)
 
-    @app.get("/api/ops/jobs/{job_id}")
+    @router.get("/api/ops/jobs/{job_id}", response_model=Page)
     async def ops_job(job_id: str):
         """One job in full: logs, metrics, artifacts (existing export routes) and what is needed to reproduce it."""
         if not re.fullmatch(r"[a-z]+-[0-9a-z_-]{1,80}", job_id or ""):
@@ -699,7 +701,9 @@ def register(app: FastAPI, ctx) -> None:
         except KeyError:
             raise HTTPException(404, "Job not found") from None
 
-    @app.get("/api/ops/evidence-recent")
+    @router.get("/api/ops/evidence-recent", response_model=Page)
     async def ops_evidence_recent(limit: int = 3):
         """The newest records of the evidence index (the file /api/evidence/{id} reads)."""
         return await asyncio.to_thread(recent_evidence, limit)
+
+    app.include_router(router)

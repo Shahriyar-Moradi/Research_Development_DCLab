@@ -1,0 +1,172 @@
+"""The app's own routes: configuration, models and their routing, the research map, evidence records, the workspace
+summary Home reads, and the pages themselves."""
+
+from __future__ import annotations
+
+import asyncio
+import importlib.metadata
+from pathlib import Path
+from typing import Any
+
+from fastapi import Depends, HTTPException, Request
+from fastapi.responses import FileResponse, Response
+
+from ... import research_map
+from ...studio import data as studio_data, engine as studio_engine, graph as studio_graph
+from ..api_models import Config, Doc, ModelsSummary, Page, Router, RoutingChange, Workspace
+from ..catalog import ROOT, catalog
+from ..projects import project_catalog
+from ..schemas import DEFAULT_GOAL
+from ..services import Services, services
+
+router = Router()
+STATIC = Path(__file__).resolve().parents[1] / "static"
+
+
+def version(package: str) -> str:
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return "not installed"
+
+
+@router.get("/api/config", response_model=Config)
+async def configuration(s: Services = Depends(services)):
+    st = s.settings
+    return {"csrf": s.csrf, "api_key_configured": st.openai_key_set, "ml_python_available": Path(st.ml_python).exists(), "default_goal": DEFAULT_GOAL,
+            "default_model": st.openai_model, "default_project": "general", "projects": project_catalog(), "datasets": catalog(),
+            "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"],
+            "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4",
+                         "churn_campaign": ".venv/bin/python -m dclab_rnd.churn_suite run", "churn_agent": ".venv-agent/bin/python -m dclab_rnd.agentic run --project telco_churn --datasets telco_churn --experiments 4"},
+            "privacy": "When a model is configured, aggregate data profiles (with up to three example values per column) and scientific evidence are sent to it; the Home agent sends summaries only. Full rows and API keys are never sent. store=false; provider policies still apply."}
+
+
+@router.get("/api/models", response_model=ModelsSummary)
+async def model_overview(s: Services = Depends(services)):
+    """Which model serves which purpose, what each purpose may be shown, and the usage so far (no keys)."""
+    return await asyncio.to_thread(s.gateway.summary)
+
+
+@router.post("/api/models/routing", response_model=ModelsSummary)
+async def change_routing(body: RoutingChange, request: Request, s: Services = Depends(services)):
+    """Set a purpose's shadow (a local model that answers beside it, never used) or move the purpose to another
+    tier. Moving it needs a reviewer (X-DCLab-Role, declared until accounts exist) and a reason; moving it back to
+    its own tier (tier null) is one setting. Every change is kept in the routing history and the platform audit."""
+    from ...models import routing as model_routing
+
+    role = (request.headers.get("x-dclab-role") or "").strip().lower() or None
+    tier = body.tier
+    try:
+        model_routing.change(s.gateway.routing, str(body.purpose or ""), str(body.setting or ""), tier if isinstance(tier, str) and tier else None,
+                             role, str(body.reason or ""))
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc)) from None
+    except KeyError as exc:
+        raise HTTPException(422, str(exc).strip("'\"")) from None
+    except model_routing.RoutingError as exc:
+        raise HTTPException(422, str(exc)) from None
+    return await asyncio.to_thread(s.gateway.summary)
+
+
+@router.get("/api/research", response_model=Page)
+async def research():
+    """Every research idea with its champion, experiments, notebooks, evaluation, reports and relations."""
+    return research_map.research_map()
+
+
+@router.get("/api/research/file", response_model=Page)
+async def research_file(path: str):
+    try:
+        return research_map.preview(path)
+    except ValueError as error:
+        raise HTTPException(404, str(error))
+
+
+@router.get("/api/studio", response_model=Page)
+async def studio_status():
+    return {**studio_engine.capabilities(), "industries": list(studio_data.INDUSTRIES) if hasattr(studio_data, "INDUSTRIES") else [], "stages": studio_engine.STAGES}
+
+
+@router.get("/api/samples", response_model=list[Doc])
+async def samples():
+    return studio_data.sample_catalog()
+
+
+@router.get("/api/evidence/{record_id}", response_model=Doc)
+async def evidence_record(record_id: str):
+    from ...tools import get_record
+
+    record = get_record(record_id)
+    if "error" in record:
+        raise HTTPException(404, record["error"])
+    return record
+
+
+@router.get("/api/knowledge", response_model=list[Doc])
+async def knowledge(s: Services = Depends(services)):
+    return s.store.knowledge()
+
+
+@router.get("/api/workspace", response_model=Workspace)
+async def workspace(s: Services = Depends(services)):
+    """What Home shows: real counts, the projects with their progress, and what waits for a person."""
+    projects, drafts = s.projects, s.drafts
+
+    def summary() -> dict[str, Any]:
+        items, forbidden, opened, holdout_projects, blocked = [], 0, 0, 0, 0
+        for p in projects.list():
+            solution = p.get("solution") or {}
+            forbidden += len(solution.get("forbidden") or [])
+            uses = int(p.get("holdout_uses") or 0)
+            if uses:
+                holdout_projects += 1
+                opened += 1 if uses == 1 else 0
+            moves = projects.transitions(p["id"], 500)
+            blocked += sum(1 for m in moves if m.get("status") == "blocked")
+            items.append({"id": p["id"], "name": p["name"], "updated": p.get("updated"), "goal": p.get("goal"),
+                          "data": p["data"] and {k: p["data"].get(k) for k in ("filename", "rows", "synthetic")},
+                          "pack": ((p.get("draft") or {}).get("pack") or {}).get("key"), "has_solution": bool(p.get("solution")),
+                          "stages": {k: (v or {}).get("status") for k, v in (p.get("stages") or {}).items()},
+                          "state": studio_graph.state_string(p), "current": studio_graph.current_node(p),
+                          "holdout_uses": uses, "running": p.get("running")})
+        needs = []
+        for d in drafts.list(20):
+            if d.get("status") != "open":
+                continue
+            q = next((q for q in d.get("questions", []) if not q.get("answered")), None)
+            if q:
+                needs.append({"kind": "question", "draft": d["id"], "title": q["text"], "sub": d["problem"][:140], "tag": "WF-01"})
+        for it in items:
+            if not it["has_solution"]:
+                needs.append({"kind": "solution", "project": it["id"], "title": f"{it['name']}: write the solution draft", "sub": "Nothing is trained until the solution is saved.", "tag": "WF-01"})
+        return {"projects": items, "needs": needs[:8],
+                "stats": {"forbidden": forbidden, "holdouts_once": opened, "holdout_projects": holdout_projects, "blocked_moves": blocked,
+                          "projects": len(items), "drafts": sum(1 for d in drafts.list(200) if d.get("status") == "open")}}
+    return await asyncio.to_thread(summary)
+
+
+@router.get("/guide", response_class=FileResponse, responses={200: {"content": {"text/html": {}}}})
+async def guide():
+    path = ROOT / "evidence/knowledge" / "MODEL_BUILDING_FIELD_GUIDE.html"
+    if not path.is_file():
+        raise HTTPException(404, "Build the field guide with: .venv/bin/python -m dclab_rnd.master_review build")
+    return FileResponse(path, media_type="text/html")
+
+
+@router.get("/", response_class=FileResponse, responses={200: {"content": {"text/html": {}}}})
+async def index():
+    # The product frontend (built from dclab_rnd/agentic/web); the earlier UI stays at /classic until the new one covers it.
+    page = STATIC / "app" / "index.html"
+    if not page.is_file():
+        raise HTTPException(404, "Build the frontend with: python -m dclab_rnd.agentic.web.build")
+    return FileResponse(page)
+
+
+@router.get("/classic", response_class=FileResponse, responses={200: {"content": {"text/html": {}}}})
+async def classic():
+    return FileResponse(STATIC / "index.html")
+
+
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)

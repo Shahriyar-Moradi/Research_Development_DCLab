@@ -34,6 +34,7 @@ from fastapi import HTTPException, Request
 from dclab_rnd import prompts
 from ... import cited, lessons, retrieval
 from ...evidence_index import EvidenceIndex
+from ..api_models import Page, Question, Router  # package 10.1
 
 ROOT = Path(__file__).resolve().parents[3]
 INDEX = ROOT / "evidence" / "knowledge" / "rag" / "records.jsonl"
@@ -137,19 +138,21 @@ def _offline():
 
 
 def register(app, ctx) -> None:
-    @app.get("/api/evidence")
+    router = Router()  # package 10.1: this page's routes are one router
+    @router.get("/api/evidence", response_model=Page)
     async def evidence_library():
         """Every record of the evidence index, in the shape the Evidence library and the record chips use."""
         return await asyncio.to_thread(library)
 
-    @app.post("/api/evidence/ask")
-    async def evidence_ask(request: Request):
+    @router.post("/api/evidence/ask", response_model=Page)
+    async def evidence_ask(body: Question):
         """Answer a question from the evidence index only (search, then a checked model answer or the closest records)."""
-        body = await request.json()
-        question = str((body or {}).get("question", "")).strip() if isinstance(body, dict) else ""
+        question = str(body.question if body.question is not None else "").strip()
         if not question:
             raise HTTPException(422, "Ask a question")
         if len(question) > MAX_QUESTION:
             raise HTTPException(422, f"Keep the question under {MAX_QUESTION} characters")
         client = (ctx.models or _offline()).client("evidence_answer")
         return await asyncio.to_thread(ask, question, client)
+
+    app.include_router(router)

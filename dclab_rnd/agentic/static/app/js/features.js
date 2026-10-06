@@ -185,7 +185,7 @@ window.FEATURES = [
   // ---- integrations
   { id: 'int.mcp', view: 'integrations', name: 'MCP endpoint /mcp with 21 tools', status: 'built', phase: 'Now', where: 'dclab_rnd/mcp_server.py', note: '' },
   { id: 'int.chatui', view: 'integrations', name: 'Hugging Face Chat UI + ML Intern mode', status: 'built', phase: 'Now', where: 'scripts/chat_ui.py · make chat-ui', note: '' },
-  { id: 'int.api', view: 'integrations', name: 'REST API', status: 'built', phase: 'Now', where: 'dclab_rnd/agentic/server.py', note: '' },
+  { id: 'int.api', view: 'integrations', name: 'REST API', status: 'built', phase: 'Now', where: 'dclab_rnd/agentic/routers · /openapi.json', note: 'Routers per area with typed request and response models; the OpenAPI schema at /openapi.json describes every route.' },
   { id: 'int.cli', view: 'integrations', name: 'CLI (python -m dclab_rnd, copilot review)', status: 'built', phase: 'Now', where: 'dclab_rnd/cli.py', note: '' },
   { id: 'int.vscode', view: 'integrations', name: 'VS Code companion extension', status: 'partial', phase: 'P2', where: 'dclab_rnd/notebook_assist.py', note: 'The engine exists; the extension does not.' },
   { id: 'int.connectors', view: 'integrations', name: 'Data connectors (Kaggle, HF Hub, S3, warehouses)', status: 'built', phase: 'Now', where: 'dclab_rnd/connectors/ (Kaggle, Hugging Face, databases, S3/GCS)', note: 'Credentials stay on the server; every import goes through the draft pipeline.' },

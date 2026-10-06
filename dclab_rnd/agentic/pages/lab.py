@@ -30,6 +30,7 @@ from typing import Any, Callable
 
 from ... import research_map
 from ..catalog import ROOT
+from ..api_models import Page, Question, Router  # package 10.1
 
 CAMPAIGNS = ROOT / "evidence/campaigns"
 RECORDS = ROOT / "evidence/knowledge/rag/records.jsonl"
@@ -512,12 +513,15 @@ def lab_benchmark() -> dict[str, Any]:
 
 
 def register(app, ctx) -> None:
-    @app.get("/api/lab/summary")
+    router = Router()  # package 10.1: this page's routes are one router
+    @router.get("/api/lab/summary", response_model=Page)
     async def lab_summary_route():
         """The registry, champions, campaigns, critic gate, pitfalls and auditor headline, from the repository."""
         return await asyncio.to_thread(lab_summary)
 
-    @app.get("/api/lab/benchmark")
+    @router.get("/api/lab/benchmark", response_model=Page)
     async def lab_benchmark_route():
         """The measured pilots (blind auditor replay, notebook pilot) and the planned suites, marked planned."""
         return await asyncio.to_thread(lab_benchmark)
+
+    app.include_router(router)
