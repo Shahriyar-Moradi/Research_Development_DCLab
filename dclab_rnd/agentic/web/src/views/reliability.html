@@ -280,6 +280,7 @@ DC.view('reliability', {
       $('#rl-critic-head', el).innerHTML = `<h3>${llm ? 'What the critic said' : 'What the record says'}</h3><span class="ev-list">${evChips(f, 2, ['DCLAB-R22', 'DCLAB-R17'])}</span>`;
       $('#rl-critic-body', el).innerHTML = llm ? `<p>“${esc(llm.text)}”</p><p class="muted">Advisory: deterministic code owns the split, the metrics and the selection.</p>`
         : notes.length ? notes.slice(0, 3).map(n => `<p><b>${esc(n.title)}.</b> <span class="muted">${esc(n.text)}</span></p>`).join('') : `<p class="muted">${esc(stageNote(p, 'final'))}</p>`;
+      $('#rl-critic-body', el).innerHTML += DC.explanation(f, 'The result, in words');
       DC.hydrate(el);
     }
     function paintPoints(V) {

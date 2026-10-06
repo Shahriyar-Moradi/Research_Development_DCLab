@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from collections import Counter
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -32,6 +31,7 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 
+from ... import cited
 from ...evidence_index import EvidenceIndex
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -47,9 +47,6 @@ SYSTEM = ("You answer questions for data scientists from the DCLab evidence reco
           f"If the records do not answer the question, reply exactly: {NOT_COVERED} "
           "Never claim production readiness, causality or fairness.")
 
-CITE = re.compile(r"\[([A-Za-z][A-Za-z0-9_.-]*)\]")
-NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:[.,]\d+)*")
-SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z\[(])")
 
 
 def _rel(path: Path) -> str:
@@ -88,23 +85,11 @@ def library(path: Path = INDEX) -> dict[str, Any]:
             "source": _rel(path), "updated": updated, "guide": GUIDE.is_file(), "guide_path": _rel(GUIDE)}
 
 
-def _numbers(text: str) -> set[str]:
-    return {n.lstrip("+-").replace(",", "") for n in NUMBER.findall(CITE.sub(" ", text))}
-
-
 def check(answer: str, hits: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
-    """Keep the sentences whose citations are retrieved records and whose numbers appear in those records."""
-    allowed = {h["record_id"] for h in hits}
-    source = " ".join(f"{h['title']} {h['text']}" for h in hits)
-    known = _numbers(source)
-    kept, dropped = [], 0
-    for sentence in (s.strip() for s in SENTENCE.split(answer.strip()) if s.strip()):
-        cited = CITE.findall(sentence)
-        if not cited or any(c not in allowed for c in cited) or not _numbers(sentence) <= known:
-            dropped += 1
-            continue
-        kept.append({"text": CITE.sub("", sentence).replace(" .", ".").strip(), "cites": list(dict.fromkeys(cited))})
-    return kept, dropped
+    """Keep the sentences whose citations are retrieved records and whose numbers appear in the records they cite
+    (the check is shared with the stage explanations: ``dclab_rnd.cited``)."""
+    out = cited.check(answer, {h["record_id"]: f"{h['title']} {h['text']}" for h in hits})
+    return out["kept"], len(out["dropped"])
 
 
 def _brief(h: dict[str, Any]) -> dict[str, Any]:

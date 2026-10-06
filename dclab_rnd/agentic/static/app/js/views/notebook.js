@@ -289,7 +289,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
       $('#stage-cards', el).innerHTML = STAGES.map(s => {
         const r = P.Rr[s], st = ((p.stages || {})[s] || {}).status || 'pending', m = meta[s] || {};
         const proof = r ? known([].concat(...(r.notes || []).map(x => x.proof || []))).slice(0, 2) : [];
-        return `<div class="inset stack tight"><span class="eyebrow">${esc(m.workflow || '')}</span><b>${esc(s)}</b><span class="small muted">${r ? `${esc(st)} · ${(r.elapsed_seconds || 0).toFixed(1)} s · ${(r.notes || []).length} notes · ${(r.claims || []).length} claims` : esc(st === 'pending' ? 'not run yet' : st)}</span>${proof.map(i => chip(i)).join(' ')}</div>`;
+        return `<div class="inset stack tight"><span class="eyebrow">${esc(m.workflow || '')}</span><b>${esc(s)}</b><span class="small muted">${r ? `${esc(st)} · ${(r.elapsed_seconds || 0).toFixed(1)} s · ${(r.notes || []).length} notes · ${(r.claims || []).length} claims` : esc(st === 'pending' ? 'not run yet' : st)}</span>${proof.map(i => chip(i)).join(' ')}${DC.explanation(r, 'In words')}</div>`;
       }).join('');
       set('nb-stage-foot', 'The Overview shows the notebook exported from these records, with the copilot beside each cell. Applying fixes and running cells here are not built yet.');
       render();

@@ -64,6 +64,14 @@ class EvidenceFunctionTests(unittest.TestCase):
         self.assertEqual([k["text"] for k in kept], ["It rose by 0.3003.", "It held on 11 datasets."])
         self.assertEqual(dropped, 3)
 
+    def test_a_number_must_be_in_the_record_the_sentence_cites(self):
+        hits = [{"record_id": "PIT-003", "title": "Oversampling", "text": "It rose by 0.3003."},
+                {"record_id": "PIT-004", "title": "Leakage", "text": "It rose by 0.5 on 4 datasets."}]
+        kept, dropped = evidence.check("It rose by 0.5 [PIT-003]. It rose by 0.5 [PIT-004]. It rose by 0.3003 [PIT-003]. "
+                                       "It held on 4 datasets [PIT-004]. [PIT-004] It is production-ready [PIT-003]. It is not production-ready [PIT-003].", hits)
+        self.assertEqual([k["text"] for k in kept], ["It rose by 0.5.", "It rose by 0.3003.", "It held on 4 datasets.", "It is not production-ready."])
+        self.assertEqual(dropped, 2)  # the other record's number, and the sentence that says production-ready
+
     def test_model_answers_are_checked_and_errors_fall_back(self):
         good = Scripted("Resample only inside the training folds [PIT-003]. It is 99.9% safe [PIT-003].")
         a = evidence.ask("Should I oversample before splitting?", good)

@@ -685,6 +685,9 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
         }
         record = rn._jsonable(record)
         record["notes"] = agent.narrate(stage, record, p.solution.model_dump(), p.bundle.task_type, project_id)
+        explanation = agent.explain_stage(record, project_id)  # a model's words from the record, checked by code (A3.3)
+        if explanation:
+            record["explanation"] = explanation
         store.write_stage(project_id, stage, record)
         project = store.get(project_id)
         project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed)}
@@ -728,6 +731,8 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
             raise ValueError("Unknown option")
         record["decision"]["chosen"] = choice
         record["decision"]["overridden"] = choice != record["decision"]["selected"]
+        if record["decision"]["overridden"]:
+            record.pop("explanation", None)  # a model's words about the rule's selection would sit beside a different decision
         store.write_stage(project_id, stage, record)
         project["decisions"][stage] = choice
     index = STAGE_KEYS.index(stage)

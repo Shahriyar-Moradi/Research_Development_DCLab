@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from dclab_rnd import tools
+from dclab_rnd import cited, tools
 
 STAGE_RULES = {
     "data": ["DCLAB-R01", "DCLAB-R02", "DCLAB-R03", "DCLAB-R12"],
@@ -273,9 +273,18 @@ def _chat(prompt: str, purpose: str, project_id: str | None = None) -> str | Non
         return None
     try:
         reply = client.complete([{"role": "user", "content": prompt}], max_tokens=400)
-        return (reply.get("content") or "").strip() or None
+        text, _ = cited.strip_overclaims((reply.get("content") or "").strip())  # a sentence that says "production-ready" is removed
+        return text or None
     except Exception:  # noqa: BLE001 — the LLM is optional; the deterministic notes stand alone
         return None
+
+
+def explain_stage(record: dict[str, Any], project_id: str | None = None) -> dict[str, Any] | None:
+    """The stage's explanation: a model's sentences, each citing the record, with their numbers checked (``studio.explain``)."""
+    from ..models import installed
+    from . import explain
+
+    return explain.explain(record, installed().client("stage_notes", project_id=project_id))
 
 
 def llm_critique(stage: str, record: dict[str, Any], notes: list[dict[str, Any]], project_id: str | None = None) -> dict[str, Any] | None:

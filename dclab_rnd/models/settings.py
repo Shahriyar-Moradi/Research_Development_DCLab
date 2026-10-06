@@ -38,7 +38,8 @@ PURPOSES: dict[str, Purpose] = {
                                           "DCLAB_MODEL_READS_SAMPLE_LINES=0 turns this off", cell_values=20 * 40),
     "synthetic_schema": Purpose("standard", 120, "the description of the table to simulate, the problem sentence and the user's answers; no data"),
     "evidence_answer": Purpose("cheap", 60, "the question and the text of the evidence records it retrieved; no project data"),
-    "stage_notes": Purpose("standard", 60, "a stage record's title, summary and claims (aggregate results with their intervals); no rows"),
+    "stage_notes": Purpose("standard", 60, "a stage record's title, summary, claims with their limits (aggregate results with their intervals), its notes "
+                                           "and the rule records they cite; no rows"),
     "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records; no rows"),
     "leakage_review": Purpose("standard", 60, "the prediction moment, the target's name, column names with their kind, missing rate and unique "
                                               "count, the column audit's flags, and the ids and titles of rule and leakage-precedent records; never rows or cell values"),

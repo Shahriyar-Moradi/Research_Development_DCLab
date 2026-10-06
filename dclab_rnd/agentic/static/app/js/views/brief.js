@@ -57,6 +57,7 @@ DC.view('brief', {
 
     function showSample() {
       KEEP.forEach(id => set(id, SAMPLE[id].html, SAMPLE[id].cls));
+      $('#brief-explain-panel', el).hidden = true;
       $('#brief-copy', el).dataset.copy = SAMPLE_COPY;
       $('#brief-export-sample', el).hidden = false; $('#brief-export-real', el).hidden = true;
       $('#v-body', el).hidden = false; $('#v-empty', el).hidden = true; $('#v-hint', el).hidden = true; $('#risks-sub', el).hidden = true;
@@ -306,6 +307,9 @@ DC.view('brief', {
           : 'The final record has no holdout ROC-AUC or positive rate, so the value cannot be estimated honestly.';
       }
       set('brief-risks', risks(F));
+      const said = STAGES.map(st => DC.explanation(F.R[st], ((F.meta[st] || {}).title) || st)).filter(Boolean);
+      $('#brief-explain', el).innerHTML = said.join('');
+      $('#brief-explain-panel', el).hidden = !said.length;  // only when a model wrote something that passed the checks
       const rs = $('#risks-sub', el); rs.hidden = false; rs.textContent = 'From the stage notes with severity warning or high.';
       set('so-pill', F.signed ? 'signed' : 'not signed', 'pill ' + (F.signed ? 'ok' : 'warn'));
       $('#so-sample', el).hidden = true;

@@ -218,6 +218,16 @@
     return `<button type="button" class="ev-chip${cls}" data-record="${esc(id)}" title="${esc((REC[id] && REC[id].title) || id)}">${esc(label || id)}</button>`;
   }
   const chips = ids => `<span class="ev-list">${ids.map(i => chip(i)).join('')}</span>`;
+  /* A model's explanation of a stage result (package A3.3): its sentences with what each cites, labelled as model text.
+     The deterministic notes stay where they are; this never replaces them. */
+  function explanation(record, title) {
+    const x = record && record.explanation;
+    if (!x || !(x.sentences || []).length) return '';
+    const cite = id => REC[id] ? chip(id) : `<span class="tag" title="${esc(id)}">${esc(id.replace(/^PRJ-[^-]+-/, ''))}</span>`;
+    return `<div class="explain"><span class="row"><span class="eyebrow">${esc(title || 'Explained')}</span><span class="pill outline">written by a model from these records</span></span>`
+      + `<p>${x.sentences.map(s => `${esc(s.text)} ${(s.cites || []).map(cite).join('')}`).join(' ')}</p>`
+      + `<span class="xs muted">${esc(x.label || '')}${x.dropped ? ` ${x.dropped} sentence${x.dropped === 1 ? ' was' : 's were'} removed.` : ''} The deterministic notes are unchanged.</span></div>`;
+  }
   const ID_RE = /\b(DCLAB-R\d{2}|WF-\d{2}|EXP-\d{3}|PIT-\d{3}|LEAK-[a-z_]+|FINDING-[a-z-]+|DATASET-[a-z_]+)\b/g;
   function linkIds(text) {
     return esc(text).replace(ID_RE, m => (REC[m] ? chip(m) : m));
@@ -1015,6 +1025,6 @@
     loadRecords();
   }
 
-  window.DC = { synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
 })();

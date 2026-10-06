@@ -104,6 +104,7 @@ window.FEATURES = [
   // ---- brief
   { id: 'brief.summary', view: 'brief', name: 'Plain-language decision brief', status: 'built', phase: 'Now', where: 'studio/export.py report', note: 'Written from the stage records.' },
   { id: 'brief.value', view: 'brief', name: 'Value at the chosen operating point, with uncertainty', status: 'partial', phase: 'Now', where: '', note: 'Expected positives at a call volume from the real ROC-AUC; costs are examples.' },
+  { id: 'brief.explain', view: 'brief', name: 'Stage explanations written by a model, cited and number-checked', status: 'built', phase: 'Now', where: 'studio/explain.py · cited.py', note: 'Only when a model is configured; sentences that fail the check are removed.' },
   { id: 'brief.risks', view: 'brief', name: 'Risks, assumptions and what is not proven', status: 'built', phase: 'Now', where: 'report sections · critic reviews', note: 'Stage notes with warnings.' },
   { id: 'brief.fa', view: 'brief', name: 'Brief in English and Persian', status: 'built', phase: 'Now', where: '', note: 'The same brief in Persian, with Persian digits.' },
   { id: 'brief.signoff', view: 'brief', name: 'Business sign-off and next decision', status: 'built', phase: 'Now', where: '', note: 'Signs the solution gate with a reason.' },
