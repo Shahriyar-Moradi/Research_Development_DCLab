@@ -24,6 +24,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
@@ -33,12 +34,14 @@ from ..catalog import ROOT
 CAMPAIGNS = ROOT / "evidence/campaigns"
 RECORDS = ROOT / "evidence/knowledge/rag/records.jsonl"
 VERIFY = CAMPAIGNS / "agent_verification_v1/results/VER-001_auditor_blind_replay.json"
+JUDGMENT = CAMPAIGNS / "agent_eval_v1" / "results"  # the scripted judgment suite's runs (package A4.1), AEV-NNN_*.json
+SCRIPTED_POLICIES = {"standard": "Standard plan (no model)", "audit": "Audit defaults (scripted)", "bad": "Ignores the audit (scripted, deliberately bad)"}
 PITFALLS = CAMPAIGNS / "pitfalls_v1/results"
 RESEARCH = ROOT / "research"
 MAKEFILE = ROOT / "Makefile"
 REPORT_ORDER = ("CAMPAIGN_REPORT.md", "PITFALLS_REPORT.md", "VERIFICATION_REPORT.md")
 # Makefile targets that run or inspect a campaign, in the order the designer lists them.
-CAMPAIGN_TARGETS = ("pitfalls", "category-codes", "expansion", "verify-auditor", "rd-campaign-quick",
+CAMPAIGN_TARGETS = ("pitfalls", "category-codes", "expansion", "verify-auditor", "agent-eval", "rd-campaign-quick",
                     "rd-campaign-review", "critic-gate", "rd-campaign-status", "expansion-status",
                     "rd-campaign-verify", "new-track")
 AFTER_RESULTS = ("rd-sync", "knowledge")
@@ -457,17 +460,54 @@ def lab_summary() -> dict[str, Any]:
     }
 
 
+def _judgment() -> dict[str, Any] | None:
+    """The latest stored run of the scripted judgment suite (``python -m dclab_rnd.agent_eval --output ...``)."""
+    runs = sorted(JUDGMENT.glob("AEV-*.json")) if JUDGMENT.is_dir() else []
+    if not runs:
+        return None
+
+    def compute():
+        r = _read_json(runs[-1])
+        if not isinstance(r, dict) or "summary" not in r:
+            return None
+        cases = r.get("cases") or []
+        return {"suite": r.get("suite"), "path": _rel(runs[-1]), "command": "python -m dclab_rnd.agent_eval --output " + _rel(runs[-1].parent) + "/AEV-NNN_….json",
+                "cases": len(cases), "by_suite": dict(Counter(c.get("suite") for c in cases)), "summary": r["summary"],
+                "results": [{k: x.get(k) for k in ("case", "policy", "leak_caught", "false_alarm", "unsafe_refused", "kept_out", "error")} for x in r.get("results") or []],
+                "case_list": [{k: c.get(k) for k in ("id", "suite", "trap", "title", "note")} for c in cases], "limitations": r.get("limitations") or []}
+    return _cached("judgment", [runs[-1]], compute)
+
+
+def _scores(summary: dict[str, Any]) -> dict[str, Any]:
+    return {"leaks_caught": summary["leaks_caught"], "false_alarms": summary["false_alarms"], "valid_moves": summary["valid_moves"],
+            "citations_exist": summary["citations_exist"], "unsafe_refused": summary["unsafe_refused"], "cost_per_case_eur": 0.0,
+            "leaks_caught_ci95": summary.get("leaks_caught_ci95"), "false_alarm_ci95": summary.get("false_alarm_ci95")}
+
+
 def lab_benchmark() -> dict[str, Any]:
     suites = [{"id": i, "name": n, "planned_cases": k, "covers": c, "status": "planned", "scored_cases": 0}
               for i, n, k, c in PLANNED_SUITES]
+    judgment = _judgment()
+    items = [{"name": p, "status": "planned", "scores": None} for p in PLANNED_POLICIES]
+    if judgment:  # the scripted suite measured the standard plan; two scripted reference policies sit beside it
+        for key, name in SCRIPTED_POLICIES.items():
+            if key not in judgment["summary"]:
+                continue
+            row = next((i for i in items if i["name"] == name), None)
+            if row is None:
+                row = {"name": name, "status": "planned", "scores": None, "reference": True}
+                items.insert(len([i for i in items if i["scores"] is not None or i.get("reference")]), row)
+            row.update(status="scored", scores=_scores(judgment["summary"][key]), suite=judgment["suite"], cases=judgment["cases"])
+    scored = sum(i["scores"] is not None for i in items)
     return {
         "auditor": _auditor(detail=True),
         "notebook_pilot": _notebook_pilot(),
+        "judgment": judgment,
         "suites": {"status": "planned", "planned_cases": sum(s["planned_cases"] for s in suites), "items": suites,
-                   "note": "A plan from the product design; no case is frozen yet."},
-        "policies": {"status": "planned", "scored": 0,
-                     "items": [{"name": p, "status": "planned", "scores": None} for p in PLANNED_POLICIES],
-                     "note": "Planned — no policy scored yet."},
+                   "note": "A plan from the product design; no case of these suites is frozen yet."},
+        "policies": {"status": "scored" if scored else "planned", "scored": scored, "items": items,
+                     "note": (f"Scored on the scripted judgment suite ({judgment['cases']} seeded cases), not on the planned suites."
+                              if judgment else "Planned — no policy scored yet.")},
     }
 
 

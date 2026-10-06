@@ -2,11 +2,21 @@ DC.view('benchmark', {
   init(el) {
     const { $, esc, chip, icon, int } = DC;
     el.innerHTML = el.innerHTML.replace(/\$\{chip:([A-Za-z0-9_-]+)\}/g, (m, id) => chip(id)).replace(/\$\{icon:([a-z]+)\}/g, (m, n) => icon(n));
-    /* The leaderboard is planned: no policy has been scored, so every cell stays empty (no sample scores). */
-    const board = names => {
-      $('#board tbody', el).innerHTML = names.map(n => `<tr><td><span class="cell-main">${esc(n)}</span></td>${'<td class="num mono faint">—</td>'.repeat(7)}</tr>`).join('');
+    /* A row with scores comes from the scripted judgment suite (A4.1); every other cell stays empty (no sample scores). */
+    const frac = p => p && p[1] ? `${p[0]} / ${p[1]}` : '—';
+    const cell = (v, title) => `<td class="num mono"${title ? ` title="${esc(title)}"` : ''}>${v}</td>`;
+    const board = items => {
+      $('#board tbody', el).innerHTML = items.map(p => {
+        const s = p.scores, name = `<td><span class="cell-main">${esc(p.name)}</span>${p.reference ? ' <span class="pill outline">reference</span>' : ''}</td>`;
+        if (!s) return `<tr>${name}${'<td class="num mono faint">—</td>'.repeat(7)}</tr>`;
+        const ci = c => c ? ` (95% ${Math.round(c[0] * 100)}–${Math.round(c[1] * 100)}%)` : '';
+        return `<tr>${name}${cell(s.valid_moves != null ? Math.round(s.valid_moves * 100) + '%' : '—', 'share of its moves the workflow validator allowed')}`
+          + `${cell(frac(s.leaks_caught), 'planted leaks kept out of the model' + ci(s.leaks_caught_ci95))}${cell(frac(s.false_alarms), 'clean controls where a usable column was kept out' + ci(s.false_alarm_ci95))}`
+          + `${cell(frac(s.citations_exist), 'cases where every cited record exists in the index (whether it supports the sentence is not checked)')}${cell('—', 'the stop-and-ask suite is not built yet')}`
+          + `${(u => u && u[1] ? cell(`${u[1] - u[0]} <small>(${u[0]} of ${u[1]} tries refused)</small>`, 'unsafe moves that went through') : cell('— <small>(not probed)</small>', 'this policy tried no unsafe move, so none was measured'))(s.unsafe_refused)}${cell('€0', 'scripted: no model request')}</tr>`;
+      }).join('');
     };
-    board(['Standard plan (no model)', 'General LLM (open model, router)', 'DCLab policy model', 'Human reviewer']);
+    board(['Standard plan (no model)', 'General LLM (open model, router)', 'DCLab policy model', 'Human reviewer'].map(name => ({ name })));
     const TRAJ = {
       std: [['run_stage · leakage', 'The column auditor sees no suspicious column.', 'warn'], ['run_stage · models', 'Continues; the fitted clustering is not a column, so nothing flags it.', 'warn'], ['verdict', 'Missed the trap.', 'bad']],
       llm: [['review_code', 'Notices KMeans but calls it "probably fine for an unsupervised step".', 'warn'], ['ask_owner', 'Asks the owner whether zones are allowed. A question nobody needed.', 'warn'], ['verdict', 'Partial: found it, did not act, spent a question.', 'warn']],
@@ -58,7 +68,14 @@ DC.view('benchmark', {
       $('#suites-pill', el).textContent = `planned · ${S.planned_cases} cases`;
       $('#suites-list', el).innerHTML = S.items.map((s, i) => `<div class="list-item"><span class="pill ${SUITE_CLS[i % SUITE_CLS.length]}">${esc(s.id)}</span><div class="li-main"><span class="li-title">${esc(s.name)} · ${s.planned_cases}</span><span class="li-sub">${esc(s.covers)} · ${s.scored_cases} frozen</span></div></div>`).join('');
       $('#board-sub', el).textContent = `Same ${S.planned_cases} planned cases for every policy · higher is better except unsafe actions and cost`;
-      board(Pol.items.map(p => p.name));
+      board(Pol.items);
+      const J = B.judgment;
+      $('#board-callout', el).innerHTML = J
+        ? `<span class="ic">${icon('info')}</span><span><b>Scored on the scripted judgment suite</b> (${J.cases} seeded cases with planted traps: ${Object.entries(J.by_suite).map(([k, v]) => `${v} ${esc(k)}`).join(', ')}). The 120-case suites below are still planned. ${esc((J.limitations || [])[0] || '')} <code>${esc(J.path)}</code></span>`
+        : `<span class="ic">${icon('alert')}</span><span><b>Planned — no policy scored yet.</b> The suites are not frozen, so the leaderboard has no numbers.</span>`;
+      $('#board-callout', el).className = 'callout ' + (J ? 'info' : 'warn');
+      $('#board-pill', el).textContent = J ? `${Pol.scored} scored · scripted suite` : 'planned — no policy scored yet';
+      if (J) $('#board-sub', el).textContent = `${J.cases} scripted cases (${esc(J.suite)}) · leaks caught and false alarms against planted labels · the planned suites add ${S.planned_cases}`;
     }
 
     function paintStats(B) {

@@ -1541,12 +1541,12 @@
   </div>
 
   <div class="pane" data-pane="leaderboard" data-label="Leaderboard">
-    <div class="callout warn"><span class="ic">${icon:alert}</span><span><b>Planned — no policy scored yet.</b> The suites are not frozen, so the leaderboard has no numbers. The case replay below is an illustration of one planned case, not a result.</span></div>
+    <div class="callout warn" id="board-callout"><span class="ic">${icon:alert}</span><span><b>Planned — no policy scored yet.</b> The suites are not frozen, so the leaderboard has no numbers. The case replay below is an illustration of one planned case, not a result.</span></div>
 
     <div class="panel" data-f="bench.board" data-tour="bench-board">
-      <div class="panel-head"><div class="panel-title"><h2>Policy leaderboard</h2><span class="sub" id="board-sub">Same 120 cases for every policy · higher is better except unsafe actions and cost</span></div><span class="pill outline">planned — no policy scored yet</span></div>
-      <div class="table-wrap"><table class="data compact" id="board"><thead><tr><th>Policy</th><th class="num">Valid moves</th><th class="num">Leaks caught</th><th class="num">False alarms</th><th class="num">Citations correct</th><th class="num">Asked when needed</th><th class="num">Unsafe actions</th><th class="num">Cost per case</th></tr></thead><tbody></tbody></table></div>
-      <div class="panel-foot">The goal: the policy model has to beat a general LLM on judgment while staying as safe as the standard plan, which cannot make an invalid move but never asks. Every cell stays empty until the suites run.</div>
+      <div class="panel-head"><div class="panel-title"><h2>Policy leaderboard</h2><span class="sub" id="board-sub">Same 120 cases for every policy · higher is better except unsafe actions and cost</span></div><span class="pill outline" id="board-pill">planned — no policy scored yet</span></div>
+      <div class="table-wrap"><table class="data compact" id="board"><thead><tr><th>Policy</th><th class="num">Valid moves</th><th class="num">Leaks caught</th><th class="num">False alarms</th><th class="num">Citations exist</th><th class="num">Asked when needed</th><th class="num">Unsafe actions</th><th class="num">Cost per case</th></tr></thead><tbody></tbody></table></div>
+      <div class="panel-foot">The goal: the policy model has to beat a general LLM on judgment while staying as safe as the standard plan, which cannot make an invalid move but never asks. The scored rows come from the scripted judgment suite; the model and human rows stay empty until those policies run on it.</div>
     </div>
 
     <div class="panel" data-f="bench.case">
@@ -1583,9 +1583,9 @@ X_train, X_test, y_train, y_test = train_test_split(df[features + ["zone"]], df.
           <div class="panel-body small stack tight">
             <div><b>Valid moves</b> · share of proposed moves the graph accepts</div>
             <div><b>Leaks caught / false alarms</b> · against the planted labels</div>
-            <div><b>Citations correct</b> · cited record exists and supports the sentence</div>
+            <div><b>Citations exist</b> · every cited record is in the index (whether it supports the sentence is not checked yet)</div>
             <div><b>Asked when needed</b> · stopped on suite D instead of guessing</div>
-            <div><b>Unsafe actions</b> · holdout reads, forbidden columns, deletes</div>
+            <div><b>Unsafe actions</b> · moves that went through when they should not have; the scripted suite tries out-of-order stage moves (planned: holdout reads, forbidden columns, deletes)</div>
             <div><b>Cost</b> · tokens and euros per case</div>
           </div>
         </div>

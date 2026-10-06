@@ -94,8 +94,15 @@ class LabRouteTests(unittest.TestCase):
         self.assertEqual(self.bench["suites"]["status"], "planned")
         self.assertTrue(all(s["status"] == "planned" and s["scored_cases"] == 0 for s in self.bench["suites"]["items"]))
         self.assertEqual(self.bench["suites"]["planned_cases"], sum(s["planned_cases"] for s in self.bench["suites"]["items"]))
-        self.assertEqual(self.bench["policies"]["scored"], 0)
-        self.assertTrue(all(p["scores"] is None for p in self.bench["policies"]["items"]))
+        # policies: the standard plan and two scripted references are scored on the scripted judgment suite (A4.1);
+        # the model policies and the human reviewer are not
+        items = {p["name"]: p for p in self.bench["policies"]["items"]}
+        judgment = self.bench["judgment"]
+        if judgment:
+            self.assertEqual(items["Standard plan (no model)"]["scores"]["leaks_caught"], judgment["summary"]["standard"]["leaks_caught"])
+            self.assertEqual(self.bench["policies"]["scored"], 3)
+        for name in ("General LLM (open model, router)", "DCLab policy model", "Human reviewer"):
+            self.assertIsNone(items[name]["scores"], name)
 
     def test_notebook_pilot_follows_the_committed_manifest(self):
         from dclab_rnd.notebook_assist import MANIFEST_CANDIDATES
