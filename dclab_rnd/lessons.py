@@ -337,7 +337,11 @@ def install(store: LessonStore | None) -> None:
 
 
 def installed() -> LessonStore | None:
-    return _INSTALLED[0]
+    """The lessons of the workspace this request or job acts in (``dclab_rnd.context``), else the process's."""
+    from . import context
+
+    current = getattr(context.services(), "lesson_store", None)
+    return current if current is not None else _INSTALLED[0]
 
 
 # ---------------------------------------------------------------------- searched with the repository's records

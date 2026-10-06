@@ -39,11 +39,23 @@ async def get_project(project_id: str, s: Services = Depends(services)):
     return s.with_records(s.project(project_id))
 
 
+def approver() -> str:
+    """Who approves: the signed-in person's name (package 10.2), or "owner" on a machine without accounts."""
+    from ...accounts.principal import current
+
+    who = current()
+    return who.who if who is not None and who.user_id else "owner"
+
+
 @router.patch("/api/projects/{project_id}", response_model=Project)
 async def patch_project(project_id: str, payload: ProjectPatch, s: Services = Depends(services)):
     projects = s.projects
     p = s.project(project_id)
     body = payload.model_dump(exclude_unset=True)
+    if isinstance(body.get("policy"), dict) or "share_for_training" in (body.get("settings") or {}):
+        from ...accounts.guard import demand
+
+        demand("admin", "change a gate switch or the training opt-in")  # the owner's (package 10.2)
     for key in ("name", "goal"):
         if key in body:
             p[key] = str(body[key]).strip()[:4000 if key == "goal" else 120]
@@ -290,7 +302,8 @@ async def remove_memory_note(project_id: str, note_id: str, body: Any = Body(Non
 async def approve_gate(project_id: str, body: GateApproval, s: Services = Depends(services)):
     s.project(project_id)
     try:
-        studio_graph.approve_gate(s.projects, project_id, str(body.gate if body.gate is not None else ""), "owner", str(body.reason if body.reason is not None else ""))
+        studio_graph.approve_gate(s.projects, project_id, str(body.gate if body.gate is not None else ""), approver(),
+                                  str(body.reason if body.reason is not None else ""))
     except studio_graph.GraphBlocked as exc:
         raise HTTPException(409, str(exc))
     return s.with_records(s.projects.get(project_id))

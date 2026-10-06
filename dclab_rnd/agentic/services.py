@@ -29,17 +29,22 @@ BUSY = {"stage": "This project is already running a stage", "intern": "This sess
 
 
 class Services:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, primary: bool = True):
         from ..models.routing import open_routing
         from ..models.shadow import open_shadows
 
         self.settings = settings
         self.store = Store(Path(settings.agent_home))
+        from ..storage import db
+
+        # the workspace this Services serves (its folder's marker); None on files, where a folder is the only workspace
+        self.workspace_id = db.workspace_for(self.store.home) if db.database_url(required=False) else None
         self.projects, self.drafts, self.intern_sessions = open_stores(self.store.home)  # files, or PostgreSQL when DCLAB_DATABASE_URL is set
         # every model request goes through it; the routing moves a purpose to another model or names a shadow (A6.4)
         self.gateway = models.Gateway(models.open_usage(self.store.home), project_cap=self.project_cap,
                                       routing=open_routing(self.store.home), shadows=open_shadows(self.store.home))
-        models.install(self.gateway)  # the engine's stage notes run outside a request
+        if primary:  # the process's fallback is the server's own workspace; a request or job names its own (dclab_rnd.context)
+            models.install(self.gateway)  # the engine's stage notes run outside a request
         self.tasks: dict[str, asyncio.Task] = {}  # research runs (the legacy campaign; not in the job table)
         self.traces = open_traces(self.store.home)  # a row per agent step (package A2.3)
         # Package 10.3: stage runs, data pipelines, synthetic data and intern turns are rows in the job table, run by a
@@ -58,7 +63,8 @@ class Services:
         except Exception as exc:  # noqa: BLE001 — the history stays in the project logs; the server starts either way
             print(f"audit: the earlier history was not imported ({type(exc).__name__})", flush=True)
         self.lesson_store = workspace_lessons.open_lessons(self.store.home)  # the workspace's lessons table (A5.3)
-        workspace_lessons.install(self.lesson_store)  # accepted lessons join every evidence search
+        if primary:
+            workspace_lessons.install(self.lesson_store)  # accepted lessons join every evidence search
         self.csrf = secrets.token_urlsafe(32)
         self.fixing: set[str] = set()  # projects whose notebook fixes are being written (one model request at a time each)
         from ..settings import UPLOAD_MAX_BYTES
@@ -249,5 +255,7 @@ class Services:
 
 
 def services(request: Request) -> Services:
-    """The dependency every router takes."""
-    return request.app.state.services
+    """The dependency every router takes: the Services of the workspace this request acts in (package 10.2)."""
+    from .. import context
+
+    return context.services() or request.app.state.services

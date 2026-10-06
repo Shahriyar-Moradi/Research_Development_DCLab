@@ -28,18 +28,21 @@ def main(argv: list[str] | None = None) -> int:
 
     load_dotenv(ROOT / ".env", override=False)  # the server reads .env the same way: both open the same workspace
     settings = Settings.load(args.home)
-    from .agentic.services import Services
+    from .agentic.pool import Pool
 
-    services = Services(settings.model_copy(update={"worker": "inline", **({"worker_threads": max(1, args.threads)} if args.threads else {})}))
-    worker = services.worker.start()
+    pool = Pool(settings.model_copy(update={"worker": "inline", **({"worker_threads": max(1, args.threads)} if args.threads else {})}))
+    pool.start_all()  # with accounts on, a worker for every workspace (package 10.2)
+    worker = pool.default.worker
     print(f"worker {worker.id}: {worker.threads} at a time on {settings.agent_home}"
           f"{' (PostgreSQL)' if settings.database_url else ' (files)'}; Ctrl-C stops", flush=True)
     done = threading.Event()
     for sig in (signal.SIGINT, signal.SIGTERM):
         signal.signal(sig, lambda *_: done.set())
-    done.wait()
+    while not done.wait(60):
+        pool.start_all()  # a workspace made since: its jobs are run too (a database briefly away is reported, and tried again)
     print("stopping: running jobs stop at their next checkpoint", flush=True)
-    worker.stop(wait=30)
+    for each in pool.all():
+        each.worker.stop(wait=30)
     return 0
 
 

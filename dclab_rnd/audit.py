@@ -56,6 +56,12 @@ def _row(kind: str, actor: str | None, who: str | None = None, *, project: dict[
     assert kind in KINDS, kind
     if project is not None:
         project_id = project.get("id")
+    from .accounts.principal import current
+
+    person = current()  # the signed-in person (package 10.2); an agent's move is still the agent's
+    if person is not None and person.user_id and (actor or "human") == "human":
+        user_id = user_id or person.user_id
+        who = who or person.who
     return {"at": at or now(), "kind": kind, "actor": actor or "human", "who": who or who_of(actor), "user_id": user_id,
             "project_id": project_id, "project_name": (project or {}).get("name"), "draft_id": draft_id, "move": move,
             "status": status, "detail": json.loads(json.dumps(detail, default=str))}

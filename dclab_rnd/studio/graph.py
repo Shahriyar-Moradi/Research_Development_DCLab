@@ -335,6 +335,11 @@ def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "own
     if not verdict.allowed:
         raise GraphBlocked(verdict)
     entry = {"gate": gate, "by": by, "at": now(), "reason": reason[:500]}
+    from ..accounts.principal import current
+
+    person = current()
+    if person is not None and person.user_id:  # the approving user (package 10.2), beside the name shown
+        entry.update(user_id=person.user_id, role=person.role)
     if gate == "solution":
         entry["solution_hash"] = solution_hash(project["solution"])
         project["signoff"] = entry

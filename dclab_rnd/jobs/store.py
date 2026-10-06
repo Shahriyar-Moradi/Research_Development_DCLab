@@ -44,7 +44,11 @@ def now() -> str:
 
 def new_job(kind: str, key: str, payload: dict[str, Any], by: str = "human", worker: str | None = None) -> dict[str, Any]:
     running = worker is not None  # claimed at once: the request that queued it runs it now (``?wait=true``)
-    return {"id": "j" + secrets.token_hex(6), "kind": kind, "key": key, "payload": payload, "by": by,
+    from ..accounts.principal import current
+
+    who = current()  # the person who asked (package 10.2): the job's audit rows name them
+    user = {"user_id": who.user_id, "email": who.email, "name": who.name, "role": who.role, "workspace_id": who.workspace_id} if who and who.user_id else None
+    return {"id": "j" + secrets.token_hex(6), "kind": kind, "key": key, "payload": payload, "by": by, "user": user,
             "status": "running" if running else "queued", "progress": {}, "created": now(),
             "started": now() if running else None, "finished": None, "heartbeat": time.time() if running else None,
             "worker": worker, "error": None, "attempts": 1 if running else 0, "cancel_requested": False}

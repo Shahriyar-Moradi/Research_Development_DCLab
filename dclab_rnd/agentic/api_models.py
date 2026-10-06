@@ -17,10 +17,19 @@ from pydantic import BaseModel, ConfigDict
 
 
 class Router(APIRouter):
-    """An APIRouter whose responses keep their own keys: a response model documents, ``exclude_unset`` adds nothing."""
+    """An APIRouter whose responses keep their own keys: a response model documents, ``exclude_unset`` adds nothing.
+    Every route it builds passes the one role check (package 10.2, ``accounts.guard``): what it needs follows from its
+    method and path, so no route is left unchecked."""
 
     def add_api_route(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:
+        from fastapi import Depends
+
+        from ..accounts.guard import permission, require
+
         kwargs["response_model_exclude_unset"] = True  # always: FastAPI's decorators pass False explicitly, so a default would never hold
+        methods = sorted(kwargs.get("methods") or ["GET"])
+        needed = sorted({permission(m, self.prefix + path) for m in methods})  # every method's: a route with several needs them all
+        kwargs["dependencies"] = [*(kwargs.get("dependencies") or []), Depends(require(*needed))]
         super().add_api_route(path, endpoint, **kwargs)
 
 

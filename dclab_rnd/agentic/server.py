@@ -17,7 +17,13 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .catalog import ROOT
-from .services import Services
+from .current import Current
+from .pool import Pool
+from .. import context
+from ..accounts import api as accounts_api
+from ..accounts.guard import identify
+from ..accounts.principal import ANONYMOUS, LOCAL_OWNER, reset_current, set_current
+from ..accounts.roles import allows
 from .routers import ROUTERS
 from .. import mcp_server
 from ..intern.tools import Toolbox
@@ -34,30 +40,37 @@ CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
 
 def create_app(home=None) -> FastAPI:
     settings = Settings.load(home)  # read once for this app
-    s = Services(settings)
-    s.mcp = mcp_server.session_manager(Toolbox(s.projects)) if mcp_server.available() else None
+    if settings.auth != "none" and not settings.database_url:
+        raise RuntimeError("DCLAB_AUTH needs PostgreSQL: accounts and sessions live in the database (set DCLAB_DATABASE_URL)")
+    pool = Pool(settings)  # one Services per workspace this server serves (package 10.2); the first is its own folder's
+    s = pool.default
+    s.mcp = mcp_server.session_manager(Toolbox(Current("projects", s))) if mcp_server.available() else None
 
     @asynccontextmanager
     async def lifespan(app):
         for run in s.store.list():
             if run["status"] in ("queued", "running", "pausing"):
                 s.store.update(run["id"], status="interrupted", phase="Server restarted; resume explicitly")
-        s.worker.start()  # recovers jobs a dead worker left running, then runs queued ones (package 10.3)
+        await asyncio.to_thread(pool.start_all)  # recovers jobs a dead worker left running, then runs queued ones (10.3), in every workspace (10.2)
         if s.mcp is None:
             yield
         else:
             async with s.mcp.run():  # the MCP transport lives as long as the server
                 yield
-        await asyncio.to_thread(s.worker.stop)  # running jobs stop at their next checkpoint, interrupted and retryable
-        active = list(s.tasks.values()) + list(s.draft_tasks.values())
+        for each in pool.all():  # running jobs stop at their next checkpoint, interrupted and retryable
+            await asyncio.to_thread(each.worker.stop)
+        active = [t for each in pool.all() for t in (*each.tasks.values(), *each.draft_tasks.values())]
         for task in active:
             task.cancel()
         if active:
             await asyncio.gather(*active, return_exceptions=True)
 
-    app = FastAPI(title="DCLab notebook", lifespan=lifespan)
+    # with accounts on, the schema and the docs pages are not served: they are FastAPI's own routes, outside the role check
+    docs = {} if settings.auth == "none" else {"openapi_url": None, "docs_url": None, "redoc_url": None}
+    app = FastAPI(title="DCLab notebook", lifespan=lifespan, **docs)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
     app.state.services = s
+    app.state.pool = pool
     app.state.settings = settings
     app.state.store, app.state.tasks, app.state.projects, app.state.drafts, app.state.models = s.store, s.tasks, s.projects, s.drafts, s.gateway
 
@@ -74,12 +87,34 @@ def create_app(home=None) -> FastAPI:
 
     @app.middleware("http")
     async def protect(request: Request, call_next):
-        # /mcp is JSON-RPC for local MCP clients (Chat UI, Claude Desktop…); the host check still applies to it.
-        if request.method not in ("GET", "HEAD", "OPTIONS") and not request.url.path.startswith("/mcp"):
-            token = request.headers.get("x-dclab-token", "")
-            if not secrets.compare_digest(token, s.csrf):
+        # Who is asking and in which workspace (package 10.2): the session cookie or an API token, or the local owner
+        # without sign-in. A browser's write carries its request token (the session's, or the server's without
+        # accounts); an API token is not a cookie, so it needs none. /mcp is JSON-RPC for MCP clients.
+        if request.url.path.startswith("/static/"):
+            who = LOCAL_OWNER if settings.auth == "none" else ANONYMOUS  # files of the frontend: no data, no check
+        else:
+            who = await asyncio.to_thread(identify, dict(request.headers), dict(request.cookies), settings, s.workspace_id)
+        if request.url.path.startswith("/mcp") and settings.auth != "none":
+            if not who.signed_in or who.via != "token":
+                return JSONResponse({"detail": "MCP clients send an API token: Authorization: Bearer dclab_…"}, status_code=401)
+            if who.workspace_id != s.workspace_id:
+                return JSONResponse({"detail": "This server's MCP endpoint serves its own workspace only"}, status_code=403)
+            if not allows(who.role, "write"):
+                return JSONResponse({"detail": f"A {who.public()['role_label']} may not use the MCP tools"}, status_code=403)
+        elif request.method not in ("GET", "HEAD", "OPTIONS") and not request.url.path.startswith("/mcp") and who.via != "token":
+            expected = who.csrf if who.via == "session" else s.csrf
+            if not secrets.compare_digest(request.headers.get("x-dclab-token", ""), expected or ""):
                 return JSONResponse({"detail": "Missing local UI request token"}, status_code=403)
-        response = await call_next(request)
+        try:
+            workspace = await asyncio.to_thread(pool.get, who.workspace_id) if who.signed_in else s  # opening one is slow: not on the loop
+        except KeyError:
+            return JSONResponse({"detail": "This workspace no longer exists"}, status_code=404)
+        principal_token, services_token = set_current(who), context.set_services(workspace)
+        try:
+            response = await call_next(request)
+        finally:
+            context.reset_services(services_token)
+            reset_current(principal_token)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Cache-Control"] = "no-store"
@@ -88,9 +123,14 @@ def create_app(home=None) -> FastAPI:
 
     for router in ROUTERS:
         app.include_router(router)
-    draft_api.register(app, s.drafts, s.projects, s.gateway, s.draft_tasks, s.traces, services=s)
-    pages.register_all(app, pages.Context(store=s.store, projects=s.projects, drafts=s.drafts, intern_sessions=s.intern_sessions, models=s.gateway,
-                                          jobs=s.jobs, intern_jobs=s.intern_jobs, draft_jobs=s.draft_jobs, job_store=s.job_store, audit=s.audit))
+    app.include_router(accounts_api.router)
+    # the draft routes and the pages hold stand-ins: each use reaches the request's workspace (agentic/current.py)
+    c = {name: Current(name, s) for name in ("store", "projects", "drafts", "intern_sessions", "gateway", "draft_tasks", "traces", "jobs",
+                                             "intern_jobs", "draft_jobs", "job_store", "audit")}
+    draft_api.register(app, c["drafts"], c["projects"], c["gateway"], c["draft_tasks"], c["traces"], services=Current(None, s))
+    pages.register_all(app, pages.Context(store=c["store"], projects=c["projects"], drafts=c["drafts"], intern_sessions=c["intern_sessions"],
+                                          models=c["gateway"], jobs=c["jobs"], intern_jobs=c["intern_jobs"], draft_jobs=c["draft_jobs"],
+                                          job_store=c["job_store"], audit=c["audit"]))
     if s.mcp is not None:
         app.mount("/mcp", app=s.mcp.handle_request, name="mcp")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")

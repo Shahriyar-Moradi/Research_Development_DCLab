@@ -369,7 +369,11 @@ def install(gateway: Gateway) -> None:
 
 
 def installed() -> Gateway:
-    return _INSTALLED or Gateway()
+    """The gateway of the workspace this request or job acts in (``dclab_rnd.context``), else the process's."""
+    from .. import context
+
+    current = getattr(context.services(), "gateway", None)
+    return current or _INSTALLED or Gateway()
 
 
 def for_workspace(home=None) -> Gateway:

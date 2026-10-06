@@ -255,4 +255,29 @@ model_pause = sa.Table(  # requests to an endpoint and model stop until a time, 
     sa.Column("until", sa.Float, nullable=False),  # seconds since the epoch
     sa.Column("reason", sa.Text, nullable=False))
 
+user_session = sa.Table(  # a signed-in browser (dclab_rnd/accounts, 10.2): the cookie's token is never stored, only its SHA-256
+    "user_session", metadata,
+    sa.Column("id", sa.String(64), primary_key=True),
+    sa.Column("user_id", sa.String(64), sa.ForeignKey("app_user.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("csrf", sa.Text, nullable=False),  # the request token this session's writes carry
+    sa.Column("started", sa.Float, nullable=False),
+    sa.Column("last_seen", sa.Float, nullable=False),
+    sa.Column("expires", sa.Float, nullable=False),
+    sa.Index("ix_user_session_user_id", "user_id"))
+
+api_token = sa.Table(  # a personal API token for /mcp clients and scripts (10.2): acts as its user in one workspace; only its hash is kept
+    "api_token", metadata,
+    sa.Column("id", sa.String(32), primary_key=True),
+    sa.Column("user_id", sa.String(64), sa.ForeignKey("app_user.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("name", sa.Text, nullable=False),
+    sa.Column("token_hash", sa.String(64), nullable=False),
+    sa.Column("prefix", sa.Text, nullable=False),  # the first characters, so a person can tell their tokens apart
+    sa.Column("created", sa.Float, nullable=False),
+    sa.Column("last_used", sa.Float),
+    sa.Column("revoked", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.UniqueConstraint("token_hash", name="uq_api_token_token_hash"),
+    sa.Index("ix_api_token_user_id", "user_id"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

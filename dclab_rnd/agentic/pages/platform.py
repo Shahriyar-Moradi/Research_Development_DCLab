@@ -241,6 +241,12 @@ ACTOR_ROWS: list[tuple[str, Callable[[], dict[str, Any]], str, dict[str, Any]]] 
 ]
 
 
+def SIGN_IN() -> str:  # noqa: N802 — how this server signs people in (package 10.2): none, password or oidc
+    from ...settings import Settings
+
+    return Settings.load().auth
+
+
 def policies(projects) -> dict[str, Any]:
     invariants = []
     for inv in INVARIANTS:
@@ -262,7 +268,7 @@ def policies(projects) -> dict[str, Any]:
               for label, make, move, args in ACTOR_ROWS]
     return {"invariants": invariants, "switches": switches, "actors": actors, "gates": studio_graph.GATES,
             "default_policy": studio_graph.DEFAULT_POLICY, "projects": len(plist),
-            "accounts": {"users": False, "roles": False, "sign_in": False, "csrf": True,
+            "accounts": {"users": SIGN_IN() != "none", "roles": SIGN_IN() != "none", "sign_in": SIGN_IN() != "none", "mode": SIGN_IN(), "csrf": True,
                          "view_as": "presentation only: it changes which panels and details show and grants or removes no right"}}
 
 

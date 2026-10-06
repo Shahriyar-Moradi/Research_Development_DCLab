@@ -845,9 +845,10 @@
     }
     const res = await fetch('/api' + path, Object.assign({}, opts, { headers, body }));
     if (res.status === 403 && !retried && (opts.method || 'GET') !== 'GET') {
-      // The server restarted and issued a new request token; fetch it once and try again.
-      server.config = null;
-      return api(path, opts, true);
+      // The server restarted and issued a new request token: fetch it once and try again. A role refusal (package 10.2)
+      // is a 403 too, but saying so again would not change it: only the token's refusal is retried.
+      const detail = await res.clone().json().then(d => d.detail).catch(() => null);
+      if (detail === 'Missing local UI request token') { server.config = null; return api(path, opts, true); }
     }
     if (res.status === 204) return null;
     const type = res.headers.get('content-type') || '';

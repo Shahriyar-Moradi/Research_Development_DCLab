@@ -19,6 +19,17 @@ from ..projects import project_catalog
 from ..schemas import DEFAULT_GOAL
 from ..services import Services, services
 
+
+def declared_role(request: Request) -> str | None:
+    """The reviewer's role: the signed-in person's (package 10.2); without accounts, the one the request declares."""
+    from ...accounts.principal import current
+
+    who = current()
+    if who is not None and who.user_id:
+        return who.role
+    return (request.headers.get("x-dclab-role") or "").strip().lower() or None
+
+
 router = Router()
 STATIC = Path(__file__).resolve().parents[1] / "static"
 
@@ -33,7 +44,11 @@ def version(package: str) -> str:
 @router.get("/api/config", response_model=Config)
 async def configuration(s: Services = Depends(services)):
     st = s.settings
-    return {"csrf": s.csrf, "api_key_configured": st.openai_key_set, "ml_python_available": Path(st.ml_python).exists(), "default_goal": DEFAULT_GOAL,
+    from ...accounts.principal import current
+
+    who = current()
+    csrf = who.csrf if who is not None and who.via == "session" and who.csrf else s.csrf  # a signed-in browser's writes carry its session's
+    return {"csrf": csrf, "auth": {"mode": st.auth, **(who.public() if who is not None else {"signed_in": False})}, "api_key_configured": st.openai_key_set, "ml_python_available": Path(st.ml_python).exists(), "default_goal": DEFAULT_GOAL,
             "default_model": st.openai_model, "default_project": "general", "projects": project_catalog(), "datasets": catalog(),
             "frameworks": [f"NOOA {version('nooa')} · typed Predict specialists", f"LangGraph {version('langgraph')} · durable research loop", "OpenAI · Responses API · store=false"],
             "commands": {"serve": ".venv-agent/bin/python -m dclab_rnd.agentic serve", "hyperack": ".venv-agent/bin/python -m dclab_rnd.agentic run --project hyperack --datasets hyperack --experiments 4",
@@ -54,7 +69,7 @@ async def change_routing(body: RoutingChange, request: Request, s: Services = De
     its own tier (tier null) is one setting. Every change is kept in the routing history and the platform audit."""
     from ...models import routing as model_routing
 
-    role = (request.headers.get("x-dclab-role") or "").strip().lower() or None
+    role = declared_role(request)
     tier = body.tier
     try:
         kept = len(s.gateway.routing.get().get("history") or [])

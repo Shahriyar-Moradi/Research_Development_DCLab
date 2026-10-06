@@ -57,7 +57,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     from ..studio import data as studio_data
     from .work import DraftWork
 
-    work = services.draft_work if services is not None else DraftWork(drafts, models, traces)
+    fallback = None if services is not None else DraftWork(drafts, models, traces)
+
+    def work_now() -> DraftWork:
+        """The request's workspace's draft work (package 10.2: read per call, never kept from registration)."""
+        return services.draft_work if services is not None else fallback
 
     def dump(payload: Any) -> dict[str, Any]:
         return payload.model_dump(exclude_unset=True) if payload is not None else {}
@@ -69,7 +73,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(404, "Draft not found") from None
 
     def agent(draft_id: str | None = None) -> HomeAgent:
-        return work.agent(draft_id)
+        return work_now().agent(draft_id)
 
     def background(key: str, fn, *args) -> None:
         async def go():
@@ -94,7 +98,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     def process(draft_id: str, asset_id: str) -> None:
         """The pipeline of one asset, as a job (in a task of this process when no job table is wired)."""
         if services is None:
-            background(f"{draft_id}:{asset_id}", work.process, draft_id, asset_id)
+            background(f"{draft_id}:{asset_id}", work_now().process, draft_id, asset_id)
             return
         services.submit("pipeline", f"{draft_id}:{asset_id}", {"draft_id": draft_id, "asset_id": asset_id})
 
@@ -328,7 +332,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, "Unknown template")
         payload = {"draft_id": draft_id, "prompt": str(body.get("prompt", "")), "rows": rows, "template": template}
         if services is None:
-            background(f"{draft_id}:synthetic", work.simulate, draft_id, payload["prompt"], rows, template)
+            background(f"{draft_id}:synthetic", work_now().simulate, draft_id, payload["prompt"], rows, template)
         else:
             services.submit("synthetic", f"{draft_id}:synthetic", payload, busy="Synthetic data is already being generated for this draft")
         return {"accepted": True, "rows": rows, "template": template}

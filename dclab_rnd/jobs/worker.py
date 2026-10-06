@@ -111,6 +111,21 @@ def progress(**values: Any) -> None:
         control.progress(values)
 
 
+def _acting(env: Any, job: dict[str, Any]):
+    import contextlib
+
+    from .. import context
+    from ..accounts.principal import Principal, acting
+
+    stack = contextlib.ExitStack()
+    stack.enter_context(context.using(env))
+    user = job.get("user")
+    if isinstance(user, dict) and user.get("role"):
+        stack.enter_context(acting(Principal(role=user["role"], workspace_id=user.get("workspace_id"), user_id=user.get("user_id"),
+                                             email=user.get("email") or "", name=user.get("name") or "", via="job")))
+    return stack
+
+
 def _settle(env: Any, job: dict[str, Any], reason: str) -> None:
     h = HANDLERS.get(job["kind"])
     if h is None:
@@ -203,7 +218,8 @@ class Worker:
                 raise RuntimeError(f"no handler for jobs of kind {job['kind']!r}")
             outer, _LOCAL.control = current(), control  # a job run inside another job's thread (the agent's synthetic request)
             try:
-                h.run(self.env, job.get("payload") or {})
+                with _acting(self.env, job):  # the job's workspace and the person who started it (package 10.2)
+                    h.run(self.env, job.get("payload") or {})
             finally:
                 _LOCAL.control = outer
         except Stopped as stop:

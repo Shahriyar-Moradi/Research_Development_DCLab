@@ -12,6 +12,17 @@ from ...models import settings as model_settings
 from ..api_models import InternMessage, InternStart, InternStatus, Lesson, LessonReview, Lessons, Router, Session
 from ..services import Services, services
 
+
+def declared_role(request: Request) -> str | None:
+    """The reviewer's role: the signed-in person's (package 10.2); without accounts, the one the request declares."""
+    from ...accounts.principal import current
+
+    who = current()
+    if who is not None and who.user_id:
+        return who.role
+    return (request.headers.get("x-dclab-role") or "").strip().lower() or None
+
+
 router = Router()
 
 
@@ -96,7 +107,7 @@ async def list_lessons(project_id: str | None = None, status: str | None = None,
 async def review_lesson(lesson_id: str, body: LessonReview, request: Request, s: Services = Depends(services)):
     """A reviewer accepts, edits or rejects a lesson. Until accounts exist the role is the one the request declares
     (X-DCLab-Role), so this keeps an honest record of who reviewed in which role, not a verified login."""
-    role = (request.headers.get("x-dclab-role") or "").strip().lower() or None
+    role = declared_role(request)
     try:
         lesson = workspace_lessons.review(s.lesson_store, lesson_id, str(body.action if body.action is not None else ""), role, str(body.reason or ""),
                                           {k: getattr(body, k) for k in ("claim", "against", "next_test")})

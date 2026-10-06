@@ -33,8 +33,21 @@ class Settings(BaseSettings):
     no_live_models: bool = Field(False, alias="DCLAB_NO_LIVE_MODELS", description="tests and the end-to-end flows: no request reaches a live model")
     workspace_monthly_eur: float | None = Field(None, alias="DCLAB_WORKSPACE_MONTHLY_EUR")
     port: int = Field(8765, alias="DCLAB_PORT")
+    auth: str = Field("none", alias="DCLAB_AUTH", description="none: one owner on this machine; password or oidc: accounts, sessions and roles (PostgreSQL)")
+    cookie_secure: bool = Field(False, alias="DCLAB_COOKIE_SECURE", description="send the session cookie over HTTPS only (set it behind TLS)")
     worker: str = Field("inline", alias="DCLAB_WORKER", description="inline: the server runs jobs too; external: only `python -m dclab_rnd.worker` does")
     worker_threads: int = Field(4, alias="DCLAB_WORKER_THREADS", description="jobs one worker runs at a time")
+
+    @field_validator("auth", mode="before")
+    @classmethod
+    def _auth(cls, value):
+        value = str(value or "").strip().lower()
+        return value if value in ("password", "oidc") else "none"
+
+    @field_validator("cookie_secure", mode="before")
+    @classmethod
+    def _secure(cls, value):
+        return str(value).strip() == "1" if value not in (None, True, False) else bool(value)
 
     @field_validator("worker", mode="before")
     @classmethod
