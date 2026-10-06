@@ -41,7 +41,7 @@ RESEARCH = ROOT / "research"
 MAKEFILE = ROOT / "Makefile"
 REPORT_ORDER = ("CAMPAIGN_REPORT.md", "PITFALLS_REPORT.md", "VERIFICATION_REPORT.md")
 # Makefile targets that run or inspect a campaign, in the order the designer lists them.
-CAMPAIGN_TARGETS = ("pitfalls", "category-codes", "expansion", "verify-auditor", "agent-eval", "agent-eval-live", "rd-campaign-quick",
+CAMPAIGN_TARGETS = ("pitfalls", "category-codes", "expansion", "verify-auditor", "agent-eval", "agent-eval-live", "retrieval-eval", "rd-campaign-quick",
                     "rd-campaign-review", "critic-gate", "rd-campaign-status", "expansion-status",
                     "rd-campaign-verify", "new-track")
 AFTER_RESULTS = ("rd-sync", "knowledge")

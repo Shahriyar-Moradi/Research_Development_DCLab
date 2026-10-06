@@ -32,7 +32,7 @@ from typing import Any
 from fastapi import HTTPException, Request
 
 from dclab_rnd import prompts
-from ... import cited
+from ... import cited, retrieval
 from ...evidence_index import EvidenceIndex
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -97,7 +97,8 @@ def _brief(h: dict[str, Any]) -> dict[str, Any]:
 
 def ask(question: str, client=None, path: Path = INDEX) -> dict[str, Any]:
     loaded = _index(path)
-    hits = loaded[1].search(question, k=K) if loaded else []
+    # the product's index searches by the measured method (A5.1: the hybrid only if it is not worse on any question group)
+    hits = retrieval.search(question, k=K, index=loaded[1]) if loaded else []
     out: dict[str, Any] = {"question": question, "records": [_brief(h) for h in hits], "sentences": [], "dropped": 0}
     if not hits:
         return out | {"mode": "none", "covered": False, "note": NOT_COVERED}
@@ -121,9 +122,9 @@ def ask(question: str, client=None, path: Path = INDEX) -> dict[str, Any]:
                                   "not in a cited record were removed." if dropped else "Written by the model from these records only."}
         return out | {"mode": "records", "covered": None, "dropped": dropped,
                       "note": "The model's answer did not pass the citation and number check; these are the closest records."}
-    if hits[0].get("score", 0) < WEAK:
+    if max(h.get("score", 0) for h in hits) < WEAK:  # the strongest keyword match, wherever the fused ranking put it
         return out | {"mode": "records", "covered": False, "weak": True,
-                      "note": f"{NOT_COVERED} Only weak matches came back (best score {hits[0]['score']:.1f}); they share words with the question but probably do not answer it."}
+                      "note": f"{NOT_COVERED} Only weak matches came back (best score {max(h.get('score', 0) for h in hits):.1f}); they share words with the question but probably do not answer it."}
     return out | {"mode": "records", "covered": None, "note": "No model is configured, so nothing is written: these are the closest records."}
 
 

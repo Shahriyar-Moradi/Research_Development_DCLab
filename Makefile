@@ -1,4 +1,4 @@
-.PHONY: help agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: help retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -160,6 +160,10 @@ product-e2e:  ## run the product's main flows end to end on a temporary server (
 
 product-demo:  ## rebuild docs/product-demo/index.html, the clickable demo of the final product (REFRESH=1 re-extracts the evidence)
 	$(PYTHON) docs/product-demo/build.py $(if $(REFRESH),--refresh,)
+
+retrieval-eval:  ## evidence search on the 60-question set (A5.1): recall at 5 for keyword, vector and hybrid; stores a new RET result
+	@n=$$(ls evidence/campaigns/retrieval_v1/results/RET-*.json 2>/dev/null | wc -l | tr -d ' '); \
+	$(PYTHON) -m dclab_rnd.retrieval --output evidence/campaigns/retrieval_v1/results/RET-$$(printf '%03d' $$((n + 1)))_recall_at_5.json
 
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \

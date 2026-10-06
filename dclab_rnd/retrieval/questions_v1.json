@@ -1,0 +1,522 @@
+{
+ "set": "evidence_questions_v1",
+ "note": "Written by hand from the rules, pitfalls, leakage precedents, dataset cards, experiments, workflow blocks and findings of the evidence index. 'paraphrase' questions share no word (after the index's own tokenizer) with the title or the text of any record that answers them; a test keeps it so.",
+ "questions": [
+  {
+   "id": "Q01",
+   "group": "rule",
+   "question": "When should I write down the prediction moment and the error costs?",
+   "answers": [
+    "DCLAB-R01",
+    "WF-01"
+   ]
+  },
+  {
+   "id": "Q02",
+   "group": "rule",
+   "question": "Should I split by entity and time before preprocessing?",
+   "answers": [
+    "DCLAB-R02",
+    "WF-03"
+   ]
+  },
+  {
+   "id": "Q03",
+   "group": "rule",
+   "question": "Where should imputers, encoders and scalers be fitted?",
+   "answers": [
+    "DCLAB-R03"
+   ]
+  },
+  {
+   "id": "Q04",
+   "group": "rule",
+   "question": "What kinds of leakage should be treated separately?",
+   "answers": [
+    "DCLAB-R04"
+   ]
+  },
+  {
+   "id": "Q05",
+   "group": "rule",
+   "question": "Does a high univariate AUC prove a column leaks?",
+   "answers": [
+    "DCLAB-R05"
+   ]
+  },
+  {
+   "id": "Q06",
+   "group": "rule",
+   "question": "Is a large gap between safe and unsafe scores proof of leakage?",
+   "answers": [
+    "DCLAB-R06"
+   ]
+  },
+  {
+   "id": "Q07",
+   "group": "rule",
+   "question": "How should I start feature engineering: baseline first or many features?",
+   "answers": [
+    "DCLAB-R07",
+    "WF-06"
+   ]
+  },
+  {
+   "id": "Q08",
+   "group": "rule",
+   "question": "What lineage does a generated feature need?",
+   "answers": [
+    "DCLAB-R09"
+   ]
+  },
+  {
+   "id": "Q09",
+   "group": "rule",
+   "question": "Can arbitrary category codes be treated as ordered numbers?",
+   "answers": [
+    "DCLAB-R11",
+    "CAT-001",
+    "CAT-002",
+    "CAT-003",
+    "CAT-004"
+   ]
+  },
+  {
+   "id": "Q10",
+   "group": "rule",
+   "question": "Is there one best algorithm for tabular data?",
+   "answers": [
+    "DCLAB-R13",
+    "FINDING-model-families"
+   ]
+  },
+  {
+   "id": "Q11",
+   "group": "rule",
+   "question": "When is it time to tune hyperparameters?",
+   "answers": [
+    "DCLAB-R15",
+    "WF-08"
+   ]
+  },
+  {
+   "id": "Q12",
+   "group": "rule",
+   "question": "How many times can the final holdout be used?",
+   "answers": [
+    "DCLAB-R17",
+    "PIT-006"
+   ]
+  },
+  {
+   "id": "Q13",
+   "group": "rule",
+   "question": "How do I pick a threshold from the decision cost?",
+   "answers": [
+    "DCLAB-R18"
+   ]
+  },
+  {
+   "id": "Q14",
+   "group": "rule",
+   "question": "What must a candidate have before it is production-ready?",
+   "answers": [
+    "DCLAB-R22"
+   ]
+  },
+  {
+   "id": "Q15",
+   "group": "rule",
+   "question": "What should an LLM agent do and not do in the modelling workflow?",
+   "answers": [
+    "DCLAB-R20"
+   ]
+  },
+  {
+   "id": "Q16",
+   "group": "paraphrase",
+   "question": "How often can I peek at the sealed exam?",
+   "answers": [
+    "DCLAB-R17",
+    "PIT-006"
+   ]
+  },
+  {
+   "id": "Q17",
+   "group": "paraphrase",
+   "question": "Can a strange looking column label alone convict a variable?",
+   "answers": [
+    "DCLAB-R05"
+   ]
+  },
+  {
+   "id": "Q18",
+   "group": "paraphrase",
+   "question": "Which classifier family always comes out on top?",
+   "answers": [
+    "DCLAB-R13",
+    "FINDING-model-families"
+   ]
+  },
+  {
+   "id": "Q19",
+   "group": "paraphrase",
+   "question": "Must I agree on the exact instant of forecasting first?",
+   "answers": [
+    "DCLAB-R01",
+    "WF-01"
+   ]
+  },
+  {
+   "id": "Q20",
+   "group": "paraphrase",
+   "question": "Is a postal identifier something with a ranking?",
+   "answers": [
+    "DCLAB-R11",
+    "CAT-001",
+    "CAT-002",
+    "CAT-003",
+    "CAT-004"
+   ]
+  },
+  {
+   "id": "Q21",
+   "group": "paraphrase",
+   "question": "Should knob twiddling come last?",
+   "answers": [
+    "DCLAB-R15",
+    "WF-08"
+   ]
+  },
+  {
+   "id": "Q22",
+   "group": "paraphrase",
+   "question": "What history and recipe should accompany each crafted predictor?",
+   "answers": [
+    "DCLAB-R09"
+   ]
+  },
+  {
+   "id": "Q23",
+   "group": "paraphrase",
+   "question": "Absent values: how to handle them as part of operations?",
+   "answers": [
+    "DCLAB-R12"
+   ]
+  },
+  {
+   "id": "Q24",
+   "group": "paraphrase",
+   "question": "Is accuracy enough to compare two classifiers?",
+   "answers": [
+    "DCLAB-R14",
+    "DCLAB-R18"
+   ]
+  },
+  {
+   "id": "Q25",
+   "group": "paraphrase",
+   "question": "What has to happen before shipping to customers?",
+   "answers": [
+    "DCLAB-R22"
+   ]
+  },
+  {
+   "id": "Q26",
+   "group": "pitfall",
+   "question": "What does preprocessing before the split cost?",
+   "answers": [
+    "PIT-001",
+    "DCLAB-R03"
+   ]
+  },
+  {
+   "id": "Q27",
+   "group": "pitfall",
+   "question": "What happens if I select features before cross-validation?",
+   "answers": [
+    "PIT-002"
+   ]
+  },
+  {
+   "id": "Q28",
+   "group": "pitfall",
+   "question": "Should I oversample before splitting?",
+   "answers": [
+    "PIT-003"
+   ]
+  },
+  {
+   "id": "Q29",
+   "group": "pitfall",
+   "question": "Is target encoding on all rows before the split a problem?",
+   "answers": [
+    "PIT-004"
+   ]
+  },
+  {
+   "id": "Q30",
+   "group": "pitfall",
+   "question": "What does a random split on time-ordered data do to the score?",
+   "answers": [
+    "PIT-005",
+    "DCLAB-R02"
+   ]
+  },
+  {
+   "id": "Q31",
+   "group": "pitfall",
+   "question": "What is the cost of picking the best model on the holdout?",
+   "answers": [
+    "PIT-006",
+    "DCLAB-R17"
+   ]
+  },
+  {
+   "id": "Q32",
+   "group": "pitfall",
+   "question": "Does balancing classes with copies before dividing the rows inflate results?",
+   "answers": [
+    "PIT-003"
+   ]
+  },
+  {
+   "id": "Q33",
+   "group": "pitfall",
+   "question": "Do shuffled dates make the estimate too optimistic?",
+   "answers": [
+    "PIT-005"
+   ]
+  },
+  {
+   "id": "Q34",
+   "group": "precedent",
+   "question": "Is call duration a leak in bank marketing?",
+   "answers": [
+    "LEAK-bank_marketing",
+    "EXP-007",
+    "DATASET-bank_marketing"
+   ]
+  },
+  {
+   "id": "Q35",
+   "group": "precedent",
+   "question": "Which bike sharing columns leak the rental count?",
+   "answers": [
+    "LEAK-bike_sharing_daily",
+    "EXP-062",
+    "DATASET-bike_sharing_daily"
+   ]
+  },
+  {
+   "id": "Q36",
+   "group": "precedent",
+   "question": "Does the Time column leak in credit card fraud?",
+   "answers": [
+    "LEAK-credit_card_fraud",
+    "EXP-052",
+    "DATASET-credit_card_fraud"
+   ]
+  },
+  {
+   "id": "Q37",
+   "group": "precedent",
+   "question": "Is the rating a leak for the clothing review recommendation?",
+   "answers": [
+    "LEAK-ecommerce_clothing_reviews",
+    "EXP-067",
+    "DATASET-ecommerce_clothing_reviews"
+   ]
+  },
+  {
+   "id": "Q38",
+   "group": "precedent",
+   "question": "Is PageValues known at session start in online shoppers?",
+   "answers": [
+    "LEAK-online_shoppers",
+    "EXP-042",
+    "DATASET-online_shoppers"
+   ]
+  },
+  {
+   "id": "Q39",
+   "group": "precedent",
+   "question": "Are the final fares leaks in HyperAck?",
+   "answers": [
+    "LEAK-hyperack",
+    "DATASET-hyperack"
+   ]
+  },
+  {
+   "id": "Q40",
+   "group": "experiment",
+   "question": "What did the adult census data understanding stage find?",
+   "answers": [
+    "EXP-001"
+   ]
+  },
+  {
+   "id": "Q41",
+   "group": "experiment",
+   "question": "Which algorithm won the screening on german credit?",
+   "answers": [
+    "EXP-029"
+   ]
+  },
+  {
+   "id": "Q42",
+   "group": "experiment",
+   "question": "What was the final holdout result for heart disease?",
+   "answers": [
+    "EXP-020"
+   ]
+  },
+  {
+   "id": "Q43",
+   "group": "experiment",
+   "question": "Did feature engineering help on credit default?",
+   "answers": [
+    "EXP-023"
+   ]
+  },
+  {
+   "id": "Q44",
+   "group": "experiment",
+   "question": "What did the leakage audit find on mushroom?",
+   "answers": [
+    "EXP-032"
+   ]
+  },
+  {
+   "id": "Q45",
+   "group": "experiment",
+   "question": "How did spambase feature engineering ablation turn out?",
+   "answers": [
+    "EXP-038"
+   ]
+  },
+  {
+   "id": "Q46",
+   "group": "experiment",
+   "question": "What was the wine quality leakage audit result?",
+   "answers": [
+    "EXP-047"
+   ]
+  },
+  {
+   "id": "Q47",
+   "group": "experiment",
+   "question": "Which model was screened best for credit card fraud?",
+   "answers": [
+    "EXP-054"
+   ]
+  },
+  {
+   "id": "Q48",
+   "group": "experiment",
+   "question": "What did optimization and the final holdout give on letter recognition?",
+   "answers": [
+    "EXP-060"
+   ]
+  },
+  {
+   "id": "Q49",
+   "group": "experiment",
+   "question": "What did the bike sharing feature engineering ablation show?",
+   "answers": [
+    "EXP-063"
+   ]
+  },
+  {
+   "id": "Q50",
+   "group": "experiment",
+   "question": "How did the breast cancer algorithm screening go?",
+   "answers": [
+    "EXP-014"
+   ]
+  },
+  {
+   "id": "Q51",
+   "group": "experiment",
+   "question": "What was found when exploring the online shoppers data?",
+   "answers": [
+    "EXP-041"
+   ]
+  },
+  {
+   "id": "Q52",
+   "group": "experiment",
+   "question": "What did the bank marketing feature engineering ablation show?",
+   "answers": [
+    "EXP-008"
+   ]
+  },
+  {
+   "id": "Q53",
+   "group": "workflow",
+   "question": "What is the split design step?",
+   "answers": [
+    "WF-03"
+   ]
+  },
+  {
+   "id": "Q54",
+   "group": "workflow",
+   "question": "What happens in the leakage audit block?",
+   "answers": [
+    "WF-05"
+   ]
+  },
+  {
+   "id": "Q55",
+   "group": "workflow",
+   "question": "What is the reliability challenge?",
+   "answers": [
+    "WF-09",
+    "DCLAB-R19"
+   ]
+  },
+  {
+   "id": "Q56",
+   "group": "workflow",
+   "question": "How is knowledge captured at the end of a project?",
+   "answers": [
+    "WF-10",
+    "DCLAB-R21"
+   ]
+  },
+  {
+   "id": "Q57",
+   "group": "workflow",
+   "question": "Which mistake produced the largest apparent score jumps?",
+   "answers": [
+    "FINDING-leakage-gaps"
+   ]
+  },
+  {
+   "id": "Q58",
+   "group": "workflow",
+   "question": "What won the Telco churn campaign?",
+   "answers": [
+    "FINDING-churn-linear"
+   ]
+  },
+  {
+   "id": "Q59",
+   "group": "workflow",
+   "question": "What does the source and lineage gate check?",
+   "answers": [
+    "WF-02"
+   ]
+  },
+  {
+   "id": "Q60",
+   "group": "workflow",
+   "question": "How should exploratory analysis avoid the test rows?",
+   "answers": [
+    "WF-04",
+    "DCLAB-R03"
+   ]
+  }
+ ]
+}
