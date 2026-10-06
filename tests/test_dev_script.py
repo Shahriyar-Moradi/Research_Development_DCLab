@@ -153,12 +153,14 @@ class DatabaseTests(unittest.TestCase):
 
         base = pgtest.require()
         url = make_url(base).set(database=f"dclab_devtest_{secrets.token_hex(3)}").render_as_string(hide_password=False)
+        # the "this machine only" check has its own tests above; here the database may be a CI service container,
+        # which answers from its own address, so the scratch database is named as remote on purpose
         try:
-            self.assertIn("created and migrated", dev.ensure_database(url))
+            self.assertIn("created and migrated", dev.ensure_database(url, remote=True))
             head = db.current(url)
             self.assertIsNotNone(head)
-            self.assertIn("already at", dev.ensure_database(url))  # a second run changes nothing
-            self.assertIn("reset and", dev.ensure_database(url, reset=True))
+            self.assertIn("already at", dev.ensure_database(url, remote=True))  # a second run changes nothing
+            self.assertIn("reset and", dev.ensure_database(url, reset=True, remote=True))
             self.assertEqual(db.current(url), head)
         finally:
             import sqlalchemy as sa

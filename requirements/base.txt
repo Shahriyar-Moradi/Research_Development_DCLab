@@ -14,7 +14,7 @@ fastapi>=0.115
 uvicorn>=0.30
 python-dotenv>=1.0
 httpx>=0.27
-mcp>=1.20
+mcp>=1.20,<2              # 2.x removed the decorator API dclab_rnd/mcp_server.py uses; tested with 1.27
 openai>=1.50
 jsonschema>=4.18  # the agent runtime checks every tool call against its schema
 
