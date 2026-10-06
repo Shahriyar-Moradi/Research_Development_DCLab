@@ -80,6 +80,17 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         task = asyncio.get_running_loop().create_task(go())
         jobs[key] = task
 
+    def answering(draft_id: str) -> bool:
+        """Whether an agent turn holds this draft now, on any app instance (the turn lock: an advisory lock on
+        PostgreSQL, package 10.5; a thread lock on files). This instance's own queued turn is checked by the caller."""
+        lock = drafts.turn(draft_id)
+        if hasattr(lock, "release"):  # files: a re-entrant thread lock; this thread never holds it
+            if lock.acquire(blocking=False):
+                lock.release()
+                return False
+            return True
+        return not lock.acquire(0)
+
     def process(draft_id: str, asset_id: str) -> None:
         """The pipeline of one asset, as a job (in a task of this process when no job table is wired)."""
         if services is None:
@@ -255,7 +266,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         text = str(dump(payload).get("text", "")).strip()
         if not text:
             raise HTTPException(422, "Write a message first")
-        if (draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done():
+        busy = await asyncio.to_thread(answering, draft_id)  # first: nothing awaits between the check below and registering the turn
+        if busy or ((draft_id + ":agent") in jobs and not jobs[draft_id + ":agent"].done()):
             raise HTTPException(409, "The agent is still answering")
         background(draft_id + ":agent", lambda: agent(draft_id).reply(draft_id, text))
         return {"accepted": True}
@@ -433,27 +445,45 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         start = int(request.headers.get("last-event-id") or after or 0)
         limit = max(0.0, min(float(wait), STREAM_SECONDS))  # how long to keep the stream open (tests use a short one)
 
+        # On PostgreSQL the stream sleeps until an instance commits an event for this draft (LISTEN/NOTIFY, package 10.5),
+        # with a slow poll as the fallback; on files it polls, as one process writes them.
+        listening = drafts.wait_for_events() if hasattr(drafts, "wait_for_events") else None
+
         async def stream():
-            seq, idle, waited = start, 0.0, 0.0
+            loop = asyncio.get_running_loop()
+            seq, began, quiet = start, loop.time(), loop.time()
             yield "retry: 1500\n\n"
-            first = True
-            while first or waited < limit:
-                first = False
-                if await request.is_disconnected():
-                    break
-                new = await asyncio.to_thread(drafts.events, draft_id, seq)
-                for event in new:
-                    seq = event["seq"]
-                    yield f"id: {seq}\nevent: {event['kind']}\ndata: {json.dumps(event['data'], ensure_ascii=False, default=str)}\n\n"
-                if new:
-                    idle = 0.0
-                else:
-                    idle += 0.4
-                    if idle >= 15:
+            # subscribed before the first read: an event committed between a read and the wait still wakes the stream
+            woken = listening.subscribe(draft_id) if listening is not None else None
+            try:
+                first = True
+                while first or loop.time() - began < limit:
+                    first = False
+                    if await request.is_disconnected():
+                        break
+                    if woken is not None:
+                        woken.clear()
+                    new = await asyncio.to_thread(drafts.events, draft_id, seq)
+                    for event in new:
+                        seq = event["seq"]
+                        yield f"id: {seq}\nevent: {event['kind']}\ndata: {json.dumps(event['data'], ensure_ascii=False, default=str)}\n\n"
+                    if new:
+                        quiet = loop.time()
+                        continue
+                    left = max(0.05, limit - (loop.time() - began))
+                    if woken is not None and listening.connected.is_set():
+                        try:
+                            await asyncio.wait_for(woken.wait(), min(2.0, left))
+                        except asyncio.TimeoutError:
+                            pass
+                    else:
+                        await asyncio.sleep(min(0.4, left))
+                    if loop.time() - quiet >= 15:
                         yield ": keep-alive\n\n"
-                        idle = 0.0
-                await asyncio.sleep(0.4)
-                waited += 0.4
+                        quiet = loop.time()
+            finally:
+                if woken is not None:
+                    listening.unsubscribe(draft_id, woken)
         return StreamingResponse(stream(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
     @router.post("/api/drafts/{draft_id}/build", status_code=201, response_model=Project)

@@ -202,6 +202,9 @@ class PgProjects(_Base):
         return [r[0] for r in reversed(rows)]
 
 
+from .notify import CHANNEL as NOTIFY_CHANNEL  # noqa: E402 — beside the class that sends it
+
+
 class _Turn:
     """One agent turn at a time per draft, across threads and processes: a session advisory lock, re-entrant per thread."""
 
@@ -320,7 +323,15 @@ class PgDrafts(_Base):
                 raise KeyError(draft_id)
             event = {"seq": int(seq), "at": draft_now(), "kind": kind, "data": json.loads(db.dumps(data or {}))}
             c.execute(sa.insert(draft_event).values(draft_id=draft_id, **event))
+            # delivered when this transaction commits, to every app instance listening (package 10.5: storage/notify.py)
+            c.execute(sa.text("select pg_notify(:channel, :draft)"), {"channel": NOTIFY_CHANNEL, "draft": _key(draft_id)})
         return event
+
+    def wait_for_events(self):
+        """The listener that wakes an event stream when another instance (or a worker) emits for a draft."""
+        from .notify import listener
+
+        return listener(self.engine.url.render_as_string(hide_password=False))
 
     def events(self, draft_id: str, after: int = 0) -> list[dict[str, Any]]:
         with self.engine.connect() as c:

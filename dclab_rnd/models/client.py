@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 DEFAULT_MODEL = "gpt-5.6-terra"
 PAUSE_SECONDS = 600  # after a refusal that will not go away by itself (no credit, a refused key, an unknown model)
-_PAUSED: dict[str, tuple[float, str]] = {}  # endpoint and model -> (until, reason)
+# the pause is shared by every app instance and worker (models/pause.py: a row with an expiry on PostgreSQL)
 
 
 def failure(exc: BaseException) -> tuple[str, bool]:
@@ -46,7 +46,9 @@ def failure(exc: BaseException) -> tuple[str, bool]:
 
 def resume() -> None:
     """Forget every pause (a new key or endpoint was configured, or a test starts)."""
-    _PAUSED.clear()
+    from . import pause
+
+    pause.clear()
 
 
 def settings() -> dict[str, Any]:
@@ -82,15 +84,24 @@ class ChatClient:
             return {}
         return {"max_completion_tokens" if "api.openai.com" in self.base_url else "max_tokens": max_tokens}
 
+    def _pause_key(self) -> str:
+        from . import pause
+
+        return pause.key(self.base_url, self.model, self.api_key)
+
     def _ready(self) -> None:
-        until, reason = _PAUSED.get(f"{self.base_url} {self.model}", (0.0, ""))
+        from . import pause
+
+        until, reason = pause.get(self._pause_key())
         if until > time.time():  # no request is sent: it would be refused again, and each attempt makes the user wait
             raise RuntimeError(f"ModelPaused: {reason}")
 
     def _failed(self, exc: BaseException) -> RuntimeError:
         reason, pointless = failure(exc)
         if pointless:
-            _PAUSED[f"{self.base_url} {self.model}"] = (time.time() + PAUSE_SECONDS, reason)
+            from . import pause
+
+            pause.put(self._pause_key(), time.time() + PAUSE_SECONDS, reason)
         error = RuntimeError(f"{type(exc).__name__}: {reason}")
         # worth trying again soon: a rate limit, a provider error or an unreachable endpoint; never a refusal that stays
         error.transient = not pointless and reason != "the model request failed"  # type: ignore[attr-defined]

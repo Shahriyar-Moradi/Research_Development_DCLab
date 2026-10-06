@@ -249,4 +249,10 @@ audit_event = sa.Table(  # every governed action, append-only: a trigger refuses
     sa.Index("ix_audit_event_workspace_id_kind", "workspace_id", "kind"),
     sa.Index("ix_audit_event_workspace_id_project_id", "workspace_id", "project_id"))
 
+model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
+    "model_pause", metadata,
+    sa.Column("key", sa.Text, primary_key=True),  # endpoint, model and a hash of the API key: never the key
+    sa.Column("until", sa.Float, nullable=False),  # seconds since the epoch
+    sa.Column("reason", sa.Text, nullable=False))
+
 TABLES = [t.name for t in metadata.sorted_tables]
