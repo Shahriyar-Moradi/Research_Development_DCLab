@@ -2,6 +2,9 @@
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
+# The tests make temporary folders (tempfile.mkdtemp) and do not remove them: hundreds per run of check-all, which
+# filled the disk in a day of work. Each test command gets its own TMPDIR, removed when it ends, whatever its result.
+TEST_TMP = T=$$(mktemp -d "$${TMPDIR:-/tmp}/dclab-tests.XXXXXX"); trap 'rm -rf "$$T"' EXIT; TMPDIR=$$T
 
 help:  ## list the available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -9,13 +12,13 @@ help:  ## list the available targets
 # --- Automation control plane -------------------------------------------------
 
 test:  ## unit tests for the automation layer (ML env)
-	$(PYTHON) -m unittest discover -s tests -v
+	$(TEST_TMP) $(PYTHON) -m unittest discover -s tests -v
 
 rd-sync:  ## rebuild registry + knowledge base
 	$(PYTHON) -m dclab_rnd sync
 
 rd-check:  ## tests, record validation, stale-knowledge and campaign gates
-	$(PYTHON) -m unittest discover -s tests -v
+	$(TEST_TMP) $(PYTHON) -m unittest discover -s tests -v
 	$(PYTHON) -m dclab_rnd validate
 	$(PYTHON) -m dclab_rnd sync --check
 	$(PYTHON) -m dclab_rnd campaign verify
@@ -74,8 +77,8 @@ mcp-serve:  ## the DCLab tools as a standalone MCP server on http://127.0.0.1:87
 	$(PYTHON) -m dclab_rnd.mcp_server
 
 agent-test:  ## agentic tests (agent env) + deterministic worker tests (ML env)
-	$(AGENT_PYTHON) -m pytest tests/test_agentic.py tests/test_research_map.py tests/test_studio.py -q
-	$(PYTHON) -m unittest discover -s tests -p 'test_agentic_worker.py' -v
+	$(TEST_TMP) $(AGENT_PYTHON) -m pytest tests/test_agentic.py tests/test_research_map.py tests/test_studio.py -q
+	$(TEST_TMP) $(PYTHON) -m unittest discover -s tests -p 'test_agentic_worker.py' -v
 
 agent-status:  ## list Studio runs
 	$(AGENT_PYTHON) -m dclab_rnd.agentic status
@@ -141,7 +144,7 @@ web:  ## rebuild the product frontend (dclab_rnd/agentic/web/src -> dclab_rnd/ag
 
 test-pg:  ## the whole suite on PostgreSQL: needs the local database dclab_test (createdb dclab_test); the tests empty it
 	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m dclab_rnd.storage upgrade
-	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m unittest discover -s tests
+	$(TEST_TMP) DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m unittest discover -s tests
 
 # Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
 rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
@@ -149,11 +152,11 @@ rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
 check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows
 	$(MAKE) rd-check
 	$(MAKE) test-pg
-	@if [ -x $(AGENT_PYTHON) ]; then $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi
+	@if [ -x $(AGENT_PYTHON) ]; then $(TEST_TMP) $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi
 	$(MAKE) product-e2e
 
 product-e2e:  ## run the product's main flows end to end on a temporary server (upload, no data, synthetic, log file; ~3 min, no model)
-	$(PYTHON) scripts/product_e2e.py
+	$(TEST_TMP) $(PYTHON) scripts/product_e2e.py
 
 product-demo:  ## rebuild docs/product-demo/index.html, the clickable demo of the final product (REFRESH=1 re-extracts the evidence)
 	$(PYTHON) docs/product-demo/build.py $(if $(REFRESH),--refresh,)
