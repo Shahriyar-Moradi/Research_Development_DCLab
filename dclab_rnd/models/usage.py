@@ -194,5 +194,5 @@ def open_usage(home: Path) -> UsageLog:
     from ..storage import db
 
     if db.database_url(required=False):
-        return PgUsage(db.workspace(str(Path(home).resolve()), Path(home).name))
+        return PgUsage(db.workspace_for(Path(home)))
     return FileUsage(Path(home) / "model_requests.jsonl")

@@ -740,7 +740,7 @@ must survive a restart. Part 2 builds that, without changing the UI or the scien
 |---|---|---|
 | 9.1 | A storage interface in front of the three stores | Done (`dclab_rnd/storage`, `tests/test_storage_interface.py`) |
 | 9.2 | The database schema and migrations | Done (`dclab_rnd/storage/{models,db,postgres}.py`, `migrations/`) |
-| 9.3 | File storage for tables and artifacts | Open |
+| 9.3 | File storage for tables and artifacts | Done (`dclab_rnd/storage/files.py`, `tests/test_file_storage.py`): put, open, path, exists, delete; local folder, or S3-compatible with `DCLAB_FILES_URL=s3://bucket/prefix` (boto3 lazily, credentials from its default chain only); each file recorded with key (its path under the workspace folder), size, SHA-256, content type and backend (`.dclab_files.json`, or the `stored_file` table, migration 0008); project data, draft uploads and cleaned tables, and the intern's exports are recorded; every read of a project's table checks the hash (the engine, the Solution routes, the intern's tools); a workspace folder carries its identity in `.dclab_workspace`, so a moved folder is the same PostgreSQL workspace. Open: draft reads (the pipeline's `clean.parquet`) and connectors' downloads are recorded but not checked on read; the HTTP exports are built in memory, not stored; a workspace moved before its marker existed gets a new id (run it once in place first); a copied workspace folder shares the original's PostgreSQL rows (its identity travels with it), so copy only to move |
 | 9.4 | Move an existing workspace into the database | Open |
 | 10.1 | Settings, routers and typed request and response models | Open |
 | 10.2 | Accounts, workspaces and roles | Open |

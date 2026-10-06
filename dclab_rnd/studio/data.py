@@ -282,6 +282,19 @@ def safe_name(filename: str) -> str:
     return base
 
 
+def data_path(store, project: dict[str, Any]) -> Path:
+    """The project's table, checked against the SHA-256 recorded when it was attached (package 9.3): a file that changed
+    on disk, or is missing, is an error here, never other data in a model."""
+    from ..storage.files import FileError, files_for
+
+    path = store.data_dir(project["id"]) / project["data"]["filename"]
+    try:
+        files = files_for(store)
+        return files.path(files.key_of(path), expected=project["data"].get("sha256"))
+    except FileError as exc:
+        raise DataError(str(exc)) from None
+
+
 def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     """Register ``data/<filename>`` (already written) as the project's table and profile it."""
     path = store.data_dir(project_id) / filename
@@ -293,12 +306,27 @@ def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     if frame.shape[1] < 2 or len(frame) < 30:
         path.unlink(missing_ok=True)
         raise DataError("The table needs at least 2 columns and 30 rows")
+    from ..storage.files import files_for
+
+    try:  # the new table is recorded first: a storage that cannot take it leaves the project and its old table as they were
+        files = files_for(store)
+        stored = files.put(files.key_of(path), path)  # key, size, SHA-256, content type (package 9.3)
+    except Exception as exc:  # noqa: BLE001 — a name, a folder or a backend the storage refuses
+        from ..storage.files import FileError
+
+        path.unlink(missing_ok=True)
+        # a storage error says what was wrong with the file; any other error (a database, a bucket) only its type:
+        # its text can hold the connection's host, port or user, which never reach a response (CLAUDE.md rule 4)
+        raise DataError(str(exc) if isinstance(exc, FileError) else f"The table could not be stored ({type(exc).__name__})") from None
     for old in store.data_dir(project_id).iterdir():
-        if old.name != filename:
-            old.unlink()
+        if old.name != filename and not old.name.endswith(".part"):
+            try:
+                files.delete(files.key_of(old))  # the file and its record
+            except Exception:  # noqa: BLE001 — a leftover the storage never recorded: just remove the file
+                old.unlink(missing_ok=True)
     project = store.get(project_id)
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
-                       "sha256": sha256(path), "profile": profile_table(frame)}
+                       "sha256": stored["sha256"], "profile": profile_table(frame)}
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
     if project.get("memory"):
         from . import memory

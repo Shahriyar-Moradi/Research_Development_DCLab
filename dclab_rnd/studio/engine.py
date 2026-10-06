@@ -24,7 +24,7 @@ from dclab_rnd.expansion import runner as rn
 
 from . import agent, graph
 from .solution import Solution
-from .data import column_kind, load_table, sha256
+from .data import column_kind, data_path, load_table, sha256
 from .store import STAGE_KEYS, ProjectStore
 
 TASK_TYPE = {"binary": "binary_imbalanced", "multiclass": "multiclass", "regression": "timeseries_regression"}
@@ -107,11 +107,11 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     if not project.get("data") or not project.get("solution"):
         raise ValueError("The project needs data and a solution first")
     solution = Solution(**project["solution"])
-    path = store.data_dir(project["id"]) / project["data"]["filename"]
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared))
     if key in _BUNDLES:
         return _BUNDLES[key]
+    path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
     frame = load_table(path)
     solution.check_columns(list(frame.columns))
     # Yes/no columns arrive as booleans (cleaned uploads, CSVs with True/False); numpy cannot take quantiles or

@@ -90,6 +90,36 @@ def reachable(url: str | None = None) -> str | None:
         return f"{type(exc).__name__}: the database did not answer"
 
 
+MARKER = ".dclab_workspace"  # in the workspace folder: which workspace it is, wherever the folder goes (package 9.3)
+
+
+def workspace_key(home: Path) -> str:
+    """The key of the workspace that lives in ``home``. It was the folder's path; it is now written into the folder
+    the first time (the same path, so an existing workspace keeps its id), so a moved folder is still the same workspace."""
+    home = Path(home)
+    marker = home / MARKER
+    try:
+        found = marker.read_text(encoding="utf-8").strip()
+        if found:
+            return found
+    except OSError:
+        pass
+    key = str(home.resolve())
+    try:
+        home.mkdir(parents=True, exist_ok=True)
+        temporary = marker.with_suffix(".tmp")
+        temporary.write_text(key + "\n", encoding="utf-8")
+        os.replace(temporary, marker)
+    except OSError:  # a read-only folder keeps the old behaviour: its path is its key
+        pass
+    return key
+
+
+def workspace_for(home: Path, url: str | None = None) -> str:
+    """The id of the workspace in ``home`` (its marker, else its path), created on first use."""
+    return workspace(workspace_key(home), Path(home).name, url)
+
+
 def workspace(key: str, name: str | None = None, url: str | None = None) -> str:
     """The id of the workspace for ``key`` (a folder today), created on first use."""
     import hashlib

@@ -203,4 +203,14 @@ model_shadow = sa.Table(  # how a shadow model's answer compared with the served
     sa.Column("output_tokens", sa.Integer, nullable=False, server_default="0"),
     sa.Index("ix_model_shadow_workspace_at", "workspace_id", "at"))
 
+stored_file = sa.Table(  # a table or artifact kept in file storage: where, how big, its hash (dclab_rnd/storage/files.py, 9.3); never a credential
+    "stored_file", metadata,
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("key", sa.Text, primary_key=True),  # the path under the workspace folder, made of safe names
+    sa.Column("size", sa.BigInteger, nullable=False),
+    sa.Column("sha256", sa.String(64), nullable=False),
+    sa.Column("content_type", sa.Text, nullable=False),
+    sa.Column("backend", sa.Text, nullable=False),  # local or s3
+    sa.Column("recorded", sa.Text, nullable=False))
+
 TABLES = [t.name for t in metadata.sorted_tables]

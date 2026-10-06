@@ -380,5 +380,5 @@ class PgSessions(_Base):
 def open_stores(home: Path, url: str | None = None) -> tuple[PgProjects, PgDrafts, PgSessions]:
     """The three stores for the workspace that lives in ``home`` (a folder keeps its files; a new folder is a new workspace)."""
     home = Path(home)
-    wid = db.workspace(str(home.resolve()), home.name, url)
+    wid = db.workspace_for(home, url)  # the folder's marker: a moved folder is the same workspace (package 9.3)
     return PgProjects(wid, home, url), PgDrafts(wid, home, url), PgSessions(wid, home, url)

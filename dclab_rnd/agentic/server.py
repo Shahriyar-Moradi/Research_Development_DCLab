@@ -201,7 +201,8 @@ def create_app(home=None):
         return verdict
     def load_frame(p):
         if not p.get("data"): raise HTTPException(409, "Upload data first")
-        return studio_data.load_table(projects.data_dir(p["id"]) / p["data"]["filename"])
+        try: return studio_data.load_table(studio_data.data_path(projects, p))  # checked against the recorded SHA-256
+        except studio_data.DataError as exc: raise HTTPException(409, str(exc)) from None
     def attach_data(p, filename):
         try: return studio_data.attach_data(projects, p["id"], filename)
         except studio_data.DataError as exc: raise HTTPException(400, str(exc))
@@ -276,7 +277,16 @@ def create_app(home=None):
     async def delete_project(project_id: str):
         project(project_id)
         if project_id in jobs and not jobs[project_id].done(): raise HTTPException(409, "Stop the running stage first")
+        from ..storage.files import files_for
+        try:
+            files = files_for(projects)
+            prefix = files.key_of(projects.data_dir(project_id).parent)
+        except Exception:  # noqa: BLE001 — a project is always deletable; its file records then stay (they point at nothing)
+            files = prefix = None
         projects.delete(project_id)
+        if files is not None:
+            try: files.forget(prefix)  # the records of its files go with it
+            except Exception: pass  # noqa: BLE001
         return Response(status_code=204)
     @app.put("/api/projects/{project_id}/data")
     async def upload_data(project_id: str, request: Request, filename: str = "data.csv"):

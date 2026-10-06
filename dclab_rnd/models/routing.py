@@ -101,7 +101,7 @@ def open_routing(home: Path) -> RoutingStore:
     from ..storage import db
 
     if db.database_url(required=False):
-        return PgRouting(db.workspace(str(Path(home).resolve()), Path(home).name))
+        return PgRouting(db.workspace_for(Path(home)))
     return FileRouting(Path(home) / "model_routing.json")
 
 

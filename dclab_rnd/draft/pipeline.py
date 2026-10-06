@@ -44,6 +44,17 @@ def set_asset(store: DraftStore, draft_id: str, asset_id: str, **values: Any) ->
     return found
 
 
+def _record(store: DraftStore, path) -> None:
+    """Record a draft file in file storage; a file the storage cannot take (a name it would not write) stays as it is."""
+    try:
+        from ..storage.files import files_for
+
+        files = files_for(store)
+        files.put(files.key_of(path), path)
+    except Exception:  # noqa: BLE001 — best effort: a storage that fails (S3 without credentials, the database) never stops the pipeline
+        pass
+
+
 def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None) -> dict[str, Any]:
     """Process one asset. Returns the final asset record (status "ready" or "failed")."""
     from . import analyze, clean, structure  # imported lazily: the store and the chat do not need pandas
@@ -51,6 +62,7 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
     draft = store.get(draft_id)
     asset = next(a for a in draft["assets"] if a["id"] == asset_id)
     path = store.data_dir(draft_id) / asset["filename"]
+    _record(store, path)  # the upload, a sample or a connector's file, as it arrived (package 9.3)
     try:
         set_asset(store, draft_id, asset_id, status="structuring")
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structuring", "text": "Reading the file and turning it into a table"})
@@ -73,6 +85,7 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
         report["profile"]["target_candidates"] = rank_targets(report["profile"], draft.get("problem") or "")
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)
+        _record(store, out)
         final: dict[str, Any] = {}
 
         def put(d):  # one write: a reader never sees the asset ready without its analysis

@@ -159,7 +159,7 @@ def open_traces(home: Path) -> TraceStore:
     from ..storage import db
 
     if db.database_url(required=False):
-        return PgTraces(db.workspace(str(Path(home).resolve()), Path(home).name))
+        return PgTraces(db.workspace_for(Path(home)))
     return FileTraces(Path(home) / "agent_steps.jsonl")
 
 

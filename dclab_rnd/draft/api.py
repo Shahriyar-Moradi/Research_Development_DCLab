@@ -146,7 +146,18 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     @app.delete("/api/drafts/{draft_id}", status_code=204)
     async def delete_draft(draft_id: str):
         get(draft_id)
+        from ..storage.files import files_for
+        try:
+            files = files_for(drafts)
+            prefix = files.key_of(drafts.data_dir(draft_id).parent)
+        except Exception:  # noqa: BLE001 — a draft is always deletable
+            files = prefix = None
         drafts.delete(draft_id)
+        if files is not None:
+            try:
+                files.forget(prefix)  # the records of its files go with it (package 9.3)
+            except Exception:  # noqa: BLE001
+                pass
         try:
             if traces is not None:
                 traces.delete(draft_id)

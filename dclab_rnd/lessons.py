@@ -324,7 +324,7 @@ def open_lessons(home: Path) -> LessonStore:
     from .storage import db
 
     if db.database_url(required=False):
-        return PgLessons(db.workspace(str(Path(home).resolve()), Path(home).name))
+        return PgLessons(db.workspace_for(Path(home)))
     return FileLessons(Path(home) / "lessons.json")
 
 

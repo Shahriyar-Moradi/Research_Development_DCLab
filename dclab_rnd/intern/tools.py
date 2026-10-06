@@ -224,7 +224,7 @@ class Toolbox:
         project = self.projects.get(project_id)
         if not project.get("data"):
             return {"error": "The project has no data yet."}
-        frame = studio_data.load_table(self.projects.data_dir(project_id) / project["data"]["filename"])
+        frame = studio_data.load_table(studio_data.data_path(self.projects, project))  # checked against the recorded SHA-256
         proposal = studio_solution.propose(frame, project["data"]["profile"], target, task)
         self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
         return {k: proposal[k] for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
@@ -238,7 +238,7 @@ class Toolbox:
             return {"error": "The project has no data yet."}
         from dclab_rnd.models import installed
         from dclab_rnd.studio import leakage_review
-        frame = studio_data.load_table(self.projects.data_dir(project_id) / project["data"]["filename"])
+        frame = studio_data.load_table(studio_data.data_path(self.projects, project))  # checked against the recorded SHA-256
         proposal = studio_solution.propose(frame, project["data"]["profile"], target)
         moment = prediction_moment or (project.get("solution") or {}).get("prediction_moment") or (project.get("suggestion") or {}).get("prediction_moment")
         gateway = installed()
@@ -326,8 +326,11 @@ class Toolbox:
         (folder / "notebook.ipynb").write_text(studio_export.dumps_notebook(studio_export.notebook(project, records)), encoding="utf-8")
         (folder / "report.md").write_text(studio_export.report(project, records), encoding="utf-8")
         studio_graph.capture(self.projects, project_id, "agent")
+        from ..storage.files import files_for
+        files = files_for(self.projects)
+        keys = [files.put(files.key_of(folder / name), folder / name)["key"] for name in ("notebook.ipynb", "report.md")]  # recorded, by key
         return {"notebook": f"/api/projects/{project_id}/export/notebook", "report": f"/api/projects/{project_id}/export/report",
-                "files": [str(folder / "notebook.ipynb"), str(folder / "report.md")], "project_url": f"#project/{project_id}"}
+                "files": keys, "project_url": f"#project/{project_id}"}
 
 
     def get_graph(self, project_id: str) -> dict[str, Any]:
