@@ -88,22 +88,23 @@ class ProjectReviewRouteTests(unittest.TestCase):
         keyed.start()  # a configured tier; the transport below is scripted, so nothing leaves the machine
         self.addCleanup(keyed.stop)
         import threading
-        import time
 
-        gate = threading.Event()
+        entered, gate = threading.Event(), threading.Event()
 
         class Slow(Writer):
             def complete(self, messages, tools=None, max_tokens=None, **_):
-                gate.wait(5)
+                entered.set()  # the first request is inside the guarded section (events, not sleeps: the suite runs in parallel)
+                gate.wait(120)
                 return super().complete(messages, tools, max_tokens)
         c.app.state.models.transport = lambda tier, purpose: Slow()
         first = {}
         running = threading.Thread(target=lambda: first.update(r=c.post(f"/api/projects/{pid}/review/fixes", headers=self.headers)))
         running.start()
-        time.sleep(0.5)
+        self.assertTrue(entered.wait(120))
         self.assertEqual(c.post(f"/api/projects/{pid}/review/fixes", headers=self.headers).status_code, 409)  # one request at a time per project
         gate.set()
-        running.join(10)
+        running.join(120)
+        self.assertFalse(running.is_alive())
         self.assertEqual(first["r"].status_code, 200)
         c.app.state.models.transport = lambda tier, purpose: Writer()
         self.assertTrue(c.get(f"/api/projects/{pid}/review").json()["fixes_available"])

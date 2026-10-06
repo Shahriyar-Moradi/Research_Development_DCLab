@@ -343,7 +343,7 @@ class MoneyTests(unittest.TestCase):
 
         class Slow(Scripted):
             def complete(self, messages, tools=None, max_tokens=1800, **options):
-                gate.wait(5)
+                gate.wait(60)
                 return {"content": "ok", "usage": {"input_tokens": 9_000, "output_tokens": 1_000}}
         with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
             gw = Gateway(self.usage, transport=lambda tier, purpose: Slow([], tier, purpose), project_cap=lambda pid: 0.05)
@@ -357,9 +357,11 @@ class MoneyTests(unittest.TestCase):
             threads = [threading.Thread(target=one) for _ in range(3)]
             [t.start() for t in threads]
             import time
-            time.sleep(0.3)
+            deadline = time.time() + 60  # the other two are refused while the first is held (a deadline, not a sleep: the suite runs in parallel)
+            while time.time() < deadline and outcomes.count("refused") < 2:
+                time.sleep(0.05)
             gate.set()
-            [t.join(5) for t in threads]
+            [t.join(60) for t in threads]
         self.assertEqual(sorted(outcomes), ["refused", "refused", "sent"])  # one 0.028 hold fits under 0.05; a second does not
         self.assertEqual(gw._held, {"p:p1": 0.0})
 
@@ -597,7 +599,7 @@ class ApiTests(unittest.TestCase):
         import time
         c = self.client
         d = c.post("/api/drafts", json={"problem": "Predict which customers cancel next month"}, headers=self.h).json()
-        deadline = time.time() + 20
+        deadline = time.time() + 60
         while time.time() < deadline and not c.get(f"/api/drafts/{d['id']}").json()["questions"]:
             time.sleep(0.2)
         self.assertEqual(c.post(f"/api/drafts/{d['id']}/messages", json={"text": "Customers who cancel within 30 days"}, headers=self.h).status_code, 202)

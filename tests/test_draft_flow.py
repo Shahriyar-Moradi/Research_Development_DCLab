@@ -159,19 +159,20 @@ class AgentTests(unittest.TestCase):
 
         def slow_next_turn(draft_id, opening=False):  # the old question is withdrawn, the new one not asked yet
             in_gap.set()
-            release.wait(5)
+            release.wait(60)
             return original(draft_id, opening)
         agent.next_turn = slow_next_turn
         ready = threading.Thread(target=agent.data_ready, args=(d["id"], {"id": "a1"}))
         ready.start()
-        self.assertTrue(in_gap.wait(5))
+        self.assertTrue(in_gap.wait(60))
         answer = threading.Thread(target=HomeAgent(self.store, None).reply, args=(d["id"], "left"))
         answer.start()
         answer.join(0.3)
         self.assertTrue(answer.is_alive())  # the message waits instead of landing in the notes
         release.set()
-        ready.join(5)
-        answer.join(5)
+        ready.join(60)
+        answer.join(60)
+        self.assertFalse(ready.is_alive() or answer.is_alive())
         draft = self.store.get(d["id"])
         self.assertEqual(draft["understanding"].get("target"), "left")
         self.assertNotIn("notes", draft["understanding"])

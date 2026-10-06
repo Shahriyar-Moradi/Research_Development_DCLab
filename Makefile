@@ -1,32 +1,43 @@
-.PHONY: help retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: help test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
 # The tests make temporary folders (tempfile.mkdtemp) and do not remove them: hundreds per run of check-all, which
 # filled the disk in a day of work. Each test command gets its own TMPDIR, removed when it ends, whatever its result.
 TEST_TMP = T=$$(mktemp -d "$${TMPDIR:-/tmp}/dclab-tests.XXXXXX"); trap 'rm -rf "$$T"' EXIT; TMPDIR=$$T
+# The suite runs in parallel by default: one process per test file, several at a time, each with its own TMPDIR and its
+# own PostgreSQL test database (tests/run_parallel.py). It picks how many from the cores and the memory (6 on an 8 GB M1:
+# 98 s, against 205 s for the old single process run and 268 s with 8 jobs, which swap). JOBS=4 sets it; JOBS=1 runs one
+# file at a time; `make test-serial` is the old single process run.
+JOBS ?=
+RUN_TESTS = $(PYTHON) tests/run_parallel.py $(if $(JOBS),--jobs $(JOBS),)
+# rd-check's record, freshness and build checks: independent of each other, so they run at the same time
+RD_GATES = "-m dclab_rnd validate" "-m dclab_rnd sync --check" "-m dclab_rnd campaign verify" "-m dclab_rnd.evidence_index check" \
+	"research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check" "-m dclab_rnd.research_map --check" \
+	"docs/product-demo/build.py --check" "-m dclab_rnd.agentic.web.build --check"
 
 help:  ## list the available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 # --- Automation control plane -------------------------------------------------
 
-test:  ## unit tests for the automation layer (ML env)
+test:  ## the whole suite, in parallel (JOBS=N files at a time; JOBS=1 one at a time)
+	$(TEST_TMP) $(RUN_TESTS)
+
+test-serial:  ## the whole suite in one process, the way it ran before the parallel runner
 	$(TEST_TMP) $(PYTHON) -m unittest discover -s tests -v
 
 rd-sync:  ## rebuild registry + knowledge base
 	$(PYTHON) -m dclab_rnd sync
 
-rd-check:  ## tests, record validation, stale-knowledge and campaign gates
-	$(TEST_TMP) $(PYTHON) -m unittest discover -s tests -v
-	$(PYTHON) -m dclab_rnd validate
-	$(PYTHON) -m dclab_rnd sync --check
-	$(PYTHON) -m dclab_rnd campaign verify
-	$(PYTHON) -m dclab_rnd.evidence_index check
-	$(PYTHON) research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check
-	$(PYTHON) -m dclab_rnd.research_map --check
-	$(PYTHON) docs/product-demo/build.py --check
-	$(PYTHON) -m dclab_rnd.agentic.web.build --check
+rd-check:  ## record validation, stale-knowledge, campaign and build gates (at the same time, first), then the suite in parallel
+	$(MAKE) rd-gates
+	$(TEST_TMP) $(RUN_TESTS)
+
+rd-gates:  ## rd-check's checks other than the tests, run at the same time; prints the output of any that fails
+	@out=$$(mktemp -d); i=0; for c in $(RD_GATES); do i=$$((i+1)); ( $(PYTHON) $$c > $$out/$$i.log 2>&1; echo $$? > $$out/$$i.rc ) & done; wait; \
+	fail=0; i=0; for c in $(RD_GATES); do i=$$((i+1)); if [ "$$(cat $$out/$$i.rc)" = 0 ]; then echo "ok    $$c"; else echo "FAIL  $$c"; cat $$out/$$i.log; fail=1; fi; done; \
+	rm -rf $$out; exit $$fail
 
 rd-status:  ## deployment-eligible champions
 	$(PYTHON) -m dclab_rnd status
@@ -142,12 +153,12 @@ copilot-demo:  ## review the leaky demo notebook and write docs/copilot_demo.htm
 web:  ## rebuild the product frontend (dclab_rnd/agentic/web/src -> dclab_rnd/agentic/static/app)
 	$(PYTHON) -m dclab_rnd.agentic.web.build
 
-test-pg:  ## the whole suite on PostgreSQL: needs the local database dclab_test (createdb dclab_test); the tests empty it
+test-pg:  ## the whole suite on PostgreSQL, in parallel: needs the local database dclab_test (createdb dclab_test); each worker gets dclab_test_p<N>, which the tests empty
 	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m dclab_rnd.storage upgrade
-	$(TEST_TMP) DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m unittest discover -s tests
+	$(TEST_TMP) DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(RUN_TESTS) --pg
 
 # Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
-rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
+test test-serial rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
 
 check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows
 	$(MAKE) rd-check

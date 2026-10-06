@@ -142,12 +142,12 @@ class Contract:
                     order.append("a-end")
 
         def second():
-            inside.wait(5)
+            inside.wait(60)
             with self.drafts.turn(d):
                 order.append("b")
         threads = [threading.Thread(target=first), threading.Thread(target=second)]
         [t.start() for t in threads]
-        [t.join(10) for t in threads]
+        [t.join(60) for t in threads]
         self.assertEqual(order, ["a-start", "a-end", "b"])
 
     # ---- sessions

@@ -430,7 +430,7 @@ class CloudTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------- routes
-def wait(fn, timeout=30.0, every=0.1):
+def wait(fn, timeout=60.0, every=0.1):
     end = time.time() + timeout
     while time.time() < end:
         value = fn()
