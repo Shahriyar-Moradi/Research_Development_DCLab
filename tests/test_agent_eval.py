@@ -34,7 +34,7 @@ class JudgmentSuiteTests(unittest.TestCase):
         self.assertEqual({c.suite for c in CASES}, {"leakage", "split", "control"})
 
     def test_the_cases_are_the_ones_the_stored_run_scored(self):
-        stored = sorted((ROOT / "evidence/campaigns/agent_eval_v1/results").glob("AEV-*.json"))
+        stored = sorted((ROOT / "evidence/campaigns/agent_eval_v1/results").glob("AEV-*_scripted.json"))
         self.assertTrue(stored)
         prints = {c["id"]: c["fingerprint"] for c in json.loads(stored[-1].read_text())["cases"]}
         self.assertEqual({c.id: c.fingerprint() for c in CASES}, prints)  # a changed table or expectation needs a new run

@@ -32,6 +32,7 @@ make product-demo     # rebuild docs/product-demo/index.html: demo v1, the froze
 make web              # rebuild the product frontend (agentic/web/src → agentic/static/app); same UI as demo v1, wired to the API
 make test-pg          # the whole suite on PostgreSQL (the local dclab_test database, emptied by the tests)
 make agent-eval       # the scripted judgment suite: planted traps, the standard plan and reference policies (stores an AEV result)
+make agent-eval-live  # the same suite with the configured model: prints the plan; ARGS="--yes --cap-eur 2" runs it with caps and repeats
 make product-e2e      # the product's main flows on a temporary server (upload, no data, synthetic, log file; ~90 s, no model)
 python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a notebook
 ```

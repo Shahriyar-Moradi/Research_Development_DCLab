@@ -1,0 +1,281 @@
+{
+  "experiment_id": "AEV-002",
+  "campaign_id": "agent_eval_v1",
+  "kind": "judgment_suite_live",
+  "status": "completed",
+  "run_id": "b33ebd863368",
+  "model": "qwen2.5-coder:1.5b",
+  "tier": "strong",
+  "local": true,
+  "suite": "judgment_v1",
+  "question": "On the judgment suite's planted traps, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
+  "started_at": "2026-10-06T10:32:59+00:00",
+  "completed_at": "2026-10-06T10:34:50+00:00",
+  "plan": {
+    "model": "qwen2.5-coder:1.5b",
+    "tier": "strong",
+    "local": true,
+    "available": true,
+    "tiers": {
+      "intern": {
+        "tier": "strong",
+        "model": "qwen2.5-coder:1.5b",
+        "local": true
+      },
+      "leakage_review": {
+        "tier": "standard",
+        "model": "qwen2.5-coder:1.5b",
+        "local": true
+      },
+      "project_answer": {
+        "tier": "standard",
+        "model": "qwen2.5-coder:1.5b",
+        "local": true
+      }
+    },
+    "remote_priced": [],
+    "remote_unpriced": [],
+    "cases": [
+      "AE-04",
+      "AE-11",
+      "AE-18"
+    ],
+    "repeats": 2,
+    "runs": 6,
+    "max_steps": 8,
+    "max_requests": 60,
+    "max_input_tokens": 845380,
+    "max_eur": 0.0,
+    "priced": true,
+    "max_requests_cap": 80,
+    "cap_eur": null
+  },
+  "requests": 6,
+  "spent": {
+    "eur": 0.0,
+    "input_tokens": 15976,
+    "output_tokens": 3520
+  },
+  "stopped": null,
+  "summary": {
+    "scores": {
+      "leaks_caught": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n": 2
+      },
+      "false_alarms": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n": 2
+      },
+      "valid_moves": {
+        "mean": null,
+        "ci95": null,
+        "n": 0
+      },
+      "citations_exist": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 2
+      }
+    },
+    "by_case": {
+      "AE-04": {
+        "leak_caught": [
+          0,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-11": {
+        "leak_caught": [
+          0,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-18": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      }
+    },
+    "runs": 6,
+    "not_run": 0,
+    "complete_repeats": 2,
+    "note": "Intervals are over complete repeats only; per-case counts include every scored run."
+  },
+  "runs": [
+    {
+      "case": "AE-04",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 0,
+      "tokens": [
+        2663,
+        40
+      ],
+      "eur": 0.0,
+      "seconds": 9.5,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": null,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-11",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 0,
+      "tokens": [
+        2662,
+        33
+      ],
+      "eur": 0.0,
+      "seconds": 0.9,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": null,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-18",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 0,
+      "tokens": [
+        2665,
+        29
+      ],
+      "eur": 0.0,
+      "seconds": 0.8,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": null,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-04",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 0,
+      "tokens": [
+        2664,
+        1579
+      ],
+      "eur": 0.0,
+      "seconds": 35.9,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": null,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-11",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 0,
+      "tokens": [
+        2660,
+        1800
+      ],
+      "eur": 0.0,
+      "seconds": 54.8,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": null,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-18",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 0,
+      "tokens": [
+        2662,
+        39
+      ],
+      "eur": 0.0,
+      "seconds": 7.8,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": null,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "AE-04",
+      "fingerprint": "4590a4aea1620866"
+    },
+    {
+      "id": "AE-11",
+      "fingerprint": "45d5c36f9f25b1f1"
+    },
+    {
+      "id": "AE-18",
+      "fingerprint": "c80d88da8bd31ac0"
+    }
+  ],
+  "limitations": [
+    "Scores on these cases are evidence about this model on these planted traps, not about any model's readiness for production.",
+    "2 repeats per case: the interval is about this model's varying answers on these cases, not about other tables."
+  ]
+}

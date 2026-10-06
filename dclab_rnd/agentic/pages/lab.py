@@ -41,7 +41,7 @@ RESEARCH = ROOT / "research"
 MAKEFILE = ROOT / "Makefile"
 REPORT_ORDER = ("CAMPAIGN_REPORT.md", "PITFALLS_REPORT.md", "VERIFICATION_REPORT.md")
 # Makefile targets that run or inspect a campaign, in the order the designer lists them.
-CAMPAIGN_TARGETS = ("pitfalls", "category-codes", "expansion", "verify-auditor", "agent-eval", "rd-campaign-quick",
+CAMPAIGN_TARGETS = ("pitfalls", "category-codes", "expansion", "verify-auditor", "agent-eval", "agent-eval-live", "rd-campaign-quick",
                     "rd-campaign-review", "critic-gate", "rd-campaign-status", "expansion-status",
                     "rd-campaign-verify", "new-track")
 AFTER_RESULTS = ("rd-sync", "knowledge")
@@ -462,7 +462,7 @@ def lab_summary() -> dict[str, Any]:
 
 def _judgment() -> dict[str, Any] | None:
     """The latest stored run of the scripted judgment suite (``python -m dclab_rnd.agent_eval --output ...``)."""
-    runs = sorted(JUDGMENT.glob("AEV-*.json")) if JUDGMENT.is_dir() else []
+    runs = sorted(JUDGMENT.glob("AEV-*_scripted.json")) if JUDGMENT.is_dir() else []  # live runs (A4.2) have their own shape
     if not runs:
         return None
 
