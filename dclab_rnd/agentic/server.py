@@ -361,25 +361,46 @@ def create_app(home=None):
         studio_graph.capture(projects, project_id, "human")
         text = studio_export.dumps_notebook(studio_export.notebook(p, projects.records(project_id)))
         return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})
-    @app.get("/api/projects/{project_id}/review")
-    async def review_project_notebook(project_id: str):
-        """The notebook copilot's review of the project's exported notebook, in the demo's review shape.
-        Read-only: unlike the export route it logs no capture move and saves nothing."""
+    fixing: set[str] = set()  # projects whose notebook fixes are being written (one model request at a time each)
+    def project_review(project_id):
+        """The copilot's full review of the project's exported notebook (proof with its text), read-only: unlike the
+        export route it logs no capture move and saves nothing."""
         p = project(project_id)
         if not p.get("solution"): raise HTTPException(409, "Nothing to review yet: save the solution first")
         text = studio_export.dumps_notebook(studio_export.notebook(p, projects.records(project_id)))
+        import tempfile
+        from ..copilot import review_notebook
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "notebook.ipynb"
+            path.write_text(text, encoding="utf-8")
+            return review_notebook(path)
+    @app.get("/api/projects/{project_id}/review")
+    async def review_project_notebook(project_id: str):
+        """The notebook copilot's review of the project's exported notebook, in the demo's review shape."""
+        project(project_id)
         def review():
-            import tempfile
-            from ..copilot import review_notebook
-            with tempfile.TemporaryDirectory() as tmp:
-                path = Path(tmp) / "notebook.ipynb"
-                path.write_text(text, encoding="utf-8")
-                report = review_notebook(path)
+            report = project_review(project_id)
             keys = ("detector", "severity", "cell", "line", "title", "message", "suggestion", "rules")
             return {"summary": report["summary"], "cells": [{"type": c["type"], "source": c["source"]} for c in report["cells"]],
                     "findings": [{**{k: f.get(k) for k in keys}, "proof": [r["record_id"] for r in f.get("proof", [])]} for f in report["findings"]],
-                    "limitations": report.get("limitations", [])}
+                    "limitations": report.get("limitations", []), "fixes_available": gateway.available("notebook_review")}
         return await asyncio.to_thread(review)
+    @app.post("/api/projects/{project_id}/review/fixes")
+    async def review_project_fixes(project_id: str):
+        """A model's two-sentence fix per finding (package A3.4), by finding number. The findings are the deterministic
+        review's, unchanged; a fix that does not cite its rule and pitfall record, or states a number its records do not,
+        is dropped. Asked for by the person, since each call is a model request."""
+        client = gateway.client("notebook_review", project_id=project_id)
+        if client is None: raise HTTPException(409, "No model is configured for notebook fixes")
+        if project_id in fixing: raise HTTPException(409, "Fixes for this notebook are already being written")
+        from ..copilot.fixes import key_of, write_fixes
+        def run():
+            findings = project_review(project_id)["findings"]
+            # keyed by the finding (detector:cell:line), not its position: the page matches them to the findings it shows
+            return {"fixes": {key_of(findings[n]): fix for n, fix in write_fixes(findings, client).items()}, "findings": len(findings)}
+        fixing.add(project_id)
+        try: return await asyncio.to_thread(run)
+        finally: fixing.discard(project_id)
     @app.get("/api/projects/{project_id}/export/report")
     async def export_report(project_id: str):
         p = project(project_id)

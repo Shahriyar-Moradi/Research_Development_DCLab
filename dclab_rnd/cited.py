@@ -35,11 +35,15 @@ NUMBER = re.compile(r"(?<![\d.])([-+]?)(\d+(?:[.,]\d+)*|\.\d+)(?:\s?(%|percent\b
 COUNTS = {w: str(n) for n, w in enumerate(
     "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split())}
 COUNTS |= {w: str(10 * n) for n, w in zip(range(3, 10), "thirty forty fifty sixty seventy eighty ninety".split())}
-COUNT_WORD = re.compile(r"\b(?:" + "|".join(w for w in COUNTS if w != "one") + r")\b", re.I)  # "one" is mostly a pronoun
-NUMBER_WORDS = re.compile(r"\b(?:hundred|thousand|million|billion|half|twice|thrice|double[sd]?|triple[sd]?|dozen)\b", re.I)
-NAME_WITH_DIGITS = re.compile(r"\b[A-Z]{1,2}\d{1,3}\b")  # C1, R22, V12: a name, not a quantity
+_UNIT_AFTER = r"(?:\s?(%|percent\b|per cent\b|thousand\b|million\b|billion\b))?"
+_TENS = "twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety"
+_UNITS = "one|two|three|four|five|six|seven|eight|nine"
+# twenty-one, then two, ten, ninety, then "one" only where it is a quantity (one percent, a one-point gain), each with the unit that follows
+COUNT_WORD = re.compile(rf"\b(?:((?:{_TENS})[-\s](?:{_UNITS}))|({'|'.join(w for w in COUNTS if w != 'one')})|(one)(?=-(?:point|percent|fold)\b|\s(?:percent|per cent|fold|times|in)\b))\b{_UNIT_AFTER}", re.I)
+NUMBER_WORDS = re.compile(r"\b(?:hundreds?|thousands?|millions?|billions?|half|twice|thrice|double[sd]?|triple[sd]?|dozens?)\b", re.I)
+NAME_WITH_DIGITS = re.compile(r"\b[A-Z]{1,2}\d{1,3}\b")  # C1, R22, V12: a name, not a quantity, when a cited source writes that name
 ABBREVIATIONS = re.compile(r"\b(e\.g|i\.e|vs|etc|approx|cf)\.", re.I)
-SENTENCE = re.compile(r"(?<=[.!?])(?:\s+|(?=[A-Z]))|\n+")
+SENTENCE = re.compile(r"(?<=[.!?])\s+|\n+")
 AFTER_STOP = re.compile(r"([.!?])((?:\s*\[[A-Za-z][A-Za-z0-9_.-]*\])+)")  # "holdout. [ID]" is "holdout [ID]."
 BULLET = re.compile(r"^(?:[-*•]\s+|\d+[.)]\s+)")
 DASHES = re.compile(r"[‐-―−]")
@@ -50,7 +54,8 @@ OVERCLAIM = re.compile(
     r"ready (?:for|to go to|for use in) (?:production|deploy\w*)|ready to (?:ship|launch|deploy|be deployed)|safe (?:to deploy|for production)|"
     r"\bgo(?:es)? (?:live|to production)\b|\bguarantee[sd]?\b|\bproves?\b|\bproven\b|\bcauses\b|\bcaused\b|\bcausal\b", re.I)
 # A denial counts only when it sits right before the phrase ("is not yet production-ready"): not "not only", and not a "no" elsewhere.
-DENIAL = re.compile(r"(?:\bnot(?!\s+(?:only|just|merely|simply)\b)|\bnever|\bcannot|\bcan't|n't\b|\bno longer)(?:\s+\w+){0,4}\s+$", re.I)
+DENIAL = re.compile(r"(?:\bnot(?!\s+(?:only|just|merely|simply)\b)|\bnever|\bcannot|\bcan't|n't\b|\bno longer)"
+                    r"(?:\s+(?!(?:doubt|deny|wrong|fail|unlike|hard|unreasonable)\b)\w+){0,4}\s+$", re.I)
 
 REASONS = ("no citation", "cites a source that was not given", "a number is not in the cited source",
            "claims production readiness, a guarantee or a cause", "over the word limit")
@@ -69,20 +74,26 @@ def _digits(text: str) -> str:
         return text
 
 
-def numbers(text: str, source: bool = False) -> set[str]:
+def numbers(text: str, source: bool = False, names: set[str] | None = None) -> set[str]:
     """The numbers a text states. Identifiers and citations are not numbers; 0.30 is 0.3; ``.99`` is 0.99; a unit stays
     with its number. A sentence's number carries its sign only when it writes one ("-0.01", "+0.01"); for a source
     (``source=True``) every number is stored with its real sign (unsigned counts as positive) and without it."""
     out: set[str] = set()
-    plain = NAME_WITH_DIGITS.sub(" ", IDS.sub(" ", CITE.sub(" ", normalise(text))))
+    plain = NAME_WITH_DIGITS.sub(lambda m: " " if source or m.group(0) in (names or ()) else m.group(0), IDS.sub(" ", CITE.sub(" ", normalise(text))))
     for sign, digits, unit in NUMBER.findall(plain):
         token = _digits(digits) + {"percent": "%", "thousand": "k", "million": "m", "billion": "b"}.get(unit.lower(), unit.lower())
         if source:
             out |= {token, ("-" if sign == "-" else "+") + token}
         else:
             out.add(sign + token)
-    for word in COUNT_WORD.findall(plain):  # "ten folds" and "10 folds" are the same number, in a sentence and in a source
-        out |= {COUNTS[word.lower()], "+" + COUNTS[word.lower()]} if source else {COUNTS[word.lower()]}
+    for compound, count, one, unit in COUNT_WORD.findall(plain):  # "ten folds" and "10 folds" are the same number, in a sentence and in a source
+        if compound:
+            tens, units = re.split(r"[-\s]", compound.lower(), maxsplit=1)
+            value = str(int(COUNTS[tens]) + int(COUNTS[units]))
+        else:
+            value = COUNTS[(count or one).lower()]
+        token = value + {"percent": "%", "per cent": "%", "thousand": "k", "million": "m", "billion": "b"}.get(unit.lower(), unit.lower())
+        out |= {token, "+" + token} if source else {token}
     return out
 
 
@@ -103,11 +114,28 @@ def words(text: str) -> int:
     return len(CITE.sub(" ", text).split())
 
 
+GLUED = re.compile(r"(\S+?)([.!?])(?=[A-Z])(\w+)")
+
+
+MODULES = frozenset("np pd tf plt sns pandas numpy sklearn imblearn scipy torch keras xgboost lightgbm catboost matplotlib seaborn statsmodels nn "
+                    "xgb lgb sm mpl pl pathlib os joblib shap optuna mlflow polars dask jnp".split())
+
+
+def _unglue(match: re.Match[str]) -> str:
+    token, stop, word = match.groups()
+    # pd.DataFrame, sklearn.Pipeline, sklearn.pipeline.Pipeline: a code name, not two sentences; a citation before the stop always ends one
+    if not token.endswith("]") and (token.lstrip("`'\"([{<").rsplit(".", 1)[-1].lower() in MODULES or re.search(r"[A-Za-z_]\.[A-Za-z_]", token)):
+        return match.group(0)
+    return f"{token}{stop}\n{word}"
+
+
 def sentences(text: str) -> list[str]:
     """Split at a full stop, a question or exclamation mark, and at every line break (so a bullet is a sentence);
-    "e.g." and "vs." do not end one. A fragment this leaves has no citation of its own, so it fails closed."""
-    protected = ABBREVIATIONS.sub(lambda m: m.group(1) + "․", AFTER_STOP.sub(lambda m: m.group(2) + m.group(1), text.strip()))
-    return [BULLET.sub("", s.strip()).replace("․", ".") for s in SENTENCE.split(protected) if BULLET.sub("", s.strip())]
+    "e.g." and "vs." do not end one, nor does the dot of a code name such as pd.DataFrame. A stop glued to the next
+    capital ("fair.It scored") ends one. A fragment this leaves has no citation of its own, so it fails closed."""
+    protected = ABBREVIATIONS.sub(lambda m: m.group(1) + "\u2024", AFTER_STOP.sub(lambda m: m.group(2) + m.group(1), text.strip()))
+    protected = GLUED.sub(_unglue, protected)
+    return [BULLET.sub("", s.strip()).replace("\u2024", ".") for s in SENTENCE.split(protected) if BULLET.sub("", s.strip())]
 
 
 def _tidy(sentence: str) -> str:
@@ -128,7 +156,7 @@ def check(text: str, sources: dict[str, str], limit_words: int | None = None) ->
             dropped.append(REASONS[0])
         elif any(c not in sources for c in cited):
             dropped.append(REASONS[1])
-        elif not (numbers(sentence) <= set().union(*(known[c] for c in cited))
+        elif not (numbers(sentence, names=set().union(*(set(NAME_WITH_DIGITS.findall(sources[c])) for c in cited))) <= set().union(*(known[c] for c in cited))
                   and number_words(sentence) <= set().union(*(spoken[c] for c in cited))):
             dropped.append(REASONS[2])
         elif overclaims(sentence):

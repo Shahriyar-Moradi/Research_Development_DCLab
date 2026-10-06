@@ -41,6 +41,9 @@ PURPOSES: dict[str, Purpose] = {
     "stage_notes": Purpose("standard", 60, "a stage record's title, summary, claims with their limits (aggregate results with their intervals), its notes "
                                            "and the rule records they cite; no rows"),
     "project_answer": Purpose("standard", 60, "the question, facts computed from the project's stage records, and evidence records; no rows"),
+    "notebook_review": Purpose("standard", 60, "the notebook copilot's findings (title, message and suggestion, which name columns, variables and functions of the "
+                                               "notebook; a path, a string selector or a line of code is replaced before the request) and the text of the rule and "
+                                               "pitfall records they cite; never the notebook's code or any data"),
     "leakage_review": Purpose("standard", 60, "the prediction moment, the target's name, column names with their kind, missing rate and unique "
                                               "count, the column audit's flags, and the ids and titles of rule and leakage-precedent records; never rows or cell values"),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "

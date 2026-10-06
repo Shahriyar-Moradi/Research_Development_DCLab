@@ -22,7 +22,10 @@ def to_markdown(report: dict[str, Any]) -> str:
              f"{s['findings']} findings ({counts or 'none'}) across {s['code_cells']} code cells.", ""]
     for f in report["findings"]:
         lines += [f"## Cell {f['cell']}, line {f['line']} · {SEVERITY_LABEL[f['severity']]} · {f['title']}", "",
-                  f["message"], "", f"**Fix.** {f['suggestion']}", "", "**Proof.**", ""]
+                  f["message"], "", f"**Fix.** {f['suggestion']}", ""]
+        if f.get("fix"):  # a model's two sentences, labelled; the deterministic fix above is unchanged
+            lines += [f"**Written by a model from the rule and the pitfall record** ({', '.join(f'`{c}`' for c in f['fix']['cites'])}). {f['fix']['text']}", ""]
+        lines += ["**Proof.**", ""]
         for p in f["proof"]:
             lines.append(f"- `{p['record_id']}` ({p['type']}): {p['title']} — cites {', '.join(c for c in p['citations'] if c)}")
         lines.append("")
@@ -47,7 +50,10 @@ def annotate_notebook(source_path: Path, report: dict[str, Any]) -> dict[str, An
             for f in by_cell[i]:
                 proof = ", ".join(f"`{p['record_id']}`" for p in f["proof"])
                 body += [f"> **{SEVERITY_LABEL[f['severity']]} · line {f['line']} · {f['title']}.** {f['message']}\n", ">\n",
-                         f"> *Fix:* {f['suggestion']}\n", ">\n", f"> *Proof:* {proof}\n", ">\n"]
+                         f"> *Fix:* {f['suggestion']}\n", ">\n"]
+                if f.get("fix"):
+                    body += [f"> *Written by a model from the rule and the pitfall record:* {f['fix']['text']}\n", ">\n"]
+                body += [f"> *Proof:* {proof}\n", ">\n"]
             cells.append({"cell_type": "markdown", "metadata": {"dclab_copilot": True}, "source": body})
     out = copy.deepcopy(nb)
     out["cells"] = cells
@@ -92,6 +98,15 @@ def _code_cell(source: str, flagged: dict[int, str]) -> str:
     return "<div class='code-wrap'><table class='code'>" + "".join(rows) + "</table></div>"
 
 
+def _model_fix(f: dict[str, Any]) -> str:
+    fix = f.get("fix")
+    if not fix:
+        return ""
+    cites = " ".join(f"<code>{html.escape(c)}</code>" for c in fix["cites"])
+    return (f"<p class='fix model'><span class='label'>Written by a model</span>{html.escape(fix['text'])} {cites}"
+            f"<br><span class='small'>{html.escape(fix.get('label', ''))}</span></p>")
+
+
 def _finding_card(f: dict[str, Any], fid: str) -> str:
     proof = []
     for p in f["proof"]:
@@ -107,6 +122,7 @@ def _finding_card(f: dict[str, Any], fid: str) -> str:
         f"<span class='where'>line {f['line']}</span></header>"
         f"<h3>{_md_inline(f['title'])}</h3><p>{_md_inline(f['message'])}</p>"
         f"<p class='fix'><span class='label'>Fix</span>{_md_inline(f['suggestion'])}</p>"
+        f"{_model_fix(f)}"
         f"<details><summary>Show proof · {len(f['proof'])} records</summary><ul class='proof'>{''.join(proof)}</ul></details>"
         "</article>"
     )
@@ -182,6 +198,8 @@ code{padding:1px 4px} .md-code{padding:10px 12px;overflow-x:auto;border:1px soli
 .chip-low{background:var(--low-soft);color:var(--low)} .chip-info{background:var(--info-soft);color:var(--info)}
 .where{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .fix{background:var(--accent-soft);border-radius:4px;padding:8px 10px}
+.fix.model{background:var(--sunken, #eef1f4)}
+.small{font-size:12px;opacity:.75}
 .label{font:600 11px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-right:8px}
 details{margin-top:6px} summary{cursor:pointer;color:var(--accent);font-size:13px;font-weight:500}
 .proof{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}

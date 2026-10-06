@@ -1,4 +1,5 @@
 """GET /api/projects/{id}/review: the copilot reviews the project's exported notebook, read-only, in the demo's review shape."""
+import os
 import sys
 import tempfile
 import unittest
@@ -57,6 +58,67 @@ class ProjectReviewRouteTests(unittest.TestCase):
         after = c.get(f"/api/projects/{pid}").json()
         self.assertEqual(len(after["transitions"]), len(before["transitions"]))
         self.assertNotIn("captured", after)
+
+    def test_fixes_are_written_on_request_checked_and_leave_the_review_unchanged(self):
+        import json
+        import re
+        from unittest import mock
+
+        c = self.client
+        pid = self.new_project()
+        c.put(f"/api/projects/{pid}/solution", json={**SOLUTION, "target": self.target}, headers=self.headers)
+        review = c.get(f"/api/projects/{pid}/review").json()
+        with mock.patch.dict(os.environ, {"OPENAI_API_KEY": "", "DCLAB_TIER_STANDARD_API_KEY": "", "DCLAB_TIER_STANDARD_LOCAL": ""}):
+            self.assertFalse(c.get(f"/api/projects/{pid}/review").json()["fixes_available"])  # no model configured
+            self.assertEqual(c.post(f"/api/projects/{pid}/review/fixes", headers=self.headers).status_code, 409)
+        self.assertEqual(c.post(f"/api/projects/{pid}/review/fixes").status_code, 403)  # a model request needs the token like any write
+
+        class Writer:
+            """Answers from the prompt: for each finding, a sentence citing its first rule and its first pitfall or precedent."""
+            def complete(self, messages, tools=None, max_tokens=None, **_):
+                prompt, items = messages[-1]["content"], []
+                for n, block in re.findall(r"Finding (\d+) \(.*?\n(.*?)(?=\n\nFinding |\Z)", prompt, re.S):
+                    rule = re.search(r"\[(DCLAB-R\d+)\]", block)
+                    other = re.search(r"\[((?:PIT|LEAK|FINDING)-[A-Za-z0-9_-]+)\]", block)
+                    items.append({"finding": int(n), "fix": f"Change it [{rule.group(1)}]." + (f" The measured case shows why [{other.group(1)}]." if other else "")})
+                text = json.dumps({"fixes": items})
+                return {"content": text, "tool_calls": [], "usage": {}, "assistant_message": {"role": "assistant", "content": text}}
+
+        keyed = mock.patch.dict(os.environ, {"OPENAI_API_KEY": "k", **{f"DCLAB_TIER_{t}_{n}": "" for t in ("STRONG", "STANDARD", "CHEAP") for n in ("BASE_URL", "MODEL", "API_KEY", "LOCAL")}})
+        keyed.start()  # a configured tier; the transport below is scripted, so nothing leaves the machine
+        self.addCleanup(keyed.stop)
+        import threading
+        import time
+
+        gate = threading.Event()
+
+        class Slow(Writer):
+            def complete(self, messages, tools=None, max_tokens=None, **_):
+                gate.wait(5)
+                return super().complete(messages, tools, max_tokens)
+        c.app.state.models.transport = lambda tier, purpose: Slow()
+        first = {}
+        running = threading.Thread(target=lambda: first.update(r=c.post(f"/api/projects/{pid}/review/fixes", headers=self.headers)))
+        running.start()
+        time.sleep(0.5)
+        self.assertEqual(c.post(f"/api/projects/{pid}/review/fixes", headers=self.headers).status_code, 409)  # one request at a time per project
+        gate.set()
+        running.join(10)
+        self.assertEqual(first["r"].status_code, 200)
+        c.app.state.models.transport = lambda tier, purpose: Writer()
+        self.assertTrue(c.get(f"/api/projects/{pid}/review").json()["fixes_available"])
+        before = c.get(f"/api/projects/{pid}").json()
+        out = c.post(f"/api/projects/{pid}/review/fixes", headers=self.headers)
+        self.assertEqual(out.status_code, 200, out.text)
+        got = out.json()
+        self.assertEqual(got["findings"], len(review["findings"]))
+        by_key = {f"{f['detector']}:{f['cell']}:{f['line']}": f for f in review["findings"]}
+        self.assertEqual(sorted(got["fixes"]), sorted(by_key))  # a fix belongs to the finding with its key, not to a position
+        for key, fix in got["fixes"].items():
+            self.assertIn(by_key[key]["rules"][0], fix["cites"])  # the fix cites the finding's rule
+            self.assertEqual(fix["written_by"], "model")
+        self.assertEqual(c.get(f"/api/projects/{pid}/review").json()["findings"], review["findings"])  # the findings did not move
+        self.assertEqual(len(c.get(f"/api/projects/{pid}").json()["transitions"]), len(before["transitions"]))
 
 
 if __name__ == "__main__":

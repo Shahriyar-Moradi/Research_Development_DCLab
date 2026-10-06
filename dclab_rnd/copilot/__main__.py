@@ -4,6 +4,7 @@
     python -m dclab_rnd.copilot review NOTEBOOK.ipynb --json          # machine-readable findings
     python -m dclab_rnd.copilot review NOTEBOOK.ipynb --html out.html # "dclab notebook" review view
     python -m dclab_rnd.copilot review NOTEBOOK.ipynb --annotate out.ipynb  # copy with review cells inserted
+    python -m dclab_rnd.copilot review NOTEBOOK.ipynb --fixes         # add a model-written fix per finding (needs a model; findings unchanged)
     python -m dclab_rnd.copilot review NOTEBOOK.ipynb --fail-on high # exit 1 when such findings exist (CI gate)
 """
 
@@ -27,10 +28,22 @@ def main(argv: list[str] | None = None) -> int:
     review.add_argument("--markdown", type=Path, help="write a Markdown report")
     review.add_argument("--html", type=Path, help="write the HTML review view")
     review.add_argument("--annotate", type=Path, help="write a copy of the notebook with review cells")
+    review.add_argument("--fixes", action="store_true", help="ask the configured model for a two-sentence fix per finding (checked against the rule and pitfall records; the findings do not change)")
     review.add_argument("--fail-on", choices=list(SEVERITY_ORDER), help="exit 1 if any finding is at least this severe")
     args = parser.parse_args(argv)
 
     report = review_notebook(args.notebook)
+    if args.fixes:
+        from ..models import installed
+        from .fixes import with_fixes
+
+        client = installed().client("notebook_review")
+        if client is None:
+            print("No model is configured (see GET /api/models); the review below is the deterministic one.", file=sys.stderr)
+        else:
+            report = with_fixes(report, client)
+            if report["findings"] and not any(f.get("fix") for f in report["findings"]):
+                print("The model wrote no fix that cites its rule and pitfall record; the review is the deterministic one.", file=sys.stderr)
     if args.markdown:
         args.markdown.write_text(to_markdown(report), encoding="utf-8")
     if args.html:

@@ -109,6 +109,37 @@ class CheckTests(unittest.TestCase):
         for sentence in ("It used twenty folds [A].", "It used the top two candidates [A].", "It used half the folds [A]."):
             self.assertEqual(cited.check(sentence, sources)["dropped"], [cited.REASONS[2]], sentence)
 
+    def test_a_code_name_is_not_two_sentences_and_a_citation_before_a_stop_ends_one(self):
+        sources = {"A": "Wrap it in pd.DataFrame first. Use sklearn.pipeline.Pipeline to fit. It scored 0.9248. The baseline was fine."}
+        for sentence in ("Wrap it in pd.DataFrame first [A].", "Use sklearn.pipeline.Pipeline to fit [A]."):
+            self.assertEqual([k["text"] for k in cited.check(sentence, sources)["kept"]], [sentence.replace(" [A]", "")])
+        out = cited.check("It scored 0.9248 [A].The baseline was fine [A].", sources)
+        self.assertEqual([k["text"] for k in out["kept"]], ["It scored 0.9248.", "The baseline was fine."])
+        out = cited.check("The score is 0.9248.It is production-ready [A].", sources)
+        self.assertEqual(out["kept"], [])
+
+    def test_one_hot_is_not_the_number_one_and_a_module_name_is_not_two_sentences(self):
+        sources = {"A": "Fit the one-hot encoder inside the fold. Use imblearn.Pipeline so the sampler runs in the fold. Use sklearn.Pipeline and pandas.Series and torch.Tensor."}
+        for sentence in ("Fit the one-hot encoder inside the fold [A].", "One-hot encode inside the fold [A].", "Use one-vs-rest [A]."):
+            self.assertNotEqual(cited.check(sentence, {"A": sources["A"] + " one-vs-rest. One-hot encode inside the fold."})["kept"], [], sentence)
+        for sentence in ("Use imblearn.Pipeline so the sampler runs in the fold [A].", "Use sklearn.Pipeline and pandas.Series and torch.Tensor [A]."):
+            self.assertEqual([k["text"] for k in cited.check(sentence, sources)["kept"]], [sentence.replace(" [A]", "")])
+        quoted = {"A": "Convert it with `pd.DataFrame` first. Wrap the scaler in (sklearn.Pipeline) or \"pd.DataFrame\" or xgb.XGBClassifier or pathlib.Path."}
+        for sentence in ("Convert it with `pd.DataFrame` first [A].", "Wrap the scaler in (sklearn.Pipeline) [A].", "Use \"pd.DataFrame\" [A].", "Use xgb.XGBClassifier [A].", "Use pathlib.Path [A]."):
+            self.assertEqual([k["text"] for k in cited.check(sentence, quoted)["kept"]], [sentence.replace(" [A]", "")], sentence)  # quoted or aliased, still one name
+        out = cited.check("It is OK.It scored fine [A].", {"A": "It scored fine."})
+        self.assertEqual((out["kept"], out["dropped"]), ([{"text": "It scored fine.", "cites": ["A"]}], [cited.REASONS[0]]))  # the short word before the stop no longer hides a claim
+
+    def test_quantity_words_keep_their_unit_and_double_negatives_are_not_denials(self):
+        sources = {"A": "Used 10 folds and 20 candidates, a 1 percent gain, 21 rows."}
+        for sentence in ("It has ten percent [A].", "Hundreds of rows [A].", "Dozens of columns [A].", "a one-point gain [A].", "It used N500 rows [A]."):
+            self.assertEqual(cited.check(sentence, sources)["dropped"], [cited.REASONS[2]], sentence)
+        for sentence in ("It used ten folds [A].", "improved by one percent [A].", "twenty-one rows [A]."):
+            self.assertEqual(len(cited.check(sentence, sources)["kept"]), 1, sentence)
+        for sentence in ("I do not doubt it is production-ready [A].", "We cannot deny it is production-ready [A].", "It is not wrong to call it production-ready [A].",
+                         "It does not fail to be production-ready [A]."):
+            self.assertEqual(cited.check(sentence, sources)["dropped"], [cited.REASONS[3]], sentence)
+
     def test_advisory_text_with_nothing_to_remove_comes_back_exactly_as_it_was(self):
         text = "Risks:\n- Leakage is possible\n- Small sample\n1. Check the time split"
         self.assertEqual(cited.strip_overclaims(text), (text, 0))

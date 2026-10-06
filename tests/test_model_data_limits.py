@@ -174,8 +174,29 @@ class DataLimitTests(unittest.TestCase):
                               gw.client("leakage_review"))
         self.assertEqual(self.assertWithinLimit("leakage_review"), set())
 
+    def test_the_notebook_reviewer_sees_findings_and_records_never_code_or_data(self):
+        import json as _json
+        from dclab_rnd.copilot import fixes, review_notebook
+        nb = {"cells": [
+            {"cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None, "source": ["import pandas as pd\n", "from sklearn.preprocessing import StandardScaler\n",
+                                                                                                   "from sklearn.model_selection import train_test_split\n"]},
+            {"cell_type": "code", "metadata": {}, "outputs": [], "execution_count": None,
+             "source": ["secret = 'Q7Kxcode1'  # a value in the user's code\n", "df = pd.read_csv('/Users/alice/clients/Q7KxAcme/customers_Q7Kxfile.csv')\n",
+                        "feat_cols = ['age', 'final Q7Kxcolumn', 'final_Q7Kxlist']\n", "y = df['label Q7Kxtarget']\n", "closed = df[df['status'] == 'closed_Q7Kxvalue']\n",
+                        "z = pd.read_csv('/Users/bob/`Q7Kxtick`/z.csv')\n", "w = df['final_Q7Kxcol']\n", "X = StandardScaler().fit_transform(df[feat_cols])\n",
+                        "X_train, X_test = train_test_split(X)\n"]}], "metadata": {}, "nbformat": 4, "nbformat_minor": 5}
+        path = Path(tempfile.mkdtemp()) / "nb.ipynb"
+        path.write_text(_json.dumps(nb), encoding="utf-8")
+        report = review_notebook(path)
+        self.assertIn("absolute_data_path", [f["detector"] for f in report["findings"]])  # the detectors that quote a path and a selector fire
+        self.assertTrue(any("Q7Kx" in f["message"] + f["title"] + f["suggestion"] for f in report["findings"]))  # and do carry the literal
+        gw = gateway({"notebook_review": [{"content": "{\"fixes\": []}", "tool_calls": [], "usage": {}}]})
+        fixes.write_fixes(report["findings"], gw.client("notebook_review"))
+        self.assertEqual(self.assertWithinLimit("notebook_review"), set())  # no cell value, and none of the code's literals
+        self.assertFalse([p for p in Capture.prompts["notebook_review"] if "Q7Kx" in p or "read_csv" in p])
+
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "intern", "leakage_review"}
+        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "intern", "leakage_review", "notebook_review"}
         no_user_data = {"campaign", "campaign_review"}  # research tools: evidence/campaigns only, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

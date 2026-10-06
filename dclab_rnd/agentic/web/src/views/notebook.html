@@ -221,6 +221,19 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
     }
     function applyFix(i) { fixed.add(Number(i)); render(); toast(`Fix applied to cell ${i}. The original stays in the cell history.`); }
     el.addEventListener('click', e => {
+      const wf = e.target.closest('[data-write-fixes]');
+      if (wf && real) {
+        if (fixesBusy) return;
+        fixesBusy = true; wf.disabled = true; wf.textContent = 'Asking the model…';
+        const mine = R;  // the review these fixes are for: a project switched meanwhile is not touched
+        DC.api(`/projects/${encodeURIComponent(real.p.id)}/review/fixes`, { method: 'POST', body: {} }).then(got => {
+          if (R !== mine) return;
+          let n = 0;  // a fix belongs to the finding with its key (detector:cell:line), whatever their order
+          R.findings.forEach(f => { const x = (got.fixes || {})[`${f.detector}:${f.cell}:${f.line}`]; if (x) { f.fix = x; n += 1; } });
+          if (!n) toast('No fix passed the checks, so the findings stand as they are. Fixes must cite the rule and the pitfall record.', { ok: false });
+        }).catch(err => toast(err.message, { ok: false })).finally(() => { fixesBusy = false; if (R === mine) render(); });
+        return;
+      }
       const fr = e.target.closest('[data-fix-real]'); if (fr) { toast('Applying fixes to the exported notebook is not built yet. Download the .ipynb and follow the fix above; this review updates when the project changes.', { ok: false, ms: 5200 }); return; }
       const f = e.target.closest('[data-fix]'); if (f) { applyFix(f.dataset.fix); return; }
       const u = e.target.closest('[data-undo]'); if (u) { fixed.delete(Number(u.dataset.undo)); render(); return; }
@@ -323,13 +336,26 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
       else if (n) { banner.className = 'callout ' + (sev('medium') ? 'warn' : 'info'); $('#nb-banner-text', el).innerHTML = `<b>No finding would change the score.</b> The copilot left ${n} lower-severity note${n === 1 ? '' : 's'} on the exported notebook. ${holdout}`; }
       else { banner.className = 'callout ok'; $('#nb-banner-text', el).innerHTML = `<b>The copilot found nothing to flag.</b> ${holdout}`; }
     }
+    /* a model's two-sentence fix beside a finding (package A3.4): labelled, citing the rule and the pitfall record; the finding is unchanged */
+    function modelFix(fix) {
+      if (!fix) return '';
+      return `<div class="explain"><span class="row"><span class="eyebrow">The fix, in words</span><span class="pill outline">written by a model from the rule and the pitfall record</span></span>`
+        + `<p>${esc(fix.text)} ${(fix.cites || []).map(id => DC.chip(id)).join('')}</p></div>`;
+    }
+    let fixesBusy = false;  // a model request for fixes is running: the button cannot fire another
+    function fixesBar() {
+      if (!R.fixes_available) return '';
+      const done = R.findings.some(f => f.fix);
+      return `<div class="row"><button type="button" class="btn sm proof" data-write-fixes${done || fixesBusy ? ' disabled' : ''}>${done ? 'Fixes written' : fixesBusy ? 'Asking the model…' : 'Write the fixes with the model'}</button>`
+        + `<span class="xs muted">${done ? 'Each fix cites its rule and its pitfall record; the findings above did not change.' : 'Two sentences per finding from its rule and pitfall record. A fix that does not cite them is dropped. One model request.'}</span></div>`;
+    }
     function realFindings() {
       if (!R.findings.length) return '<div class="empty">No findings. The copilot reads the exported notebook statically; it never runs the code.</div>';
       const ranking = (((real.p.records || {}).models || {}).evidence || {}).ranking || [];
-      return R.findings.map(f => `<div class="finding ${f.severity}">
+      return fixesBar() + R.findings.map(f => `<div class="finding ${f.severity}">
           <div class="spread"><span class="row"><span class="sev ${f.severity}">${f.severity}</span><span class="tag">cell ${f.cell} · line ${f.line}</span></span></div>
           <div class="f-title">${esc(f.title)}</div>
-          <div class="f-msg">${esc(f.message)}</div><div class="f-fix"><b>Fix.</b> ${esc(f.suggestion)}</div>
+          <div class="f-msg">${esc(f.message)}</div><div class="f-fix"><b>Fix.</b> ${esc(f.suggestion)}</div>${modelFix(f.fix)}
           ${f.detector === 'single_model_family' && ranking.length > 1 ? `<div class="f-msg">In this project the models stage did screen ${ranking.length} families on identical folds (${ranking.slice(0, 5).map(r => esc(r.model)).join(', ')}); the exported notebook reproduces only the chosen one.</div>` : ''}
           <div class="row">${chips(known(f.proof))}</div>
           <div class="row">${f.detector === 'single_model_family' ? '<a class="btn sm" href="#models">Open the model screen</a>' : `<button type="button" class="btn sm proof" data-fix-real>Apply fix</button>`}<button type="button" class="btn sm ghost" data-jump="${f.cell}">Show cell</button></div>
