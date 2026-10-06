@@ -180,4 +180,27 @@ workspace_lesson = sa.Table(  # a lesson from a finished project, proposed, then
     sa.Index("ix_workspace_lesson_workspace_id_status", "workspace_id", "status"),
     sa.Index("ix_workspace_lesson_project_id", "project_id"))
 
+model_routing = sa.Table(  # which tier serves or shadows each purpose, with its history (dclab_rnd/models/routing.py, A6.4); one row per workspace
+    "model_routing", metadata,
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), primary_key=True),
+    sa.Column("doc", JSONB, nullable=False),
+    sa.Column("updated", TIME, nullable=False, server_default=NOW))
+
+model_shadow = sa.Table(  # how a shadow model's answer compared with the served one (dclab_rnd/models/shadow.py, A6.4); never content
+    "model_shadow", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("purpose", sa.Text, nullable=False),
+    sa.Column("primary_tier", sa.Text), sa.Column("primary_model", sa.Text),
+    sa.Column("shadow_tier", sa.Text, nullable=False), sa.Column("shadow_model", sa.Text, nullable=False),
+    sa.Column("project_id", sa.String(64)), sa.Column("draft_id", sa.String(64)),
+    sa.Column("primary_tool", sa.Text), sa.Column("shadow_tool", sa.Text),
+    sa.Column("same_tool", sa.Boolean), sa.Column("same_arguments", sa.Boolean),
+    sa.Column("outcome", sa.Text, nullable=False),
+    sa.Column("seconds", sa.Float, nullable=False, server_default="0"),
+    sa.Column("input_tokens", sa.Integer, nullable=False, server_default="0"),
+    sa.Column("output_tokens", sa.Integer, nullable=False, server_default="0"),
+    sa.Index("ix_model_shadow_workspace_at", "workspace_id", "at"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

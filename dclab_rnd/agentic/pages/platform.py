@@ -365,8 +365,22 @@ def _policy_entries(project: dict[str, Any], activity: list[dict[str, Any]]) -> 
     return out
 
 
-def audit(projects, limit: int, offset: int) -> dict[str, Any]:
+def _routing_entries(routing: Any) -> list[dict[str, Any]]:
+    """Model routing changes (A6.4): a purpose moved to another model, or a shadow set; workspace-wide, not a project's."""
+    if routing is None:
+        return []
+    try:
+        history = routing.get().get("history") or []
+    except Exception:  # noqa: BLE001 — the audit shows what it can read
+        return []
+    return [{"kind": "routing", "at": h.get("at"), "actor": "human", "who": (h.get("by") or "person").capitalize(), "move": "set_routing",
+             "args": {"purpose": h.get("purpose"), "setting": h.get("setting"), "from": h.get("from"), "to": h.get("to")},
+             "status": "allowed", "message": h.get("reason") or "", "outcome": None, "rules": [], "project": None} for h in history]
+
+
+def audit(projects, limit: int, offset: int, routing: Any = None) -> dict[str, Any]:
     keyed = []
+    keyed += [((e.get("at") or "", i), e) for i, e in enumerate(_routing_entries(routing))]
     plist = projects.list()
     for p in plist:
         # (time, position in the project's own log) so moves logged in the same second keep their order, newest first
@@ -376,7 +390,7 @@ def audit(projects, limit: int, offset: int) -> dict[str, Any]:
     items = [e for _, e in keyed]
     counts = {"moves": sum(1 for e in items if e["kind"] == "move"), "approvals": sum(1 for e in items if e["kind"] == "approval"),
               "blocked": sum(1 for e in items if e.get("status") == "blocked"), "waiting": sum(1 for e in items if e.get("status") == "needs_approval"),
-              "policy_changes": sum(1 for e in items if e["kind"] == "policy")}
+              "policy_changes": sum(1 for e in items if e["kind"] == "policy"), "routing_changes": sum(1 for e in items if e["kind"] == "routing")}
     return {"total": len(items), "limit": limit, "offset": offset, "items": items[offset:offset + limit], "projects": len(plist), "counts": counts}
 
 
@@ -402,4 +416,4 @@ def register(app, ctx) -> None:
         """Newest validated moves, gate approvals and gate switch changes across every project, newest first."""
         if limit < 1 or limit > 500 or offset < 0:
             raise HTTPException(422, "limit is 1 to 500 and offset is 0 or more")
-        return await asyncio.to_thread(audit, ctx.projects, limit, offset)
+        return await asyncio.to_thread(audit, ctx.projects, limit, offset, getattr(ctx.models, "routing", None))

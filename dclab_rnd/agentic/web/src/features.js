@@ -165,7 +165,7 @@ window.FEATURES = [
   { id: 'policy.review', view: 'policy', name: 'Expert review queue for decisions', status: 'todo', phase: 'P4', where: '', note: '' },
   { id: 'policy.train', view: 'policy', name: 'Training runs (LoRA / QLoRA)', status: 'partial', phase: 'P4', where: 'sft/train_lora.py', note: 'Script ready; no run yet.' },
   { id: 'policy.eval', view: 'policy', name: 'Evaluation against the benchmark', status: 'partial', phase: 'P4', where: 'sft/eval_sft.py', note: '' },
-  { id: 'policy.deploy', view: 'policy', name: 'Serve as the intern\'s model', status: 'partial', phase: 'P4', where: 'intern/llm.py (OpenAI-compatible)', note: 'Any OpenAI-compatible server works; routing and A/B are new.' },
+  { id: 'policy.deploy', view: 'policy', name: 'Serve as the intern\'s model', status: 'partial', phase: 'P4', where: 'models/routing.py · models/shadow.py', note: 'A tuned tier (DCLAB_TIER_TUNED_*) can shadow a purpose (logged, never used) and serve it after a reviewer approves; no tuned model exists yet (A6.3).' },
   { id: 'policy.ladder', view: 'policy', name: 'Cost ladder: typed classifier → NOOA → LLM', status: 'partial', phase: 'P4', where: 'dclab_rnd/agentic/agents.py (NOOA)', note: 'The typed classifier tier is not in the repository yet.' },
   { id: 'policy.macro', view: 'policy', name: 'Macro-actions ("cake" tokens)', status: 'research', phase: 'R', where: 'research/workflow-actions', note: '' },
 
@@ -192,7 +192,7 @@ window.FEATURES = [
   { id: 'int.github', view: 'integrations', name: 'GitHub: open a PR with notebook and report', status: 'todo', phase: 'P2', where: '', note: '' },
 
   // ---- admin
-  { id: 'admin.models', view: 'admin', name: 'Model endpoints and routing per tier', status: 'partial', phase: 'P2', where: '.env OPENAI_BASE_URL / model', note: '' },
+  { id: 'admin.models', view: 'admin', name: 'Model endpoints and routing per tier', status: 'built', phase: 'Now', where: '.env DCLAB_TIER_* · POST /api/models/routing', note: 'Each purpose shows its serving tier, its shadow and the agreement rates; moving a purpose needs a reviewer; tiers are still set in .env.' },
   { id: 'admin.keys', view: 'admin', name: 'Keys stay on the server, never in the browser', status: 'built', phase: 'Now', where: 'server reads .env', note: '' },
   { id: 'admin.policies', view: 'admin', name: 'Governance policies as switches', status: 'built', phase: 'Now', where: 'pages/platform.py · PATCH /api/projects/{id}', note: 'Locked invariants are checked live; the two gate switches are set per project and every change is audited.' },
   { id: 'admin.roles', view: 'admin', name: 'Roles and permissions', status: 'todo', phase: 'P2', where: '', note: '' },

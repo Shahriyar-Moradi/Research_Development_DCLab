@@ -176,7 +176,7 @@ class PlatformApiTests(unittest.TestCase):
         moves = [(e["move"], e["status"], e["who"]) for e in d["items"][1:]]
         self.assertEqual(moves, [("approve_gate", "blocked", "Intern"), ("run_stage", "blocked", "Intern"),
                                  ("run_stage", "allowed", "Person"), ("set_solution", "allowed", "Person")])  # same second: later line first
-        self.assertEqual(d["counts"], {"moves": 4, "approvals": 1, "blocked": 2, "waiting": 0, "policy_changes": 0})
+        self.assertEqual(d["counts"], {"moves": 4, "approvals": 1, "blocked": 2, "waiting": 0, "policy_changes": 0, "routing_changes": 0})
         page = self.client.get("/api/platform/audit?limit=2&offset=3").json()
         self.assertEqual([e["move"] for e in page["items"]], ["run_stage", "set_solution"])
         self.assertEqual((page["total"], page["offset"], page["limit"]), (5, 3, 2))

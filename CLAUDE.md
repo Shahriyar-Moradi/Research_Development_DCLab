@@ -62,7 +62,7 @@ the last `make check-all` result.
 - Never `git stash`: the owner keeps uncommitted work in this tree (for example `docs/recap/`).
 - `dclab_rnd/agentic/static/app/**` is generated from `dclab_rnd/agentic/web/src` by `make web`.
 - `DCLAB_DATABASE_URL` switches projects, drafts and sessions to PostgreSQL; tests use (and empty) `dclab_test`.
-- Every model request goes through `dclab_rnd.models` (the gateway); tests use scripted transports, never a live key.
+- Every model request goes through `dclab_rnd.models` (the gateway); tests use scripted transports, never a live key. A purpose can be moved to another tier (a reviewer and a reason) or shadowed by a local one (`models/routing.py`, `models/shadow.py`): a shadow's answer is logged, never used.
 - Every agent tool is registered once in `dclab_rnd.agents` (`default_registry()`): scope "project" for the intern and `/mcp`, "draft" for the Home agent, "session" for the intern's plan and report, "campaign" for the research campaign's experiment. Never keep a private tool list. A write tool declares its move and runs only through its scope's guard (the graph validator for projects). The Home agent and the intern run on `agents.run()`; the campaign's LangGraph phases are traced and its experiment goes through the registry.
 - `.venv-agent` has no pandas, so the studio tests skip there; run the suite with `.venv`.
 - The suite runs in parallel: one process per test file, each with its own TMPDIR and, for PostgreSQL, its own database `dclab_test_p<N>` (`tests/run_parallel.py`). A test must not depend on another file having run; a failing file's output is printed whole.

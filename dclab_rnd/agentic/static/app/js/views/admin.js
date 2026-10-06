@@ -42,6 +42,33 @@ DC.view('admin', {
       const op = e.target.closest('[data-open-project]');
       if (op) { DC.state.projectId = op.dataset.openProject; DC.state.project = 'p:' + op.dataset.openProject; DC.currentProject.clear(); }
     });
+    /* A6.4: shadow and serving changes go to POST /api/models/routing; the answer is the new summary */
+    const route = (body, headers) => DC.api('/models/routing', { method: 'POST', body, headers: headers || {} })
+      .then(gw => { this.paintModels(el, {}, gw); toast('Saved. The routing history and the audit keep the change.'); return true; })
+      .catch(err => { toast(err.message, { ok: false }); return false; });
+    el.addEventListener('change', e => {
+      const sel = e.target.closest('[data-shadow]'); if (!sel) return;
+      route({ purpose: sel.dataset.shadow, setting: 'shadow', tier: sel.value || null });
+    });
+    el.addEventListener('click', e => {
+      const back = e.target.closest('[data-serve-back]');
+      if (back) { route({ purpose: back.dataset.serveBack, setting: 'serve', tier: null }); return; }
+      const tuned = e.target.closest('[data-serve-tuned]'); if (!tuned) return;
+      const purpose = tuned.dataset.serveTuned;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Models & routing</span>', title: `Serve ${esc(purpose)} with the tuned model?`, confirm: 'Move it',
+        html: '<p>Requests for this purpose will be answered by the tuned model. Moving it back is one click.</p>'
+          + '<label class="small" for="route-reason">Reason (kept in the audit)</label><textarea id="route-reason" rows="2" placeholder="What the shadow log showed"></textarea>'
+          + '<label class="row small"><input type="checkbox" id="route-role"> I approve this as the workspace\'s reviewer</label>'
+          + '<p class="xs muted">Until accounts exist, the role is the one you declare here.</p>',
+        onConfirm: () => {
+          if (!(document.getElementById('route-role') || {}).checked) { toast('Only a reviewer moves a purpose: tick the box.', { ok: false }); return false; }
+          route({ purpose, setting: 'serve', tier: 'tuned', reason: (document.getElementById('route-reason') || {}).value || '' }, { 'X-DCLab-Role': 'reviewer' })
+            .then(ok => { if (ok) DC.modal.close(); });  // on an error the reason stays typed in the dialog
+          return false;
+        },
+      });
+    });
     $('#audit-newer', el).addEventListener('click', () => { S.offset = Math.max(0, S.offset - S.limit); this.loadAudit(el); });
     $('#audit-older', el).addEventListener('click', () => { S.offset += S.limit; this.loadAudit(el); });
     DC.hydrate(el);
@@ -124,11 +151,27 @@ DC.view('admin', {
     pill.textContent = live ? 'configured' : 'not configured';
     if (!gw) { $('#tier3-body', el).innerHTML = `<span class="muted">${m.available ? esc(m.model) + ' via ' + esc(m.endpoint) : 'No model is configured: every part of DCLab uses its deterministic path.'}</span>`; return; }
     const tiers = gw.tiers.map(t => `<tr><td><b>${esc(t.name)}</b></td><td class="mono small">${esc(t.endpoint)}${t.local ? ' <span class="pill ok">this machine</span>' : ''}</td><td class="mono small">${esc(t.model)}</td><td><span class="pill ${t.available ? 'ok' : 'outline'}">${t.available ? 'ready' : (t.key_configured ? 'SDK missing' : 'no key')}</span></td></tr>`).join('');
-    const purposes = gw.purposes.map(p => `<tr><td class="mono small">${esc(p.purpose)}</td><td>${esc(p.tier)}</td><td class="small muted">${esc(p.may_see)}</td></tr>`).join('');
+    /* A6.4: which tier serves each purpose now, which local model shadows it (never used), and how often they agree */
+    const local = [...gw.tiers, gw.tuned].filter(t => t && t.local && t.available).map(t => t.name);
+    const agree = {}; (gw.agreement || []).forEach(a => { agree[a.purpose] = a; });
+    const rate = v => v == null ? '—' : Math.round(v * 100) + '%';
+    const purposes = gw.purposes.map(p => {
+      const a = agree[p.purpose], set = !!(p.routing || {}).serve, moved = p.serving !== p.tier, tuned = gw.tuned && gw.tuned.available && !set && p.routable;
+      if (!p.routable) return `<tr><td class="mono small">${esc(p.purpose)}</td><td>${esc(p.tier)} <span class="xs muted">sent by the research campaign's own client: not routed</span></td><td></td><td></td><td class="small muted">${esc(p.may_see)}</td></tr>`;
+      const shadow = `<select data-shadow="${esc(p.purpose)}" aria-label="Shadow model for ${esc(p.purpose)}"><option value="">none</option>${local.filter(t => t !== p.serving).map(t => `<option${(p.routing || {}).shadow === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+      const held = set && !moved ? ` <span class="pill warn" title="The approved model is not the one configured now, or it cannot answer: the purpose uses its own tier until someone approves again">approved ${esc(p.routing.serve_model || '')}: not serving</span>` : '';
+      const serve = set ? `${held}<button type="button" class="link-btn small" data-serve-back="${esc(p.purpose)}">Back to ${esc(p.tier)}</button>`
+        : tuned ? `<button type="button" class="link-btn small" data-serve-tuned="${esc(p.purpose)}">Serve with tuned…</button>` : '';
+      return `<tr><td class="mono small">${esc(p.purpose)}</td><td>${moved ? `<b>${esc(p.serving)}</b> <span class="pill warn">moved from ${esc(p.tier)}</span>` : esc(p.tier)} ${serve}</td>`
+        + `<td>${local.length ? shadow : '<span class="xs muted">no local model</span>'}</td>`
+        + `<td class="small">${a ? `${rate(a.same_tool)} same tool · ${rate(a.same_arguments)} same arguments · ${a.disagreements} of ${a.requests} disagree${a.errors ? ` · ${a.errors} failed` : ''}` : '<span class="muted">—</span>'}</td>`
+        + `<td class="small muted">${esc(p.may_see)}</td></tr>`;
+    }).join('');
     const failing = (gw.failing || []).map(f => `<div class="callout warn small"><span><b>${esc(f.model)}</b> failed the ${esc(f.purpose)} output check ${f.failed} of ${f.checked} times this month (${esc(f.tier)} tier)${f.last_reason ? ': ' + esc(f.last_reason) : ''}. Consider another model for this tier.</span></div>`).join('');
     $('#tier3-body', el).innerHTML = `${failing}
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Tier</th><th>Endpoint</th><th>Model</th><th></th></tr></thead><tbody>${tiers}</tbody></table></div>
-      <div class="table-wrap"><table class="data compact"><thead><tr><th>Purpose</th><th>Tier</th><th>What it may be shown</th></tr></thead><tbody>${purposes}</tbody></table></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Purpose</th><th>Served by</th><th>Shadow</th><th>Agreement</th><th>What it may be shown</th></tr></thead><tbody>${purposes}</tbody></table></div>
+      <span class="xs muted">A shadow is a model on this machine that receives a copy of each request after the served model answered. Its answer is compared and logged, never used: the validator sees only the served model's moves, and no budget counts it. Moving a purpose to another model needs a reviewer and a reason (the role is declared until accounts exist); moving it back is one click. Every change is in the audit.</span>
       <span class="xs muted">Keys stay on the server. To change a tier set <code>DCLAB_TIER_&lt;TIER&gt;_BASE_URL</code>, <code>_MODEL</code> and <code>_API_KEY</code> in <code>.env</code> (unset tiers use <code>OPENAI_*</code>), then restart the server.</span>`;
   },
 
@@ -166,11 +209,14 @@ DC.view('admin', {
         capture: 'Exported the notebook and report',
         use_approval: `Used the ${esc(g.gate || '')} approval`,
         set_policy: `Turned ${g.on ? 'on' : 'off'} the ${esc(g.label || g.policy || '')} switch`,
+        set_routing: g.setting === 'serve' ? `Moved <code>${esc(g.purpose || '')}</code> from ${esc(g.from || 'its own tier')} to ${esc(g.to || 'its own tier')}`
+          : `${g.to ? 'Set' : 'Removed'} the shadow of <code>${esc(g.purpose || '')}</code>${g.to ? ': ' + esc(g.to) : ''}`,
       }[e.move] || esc(e.move || '');
       const failed = (e.outcome || '').startsWith('failed');
       const pill = e.status === 'blocked' ? '<span class="pill bad">refused</span>' : e.status === 'needs_approval' ? '<span class="pill warn">waited for a person</span>' : failed ? '<span class="pill bad">failed</span>' : '';
-      const detail = e.status !== 'allowed' ? e.message : e.kind === 'approval' && e.message ? 'Reason: ' + e.message : (e.outcome || '').replace(/^done: /, '');
-      return `<div class="row">${verb} ${pill}<span class="muted">· <a href="#project" data-open-project="${esc(e.project.id)}">${esc(e.project.name)}</a></span></div>${detail ? `<div class="xs muted">${linkIds(detail.length > 220 ? detail.slice(0, 220) + '…' : detail)}</div>` : ''}`;
+      const detail = e.status !== 'allowed' ? e.message : (e.kind === 'approval' || e.kind === 'routing') && e.message ? 'Reason: ' + e.message : (e.outcome || '').replace(/^done: /, '');
+      const where = e.project ? `<a href="#project" data-open-project="${esc(e.project.id)}">${esc(e.project.name)}</a>` : 'workspace';
+      return `<div class="row">${verb} ${pill}<span class="muted">· ${where}</span></div>${detail ? `<div class="xs muted">${linkIds(detail.length > 220 ? detail.slice(0, 220) + '…' : detail)}</div>` : ''}`;
     };
     $('#audit-sub', el).textContent = `Every move the workflow validator checked, allowed or refused, every gate approval and every gate switch change, across ${a.projects} project${a.projects === 1 ? '' : 's'}. Written by the app to each project's transition and activity logs.`;
     $('#audit-body', el).innerHTML = a.items.length ? a.items.map(e => `<tr><td class="mono small" data-style="white-space:nowrap">${when(e.at)}</td><td>${esc(e.who)}</td><td class="small">${what(e)}</td></tr>`).join('')

@@ -20,6 +20,8 @@ from urllib.parse import urlparse
 from .client import DEFAULT_MODEL
 
 TIERS = ("strong", "standard", "cheap")
+TUNED = "tuned"  # the policy model (A6.3/A6.4): only from DCLAB_TIER_TUNED_*; it never falls back to another model
+ROUTABLE = (*TIERS, TUNED)  # what a purpose can be served or shadowed by (models/routing.py)
 
 
 @dataclass(frozen=True)
@@ -89,8 +91,14 @@ def tier(name: str) -> dict[str, Any]:
     another provider. DCLAB_INTERN_MODEL, the single model setting from before tiers existed, still applies to every tier
     that names no model.
     """
-    if name not in TIERS:
+    if name not in ROUTABLE:
         raise KeyError(name)
+    if name == TUNED:  # unset means absent: a tuned model that silently became the standard one would agree with itself
+        base_url, model = _env(name, "BASE_URL"), _env(name, "MODEL")
+        if not base_url or not model:
+            return {"name": name, "base_url": "", "model": "", "api_key": ""}
+        key = _env(name, "API_KEY") or ("local" if is_local(base_url, name) else "")
+        return {"name": name, "base_url": base_url, "model": model, "api_key": key}
     if name == "standard":
         base_url = _env(name, "BASE_URL") or os.environ.get("DCLAB_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         model = _env(name, "MODEL") or os.environ.get("DCLAB_INTERN_MODEL") or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL
@@ -115,9 +123,9 @@ def public(name: str) -> dict[str, Any]:
         sdk = True
     except ImportError:
         sdk = False
-    return {"name": name, "endpoint": _host(t["base_url"]), "model": t["model"], "sdk_installed": sdk,
+    return {"name": name, "endpoint": _host(t["base_url"]) if t["base_url"] else "not set", "model": t["model"], "sdk_installed": sdk,
             "key_configured": bool(t["api_key"]), "available": bool(t["api_key"]) and sdk,
-            "local": is_local(t["base_url"], name)}
+            "local": bool(t["base_url"]) and is_local(t["base_url"], name)}
 
 
 def purpose(name: str) -> Purpose:

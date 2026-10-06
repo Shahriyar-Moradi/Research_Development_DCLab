@@ -78,8 +78,10 @@ def plan(gateway: Any, cases: list[Case], repeats: int, max_steps: int) -> dict[
 
     tiers = {}
     for purpose in PURPOSES:
-        t = settings.public(settings.purpose(purpose).tier)
-        tiers[purpose] = {"tier": settings.purpose(purpose).tier, "model": t.get("model"), "local": bool(t.get("local"))}
+        # the tier that serves the purpose now, routing included (A6.4): the plan, the caps and the stored result name it
+        tier = gateway.route(purpose)[0] if hasattr(gateway, "route") else settings.purpose(purpose).tier
+        t = settings.public(tier)
+        tiers[purpose] = {"tier": tier, "model": t.get("model"), "local": bool(t.get("local"))}
     intern = tiers["intern"]
     runs = len(cases) * repeats
     per_run_requests = max_steps + 2  # each tool call needs a reply, plus the first reply and the last answer
@@ -291,7 +293,9 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
     parser.add_argument("--max-steps", type=int, default=16, help="tool calls per run (default 16)")
     parser.add_argument("--output", type=Path, help="where to store the result (default: the next AEV file of the campaign)")
     args = parser.parse_args(argv)
-    gateway = gateway or for_workspace()  # the workspace usage log and its monthly cap, as the other command-line tools
+    if gateway is None:
+        gateway = for_workspace()  # the workspace usage log, its monthly cap and its routing, as the other command-line tools
+        gateway.shadows = None  # benchmark traffic stays out of the shadow log and the agreement rates the Admin page shows
     wanted = {c.strip() for c in (args.cases or "").split(",") if c.strip()}
     cases = [c for c in CASES if not wanted or c.id in wanted]
     if wanted - {c.id for c in cases}:

@@ -52,7 +52,10 @@ def create_app(home=None):
         except KeyError:
             return None
         return float(value) if value not in (None, "") else None
-    gateway = models.Gateway(models.open_usage(store.home), project_cap=project_cap)  # every model request goes through it
+    from ..models.routing import open_routing
+    from ..models.shadow import open_shadows
+    # every model request goes through it; the routing moves a purpose to another model or names a shadow (A6.4)
+    gateway = models.Gateway(models.open_usage(store.home), project_cap=project_cap, routing=open_routing(store.home), shadows=open_shadows(store.home))
     models.install(gateway)  # the engine's stage notes run outside a request
     tasks = {}
     jobs = {}
@@ -110,6 +113,24 @@ def create_app(home=None):
     @app.get("/api/models")
     async def model_overview():
         """Which model serves which purpose, what each purpose may be shown, and the usage so far (no keys)."""
+        return await asyncio.to_thread(gateway.summary)
+    @app.post("/api/models/routing")
+    async def change_routing(request: Request):
+        """Set a purpose's shadow (a local model that answers beside it, never used) or move the purpose to another
+        tier. Moving it needs a reviewer (X-DCLab-Role, declared until accounts exist) and a reason; moving it back to
+        its own tier (tier null) is one setting. Every change is kept in the routing history and the platform audit."""
+        from ..models import routing as model_routing
+        try: body = await request.json()
+        except ValueError: raise HTTPException(422, "The body must be JSON") from None
+        body = body if isinstance(body, dict) else {}
+        role = (request.headers.get("x-dclab-role") or "").strip().lower() or None
+        tier = body.get("tier")
+        try:
+            model_routing.change(gateway.routing, str(body.get("purpose", "")), str(body.get("setting", "")), tier if isinstance(tier, str) and tier else None,
+                                 role, str(body.get("reason") or ""))
+        except PermissionError as exc: raise HTTPException(403, str(exc)) from None
+        except KeyError as exc: raise HTTPException(422, str(exc).strip("'\"")) from None
+        except model_routing.RoutingError as exc: raise HTTPException(422, str(exc)) from None
         return await asyncio.to_thread(gateway.summary)
     @app.get("/api/runs")
     async def runs(): return store.list()
@@ -490,7 +511,7 @@ def create_app(home=None):
         return job
     @app.get("/api/intern")
     async def intern_status(request: Request):
-        cfg = model_settings.public(model_settings.purpose("intern").tier)  # the tier the intern's requests go to (no key)
+        cfg = model_settings.public(gateway.route("intern")[0])  # the tier the intern's requests go to now, routing included (no key)
         return {**cfg, "mode": "llm" if gateway.available("intern") else "standard", "examples": EXAMPLE_TASKS,
                 "mcp_url": (str(request.base_url).rstrip("/") + "/mcp") if mcp is not None else None,
                 "chat_ui": {"command": "make chat-ui", "intern_command": "make chat-ui-intern", "url": "http://localhost:5173/", "intern_url": "http://localhost:5173/?mode=ml-intern"},
