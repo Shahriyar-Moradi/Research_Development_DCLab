@@ -1,0 +1,30 @@
+# The image holds the code, the evidence and the studied samples; never a key, a workspace or a scratch file.
+.git
+.github
+# every .env, in any folder (a pattern here anchors at the root unless it starts with **/): keys never enter an image
+**/.env
+**/.env.*
+!.env.example
+.venv*
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+agent_runs
+tmp
+output
+evaluation
+data/downloads
+docs/recap
+docs/product-demo/node_modules
+Claud_RAG_initial
+cluad_optimized_SFT
+vscode_notebook_companion
+research/llm-fine-tuning/experiments/sft/out_v4
+*.png
+*.pdf
+*.log
+/*.csv
+/*.md
+!/README.md
+!/CLAUDE.md

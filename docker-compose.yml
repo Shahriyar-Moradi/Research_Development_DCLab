@@ -1,0 +1,61 @@
+# The product on one machine (package 12.1): the API server, one job worker and PostgreSQL.
+#   make up      build and start (http://127.0.0.1:8765)
+#   make logs    follow the logs
+#   make down    stop (the database and the files stay in their volumes)
+# Keys and passwords come from your environment or a .env file beside this one; none is written here.
+name: dclab
+
+x-product: &product
+  build: .
+  image: dclab:local
+  environment: &env
+    DCLAB_DATABASE_URL: postgresql+psycopg://dclab:${DCLAB_DB_PASSWORD:-dclab-local-only}@db:5432/dclab
+    DCLAB_AGENT_HOME: /workspace
+    DCLAB_WORKER: external
+    DCLAB_AUTH: ${DCLAB_AUTH:-none}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+    OPENAI_MODEL: ${OPENAI_MODEL:-}
+  volumes:
+    - workspace:/workspace
+  depends_on:
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dclab
+      POSTGRES_USER: dclab
+      POSTGRES_PASSWORD: ${DCLAB_DB_PASSWORD:-dclab-local-only}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dclab -d dclab"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    <<: *product
+    ports:
+      - "127.0.0.1:${DCLAB_PORT:-8765}:8765"   # this machine only; a server behind TLS publishes it differently (package 12.6)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/config', timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  worker:
+    <<: *product
+    command: ["python", "-m", "dclab_rnd.worker"]
+    depends_on:
+      app:
+        condition: service_healthy   # the app runs the migrations first
+
+volumes:
+  pgdata:
+  workspace:

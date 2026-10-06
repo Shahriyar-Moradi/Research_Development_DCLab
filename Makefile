@@ -1,4 +1,4 @@
-.PHONY: help dev db-reset test-db sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -74,6 +74,19 @@ rd-campaign-review:  ## run pending LLM critic reviews (needs OPENAI_API_KEY)
 
 agent-serve:  ## start the web UI with the LLM campaigns enabled (agent environment)
 	$(AGENT_PYTHON) -m dclab_rnd.agentic serve
+
+up:  ## the product in containers: the API, one job worker and PostgreSQL (docker-compose.yml), on http://127.0.0.1:8765
+	docker compose up -d --build --wait
+
+down:  ## stop the containers (the database and the workspace stay in their volumes)
+	docker compose down
+
+logs:  ## follow the containers' logs
+	docker compose logs -f --tail=100
+
+scan-secrets:  ## look for committed secrets: the tracked files and every line in the history (reports where and what kind, never the value)
+	$(PYTHON) scripts/scan_secrets.py
+	$(PYTHON) scripts/scan_secrets.py --history
 
 dev:  ## local development on PostgreSQL: checks the server, creates and migrates dclab_dev, runs the API with reload and rebuilds the frontend on change
 	$(PYTHON) scripts/dev.py serve
