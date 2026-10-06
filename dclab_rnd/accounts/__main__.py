@@ -36,6 +36,9 @@ def main(argv: list[str] | None = None) -> int:
     from ..settings import ROOT, Settings
 
     load_dotenv(ROOT / ".env", override=False)
+    from .. import secret_files
+
+    secret_files.load(strict=False)  # a NAME_FILE written in .env (the import-time load ran before .env was read)
     from ..storage import db
 
     if not db.database_url(required=False):

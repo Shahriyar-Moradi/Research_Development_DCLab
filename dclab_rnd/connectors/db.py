@@ -36,10 +36,14 @@ DRIVERS = {"psycopg2": "psycopg2-binary", "psycopg": "psycopg[binary]", "pymysql
            "snowflake": "snowflake-sqlalchemy", "asyncpg": "psycopg2-binary (async drivers are not supported)", "aiomysql": "pymysql"}
 
 
+NOT_CONNECTIONS = {"DCLAB_DB_POOL_SIZE", "DCLAB_DB_MAX_OVERFLOW", "DCLAB_DB_PASSWORD"}
+
+
 def connections() -> list[str]:
     """The names of the connections configured on this server (lowercase)."""
     names = {key[len(PREFIX):].lower() for key, value in os.environ.items()
-             if key.upper().startswith(PREFIX) and value.strip() and NAME.match(key[len(PREFIX):])}
+             if key.upper().startswith(PREFIX) and value.strip() and NAME.match(key[len(PREFIX):])
+             and not key.upper().endswith("_FILE") and key.upper() not in NOT_CONNECTIONS}  # a secret file and the pool settings are not sources
     return sorted(names)
 
 

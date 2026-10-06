@@ -40,8 +40,9 @@ CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
 
 def create_app(home=None) -> FastAPI:
     settings = Settings.load(home)  # read once for this app
-    if settings.auth != "none" and not settings.database_url:
-        raise RuntimeError("DCLAB_AUTH needs PostgreSQL: accounts and sessions live in the database (set DCLAB_DATABASE_URL)")
+    problems = settings.problems()
+    if problems:  # refuse to start, saying what to set or do (package 12.2)
+        raise RuntimeError("DCLab cannot start: " + "; ".join(problems))
     pool = Pool(settings)  # one Services per workspace this server serves (package 10.2); the first is its own folder's
     s = pool.default
     # one MCP endpoint for every workspace: its toolbox reaches the projects of the workspace the request's token names (10.2)
@@ -69,7 +70,7 @@ def create_app(home=None) -> FastAPI:
     # with accounts on, the schema and the docs pages are not served: they are FastAPI's own routes, outside the role check
     docs = {} if settings.auth == "none" else {"openapi_url": None, "docs_url": None, "redoc_url": None}
     app = FastAPI(title="DCLab notebook", lifespan=lifespan, **docs)
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.hosts())  # DCLAB_ALLOWED_HOSTS adds a proxy's name (12.2)
     app.state.services = s
     app.state.pool = pool
     app.state.settings = settings

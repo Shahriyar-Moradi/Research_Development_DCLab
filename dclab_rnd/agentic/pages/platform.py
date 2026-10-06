@@ -241,6 +241,14 @@ ACTOR_ROWS: list[tuple[str, Callable[[], dict[str, Any]], str, dict[str, Any]]] 
 ]
 
 
+def SERVED_AT() -> str:  # noqa: N802 — the host names the host check lets through (package 12.2), in words
+    from ...settings import Settings
+
+    extra = [h for h in Settings.load().hosts() if h not in ("127.0.0.1", "localhost", "testserver")]
+    return ("The server answers only on 127.0.0.1 and localhost." if not extra
+            else f"The server answers on 127.0.0.1, localhost and {', '.join(extra)} (DCLAB_ALLOWED_HOSTS).")
+
+
 def SIGN_IN() -> str:  # noqa: N802 — how this server signs people in (package 10.2): none, password or oidc
     from ...settings import Settings
 
@@ -315,7 +323,7 @@ def limits(projects) -> dict[str, Any]:
         "model": {"key_configured": bool(cfg["key_configured"]), "available": bool(cfg["available"]), "endpoint": cfg["endpoint"], "model": cfg["model"]},
         "privacy": [
             {"title": "Data stays on this machine", "on": True,
-             "text": "The server answers only on 127.0.0.1 and localhost. Uploads, connector imports, projects and logs are files in the workspace folder."},
+             "text": SERVED_AT() + " Uploads, connector imports, projects and logs are files in the workspace folder."},
             {"title": "What a model sees", "on": bool(cfg["available"]),
              "text": ("A model is configured, so these go to " + _endpoints() + ": " if cfg["available"] else "No model is configured, so nothing is sent. With one: ")
              + "the Home agent gets the problem, your answers, column summaries (name, kind, missing rate, unique count; 40 columns at a time) "

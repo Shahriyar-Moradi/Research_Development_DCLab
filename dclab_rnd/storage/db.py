@@ -11,8 +11,15 @@ from typing import Any
 
 import sqlalchemy as sa
 
-POOL_SIZE = int(os.environ.get("DCLAB_DB_POOL_SIZE", "10"))
-MAX_OVERFLOW = int(os.environ.get("DCLAB_DB_MAX_OVERFLOW", "20"))
+def _int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name) or default)
+    except ValueError:  # a bad value: the server refuses to start and says why (Settings.problems); a script keeps the default
+        return default
+
+
+POOL_SIZE = _int("DCLAB_DB_POOL_SIZE", 10)
+MAX_OVERFLOW = _int("DCLAB_DB_MAX_OVERFLOW", 20)
 _ENGINES: dict[str, sa.Engine] = {}
 _GUARD = threading.Lock()
 
@@ -78,6 +85,13 @@ def current(url: str | None = None) -> str | None:
 
     with engine(url).connect() as connection:
         return MigrationContext.configure(connection).get_current_revision()
+
+
+def head() -> str:
+    """The newest migration this code knows."""
+    from alembic.script import ScriptDirectory
+
+    return ScriptDirectory.from_config(_config("postgresql://unused")).get_current_head()
 
 
 def reachable(url: str | None = None) -> str | None:

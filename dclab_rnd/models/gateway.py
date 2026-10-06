@@ -26,8 +26,15 @@ from . import prices, settings
 from .client import ChatClient
 from .usage import UsageLog, month_start, now
 
-RETRIES = int(os.environ.get("DCLAB_MODEL_RETRIES", "2"))  # attempts after the first, for transient failures only
-BACKOFF = float(os.environ.get("DCLAB_MODEL_BACKOFF", "1.5"))  # seconds, doubled after each attempt
+def _number(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name) or default)
+    except ValueError:  # a bad value: the server refuses to start and says why (Settings.problems); a script keeps the default
+        return default
+
+
+RETRIES = int(_number("DCLAB_MODEL_RETRIES", 2))  # attempts after the first, for transient failures only
+BACKOFF = _number("DCLAB_MODEL_BACKOFF", 1.5)  # seconds, doubled after each attempt
 
 
 def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import signal
+import sys
 import threading
 from pathlib import Path
 
@@ -28,6 +29,10 @@ def main(argv: list[str] | None = None) -> int:
 
     load_dotenv(ROOT / ".env", override=False)  # the server reads .env the same way: both open the same workspace
     settings = Settings.load(args.home)
+    problems = settings.problems()
+    if problems:
+        print("The worker cannot start: " + "; ".join(problems), file=sys.stderr)
+        return 2
     from .agentic.pool import Pool
 
     pool = Pool(settings.model_copy(update={"worker": "inline", **({"worker_threads": max(1, args.threads)} if args.threads else {})}))
