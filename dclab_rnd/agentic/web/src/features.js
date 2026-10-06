@@ -51,6 +51,7 @@ window.FEATURES = [
 
   // ---- solution & data
   { id: 'solution.fields', view: 'solution', name: 'Solution fields: target, task, moment, forbidden, IDs, time, group, text, metric', status: 'built', phase: 'Now', where: 'studio/solution.py Solution', note: '' },
+  { id: 'solution.memory', view: 'solution', name: 'Project memory: decisions, why and by whom, read by the agents', status: 'built', phase: 'Now', where: 'studio/memory.py', note: 'Written on solution save and stage or gate approval; a person can remove a note, the log keeps it.' },
   { id: 'solution.timeline', view: 'solution', name: 'Prediction-moment timeline: what is known when', status: 'built', phase: 'Now', where: '', note: 'Forbidden columns placed after the prediction moment; open ones in amber.' },
   { id: 'solution.costs', view: 'solution', name: 'Decision costs choose the metric and threshold', status: 'partial', phase: 'Now', where: 'studio/engine.py stage_final threshold_analysis', note: 'Calculator runs on the real holdout ROC-AUC; costs are examples until the owner enters them.' },
   { id: 'solution.signoff', view: 'solution', name: 'Owner sign-off with versions', status: 'built', phase: 'Now', where: 'server.py /approvals · studio/graph.py', note: 'Sign a version (approvals gate); versions come from set_solution moves.' },

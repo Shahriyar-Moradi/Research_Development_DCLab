@@ -300,6 +300,9 @@ def attach_data(store, project_id: str, filename: str) -> dict[str, Any]:
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
                        "sha256": sha256(path), "profile": profile_table(frame)}
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
+    if project.get("memory"):
+        from . import memory
+        memory.data_replaced(project, filename)  # A5.2: what the notes settled was about the old table
     store.save(project)
     store.clear_stages(project_id)
     store.log(project_id, "data_attached", {"filename": filename, "rows": project["data"]["rows"], "columns": len(project["data"]["columns"])})

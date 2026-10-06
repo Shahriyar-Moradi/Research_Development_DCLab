@@ -744,6 +744,8 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
             break
     project["stages"][stage]["status"] = "approved"
     project["stages"][stage]["approved_at"] = _now()
+    from . import memory
+    memory.stage_approved(project, stage, (record or {}).get("decision"), choice, actor)  # A5.2: kept as a note the agents read
     store.save(project)
     store.log(project_id, "stage_approved", {"stage": stage, "choice": choice})
     return project

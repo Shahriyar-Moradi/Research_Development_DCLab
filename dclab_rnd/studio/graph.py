@@ -339,6 +339,8 @@ def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "own
         entry["solution_hash"] = solution_hash(project["solution"])
         project["signoff"] = entry
     project.setdefault("approvals", []).append(entry)
+    from . import memory
+    memory.gate_approved(project, gate, "human", reason)  # A5.2
     store.save(project)
     return project
 

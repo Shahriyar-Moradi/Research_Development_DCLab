@@ -26,6 +26,7 @@ from dclab_rnd.studio import data as studio_data
 from dclab_rnd.studio import engine as studio_engine
 from dclab_rnd.studio import export as studio_export
 from dclab_rnd.studio import graph as studio_graph
+from dclab_rnd.studio import memory as studio_memory
 from dclab_rnd.studio.store import INDUSTRIES, STAGE_KEYS, ProjectStore
 
 EVIDENCE_TOOLS = ("search_evidence", "get_record", "get_rules", "plan_next_stage", "review_code")
@@ -216,7 +217,8 @@ class Toolbox:
                 "columns": [{"name": c["name"], "kind": c["kind"], "missing": round(c["missing_rate"], 3), "unique": c["unique"], "examples": c["preview"][:3]} for c in profile["columns"]],
                 "target_candidates": profile["target_candidates"], "time_candidates": profile["time_candidates"],
                 "id_candidates": profile["id_candidates"], "text_candidates": profile["text_candidates"],
-                "suggestion": project.get("suggestion"), "solution": project.get("solution")}
+                "suggestion": project.get("suggestion"), "solution": project.get("solution"),
+                "memory": studio_memory.summary(project)}  # A5.2: what earlier sessions and people decided
 
     def propose_solution(self, project_id: str, target: str, task: str | None = None) -> dict[str, Any]:
         project = self.projects.get(project_id)
@@ -224,8 +226,7 @@ class Toolbox:
             return {"error": "The project has no data yet."}
         frame = studio_data.load_table(self.projects.data_dir(project_id) / project["data"]["filename"])
         proposal = studio_solution.propose(frame, project["data"]["profile"], target, task)
-        project["proposal"] = proposal
-        self.projects.save(project)
+        self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
         return {k: proposal[k] for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
                                          "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint")}
 
@@ -257,7 +258,10 @@ class Toolbox:
         studio_graph.log(self.projects, project_id, verdict, project)
         if not verdict.allowed:
             return blocked(verdict)
+        before = project.get("solution")
         project["solution"] = solution.model_dump()
+        if before != project["solution"]:
+            studio_memory.solution_saved(project, before, project["solution"], "agent")  # A5.2: the project remembers why
         self.projects.save(project)
         self.projects.clear_stages(project_id)
         self.projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden], "by": "intern"})

@@ -361,6 +361,8 @@ DC.view('solution', {
       const cost = costsReal(p, F);
       $('#sol-costs', el).innerHTML = cost.html;
       $('#sol-data', el).innerHTML = dataReal(p, F);
+      $('#sol-memory', el).hidden = false;
+      $('#sol-memory-body', el).innerHTML = memoryReal(p);
       const n = DC.$('.ptab[data-ptab="owner"] .n', el);
       if (n) n.textContent = String(qs.filter(q => !q.done).length);
       if (cost.calc) {
@@ -371,8 +373,20 @@ DC.view('solution', {
       DC.hydrate(el);
       if (busy(p)) watch();
     }
+    /* the project's memory (A5.2): what was decided, why, by whom and by which move; a correction is marked */
+    function memoryReal(p) {
+      const notes = (p.memory || []).filter(n => !n.removed).slice().reverse(), gone = (p.memory || []).length - notes.length;
+      if (!notes.length) return `<div class="empty">Nothing yet: a note is written when the solution is saved or a stage or gate is approved.${gone ? ` ${gone} removed note${gone === 1 ? '' : 's'} stay in the log.` : ''}</div>`;
+      const read = new Set(p.memory_read || []);
+      return notes.map(n => `<div class="list-item"><span class="pill ${n.kind === 'correction' ? 'warn' : 'outline'}">${esc(n.kind)}</span><div class="li-main"><span>${esc(n.decision)}</span>`
+        + (read.has(n.id) ? '' : `<span class="pill outline xs" title="A later change replaced it or the approval no longer holds; the agents do not read it">no longer read</span>`)
+        + `<span class="li-sub">${esc(n.reason || '')} · ${esc(n.who)} · ${esc(n.move)}${n.stage ? ' · ' + esc(n.stage) : ''} · ${esc((n.at || '').slice(0, 10))}</span></div>`
+        + `<button type="button" class="link-btn small" data-forget="${esc(n.id)}">Remove</button></div>`).join('')
+        + (gone ? `<div class="xs muted">${gone} removed note${gone === 1 ? '' : 's'} stay in the project log.</div>` : '');
+    }
     function restoreSample() {
       if (stopPoll) { stopPoll(); stopPoll = null; }
+      $('#sol-memory', el).hidden = true;
       real = null;
       if (mode === 'sample') return;
       mode = 'sample';
@@ -467,6 +481,21 @@ DC.view('solution', {
       } catch (err) { DC.toast(err.message, { ok: false }); }
     }
     el.addEventListener('click', e => { if (e.target.closest('[data-edit-solution]') && real) { audit = null; openEditor(real); } });
+    el.addEventListener('click', e => {
+      const f = e.target.closest('[data-forget]'); if (!f || !real) return;
+      const id = real.id, note = f.dataset.forget;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Project memory</span>', title: 'Remove this note?', confirm: 'Remove the note',
+        html: '<p>The agents stop reading it. The project log keeps the removal, with your reason.</p><label class="sr-only" for="forget-reason">Reason</label><textarea id="forget-reason" rows="2" placeholder="Why it no longer holds"></textarea>',
+        onConfirm: () => {
+          const reason = (document.getElementById('forget-reason') || {}).value || '';
+          DC.api(`/projects/${encodeURIComponent(id)}/memory/${encodeURIComponent(note)}`, { method: 'DELETE', body: { reason } })
+            .then(p => { DC.modal.close(); DC.toast('Note removed. The log keeps it.'); if (p && real && real.id === p.id) renderReal(p); })
+            .catch(err => DC.toast(err.message, { ok: false }));
+          return false;
+        },
+      });
+    });
     $('#drawer').addEventListener('click', async e => {
       if (!real || !$('#es-target', $('#drawer'))) return;
       if (e.target.closest('[data-es-audit]')) {

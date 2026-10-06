@@ -21,7 +21,7 @@ from .store import Store
 from .. import research_map
 from ..storage import open_stores
 from .. import models
-from ..studio import ProjectStore, agent as studio_agent, solution as studio_solution, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, sft as studio_sft
+from ..studio import ProjectStore, agent as studio_agent, solution as studio_solution, data as studio_data, engine as studio_engine, export as studio_export, graph as studio_graph, memory as studio_memory, sft as studio_sft
 from ..intern import Intern, SessionStore
 from ..models import settings as model_settings
 from ..intern.sessions import EXAMPLE_TASKS
@@ -166,7 +166,8 @@ def create_app(home=None):
         except KeyError: raise HTTPException(404, "Project not found")
     def with_records(p):
         return {**p, "records": projects.records(p["id"]), "activity": projects.activity(p["id"]), "stage_meta": studio_engine.STAGES,
-                "graph": studio_graph.describe(p), "transitions": projects.transitions(p["id"], 40)}
+                "graph": studio_graph.describe(p), "transitions": projects.transitions(p["id"], 40),
+                "memory_read": [n["id"] for n in studio_memory.active(p)]}  # A5.2: the notes the agents read now
     def validate(p, move, **args):
         """The workflow graph checks a person's move before anything starts; a refused move is logged and returned as 409."""
         verdict = studio_graph.check(p, move, "human", **args)
@@ -277,8 +278,7 @@ def create_app(home=None):
             proposal["identifiers"] = sorted(set(proposal["identifiers"]) | set(p["suggestion"].get("identifiers") or []))
             if p["suggestion"].get("prediction_moment"): proposal["prediction_moment_hint"] = p["suggestion"]["prediction_moment"]
             if p["suggestion"].get("time_column"): proposal["time_candidates"] = [p["suggestion"]["time_column"]] + [c for c in proposal["time_candidates"] if c != p["suggestion"]["time_column"]]
-        p["proposal"] = proposal
-        projects.save(p)
+        projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old (notes, approvals)
         return proposal
     @app.put("/api/projects/{project_id}/solution")
     @app.put("/api/projects/{project_id}/contract", include_in_schema=False)  # old name, kept for one release
@@ -290,10 +290,13 @@ def create_app(home=None):
             solution.check_columns(p["data"]["columns"] if p.get("data") else [])
         except Exception as exc: raise HTTPException(422, str(exc).split("\n")[0][:400] if "validation error" not in str(exc) else "; ".join(line.strip() for line in str(exc).split("\n")[1:] if line.strip() and not line.strip().startswith("For further"))[:600])
         changed = p.get("solution") != solution.model_dump()
+        before = p.get("solution")
         if changed:
             verdict = validate(p, "set_solution", target=solution.target)
             studio_graph.log(projects, project_id, verdict, p, outcome="done: solution saved")
         p["solution"] = solution.model_dump()
+        if changed:
+            studio_memory.solution_saved(p, before, p["solution"], "human")  # A5.2: a correction when it changes the agent's
         projects.save(p)
         if changed:
             projects.clear_stages(project_id)
@@ -337,6 +340,17 @@ def create_app(home=None):
         actor = "agent" if body.pop("actor", "human") == "agent" else "human"
         args = {k: body[k] for k in ("stage", "choice", "gate", "reuse_reason") if k in body}
         return studio_graph.check(p, move, actor, **args).to_dict()
+    @app.delete("/api/projects/{project_id}/memory/{note_id}")
+    async def remove_memory_note(project_id: str, note_id: str, request: Request):
+        """A person removes a note from the project's memory (A5.2); it stays in the project, marked removed, and the
+        activity log keeps who removed it and why."""
+        project(project_id)
+        try: body = await request.json() if int(request.headers.get("content-length", "0") or 0) else {}
+        except ValueError: raise HTTPException(422, "The body must be JSON: {\"reason\": \"...\"}") from None
+        reason = body.get("reason", "") if isinstance(body, dict) else ""
+        try: studio_memory.remove(projects, project_id, note_id, "human", str(reason or ""))
+        except KeyError: raise HTTPException(404, "No such note") from None
+        return with_records(projects.get(project_id))
     @app.post("/api/projects/{project_id}/approvals")
     async def approve_gate(project_id: str, request: Request):
         project(project_id)

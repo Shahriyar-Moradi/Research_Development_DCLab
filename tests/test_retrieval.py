@@ -68,6 +68,7 @@ class RetrievalTests(unittest.TestCase):
             strong = evidence.ask("Should I oversample before splitting?")
         self.assertEqual(strong.get("weak"), None)  # a strong keyword match anywhere in the hits is not a weak answer
         self.assertIn(a["mode"], ("records", "none"))
+        self.assertIsNone(a.get("weak"))  # its first fused hit is weak, another hit is not: the answer is not "weak"
 
 
 if __name__ == "__main__":

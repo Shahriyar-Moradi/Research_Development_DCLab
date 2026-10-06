@@ -529,8 +529,11 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         verdict = studio_graph.check(project, "set_solution", "human", target=draft["solution"]["target"])  # same check as the project page
         studio_graph.log(projects, pid, verdict, project, outcome="done: solution from the draft" if verdict.allowed else None)
         if verdict.allowed:
+            from ..studio import memory as studio_memory
+
             project = projects.get(pid)
             project["solution"] = draft["solution"]
+            studio_memory.solution_saved(project, None, draft["solution"], "human")  # A5.2: the person saved it in the wizard
             projects.save(project)
 
     def done(d):

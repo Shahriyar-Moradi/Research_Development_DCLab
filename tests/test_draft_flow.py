@@ -639,6 +639,7 @@ class ApiTests(unittest.TestCase):
         self.assertFalse(p["data"]["synthetic"])
         self.assertEqual(p["draft"]["id"], d["id"])
         self.assertEqual(p["solution"]["forbidden"][0]["column"], "duration")
+        self.assertEqual([(n["kind"], n["who"], n["move"]) for n in p["memory"]], [("decision", "human", "set_solution")])  # A5.2: the project remembers it
         self.assertEqual(p["budget"]["max_steps"], 80)
         self.assertEqual((p["settings"]["folds"], p["draft"]["settings"]["split"]), (5, "stratified"))
         again = c.post(f"/api/projects/{p['id']}/solution/proposal", json={"target": y}, headers=self.h)  # the Solution page's "audit again"

@@ -104,7 +104,17 @@ class Intern:
         text = session["task"]
         if session.get("project_id"):
             text += f"\n\nWork in the existing project {session['project_id']} (call describe_data first)."
+            notes = self._memory(session["project_id"])
+            if notes:  # A5.2: what earlier sessions and people decided; do not ask again what is settled here
+                text += "\n\n" + prompts.text("intern_memory") + "\n" + "\n".join(f"- {n}" for n in notes)
         return text + f"\n\nBudget: {session['budget']['max_steps']} tool calls, {session['budget']['max_minutes']} minutes."
+
+    def _memory(self, project_id: str) -> list[str]:
+        from dclab_rnd.studio import memory
+        try:
+            return memory.summary(self.toolbox.projects.get(project_id))
+        except KeyError:
+            return []
 
     def _exhausted(self, session: dict[str, Any], started: float) -> str | None:
         if session["used"]["steps"] >= session["budget"]["max_steps"]:
