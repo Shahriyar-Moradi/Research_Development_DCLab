@@ -73,10 +73,13 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
         report["profile"]["target_candidates"] = rank_targets(report["profile"], draft.get("problem") or "")
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)
-        final = set_asset(store, draft_id, asset_id, status="ready", rows=int(len(frame)), columns=int(frame.shape[1]),
-                          category_codes=codes, clean_file="clean.parquet")
+        final: dict[str, Any] = {}
 
-        def put(d):
+        def put(d):  # one write: a reader never sees the asset ready without its analysis
+            for a in d["assets"]:
+                if a["id"] == asset_id:
+                    a.update(status="ready", rows=int(len(frame)), columns=int(frame.shape[1]), category_codes=codes, clean_file="clean.parquet")
+                    final.update(a)
             d["cleaning_log"], d["analysis"], d["structure"], d["active_asset"] = log, report, info, asset_id
         store.update(draft_id, put)
         store.emit(draft_id, "analysis", {"asset": asset_id, "analysis": report})
