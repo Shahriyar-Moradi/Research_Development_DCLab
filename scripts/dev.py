@@ -1,6 +1,6 @@
 """Local development with one command (package 12.0): ``make dev``, ``make db-reset``, ``make test-db``.
 
-    make dev                   # PostgreSQL checked, dclab_dev created and migrated, the API with reload, the frontend rebuilt on change
+    make dev                   # PostgreSQL checked, dclab_dev created and migrated, the API and the job worker with reload, the frontend rebuilt on change
     make db-reset CONFIRM=yes  # a clean dclab_dev: dropped, created, migrated (asks for CONFIRM: it deletes the database)
     make test-db               # the database the tests use (dclab_test), created and migrated
 
@@ -166,8 +166,27 @@ def build_frontend() -> None:
           else f"frontend build failed:\n{done.stdout}{done.stderr}", flush=True)
 
 
+def worker_command() -> list[str]:
+    """The job worker, restarted when its code changes when ``watchfiles`` is installed; without it, run once."""
+    import importlib.util
+
+    if importlib.util.find_spec("watchfiles") is None:
+        print("watchfiles is not installed: the job worker runs without reload (restart make dev after changing its code)", flush=True)
+        return [sys.executable, "-m", "dclab_rnd.worker"]
+    return [sys.executable, "-m", "watchfiles", "--filter", "python", f"{sys.executable} -m dclab_rnd.worker", "dclab_rnd"]
+
+
+def watch_worker(worker, stop: threading.Event) -> None:
+    """Say so loudly when the worker ends while the API still runs: queued jobs would wait for ever."""
+    code = worker.wait()
+    if not stop.is_set():
+        print(f"\nTHE JOB WORKER STOPPED (exit {code}): stage runs, data pipelines and intern turns stay queued. "
+              "Restart make dev, or run python -m dclab_rnd.worker in another terminal.", file=sys.stderr, flush=True)
+
+
 def serve(url: str, port: int, remote: bool = False) -> int:
-    env = {**os.environ, "DCLAB_DATABASE_URL": url}
+    # The worker runs on its own (package 10.3), as in production: the API only queues jobs.
+    env = {**os.environ, "DCLAB_DATABASE_URL": url, "DCLAB_WORKER": "external"}
     print(f"database {database_name(url)}: {ensure_database(url, remote=remote)}", flush=True)
     build_frontend()
     stop = threading.Event()
@@ -175,7 +194,9 @@ def serve(url: str, port: int, remote: bool = False) -> int:
     watcher.start()
     command = [sys.executable, "-m", "uvicorn", "dclab_rnd.agentic.server:app", "--host", "127.0.0.1", "--port", str(port),
                "--reload", "--reload-dir", "dclab_rnd", "--workers", "1"]
-    print(f"API on http://127.0.0.1:{port} (reload on code changes; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
+    print(f"API on http://127.0.0.1:{port} and a job worker (both reload on code changes; the frontend rebuilds when {WEB_SRC.relative_to(ROOT)} changes). Ctrl-C stops.", flush=True)
+    worker = subprocess.Popen(worker_command(), cwd=ROOT, env=env)
+    threading.Thread(target=watch_worker, args=(worker, stop), daemon=True).start()
     process = subprocess.Popen(command, cwd=ROOT, env=env)
     try:
         return process.wait()
@@ -184,6 +205,11 @@ def serve(url: str, port: int, remote: bool = False) -> int:
         return process.wait()
     finally:
         stop.set()
+        worker.terminate()
+        try:
+            worker.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            worker.kill()
 
 
 def main(argv: list[str] | None = None) -> int:

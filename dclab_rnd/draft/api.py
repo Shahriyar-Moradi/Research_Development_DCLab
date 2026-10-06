@@ -48,14 +48,19 @@ MAX_UPLOAD = 200 * 1024 * 1024
 STREAM_SECONDS = 600  # the browser's EventSource reconnects and resumes from Last-Event-ID
 
 
-def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task], traces: Any = None) -> None:
+def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str, asyncio.Task], traces: Any = None, services: Any = None) -> None:
+    """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted.
+    ``traces`` (``agents.traces``) keeps a row per step of the Home agent's model turns, under the draft's id. ``jobs``
+    holds the Home agent's turns (asyncio tasks in this process); the data pipelines and synthetic data are jobs in the
+    job table (package 10.3), queued through ``services`` and run by a worker."""
     router = Router()  # package 10.1: the draft routes are one router; a body is a typed JSON object (a 422 otherwise)
+    from ..studio import data as studio_data
+    from .work import DraftWork
+
+    work = services.draft_work if services is not None else DraftWork(drafts, models, traces)
 
     def dump(payload: Any) -> dict[str, Any]:
         return payload.model_dump(exclude_unset=True) if payload is not None else {}
-    """``models`` is the model gateway (dclab_rnd.models.Gateway): each use names its purpose, so it is routed, timed and counted.
-    ``traces`` (``agents.traces``) keeps a row per step of the Home agent's model turns, under the draft's id."""
-    from ..studio import data as studio_data
 
     def get(draft_id: str) -> dict[str, Any]:
         try:
@@ -64,8 +69,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(404, "Draft not found") from None
 
     def agent(draft_id: str | None = None) -> HomeAgent:
-        return HomeAgent(drafts, models.client("home_agent", draft_id=draft_id), on_request=lambda did, what, args: requests(did, what, args),
-                         traces=traces)
+        return work.agent(draft_id)
 
     def background(key: str, fn, *args) -> None:
         async def go():
@@ -76,36 +80,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         task = asyncio.get_running_loop().create_task(go())
         jobs[key] = task
 
-    def requests(draft_id: str, what: str, args: dict[str, Any]) -> None:
-        """The agent asked for something that runs in the background (today: simulate data)."""
-        if what == "simulate":
-            simulate(draft_id, args.get("prompt", ""), int(args.get("rows") or 5000))
-
     def process(draft_id: str, asset_id: str) -> None:
-        pipeline.run(drafts, draft_id, asset_id, agent(draft_id), models.client("parse_pattern", draft_id=draft_id))
-
-    def simulate(draft_id: str, prompt: str, rows: int, template: str | None = None) -> dict[str, Any]:
-        from . import synthetic
-
-        draft = drafts.get(draft_id)
-        if template:  # the user picked a built-in template in the Synthetic tab
-            drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Generating synthetic data from the template you chose"})
-            spec, info = synthetic.from_template(template, rows)
-        else:
-            context = {"problem": draft["problem"], "understanding": draft.get("understanding") or {}, "pack": (draft.get("pack") or {}).get("key")}
-            drafts.emit(draft_id, "pipeline", {"step": "designing", "text": "Designing a synthetic dataset from the conversation"})
-            spec, info = synthetic.spec_from_model(models.client("synthetic_schema", draft_id=draft_id), prompt or draft["problem"], context, rows)
-        note = synthetic.template_note(spec, info)
-        if note:  # never let template rows pass for a table designed from the user's description
-            drafts.emit(draft_id, "status", {"note": note})
-        frame = synthetic.generate(spec)
-        saved = synthetic.save(frame, spec, drafts.data_dir(draft_id))
-        asset = pipeline.new_asset(drafts, draft_id, "synthetic", f"Synthetic · {spec.name}", Path(saved["path"]).name,
-                                   synthetic=True, spec_source=info.get("source"), spec_file=Path(saved["spec_path"]).name,
-                                   **({"suggestion": {"target": spec.target.name}} if spec.target else {}),  # the generator knows its outcome column
-                                   **({"template": info["template"], "template_note": note} if info.get("template") else {}))
-        pipeline.run(drafts, draft_id, asset["id"], agent(draft_id), models.client("parse_pattern", draft_id=draft_id))
-        return asset
+        """The pipeline of one asset, as a job (in a task of this process when no job table is wired)."""
+        if services is None:
+            background(f"{draft_id}:{asset_id}", work.process, draft_id, asset_id)
+            return
+        services.submit("pipeline", f"{draft_id}:{asset_id}", {"draft_id": draft_id, "asset_id": asset_id})
 
     @router.get("/api/packs", response_model=list[Doc])
     async def list_packs():
@@ -304,7 +284,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(413, "Files up to 200 MB; for larger tables connect the source instead")
         (drafts.data_dir(draft_id) / name).write_bytes(body)
         asset = pipeline.new_asset(drafts, draft_id, "upload", name, name, bytes=len(body))
-        background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
+        process(draft_id, asset["id"])
         return asset
 
     @router.post("/api/drafts/{draft_id}/data/sample", response_model=Doc)
@@ -317,7 +297,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         name = f"{key}.parquet"
         await asyncio.to_thread(pipeline._to_parquet, frame, drafts.data_dir(draft_id) / name)
         asset = pipeline.new_asset(drafts, draft_id, "sample", key, name, suggestion=_suggestion(policy))
-        background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
+        process(draft_id, asset["id"])
         return asset
 
     @router.post("/api/drafts/{draft_id}/data/synthetic", status_code=202, response_model=Doc)
@@ -330,7 +310,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         template = body.get("template") or None
         if template is not None and template not in synthetic.TEMPLATES:
             raise HTTPException(422, "Unknown template")
-        background(f"{draft_id}:synthetic", simulate, draft_id, str(body.get("prompt", "")), rows, template)
+        payload = {"draft_id": draft_id, "prompt": str(body.get("prompt", "")), "rows": rows, "template": template}
+        if services is None:
+            background(f"{draft_id}:synthetic", work.simulate, draft_id, payload["prompt"], rows, template)
+        else:
+            services.submit("synthetic", f"{draft_id}:synthetic", payload, busy="Synthetic data is already being generated for this draft")
         return {"accepted": True, "rows": rows, "template": template}
 
     @router.get("/api/synthetic/templates", response_model=Page)
@@ -364,7 +348,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(400, str(exc)) from None
         size = (directory / meta["filename"]).stat().st_size
         asset = pipeline.new_asset(drafts, draft_id, kind, name, meta["filename"], source=meta["source"], bytes=size)
-        background(f"{draft_id}:{asset['id']}", process, draft_id, asset["id"])
+        process(draft_id, asset["id"])
         return asset
 
     @router.get("/api/connectors", response_model=Page)

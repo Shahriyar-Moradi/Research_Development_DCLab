@@ -44,9 +44,9 @@ async def intern_start(body: InternStart, wait: bool = False, s: Services = Depe
         session = agent.start(task, body.budget if isinstance(body.budget, dict) else None, project_id)
     except (TypeError, ValueError) as exc:
         raise HTTPException(422, f"budget: {exc}") from None
-    job = s.start_intern_job(session["id"], lambda: agent.run(session["id"]), wait)
+    job = s.start_intern_job(session["id"], {"action": "run"}, wait)
     if wait:
-        await job
+        await s.run_here(job)
     return s.public(s.session(session["id"]))
 
 
@@ -63,10 +63,9 @@ async def intern_message(session_id: str, body: InternMessage, wait: bool = Fals
     text = str(body.text if body.text is not None else "").strip()
     if not text:
         raise HTTPException(422, "Say something")
-    agent = s.intern()
-    job = s.start_intern_job(session_id, lambda: agent.message(session_id, text), wait)
+    job = s.start_intern_job(session_id, {"action": "message", "text": text}, wait)
     if wait:
-        await job
+        await s.run_here(job)
     return s.public(s.session(session_id))
 
 

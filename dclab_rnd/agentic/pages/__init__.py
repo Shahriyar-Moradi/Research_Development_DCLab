@@ -27,10 +27,11 @@ class Context:
     projects: Any              # studio.ProjectStore
     drafts: Any                # draft.store.DraftStore
     intern_sessions: Any       # intern.SessionStore
-    jobs: dict = field(default_factory=dict)          # project stage jobs (asyncio tasks) by project id
-    intern_jobs: dict = field(default_factory=dict)   # intern sessions working now
-    draft_jobs: dict = field(default_factory=dict)    # draft pipeline and agent jobs
+    jobs: Any = field(default_factory=dict)           # project stage jobs by project id (jobs.live.Live: the job table; a dict in tests)
+    intern_jobs: Any = field(default_factory=dict)    # intern sessions working now
+    draft_jobs: Any = field(default_factory=dict)     # draft pipelines, synthetic data and the Home agent's turns
     models: Any = None                                # dclab_rnd.models.Gateway: every model request goes through it
+    job_store: Any = None                             # jobs.Jobs: what Stop and Retry act on (package 10.3)
 
 
 def register_all(app, ctx: Context) -> list[str]:

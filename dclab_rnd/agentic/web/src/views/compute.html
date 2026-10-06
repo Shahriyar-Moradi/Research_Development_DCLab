@@ -157,7 +157,10 @@ DC.view('compute', {
       if (j.project_id && (j.kind !== 'data' || !j.draft_open)) acts.push(`<a class="btn sm" href="#project" data-ops-project="${esc(j.project_id)}">Open the project →</a>`);
       if (j.kind === 'data' && j.draft_open) acts.push(`<a class="btn sm" href="#home" data-ops-draft="${esc(j.draft_id)}">Open the draft on Home →</a>`);
       if (j.kind === 'research') acts.push('<a class="btn sm" href="/classic">Open in the classic UI →</a>');
-      // No Stop button: there is no route that stops a stage run, an intern session or a data pipeline yet.
+      // Stop and Retry act on the job table (package 10.3): a stop takes effect at the job's next checkpoint (between stages).
+      if (d.stop) acts.push(d.stop.requested ? '<span class="pill outline">stopping…</span>'
+        : `<button type="button" class="btn sm danger" data-job-act="${esc(d.stop.href)}" data-job-done="Stop requested: it ends after the step it is on">Stop</button>`);
+      if (d.retry) acts.push(`<button type="button" class="btn sm" data-job-act="${esc(d.retry.href)}" data-job-done="Queued again">Retry</button>`);
       $('#jd-actions', el).innerHTML = acts.join('');
       const lvl = { dim: 't-dim', ok: 't-ok', warn: 't-warn', bad: 't-bad', acc: 't-acc' };
       $('#jd-logs', el).innerHTML = d.logs.length ? d.logs.map(l => `${l.at ? `<span class="t-dim">${esc(clock(l.at))}</span> ` : '         '}<span class="${lvl[l.level] || ''}">${esc(l.text)}</span>${l.proof ? ` <span class="t-dim">[${esc(l.proof.join(', '))}]</span>` : ''}`).join('\n')
@@ -173,6 +176,19 @@ DC.view('compute', {
         + (d.repro_note ? `<p class="xs muted">${esc(d.repro_note)}</p>` : '');
       DC.hydrate($('#job-detail', el));
     }
+
+    /* ---------- Stop and Retry ---------- */
+    el.addEventListener('click', async e => {
+      const b = e.target.closest('[data-job-act]');
+      if (!b) return;
+      b.disabled = true;
+      try {
+        await api(b.dataset.jobAct.replace(/^\/api/, ''), { method: 'POST' });
+        toast(b.dataset.jobDone);
+        await load();
+        if (S.sel) select(S.sel, false);
+      } catch (err) { toast(err.message, { ok: false }); b.disabled = false; }
+    });
 
     /* ---------- links to the pages that own each job ---------- */
     el.addEventListener('click', e => {

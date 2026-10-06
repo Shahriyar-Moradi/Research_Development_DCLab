@@ -33,6 +33,21 @@ class Settings(BaseSettings):
     no_live_models: bool = Field(False, alias="DCLAB_NO_LIVE_MODELS", description="tests and the end-to-end flows: no request reaches a live model")
     workspace_monthly_eur: float | None = Field(None, alias="DCLAB_WORKSPACE_MONTHLY_EUR")
     port: int = Field(8765, alias="DCLAB_PORT")
+    worker: str = Field("inline", alias="DCLAB_WORKER", description="inline: the server runs jobs too; external: only `python -m dclab_rnd.worker` does")
+    worker_threads: int = Field(4, alias="DCLAB_WORKER_THREADS", description="jobs one worker runs at a time")
+
+    @field_validator("worker", mode="before")
+    @classmethod
+    def _worker(cls, value):
+        return "external" if str(value or "").strip().lower() == "external" else "inline"
+
+    @field_validator("worker_threads", mode="before")
+    @classmethod
+    def _threads(cls, value):
+        try:
+            return max(1, min(int(value), 64))
+        except (TypeError, ValueError):
+            return 4
 
     @field_validator("no_live_models", mode="before")
     @classmethod

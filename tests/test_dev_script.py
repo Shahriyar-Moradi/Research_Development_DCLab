@@ -73,15 +73,30 @@ class SafetyTests(unittest.TestCase):
     def test_serve_runs_one_reloading_worker_on_the_checked_database(self):
         with mock.patch.object(dev, "ensure_database", return_value="already at 0008") as ensured, \
              mock.patch.object(dev, "build_frontend"), mock.patch.object(dev, "watch_frontend"), \
-             mock.patch.object(dev.subprocess, "Popen") as popen:
+             mock.patch.object(dev, "watch_worker"), mock.patch.object(dev.subprocess, "Popen") as popen:
             popen.return_value.wait.return_value = 0
             self.assertEqual(dev.serve("postgresql+psycopg://u@/dclab_dev", 8799), 0)
-        command, env = popen.call_args.args[0], popen.call_args.kwargs["env"]
+        calls = {" ".join(c.args[0]): c for c in popen.call_args_list}
+        api = next(c for k, c in calls.items() if "uvicorn" in k)
+        worker = next(c for k, c in calls.items() if "dclab_rnd.worker" in k)  # the job worker runs on its own (package 10.3)
+        command, env = api.args[0], api.kwargs["env"]
+        self.assertEqual(env["DCLAB_WORKER"], "external")
+        self.assertEqual(worker.kwargs["env"]["DCLAB_DATABASE_URL"], "postgresql+psycopg://u@/dclab_dev")
         self.assertEqual(command[command.index("--port") + 1], "8799")
         self.assertIn("--reload", command)
         self.assertEqual(command[command.index("--workers") + 1], "1")
         self.assertEqual(env["DCLAB_DATABASE_URL"], "postgresql+psycopg://u@/dclab_dev")
         ensured.assert_called_once()
+
+    def test_the_worker_runs_without_reload_when_watchfiles_is_missing(self):
+        import importlib.util
+
+        with mock.patch.object(importlib.util, "find_spec", return_value=None):
+            self.assertEqual(dev.worker_command(), [sys.executable, "-m", "dclab_rnd.worker"])
+        process = mock.Mock(wait=mock.Mock(return_value=1))
+        with mock.patch("sys.stderr") as err:
+            dev.watch_worker(process, threading.Event())  # the API still runs: say so loudly
+        self.assertIn("THE JOB WORKER STOPPED", "".join(c.args[0] for c in err.write.call_args_list))
 
     def test_the_frontend_is_rebuilt_when_a_source_changes(self):
         folder = Path(tempfile.mkdtemp())

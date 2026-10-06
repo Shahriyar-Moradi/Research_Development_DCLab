@@ -213,4 +213,21 @@ stored_file = sa.Table(  # a table or artifact kept in file storage: where, how 
     sa.Column("backend", sa.Text, nullable=False),  # local or s3
     sa.Column("recorded", sa.Text, nullable=False))
 
+job = sa.Table(  # a piece of background work: a stage run, a data pipeline, synthetic data, an intern turn (dclab_rnd/jobs, 10.3)
+    "job", metadata, _id(),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("key", sa.Text, nullable=False),  # what it works on: a project, an intern session, a draft's asset
+    sa.Column("status", sa.Text, nullable=False),
+    sa.Column("cancel_requested", sa.Boolean, nullable=False, server_default=sa.false()),
+    sa.Column("worker", sa.Text),  # the worker that claimed it
+    sa.Column("heartbeat", sa.Float),  # seconds since the epoch; a running job whose worker stops beating is interrupted
+    sa.Column("created", TIME, nullable=False, server_default=NOW),
+    sa.Column("doc", JSONB, nullable=False),  # the whole job: payload, progress, times, error, attempts
+    sa.CheckConstraint("status in ('queued', 'running', 'done', 'failed', 'cancelled', 'interrupted')", name="status"),
+    sa.Index("ix_job_workspace_id_status_created", "workspace_id", "status", "created"),
+    sa.Index("ix_job_workspace_id_kind_key", "workspace_id", "kind", "key"),
+    # one queued or running job per key: two app instances cannot start the same project's stages at once
+    sa.Index("uq_job_active_key", "workspace_id", "kind", "key", unique=True, postgresql_where=sa.text("status in ('queued', 'running')")))
+
 TABLES = [t.name for t in metadata.sorted_tables]

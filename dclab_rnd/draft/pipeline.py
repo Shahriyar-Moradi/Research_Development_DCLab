@@ -57,6 +57,7 @@ def _record(store: DraftStore, path) -> None:
 
 def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None) -> dict[str, Any]:
     """Process one asset. Returns the final asset record (status "ready" or "failed")."""
+    from ..jobs import checkpoint  # a stop asked for on the Compute page takes effect between the steps (package 10.3)
     from . import analyze, clean, structure  # imported lazily: the store and the chat do not need pandas
 
     draft = store.get(draft_id)
@@ -64,6 +65,7 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
     path = store.data_dir(draft_id) / asset["filename"]
     _record(store, path)  # the upload, a sample or a connector's file, as it arrived (package 9.3)
     try:
+        checkpoint()
         set_asset(store, draft_id, asset_id, status="structuring")
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structuring", "text": "Reading the file and turning it into a table"})
         # DCLAB_MODEL_READS_SAMPLE_LINES=0: a file no built-in reader fits is read line by line and nothing is sent
@@ -72,17 +74,20 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
         set_asset(store, draft_id, asset_id, status="cleaning", format=info.get("format"), structure=info)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "structured", "text": _structured_text(info), "info": info})
 
+        checkpoint()
         frame, log = clean.clean(frame)
         codes = clean.category_code_columns(frame)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "cleaned",
                                           "text": f"{len(log)} cleaning step{'s' if len(log) != 1 else ''} applied" if log else "No cleaning needed",
                                           "log": log})
+        checkpoint()
         set_asset(store, draft_id, asset_id, status="analysing")
         target = (draft.get("understanding") or {}).get("target")
         report = analyze.analyze(frame, target=target if target in frame.columns else None)
         from .chat import rank_targets  # names only: the columns the problem sentence mentions are offered first
 
         report["profile"]["target_candidates"] = rank_targets(report["profile"], draft.get("problem") or "")
+        checkpoint()
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)
         _record(store, out)

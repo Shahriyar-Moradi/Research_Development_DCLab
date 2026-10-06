@@ -42,12 +42,14 @@ def create_app(home=None) -> FastAPI:
         for run in s.store.list():
             if run["status"] in ("queued", "running", "pausing"):
                 s.store.update(run["id"], status="interrupted", phase="Server restarted; resume explicitly")
+        s.worker.start()  # recovers jobs a dead worker left running, then runs queued ones (package 10.3)
         if s.mcp is None:
             yield
         else:
             async with s.mcp.run():  # the MCP transport lives as long as the server
                 yield
-        active = list(s.tasks.values()) + list(s.jobs.values()) + list(s.intern_jobs.values()) + list(s.draft_jobs.values())
+        await asyncio.to_thread(s.worker.stop)  # running jobs stop at their next checkpoint, interrupted and retryable
+        active = list(s.tasks.values()) + list(s.draft_tasks.values())
         for task in active:
             task.cancel()
         if active:
@@ -86,9 +88,9 @@ def create_app(home=None) -> FastAPI:
 
     for router in ROUTERS:
         app.include_router(router)
-    draft_api.register(app, s.drafts, s.projects, s.gateway, s.draft_jobs, s.traces)
+    draft_api.register(app, s.drafts, s.projects, s.gateway, s.draft_tasks, s.traces, services=s)
     pages.register_all(app, pages.Context(store=s.store, projects=s.projects, drafts=s.drafts, intern_sessions=s.intern_sessions, models=s.gateway,
-                                          jobs=s.jobs, intern_jobs=s.intern_jobs, draft_jobs=s.draft_jobs))
+                                          jobs=s.jobs, intern_jobs=s.intern_jobs, draft_jobs=s.draft_jobs, job_store=s.job_store))
     if s.mcp is not None:
         app.mount("/mcp", app=s.mcp.handle_request, name="mcp")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")

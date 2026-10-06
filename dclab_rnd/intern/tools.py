@@ -289,7 +289,10 @@ class Toolbox:
     def run_all(self, project_id: str) -> dict[str, Any]:
         project = self.projects.get(project_id)
         out: dict[str, Any] = {}
+        from ..jobs import checkpoint
+
         for stage in STAGE_KEYS:
+            checkpoint()  # inside an intern job, a stop takes effect between stages
             if project["stages"][stage].get("status") in ("completed", "approved"):
                 out[stage] = compact_record(self.projects.read_stage(project_id, stage))
                 continue

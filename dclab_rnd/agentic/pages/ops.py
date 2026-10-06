@@ -441,6 +441,43 @@ class Jobs:
 
     # ------------------------------------------------------------------ one job in full
     def detail(self, job_id: str) -> dict[str, Any]:
+        d = self._detail(job_id)
+        d["stop"], d["retry"] = self._controls(d["job"])
+        return d
+
+    def _controls(self, job: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """Stop for a job the job table holds as queued or running; Retry for the latest one that failed, was stopped or
+        was interrupted (package 10.3). Research runs pause and resume on their own page."""
+        store = self.ctx.job_store
+        if store is None:
+            return None, None
+        if job["kind"] == "stage":
+            table, key = "stage", job["project_id"]
+        elif job["kind"] == "intern":
+            table, key = "intern", job["session_id"]
+        elif job["kind"] == "data":
+            aid = job["id"].split("-", 2)[2]
+            table, key = ("synthetic" if aid == "synthetic" else "pipeline"), f"{job['draft_id']}:{aid}"
+        else:
+            return None, None
+
+        def covers(row: dict[str, Any]) -> bool:  # a stage job covers the stages it was asked to run
+            return job["kind"] != "stage" or job.get("stage") in ((row.get("payload") or {}).get("stages") or [])
+        if job["status"] in ("running", "queued"):
+            row = store.active(table, key)
+            if row is None and table == "pipeline":  # a synthetic table's pipeline runs inside its synthetic job
+                row = store.active("synthetic", f"{job['draft_id']}:synthetic")
+            if row is not None and covers(row):
+                return {"job_id": row["id"], "href": f"/api/jobs/{row['id']}/stop", "requested": bool(row.get("cancel_requested"))}, None
+            return None, None
+        if job["status"] != "failed" or (job["kind"] == "stage" and not job.get("current")):
+            return None, None
+        row = store.latest(table, key)
+        if row is not None and row["status"] in ("failed", "cancelled", "interrupted") and covers(row):
+            return None, {"job_id": row["id"], "href": f"/api/jobs/{row['id']}/retry", "status": row["status"]}
+        return None, None
+
+    def _detail(self, job_id: str) -> dict[str, Any]:
         kind, _, rest = job_id.partition("-")
         if kind == "stage":
             return self._stage_detail(job_id, rest)

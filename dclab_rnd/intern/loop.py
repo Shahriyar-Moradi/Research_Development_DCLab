@@ -17,6 +17,7 @@ from dclab_rnd import prompts
 from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
+from dclab_rnd.jobs import checkpoint
 from dclab_rnd.studio import graph as studio_graph
 
 from .sessions import SessionStore, now
@@ -75,11 +76,14 @@ class Intern:
         session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
         return self.sessions.save(session)
 
-    def message(self, session_id: str, text: str) -> dict[str, Any]:
-        """A follow-up turn. In LLM mode the loop continues; in standard mode the project agent answers."""
+    def message(self, session_id: str, text: str, again: bool = False) -> dict[str, Any]:
+        """A follow-up turn. In LLM mode the loop continues; in standard mode the project agent answers. ``again``: a
+        retried turn whose message is already the last one is not added twice."""
         session = self.sessions.get(session_id)
         text = text.strip()[:4000]
-        session["messages"].append({"role": "user", "content": text})
+        last = session["messages"][-1] if session["messages"] else {}
+        if not (again and last.get("role") == "user" and last.get("content") == text and session.get("final") is None):
+            session["messages"].append({"role": "user", "content": text})
         session["final"] = None
         session["status"] = "queued"
         self.sessions.save(session)
@@ -124,6 +128,7 @@ class Intern:
         return None
 
     def _step(self, session: dict[str, Any], tool: str, arguments: dict[str, Any], started: float) -> Any:
+        checkpoint()  # a stop asked for on the Compute page takes effect before the next tool call (package 10.3)
         if self.tracer is not None:
             self.tracer.before()
         clock = time.perf_counter()
@@ -169,6 +174,7 @@ class Intern:
                 session["used"]["steps"] += 1
             session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
             self.sessions.save(session)
+            checkpoint()  # after the step is saved: a stop ends the turn here
 
         try:
             out = run_policy(self.policy(session), _Model(self, session), self.toolbox.registry, session["messages"],

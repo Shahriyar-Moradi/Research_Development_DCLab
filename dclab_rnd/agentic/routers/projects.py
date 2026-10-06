@@ -199,7 +199,7 @@ async def run_stage(project_id: str, stage: str, wait: bool = False, reuse_reaso
     s.validate(p, "run_stage", stage=stage, reuse_reason=reuse_reason)
     job = s.start_job(project_id, [stage], wait, reuse_reason or None)
     if wait:
-        await job
+        await s.run_here(job)
     return s.with_records(s.projects.get(project_id))
 
 
@@ -214,7 +214,7 @@ async def run_all(project_id: str, start: str = "data", wait: bool = False, s: S
     s.validate(p, "run_stage", stage=start)
     job = s.start_job(project_id, keys[keys.index(start):], wait)
     if wait:
-        await job
+        await s.run_here(job)
     return s.with_records(s.projects.get(project_id))
 
 
