@@ -207,6 +207,7 @@
       $('#modal').setAttribute('aria-hidden', 'true');
       if (!$('#drawer').classList.contains('open')) $('#scrim').classList.remove('open');
       modalConfirm = null;
+      $('#modal-body').innerHTML = '';  // what a dialog showed (a new API token) does not stay in the page
     },
   };
 
@@ -844,6 +845,7 @@
       body = JSON.stringify(body); headers['Content-Type'] = 'application/json';
     }
     const res = await fetch('/api' + path, Object.assign({}, opts, { headers, body }));
+    if (res.status === 401 && cfg.auth && cfg.auth.mode !== 'none') { server.config = null; showSignIn(cfg.auth.mode, 'Your session ended; sign in again.'); }
     if (res.status === 403 && !retried && (opts.method || 'GET') !== 'GET') {
       // The server restarted and issued a new request token: fetch it once and try again. A role refusal (package 10.2)
       // is a 403 too, but saying so again would not change it: only the token's refusal is retried.
@@ -1016,6 +1018,10 @@
     $('#tb-exit').addEventListener('click', endTour);
     document.addEventListener('click', e => { if (e.target.closest('[data-tour-start]')) modal.close(); }, true);
     Decisions.init();
+    wireSignIn();
+    const auth = server.config && server.config.auth;
+    if (auth && auth.mode !== 'none' && !auth.signed_in) { showSignIn(auth.mode); return; }  // nothing of the workspace before sign-in
+    paintAccount(auth);
     let bpOn = false;
     try { bpOn = localStorage.getItem('dclab-demo-bp') === '1'; } catch (e) { /* ignore */ }
     setRole('developer');
@@ -1026,6 +1032,74 @@
     loadRecords();
   }
 
-  window.DC = { explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else setTimeout(boot, 0);
+  /* ---------------- accounts (package 10.2, part C): the sign-in screen, the workspace switcher, the avatar ---------------- */
+  function showSignIn(mode, note) {
+    document.querySelector('.app').hidden = true;
+    const box = $('#signin');
+    box.hidden = false;
+    $('#signin-password').hidden = mode !== 'password';
+    $('#signin-oidc').hidden = mode !== 'oidc';
+    const err = $('#signin-error');
+    err.hidden = !note;  // only the app's own words: never text a link put in the address
+    err.textContent = note || '';
+    if (mode === 'password') setTimeout(() => $('#signin-email').focus(), 0);
+  }
+  function wireSignIn() {
+    $('#signin-password').addEventListener('submit', async e => {
+      e.preventDefault();
+      const err = $('#signin-error');
+      err.hidden = true;
+      const cfg = await fetch('/api/config', { headers: { Accept: 'application/json' } }).then(r => r.json());
+      const res = await fetch('/api/auth/password', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-DCLab-Token': cfg.csrf },
+        body: JSON.stringify({ email: $('#signin-email').value, password: $('#signin-secret').value }) });
+      if (res.ok) { location.reload(); return; }
+      const data = await res.json().catch(() => ({}));
+      err.textContent = typeof data.detail === 'string' ? data.detail : 'Sign-in failed.';
+      err.hidden = false;
+    });
+  }
+  function initials(text) {
+    const parts = String(text || '').replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean);
+    return (parts.length > 1 ? parts[0][0] + parts[1][0] : (parts[0] || '?').slice(0, 2)).toUpperCase();
+  }
+  function paintAccount(auth) {
+    const ws = $('.ws-switch'), avatar = $('.top-avatar');
+    if (!ws || !avatar || !auth) return;
+    if (auth.mode === 'none') {
+      $('.ws-name', ws).textContent = 'This machine';
+      $('.ws-sub', ws).innerHTML = 'One owner · no sign-in <span aria-hidden="true">⌄</span>';
+      ws.dataset.toast = 'Sign-in, members and several workspaces come on with DCLAB_AUTH (password, or your company\'s identity provider).';
+      avatar.textContent = 'OW';
+      avatar.title = 'Owner · this server has no sign-in';
+      return;
+    }
+    const here = (auth.workspaces || []).find(w => w.id === auth.workspace_id) || {};
+    $('.ws-name', ws).textContent = here.name || 'Workspace';
+    const hour = new Date().getHours(), first = String(auth.name || auth.email || '').split(/[\s@]/)[0];
+    const home = $('#view-home');
+    if (home) {  // the signed-in person and their workspace, not the demo's owner
+      $('.vh h1', home).textContent = `${hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + first : ''}`;
+      $('.vh .eyebrow', home).textContent = `Workspace · ${here.name || 'your team'}`;
+    }
+    $('.ws-sub', ws).innerHTML = `${esc(auth.role_label || '')} · ${(auth.workspaces || []).length} workspace${(auth.workspaces || []).length === 1 ? '' : 's'} <span aria-hidden="true">⌄</span>`;
+    delete ws.dataset.toast;
+    avatar.textContent = initials(auth.name || auth.email);
+    avatar.title = `${auth.name || auth.email} · ${auth.role_label || ''}`;
+    ws.addEventListener('click', () => {
+      modal.open({
+        eyebrow: '<span class="eyebrow">Workspaces</span>', title: auth.name || auth.email, hideConfirm: true, cancel: 'Close',
+        html: `<div class="list">${(auth.workspaces || []).map(w => `<button type="button" class="list-item" data-switch-ws="${esc(w.id)}" ${w.id === auth.workspace_id ? 'disabled' : ''}><div class="li-main"><span class="li-title">${esc(w.name)}</span><span class="li-sub">${esc(w.role_label)}${w.id === auth.workspace_id ? ' · open now' : ''}</span></div></button>`).join('')}</div>`
+          + '<div class="row" data-style="margin-top:12px"><button type="button" class="btn sm" data-sign-out>Sign out</button></div>',
+      });
+    });
+    document.addEventListener('click', async e => {
+      const pick = e.target.closest('[data-switch-ws]');
+      if (pick) { try { await api('/auth/workspace', { method: 'POST', body: { workspace_id: pick.dataset.switchWs } }); location.hash = '#home'; location.reload(); } catch (err) { toast(err.message, { ok: false }); } return; }
+      if (e.target.closest('[data-sign-out]')) { await api('/auth/signout', { method: 'POST' }).catch(() => null); location.reload(); }
+    });
+  }
+
+  window.DC = { showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

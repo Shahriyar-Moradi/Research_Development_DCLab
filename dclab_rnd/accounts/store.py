@@ -131,6 +131,32 @@ class Accounts:
             c.execute(sa.delete(s).where(s.c.workspace_id == workspace_id, s.c.user_id == user_id))  # signed out of it now
             c.execute(sa.update(k).where(k.c.workspace_id == workspace_id, k.c.user_id == user_id).values(revoked=True))  # and its tokens end
 
+    def sync_memberships(self, user_id: str, wanted: dict[str, str], managed: set[str]) -> list[tuple[str, str | None, str | None]]:
+        """Set a user's roles in the ``managed`` workspaces to ``wanted`` (absent: no membership), in one transaction.
+        Returns the changes as (workspace, old role, new role). Leaving a workspace ends its sessions and tokens there."""
+        from sqlalchemy.dialects.postgresql import insert
+
+        from ..storage.models import api_token as k, membership as t, user_session as s
+
+        changes = []
+        with self.engine.begin() as c:
+            for workspace_id in sorted(managed):
+                old = c.execute(sa.select(t.c.role).where(t.c.workspace_id == workspace_id, t.c.user_id == user_id)).scalar()
+                new = wanted.get(workspace_id)
+                if old == new:
+                    continue
+                if new is None:
+                    c.execute(sa.delete(t).where(t.c.workspace_id == workspace_id, t.c.user_id == user_id))
+                    c.execute(sa.delete(s).where(s.c.workspace_id == workspace_id, s.c.user_id == user_id))
+                    c.execute(sa.update(k).where(k.c.workspace_id == workspace_id, k.c.user_id == user_id).values(revoked=True))
+                else:
+                    if new not in ROLES:
+                        raise AccountError(f"the role is one of {', '.join(ROLES)}")
+                    c.execute(insert(t).values(workspace_id=workspace_id, user_id=user_id, role=new)
+                              .on_conflict_do_update(index_elements=[t.c.workspace_id, t.c.user_id], set_={"role": new}))
+                changes.append((workspace_id, old, new))
+        return changes
+
     def role_of(self, user_id: str, workspace_id: str) -> str | None:
         from ..storage.models import membership as t
 

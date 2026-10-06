@@ -41,7 +41,9 @@ app_user = sa.Table(
     sa.Column("subject", sa.Text),  # the identity provider's id for the user
     sa.Column("active", sa.Boolean, nullable=False, server_default=sa.true()),
     sa.Column("created", TIME, nullable=False, server_default=NOW),
-    sa.UniqueConstraint("email", name="uq_app_user_email"))
+    sa.UniqueConstraint("email", name="uq_app_user_email"),
+    # one account per identity at the provider (package 10.2, part B): a second account can never take the same subject
+    sa.Index("uq_app_user_subject", "subject", unique=True, postgresql_where=sa.text("subject is not null")))
 
 membership = sa.Table(
     "membership", metadata,

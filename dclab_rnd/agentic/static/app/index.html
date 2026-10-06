@@ -1908,6 +1908,31 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     </div>
   </div>
 
+  <div class="pane" data-pane="members" data-label="Members">
+    <div class="panel" data-f="admin.members">
+      <div class="panel-head"><div class="panel-title"><h2>Members</h2><span class="sub" id="members-sub">Who belongs to this workspace, and in which role</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="members-table"><thead><tr><th>Member</th><th>Role</th><th>Signs in with</th><th></th></tr></thead><tbody><tr><td colspan="4"><div class="empty">Loading…</div></td></tr></tbody></table></div>
+      <form class="panel-body row" id="member-add" hidden>
+        <label class="sr-only" for="member-email">Email</label><input id="member-email" type="email" placeholder="name@company.com" required data-style="flex:2;min-width:180px">
+        <label class="sr-only" for="member-name">Name</label><input id="member-name" type="text" placeholder="Name (optional)" data-style="flex:1;min-width:120px">
+        <label class="sr-only" for="member-role">Role</label><select id="member-role" data-style="width:auto"></select>
+        <label class="sr-only" for="member-secret">First password</label><input id="member-secret" type="password" placeholder="First password (10+ characters)" autocomplete="new-password" data-style="flex:1;min-width:160px" hidden>
+        <button type="submit" class="btn sm primary">Add</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="tokens" data-label="API tokens">
+    <div class="panel" data-f="admin.tokens">
+      <div class="panel-head"><div class="panel-title"><h2>Your API tokens</h2><span class="sub">For MCP clients (Chat UI, Claude Desktop) and scripts: a token acts as you, in this workspace, with your role</span></div></div>
+      <div class="list" id="tokens-list"><div class="empty">Loading…</div></div>
+      <form class="panel-body row" id="token-add" hidden>
+        <label class="sr-only" for="token-name">Token name</label><input id="token-name" type="text" placeholder="What it is for, e.g. laptop Chat UI" required data-style="flex:1">
+        <button type="submit" class="btn sm primary">New token</button>
+      </form>
+    </div>
+  </div>
+
   <div class="pane" data-pane="models" data-label="Models & routing">
     <div class="panel" data-f="admin.models" data-tour="routing">
       <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub" id="models-sub">Cheapest tier that can decide</span></div></div>
@@ -2057,6 +2082,22 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     </main>
   </div>
 </div>
+
+<!-- Sign-in (package 10.2, part C): shown instead of the app when this server has accounts and nobody is signed in -->
+<section class="signin" id="signin" hidden aria-labelledby="signin-title">
+  <div class="panel signin-card">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">DC</span><span class="brand-name">DCLab</span></div>
+    <h1 id="signin-title">Sign in</h1>
+    <p class="muted small" id="signin-lede">Sign in to reach your team's workspace.</p>
+    <form class="stack" id="signin-password" hidden>
+      <div class="field"><label for="signin-email">Email</label><input id="signin-email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="signin-secret">Password</label><input id="signin-secret" type="password" autocomplete="current-password" required></div>
+      <button type="submit" class="btn primary">Sign in</button>
+    </form>
+    <a class="btn primary" id="signin-oidc" href="/api/auth/oidc/start" hidden>Sign in with your company account</a>
+    <div class="callout warn small" id="signin-error" hidden></div>
+  </div>
+</section>
 
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" aria-hidden="true">

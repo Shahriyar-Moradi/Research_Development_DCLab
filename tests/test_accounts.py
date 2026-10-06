@@ -218,6 +218,24 @@ class AccountsTests(unittest.TestCase):
         self.accounts.revoke_token(self.users["ds1"]["id"], record["id"])
         self.assertEqual(bare.get("/api/projects", headers=headers).status_code, 401)
 
+    def test_mcp_acts_in_the_tokens_workspace(self):
+        try:
+            import mcp  # noqa: F401
+        except ImportError:
+            self.skipTest("mcp not installed")
+        token, _ = self.accounts.create_token(self.users["ds2"]["id"], self.w2, "chat ui")
+        headers = {"Accept": "application/json, text/event-stream", "Content-Type": "application/json"}
+        bare = self.TestClient(self.app)
+        call = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "create_project", "arguments": {"name": "via mcp in W2", "goal": "g"}}}
+        self.assertEqual(bare.post("/mcp", json=call, headers=headers).status_code, 401)  # an MCP client sends a token
+        made = bare.post("/mcp", json=call, headers={**headers, "Authorization": f"Bearer {token}"})
+        self.assertEqual(made.status_code, 200, made.text[:300])
+        project_id = json.loads(made.json()["result"]["content"][0]["text"])["project_id"]
+        self.assertEqual(self.clients["ds2"].get(f"/api/projects/{project_id}").status_code, 200)  # in the token's workspace
+        self.assertEqual(self.clients["owner1"].get(f"/api/projects/{project_id}").status_code, 404)  # and not in the server's own
+        viewer, _ = self.accounts.create_token(self.users["view1"]["id"], self.w1, "viewer's")
+        self.assertEqual(bare.post("/mcp", json=call, headers={**headers, "Authorization": f"Bearer {viewer}"}).status_code, 403)
+
     def test_the_owner_manages_members_and_a_workspace_keeps_an_owner(self):
         owner, scientist = self.clients["owner1"], self.clients["ds1"]
         self.assertEqual(scientist.post("/api/workspace/members", json={"email": "new@example.com", "role": "viewer"}).status_code, 403)

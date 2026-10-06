@@ -40,6 +40,22 @@
   </div>
 </div>
 
+<!-- Sign-in (package 10.2, part C): shown instead of the app when this server has accounts and nobody is signed in -->
+<section class="signin" id="signin" hidden aria-labelledby="signin-title">
+  <div class="panel signin-card">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">DC</span><span class="brand-name">DCLab</span></div>
+    <h1 id="signin-title">Sign in</h1>
+    <p class="muted small" id="signin-lede">Sign in to reach your team's workspace.</p>
+    <form class="stack" id="signin-password" hidden>
+      <div class="field"><label for="signin-email">Email</label><input id="signin-email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="signin-secret">Password</label><input id="signin-secret" type="password" autocomplete="current-password" required></div>
+      <button type="submit" class="btn primary">Sign in</button>
+    </form>
+    <a class="btn primary" id="signin-oidc" href="/api/auth/oidc/start" hidden>Sign in with your company account</a>
+    <div class="callout warn small" id="signin-error" hidden></div>
+  </div>
+</section>
+
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" aria-hidden="true">
   <div class="drawer-head">

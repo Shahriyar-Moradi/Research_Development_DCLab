@@ -35,6 +35,31 @@
     </div>
   </div>
 
+  <div class="pane" data-pane="members" data-label="Members">
+    <div class="panel" data-f="admin.members">
+      <div class="panel-head"><div class="panel-title"><h2>Members</h2><span class="sub" id="members-sub">Who belongs to this workspace, and in which role</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="members-table"><thead><tr><th>Member</th><th>Role</th><th>Signs in with</th><th></th></tr></thead><tbody><tr><td colspan="4"><div class="empty">Loading…</div></td></tr></tbody></table></div>
+      <form class="panel-body row" id="member-add" hidden>
+        <label class="sr-only" for="member-email">Email</label><input id="member-email" type="email" placeholder="name@company.com" required data-style="flex:2;min-width:180px">
+        <label class="sr-only" for="member-name">Name</label><input id="member-name" type="text" placeholder="Name (optional)" data-style="flex:1;min-width:120px">
+        <label class="sr-only" for="member-role">Role</label><select id="member-role" data-style="width:auto"></select>
+        <label class="sr-only" for="member-secret">First password</label><input id="member-secret" type="password" placeholder="First password (10+ characters)" autocomplete="new-password" data-style="flex:1;min-width:160px" hidden>
+        <button type="submit" class="btn sm primary">Add</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="pane" data-pane="tokens" data-label="API tokens">
+    <div class="panel" data-f="admin.tokens">
+      <div class="panel-head"><div class="panel-title"><h2>Your API tokens</h2><span class="sub">For MCP clients (Chat UI, Claude Desktop) and scripts: a token acts as you, in this workspace, with your role</span></div></div>
+      <div class="list" id="tokens-list"><div class="empty">Loading…</div></div>
+      <form class="panel-body row" id="token-add" hidden>
+        <label class="sr-only" for="token-name">Token name</label><input id="token-name" type="text" placeholder="What it is for, e.g. laptop Chat UI" required data-style="flex:1">
+        <button type="submit" class="btn sm primary">New token</button>
+      </form>
+    </div>
+  </div>
+
   <div class="pane" data-pane="models" data-label="Models & routing">
     <div class="panel" data-f="admin.models" data-tour="routing">
       <div class="panel-head"><div class="panel-title"><h3>Models and routing</h3><span class="sub" id="models-sub">Cheapest tier that can decide</span></div></div>
@@ -175,6 +200,47 @@ DC.view('admin', {
       $('#audit-project', el).insertAdjacentHTML('beforeend', list.map(p => `<option value="${DC.esc(p.id)}">${DC.esc(p.name || p.id)}</option>`).join(''));
     }).catch(() => { /* the filter keeps "Every project" */ });
     $('#audit-older', el).addEventListener('click', () => { S.offset += S.limit; this.loadAudit(el); });
+    /* Members and API tokens (package 10.2, part C) */
+    $('#member-add', el).addEventListener('submit', async e => {
+      e.preventDefault();
+      const body = { email: $('#member-email', el).value, name: $('#member-name', el).value, role: $('#member-role', el).value };
+      if (!$('#member-secret', el).hidden && $('#member-secret', el).value) body.password = $('#member-secret', el).value;
+      try { await DC.api('/workspace/members', { method: 'POST', body }); toast('Added. The change is in the audit log.'); e.target.reset(); await this.loadMembers(el); }
+      catch (err) { toast(err.message, { ok: false }); }
+    });
+    el.addEventListener('change', async e => {
+      const sel = e.target.closest('[data-member-role]'); if (!sel) return;
+      try { await DC.api(`/workspace/members/${encodeURIComponent(sel.dataset.memberRole)}`, { method: 'PATCH', body: { role: sel.value } }); toast('Role changed. The change is in the audit log.'); }
+      catch (err) { toast(err.message, { ok: false }); }
+      await this.loadMembers(el);
+    });
+    $('#token-add', el).addEventListener('submit', async e => {
+      e.preventDefault();
+      let made;
+      try { made = await DC.api('/auth/tokens', { method: 'POST', body: { name: $('#token-name', el).value } }); } catch (err) { toast(err.message, { ok: false }); return; }
+      e.target.reset();
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">API token</span>', title: `${made.name}: copy it now`, confirm: 'Copy and close',  // the title is set as text
+        html: `<p>${DC.esc(made.note)}</p><pre class="term" data-style="white-space:pre-wrap;overflow-wrap:anywhere">${DC.esc(made.token)}</pre><p class="xs muted">MCP clients send it as <code>Authorization: Bearer …</code> to /mcp.</p>`,
+        onConfirm: () => { DC.copyText(made.token); },
+      });
+      await this.loadTokens(el);
+    });
+    el.addEventListener('click', async e => {
+      const out = e.target.closest('[data-member-remove]');
+      if (out) {
+        try { await DC.api(`/workspace/members/${encodeURIComponent(out.dataset.memberRemove)}`, { method: 'DELETE' }); toast('Removed: their sessions and tokens in this workspace ended.'); }
+        catch (err) { toast(err.message, { ok: false }); }
+        await this.loadMembers(el);
+        return;
+      }
+      const revoke = e.target.closest('[data-token-revoke]');
+      if (revoke) {
+        try { await DC.api(`/auth/tokens/${encodeURIComponent(revoke.dataset.tokenRevoke)}`, { method: 'DELETE' }); toast('Revoked.'); }
+        catch (err) { toast(err.message, { ok: false }); }
+        await this.loadTokens(el);
+      }
+    });
     DC.hydrate(el);
   },
 
@@ -188,7 +254,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await this.loadAudit(el);
+    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el)]);
   },
 
   async loadPolicies(el) {
@@ -230,8 +296,9 @@ DC.view('admin', {
     }).join('');
     $('#policy-list', el).innerHTML = locked + switches;
 
-    /* Roles: no accounts today; the actor matrix is the validator's own answer */
+    /* Roles: with accounts on (package 10.2) the four roles are enforced on every route; the actor matrix is the validator's own answer */
     $('#roles-real', el).hidden = false;
+    if (pol.accounts.users) { this.paintEnforcedRoles(el, pol); return; }
     $('#roles-sub', el).textContent = 'No user accounts yet: one local workspace';
     const inv = $('#invite-btn', el);
     inv.dataset.toast = 'Not built: DCLab has no user accounts yet. It runs as one local workspace on this machine.';
@@ -244,6 +311,64 @@ DC.view('admin', {
     $('#actor-matrix', el).innerHTML = `<thead><tr><th>Move</th><th>A person</th><th>The intern</th></tr></thead><tbody>${pol.actors.map(a => `<tr><td>${esc(a.action)}</td>${sym(a.person)}${sym(a.intern)}</tr>`).join('')}</tbody>`;
     $('#roles-foot', el).textContent = '"Asks" means the move waits for a person (a signature, an approval or a written reason); "—" means it is refused. Hover a cell for the validator\'s message.';
     DC.hydrate(el);
+  },
+
+  paintEnforcedRoles(el, pol) {
+    const { $, esc } = DC;
+    $('#roles-sub', el).textContent = `Accounts are on (${pol.accounts.mode === 'oidc' ? 'your company\'s identity provider' : 'password sign-in'}): every route checks the role`;
+    const inv = $('#invite-btn', el);
+    delete inv.dataset.toast;
+    inv.onclick = () => DC.selectPane(el, 'members');
+    $('#roles-note', el).innerHTML = `<span class="ic">${DC.icon('info')}</span><span><b>Roles are enforced.</b> Each request is a signed-in member, or an API token acting as one; the role decides what it may do, on every route. The intern is the agent, not a member: what it may do is the validator's answer below.</span>`;
+    const ROLES = ['Owner', 'ML engineer', 'Reviewer', 'Business viewer'];
+    const ACT = [['Read every page, ask questions', 'yyyy'], ['Create and change projects, data, solutions, runs and drafts', 'yy--'], ['Approve a stage\'s choice', 'yyy-'],
+                 ['Approve a gate (solution sign-off, opening the holdout)', 'y-y-'], ['Review a lesson, move a model purpose', 'y-y-'], ['Gate switches, the training opt-in, members', 'y---']];
+    const cell = v => `<td>${v === 'y' ? '<span class="yes">✓</span>' : '<span class="no">—</span>'}</td>`;
+    $('#role-matrix', el).innerHTML = `<thead><tr><th>Action</th>${ROLES.map(r => `<th>${r}</th>`).join('')}</tr></thead><tbody>${ACT.map(([a, v]) => `<tr><td>${esc(a)}</td>${[...v].map(cell).join('')}</tr>`).join('')}</tbody>`;
+    const plan = $('#roles-real .pill.outline', el);
+    if (plan) { plan.textContent = 'enforced on every route'; plan.className = 'pill ok'; }
+    const sym = c => `<td title="${esc(c.message)}">${c.status === 'allowed' ? '<span class="yes">✓</span>' : c.status === 'needs_approval' ? '<span class="ask">asks</span>' : '<span class="no">—</span>'}</td>`;
+    $('#actor-matrix', el).innerHTML = `<thead><tr><th>Move</th><th>A person</th><th>The intern</th></tr></thead><tbody>${pol.actors.map(a => `<tr><td>${esc(a.action)}</td>${sym(a.person)}${sym(a.intern)}</tr>`).join('')}</tbody>`;
+    DC.hydrate(el);
+  },
+
+  async loadMembers(el) {
+    const { $, esc } = DC;
+    const cfg = await DC.config();
+    const auth = cfg.auth || {};
+    const body = $('#members-table tbody', el);
+    if (auth.mode === 'none' || !auth.signed_in) {
+      body.innerHTML = '<tr><td colspan="4"><div class="empty">No accounts on this server: it is one owner on this machine. Set DCLAB_AUTH=password (or oidc, for your company\'s identity provider) and add the first owner with python -m dclab_rnd.accounts add.</div></td></tr>';
+      $('#tokens-list', el).innerHTML = '<div class="empty">API tokens come with accounts. Without them, MCP clients on this machine use /mcp as the owner.</div>';
+      return;
+    }
+    const owner = auth.role === 'owner';
+    const roles = [['owner', 'Owner'], ['data_scientist', 'ML engineer'], ['reviewer', 'Reviewer'], ['viewer', 'Business viewer']];
+    let members = [];
+    try { members = await DC.api('/workspace/members'); } catch (err) { body.innerHTML = `<tr><td colspan="4"><div class="empty">${esc(err.message)}</div></td></tr>`; return; }
+    $('#members-sub', el).textContent = `${members.length} member${members.length === 1 ? '' : 's'} · ${owner ? 'you manage them as the owner' : 'the owner manages them'}`;
+    body.innerHTML = members.map(m => `<tr><td><div class="cell-main">${esc(m.name || m.email)}</div><div class="cell-sub">${esc(m.email)}${m.id === auth.user_id ? ' · you' : ''}</div></td>
+      <td>${owner ? `<select data-member-role="${esc(m.id)}" aria-label="Role of ${esc(m.email)}">${roles.map(([k, l]) => `<option value="${k}" ${k === m.role ? 'selected' : ''}>${l}</option>`).join('')}</select>` : esc(m.role_label)}</td>
+      <td class="small">${m.single_sign_on ? 'company account' : m.password ? 'password' : '—'}</td>
+      <td>${owner && m.id !== auth.user_id ? `<button type="button" class="btn sm" data-member-remove="${esc(m.id)}">Remove</button>` : ''}</td></tr>`).join('');
+    const add = $('#member-add', el);
+    add.hidden = !owner;
+    $('#member-role', el).innerHTML = roles.map(([k, l]) => `<option value="${k}" ${k === 'viewer' ? 'selected' : ''}>${l}</option>`).join('');
+    $('#member-secret', el).hidden = auth.mode !== 'password';
+    DC.hydrate(el);
+  },
+
+  async loadTokens(el) {
+    const { $, esc } = DC;
+    const cfg = await DC.config();
+    if (!(cfg.auth || {}).signed_in || cfg.auth.mode === 'none') return;
+    let tokens = [];
+    try { tokens = await DC.api('/auth/tokens'); } catch (err) { $('#tokens-list', el).innerHTML = `<div class="empty">${esc(err.message)}</div>`; return; }
+    const when = t => t ? new Date(t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'never';
+    $('#tokens-list', el).innerHTML = tokens.length ? tokens.map(t => `<div class="list-item"><div class="li-main"><span class="li-title">${esc(t.name)}</span>
+      <span class="li-sub mono">${esc(t.prefix)}… · made ${when(t.created)} · last used ${when(t.last_used)}</span></div><button type="button" class="btn sm" data-token-revoke="${esc(t.id)}">Revoke</button></div>`).join('')
+      : '<div class="empty">No tokens yet.</div>';
+    $('#token-add', el).hidden = false;
   },
 
   paintModels(el, m, gw) {

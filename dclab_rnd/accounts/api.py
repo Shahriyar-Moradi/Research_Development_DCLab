@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Any
 
 from fastapi import HTTPException, Request
@@ -65,6 +66,7 @@ async def sign_in(payload: AnyObject, request: Request):
     if not spaces:
         raise HTTPException(403, "This account is not a member of any workspace yet")
     token, csrf = await asyncio.to_thread(accounts.start_session, user["id"], spaces[0][0])
+    _audit_account(spaces[0][0], "sign_in", "sign_in", user, {"via": "password"})
     response = JSONResponse({"signed_in": True, "csrf": csrf, "workspace_id": spaces[0][0]})
     response.set_cookie(COOKIE, token, max_age=SESSION_MAX_DAYS * 86400, httponly=True, samesite="lax",
                         secure=bool(_settings(request).cookie_secure), path="/")
@@ -162,6 +164,14 @@ async def _keep_an_owner(accounts: Accounts, workspace_id: str, user_id: str, ro
         raise HTTPException(409, "A workspace keeps at least one owner")
 
 
+def _audit_account(workspace_id: str, kind: str, move: str, user: dict[str, Any], args: dict[str, Any]) -> None:
+    """A sign-in, or a role the provider's groups set, in that workspace's audit (no request principal exists yet)."""
+    from .. import audit
+
+    audit.record(audit.PgAudit(workspace_id), kind, "human", user.get("name") or user.get("email"), move=move, status="allowed",
+                 user_id=user["id"], args={**args, "member": user["id"]})
+
+
 def _audit_member(move: str, user_id: str, role: str | None) -> None:
     from .. import audit, context
 
@@ -191,3 +201,62 @@ async def revoke_token(token_id: str, request: Request):
         raise HTTPException(404, "No such token")
     return Response(status_code=204)
 
+
+
+# ---------------------------------------------------------------------- the company's identity provider (part B)
+@router.get("/api/auth/oidc/start", response_class=Response, include_in_schema=False)
+async def oidc_start(request: Request):
+    """Send the browser to the identity provider; a signed cookie remembers this login for ten minutes."""
+    from fastapi.responses import RedirectResponse
+
+    from . import oidc
+
+    if _settings(request).auth != "oidc":
+        raise HTTPException(404, "This server does not sign in through an identity provider")
+    if _settings(request).cookie_secure and not os.environ.get("DCLAB_OIDC_REDIRECT"):  # behind a TLS proxy the request's own URL says http://
+        raise HTTPException(503, "Set DCLAB_OIDC_REDIRECT to this server's https:// callback address")
+    try:
+        location, cookie = await asyncio.to_thread(oidc.start, str(request.url_for("oidc_callback")))
+    except oidc.OidcError as exc:
+        raise HTTPException(503, str(exc)) from None
+    response = RedirectResponse(location, status_code=302)
+    response.set_cookie(oidc.COOKIE, cookie, max_age=600, httponly=True, samesite="lax", secure=bool(_settings(request).cookie_secure),
+                        path="/api/auth/oidc")
+    return response
+
+
+@router.get("/api/auth/oidc/callback", response_class=Response, include_in_schema=False)
+async def oidc_callback(request: Request, code: str = "", state: str = ""):
+    """The provider sends the browser back here: check the login, sign the person in, and open the product."""
+    from fastapi.responses import HTMLResponse, RedirectResponse
+
+    from . import oidc
+
+    accounts = _on(request)
+    if _settings(request).auth != "oidc":
+        raise HTTPException(404, "This server does not sign in through an identity provider")
+    try:
+        claims = await asyncio.to_thread(oidc.finish, code, state, request.cookies.get(oidc.COOKIE, ""))
+        user, roles, changes = await asyncio.to_thread(oidc.sign_in, accounts, claims, request.app.state.services.workspace_id)
+    except oidc.OidcError as exc:
+        page = HTMLResponse(f"<!doctype html><meta charset=utf-8><title>Sign-in refused</title><p>Sign-in refused: {_html(str(exc))}.</p>"
+                            "<p><a href=\"/\">Back to DCLab</a></p>", status_code=403)
+        page.delete_cookie(oidc.COOKIE, path="/api/auth/oidc")
+        return page
+    own = request.app.state.services.workspace_id
+    workspace = own if own in roles else next(iter(roles))  # the server's own workspace first, when the person has a role there
+    token, _ = await asyncio.to_thread(accounts.start_session, user["id"], workspace)
+    for changed, old, new in changes:  # the provider's groups changed a membership: that workspace's audit says so
+        _audit_account(changed, "role_change", "set_role_from_groups", user, {"was": old, "role": new, "role_label": LABELS.get(new or "")})
+    _audit_account(workspace, "sign_in", "sign_in", user, {"via": "identity provider"})
+    response = RedirectResponse("/", status_code=302)
+    response.set_cookie(COOKIE, token, max_age=SESSION_MAX_DAYS * 86400, httponly=True, samesite="lax",
+                        secure=bool(_settings(request).cookie_secure), path="/")
+    response.delete_cookie(oidc.COOKIE, path="/api/auth/oidc")
+    return response
+
+
+def _html(text: str) -> str:
+    import html
+
+    return html.escape(text)

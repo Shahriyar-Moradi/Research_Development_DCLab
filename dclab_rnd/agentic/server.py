@@ -44,6 +44,7 @@ def create_app(home=None) -> FastAPI:
         raise RuntimeError("DCLAB_AUTH needs PostgreSQL: accounts and sessions live in the database (set DCLAB_DATABASE_URL)")
     pool = Pool(settings)  # one Services per workspace this server serves (package 10.2); the first is its own folder's
     s = pool.default
+    # one MCP endpoint for every workspace: its toolbox reaches the projects of the workspace the request's token names (10.2)
     s.mcp = mcp_server.session_manager(Toolbox(Current("projects", s))) if mcp_server.available() else None
 
     @asynccontextmanager
@@ -97,8 +98,6 @@ def create_app(home=None) -> FastAPI:
         if request.url.path.startswith("/mcp") and settings.auth != "none":
             if not who.signed_in or who.via != "token":
                 return JSONResponse({"detail": "MCP clients send an API token: Authorization: Bearer dclab_…"}, status_code=401)
-            if who.workspace_id != s.workspace_id:
-                return JSONResponse({"detail": "This server's MCP endpoint serves its own workspace only"}, status_code=403)
             if not allows(who.role, "write"):
                 return JSONResponse({"detail": f"A {who.public()['role_label']} may not use the MCP tools"}, status_code=403)
         elif request.method not in ("GET", "HEAD", "OPTIONS") and not request.url.path.startswith("/mcp") and who.via != "token":

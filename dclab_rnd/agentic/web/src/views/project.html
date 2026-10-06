@@ -285,7 +285,14 @@ DC.view('project', {
         <div class="row small"><span class="muted">Evidence returned to the intern:</span>${chips(v.ev)}</div>`;
     }
     function drawTeam() {
-      if (isReal(proj)) { $('#team-list', el).innerHTML = '<div class="list-item"><span class="avatar sm">SM</span><div class="li-main"><span class="li-title">Shahriyar</span><span class="li-sub">Owner · the only member of this local workspace</span></div></div>'; return; }
+      if (isReal(proj)) {
+        DC.config().then(cfg => (cfg.auth || {}).signed_in && cfg.auth.mode !== 'none' ? DC.api('/workspace/members') : null).then(members => {
+          $('#team-list', el).innerHTML = members && members.length  // with accounts (10.2): the workspace's members and their roles
+            ? members.map(m => `<div class="list-item"><span class="avatar sm">${esc((m.name || m.email).slice(0, 2).toUpperCase())}</span><div class="li-main"><span class="li-title">${esc(m.name || m.email)}</span><span class="li-sub">${esc(m.role_label)}</span></div></div>`).join('')
+            : '<div class="list-item"><span class="avatar sm">OW</span><div class="li-main"><span class="li-title">Owner</span><span class="li-sub">The only member: this server has no sign-in</span></div></div>';
+        }).catch(() => null);
+        return;
+      }
       $('#team-list', el).innerHTML = DEMO.team.map(t => `<div class="list-item"><span class="avatar sm ${t.cls}">${t.id}</span><div class="li-main"><span class="li-title">${esc(t.name)}</span><span class="li-sub">${esc(t.role)}</span></div></div>`).join('');
     }
     function drawStats() {

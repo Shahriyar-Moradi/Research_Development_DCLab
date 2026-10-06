@@ -981,3 +981,9 @@ mark { background: var(--warn-soft); color: inherit; padding: 0 2px; border-radi
 .bp-panel.min .bp-list, .bp-panel.min .bp-legend, .bp-panel.min #bp-backend, .bp-panel.min .bp-more { display: none; }
 .bp-panel .bp-tools { display: flex; align-items: center; gap: 4px; }
 .pill, .ev-chip, .tag, .avatar, .cell-flag, .sev, .stamp, .bp-status, .dot { flex-shrink: 0; }
+
+/* ---------------- sign-in (package 10.2, part C) ---------------- */
+.signin { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: var(--bg); }
+.signin-card { width: min(400px, 100%); padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+.signin-card h1 { margin: 4px 0 0; font-size: 22px; }
+.signin-card .btn.primary { justify-content: center; }
