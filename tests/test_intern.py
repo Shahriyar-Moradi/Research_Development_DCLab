@@ -245,7 +245,9 @@ class StandardPlanSolutionTests(unittest.TestCase):
         with fast_profile():
             session = intern.run(intern.start("Audit the credit-card fraud data for leakage", {"max_steps": 7, "max_minutes": 5})["id"])
         saved = next((s for s in session["steps"] if s["tool"] == "set_solution"), None)
-        self.assertIsNotNone(saved, [s["tool"] for s in session["steps"]])
+        # on failure, say how the session ended: CI once saw it stop after two steps, never reproduced on a laptop
+        why = {"status": session.get("status"), "error": session.get("error"), "steps": [(s["tool"], str(s.get("result", ""))[:160]) for s in session["steps"]]}
+        self.assertIsNotNone(saved, why)
         self.assertNotIn("error", json.dumps(saved.get("result", {}))[:200].lower(), saved)
         solution = projects.get(session["project_id"])["solution"]
         self.assertNotIn(solution["time_column"], [f["column"] for f in solution["forbidden"]])
