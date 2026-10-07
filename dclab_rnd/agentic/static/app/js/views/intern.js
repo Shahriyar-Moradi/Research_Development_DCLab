@@ -372,20 +372,20 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
     async function sync() {
       const my = ++R.seq;
       let list = null;
-      try { list = await DC.api('/intern/sessions'); } catch (e) { /* offline: keep what is shown */ }
+      try { list = await DC.client.internList(); } catch (e) { /* offline: keep what is shown */ }
       if (my !== R.seq) return;
       if (!list) { if (R.mode === 'sample') DC.markSample(true); return; }
       R.sessions = list;
       if (!list.length) { if (!R.starting) toSample(); return; }
       const want = DC.state.internSession, id = want && list.some(x => x.id === want) ? want : list[0].id;
       let s = null;
-      try { s = await DC.api('/intern/sessions/' + id); } catch (e) { /* removed meanwhile */ }
+      try { s = await DC.client.internGet(id, { quiet: true }); } catch (e) { /* removed meanwhile */ }
       if (my !== R.seq || !s) return;
       let p = R.proj;
       const key = s.project_id ? s.project_id + '|' + s.updated : '';
       if (!s.project_id) p = null;
-      else if (isLive(s) || key !== R.projKey) { try { p = await DC.api('/projects/' + s.project_id); } catch (e) { p = null; } }
-      if (!R.info) { try { R.info = await DC.api('/intern'); } catch (e) { /* the model name stays unknown */ } }
+      else if (isLive(s) || key !== R.projKey) { try { p = await DC.client.getProject(s.project_id); } catch (e) { p = null; } }
+      if (!R.info) { try { R.info = await DC.client.internStatus(); } catch (e) { /* the model name stays unknown */ } }
       if (my !== R.seq) return;
       R.cur = s; R.proj = p; R.projKey = key;
       toReal(); drawReal(); schedule();
@@ -400,7 +400,7 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       if (task.length < 8) { toast('Describe the task in at least a sentence.', { ok: false }); return; }
       R.starting = true; R.busy = true; $('#intern-send', el).disabled = true;
       try {
-        const s = await DC.api('/intern/sessions', { method: 'POST', body: { task } });
+        const s = await DC.client.internStart({ body: { task } });
         DC.state.internSession = s.id; $('#intern-follow', el).value = '';
         toast('Session started. It works inside its budget and every move passes the graph.');
         DC.selectPane(el, 'overview');
@@ -433,7 +433,7 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       R.busy = true; $('#intern-send', el).disabled = true;
       const entry = { at: (s.steps || []).length, text, prevFinal: s.final, when: new Date().toISOString() };
       try {
-        let out = await DC.api(`/intern/sessions/${s.id}/message`, { method: 'POST', body: { text } });
+        let out = await DC.client.internMessage(s.id, { body: { text } });
         // The turn starts right after the reply, so the reply still shows the previous state.
         if (!isLive(out)) out = Object.assign({}, out, { status: 'queued', final: null });
         (R.follow[s.id] = R.follow[s.id] || []).push(entry);
@@ -446,6 +446,6 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
     this.sync = sync;
   },
   enter() {
-    this.sync();
+    return this.sync();  // the page's own load: Loading… and a failed read are shown (13.1)
   },
 });

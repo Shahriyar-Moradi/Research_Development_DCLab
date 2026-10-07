@@ -169,7 +169,7 @@ DC.view('evidence', {
       const out = $('#ask-answer', el);
       out.innerHTML = '<div class="inset muted small">Searching the evidence…</div>';
       let a;
-      try { a = await DC.api('/evidence/ask', { method: 'POST', body: { question: b.textContent.trim() } }); }
+      try { a = await DC.client.evidenceAsk({ body: { question: b.textContent.trim() } }); }
       catch (err) { out.innerHTML = `<div class="inset small">${esc(err.message)}</div>`; return; }
       if (b.getAttribute('aria-pressed') !== 'true') return;  // another question was asked meanwhile
       const recs = a.records.slice(0, a.mode === 'model' ? 0 : 3).map(r => `<div class="list-item"><div class="li-main"><span class="row"><span class="pill ${TYPE_CLS[r.type] || ''}">${esc(TYPE_LABEL[r.type] || r.type)}</span>${chip(r.id)}</span><span class="li-title">${esc(r.title)}</span><span class="li-sub">${esc(r.snippet)}</span></div></div>`).join('');
@@ -183,7 +183,7 @@ DC.view('evidence', {
     const lessonsEl = $('#ev-lessons', el);
     this.loadLessons = async () => {
       let d;
-      try { d = await DC.api('/lessons'); } catch (err) { return; }
+      try { d = await DC.client.listLessons(); } catch (err) { return; }
       const all = (d && d.lessons) || [], waiting = all.filter(l => l.status === 'proposed').length;
       $('#ev-lessons-panel', el).hidden = !all.length;
       const pill = $('#ev-lessons-pill', el);
@@ -222,7 +222,7 @@ DC.view('evidence', {
           if (!(document.getElementById('lesson-role') || {}).checked) { DC.toast('Only a reviewer reviews a lesson: tick the box.', { ok: false }); return false; }
           const body = { action: act, reason: v('lesson-reason') };
           if (act === 'edit') Object.assign(body, { claim: v('lesson-claim'), against: v('lesson-against'), next_test: v('lesson-next_test') });
-          DC.api(`/lessons/${encodeURIComponent(l.id)}/review`, { method: 'POST', headers: { 'X-DCLab-Role': 'reviewer' }, body })
+          DC.client.reviewLesson(l.id, { headers: { 'X-DCLab-Role': 'reviewer' }, body })
             .then(() => { DC.modal.close(); DC.toast(act === 'reject' ? 'Lesson kept out of the evidence.' : l.synthetic ? 'Lesson accepted. It came from synthetic data, so it is never offered as evidence.' : 'Lesson accepted: it is searched with the records.'); this.loadLessons(); DC.loadRecords(true).then(() => this.render && this.render()); })
             .catch(err => DC.toast(err.message, { ok: false }));
           return false;

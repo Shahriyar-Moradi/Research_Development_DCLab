@@ -32,7 +32,7 @@ DC.view('admin', {
       if (!project || !key) return;
       box.disabled = true;
       try {
-        await DC.api(`/projects/${project}`, { method: 'PATCH', body: { policy: { [key]: box.checked } } });
+        await DC.client.patchProject(project, { body: { policy: { [key]: box.checked } } });
         DC.currentProject.clear();
         toast(`Saved on this project: the gate is now ${box.checked ? 'required' : 'off'}, and the change is in the audit log.`);
         await this.loadPolicies(el);
@@ -43,7 +43,7 @@ DC.view('admin', {
       if (op) { DC.state.projectId = op.dataset.openProject; DC.state.project = 'p:' + op.dataset.openProject; DC.currentProject.clear(); }
     });
     /* A6.4: shadow and serving changes go to POST /api/models/routing; the answer is the new summary */
-    const route = (body, headers) => DC.api('/models/routing', { method: 'POST', body, headers: headers || {} })
+    const route = (body, headers) => DC.client.changeRouting({ body, headers: headers || {} })
       .then(gw => { this.paintModels(el, {}, gw); toast('Saved. The routing history and the audit keep the change.'); return true; })
       .catch(err => { toast(err.message, { ok: false }); return false; });
     el.addEventListener('change', e => {
@@ -71,7 +71,7 @@ DC.view('admin', {
     });
     $('#audit-newer', el).addEventListener('click', () => { S.offset = Math.max(0, S.offset - S.limit); this.loadAudit(el); });
     ['kind', 'status', 'actor', 'project'].forEach(f => $(`#audit-${f}`, el).addEventListener('change', e => { S[f] = e.target.value; S.offset = 0; this.loadAudit(el); }));
-    DC.api('/projects').then(list => {
+    DC.client.listProjects().then(list => {
       $('#audit-project', el).insertAdjacentHTML('beforeend', list.map(p => `<option value="${DC.esc(p.id)}">${DC.esc(p.name || p.id)}</option>`).join(''));
     }).catch(() => { /* the filter keeps "Every project" */ });
     $('#audit-older', el).addEventListener('click', () => { S.offset += S.limit; this.loadAudit(el); });
@@ -80,19 +80,19 @@ DC.view('admin', {
       e.preventDefault();
       const body = { email: $('#member-email', el).value, name: $('#member-name', el).value, role: $('#member-role', el).value };
       if (!$('#member-secret', el).hidden && $('#member-secret', el).value) body.password = $('#member-secret', el).value;
-      try { await DC.api('/workspace/members', { method: 'POST', body }); toast('Added. The change is in the audit log.'); e.target.reset(); await this.loadMembers(el); }
+      try { await DC.client.addMember({ body }); toast('Added. The change is in the audit log.'); e.target.reset(); await this.loadMembers(el); }
       catch (err) { toast(err.message, { ok: false }); }
     });
     el.addEventListener('change', async e => {
       const sel = e.target.closest('[data-member-role]'); if (!sel) return;
-      try { await DC.api(`/workspace/members/${encodeURIComponent(sel.dataset.memberRole)}`, { method: 'PATCH', body: { role: sel.value } }); toast('Role changed. The change is in the audit log.'); }
+      try { await DC.client.changeMember(sel.dataset.memberRole, { body: { role: sel.value } }); toast('Role changed. The change is in the audit log.'); }
       catch (err) { toast(err.message, { ok: false }); }
       await this.loadMembers(el);
     });
     $('#token-add', el).addEventListener('submit', async e => {
       e.preventDefault();
       let made;
-      try { made = await DC.api('/auth/tokens', { method: 'POST', body: { name: $('#token-name', el).value } }); } catch (err) { toast(err.message, { ok: false }); return; }
+      try { made = await DC.client.newToken({ body: { name: $('#token-name', el).value } }); } catch (err) { toast(err.message, { ok: false }); return; }
       e.target.reset();
       DC.modal.open({
         eyebrow: '<span class="eyebrow">API token</span>', title: `${made.name}: copy it now`, confirm: 'Copy and close',  // the title is set as text
@@ -104,14 +104,14 @@ DC.view('admin', {
     el.addEventListener('click', async e => {
       const out = e.target.closest('[data-member-remove]');
       if (out) {
-        try { await DC.api(`/workspace/members/${encodeURIComponent(out.dataset.memberRemove)}`, { method: 'DELETE' }); toast('Removed: their sessions and tokens in this workspace ended.'); }
+        try { await DC.client.removeMember(out.dataset.memberRemove); toast('Removed: their sessions and tokens in this workspace ended.'); }
         catch (err) { toast(err.message, { ok: false }); }
         await this.loadMembers(el);
         return;
       }
       const revoke = e.target.closest('[data-token-revoke]');
       if (revoke) {
-        try { await DC.api(`/auth/tokens/${encodeURIComponent(revoke.dataset.tokenRevoke)}`, { method: 'DELETE' }); toast('Revoked.'); }
+        try { await DC.client.revokeToken(revoke.dataset.tokenRevoke); toast('Revoked.'); }
         catch (err) { toast(err.message, { ok: false }); }
         await this.loadTokens(el);
       }
@@ -120,7 +120,7 @@ DC.view('admin', {
   },
 
   async enter(el) {
-    const [pol, lim, intern, gw] = await Promise.allSettled([DC.api('/platform/policies'), DC.api('/platform/limits'), DC.api('/intern'), DC.api('/models')]);
+    const [pol, lim, intern, gw] = await Promise.allSettled([DC.client.platformPolicies(), DC.client.platformLimits(), DC.client.internStatus(), DC.client.modelOverview()]);
     if (pol.status !== 'fulfilled') { DC.markSample(true); return; }
     this.S.real = true;
     DC.markSample(false);
@@ -133,7 +133,7 @@ DC.view('admin', {
   },
 
   async loadPolicies(el) {
-    const pol = await DC.api('/platform/policies');
+    const pol = await DC.client.platformPolicies();
     this.paintPolicies(el, pol);
     this.paintStats(el, pol, this.S.limits, this.S.intern);
   },
@@ -220,7 +220,7 @@ DC.view('admin', {
     const owner = auth.role === 'owner';
     const roles = [['owner', 'Owner'], ['data_scientist', 'ML engineer'], ['reviewer', 'Reviewer'], ['viewer', 'Business viewer']];
     let members = [];
-    try { members = await DC.api('/workspace/members'); } catch (err) { body.innerHTML = `<tr><td colspan="4"><div class="empty">${esc(err.message)}</div></td></tr>`; return; }
+    try { members = await DC.client.members({ quiet: true }); } catch (err) { DC.states.failed(body, err, { retry: () => this.loadMembers(el), cols: 4 }); return; }
     $('#members-sub', el).textContent = `${members.length} member${members.length === 1 ? '' : 's'} · ${owner ? 'you manage them as the owner' : 'the owner manages them'}`;
     body.innerHTML = members.map(m => `<tr><td><div class="cell-main">${esc(m.name || m.email)}</div><div class="cell-sub">${esc(m.email)}${m.id === auth.user_id ? ' · you' : ''}</div></td>
       <td>${owner ? `<select data-member-role="${esc(m.id)}" aria-label="Role of ${esc(m.email)}">${roles.map(([k, l]) => `<option value="${k}" ${k === m.role ? 'selected' : ''}>${l}</option>`).join('')}</select>` : esc(m.role_label)}</td>
@@ -236,7 +236,7 @@ DC.view('admin', {
   async loadLimits(el) {
     const { $, esc } = DC;
     let q;
-    try { q = await DC.api('/platform/quotas'); } catch (err) { $('#limits-table tbody', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(err.message)}</div></td></tr>`; return; }
+    try { q = await DC.client.platformQuotas({ quiet: true }); } catch (err) { DC.states.failed($('#limits-table tbody', el), err, { retry: () => this.loadLimits(el), cols: 3 }); return; }
     if (!q.on) { $('#limits-table tbody', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(q.note)}</div></td></tr>`; return; }
     const fmt = (kind, v) => v == null ? '—' : kind === 'upload_bytes' ? `${(v / 1024 / 1024).toLocaleString('en-US', { maximumFractionDigits: 0 })} MB`
       : kind === 'model_eur' ? `€${Number(v).toFixed(2)}` : Number(v).toLocaleString('en-US');
@@ -250,7 +250,7 @@ DC.view('admin', {
     const cfg = await DC.config();
     if (!(cfg.auth || {}).signed_in || cfg.auth.mode === 'none') return;
     let tokens = [];
-    try { tokens = await DC.api('/auth/tokens'); } catch (err) { $('#tokens-list', el).innerHTML = `<div class="empty">${esc(err.message)}</div>`; return; }
+    try { tokens = await DC.client.tokens({ quiet: true }); } catch (err) { DC.states.failed($('#tokens-list', el), err, { retry: () => this.loadTokens(el) }); return; }
     const when = t => t ? new Date(t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'never';
     $('#tokens-list', el).innerHTML = tokens.length ? tokens.map(t => `<div class="list-item"><div class="li-main"><span class="li-title">${esc(t.name)}</span>
       <span class="li-sub mono">${esc(t.prefix)}… · made ${when(t.created)} · last used ${when(t.last_used)}</span></div><button type="button" class="btn sm" data-token-revoke="${esc(t.id)}">Revoke</button></div>`).join('')
@@ -313,8 +313,9 @@ DC.view('admin', {
     const { $, esc, linkIds } = DC;
     const S = this.S;
     let a;
-    const filters = ['kind', 'status', 'actor', 'project'].filter(f => S[f]).map(f => `&${f}=${encodeURIComponent(S[f])}`).join('');
-    try { a = await DC.api(`/platform/audit?limit=${S.limit}&offset=${S.offset}${filters}`); } catch (e) { $('#audit-body', el).innerHTML = `<tr><td colspan="3"><div class="empty">${esc(e.message)}</div></td></tr>`; return; }
+    const query = { limit: S.limit, offset: S.offset };
+    ['kind', 'status', 'actor', 'project'].filter(f => S[f]).forEach(f => { query[f] = S[f]; });
+    try { a = await DC.client.platformAudit({ query, quiet: true }); } catch (e) { DC.states.failed($('#audit-body', el), e, { retry: () => this.loadAudit(el), cols: 3 }); return; }
     const when = s => { const t = new Date(s); return isNaN(t) ? esc(s || '') : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }); };
     const what = e => {
       const g = e.args || {};

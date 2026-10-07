@@ -174,9 +174,16 @@ def create_app(home=None) -> FastAPI:
     return app
 
 
-app = create_app()
+def __getattr__(name: str):
+    """``app`` is made on first use (uvicorn's "dclab_rnd.agentic.server:app", ``from .server import app``), so importing
+    create_app (the tests, the API client's generator) opens no workspace and no database."""
+    if name == "app":
+        made = globals()["app"] = create_app()
+        return made
+    raise AttributeError(name)
+
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=Settings.load().port)
+    uvicorn.run(create_app(), host="127.0.0.1", port=Settings.load().port)

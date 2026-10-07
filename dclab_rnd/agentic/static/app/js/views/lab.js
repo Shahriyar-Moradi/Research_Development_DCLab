@@ -30,7 +30,7 @@ DC.view('lab', {
     async function openFile(path, title) {
       if (!path) return;
       try {
-        const f = await DC.api('/research/file?path=' + encodeURIComponent(path));
+        const f = await DC.client.researchFile({ query: { path: path } });
         DC.drawer.open({ eyebrow: `<span class="tag">${esc(path)}</span>`, title: title || path,
           html: `<pre class="code xs" data-style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(f.text || (f.entries || []).join('\n'))}</pre>${f.truncated ? '<div class="xs muted">Truncated; open the file in the repository for the rest.</div>' : ''}` });
       } catch (e) { DC.toast(e.message, { ok: false }); }
@@ -170,10 +170,10 @@ DC.view('lab', {
   },
   async enter(el) {
     let S = null;
-    try { S = await DC.api('/lab/summary'); } catch (e) { S = null; }
+    try { S = await DC.client.labSummaryRoute(); } catch (e) { S = null; }
     DC.markSample(!S);
     if (!S) return;  // offline demo: the sample stays
     this.paint(S);
-    try { this.paintMap(await DC.api('/research'), S.track_status || {}); } catch (e) { /* the research map keeps its last content */ }
+    try { this.paintMap(await DC.client.research(), S.track_status || {}); } catch (e) { /* the research map keeps its last content */ }
   },
 });

@@ -577,7 +577,7 @@ DC.view('solution', {
       const run = e.target.closest('[data-run-stage]');
       if (run && real) {
         run.disabled = true;
-        try { await DC.api(`/projects/${real.id}/stages/${run.dataset.runStage}/run`, { method: 'POST' }); DC.toast(`Started the ${run.dataset.runStage} stage. This page updates when it finishes.`); }
+        try { await DC.client.runStage(real.id, run.dataset.runStage); DC.toast(`Started the ${run.dataset.runStage} stage. This page updates when it finishes.`); }
         catch (err) { DC.toast(err.message, { ok: false }); }
         DC.currentProject.clear(); watch();
         return;
@@ -585,7 +585,7 @@ DC.view('solution', {
       const sign = e.target.closest('[data-sign-solution]');
       if (sign && real) {
         sign.disabled = true;
-        try { await DC.api(`/projects/${real.id}/approvals`, { method: 'POST', body: { gate: 'solution', reason: 'Signed on the Solution page' } }); DC.toast('Signed. The log records who signed which version.'); }
+        try { await DC.client.approveGate(real.id, { body: { gate: 'solution', reason: 'Signed on the Solution page' } }); DC.toast('Signed. The log records who signed which version.'); }
         catch (err) { DC.toast(err.message, { ok: false }); }
         const p = await DC.currentProject.get(true);
         if (p) renderReal(p);
@@ -624,10 +624,10 @@ DC.view('solution', {
       try {
         if (body.target !== (p.solution || {}).target) {
           // a new target needs its own task, positive label and metric: take them from the column audit for it
-          const fresh = audit && audit.target === body.target ? audit : await DC.api(`/projects/${p.id}/solution/proposal`, { method: 'POST', body: { target: body.target } });
+          const fresh = audit && audit.target === body.target ? audit : await DC.client.solutionProposal(p.id, { body: { target: body.target } });
           Object.assign(body, { task: fresh.task, positive_label: fresh.task === 'binary' && fresh.positive_label != null ? String(fresh.positive_label) : null, metric: fresh.metric });
         }
-        await DC.api(`/projects/${p.id}/solution`, { method: 'PUT', body });
+        await DC.client.saveSolution(p.id, { body });
         DC.drawer.close();
         DC.toast('Saved. Stages that depended on the earlier version were cleared; run them again from the workflow.');
         const fresh = await DC.currentProject.get(true);
@@ -643,7 +643,7 @@ DC.view('solution', {
         html: '<p>The agents stop reading it. The project log keeps the removal, with your reason.</p><label class="sr-only" for="forget-reason">Reason</label><textarea id="forget-reason" rows="2" placeholder="Why it no longer holds"></textarea>',
         onConfirm: () => {
           const reason = (document.getElementById('forget-reason') || {}).value || '';
-          DC.api(`/projects/${encodeURIComponent(id)}/memory/${encodeURIComponent(note)}`, { method: 'DELETE', body: { reason } })
+          DC.client.removeMemoryNote(id, note, { body: { reason } })
             .then(p => { DC.modal.close(); DC.toast('Note removed. The log keeps it.'); if (p && real && real.id === p.id) renderReal(p); })
             .catch(err => DC.toast(err.message, { ok: false }));
           return false;
@@ -655,7 +655,7 @@ DC.view('solution', {
       if (e.target.closest('[data-es-audit]')) {
         const keep = editedBody(real);  // the audit redraws the panel; keep what the user typed
         try {
-          audit = await DC.api(`/projects/${real.id}/solution/proposal`, { method: 'POST', body: { target: keep.target } });
+          audit = await DC.client.solutionProposal(real.id, { body: { target: keep.target } });
           openEditor({ ...real, solution: { ...(real.solution || {}), ...keep } });
         }
         catch (err) { DC.toast(err.message, { ok: false }); }

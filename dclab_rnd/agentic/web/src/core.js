@@ -238,7 +238,7 @@
   let recordsLoad = null;
   function loadRecords(force) {
     if (recordsLoad && !force) return recordsLoad;
-    recordsLoad = api('/evidence').then(d => {
+    recordsLoad = DC.client.evidenceLibrary().then(d => {
       if (!d || !Array.isArray(d.records) || !d.records.length) return null;
       RECORDS.splice(0, RECORDS.length, ...d.records);
       Object.keys(REC).forEach(k => { delete REC[k]; });
@@ -606,7 +606,7 @@
     if (el) buildPaneTabs(el);
     if (def && el) {
       if (!def.inited) { def.inited = true; try { def.init && def.init(el); } catch (e) { console.error('init ' + name, e); } buildPaneTabs(el); hydrate(el); }
-      try { def.enter && def.enter(el); } catch (e) { console.error('enter ' + name, e); }
+      enterView(name, def, el);
     }
     if (el) selectPane(el, paneId || '', { url: !!paneId });
     // nav highlight
@@ -618,6 +618,14 @@
     if (state.bp) { applyBlueprintAttrs(el || document); renderBpPanel(); }
     if (!state.tour && changed) window.scrollTo({ top: 0 });
     updateTourBar();
+  }
+
+  function enterView(name, def, el) {
+    const watch = loading.begin(name);
+    let out;
+    try { out = def.enter && def.enter(el); } catch (e) { console.error('enter ' + name, e); out = Promise.reject(e); }
+    if (out && typeof out.then === 'function') loading.track(watch, el, out, () => { if (state.view === name) enterView(name, def, el); });
+    else loading.current = null;  // a page that loads nothing: no earlier page's read is counted against it
   }
 
   /* ---------------- roles ---------------- */
@@ -838,6 +846,16 @@
     return server.config;
   }
   async function api(path, opts = {}, retried = false) {
+    const { quiet, ...fetchOpts } = opts;  // quiet: a miss the caller expects (a draft deleted meanwhile), not a failure of the page
+    opts = fetchOpts;
+    // a read counts against the page that is loading when it starts (not whichever page is loading when it fails)
+    const watch = loading.current && loading.current.name === state.view ? loading.current : null;
+    try { return await request(path, opts, retried); } catch (err) {
+      if (!quiet && (opts.method || 'GET') === 'GET' && err.status !== 401 && watch) watch.failures.push(err);
+      throw err;
+    }
+  }
+  async function request(path, opts, retried) {
     const cfg = await config();
     const headers = Object.assign({ Accept: 'application/json', 'X-DCLab-Token': cfg.csrf }, opts.headers || {});
     let body = opts.body;
@@ -850,7 +868,7 @@
       // The server restarted and issued a new request token: fetch it once and try again. A role refusal (package 10.2)
       // is a 403 too, but saying so again would not change it: only the token's refusal is retried.
       const detail = await res.clone().json().then(d => d.detail).catch(() => null);
-      if (detail === 'Missing local UI request token') { server.config = null; return api(path, opts, true); }
+      if (detail === 'Missing local UI request token') { server.config = null; return request(path, opts, true); }
     }
     if (res.status === 204) return null;
     const type = res.headers.get('content-type') || '';
@@ -861,6 +879,50 @@
     }
     return data;
   }
+  /* ---------------- loading, empty and failed: the same three states on every page (package 13.1) ----------------
+     Built from components the pages already have: .empty for a box's own state, .callout for the page's. cols puts
+     the state in a table body's single row. failed() says what happened and offers Try again when given a retry. */
+  const states = {
+    put(box, html, cols) { if (box) box.innerHTML = cols ? `<tr><td colspan="${cols}">${html}</td></tr>` : html; },
+    loading(box, { text = 'Loading…', cols } = {}) { this.put(box, `<div class="empty" role="status">${esc(text)}</div>`, cols); },
+    empty(box, text, { cols, href, action } = {}) {
+      this.put(box, `<div class="empty">${esc(text)}${href && action ? ` <a class="link-btn" href="${esc(href)}">${esc(action)}</a>` : ''}</div>`, cols);
+    },
+    failed(box, error, { lead = '', retry, cols } = {}) {
+      const why = (error && error.message) || String(error || 'The server did not answer.');
+      this.put(box, `<div class="empty" role="alert">${esc(lead)}${esc(why)}${retry ? ' <button type="button" class="btn sm" data-state-retry>Try again</button>' : ''}</div>`, cols);
+      const again = retry && box && box.querySelector('[data-state-retry]');
+      if (again) again.addEventListener('click', () => { states.loading(box, { cols }); retry(); }, { once: true });
+    },
+  };
+  /* A page's own load: "Loading…" at its top when it takes a moment, and when a read failed (the page may then show
+     its sample instead) what failed and Try again. A signed-out answer goes to the sign-in page instead. */
+  const loading = {
+    current: null,
+    begin(name) { this.current = { name, failures: [] }; return this.current; },  // before enter(): its first reads start at once
+    track(watch, el, promise, again) {
+      const name = watch.name;
+      const box = this.box(el);
+      box.hidden = true;  // an earlier load's message goes while this one runs
+      const slow = setTimeout(() => { if (this.current === watch) { box.hidden = false; states.loading(box); } }, 500);
+      const done = error => {
+        clearTimeout(slow);
+        if (this.current === watch) this.current = null;
+        const failure = error || watch.failures[0];
+        if (!failure || failure.status === 401) { box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        box.innerHTML = `<div class="callout warn" role="alert"><span class="ic">${icon('alert')}</span><span><b>${error ? 'This page could not be loaded.' : 'Part of this page could not be loaded.'}</b> ${esc(failure.message || 'The server did not answer.')} <button type="button" class="btn sm" data-state-retry>Try again</button></span></div>`;
+        $('[data-state-retry]', box).addEventListener('click', () => { box.hidden = true; again(); }, { once: true });
+      };
+      promise.then(() => done(null), err => { console.error('enter ' + name, err); done(err); });
+    },
+    box(el) {
+      let box = $(':scope > [data-view-state]', el);
+      if (!box) { box = document.createElement('div'); box.dataset.viewState = ''; box.hidden = true; box.setAttribute('data-style', 'margin-bottom:12px'); el.prepend(box); }
+      return box;
+    },
+  };
+
   /* Server-sent events: onEvent(type, data) for every event; returns a function that closes the stream. */
   function stream(path, onEvent) {
     const src = new EventSource('/api' + path);
@@ -885,7 +947,7 @@
       const key = state.project;
       if (typeof key === 'string' && key.startsWith('p:')) return key.slice(2);
       if (key) return null;  // a sample was chosen on purpose
-      try { const ws = await api('/workspace'); if (ws.projects.length) { state.project = 'p:' + ws.projects[0].id; return ws.projects[0].id; } } catch (e) { /* offline */ }
+      try { const ws = await DC.client.workspace(); if (ws.projects.length) { state.project = 'p:' + ws.projects[0].id; return ws.projects[0].id; } } catch (e) { /* offline */ }
       return null;
     },
     /* The project with its stage records, transitions and graph; cached for two seconds across pages. */
@@ -894,7 +956,7 @@
       if (!id) return null;
       const c = this._cache;
       if (!force && c && c.id === id && Date.now() - c.at < 2000) return c.project;
-      const project = await api(`/projects/${id}`);
+      const project = await DC.client.getProject(id);
       this._cache = { id, at: Date.now(), project };
       setProjectLabel(project.name);
       return project;
@@ -912,7 +974,7 @@
      With a model the field stays hidden: the table is designed from the description. */
   const synthetic = {
     _load: null,
-    templates() { return this._load || (this._load = api('/synthetic/templates').catch(() => { this._load = null; return null; })); },
+    templates() { return this._load || (this._load = DC.client.syntheticTemplates().catch(() => { this._load = null; return null; })); },
     async setup(field) {
       const info = await this.templates();
       if (!field || !info || info.model || !(info.templates || []).length) return;
@@ -930,22 +992,22 @@
      Credentials and connection strings live on the server; the page only names a configured connection. */
   const connectors = {
     _status: null,
-    async status() { if (!this._status) { try { this._status = await api('/connectors'); } catch (e) { this._status = {}; } } return this._status; },
+    async status() { if (!this._status) { try { this._status = await DC.client.connectorsStatus(); } catch (e) { this._status = {}; } } return this._status; },
     async kaggleSearch(query, listEl) {
       const st = await this.status();
       if (st.kaggle && !st.kaggle.configured) { listEl.innerHTML = `<div class="empty">${esc(st.kaggle.note)}</div>`; return; }
       if (!query.trim()) { toast('Type what to search for.', { ok: false }); return; }
       listEl.innerHTML = '<div class="empty">Searching Kaggle…</div>';
       try {
-        const rows = await api('/connectors/kaggle/search', { method: 'POST', body: { query } });
+        const rows = await DC.client.kaggleSearch({ body: { query } });
         listEl.innerHTML = rows.length ? rows.slice(0, 8).map(r => `<div class="list-item"><div class="li-main"><span class="li-title">${esc(r.ref)}</span><span class="li-sub">${esc(r.title || '')}${r.size_bytes ? ' · ' + (r.size_bytes / 1048576).toFixed(1) + ' MB' : ''}${r.license ? ' · licence ' + esc(r.license) : ''}</span></div><button type="button" class="btn sm" data-kaggle-ref="${esc(r.ref)}">Import</button></div>`).join('')
           : '<div class="empty">No dataset matched. Try other words.</div>';
-      } catch (e) { listEl.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+      } catch (e) { states.failed(listEl, e); }
     },
-    importKaggle(draftId, ref) { return api(`/drafts/${draftId}/data/kaggle`, { method: 'POST', body: { ref } }); },
+    importKaggle(draftId, ref) { return DC.client.dataKaggle(draftId, { body: { ref } }); },
     importHF(draftId, f) {
       if (!f.dataset) { toast('Give the dataset ID, for example scikit-learn/adult-census-income.', { ok: false }); return Promise.reject(new Error('no dataset')); }
-      return api(`/drafts/${draftId}/data/hf`, { method: 'POST', body: { dataset: f.dataset, revision: f.revision || null, split: f.split || 'train', config: f.config || null } });
+      return DC.client.dataHf(draftId, { body: { dataset: f.dataset, revision: f.revision || null, split: f.split || 'train', config: f.config || null } });
     },
     async database(draftId, done) {
       const st = await this.status(), conns = (st.database && st.database.connections) || [];
@@ -963,7 +1025,7 @@
         onConfirm: m => {
           const table = $('#cx-table', m).value.trim(), query = $('#cx-query', m).value.trim();
           if (!table === !query) { toast('Give a table or a query, not both.', { ok: false }); return false; }
-          api(`/drafts/${draftId}/data/database`, { method: 'POST', body: { connection: $('#cx-conn', m).value, table: table || null, query: query || null, limit: Number($('#cx-limit', m).value) } })
+          DC.client.dataDatabase(draftId, { body: { connection: $('#cx-conn', m).value, table: table || null, query: query || null, limit: Number($('#cx-limit', m).value) } })
             .then(a => { modal.close(); toast('Import started.'); done && done(a); }).catch(e => toast(e.message, { ok: false }));
           return false;
         },
@@ -977,7 +1039,7 @@
         onConfirm: m => {
           const uri = $('#cx-uri', m).value.trim();
           if (!/^(s3|gs):\/\/./.test(uri)) { toast('Give an s3:// or gs:// path.', { ok: false }); return false; }
-          api(`/drafts/${draftId}/data/cloud`, { method: 'POST', body: { uri } }).then(a => { modal.close(); toast('Import started.'); done && done(a); }).catch(e => toast(e.message, { ok: false }));
+          DC.client.dataCloud(draftId, { body: { uri } }).then(a => { modal.close(); toast('Import started.'); done && done(a); }).catch(e => toast(e.message, { ok: false }));
           return false;
         },
       });
@@ -1094,12 +1156,12 @@
     });
     document.addEventListener('click', async e => {
       const pick = e.target.closest('[data-switch-ws]');
-      if (pick) { try { await api('/auth/workspace', { method: 'POST', body: { workspace_id: pick.dataset.switchWs } }); location.hash = '#home'; location.reload(); } catch (err) { toast(err.message, { ok: false }); } return; }
-      if (e.target.closest('[data-sign-out]')) { await api('/auth/signout', { method: 'POST' }).catch(() => null); location.reload(); }
+      if (pick) { try { await DC.client.switchWorkspace({ body: { workspace_id: pick.dataset.switchWs } }); location.hash = '#home'; location.reload(); } catch (err) { toast(err.message, { ok: false }); } return; }
+      if (e.target.closest('[data-sign-out]')) { await DC.client.signOut().catch(() => null); location.reload(); }
     });
   }
 
-  window.DC = { showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { states, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

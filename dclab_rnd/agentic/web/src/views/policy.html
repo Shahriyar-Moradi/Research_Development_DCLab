@@ -127,7 +127,7 @@ DC.view('policy', {
     $('#sft-next', el).addEventListener('click', () => { P.ex += 1; P.full = false; drawExample(); });
     $('#traj-sharing-list', el).addEventListener('change', e => {
       const box = e.target.closest('[data-share]'); if (!box) return;
-      DC.api(`/projects/${encodeURIComponent(box.dataset.share)}`, { method: 'PATCH', body: { settings: { share_for_training: box.checked } } })
+      DC.client.patchProject(box.dataset.share, { body: { settings: { share_for_training: box.checked } } })
         .then(() => {
           DC.toast(box.checked ? 'This project\'s runs can now be exported for training, without cell values or free text.' : 'This project is no longer exported for training.');
           const boxes = [...el.querySelectorAll('#traj-sharing-list [data-share]')];
@@ -225,13 +225,12 @@ DC.view('policy', {
       DC.hydrate(el);
     };
     this.fail = e => {
-      const msg = `<div class="empty">Could not load the policy-model data: ${esc(e.message)}</div>`;
-      ['#pol-curriculum', '#traj-body', '#sft-example', '#runs-list'].forEach(s => { $(s, el).innerHTML = msg; });
+      ['#pol-curriculum', '#traj-body', '#sft-example', '#runs-list'].forEach(s => DC.states.failed($(s, el), e, { lead: 'Could not load the policy-model data: ', retry: () => this.enter() }));
     };
   },
   async enter() {
     DC.markSample(false);
-    try { this.render(await DC.api('/learn/policy')); } catch (e) { this.fail(e); }
+    try { this.render(await DC.client.learnPolicy({ quiet: true })); } catch (e) { this.fail(e); }
   },
 });
 </script>

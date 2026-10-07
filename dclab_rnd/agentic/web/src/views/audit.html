@@ -482,7 +482,7 @@ DC.view('audit', {
       const run = e.target.closest('[data-run-stage]');
       if (!run || !real) return;
       run.disabled = true;
-      try { await DC.api(`/projects/${real.id}/stages/${run.dataset.runStage}/run`, { method: 'POST' }); DC.toast(`Started the ${run.dataset.runStage} stage. This page updates when it finishes.`); }
+      try { await DC.client.runStage(real.id, run.dataset.runStage); DC.toast(`Started the ${run.dataset.runStage} stage. This page updates when it finishes.`); }
       catch (err) { DC.toast(err.message, { ok: false }); }
       DC.currentProject.clear(); watch();
     });

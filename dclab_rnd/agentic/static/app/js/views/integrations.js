@@ -23,7 +23,7 @@ DC.view('integrations', {
     const { $, esc } = DC;
     const md = t => esc(t || '').replace(/`([^`]+)`/g, '<code>$1</code>');
     let d;
-    try { d = await DC.api('/platform/integrations'); } catch (e) { DC.markSample(true); return; }
+    try { d = await DC.client.platformIntegrations(); } catch (e) { DC.markSample(true); return; }
     DC.markSample(false);
     const m = d.mcp, n = m.count, mi = m.ml_intern_tools || {};
     const stat = (v, l) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${l}</span></div>`;

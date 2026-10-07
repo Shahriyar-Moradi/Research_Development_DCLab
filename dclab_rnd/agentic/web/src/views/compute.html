@@ -134,7 +134,7 @@ DC.view('compute', {
       $('#failures-table tbody', el).innerHTML = rows.map(f => `<tr><td><div class="cell-main">${esc(f.what)}</div><div class="cell-sub mono">${esc(f.id)}${f.stages ? ' · ' + esc(f.stages.join(', ')) : ''}</div></td>
         <td class="small"><span class="pill ${f.status === 'interrupted' ? 'warn' : 'bad'}">${esc(f.status)}</span> ${esc(f.error || '')}</td>
         <td class="num mono">${esc(f.attempts == null ? '' : f.attempts)}</td><td class="small">${esc(when(f.finished))}</td>
-        <td><button type="button" class="btn sm" data-job-act="${esc(f.retry)}" data-job-done="Queued again">Retry</button></td></tr>`).join('');
+        <td><button type="button" class="btn sm" data-job-act="retry" data-job-id="${esc(f.id)}" data-job-done="Queued again">Retry</button></td></tr>`).join('');
     }
 
     /* ---------- jobs table ---------- */
@@ -158,7 +158,7 @@ DC.view('compute', {
       S.sel = id;
       $$('#jobs-table tbody tr', el).forEach(r => r.classList.toggle('selected', r.dataset.job === id));
       let d;
-      try { d = await api(`/ops/jobs/${encodeURIComponent(id)}`); } catch (err) { if (user) toast(err.message, { ok: false }); return; }
+      try { d = await DC.client.opsJob(id); } catch (err) { if (user) toast(err.message, { ok: false }); return; }
       if (S.sel !== id) return;
       drawDetail(d);
     }
@@ -174,8 +174,8 @@ DC.view('compute', {
       if (j.kind === 'research') acts.push('<a class="btn sm" href="/classic">Open in the classic UI →</a>');
       // Stop and Retry act on the job table (package 10.3): a stop takes effect at the job's next checkpoint (between stages).
       if (d.stop) acts.push(d.stop.requested ? '<span class="pill outline">stopping…</span>'
-        : `<button type="button" class="btn sm danger" data-job-act="${esc(d.stop.href)}" data-job-done="Stop requested: it ends after the step it is on">Stop</button>`);
-      if (d.retry) acts.push(`<button type="button" class="btn sm" data-job-act="${esc(d.retry.href)}" data-job-done="Queued again">Retry</button>`);
+        : `<button type="button" class="btn sm danger" data-job-act="stop" data-job-id="${esc(d.stop.job_id)}" data-job-done="Stop requested: it ends after the step it is on">Stop</button>`);
+      if (d.retry) acts.push(`<button type="button" class="btn sm" data-job-act="retry" data-job-id="${esc(d.retry.job_id)}" data-job-done="Queued again">Retry</button>`);
       $('#jd-actions', el).innerHTML = acts.join('');
       const lvl = { dim: 't-dim', ok: 't-ok', warn: 't-warn', bad: 't-bad', acc: 't-acc' };
       $('#jd-logs', el).innerHTML = d.logs.length ? d.logs.map(l => `${l.at ? `<span class="t-dim">${esc(clock(l.at))}</span> ` : '         '}<span class="${lvl[l.level] || ''}">${esc(l.text)}</span>${l.proof ? ` <span class="t-dim">[${esc(l.proof.join(', '))}]</span>` : ''}`).join('\n')
@@ -198,7 +198,7 @@ DC.view('compute', {
       if (!b) return;
       b.disabled = true;
       try {
-        await api(b.dataset.jobAct.replace(/^\/api/, ''), { method: 'POST' });
+        await (b.dataset.jobAct === 'stop' ? DC.client.stopJob(b.dataset.jobId) : DC.client.retryJob(b.dataset.jobId));
         toast(b.dataset.jobDone);
         await load();
         if (S.sel) select(S.sel, false);
@@ -218,8 +218,8 @@ DC.view('compute', {
     /* ---------- loading and polling while something runs ---------- */
     async function load() {
       let d;
-      try { d = await api('/ops/jobs'); } catch (err) {
-        $('#jobs-table tbody', el).innerHTML = `<tr><td colspan="7"><div class="empty">Could not read the jobs: ${esc(err.message)}</div></td></tr>`;
+      try { d = await DC.client.opsJobs({ quiet: true }); } catch (err) {  // quiet: the table says it and offers Try again
+        DC.states.failed($('#jobs-table tbody', el), err, { lead: 'Could not read the jobs: ', retry: load, cols: 7 });
         return false;
       }
       S.data = d;

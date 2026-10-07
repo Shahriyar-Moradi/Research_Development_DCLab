@@ -116,7 +116,7 @@ print(best_depth, *(round(f(y_test, p), 4) for f in (roc_auc_score, average_prec
         if (fixesBusy) return;
         fixesBusy = true; wf.disabled = true; wf.textContent = 'Asking the model…';
         const mine = R;  // the review these fixes are for: a project switched meanwhile is not touched
-        DC.api(`/projects/${encodeURIComponent(real.p.id)}/review/fixes`, { method: 'POST', body: {} }).then(got => {
+        DC.client.reviewProjectFixes(real.p.id, { body: {} }).then(got => {
           if (R !== mine) return;
           let n = 0;  // a fix belongs to the finding with its key (detector:cell:line), whatever their order
           R.findings.forEach(f => { const x = (got.fixes || {})[`${f.detector}:${f.cell}:${f.line}`]; if (x) { f.fix = x; n += 1; } });
@@ -255,7 +255,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
       const box = $('#nb-answer', el);
       box.innerHTML = '<div class="inset muted">Reading the project records…</div>';
       try {
-        const a = await DC.api(`/projects/${encodeURIComponent(real.p.id)}/ask`, { method: 'POST', body: { question } });
+        const a = await DC.client.askAgent(real.p.id, { body: { question } });
         box.innerHTML = `<div class="inset stack tight"><span>${DC.linkIds(a.answer)}</span>${a.llm_answer ? `<span><span class="pill outline">LLM · advisory</span> ${DC.linkIds(a.llm_answer)}</span>` : ''}${known(a.proof).length ? `<span class="row">${chips(known(a.proof))}</span>` : ''}</div>`;
       } catch (err) { box.innerHTML = `<div class="inset">${esc(err.message)}</div>`; }
     }
@@ -266,7 +266,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
       const P = proj(p), S = review.summary || {}, by = S.by_severity || {}, file = fileName(p);
       set('nb-eyebrow', `${esc(p.name)} · notebook`);
       realOnly(true);
-      const ex = $('#nb-export-real', el); ex.href = `/api/projects/${encodeURIComponent(p.id)}/export/notebook`;
+      const ex = $('#nb-export-real', el); ex.href = DC.client.href.exportNotebook(p.id);
       const cv = P.fin ? P.ev.cv_selected_metric_mean : (P.Rr.models ? P.Rr.models.evidence.selected_metric_mean : P.Rr.features ? P.Rr.features.evidence.selected_metric_mean : null);
       set('nb-stats', `<div class="stat"><span class="v ${P.fin ? 'ok' : ''}">${P.fin ? f4(P.point) : '—'}${P.fin && P.ci ? ` <small>${f4(P.ci.low)}–${f4(P.ci.high)}</small>` : ''}</span><span class="l">${P.fin ? `honest holdout ${esc(ml(P.metric))} the last cell reproduces · ${DC.int(P.ev.holdout_rows)} rows, scored once` : 'the holdout has not been scored yet · the last cell has nothing to reproduce'}</span></div>
         <div class="stat"><span class="v">${cv != null ? f4(cv) : '—'}</span><span class="l">${cv != null ? `training-CV ${esc(ml(P.metric))} of the chosen ${P.fin ? 'configuration' : 'setup so far'} · the notebook's cross-validation cell` : 'no cross-validation has run yet'}</span></div>
@@ -325,7 +325,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
       set('nb-eyebrow', `${esc(p.name)} · notebook`);
       realOnly(true);
       $('#nb-export-real', el).hidden = !p.solution;
-      $('#nb-export-real', el).href = `/api/projects/${encodeURIComponent(p.id)}/export/notebook`;
+      $('#nb-export-real', el).href = DC.client.href.exportNotebook(p.id);
       render();
       const b = $('#nb-banner', el); b.className = 'callout info';
       $('#nb-banner-text', el).innerHTML = esc(msg);
@@ -344,7 +344,7 @@ result.roc_auc, result.interval                  # 0.7718, (0.7126, 0.8290)`, ['
     const key = p.id + ':' + p.updated + ':' + Object.keys(p.records || {}).join(',');
     let review = s.cache[key];
     if (!review) {
-      try { review = await DC.api(`/projects/${encodeURIComponent(p.id)}/review`); s.cache = { [key]: review }; }
+      try { review = await DC.client.reviewProjectNotebook(p.id); s.cache = { [key]: review }; }
       catch (e) { if (tok === s.tok) s.showError(p, 'The copilot could not review this notebook: ' + e.message); return; }
     }
     if (tok !== s.tok) return;

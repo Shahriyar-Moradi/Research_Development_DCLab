@@ -19,7 +19,7 @@ DC.view('home', {
     const segClass = { d: 'd', c: 'c', r: 'c', w: 'b', f: 'b', '-': '' };
     async function loadWorkspace() {
       let ws;
-      try { ws = await api('/workspace'); } catch (e) { return; }
+      try { ws = await DC.client.workspace(); } catch (e) { return; }
       const st = ws.stats, stats = $$('.stats .stat', el);
       if (stats.length >= 4) {
         stats[0].innerHTML = `<span class="v">${fmtN(st.forbidden)}</span><span class="l">columns forbidden at the prediction moment, across ${fmtN(st.projects)} project${st.projects === 1 ? '' : 's'}</span>`;
@@ -60,7 +60,7 @@ DC.view('home', {
       return `<button type="button" class="pack-card" data-pack="${esc(p.key)}" aria-pressed="${on ? 'true' : 'false'}"><span class="pc-top"><span class="pack-ic">${icon(p.icon)}</span><span class="pill ${esc(p.cls)}">${esc(p.maturity)}</span></span><span class="pc-name">${esc(p.name)}</span><span class="pc-desc">${esc(p.desc)}</span>${detected ? '<span class="pc-foot"><span class="pill accent">detected</span></span>' : ''}</button>`;
     }
     async function loadPacks() {
-      try { S.packs = await api('/packs'); } catch (e) { S.packs = []; }
+      try { S.packs = await DC.client.listPacks(); } catch (e) { S.packs = []; }
       drawPacks();
     }
     function drawPacks() {
@@ -80,7 +80,7 @@ DC.view('home', {
       S.pack = S.pack === key ? null : key;
       drawPacks();
       if (S.draft) {
-        try { S.draft = await api(`/drafts/${S.draft.id}/pack`, { method: 'POST', body: { key: S.pack || 'auto' } }); drawPacks(); }
+        try { S.draft = await DC.client.choosePack(S.draft.id, { body: { key: S.pack || 'auto' } }); drawPacks(); }
         catch (err) { toast(err.message, { ok: false }); }
       }
     });
@@ -94,7 +94,7 @@ DC.view('home', {
       if (S.draft && S.draft.status === 'open') return S.draft;
       const problem = $('#home-task', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); $('#home-task', el).focus(); throw new Error('no problem'); }
-      S.draft = await api('/drafts', { method: 'POST', body: { problem, pack: S.pack } });
+      S.draft = await DC.client.createDraft({ body: { problem, pack: S.pack } });
       remember(S.draft.id);
       openDraft(S.draft);
       return S.draft;
@@ -104,14 +104,14 @@ DC.view('home', {
       $('#home-thread', el).innerHTML = '';
       $('#home-task', el).value = draft.problem;
       showDraftPanels(true);
-      api('/intern').then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? 'model · ' + i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
+      DC.client.internStatus().then(i => { const m = $('#home-chat-mode', el); m.textContent = i.mode === 'llm' ? 'model · ' + i.model : 'standard questions'; m.hidden = false; }).catch(() => {});
       if (S.close) S.close();
-      S.close = stream(`/drafts/${draft.id}/events`, onEvent);
+      S.close = stream(DC.client.path.events(draft.id), onEvent);
       drawPacks();
       updateDataPill();
     }
     async function resume(id) {
-      try { const d = await api(`/drafts/${id}`); if (d.status === 'open') { openDraft(d); return true; } } catch (e) { /* gone */ }
+      try { const d = await DC.client.readDraft(id, { quiet: true }); if (d.status === 'open') { openDraft(d); return true; } } catch (e) { /* gone */ }
       remember(null); return false;
     }
     $('#home-start', el).addEventListener('click', async () => {
@@ -266,7 +266,7 @@ DC.view('home', {
     async function send(text) {
       text = (text || '').trim(); if (!text) return;
       try { await ensureDraft(); } catch (e) { return; }
-      try { await api(`/drafts/${S.draft.id}/messages`, { method: 'POST', body: { text } }); $('#home-reply', el).value = ''; }
+      try { await DC.client.message(S.draft.id, { body: { text } }); $('#home-reply', el).value = ''; }
       catch (err) { toast(err.status === 409 ? 'DCLab is still answering; send again in a moment.' : err.message, { ok: false }); }
     }
     $('#home-send', el).addEventListener('click', () => send($('#home-reply', el).value));
@@ -309,7 +309,7 @@ DC.view('home', {
       try { await ensureDraft(); } catch (e) { return; }
       try {
         toast(`Uploading ${file.name}…`);
-        await api(`/drafts/${S.draft.id}/data?filename=${encodeURIComponent(file.name)}`, { method: 'PUT', body: file, headers: { 'Content-Type': 'application/octet-stream' } });
+        await DC.client.upload(S.draft.id, { query: { filename: file.name }, body: file, headers: { 'Content-Type': 'application/octet-stream' } });
         $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) { toast(err.message, { ok: false }); }
     }
@@ -321,7 +321,7 @@ DC.view('home', {
 
     async function loadSamples() {
       if (S.samples) return;
-      try { S.samples = await api('/samples'); } catch (e) { S.samples = []; }
+      try { S.samples = await DC.client.samples(); } catch (e) { S.samples = []; }
       $('#home-sample-count', el).textContent = S.samples.length;
       $('#home-samples tbody', el).innerHTML = S.samples.map(s => `<tr data-sample="${esc(s.key)}"><td><span class="cell-main">${esc(s.key)}</span><div class="cell-sub">${esc(s.name || '')}</div></td><td>${esc(s.task || '')}</td><td class="num">${fmtN(s.rows)}</td><td class="small">${esc(s.decision || s.moment || '')}</td><td><button type="button" class="btn sm">Use</button></td></tr>`).join('');
     }
@@ -329,14 +329,14 @@ DC.view('home', {
     $('#home-samples', el).addEventListener('click', async e => {
       const tr = e.target.closest('tr[data-sample]'); if (!tr || e.target.closest('[data-record]')) return;
       try { await ensureDraft(); } catch (err) { return; }
-      try { await api(`/drafts/${S.draft.id}/data/sample`, { method: 'POST', body: { key: tr.dataset.sample } }); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      try { await DC.client.sample(S.draft.id, { body: { key: tr.dataset.sample } }); $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
       catch (err) { toast(err.message, { ok: false }); }
     });
     DC.synthetic.setup($('#home-syn-template-field', el));
     $('#home-syn-go', el).addEventListener('click', async () => {
       try { await ensureDraft(); } catch (e) { return; }
       try {
-        await api(`/drafts/${S.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#home-syn-prompt', el).value || S.draft.problem, rows: Number($('#home-syn-rows', el).value), template: DC.synthetic.chosen($('#home-syn-template-field', el)) } });
+        await DC.client.syntheticData(S.draft.id, { body: { prompt: $('#home-syn-prompt', el).value || S.draft.problem, rows: Number($('#home-syn-rows', el).value), template: DC.synthetic.chosen($('#home-syn-template-field', el)) } });
         $('#home-chat', el).scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) { toast(err.message, { ok: false }); }
     });
@@ -363,7 +363,7 @@ DC.view('home', {
     }
     async function loadLive() {
       let d;
-      try { d = await api('/ops/jobs'); } catch (e) { $('#home-live', el).innerHTML = `<div class="empty">Could not read the jobs: ${esc(e.message)}</div>`; return false; }
+      try { d = await DC.client.opsJobs({ quiet: true }); } catch (e) { DC.states.failed($('#home-live', el), e, { lead: 'Could not read the jobs: ', retry: loadLive }); return false; }
       const live = d.jobs.filter(j => j.status === 'running' || j.status === 'queued');
       $('#home-live', el).innerHTML = live.length ? live.slice(0, 6).map(liveItem).join('')
         : `<div class="empty">Nothing is running. Stage runs, intern sessions and data pipelines show here while they work; ${fmtN(d.totals.total)} job${d.totals.total === 1 ? '' : 's'} ran on this machine so far.</div>`;
@@ -375,7 +375,7 @@ DC.view('home', {
     async function loadEvidence() {
       const box = $('#home-ev-new', el);
       let d;
-      try { d = await api('/ops/evidence-recent?limit=3'); } catch (e) { box.innerHTML = `<div class="empty">Could not read the evidence index: ${esc(e.message)}</div>`; return; }
+      try { d = await DC.client.opsEvidenceRecent({ query: { limit: '3' }, quiet: true }); } catch (e) { DC.states.failed(box, e, { lead: 'Could not read the evidence index: ', retry: loadEvidence }); return; }
       // The index has no dates of its own: the server dates a record by the campaign result it cites (see ops.py).
       box.innerHTML = d.records.length ? d.records.map(r => {
         const title = r.title.startsWith(r.id) ? r.title.slice(r.id.length).replace(/^\s*[·:—-]\s*/, '') : r.title;
@@ -393,7 +393,7 @@ DC.view('home', {
     $('#home-ev-new', el).addEventListener('click', async e => {
       const b = e.target.closest('[data-ev-live]'); if (!b) return;  // records outside the demo snapshot come from /api/evidence/{id}
       try {
-        const r = await api(`/evidence/${encodeURIComponent(b.dataset.evLive)}`);
+        const r = await DC.client.evidenceRecord(b.dataset.evLive);
         DC.drawer.open({ eyebrow: `<span class="pill ${DC.TYPE_CLS[r.type] || ''}">${esc(DC.TYPE_LABEL[r.type] || r.type)}</span> <span class="tag">${esc(r.record_id)}</span>`, title: r.title,
           html: `<div class="record-text">${DC.linkIds(r.text)}</div>${(r.citations || []).length ? `<div class="stack tight"><div class="eyebrow">Citations</div>${r.citations.map(c => `<code class="small" data-style="overflow-wrap:anywhere">${esc(c)}</code>`).join('')}</div>` : ''}` });
       } catch (err) { toast(err.message, { ok: false }); }
@@ -404,7 +404,7 @@ DC.view('home', {
       if (ACT.stop) ACT.stop();
       ACT.stop = DC.poll(async () => DC.state.view !== 'home' || $('[data-pane="activity"]', el).hidden || !(await loadLive()), 3000);
     });
-    this.loadActivity = () => { loadLive(); loadEvidence(); };
+    this.loadActivity = () => Promise.all([loadLive(), loadEvidence()]);
 
     this.loadWorkspace = loadWorkspace;
     this.resume = resume;
@@ -412,8 +412,7 @@ DC.view('home', {
   },
   enter(el) {
     DC.markSample(false);
-    this.loadWorkspace();
-    this.loadActivity();
     try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
+    return Promise.all([this.loadWorkspace(), this.loadActivity()]);  // the page's own load: Loading… and a failed read are shown (13.1)
   },
 });

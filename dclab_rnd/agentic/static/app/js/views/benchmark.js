@@ -94,7 +94,7 @@ DC.view('benchmark', {
   },
   async enter(el) {
     let B = null;
-    try { B = await DC.api('/lab/benchmark'); } catch (e) { B = null; }
+    try { B = await DC.client.labBenchmarkRoute(); } catch (e) { B = null; }
     DC.markSample(!B);
     if (B) this.paint(B);
   },

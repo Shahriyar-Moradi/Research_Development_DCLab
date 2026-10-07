@@ -327,7 +327,7 @@ DC.view('models', {
     }
     async function checkMove(V, choice, box) {
       try {
-        const v = await DC.api(`/projects/${V.p.id}/graph/check`, { method: 'POST', body: { move: 'approve_stage', stage: 'models', choice } });
+        const v = await DC.client.checkMove(V.p.id, { body: { move: 'approve_stage', stage: 'models', choice } });
         const bad = v.status === 'blocked';
         const failed = (v.checks || []).filter(c => !c.ok).map(c => c.detail || c.name);
         const said = [...failed, ...(v.side_effects || [])];
@@ -339,7 +339,7 @@ DC.view('models', {
       const btn = $('#modal-confirm');
       btn.disabled = true;
       try {
-        await DC.api(`/projects/${V.p.id}/stages/models/approve`, { method: 'POST', body: { choice } });
+        await DC.client.approveStage(V.p.id, 'models', { body: { choice } });
         DC.modal.close();
         DC.currentProject.clear();
         toast(Number(V.p.holdout_uses) > 0 ? `${choice} is now your choice. The final stage was cleared; the holdout is already used, so a new estimate on it needs a written reason.` : `${choice} is now your choice. Run the final stage to tune it and open the holdout.`);

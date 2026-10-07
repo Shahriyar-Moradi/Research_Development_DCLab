@@ -210,7 +210,7 @@ DC.view('project', {
     }
     function drawTeam() {
       if (isReal(proj)) {
-        DC.config().then(cfg => (cfg.auth || {}).signed_in && cfg.auth.mode !== 'none' ? DC.api('/workspace/members') : null).then(members => {
+        DC.config().then(cfg => (cfg.auth || {}).signed_in && cfg.auth.mode !== 'none' ? DC.client.members() : null).then(members => {
           $('#team-list', el).innerHTML = members && members.length  // with accounts (10.2): the workspace's members and their roles
             ? members.map(m => `<div class="list-item"><span class="avatar sm">${esc((m.name || m.email).slice(0, 2).toUpperCase())}</span><div class="li-main"><span class="li-title">${esc(m.name || m.email)}</span><span class="li-sub">${esc(m.role_label)}</span></div></div>`).join('')
             : '<div class="list-item"><span class="avatar sm">OW</span><div class="li-main"><span class="li-title">Owner</span><span class="li-sub">The only member: this server has no sign-in</span></div></div>';
@@ -275,7 +275,7 @@ DC.view('project', {
       const opts = JSON.parse($('#move-select', el).dataset.real || '[]'), o = opts[Number($('#move-select', el).value)];
       if (!o) return;
       try {
-        const v = await api(`/projects/${REAL[proj].id}/graph/check`, { method: 'POST', body: { move: o.move, actor: o.actor, stage: o.stage, gate: o.gate } });
+        const v = await DC.client.checkMove(REAL[proj].id, { body: { move: o.move, actor: o.actor, stage: o.stage, gate: o.gate } });
         const cls = v.status === 'blocked' ? 'bad' : v.status === 'allowed' ? 'ok' : 'warn';
         $('#validator-out', el).innerHTML = `<div class="callout ${cls}"><span class="ic">${icon(v.status === 'blocked' ? 'alert' : v.status === 'allowed' ? 'check' : 'info')}</span><span><b>${v.status === 'blocked' ? 'Blocked' : v.status === 'allowed' ? 'Allowed' : 'Valid, waits for approval'}.</b> ${esc(v.message || '')}</span></div>
           <ul class="plan-list">${(v.checks || []).map(c => `<li class="${c.ok ? 'done' : 'blocked'}"><span class="pi">${c.ok ? '✓' : '!'}</span><span><b>${esc(c.name)}</b> · <span class="muted">${DC.linkIds(c.detail || '')}</span></span></li>`).join('')}</ul>
@@ -284,7 +284,7 @@ DC.view('project', {
       } catch (e) { $('#validator-out', el).innerHTML = `<div class="callout bad"><span class="ic">${icon('alert')}</span><span>${esc(e.message)}</span></div>`; }
     }
     async function openReal(key, keepStep) {
-      const p = await api(`/projects/${key.slice(2)}`);
+      const p = await DC.client.getProject(key.slice(2));
       REAL[key] = p; P[key] = fromApi(p);
       setProject(key, keepStep);
       clearTimeout(poller);
@@ -292,7 +292,7 @@ DC.view('project', {
     }
     async function switcher() {
       let list = [];
-      try { list = (await api('/workspace')).projects.slice(0, 3); } catch (e) { /* offline: samples only */ }
+      try { list = (await DC.client.workspace()).projects.slice(0, 3); } catch (e) { /* offline: samples only */ }
       $('#proj-switch', el).innerHTML = list.map(p => `<button type="button" data-v="p:${esc(p.id)}" aria-pressed="false">${esc(p.name)}</button>`).join('')
         + '<button type="button" data-v="bank" aria-pressed="false">Term-deposit calls · sample</button><button type="button" data-v="hyperack" aria-pressed="false">HyperAck · sample</button><button type="button" data-v="telco" aria-pressed="false">Telco churn · sample</button>';
       return list;
@@ -302,8 +302,8 @@ DC.view('project', {
       if (!run || !isReal(proj)) return;
       const id = REAL[proj].id;
       try {
-        if (run.dataset.runAll) await api(`/projects/${id}/run`, { method: 'POST' });
-        else await api(`/projects/${id}/stages/${run.dataset.runStage}/run`, { method: 'POST' });
+        if (run.dataset.runAll) await DC.client.runAll(id);
+        else await DC.client.runStage(id, run.dataset.runStage);
         toast('Started. The graph checked the move first; the log shows it.');
         openReal(proj, true);
       } catch (err) { toast(err.message, { ok: false }); openReal(proj, true); }

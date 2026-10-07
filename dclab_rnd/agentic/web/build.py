@@ -5,7 +5,8 @@
     python -m dclab_rnd.agentic.web.build --check   # exit 1 if static/app/ is stale
 
 Sources live in dclab_rnd/agentic/web/src/, copied from demo v1 (docs/product-demo/src, frozen):
-shell.html (layout), styles.css (design system), core.js (router, page tabs, server API, charts),
+shell.html (layout), styles.css (design system), core.js (router, page tabs, server API, charts), api.js (the API
+client, generated from the server's OpenAPI schema by client.py: never edited),
 data.js and features.js (sample data and the blueprint registry), data/*.json (records extracted from
 the repository), fonts/ (copied as they are) and views/*.html (one per page). Unlike the demo build, nothing is inlined: the page
 links app.css and loads every script from a file, because the server's CSP is script-src 'self' and
@@ -55,11 +56,12 @@ def assemble() -> dict[str, str]:
     files["js/data.js"] = (SRC / "data.js").read_text(encoding="utf-8")
     files["js/features.js"] = (SRC / "features.js").read_text(encoding="utf-8")
     files["js/core.js"] = (SRC / "core.js").read_text(encoding="utf-8")
+    files["js/api.js"] = (SRC / "api.js").read_text(encoding="utf-8") if (SRC / "api.js").exists() else ""
     files["app.css"] = (SRC / "styles.css").read_text(encoding="utf-8")
 
     shell = (SRC / "shell.html").read_text(encoding="utf-8")
     shell = re.sub(r"<style>\s*/\*STYLES\*/\s*</style>", '<link rel="stylesheet" href="/static/app/app.css">', shell)
-    order = [f"js/{d[0]}" for d in DATA] + ["js/data.js", "js/features.js", "js/core.js"] + view_scripts
+    order = [f"js/{d[0]}" for d in DATA] + ["js/data.js", "js/features.js", "js/core.js", "js/api.js"] + view_scripts
     tags = "\n".join(f'<script src="/static/app/{path}"></script>' for path in order)
     page = shell.replace("<!--VIEWS-->", "\n".join(markup)).replace("<!--SCRIPTS-->", tags)
     cut = page.index('<div class="app">')
@@ -71,6 +73,18 @@ def assets() -> dict[str, bytes]:
     """Binary files copied as they are: the fonts (SIL Open Font License; see fonts/README.md)."""
     folder = SRC / "fonts"
     return {f"fonts/{p.name}": p.read_bytes() for p in sorted(folder.iterdir()) if p.is_file()} if folder.is_dir() else {}
+
+
+_CLIENT: list[str] = []
+
+
+def client_source() -> str:
+    """src/api.js as the server's schema gives it now (made once per process: it builds the app)."""
+    if not _CLIENT:
+        from .client import generate
+
+        _CLIENT.append(generate())
+    return _CLIENT[0]
 
 
 def problems(files: dict[str, str]) -> list[str]:
@@ -93,6 +107,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--check", action="store_true", help="exit 1 if static/app/ is out of date")
     args = parser.parse_args(argv)
+    client = SRC / "api.js"
+    fresh = client_source()
+    if args.check and (not client.exists() or client.read_text(encoding="utf-8") != fresh):
+        print("dclab_rnd/agentic/web/src/api.js does not match the server's routes: run python -m dclab_rnd.agentic.web.build", file=sys.stderr)
+        return 1
+    if not args.check and (not client.exists() or client.read_text(encoding="utf-8") != fresh):
+        client.write_text(fresh, encoding="utf-8")
     files = assemble()
     binary = assets()
     issues = problems(files)

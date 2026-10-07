@@ -46,7 +46,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 1. **Leakage is the top risk.** Never use information unavailable at the prediction moment (`final_customer_fare`, `final_biker_fare`, `duration`, `casual`/`registered`, `Rating`, IDs). Write the prediction contract before looking at scores.
 2. Fit every preprocessing, selection, resampling and encoding step inside training folds only. Use the holdout once.
 3. Do not edit or rename files under any `results/` folder; the registry finds them by path. Rerun into new files instead.
-4. Generated files (`evidence/knowledge/**`, `research/*/INDEX.md`, `research/llm-fine-tuning/experiments/sft/out_v3/**`, `docs/product-demo/index.html`, `dclab_rnd/agentic/static/app/**`, campaign reports and `agent_memory.jsonl`) are rebuilt by commands, not edited.
+4. Generated files (`evidence/knowledge/**`, `research/*/INDEX.md`, `research/llm-fine-tuning/experiments/sft/out_v3/**`, `docs/product-demo/index.html`, `dclab_rnd/agentic/static/app/**`, `dclab_rnd/agentic/web/src/api.js` (the API client, from the OpenAPI schema), campaign reports and `agent_memory.jsonl`) are rebuilt by commands, not edited.
 5. LLM critique is advisory. Deterministic code owns splits, metrics and selection rules (`dclab_rnd/critic_gate.py` checks critiques against the numbers).
 6. Report results with their uncertainty and limits. Never call a model production-ready from benchmark evidence alone.
 7. Shared code stays at the repository root so `python -m dclab_rnd` and `import general_pipeline` work without installation.
@@ -61,7 +61,7 @@ the last `make check-all` result.
 ## Gotchas
 
 - Never `git stash`: the owner keeps uncommitted work in this tree (for example `docs/recap/`).
-- `dclab_rnd/agentic/static/app/**` is generated from `dclab_rnd/agentic/web/src` by `make web`.
+- `dclab_rnd/agentic/static/app/**` is generated from `dclab_rnd/agentic/web/src` by `make web`, and so is `src/api.js` (`DC.client`, from the routes): pages call `DC.client.<route>()`, never a path string, and show `DC.states` for loading, empty and failed.
 - `DCLAB_DATABASE_URL` switches projects, drafts and sessions to PostgreSQL; tests use (and empty) `dclab_test`. A project's table is read through `studio.data.data_path` (checked against its recorded SHA-256; `storage/files.py`), never by joining `data_dir` and the file name; a workspace folder keeps its identity in `.dclab_workspace`.
 - Every model request goes through `dclab_rnd.models` (the gateway); tests use scripted transports, never a live key. A purpose can be moved to another tier (a reviewer and a reason) or shadowed by a local one (`models/routing.py`, `models/shadow.py`): a shadow's answer is logged, never used.
 - Every agent tool is registered once in `dclab_rnd.agents` (`default_registry()`): scope "project" for the intern and `/mcp`, "draft" for the Home agent, "session" for the intern's plan and report, "campaign" for the research campaign's experiment. Never keep a private tool list. A write tool declares its move and runs only through its scope's guard (the graph validator for projects). The Home agent and the intern run on `agents.run()`; the campaign's LangGraph phases are traced and its experiment goes through the registry.

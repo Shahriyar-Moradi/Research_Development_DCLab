@@ -177,7 +177,7 @@ DC.view('packs', {
   },
   async enter() {
     DC.markSample(false);
-    const [packs, usage] = await Promise.all([DC.api('/packs').catch(() => null), DC.api('/learn/packs').catch(() => null)]);
+    const [packs, usage] = await Promise.all([DC.client.listPacks().catch(() => null), DC.client.learnPacks().catch(() => null)]);
     if (packs) this.S.packs = packs.concat(this.PAGE_ONLY.filter(x => !packs.some(p => p.key === x.key)));
     this.S.usage = usage;
     if (!packs) { DC.$('#pack-cards', DC.$('#view-packs')).innerHTML = '<div class="empty">Could not load the packs from the server.</div>'; return; }

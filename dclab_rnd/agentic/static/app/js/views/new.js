@@ -26,16 +26,16 @@ DC.view('new', {
     });
 
     /* ---------- loading the draft ---------- */
-    async function load(id) {
-      const d = await api(`/drafts/${id}`);
+    async function load(id, quiet = false) {
+      const d = await DC.client.readDraft(id, { quiet });
       if (d.status !== 'open') { remember(null); throw new Error('built'); }
       W.draft = d;
       remember(id);
       if (W.close) W.close();
-      W.close = stream(`/drafts/${id}/events`, onEvent);
+      W.close = stream(DC.client.path.events(id), onEvent);
       render();
     }
-    async function refresh() { if (W.draft) { W.draft = await api(`/drafts/${W.draft.id}`); render(); } }
+    async function refresh() { if (W.draft) { W.draft = await DC.client.readDraft(W.draft.id); render(); } }
     function onEvent(kind, data) {
       if (kind === 'pipeline' && ['ready', 'failed', 'queued', 'structured', 'cleaned'].includes(data.step)) refresh();
       if (kind === 'workflow' && W.draft) { W.draft.workflow = data.workflow; drawGraph(); }
@@ -71,8 +71,8 @@ DC.view('new', {
       const problem = $('#new-goal', el).value.trim();
       if (problem.length < 8) { toast('Describe the problem in one sentence first.', { ok: false }); return; }
       try {
-        if (!W.draft) { const d = await api('/drafts', { method: 'POST', body: { problem } }); await load(d.id); }
-        else if (problem !== W.draft.problem) { W.draft = await api(`/drafts/${W.draft.id}`, { method: 'PATCH', body: { problem } }); render(); }
+        if (!W.draft) { const d = await DC.client.createDraft({ body: { problem } }); await load(d.id); }
+        else if (problem !== W.draft.problem) { W.draft = await DC.client.editDraft(W.draft.id, { body: { problem } }); render(); }
         show(2);
       } catch (e) { toast(e.message, { ok: false }); }
     });
@@ -91,7 +91,7 @@ DC.view('new', {
     }
     async function uploadFile(file) {
       if (!file || !W.draft) return;
-      try { toast(`Uploading ${file.name}…`); await api(`/drafts/${W.draft.id}/data?filename=${encodeURIComponent(file.name)}`, { method: 'PUT', body: file, headers: { 'Content-Type': 'application/octet-stream' } }); refresh(); }
+      try { toast(`Uploading ${file.name}…`); await DC.client.upload(W.draft.id, { query: { filename: file.name }, body: file, headers: { 'Content-Type': 'application/octet-stream' } }); refresh(); }
       catch (e) { toast(e.message, { ok: false }); }
     }
     $('#wz-file', el).addEventListener('change', e => uploadFile(e.target.files[0]));
@@ -101,19 +101,19 @@ DC.view('new', {
     drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); uploadFile(e.dataTransfer.files[0]); });
     async function loadSamples() {
       if (W.samples) return;
-      try { W.samples = await api('/samples'); } catch (e) { W.samples = []; }
+      try { W.samples = await DC.client.samples(); } catch (e) { W.samples = []; }
       $('#wz-sample-count', el).textContent = W.samples.length;
       $('#sample-table tbody', el).innerHTML = W.samples.map(s => `<tr data-sample="${esc(s.key)}"><td><span class="cell-main">${esc(s.key)}</span><div class="cell-sub">${esc(s.name || '')}</div></td><td>${esc(s.task || '')}</td><td class="num">${fmtN(s.rows)}</td><td class="small">${esc(s.decision || '')}</td><td><button type="button" class="btn sm">Use</button></td></tr>`).join('');
     }
     $('[data-tabs="wsrc"]', el).addEventListener('tabchange', e => { if (e.detail === 'samples') loadSamples(); });
     $('#sample-table', el).addEventListener('click', async e => {
       const tr = e.target.closest('tr[data-sample]'); if (!tr || !W.draft || e.target.closest('[data-record]')) return;
-      try { await api(`/drafts/${W.draft.id}/data/sample`, { method: 'POST', body: { key: tr.dataset.sample } }); refresh(); } catch (err) { toast(err.message, { ok: false }); }
+      try { await DC.client.sample(W.draft.id, { body: { key: tr.dataset.sample } }); refresh(); } catch (err) { toast(err.message, { ok: false }); }
     });
     DC.synthetic.setup($('#wz-syn-template-field', el));
     $('#wz-syn-go', el).addEventListener('click', async () => {
       if (!W.draft) return;
-      try { await api(`/drafts/${W.draft.id}/data/synthetic`, { method: 'POST', body: { prompt: $('#wz-syn-prompt', el).value || W.draft.problem, rows: Number($('#wz-syn-rows', el).value), template: DC.synthetic.chosen($('#wz-syn-template-field', el)) } }); toast('Generating the synthetic data…'); }
+      try { await DC.client.syntheticData(W.draft.id, { body: { prompt: $('#wz-syn-prompt', el).value || W.draft.problem, rows: Number($('#wz-syn-rows', el).value), template: DC.synthetic.chosen($('#wz-syn-template-field', el)) } }); toast('Generating the synthetic data…'); }
       catch (e) { toast(e.message, { ok: false }); }
     });
     el.addEventListener('click', async e => {
@@ -183,7 +183,7 @@ DC.view('new', {
       $('#wz-sol-status', el).textContent = 'Auditing the columns…';
       try {
         const moment = (($('#wz-moment', el) || {}).value || '').trim() || undefined;  // the reviewer judges the columns against this moment
-        const proposal = await api(`/drafts/${W.draft.id}/solution/proposal`, { method: 'POST', body: { target, task: (keepTask === true && $('#wz-task', el).value) || undefined, prediction_moment: moment } });
+        const proposal = await DC.client.draftProposal(W.draft.id, { body: { target, task: (keepTask === true && $('#wz-task', el).value) || undefined, prediction_moment: moment } });
         $('#wz-sol-status', el).textContent = '';
         if (W.draft.solution !== accepted) return;  // accepted while the review ran: the accepted sheet stays
         if (kept) {  // a column the person ticked stays listed (and ticked) even if the new review no longer names it
@@ -244,12 +244,12 @@ DC.view('new', {
       };
       if (body.task !== 'binary') body.positive_label = null;
       if (body.prediction_moment.trim().length < 12) { toast('Write the prediction moment first: when is the prediction made, and what is known then?', { ok: false }); ($('#wz-moment', el) || {}).focus?.(); return; }
-      try { W.draft = await api(`/drafts/${W.draft.id}/solution`, { method: 'PUT', body }); drawSheet(W.draft.solution); show(4); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      try { W.draft = await DC.client.draftSolution(W.draft.id, { body }); drawSheet(W.draft.solution); show(4); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       catch (e) { toast(e.message, { ok: false }); }
     });
 
     /* ---------- packs and the workflow ---------- */
-    async function loadPacks() { try { W.packs = await api('/packs'); } catch (e) { W.packs = []; } drawPacks(); }
+    async function loadPacks() { try { W.packs = await DC.client.listPacks(); } catch (e) { W.packs = []; } drawPacks(); }
     function drawPacks() {
       const cur = (W.draft && W.draft.pack) || null;
       $('#pack-grid', el).innerHTML = W.packs.map(p => `<button type="button" class="pack-card" data-pack="${esc(p.key)}" aria-pressed="${cur && cur.key === p.key ? 'true' : 'false'}"><span class="pc-top"><span class="pack-ic">${icon(p.icon)}</span><span class="pill ${esc(p.cls)}">${esc(p.maturity)}</span></span><span class="pc-name">${esc(p.name)}</span><span class="pc-desc">${esc(p.desc)}</span>${cur && cur.key === p.key ? `<span class="pc-foot"><span class="pill accent">${cur.source === 'user' ? 'your choice' : 'detected'}</span></span>` : ''}</button>`).join('');
@@ -257,7 +257,7 @@ DC.view('new', {
     }
     $('#pack-grid', el).addEventListener('click', async e => {
       const c = e.target.closest('[data-pack]'); if (!c || !W.draft) return;
-      try { W.draft = await api(`/drafts/${W.draft.id}/pack`, { method: 'POST', body: { key: c.dataset.pack } }); drawPacks(); drawGraph(); drawStats(); } catch (err) { toast(err.message, { ok: false }); }
+      try { W.draft = await DC.client.choosePack(W.draft.id, { body: { key: c.dataset.pack } }); drawPacks(); drawGraph(); drawStats(); } catch (err) { toast(err.message, { ok: false }); }
     });
     function drawGraph() { const wf = W.draft && W.draft.workflow; $('#wz-graph', el).innerHTML = wf ? graph.render(wf) : '<div class="empty">The workflow appears once the problem is described.</div>'; }
 
@@ -280,7 +280,7 @@ DC.view('new', {
       const rows = ((W.draft.analysis || {}).summary || {}).rows || 20000, quick = $('#new-rows', el).value === 'quick';
       const body = { quick, max_rows: Math.max(200, Math.min(rows, 200000)), folds: Number($('#new-folds', el).value),
         where: 'local', budget: { calls: Number($('#b-calls', el).value), minutes: Number($('#b-min', el).value), eur: Number($('#b-eur', el).value) }, ask_over_eur: $('#b-ask', el).checked };
-      try { W.draft = await api(`/drafts/${W.draft.id}/settings`, { method: 'PUT', body }); show(5); window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { toast(e.message, { ok: false }); }
+      try { W.draft = await DC.client.draftSettings(W.draft.id, { body }); show(5); window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { toast(e.message, { ok: false }); }
     });
 
     /* ---------- step 5: review and start ---------- */
@@ -299,12 +299,12 @@ DC.view('new', {
     }
     async function start(mode) {
       try {
-        const project = await api(`/drafts/${W.draft.id}/build`, { method: 'POST' });
+        const project = await DC.client.build(W.draft.id);
         remember(null);
         DC.state.projectId = project.id;
         if (mode === 'intern') {
           const st = W.draft.settings || {};
-          const s = await api('/intern/sessions', { method: 'POST', body: { task: W.draft.problem, project_id: project.id, budget: st.budget ? { max_steps: st.budget.max_steps, max_minutes: st.budget.max_minutes } : undefined } });
+          const s = await DC.client.internStart({ body: { task: W.draft.problem, project_id: project.id, budget: st.budget ? { max_steps: st.budget.max_steps, max_minutes: st.budget.max_minutes } : undefined } });
           DC.state.internSession = s.id;
           toast('Handed to the intern with its budget. It asks before anything only you can decide.');
           location.hash = 'intern';
@@ -338,7 +338,7 @@ DC.view('new', {
     DC.markSample(false);
     let id = DC.state.draftId || null;
     try { id = id || localStorage.getItem('dclab-home-draft'); } catch (e) { /* blocked */ }
-    if (id) { try { await this.load(id); this.show(DC.state.draftId ? 2 : 1); DC.state.draftId = null; return; } catch (e) { /* gone */ } }
+    if (id) { try { await this.load(id, true); this.show(DC.state.draftId ? 2 : 1); DC.state.draftId = null; return; } catch (e) { /* gone */ } }
     this.reset();
   },
 });
