@@ -16,6 +16,8 @@ x-product: &product
     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
     OPENAI_MODEL: ${OPENAI_MODEL:-}
+    DCLAB_LOG_FORMAT: json             # one JSON line per request and job event, with a request id (12.4)
+    DCLAB_METRICS_HOST: 0.0.0.0        # /metrics on DCLAB_METRICS_PORT, reachable on the compose network only (not published)
   volumes:
     - workspace:/workspace
   depends_on:
@@ -43,8 +45,11 @@ services:
     <<: *product
     ports:
       - "127.0.0.1:${DCLAB_PORT:-8765}:8765"   # this machine only; a server behind TLS publishes it differently (package 12.6)
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/config', timeout=3)"]
+    environment:
+      <<: *env
+      DCLAB_METRICS_PORT: "9464"
+    healthcheck:   # ready: the database answers and the files can be written (/readyz, 12.4)
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/readyz', timeout=3)"]
       interval: 3s
       timeout: 5s
       retries: 40
@@ -52,6 +57,9 @@ services:
   worker:
     <<: *product
     command: ["python", "-m", "dclab_rnd.worker"]
+    environment:
+      <<: *env
+      DCLAB_METRICS_PORT: "9465"
     depends_on:
       app:
         condition: service_healthy   # the app runs the migrations first

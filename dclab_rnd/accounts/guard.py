@@ -19,7 +19,8 @@ from .roles import allows, label
 
 COOKIE = "dclab_session"
 
-PUBLIC = {("GET", "/"), ("GET", "/guide"), ("GET", "/classic"), ("GET", "/favicon.ico"),  # the page shells: no data; their API calls are checked
+PUBLIC = {("GET", "/healthz"), ("GET", "/readyz"),  # a load balancer's probes (12.4): no data, no session
+          ("GET", "/"), ("GET", "/guide"), ("GET", "/classic"), ("GET", "/favicon.ico"),  # the page shells: no data; their API calls are checked
           ("GET", "/api/config"), ("POST", "/api/auth/password"), ("POST", "/api/auth/signout"), ("GET", "/api/auth/me"),
           ("GET", "/api/auth/oidc/start"), ("GET", "/api/auth/oidc/callback")}
 SPECIAL = {

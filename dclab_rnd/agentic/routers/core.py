@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from ... import research_map
 from ...studio import data as studio_data, engine as studio_engine, graph as studio_graph
@@ -39,6 +39,54 @@ def version(package: str) -> str:
         return importlib.metadata.version(package)
     except importlib.metadata.PackageNotFoundError:
         return "not installed"
+
+
+@router.get("/healthz", response_model=Doc)
+async def healthz():
+    """The process is up (package 12.4): nothing else is checked, so a busy database never restarts a healthy server."""
+    return {"status": "ok"}
+
+
+_PROBE = asyncio.Lock()
+
+
+@router.get("/readyz", response_model=Doc)
+async def readyz(s: Services = Depends(services)):
+    """The server can do its work (package 12.4): the database answers and the file storage can be written. 503 names
+    what is not ready, never a URL or a host."""
+    if _PROBE.locked():  # a probe still waiting on a silent database: answer from it, not with one more blocked thread
+        return JSONResponse({"status": "not ready", "checks": {"probe": "busy"}}, status_code=503)
+    async with _PROBE:
+        try:
+            checks = await asyncio.wait_for(asyncio.to_thread(readiness, s), timeout=5)
+        except asyncio.TimeoutError:
+            checks = {"answer within 5 s": False}
+    ready = all(checks.values())
+    body = {"status": "ready" if ready else "not ready", "checks": {k: "ok" if v else "failed" for k, v in checks.items()}}
+    return body if ready else JSONResponse(body, status_code=503)
+
+
+def readiness(s: Services) -> dict[str, bool]:
+    import tempfile
+
+    from ...storage import db
+
+    checks: dict[str, bool] = {}
+    if s.settings.database_url:
+        checks["database"] = db.reachable(s.settings.database_url) is None
+    try:
+        if s.settings.files_url:
+            from ...storage.files import files_for
+
+            store = files_for(s.projects)
+            store._s3().head_bucket(Bucket=store.bucket)
+        else:
+            with tempfile.NamedTemporaryFile(dir=s.store.home, prefix=".ready-"):
+                pass
+        checks["files"] = True
+    except Exception:  # noqa: BLE001 — not writable, not reachable, no credentials: not ready
+        checks["files"] = False
+    return checks
 
 
 @router.get("/api/config", response_model=Config)

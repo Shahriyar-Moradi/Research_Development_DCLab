@@ -58,6 +58,16 @@ DC.view('compute', {
       DC.setNavCount('compute', t.running || '');
     }
 
+    /* ---------- failures (package 12.4): the job table's failed and interrupted jobs, with Retry ---------- */
+    function drawFailures(rows) {
+      const panel = $('#failures-panel', el);
+      panel.hidden = !rows.length;
+      $('#failures-table tbody', el).innerHTML = rows.map(f => `<tr><td><div class="cell-main">${esc(f.what)}</div><div class="cell-sub mono">${esc(f.id)}${f.stages ? ' · ' + esc(f.stages.join(', ')) : ''}</div></td>
+        <td class="small"><span class="pill ${f.status === 'interrupted' ? 'warn' : 'bad'}">${esc(f.status)}</span> ${esc(f.error || '')}</td>
+        <td class="num mono">${esc(f.attempts == null ? '' : f.attempts)}</td><td class="small">${esc(when(f.finished))}</td>
+        <td><button type="button" class="btn sm" data-job-act="${esc(f.retry)}" data-job-done="Queued again">Retry</button></td></tr>`).join('');
+    }
+
     /* ---------- jobs table ---------- */
     function drawJobs(jobs) {
       const tbody = $('#jobs-table tbody', el);
@@ -146,6 +156,7 @@ DC.view('compute', {
       S.data = d;
       DC.markSample(false);
       drawStats(d);
+      drawFailures(d.failures || []);
       const jobs = d.jobs;
       const sig = jobs.map(j => `${j.id}:${j.status}:${j.label}:${j.seconds}`).join('|');
       if (sig !== S.sig) {

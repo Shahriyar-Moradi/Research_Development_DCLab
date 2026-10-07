@@ -210,6 +210,7 @@ class Worker:
     def execute(self, job: dict[str, Any]) -> dict[str, Any]:
         """Run a job this worker has claimed, in the calling thread, and record how it ended."""
         control = Control(self.store, job, self)
+        began = time.monotonic()
         self.running[job["id"]] = control
         status, error = "done", None
         try:
@@ -231,7 +232,13 @@ class Worker:
         try:
             if status != "done" and not control.lost:  # a lost job was settled by the worker that marked it
                 _settle(self.env, job, control.observed or "failed")
-            return self.store.finish(job["id"], status, error, worker=self.id)
+            from .. import observe
+
+            ended = self.store.finish(job["id"], status, error, worker=self.id)
+            observe.observe_job(job["kind"], status, time.monotonic() - began)  # 12.4: durations and failures, by kind
+            if status != "done":
+                observe.event("job ended", job=job["id"], kind=job["kind"], status=status, attempts=job.get("attempts"))
+            return ended
         finally:
             self.running.pop(job["id"], None)
 
@@ -279,9 +286,24 @@ class Worker:
                 continue
             marked = self.store.interrupt(job["id"], job.get("worker"), TEXT["interrupted"], older_than=older_than)
             if marked is not None:
+                from .. import observe
+
                 _settle(self.env, marked, "interrupted")
                 done.append(marked)
+                observe.observe_job(marked["kind"], "interrupted", _since(marked.get("started")))  # a crashed worker's job counts too (12.4)
+                observe.event("job ended", job=marked["id"], kind=marked["kind"], status="interrupted", attempts=marked.get("attempts"), recovered=True)
         return done
+
+
+def _since(started: Any) -> float:
+    """Seconds since an ISO time (0 when unknown): how long a recovered job had been running."""
+    from datetime import datetime, timezone
+
+    try:
+        at = datetime.fromisoformat(str(started))
+        return max(0.0, (datetime.now(timezone.utc) - (at if at.tzinfo else at.replace(tzinfo=timezone.utc))).total_seconds())
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _dead_here(worker: str | None) -> bool:

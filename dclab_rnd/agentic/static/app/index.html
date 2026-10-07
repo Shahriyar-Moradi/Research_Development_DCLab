@@ -1266,6 +1266,11 @@
       <div class="table-wrap"><table class="data compact clickable" id="jobs-table"><thead><tr><th>Job</th><th>Project · task</th><th>Hardware</th><th>Status</th><th class="num">Time</th><th class="num">Cost</th><th>Started by</th></tr></thead><tbody></tbody></table></div>
     </div>
 
+    <div class="panel" data-f="compute.failures" id="failures-panel" hidden>
+      <div class="panel-head"><div class="panel-title"><h2>Failures</h2><span class="sub">Jobs that failed or were interrupted, newest first: why, and Retry</span></div></div>
+      <div class="table-wrap"><table class="data compact" id="failures-table"><thead><tr><th>Job</th><th>Why</th><th class="num">Attempts</th><th>Ended</th><th></th></tr></thead><tbody></tbody></table></div>
+    </div>
+
     <div class="panel" id="job-detail" hidden>
       <div class="panel-head"><div class="panel-title"><span class="eyebrow" id="jd-eyebrow"></span><h3 id="jd-title"></h3></div><div class="row" id="jd-actions"></div></div>
       <div class="tabs" data-tabs="jd" role="tablist">

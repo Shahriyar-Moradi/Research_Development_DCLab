@@ -22,5 +22,6 @@ ENV PYTHONUNBUFFERED=1 \
 RUN mkdir -p /workspace && chown dclab:dclab /workspace
 USER dclab
 EXPOSE 8765
+# 9464 (the app's /metrics) and 9465 (the worker's) are for a scraper on the private network: never publish them
 # 0.0.0.0 inside the container only; docker-compose.yml publishes it on 127.0.0.1
-CMD ["sh", "-c", "python -m dclab_rnd.storage upgrade && exec python -m uvicorn dclab_rnd.agentic.server:app --host 0.0.0.0 --port 8765 --workers 1"]
+CMD ["sh", "-c", "python -m dclab_rnd.storage upgrade && exec python -m uvicorn dclab_rnd.agentic.server:app --host 0.0.0.0 --port 8765 --workers 1 --no-access-log"]

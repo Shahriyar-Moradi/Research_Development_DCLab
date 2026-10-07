@@ -408,6 +408,23 @@ class Jobs:
                 "input_tokens": t["input_tokens"], "output_tokens": t["output_tokens"], "by_project": by_project, "by_purpose": t["by_purpose"],
                 "workspace_cap": workspace_cap(), "note": note}
 
+    def failures(self, limit: int = 20) -> list[dict[str, Any]]:
+        """The latest jobs that failed or were interrupted (package 12.4), from the job table: what it was, why, how
+        many attempts, and Retry. Only the job's own error words: never a payload's text."""
+        store = self.ctx.job_store
+        if store is None:
+            return []
+        try:
+            rows = [j for j in store.list(active=False, limit=500) if j["status"] in ("failed", "interrupted")]
+        except Exception:  # noqa: BLE001 — the page shows what it can read
+            return []
+        rows.sort(key=lambda j: j.get("finished") or "", reverse=True)
+        words = {"stage": "Stage run", "pipeline": "Data pipeline", "synthetic": "Synthetic data", "intern": "Intern turn"}
+        return [{"id": j["id"], "kind": j["kind"], "what": words.get(j["kind"], j["kind"]), "status": j["status"], "error": _short(j.get("error"), 300),
+                 "finished": j.get("finished"), "attempts": j.get("attempts"), "stages": (j.get("payload") or {}).get("stages"),
+                 "project_id": (j.get("payload") or {}).get("project_id"), "draft_id": (j.get("payload") or {}).get("draft_id"),
+                 "retry": f"/api/jobs/{j['id']}/retry"} for j in rows[:limit]]
+
     def listing(self, limit: int = 200) -> dict[str, Any]:
         jobs, projects = self.collect()
         now = _now()
@@ -429,6 +446,7 @@ class Jobs:
                        "seconds_this_month": {k: round(v, 1) for k, v in by_kind.items()}, "tokens_this_month": tokens,
                        "by_kind": {k: sum(1 for j in jobs if j["kind"] == k) for k in by_kind}},
             "approvals": approvals,
+            "failures": self.failures(),
             "machine": {"name": WHERE, "cpus": os.cpu_count(), "system": platform.system(), "arch": platform.machine(),
                         "python": platform.python_version()},
             "spend": self.spend(),

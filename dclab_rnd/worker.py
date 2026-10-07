@@ -36,6 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     from .agentic.pool import Pool
 
     pool = Pool(settings.model_copy(update={"worker": "inline", **({"worker_threads": max(1, args.threads)} if args.threads else {})}))
+    from . import observe
+
+    observe.configure_logging()
+    observe.serve_metrics()  # the worker's own counters: jobs, durations, failures, model use (12.4)
     pool.start_all()  # with accounts on, a worker for every workspace (package 10.2)
     worker = pool.default.worker
     print(f"worker {worker.id}: {worker.threads} at a time on {settings.agent_home}"

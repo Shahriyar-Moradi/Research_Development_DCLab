@@ -9,6 +9,7 @@ lifespan that interrupts runs a restart cut and stops running jobs, the MCP endp
 import asyncio
 from contextlib import asynccontextmanager
 import secrets
+import time
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -19,7 +20,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .catalog import ROOT
 from .current import Current
 from .pool import Pool
-from .. import context, limits
+from .. import context, limits, observe
 from ..accounts import api as accounts_api
 from ..accounts.guard import identify
 from ..accounts.principal import ANONYMOUS, LOCAL_OWNER, reset_current, set_current
@@ -53,6 +54,8 @@ def create_app(home=None) -> FastAPI:
         for run in s.store.list():
             if run["status"] in ("queued", "running", "pausing"):
                 s.store.update(run["id"], status="interrupted", phase="Server restarted; resume explicitly")
+        observe.configure_logging()
+        observe.serve_metrics()  # DCLAB_METRICS_PORT: a port of its own, never the public one (12.4)
         await asyncio.to_thread(pool.start_all)  # recovers jobs a dead worker left running, then runs queued ones (10.3), in every workspace (10.2)
         if s.mcp is None:
             yield
@@ -96,6 +99,7 @@ def create_app(home=None) -> FastAPI:
             who = LOCAL_OWNER if settings.auth == "none" else ANONYMOUS  # files of the frontend: no data, no check
         else:
             who = await asyncio.to_thread(identify, dict(request.headers), dict(request.cookies), settings, s.workspace_id)
+        request.state.who = who  # for the request's log line, a refusal's too
         if request.url.path.startswith("/mcp") and settings.auth != "none":
             if not who.signed_in or who.via != "token":
                 return JSONResponse({"detail": "MCP clients send an API token: Authorization: Bearer dclab_…"}, status_code=401)
@@ -125,6 +129,34 @@ def create_app(home=None) -> FastAPI:
         response.headers["Cache-Control"] = "no-store"
         response.headers["Content-Security-Policy"] = CSP
         return response
+
+    @app.middleware("http")
+    async def observe_requests(request: Request, call_next):
+        # The outermost layer (package 12.4): a request id the response carries back, the request's time and status in
+        # the counters, and one log line with its route (the path pattern, never the values), never a query or a body.
+        rid = observe.request_id(request.headers.get("x-request-id"))
+        token, clock, status = observe.REQUEST_ID.set(rid), time.perf_counter(), 500
+        try:
+            try:
+                response = await call_next(request)
+            except Exception as exc:  # noqa: BLE001 — an error answered here carries its id: the one thing a person can quote
+                observe.log.error("unhandled error", extra={"fields": {"error": type(exc).__name__}})
+                response = JSONResponse({"detail": "Internal error", "request_id": rid}, status_code=500)
+            status = response.status_code
+            response.headers["X-Request-ID"] = rid
+            return response
+        finally:
+            path = request.url.path
+            route = getattr(request.scope.get("route"), "path", None) or (
+                "/static" if path.startswith("/static/") else "/mcp" if path == "/mcp" or path.startswith("/mcp/") else "unmatched")
+            method = observe.method_label(request.method)  # a made-up method never becomes a label of its own
+            seconds = time.perf_counter() - clock
+            observe.observe_request(method, route, status, seconds)
+            if not path.startswith("/static/"):
+                who = getattr(request.state, "who", None)
+                observe.request_line(status, method=method, route=route, ms=round(seconds * 1000, 1),
+                              user=getattr(who, "user_id", None), workspace=getattr(who, "workspace_id", None))
+            observe.REQUEST_ID.reset(token)
 
     for router in ROUTERS:
         app.include_router(router)

@@ -147,7 +147,7 @@ class Settings(BaseSettings):
             except oidc.OidcError as exc:
                 out.append(str(exc))
         numbers = [("DCLAB_MODEL_RETRIES", int), ("DCLAB_MODEL_BACKOFF", float), ("DCLAB_DB_POOL_SIZE", int), ("DCLAB_DB_MAX_OVERFLOW", int),
-                   ("DCLAB_PORT", int), ("DCLAB_WORKER_THREADS", int), ("DCLAB_JOB_STALE_SECONDS", float), ("DCLAB_MCP_PORT", int),
+                   ("DCLAB_PORT", int), ("DCLAB_WORKER_THREADS", int), ("DCLAB_JOB_STALE_SECONDS", float), ("DCLAB_MCP_PORT", int), ("DCLAB_METRICS_PORT", int),
                    ("DCLAB_WORKSPACE_MONTHLY_EUR", float), ("DCLAB_LIMIT_USER_MONTHLY_EUR", float)]
         numbers += [(n, float) for n in sorted(os.environ) if n.startswith("DCLAB_LIMIT_") and n != "DCLAB_LIMIT_USER_MONTHLY_EUR"]
         for name, cast in numbers:

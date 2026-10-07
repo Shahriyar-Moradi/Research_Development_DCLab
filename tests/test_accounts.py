@@ -174,6 +174,8 @@ class AccountsTests(unittest.TestCase):
             self.assertEqual(self.clients["view1"].get(path).status_code, 200, path)
         self.assertEqual(anonymous.get("/openapi.json").status_code, 404)  # FastAPI's own routes are outside the role check
         self.assertEqual(anonymous.get("/docs").status_code, 404)
+        self.assertEqual(anonymous.get("/healthz").status_code, 200)  # a load balancer's probes carry no session (12.4)
+        self.assertEqual(anonymous.get("/readyz").json()["checks"]["database"], "ok")
 
     def test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there(self):
         other = self.clients["owner2"]

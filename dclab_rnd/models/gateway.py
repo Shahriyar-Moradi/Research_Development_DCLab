@@ -208,6 +208,9 @@ class Gateway:
                                "project_id": project_id, "draft_id": draft_id, "input_tokens": tokens_in, "output_tokens": tokens_out,
                                "seconds": round(seconds, 2), "attempts": attempts, "outcome": outcome,
                                "prompt": prompt if os.environ.get("DCLAB_LOG_PROMPTS") == "1" else None, "cost_eur": eur, "cost_basis": basis})
+            from .. import observe
+
+            observe.observe_model(purpose, str(tier), outcome, tokens_in or 0, tokens_out or 0, eur)  # 12.4: model usage counters
         except Exception:  # noqa: BLE001 — a usage row that cannot be written must not lose the answer
             pass
         return eur
