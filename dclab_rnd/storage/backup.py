@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -33,18 +34,30 @@ class BackupError(RuntimeError):
     pass
 
 
+def _major(path: str) -> int:
+    """The tool's major version (pg_dump --version: "pg_dump (PostgreSQL) 16.15"), 0 when it cannot be read."""
+    try:
+        out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return 0
+    found = re.search(r"(\d+)\.\d+", out)  # the first major.minor: "pg_dump (PostgreSQL) 16.15 (Homebrew)"
+    return int(found.group(1)) if found else 0
+
+
 def tool(name: str) -> str | None:
-    """pg_dump or pg_restore: from DCLAB_PG_BIN (a folder) when set, else from PATH. Its major version must be at least the server's."""
+    """pg_dump or pg_restore: from DCLAB_PG_BIN (a folder) when set, else the newest one installed (on PATH, or where
+    Homebrew and Debian keep versioned client tools). The newest, because a dump needs a tool at least as new as
+    the server, and a newer tool reads an older server: a PATH that still points at an older version is no reason
+    to fail."""
     folder = os.environ.get("DCLAB_PG_BIN", "").strip()
     if folder:
         found = Path(folder) / name
         return str(found) if found.is_file() else None
     import glob
 
-    # PATH first, then where Homebrew and Debian put versioned client tools (not on PATH by default): the newest wins
-    places = sorted(glob.glob(f"/opt/homebrew/opt/postgresql@*/bin/{name}") + glob.glob(f"/usr/local/opt/postgresql@*/bin/{name}")
-                    + glob.glob(f"/usr/lib/postgresql/*/bin/{name}"), key=lambda p: int("".join(c for c in p.split("postgresql")[1].split("/")[0] if c.isdigit()) or 0))
-    return shutil.which(name) or (places[-1] if places else None)
+    candidates = {p for p in [shutil.which(name), *glob.glob(f"/opt/homebrew/opt/postgresql@*/bin/{name}"),
+                              *glob.glob(f"/usr/local/opt/postgresql@*/bin/{name}"), *glob.glob(f"/usr/lib/postgresql/*/bin/{name}")] if p}
+    return max(candidates, key=_major) if candidates else None
 
 
 def _libpq(url: str) -> dict[str, str]:

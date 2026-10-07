@@ -304,6 +304,20 @@ class BackupTests(unittest.TestCase):
 
 
 class ConnectionTests(unittest.TestCase):
+    def test_the_newest_client_tools_are_picked(self):
+        """A dump needs a pg_dump at least as new as the server: a PATH that points at an older one must not win."""
+        try:
+            from dclab_rnd.storage import backup
+        except ImportError as error:
+            self.skipTest(str(error))
+        versions = {"/old/pg_dump": 15, "/new/pg_dump": 16}
+        with mock.patch.dict(os.environ, {"DCLAB_PG_BIN": ""}), mock.patch.object(backup.shutil, "which", return_value="/old/pg_dump"), \
+                mock.patch("glob.glob", side_effect=lambda pattern: ["/new/pg_dump"] if "homebrew" in pattern else []), \
+                mock.patch.object(backup, "_major", side_effect=lambda path: versions[path]):
+            self.assertEqual(backup.tool("pg_dump"), "/new/pg_dump")
+        with mock.patch.object(backup.subprocess, "run", return_value=type("R", (), {"stdout": "pg_dump (PostgreSQL) 16.15 (Homebrew)\n"})()):
+            self.assertEqual(backup._major("/any/pg_dump"), 16)
+
     def test_the_password_and_tls_options_go_in_the_environment(self):
         try:
             from dclab_rnd.storage import backup
