@@ -7,7 +7,7 @@ There is no sandbox or GPU job system yet. What really runs, and is listed here 
                 owns the stage record on disk (notes, claims, provenance)
 - ``intern``    an intern session (budget of tool calls and minutes, steps, tokens)
 - ``data``      one asset of a draft's data pipeline on Home (structure → clean → analyse)
-- ``research``  a legacy LLM research run (the SQLite store behind /classic)
+- ``research``  a legacy LLM research run (started and resumed from the command line: python -m dclab_rnd.agentic run|resume)
 
 Every job runs on this machine, which is not billed, so a job's ``cost`` is null; model spend comes from the gateway's usage log
 (``spend``). Routes are read-only.
@@ -465,7 +465,8 @@ class Jobs:
 
     def _controls(self, job: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
         """Stop for a job the job table holds as queued or running; Retry for the latest one that failed, was stopped or
-        was interrupted (package 10.3). Research runs pause and resume on their own page."""
+        was interrupted (package 10.3). Research runs are started and resumed from the command line
+        (python -m dclab_rnd.agentic run|resume); this page shows them."""
         store = self.ctx.job_store
         if store is None:
             return None, None
@@ -693,10 +694,18 @@ class Jobs:
                  {"label": "Model", "value": cfg.get("model"), "mono": True},
                  {"label": "Limits", "value": f"{cfg.get('max_experiments')} experiments · {cfg.get('max_rows')} rows · {cfg.get('repeats')} repeats · {cfg.get('max_minutes')} minutes"},
                  {"label": "Code version", "value": f"{fingerprints} source-file fingerprints recorded" if fingerprints else "not recorded"}]
-        return {"job": job, "logs": logs, "log_note": None, "metrics": metrics,
-                "artifacts": [{"label": "Trajectory (.json)", "href": f"/api/runs/{run_id}/export", "note": "decisions and tool evidence, for review"}],
-                "artifact_note": None, "repro": [r for r in repro if r["value"]], "repro_note": "LLM research runs are not deterministic; the trajectory records what was decided and why.",
-                "stop": None}
+        artifacts = [{"label": "Trajectory (.json)", "href": f"/api/runs/{run_id}/export", "note": "decisions and tool evidence, for review"}]
+        folder = Path(self.ctx.store.home) / run_id  # each trial's files (they were on the old UI's run page: 8.3)
+        for trial in sorted(p.name for p in folder.glob("trial-[0-9][0-9][0-9]") if p.is_dir()) if folder.is_dir() else []:
+            for name in ("result.json", "recipe.json", "oof_predictions.jsonl"):
+                if (folder / trial / name).is_file():
+                    artifacts.append({"label": f"{trial} · {name}", "href": f"/api/runs/{run_id}/trials/{trial}/{name}", "note": ""})
+        resume = run.get("status") in ("paused", "interrupted", "failed", "stopped")
+        note = "LLM research runs are not deterministic; the trajectory records what was decided and why. "
+        note += (f"Resume it from the command line: python -m dclab_rnd.agentic resume {run_id}" if resume else
+                 "Research runs are started and resumed from the command line (python -m dclab_rnd.agentic run|resume); Ctrl+C pauses one.")
+        return {"job": job, "logs": logs, "log_note": None, "metrics": metrics, "artifacts": artifacts,
+                "artifact_note": None, "repro": [r for r in repro if r["value"]], "repro_note": note, "stop": None}
 
 
 def _research_text(kind: str, p: Any) -> str:

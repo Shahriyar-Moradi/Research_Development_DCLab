@@ -334,7 +334,7 @@ DC.view('project', {
       const next = (g.moves || []).find(m => m.move === 'run_stage' && m.status === 'allowed' && (p.stages[m.stage] || {}).status !== 'completed');
       const running = p.running && (p.running.stage || p.running);
       const actions = running ? `<button type="button" class="btn" disabled>Running ${esc(String(running))}…</button>`
-        : `${next ? `<button type="button" class="btn primary" data-run-stage="${esc(next.stage)}">Run the ${esc(next.stage)} stage</button><button type="button" class="btn" data-run-all="1">Run all remaining</button>` : ''}<a class="btn" href="#notebook">Open the notebook</a>`;
+        : `${next ? `<button type="button" class="btn primary" data-run-stage="${esc(next.stage)}">Run the ${esc(next.stage)} stage</button><button type="button" class="btn" data-run-all="1">Run all remaining</button>` : ''}<a class="btn" href="#notebook">Open the notebook</a><button type="button" class="btn danger" data-delete-project="${esc(p.id)}">Delete</button>`;
       return { title: p.name, sub: [d.filename, d.rows ? Number(d.rows).toLocaleString('en-US') + ' rows' : '', sol.task, d.synthetic ? 'synthetic data' : '', 'started ' + (p.created || '').slice(0, 10)].filter(Boolean).join(' · '),
         lede: p.goal || 'No goal written yet.', actions, current: g.current || 'WF-10', log, real: true, project: p };
     }
@@ -373,6 +373,19 @@ DC.view('project', {
         + '<button type="button" data-v="bank" aria-pressed="false">Term-deposit calls · sample</button><button type="button" data-v="hyperack" aria-pressed="false">HyperAck · sample</button><button type="button" data-v="telco" aria-pressed="false">Telco churn · sample</button>';
       return list;
     }
+    el.addEventListener('click', e => {  // deleting a project (it was on the old UI; 8.3): its files go, the audit keeps an entry
+      const del = e.target.closest('[data-delete-project]');
+      if (!del || !isReal(proj)) return;
+      const p = REAL[proj];
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Delete</span>', title: `Delete “${p.name}”?`, confirm: 'Delete the project', danger: true,  // the title is set as text: no escaping
+        html: '<p>Its table, stage records, exports and notes are removed and cannot be brought back. The audit log keeps an entry of who deleted it.</p>',
+        onConfirm: () => DC.client.deleteProject(p.id).then(() => {
+          DC.modal.close(); DC.toast('Project deleted. The audit log records it.');
+          DC.state.project = null; DC.currentProject.clear(); location.hash = '#home';
+        }).catch(err => DC.toast(err.message, { ok: false })),
+      });
+    });
     el.addEventListener('click', async e => {
       const run = e.target.closest('[data-run-stage], [data-run-all]');
       if (!run || !isReal(proj)) return;

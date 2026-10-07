@@ -29,7 +29,7 @@ This is DCLab's product thesis: replace the manual notebook loop with an agent t
 python -m dclab_rnd.copilot review YOUR_NOTEBOOK.ipynb --html review.html
 python -m dclab_rnd.tools list
 python -m dclab_rnd.tools call plan_next_stage '{"dataset": "adult", "completed_stages": ["data_understanding"]}'
-make agent-serve        # Research Studio UI at http://127.0.0.1:8765 (agent environment)
+make agent-serve        # the product UI and API at http://127.0.0.1:8765 (agent environment); campaigns: python -m dclab_rnd.agentic run|resume
 ```
 
 ## Next experiments

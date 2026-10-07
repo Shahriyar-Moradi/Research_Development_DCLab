@@ -168,9 +168,15 @@ class ApiTests(unittest.TestCase):
         data = self.client.get(f"/api/ops/jobs/data-{did}-a1111aaaa").json()
         self.assertEqual([l["text"].split(" · ")[0] for l in data["logs"] if l["at"]], ["queued", "cleaned", "ready"])
         self.assertIn("Dropped duplicates", " ".join(l["text"] for l in data["logs"]))
+        trial = Path(self.fx["store"].home) / self.fx["run"] / "trial-001"  # a trial's files (on the old UI's run page until 8.3)
+        trial.mkdir(parents=True, exist_ok=True)
+        (trial / "result.json").write_text("{}", encoding="utf-8")
         research = self.client.get(f"/api/ops/jobs/research-{self.fx['run']}").json()
         self.assertEqual([l["text"].split(" · ")[0] for l in research["logs"]], ["phase", "trial"])  # model requests are not shown
         self.assertEqual(research["artifacts"][0]["href"], f"/api/runs/{self.fx['run']}/export")
+        self.assertEqual(research["artifacts"][1]["href"], f"/api/runs/{self.fx['run']}/trials/trial-001/result.json")
+        self.assertEqual(self.client.get(research["artifacts"][1]["href"]).status_code, 200)
+        self.assertIn("python -m dclab_rnd.agentic", research["repro_note"])  # how to act on it now that the old UI is gone
         for bad in ("stage-000000000000-data-1", "intern-000000000000", "data-zz-a1", "nope-1", "stage-..%2F..-x"):
             self.assertEqual(self.client.get(f"/api/ops/jobs/{bad}").status_code, 404, bad)
 

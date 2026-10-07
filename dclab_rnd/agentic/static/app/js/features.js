@@ -4,7 +4,7 @@
    phase: Now, P1 proof core, P2 reach, P3 domain packs, P4 own model, R research. */
 window.FEATURES = [
   // ---- shell
-  { id: 'shell.nav', view: 'shell', name: 'One navigation for every product surface', status: 'partial', phase: 'P1', where: 'dclab_rnd/agentic/static/index.html', note: 'Today: Projects, Intern, Research map, Knowledge, Agent campaigns. The demo adds Compute, Benchmark, Policy model, Packs, Integrations, Admin.' },
+  { id: 'shell.nav', view: 'shell', name: 'One navigation for every product surface', status: 'partial', phase: 'P1', where: 'dclab_rnd/agentic/web/src/shell.html', note: 'One sidebar for every page of the product; research campaigns run from the command line (the earlier UI at /classic is gone).' },
   { id: 'shell.roles', view: 'shell', name: 'Role views: developer, business, researcher, admin', status: 'todo', phase: 'P2', where: '', note: 'Same project, different depth. Business hides code and tool calls.' },
   { id: 'shell.palette', view: 'shell', name: 'Command palette (Ctrl/⌘ K) over pages, actions and evidence', status: 'todo', phase: 'P2', where: '', note: 'Searches the real evidence records in this demo.' },
   { id: 'shell.tours', view: 'shell', name: 'Guided tours for new users', status: 'todo', phase: 'P2', where: '', note: 'Onboarding for developers and for business readers.' },
@@ -12,7 +12,7 @@ window.FEATURES = [
   // ---- home
   { id: 'home.composer', view: 'home', name: 'Start from one sentence', status: 'built', phase: 'Now', where: 'draft/api.py · draft/chat.py · views/home.html', note: 'One sentence starts a draft on Home; the agent answers on the live event stream.' },
   { id: 'home.inbox', view: 'home', name: '"Needs you" inbox: questions, approvals, sign-offs', status: 'built', phase: 'Now', where: 'server.py /api/workspace', note: 'Open questions from drafts and projects without a solution.' },
-  { id: 'home.projects', view: 'home', name: 'Projects table with 10-step progress and honest score', status: 'partial', phase: 'P1', where: 'server.py /api/workspace · views/home.html', note: 'Real projects with their ten-step state; they open in the classic notebook until their pages are wired.' },
+  { id: 'home.projects', view: 'home', name: 'Projects table with 10-step progress and honest score', status: 'partial', phase: 'P1', where: 'server.py /api/workspace · views/home.html', note: 'Real projects with their ten-step state; each opens its Workflow page.' },
   { id: 'home.kpis', view: 'home', name: 'Workspace health: leaks blocked, holdout discipline, spend', status: 'built', phase: 'Now', where: 'server.py /api/workspace', note: 'Counted from projects and the transition log. Model spend is on the Compute page.' },
   { id: 'home.activity', view: 'home', name: 'Live activity (intern sessions, jobs, approvals)', status: 'built', phase: 'Now', where: 'pages/ops.py /api/ops/jobs · views/home.html', note: 'One feed of running and queued stage runs, intern sessions, data pipelines and research runs; refreshes while something runs.' },
   { id: 'home.evidence', view: 'home', name: 'Evidence updates (new records, rules strengthened)', status: 'built', phase: 'Now', where: 'pages/ops.py /api/ops/evidence-recent', note: 'Newest records from the evidence index, dated by the campaign result they cite; undated records follow in file order.' },
@@ -36,7 +36,7 @@ window.FEATURES = [
   { id: 'new.solution', view: 'new', name: 'Solution draft with forbidden columns and proof', status: 'built', phase: 'Now', where: 'studio/solution.py propose · tools._audit_frame', note: '' },
   { id: 'new.split', view: 'new', name: 'Split strategy: time, group or stratified', status: 'built', phase: 'Now', where: 'studio/engine.py split_for', note: 'The solution decides: a time column means the latest period is the holdout, a group column keeps groups on one side, otherwise stratified. The wizard shows it and cannot contradict it.' },
   { id: 'new.budget', view: 'new', name: 'Compute and budget choice', status: 'partial', phase: 'P2', where: 'draft/api.py settings · intern budget', note: 'Rows, quick mode and folds reach the stages and the exported notebook; the euro budget is the project\'s monthly cap on priced model requests. The call and minute budgets apply to intern sessions. Sandboxes and GPU jobs are not switched on yet.' },
-  { id: 'new.handoff', view: 'new', name: 'Start in the notebook or hand to the intern', status: 'built', phase: 'Now', where: 'draft/api.py build · views/new.html', note: 'Creates the project with data, solution and settings; opens the classic notebook until the new project pages are wired.' },
+  { id: 'new.handoff', view: 'new', name: 'Start in the notebook or hand to the intern', status: 'built', phase: 'Now', where: 'draft/api.py build · views/new.html', note: 'Creates the project with data, solution and settings, then opens its Workflow page (I drive) or the intern (it drives).' },
 
   // ---- project workflow graph
   { id: 'proj.graph', view: 'project', name: 'Workflow graph WF-01…WF-10 with allowed moves', status: 'built', phase: 'P1', where: 'dclab_rnd/studio/graph.py · Graph tab in views/project.js', note: 'The LLM proposes a move; the graph decides if the move exists. Revisit edges are listed; free reopening of earlier steps is next.' },

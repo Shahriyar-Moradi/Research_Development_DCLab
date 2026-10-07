@@ -121,6 +121,17 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
         else clearInterval(timer);
       }, 900);
     }
+    $('#intern-delete', el).addEventListener('click', () => {  // deleting a session (it was on the old UI; 8.3)
+      const id = $('#intern-delete-row', el).dataset.session;
+      if (!id) return;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Delete</span>', title: 'Delete this intern session?', confirm: 'Delete the session', danger: true,
+        html: '<p>Its conversation, plan and report are removed. The project it worked on stays, with every move in its log.</p>',
+        onConfirm: () => DC.client.internDelete(id).then(() => {
+          DC.modal.close(); DC.toast('Session deleted.'); DC.state.internSession = null; sync();
+        }).catch(err => DC.toast(err.message, { ok: false })),
+      });
+    });
     el.addEventListener('click', e => {
       const a = e.target.closest('[data-answer]');
       if (a && phase === 'pre') {
@@ -322,6 +333,9 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
         return `<button type="button" class="list-item" data-session="${esc(x.id)}" ${on ? 'data-style="background:var(--accent-soft)" aria-current="true"' : ''}><div class="li-main"><span class="li-title">${esc(short(x.task, 140))}</span><span class="li-sub"><span class="dot ${xs[2]}"></span> ${esc(xs[0])} · ${int(x.steps || 0)} tool call${x.steps === 1 ? '' : 's'}${x.project_id ? ' · project ' + esc(x.project_id) : ''}${x.mode === 'llm' ? ' · model' : ' · standard plan'} · ${esc(when(x.updated))}</span></div></button>`;
       }).join('');
       $('.sub', sessHead).textContent = 'Newest first. Click one to open it on the Overview.';
+      const delRow = $('#intern-delete-row', el);
+      delRow.hidden = isLive(s);  // a session that is working is stopped first, then deleted
+      delRow.dataset.session = s.id;
       $('.pill', sessHead).textContent = String(n);
       const tabN = $('.ptab[data-ptab="sessions"] .n', el); if (tabN) tabN.textContent = String(n);
       const nav = document.querySelector('[data-nav="intern"] .count');
@@ -356,6 +370,7 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       DC.markSample(true);
       if (R.mode === 'sample') return;
       R.mode = 'sample'; R.cur = null; R.proj = null; R.projKey = ''; clearTimeout(R.timer);
+      $('#intern-delete-row', el).hidden = true;  // the samples cannot be deleted
       statsEl.innerHTML = SAMPLE.stats; $('#intern-sessions', el).innerHTML = SAMPLE.sessions;
       $('.sub', sessHead).textContent = SAMPLE.sessSub; $('.pill', sessHead).textContent = SAMPLE.sessPill;
       const tabN = $('.ptab[data-ptab="sessions"] .n', el); if (tabN) tabN.textContent = SAMPLE.sessPill;
@@ -384,7 +399,7 @@ df["is_weekend"] = weekday >= 5`)}<pre class="term" data-style="margin-top:6px">
       let p = R.proj;
       const key = s.project_id ? s.project_id + '|' + s.updated : '';
       if (!s.project_id) p = null;
-      else if (isLive(s) || key !== R.projKey) { try { p = await DC.client.getProject(s.project_id); } catch (e) { p = null; } }
+      else if (isLive(s) || key !== R.projKey) { try { p = await DC.client.getProject(s.project_id, { quiet: true }); } catch (e) { p = null; } }  // quiet: its project may have been deleted
       if (!R.info) { try { R.info = await DC.client.internStatus(); } catch (e) { /* the model name stays unknown */ } }
       if (my !== R.seq) return;
       R.cur = s; R.proj = p; R.projKey = key;

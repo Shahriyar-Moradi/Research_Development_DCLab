@@ -72,7 +72,7 @@ rd-campaign-review:  ## run pending LLM critic reviews (needs OPENAI_API_KEY)
 
 # --- Agentic Research Studio (agent env, Python 3.12/3.13) ---------------------
 
-agent-serve:  ## start the web UI with the LLM campaigns enabled (agent environment)
+agent-serve:  ## the web UI and the API from the agent environment (research campaigns run from the command line: python -m dclab_rnd.agentic run|resume)
 	$(AGENT_PYTHON) -m dclab_rnd.agentic serve
 
 up:  ## the product in containers: the API, one job worker and PostgreSQL (docker-compose.yml), on http://127.0.0.1:8765

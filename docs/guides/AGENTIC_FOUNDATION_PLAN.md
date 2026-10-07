@@ -43,7 +43,7 @@ Three agents, built separately, plus the tools they share.
 |---|---|---|---|
 | Home agent | `draft/chat.py` (492 lines) | Up to 4 questions, outcome and workflow, simulation, streamed replies; a scripted fallback | Own loop, own tool list; no trace of its steps |
 | Intern | `intern/loop.py` (247), `intern/tools.py` (294, 20 tools) | Builds a project through the validator, with a step and minute budget; standard plan with no model | A third loop; budget in steps and minutes only |
-| Campaign agent | `agentic/agents.py`, `worker.py` (NOOA, LangGraph) | Research campaigns that fill `evidence/campaigns/` | Separate runtime and model client; web UI trigger lives in `/classic` |
+| Campaign agent | `agentic/agents.py`, `worker.py` (NOOA, LangGraph) | Research campaigns that fill `evidence/campaigns/` | Separate runtime and model client; started and resumed from the command line (`python -m dclab_rnd.agentic run|resume`; the web trigger at `/classic` was removed in 8.3) |
 | Notebook copilot | `copilot/`, `notebook_assist.py` | Reviews a notebook against the rules | Deterministic; no model |
 | Model client | `intern/llm.py` | OpenAI-compatible, streaming, safe failure reasons, pause after a hard refusal | Created in several places; no budget, no usage log, no tiers |
 | Validator | `studio/graph.py` (364) | WF-01…10, every move checked and logged | The one thing that must stay in front of every state change |

@@ -66,7 +66,7 @@ class ServeTests(unittest.TestCase):
             self.skipTest(f"Studio dependencies not installed: {error}")
         self.client = TestClient(create_app(Path(tempfile.mkdtemp())))
 
-    def test_root_serves_the_product_and_classic_keeps_the_old_ui(self):
+    def test_root_serves_the_product_and_the_old_ui_is_gone(self):
         page = self.client.get("/")
         self.assertEqual(page.status_code, 200)
         self.assertIn('id="view-home"', page.text)
@@ -79,7 +79,8 @@ class ServeTests(unittest.TestCase):
             self.assertEqual(self.client.get(asset).status_code, 200, asset)
         font = self.client.get("/static/app/fonts/inter-latin.woff2")
         self.assertEqual((font.status_code, font.content[:4]), (200, b"wOF2"))
-        self.assertIn('id="map-view"', self.client.get("/classic").text)
+        for gone in ("/classic", "/static/index.html", "/static/js/app.js", "/static/css/map.css"):  # removed in package 8.3
+            self.assertEqual(self.client.get(gone).status_code, 404, gone)
 
 
 if __name__ == "__main__":

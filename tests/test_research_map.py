@@ -76,12 +76,11 @@ class ResearchApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/research/file", params={"path": "research/README.md"}).status_code, 200)
         self.assertEqual(self.client.get("/api/research/file", params={"path": "../.env"}).status_code, 404)
 
-    def test_page_loads_split_assets(self):
-        page = self.client.get("/classic").text  # the earlier UI; "/" now serves the product frontend
-        self.assertIn('id="map-view"', page)
-        for asset in ("/static/js/app.js", "/static/css/map.css"):
-            self.assertIn(asset, page)
-            self.assertEqual(self.client.get(asset).status_code, 200)
+    def test_the_research_map_is_on_the_product_s_lab_page(self):
+        page = self.client.get("/").text  # the earlier UI at /classic was removed (package 8.3)
+        self.assertIn('id="view-lab"', page)
+        self.assertEqual(self.client.get("/static/app/js/views/lab.js").status_code, 200)
+        self.assertEqual(self.client.get("/classic").status_code, 404)
 
 
 if __name__ == "__main__":

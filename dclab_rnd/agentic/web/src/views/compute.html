@@ -171,7 +171,6 @@ DC.view('compute', {
       if (j.kind === 'intern') acts.push(`<a class="btn sm" href="#intern" data-ops-session="${esc(j.session_id)}">Open the session →</a>`);
       if (j.project_id && (j.kind !== 'data' || !j.draft_open)) acts.push(`<a class="btn sm" href="#project" data-ops-project="${esc(j.project_id)}">Open the project →</a>`);
       if (j.kind === 'data' && j.draft_open) acts.push(`<a class="btn sm" href="#home" data-ops-draft="${esc(j.draft_id)}">Open the draft on Home →</a>`);
-      if (j.kind === 'research') acts.push('<a class="btn sm" href="/classic">Open in the classic UI →</a>');
       // Stop and Retry act on the job table (package 10.3): a stop takes effect at the job's next checkpoint (between stages).
       if (d.stop) acts.push(d.stop.requested ? '<span class="pill outline">stopping…</span>'
         : `<button type="button" class="btn sm danger" data-job-act="stop" data-job-id="${esc(d.stop.job_id)}" data-job-done="Stop requested: it ends after the step it is on">Stop</button>`);

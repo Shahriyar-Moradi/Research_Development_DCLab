@@ -229,16 +229,12 @@ async def guide():
 
 @router.get("/", response_class=FileResponse, responses={200: {"content": {"text/html": {}}}})
 async def index():
-    # The product frontend (built from dclab_rnd/agentic/web); the earlier UI stays at /classic until the new one covers it.
+    # The product frontend (built from dclab_rnd/agentic/web). The earlier UI at /classic was removed (package 8.3).
     page = STATIC / "app" / "index.html"
     if not page.is_file():
         raise HTTPException(404, "Build the frontend with: python -m dclab_rnd.agentic.web.build")
     return FileResponse(page)
 
-
-@router.get("/classic", response_class=FileResponse, responses={200: {"content": {"text/html": {}}}})
-async def classic():
-    return FileResponse(STATIC / "index.html")
 
 
 @router.get("/favicon.ico", include_in_schema=False)
