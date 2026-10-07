@@ -1,0 +1,619 @@
+{
+ "experiment_id": "RET-002",
+ "campaign_id": "retrieval_v1",
+ "kind": "retrieval_recall",
+ "status": "completed",
+ "completed_at": "2026-10-07T14:49:01+00:00",
+ "question": "Which evidence search finds the records that answer real questions, keyword, vectors or both?",
+ "question_set": "questions_v1.json",
+ "index_signature": "ecb301d738327f08",
+ "measurement": {
+  "k": 5,
+  "questions": 60,
+  "groups": {
+   "experiment": 13,
+   "paraphrase": 10,
+   "pitfall": 8,
+   "precedent": 6,
+   "rule": 15,
+   "workflow": 8
+  },
+  "recall": {
+   "bm25": {
+    "overall": 0.7,
+    "experiment": 1.0,
+    "paraphrase": 0.0,
+    "pitfall": 0.688,
+    "precedent": 0.834,
+    "rule": 0.8,
+    "workflow": 0.812
+   },
+   "lsa": {
+    "overall": 0.706,
+    "experiment": 1.0,
+    "paraphrase": 0.0,
+    "pitfall": 0.812,
+    "precedent": 0.889,
+    "rule": 0.733,
+    "workflow": 0.812
+   },
+   "hybrid": {
+    "overall": 0.689,
+    "experiment": 1.0,
+    "paraphrase": 0.0,
+    "pitfall": 0.688,
+    "precedent": 0.889,
+    "rule": 0.733,
+    "workflow": 0.812
+   },
+   "embed": {
+    "overall": 0.872,
+    "experiment": 1.0,
+    "paraphrase": 0.68,
+    "pitfall": 0.875,
+    "precedent": 1.0,
+    "rule": 0.867,
+    "workflow": 0.812
+   },
+   "hybrid_embed": {
+    "overall": 0.8,
+    "experiment": 1.0,
+    "paraphrase": 0.2,
+    "pitfall": 0.812,
+    "precedent": 1.0,
+    "rule": 0.933,
+    "workflow": 0.812
+   }
+  },
+  "rows": [
+   {
+    "id": "Q01",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q02",
+    "group": "rule",
+    "bm25": 0.5,
+    "lsa": 0.5,
+    "hybrid": 0.5,
+    "embed": 0.5,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q03",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q04",
+    "group": "rule",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q05",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q06",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q07",
+    "group": "rule",
+    "bm25": 0.5,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.5,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q08",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q09",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q10",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q11",
+    "group": "rule",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.5,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q12",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 0.5,
+    "hybrid": 0.5,
+    "embed": 0.5,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q13",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q14",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q15",
+    "group": "rule",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q16",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.0,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q17",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q18",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.5,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q19",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q20",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.8,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q21",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.5,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q22",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.0,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q23",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q24",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q25",
+    "group": "paraphrase",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 0.0
+   },
+   {
+    "id": "Q26",
+    "group": "pitfall",
+    "bm25": 0.5,
+    "lsa": 0.5,
+    "hybrid": 0.5,
+    "embed": 0.5,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q27",
+    "group": "pitfall",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q28",
+    "group": "pitfall",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q29",
+    "group": "pitfall",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q30",
+    "group": "pitfall",
+    "bm25": 0.5,
+    "lsa": 0.5,
+    "hybrid": 0.5,
+    "embed": 1.0,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q31",
+    "group": "pitfall",
+    "bm25": 0.5,
+    "lsa": 0.5,
+    "hybrid": 0.5,
+    "embed": 0.5,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q32",
+    "group": "pitfall",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q33",
+    "group": "pitfall",
+    "bm25": 0.0,
+    "lsa": 1.0,
+    "hybrid": 0.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q34",
+    "group": "precedent",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q35",
+    "group": "precedent",
+    "bm25": 0.667,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q36",
+    "group": "precedent",
+    "bm25": 0.667,
+    "lsa": 0.667,
+    "hybrid": 0.667,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q37",
+    "group": "precedent",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q38",
+    "group": "precedent",
+    "bm25": 0.667,
+    "lsa": 0.667,
+    "hybrid": 0.667,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q39",
+    "group": "precedent",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q40",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q41",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q42",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q43",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q44",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q45",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q46",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q47",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q48",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q49",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q50",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q51",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q52",
+    "group": "experiment",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q53",
+    "group": "workflow",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q54",
+    "group": "workflow",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q55",
+    "group": "workflow",
+    "bm25": 0.5,
+    "lsa": 0.5,
+    "hybrid": 0.5,
+    "embed": 0.5,
+    "hybrid_embed": 0.5
+   },
+   {
+    "id": "Q56",
+    "group": "workflow",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q57",
+    "group": "workflow",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q58",
+    "group": "workflow",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q59",
+    "group": "workflow",
+    "bm25": 1.0,
+    "lsa": 1.0,
+    "hybrid": 1.0,
+    "embed": 1.0,
+    "hybrid_embed": 1.0
+   },
+   {
+    "id": "Q60",
+    "group": "workflow",
+    "bm25": 0.0,
+    "lsa": 0.0,
+    "hybrid": 0.0,
+    "embed": 0.0,
+    "hybrid_embed": 0.0
+   }
+  ],
+  "chosen": "embed"
+ },
+ "limitations": [
+  "Sixty hand-written questions about one index; a group has 6 to 15 questions, so one question moves a group's recall by about 0.1.",
+  "The choice is made on the same questions it reports (no held-out set).",
+  "lsa is latent semantic analysis of the index's own words, not a neural embedding; embed and hybrid_embed are neural embeddings by text-embedding-3-small when measured with --embeddings."
+ ],
+ "embedding_model": "text-embedding-3-small",
+ "embedding_spent_eur": 0.001115
+}

@@ -49,6 +49,9 @@ def check(condition: bool, message: str) -> None:
 
 class Api:
     def __init__(self, base: str):
+        # Against a server that asks for sign-in (staging: DCLAB_AUTH on) the flows need a person's API token: DCLAB_E2E_TOKEN, from the
+        # environment only (never an argument, so it is not in a process list). The token acts as that person: use a member of a test workspace.
+        self.bearer = os.environ.get("DCLAB_E2E_TOKEN", "").strip() or None
         self.base, self.token = base.rstrip("/") + "/api", None
         self.token = self.call("GET", "/config")["csrf"]
 
@@ -59,6 +62,8 @@ class Api:
             request.add_header("Content-Type", "application/json")
         if self.token and method != "GET":
             request.add_header("X-DCLab-Token", self.token)
+        if self.bearer:
+            request.add_header("Authorization", f"Bearer {self.bearer}")
         try:
             with urllib.request.urlopen(request, timeout=300) as response:
                 text, status = response.read().decode(), response.status
@@ -250,7 +255,9 @@ def start_server() -> tuple[subprocess.Popen, str, tempfile.TemporaryDirectory]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--base", help="URL of a running server; without it the script starts its own, with no model and an empty workspace")
+    parser.add_argument("--base", help="URL of a running server; without it the script starts its own, with no model and an empty workspace. "
+                        "On a server you started, whatever it is configured with applies: a configured model key means the flows send model requests. "
+                        "With sign-in on, give an API token in DCLAB_E2E_TOKEN")
     parser.add_argument("--only", choices=sorted(FLOWS), action="append", help="run only this flow (repeatable)")
     args = parser.parse_args(argv)
     process = home = None

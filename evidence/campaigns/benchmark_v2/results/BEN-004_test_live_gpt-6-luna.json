@@ -1,0 +1,2846 @@
+{
+  "experiment_id": "BEN-004",
+  "campaign_id": "benchmark_v2",
+  "kind": "benchmark_live",
+  "status": "completed",
+  "run_id": "6c9f73e76ae3",
+  "model": "gpt-6-luna",
+  "tier": "strong",
+  "local": false,
+  "suite": "benchmark_v2:test",
+  "question": "On the frozen benchmark's unseen cases, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
+  "started_at": "2026-10-07T14:45:41+00:00",
+  "completed_at": "2026-10-07T15:20:56+00:00",
+  "plan": {
+    "model": "gpt-6-luna",
+    "tier": "strong",
+    "local": false,
+    "available": true,
+    "tiers": {
+      "intern": {
+        "tier": "strong",
+        "model": "gpt-6-luna",
+        "local": false
+      }
+    },
+    "remote_priced": [
+      "intern"
+    ],
+    "remote_unpriced": [],
+    "cases": [
+      "BV2-LOAN-post_outcome_name",
+      "BV2-LOAN-post_outcome_neutral",
+      "BV2-LOAN-noisy_target_copy",
+      "BV2-LOAN-identifier",
+      "BV2-LOAN-missing_is_outcome",
+      "BV2-LOAN-group_label",
+      "BV2-LOAN-time_random_split",
+      "BV2-LOAN-duplicates",
+      "BV2-LOAN-clean",
+      "BV2-LOAN-constant_column",
+      "BV2-LOAN-benign_post_name",
+      "BV2-LOAN-strong_honest_driver",
+      "BV2-LOAN-informative_missing",
+      "BV2-READ-post_outcome_name",
+      "BV2-READ-post_outcome_neutral",
+      "BV2-READ-noisy_target_copy",
+      "BV2-READ-identifier",
+      "BV2-READ-missing_is_outcome",
+      "BV2-READ-group_label",
+      "BV2-READ-time_random_split",
+      "BV2-READ-duplicates",
+      "BV2-READ-clean",
+      "BV2-READ-constant_column",
+      "BV2-READ-benign_post_name",
+      "BV2-READ-strong_honest_driver",
+      "BV2-READ-informative_missing",
+      "BV2-SENS-post_outcome_name",
+      "BV2-SENS-post_outcome_neutral",
+      "BV2-SENS-noisy_target_copy",
+      "BV2-SENS-identifier",
+      "BV2-SENS-missing_is_outcome",
+      "BV2-SENS-group_label",
+      "BV2-SENS-time_random_split",
+      "BV2-SENS-duplicates",
+      "BV2-SENS-clean",
+      "BV2-SENS-constant_column",
+      "BV2-SENS-benign_post_name",
+      "BV2-SENS-strong_honest_driver",
+      "BV2-SENS-informative_missing",
+      "BV2-DELI-post_outcome_name",
+      "BV2-DELI-post_outcome_neutral",
+      "BV2-DELI-noisy_target_copy",
+      "BV2-DELI-identifier",
+      "BV2-DELI-missing_is_outcome",
+      "BV2-DELI-group_label",
+      "BV2-DELI-time_random_split",
+      "BV2-DELI-duplicates",
+      "BV2-DELI-clean",
+      "BV2-DELI-constant_column",
+      "BV2-DELI-benign_post_name",
+      "BV2-DELI-strong_honest_driver",
+      "BV2-DELI-informative_missing",
+      "BV2-DIAB-post_outcome_name",
+      "BV2-DIAB-post_outcome_neutral",
+      "BV2-DIAB-unit_conversion",
+      "BV2-DIAB-sum_identity",
+      "BV2-DIAB-identifier",
+      "BV2-DIAB-duplicates",
+      "BV2-DIAB-clean",
+      "BV2-DIAB-constant_column",
+      "BV2-DIAB-benign_post_name",
+      "BV2-WINE-post_outcome_name",
+      "BV2-WINE-post_outcome_neutral",
+      "BV2-WINE-noisy_target_copy",
+      "BV2-WINE-identifier",
+      "BV2-WINE-missing_is_outcome",
+      "BV2-WINE-duplicates",
+      "BV2-WINE-clean",
+      "BV2-WINE-constant_column",
+      "BV2-WINE-benign_post_name"
+    ],
+    "repeats": 1,
+    "runs": 70,
+    "max_steps": 16,
+    "max_requests": 1260,
+    "max_input_tokens": 28504980,
+    "max_eur": 3.98,
+    "priced": true,
+    "max_requests_cap": 1260,
+    "cap_eur": 1.5
+  },
+  "requests": 976,
+  "spent": {
+    "eur": 0.584162,
+    "input_tokens": 5551817,
+    "output_tokens": 57957
+  },
+  "stopped": null,
+  "summary": {
+    "scores": {
+      "leaks_caught": {
+        "mean": 0.921,
+        "ci95": null,
+        "n": 1
+      },
+      "false_alarms": {
+        "mean": 0.371,
+        "ci95": null,
+        "n": 1
+      },
+      "valid_moves": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      },
+      "citations_exist": {
+        "mean": 1.0,
+        "ci95": null,
+        "n": 1
+      }
+    },
+    "by_case": {
+      "BV2-LOAN-post_outcome_name": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-post_outcome_neutral": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-noisy_target_copy": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-identifier": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-missing_is_outcome": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-group_label": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-time_random_split": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-duplicates": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-clean": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-LOAN-constant_column": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-LOAN-benign_post_name": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-LOAN-strong_honest_driver": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-LOAN-informative_missing": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-READ-post_outcome_name": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-post_outcome_neutral": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-noisy_target_copy": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-identifier": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-missing_is_outcome": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-group_label": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-time_random_split": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-duplicates": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-clean": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-READ-constant_column": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-READ-benign_post_name": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-READ-strong_honest_driver": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-READ-informative_missing": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-SENS-post_outcome_name": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-post_outcome_neutral": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-noisy_target_copy": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-identifier": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-missing_is_outcome": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-group_label": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-time_random_split": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-duplicates": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-clean": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-constant_column": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-SENS-benign_post_name": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-SENS-strong_honest_driver": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-SENS-informative_missing": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-post_outcome_name": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-post_outcome_neutral": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-noisy_target_copy": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-identifier": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-missing_is_outcome": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-group_label": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-time_random_split": {
+        "leak_caught": [
+          0,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-duplicates": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DELI-clean": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-DELI-constant_column": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-DELI-benign_post_name": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-DELI-strong_honest_driver": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-DELI-informative_missing": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-DIAB-post_outcome_name": {
+        "leak_caught": [
+          0,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-post_outcome_neutral": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-unit_conversion": {
+        "leak_caught": [
+          0,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-sum_identity": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-identifier": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-duplicates": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-clean": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          1
+        ]
+      },
+      "BV2-DIAB-constant_column": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-DIAB-benign_post_name": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-post_outcome_name": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-post_outcome_neutral": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-noisy_target_copy": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-identifier": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-missing_is_outcome": {
+        "leak_caught": [
+          1,
+          1
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-duplicates": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-clean": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-constant_column": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      },
+      "BV2-WINE-benign_post_name": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          1
+        ]
+      }
+    },
+    "runs": 70,
+    "not_run": 0,
+    "complete_repeats": 1,
+    "note": "Intervals are over complete repeats only; per-case counts include every scored run."
+  },
+  "runs": [
+    {
+      "case": "BV2-LOAN-post_outcome_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        78929,
+        676
+      ],
+      "eur": 0.008232,
+      "seconds": 34.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "collections_fee_charged"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-post_outcome_neutral",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        90735,
+        638
+      ],
+      "eur": 0.009393,
+      "seconds": 27.7,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "w_c2"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-noisy_target_copy",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        90991,
+        1181
+      ],
+      "eur": 0.009688,
+      "seconds": 62.7,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "watchlist_status"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-identifier",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85104,
+        738
+      ],
+      "eur": 0.00888,
+      "seconds": 30.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "application_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-missing_is_outcome",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        58026,
+        701
+      ],
+      "eur": 0.006155,
+      "seconds": 23.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "repayment_survey"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-group_label",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        98977,
+        701
+      ],
+      "eur": 0.010248,
+      "seconds": 29.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "borrower_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-time_random_split",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        78035,
+        1279
+      ],
+      "eur": 0.008444,
+      "seconds": 36.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "applied_on",
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-duplicates",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        78964,
+        1050
+      ],
+      "eur": 0.008421,
+      "seconds": 29.1,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-clean",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        88841,
+        1104
+      ],
+      "eur": 0.009436,
+      "seconds": 30.9,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-constant_column",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        83632,
+        817
+      ],
+      "eur": 0.008772,
+      "seconds": 28.6,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "export_version",
+        "source_system"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-benign_post_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 12,
+      "tokens": [
+        66663,
+        1015
+      ],
+      "eur": 0.007172,
+      "seconds": 25.2,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_box_used"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-strong_honest_driver",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        81348,
+        709
+      ],
+      "eur": 0.008488,
+      "seconds": 27.3,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "debt_to_income"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-LOAN-informative_missing",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        90054,
+        746
+      ],
+      "eur": 0.009379,
+      "seconds": 26.5,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_extra"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-post_outcome_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        71407,
+        741
+      ],
+      "eur": 0.007512,
+      "seconds": 33.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "followup_bed_days"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-post_outcome_neutral",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        58449,
+        1064
+      ],
+      "eur": 0.006379,
+      "seconds": 30.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "q_h5"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-noisy_target_copy",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        60990,
+        693
+      ],
+      "eur": 0.006444,
+      "seconds": 22.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "return_visit_code"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-identifier",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        83747,
+        629
+      ],
+      "eur": 0.00869,
+      "seconds": 24.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "admission_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-missing_is_outcome",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        67393,
+        828
+      ],
+      "eur": 0.007153,
+      "seconds": 25.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "home_call_score"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-group_label",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        73417,
+        658
+      ],
+      "eur": 0.007671,
+      "seconds": 32.5,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "patient_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-time_random_split",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        76730,
+        1149
+      ],
+      "eur": 0.008246,
+      "seconds": 37.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "discharged_on",
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-duplicates",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        89085,
+        655
+      ],
+      "eur": 0.009237,
+      "seconds": 22.5,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-clean",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        69416,
+        643
+      ],
+      "eur": 0.007263,
+      "seconds": 26.9,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-constant_column",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        87385,
+        764
+      ],
+      "eur": 0.009119,
+      "seconds": 36.9,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "export_version",
+        "source_system"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-benign_post_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        81910,
+        1263
+      ],
+      "eur": 0.008822,
+      "seconds": 33.2,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_op_ward"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-strong_honest_driver",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        73796,
+        616
+      ],
+      "eur": 0.007686,
+      "seconds": 25.8,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "frailty_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-READ-informative_missing",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        90089,
+        1341
+      ],
+      "eur": 0.009681,
+      "seconds": 33.1,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_extra"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-post_outcome_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        64216,
+        1106
+      ],
+      "eur": 0.006973,
+      "seconds": 29.5,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "repair_parts_cost"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-post_outcome_neutral",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        83116,
+        761
+      ],
+      "eur": 0.008691,
+      "seconds": 27.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "s_x3"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-noisy_target_copy",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85020,
+        723
+      ],
+      "eur": 0.008863,
+      "seconds": 25.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "fault_ticket"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-identifier",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85369,
+        669
+      ],
+      "eur": 0.008873,
+      "seconds": 30.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "reading_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-missing_is_outcome",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        59512,
+        812
+      ],
+      "eur": 0.006357,
+      "seconds": 27.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "inspection_grade"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-group_label",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        49911,
+        682
+      ],
+      "eur": 0.005331,
+      "seconds": 20.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "machine_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-time_random_split",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        71552,
+        834
+      ],
+      "eur": 0.007572,
+      "seconds": 31.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "shift_date",
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-duplicates",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        77672,
+        752
+      ],
+      "eur": 0.008143,
+      "seconds": 29.8,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-clean",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        73323,
+        1080
+      ],
+      "eur": 0.007872,
+      "seconds": 32.0,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-constant_column",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        88813,
+        624
+      ],
+      "eur": 0.009192,
+      "seconds": 33.6,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-benign_post_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        64364,
+        713
+      ],
+      "eur": 0.006792,
+      "seconds": 27.4,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_maintenance_mode"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-strong_honest_driver",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        76756,
+        762
+      ],
+      "eur": 0.008056,
+      "seconds": 27.4,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "bearing_wear_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-SENS-informative_missing",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        74648,
+        711
+      ],
+      "eur": 0.007821,
+      "seconds": 39.2,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-post_outcome_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        89964,
+        834
+      ],
+      "eur": 0.009412,
+      "seconds": 30.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "late_compensation_paid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-post_outcome_neutral",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        84993,
+        656
+      ],
+      "eur": 0.008827,
+      "seconds": 31.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "d_p8"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-noisy_target_copy",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        71710,
+        675
+      ],
+      "eur": 0.007509,
+      "seconds": 25.7,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "complaint_code"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-identifier",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        75391,
+        633
+      ],
+      "eur": 0.007857,
+      "seconds": 33.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "parcel_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-missing_is_outcome",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        91856,
+        1115
+      ],
+      "eur": 0.009744,
+      "seconds": 52.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "delivery_rating_given"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-group_label",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        78108,
+        748
+      ],
+      "eur": 0.008186,
+      "seconds": 31.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-time_random_split",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        73674,
+        647
+      ],
+      "eur": 0.007691,
+      "seconds": 62.7,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "dispatched_on"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-duplicates",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        70749,
+        652
+      ],
+      "eur": 0.007404,
+      "seconds": 36.7,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-clean",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        71717,
+        835
+      ],
+      "eur": 0.00759,
+      "seconds": 25.5,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "stops_on_route"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-constant_column",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        60306,
+        1320
+      ],
+      "eur": 0.00669,
+      "seconds": 28.8,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "export_version",
+        "source_system"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-benign_post_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        78797,
+        686
+      ],
+      "eur": 0.008224,
+      "seconds": 27.8,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_office_pickup"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-strong_honest_driver",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        54184,
+        659
+      ],
+      "eur": 0.00575,
+      "seconds": 19.1,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "route_congestion_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DELI-informative_missing",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        81555,
+        741
+      ],
+      "eur": 0.008526,
+      "seconds": 27.3,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_extra"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        94665,
+        771
+      ],
+      "eur": 0.009852,
+      "seconds": 31.5,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "target"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_neutral",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        81264,
+        871
+      ],
+      "eur": 0.00856,
+      "seconds": 25.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "k_31"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-unit_conversion",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        102479,
+        645
+      ],
+      "eur": 0.010571,
+      "seconds": 26.8,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "target"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-sum_identity",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        70842,
+        1190
+      ],
+      "eur": 0.00768,
+      "seconds": 29.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "prog_part_a",
+        "prog_part_b"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-identifier",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        56799,
+        689
+      ],
+      "eur": 0.006025,
+      "seconds": 21.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "visit_seq"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-duplicates",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        78248,
+        999
+      ],
+      "eur": 0.008324,
+      "seconds": 28.5,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-clean",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        80536,
+        766
+      ],
+      "eur": 0.008437,
+      "seconds": 23.8,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-constant_column",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        88114,
+        1119
+      ],
+      "eur": 0.009371,
+      "seconds": 35.6,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "export_version",
+        "source_system"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-DIAB-benign_post_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85593,
+        640
+      ],
+      "eur": 0.00888,
+      "seconds": 23.3,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_fast_glucose_flag"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-post_outcome_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85467,
+        675
+      ],
+      "eur": 0.008885,
+      "seconds": 26.2,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "cellar_label_assigned",
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-post_outcome_neutral",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        94019,
+        774
+      ],
+      "eur": 0.009788,
+      "seconds": 26.0,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid",
+        "r_19"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-noisy_target_copy",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        89399,
+        1113
+      ],
+      "eur": 0.009496,
+      "seconds": 29.0,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "label_code",
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-identifier",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        99496,
+        850
+      ],
+      "eur": 0.010375,
+      "seconds": 27.0,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "sample_no",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-missing_is_outcome",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        92144,
+        662
+      ],
+      "eur": 0.009545,
+      "seconds": 32.0,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid",
+        "tasting_note_score"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-duplicates",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        79156,
+        616
+      ],
+      "eur": 0.008221,
+      "seconds": 24.4,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-clean",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        97069,
+        728
+      ],
+      "eur": 0.010071,
+      "seconds": 33.0,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-constant_column",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        86845,
+        819
+      ],
+      "eur": 0.009095,
+      "seconds": 25.2,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "export_version",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "source_system",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "BV2-WINE-benign_post_name",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        98293,
+        1201
+      ],
+      "eur": 0.010429,
+      "seconds": 34.0,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "post_ferment_check",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "BV2-LOAN-post_outcome_name",
+      "fingerprint": "7529f0f7d5bf797a"
+    },
+    {
+      "id": "BV2-LOAN-post_outcome_neutral",
+      "fingerprint": "0eadfdc1e62d4c89"
+    },
+    {
+      "id": "BV2-LOAN-noisy_target_copy",
+      "fingerprint": "422e4a9261e0f087"
+    },
+    {
+      "id": "BV2-LOAN-identifier",
+      "fingerprint": "8a0831f30fdbf1c5"
+    },
+    {
+      "id": "BV2-LOAN-missing_is_outcome",
+      "fingerprint": "52dca0ad2c381829"
+    },
+    {
+      "id": "BV2-LOAN-group_label",
+      "fingerprint": "4925c90110aeab8a"
+    },
+    {
+      "id": "BV2-LOAN-time_random_split",
+      "fingerprint": "89ba5e015f25c3fd"
+    },
+    {
+      "id": "BV2-LOAN-duplicates",
+      "fingerprint": "a461cc1f42c82f22"
+    },
+    {
+      "id": "BV2-LOAN-clean",
+      "fingerprint": "b4ef2206c08c1e15"
+    },
+    {
+      "id": "BV2-LOAN-constant_column",
+      "fingerprint": "409a9d52a4f30d09"
+    },
+    {
+      "id": "BV2-LOAN-benign_post_name",
+      "fingerprint": "2838e57f9d6b4997"
+    },
+    {
+      "id": "BV2-LOAN-strong_honest_driver",
+      "fingerprint": "041001f71080a192"
+    },
+    {
+      "id": "BV2-LOAN-informative_missing",
+      "fingerprint": "cbd4067bde8c050f"
+    },
+    {
+      "id": "BV2-READ-post_outcome_name",
+      "fingerprint": "94241f1cf0a919d7"
+    },
+    {
+      "id": "BV2-READ-post_outcome_neutral",
+      "fingerprint": "34314aad8dec8fee"
+    },
+    {
+      "id": "BV2-READ-noisy_target_copy",
+      "fingerprint": "50ddcbe6448d420b"
+    },
+    {
+      "id": "BV2-READ-identifier",
+      "fingerprint": "06acc37b35d139a6"
+    },
+    {
+      "id": "BV2-READ-missing_is_outcome",
+      "fingerprint": "b653e0dbf6679aa0"
+    },
+    {
+      "id": "BV2-READ-group_label",
+      "fingerprint": "904684cb838912f0"
+    },
+    {
+      "id": "BV2-READ-time_random_split",
+      "fingerprint": "e58b0629bac8715d"
+    },
+    {
+      "id": "BV2-READ-duplicates",
+      "fingerprint": "9deeae56a5da4da3"
+    },
+    {
+      "id": "BV2-READ-clean",
+      "fingerprint": "c11b274d8ab62f73"
+    },
+    {
+      "id": "BV2-READ-constant_column",
+      "fingerprint": "5008f5d199c375e3"
+    },
+    {
+      "id": "BV2-READ-benign_post_name",
+      "fingerprint": "02c60fb913f861b2"
+    },
+    {
+      "id": "BV2-READ-strong_honest_driver",
+      "fingerprint": "1804766cd834c943"
+    },
+    {
+      "id": "BV2-READ-informative_missing",
+      "fingerprint": "4b32316f3ef6f44d"
+    },
+    {
+      "id": "BV2-SENS-post_outcome_name",
+      "fingerprint": "4ea76ea9d39bd003"
+    },
+    {
+      "id": "BV2-SENS-post_outcome_neutral",
+      "fingerprint": "b399346731d4261b"
+    },
+    {
+      "id": "BV2-SENS-noisy_target_copy",
+      "fingerprint": "68731b9cae806110"
+    },
+    {
+      "id": "BV2-SENS-identifier",
+      "fingerprint": "ed07a305138f2587"
+    },
+    {
+      "id": "BV2-SENS-missing_is_outcome",
+      "fingerprint": "c97834cb9bf0c430"
+    },
+    {
+      "id": "BV2-SENS-group_label",
+      "fingerprint": "df57c223c0ccb018"
+    },
+    {
+      "id": "BV2-SENS-time_random_split",
+      "fingerprint": "094729413ff4e547"
+    },
+    {
+      "id": "BV2-SENS-duplicates",
+      "fingerprint": "475eb7ff5bc2fa91"
+    },
+    {
+      "id": "BV2-SENS-clean",
+      "fingerprint": "8a0eb662c6acfcc0"
+    },
+    {
+      "id": "BV2-SENS-constant_column",
+      "fingerprint": "44989ff0acd08353"
+    },
+    {
+      "id": "BV2-SENS-benign_post_name",
+      "fingerprint": "0727f455f7edfa15"
+    },
+    {
+      "id": "BV2-SENS-strong_honest_driver",
+      "fingerprint": "7dacc9a6d3e23dd5"
+    },
+    {
+      "id": "BV2-SENS-informative_missing",
+      "fingerprint": "08771a240649494e"
+    },
+    {
+      "id": "BV2-DELI-post_outcome_name",
+      "fingerprint": "e1802714722f2f5d"
+    },
+    {
+      "id": "BV2-DELI-post_outcome_neutral",
+      "fingerprint": "91f7993b05507ea8"
+    },
+    {
+      "id": "BV2-DELI-noisy_target_copy",
+      "fingerprint": "ceb92eb0191dddf3"
+    },
+    {
+      "id": "BV2-DELI-identifier",
+      "fingerprint": "d5b48d1c7e8be426"
+    },
+    {
+      "id": "BV2-DELI-missing_is_outcome",
+      "fingerprint": "1925d9eec7fde7d9"
+    },
+    {
+      "id": "BV2-DELI-group_label",
+      "fingerprint": "9ab0bfbfdab4a532"
+    },
+    {
+      "id": "BV2-DELI-time_random_split",
+      "fingerprint": "89dcfe9648bd7549"
+    },
+    {
+      "id": "BV2-DELI-duplicates",
+      "fingerprint": "be25389085b729a7"
+    },
+    {
+      "id": "BV2-DELI-clean",
+      "fingerprint": "5077f9e057287069"
+    },
+    {
+      "id": "BV2-DELI-constant_column",
+      "fingerprint": "9b28f9f2099de55a"
+    },
+    {
+      "id": "BV2-DELI-benign_post_name",
+      "fingerprint": "7e7258c0d61a3d33"
+    },
+    {
+      "id": "BV2-DELI-strong_honest_driver",
+      "fingerprint": "185df696659d6e2d"
+    },
+    {
+      "id": "BV2-DELI-informative_missing",
+      "fingerprint": "254a9abd8325721f"
+    },
+    {
+      "id": "BV2-DIAB-post_outcome_name",
+      "fingerprint": "7bd841bded145a23"
+    },
+    {
+      "id": "BV2-DIAB-post_outcome_neutral",
+      "fingerprint": "1144e4269e5478a1"
+    },
+    {
+      "id": "BV2-DIAB-unit_conversion",
+      "fingerprint": "91e3c1a694a36ea7"
+    },
+    {
+      "id": "BV2-DIAB-sum_identity",
+      "fingerprint": "c4c0c6e20ce3a3a3"
+    },
+    {
+      "id": "BV2-DIAB-identifier",
+      "fingerprint": "df1fb19d04d53634"
+    },
+    {
+      "id": "BV2-DIAB-duplicates",
+      "fingerprint": "b04295c6f010fa74"
+    },
+    {
+      "id": "BV2-DIAB-clean",
+      "fingerprint": "89cf4a02867ab087"
+    },
+    {
+      "id": "BV2-DIAB-constant_column",
+      "fingerprint": "68987b60b0e150ef"
+    },
+    {
+      "id": "BV2-DIAB-benign_post_name",
+      "fingerprint": "2f42f533ca5988d6"
+    },
+    {
+      "id": "BV2-WINE-post_outcome_name",
+      "fingerprint": "df68c6c8924234ba"
+    },
+    {
+      "id": "BV2-WINE-post_outcome_neutral",
+      "fingerprint": "bdd1069abe70cf0d"
+    },
+    {
+      "id": "BV2-WINE-noisy_target_copy",
+      "fingerprint": "c8f2b85fb695f36b"
+    },
+    {
+      "id": "BV2-WINE-identifier",
+      "fingerprint": "61c18372cce69891"
+    },
+    {
+      "id": "BV2-WINE-missing_is_outcome",
+      "fingerprint": "c7b797a5fc76c710"
+    },
+    {
+      "id": "BV2-WINE-duplicates",
+      "fingerprint": "252447ffebc3d957"
+    },
+    {
+      "id": "BV2-WINE-clean",
+      "fingerprint": "9916494589a09592"
+    },
+    {
+      "id": "BV2-WINE-constant_column",
+      "fingerprint": "e13b8d9c4da1b850"
+    },
+    {
+      "id": "BV2-WINE-benign_post_name",
+      "fingerprint": "419aa1d976ee064a"
+    }
+  ],
+  "limitations": [
+    "Scores on these cases are evidence about this model on these planted traps, not about any model's readiness for production.",
+    "1 repeats per case: the interval is about this model's varying answers on these cases, not about other tables.",
+    "gpt-6-luna refused function tools with its default reasoning, so every request with tools was sent with reasoning_effort \"none\": these scores are for the model without reasoning on tool turns.",
+    "One repeat per case is enough for the gate (cases are the unit); a model's answers vary, so a rerun can differ."
+  ],
+  "tools_reasoning_effort": "none",
+  "prompt_hashes": {
+    "prompt:base_audit": "00ca260f5f22ef4e",
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:home_agent": "cdd86dda083d9f04",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "03299d06968ff8e7",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:synthetic_schema": "90f444b5eed17145",
+    "prompt:tools_as_text": "12bbc00ec34548c6",
+    "tools:project": "1bc32a5b14afffd8",
+    "tools:draft": "2bc6603d41758b8e",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "validator:graph": "3b6895b8b3afbd2e"
+  },
+  "split": "test",
+  "sealed": true
+}

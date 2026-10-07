@@ -60,7 +60,9 @@ class Browser:
     def __init__(self, playwright, base: str, out: Path, width: int = 1280, height: int = 900):
         self.base, self.out = base.rstrip("/"), out
         self.browser = playwright.chromium.launch()
-        self.context = self.browser.new_context(viewport={"width": width, "height": height}, accept_downloads=True)
+        token = os.environ.get("DCLAB_E2E_TOKEN", "").strip()  # against a server with sign-in: an API token of a test member, from the environment only
+        self.context = self.browser.new_context(viewport={"width": width, "height": height}, accept_downloads=True,
+                                                **({"extra_http_headers": {"Authorization": f"Bearer {token}"}} if token else {}))
         self.context.add_init_script(WATCH)
         self.page = self.context.new_page()
         self.console: list[str] = []

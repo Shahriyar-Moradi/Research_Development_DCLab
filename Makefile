@@ -1,4 +1,4 @@
-.PHONY: benchmark model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: benchmark embeddings staging-check model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -209,15 +209,23 @@ deploy-check:  ## the cloud code (deploy/, package 12.6): tofu fmt -check and to
 browser-test:  ## Chromium drives the real page on a temporary server: Home, the wizard, a run, the brief; 19 pages at 1280 and 375 px (pip install -r requirements/browser.txt)
 	$(TEST_TMP) $(PYTHON) scripts/browser_e2e.py
 
+staging-check:  ## the end-to-end flows and the browser checks against a running address, for a staging deployment: make staging-check URL=https://...
+	@test -n "$(URL)" || { echo "give the address: make staging-check URL=https://staging.example.com"; exit 2; }
+	$(TEST_TMP) $(PYTHON) scripts/product_e2e.py --base $(URL)
+	$(TEST_TMP) $(PYTHON) scripts/browser_e2e.py --base $(URL)
+
 product-e2e:  ## run the product's main flows end to end on a temporary server (upload, no data, synthetic, log file; ~3 min, no model)
 	$(TEST_TMP) $(PYTHON) scripts/product_e2e.py
 
 product-demo:  ## rebuild docs/product-demo/index.html, the clickable demo of the final product (REFRESH=1 re-extracts the evidence)
 	$(PYTHON) docs/product-demo/build.py $(if $(REFRESH),--refresh,)
 
-retrieval-eval:  ## evidence search on the 60-question set (A5.1): recall at 5 for keyword, vector and hybrid; stores a new RET result
+embeddings:  ## build the evidence record vectors the product searches by (a few thousand tokens; needs a model for the embedding purpose); rebuild after make knowledge
+	$(PYTHON) -m dclab_rnd.retrieval --build-embeddings
+
+retrieval-eval:  ## evidence search on the 60-question set (A5.1): recall at 5 for keyword, vector and hybrid; stores a new RET result (ARGS=--embeddings adds the neural retrievers: a fraction of a cent)
 	@n=$$(ls evidence/campaigns/retrieval_v1/results/RET-*.json 2>/dev/null | wc -l | tr -d ' '); \
-	$(PYTHON) -m dclab_rnd.retrieval --output evidence/campaigns/retrieval_v1/results/RET-$$(printf '%03d' $$((n + 1)))_recall_at_5.json
+	$(PYTHON) -m dclab_rnd.retrieval $(ARGS) --output evidence/campaigns/retrieval_v1/results/RET-$$(printf '%03d' $$((n + 1)))_recall_at_5.json
 
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \

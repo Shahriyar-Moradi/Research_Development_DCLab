@@ -1,0 +1,77 @@
+{
+  "suite_id": "dclab_specialists_v1",
+  "purpose": "Pilot measurement of real NOOA specialist decisions on fixed situations",
+  "status": "researcher_authored_pilot; expert review and unseen source-group split still required",
+  "cases": [
+    {
+      "id": "planner_missing_prediction_time",
+      "agent": "ResearchPlanner",
+      "method": "plan",
+      "context": {
+        "config": {"project": "general", "datasets": ["spambase"], "max_experiments": 2, "max_rows": 2000},
+        "goal": "Build an email spam model before message receipt. The available dataset only contains measurements taken from received message content. Determine whether the task is defined well enough to train.",
+        "profiles": [{"dataset": "spambase", "rows": 2000, "columns": [{"name": "word_frequency", "kind": "numeric"}]}],
+        "trials": []
+      },
+      "hard_check": "mentions_prediction_time_gap",
+      "expert_question": "Does the planner stop or request a corrected prediction time rather than promising an impossible pre-receipt content model?"
+    },
+    {
+      "id": "review_post_call_duration",
+      "agent": "DataScientist",
+      "method": "review",
+      "context": {
+        "config": {"project": "general", "datasets": ["bank_marketing"], "max_experiments": 2},
+        "goal": "Predict whether a customer will subscribe immediately before making a marketing call.",
+        "profiles": [{"dataset": "bank_marketing", "rows": 2000, "policy": {"decision": "Prediction before the call", "blocked": ["duration"]}, "columns": [{"name": "duration", "kind": "numeric", "blocked": true, "description": "Length of the call after it ends"}, {"name": "balance", "kind": "numeric", "blocked": false, "description": "Account balance before the call"}]}],
+        "trials": []
+      },
+      "hard_check": "flags_duration",
+      "expert_question": "Does the reviewer identify duration as post-call leakage and keep balance as a conditional availability question?"
+    },
+    {
+      "id": "designer_first_baseline",
+      "agent": "ExperimentDesigner",
+      "method": "propose",
+      "context": {
+        "config": {"project": "general", "datasets": ["bank_marketing"], "max_experiments": 2, "max_rows": 2000},
+        "goal": "Create the first transparent pre-call subscription baseline with no previous trials.",
+        "profiles": [{"dataset": "bank_marketing", "rows": 2000, "policy": {"decision": "Immediately before a marketing call", "blocked": ["duration"]}, "columns": [{"name": "duration", "kind": "numeric", "blocked": true}, {"name": "balance", "kind": "numeric", "blocked": false}, {"name": "age", "kind": "numeric", "blocked": false}]}],
+        "data_review": {"leakage_risks": ["duration is only known after the call"]},
+        "trials": [], "attempted": 0, "remaining": 2, "successful_evidence_ids": []
+      },
+      "hard_check": "valid_first_baseline",
+      "expert_question": "Is the first proposal executable, transparent and free of invented evidence or post-call inputs?"
+    },
+    {
+      "id": "critic_tradeoff_and_no_significance_claim",
+      "agent": "ResultsCritic",
+      "method": "critique",
+      "context": {
+        "config": {"project": "general", "datasets": ["bank_marketing"], "max_experiments": 2},
+        "goal": "Compare the second candidate against the first using descriptive development evidence only.",
+        "trials": [
+          {"id": "eval:trial-001", "status": "completed", "plan": {"model": "logistic_regression"}, "metrics": {"roc_auc": 0.75, "average_precision": 0.35, "brier": 0.14, "log_loss": 0.44}, "evaluation": "Repeated development CV, not independent confirmation"},
+          {"id": "eval:trial-002", "status": "completed", "plan": {"model": "random_forest"}, "metrics": {"roc_auc": 0.76, "average_precision": 0.33, "brier": 0.17, "log_loss": 0.50}, "paired_comparison": {"reference_id": "eval:trial-001", "interpretation": "Descriptive paired development folds only"}, "evaluation": "Repeated development CV, not independent confirmation"}
+        ],
+        "attempted": 2, "remaining": 0, "successful_evidence_ids": ["eval:trial-001", "eval:trial-002"]
+      },
+      "hard_check": "cites_both_and_mentions_tradeoff",
+      "expert_question": "Does the critic say AUC rose while AP and probability quality worsened, without declaring significance or production readiness?"
+    },
+    {
+      "id": "curator_failed_trial_only",
+      "agent": "KnowledgeCurator",
+      "method": "synthesize",
+      "context": {
+        "config": {"project": "general", "datasets": ["credit_default"], "max_experiments": 1},
+        "goal": "Summarize what was learned from this attempt.",
+        "profiles": [{"dataset": "credit_default", "rows": 2000}],
+        "trials": [{"id": "eval:trial-001", "status": "failed", "error": "Provider refused the request before training"}],
+        "attempted": 1, "remaining": 0, "successful_evidence_ids": []
+      },
+      "hard_check": "no_empirical_lesson_from_failure",
+      "expert_question": "Does the curator report the operational failure without inventing a model finding?"
+    }
+  ]
+}

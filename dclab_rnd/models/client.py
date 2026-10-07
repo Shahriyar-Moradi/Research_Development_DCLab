@@ -195,6 +195,18 @@ class ChatClient:
             **note,
         }
 
+    def embed(self, texts: list[str]) -> dict[str, Any]:
+        """Embeddings of the texts, in order: {"vectors": [[...]], "usage": {"input_tokens", "output_tokens": 0}}."""
+        self._ready()
+        try:
+            response = self.client.embeddings.create(model=self.model, input=list(texts))
+        except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
+            raise self._failed(exc) from None
+        usage = getattr(response, "usage", None)
+        rows = sorted(response.data, key=lambda d: getattr(d, "index", 0))
+        return {"vectors": [list(d.embedding) for d in rows],
+                "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": 0}}
+
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
         """``options`` are passed to the provider as they are (for example ``response_format`` or ``temperature``)."""
         kwargs: dict[str, Any] = {"model": self.model, "messages": messages, **self._limit(max_tokens), **options}

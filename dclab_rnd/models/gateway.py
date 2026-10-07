@@ -319,6 +319,12 @@ class Bound:
             self._shadow(snapshot, tools, max_tokens, out)
         return out
 
+    def embed(self, texts: list[str]) -> dict[str, Any]:
+        """Embeddings through the same door as every other request: routed, capped, retried and counted in the usage log."""
+        self._route()
+        messages = [{"role": "user", "content": t} for t in texts]
+        return self._call(lambda: self._transport.embed(texts), messages, can_retry=lambda: True, max_tokens=1)
+
     def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, on_text=None) -> dict[str, Any]:
         self._route()
         heard = threading.Event()

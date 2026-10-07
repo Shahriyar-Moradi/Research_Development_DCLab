@@ -279,6 +279,14 @@ def next_path(model: str) -> Path:
     return RESULTS / f"AEV-{max(numbers, default=0) + 1:03d}_{SUITE}_live_{slug}.json"
 
 
+def next_benchmark_path(split: str, model: str) -> Path:
+    from .baselines import RESULTS as BEN
+
+    numbers = [int(m.group(1)) for p in BEN.glob("BEN-*.json") if (m := re.match(r"BEN-(\d+)_", p.name))]
+    slug = re.sub(r"[^a-z0-9]+", "-", str(model or "model").lower()).strip("-")[:40]
+    return BEN / f"BEN-{max(numbers, default=0) + 1:03d}_{split}_live_{slug}.json"
+
+
 def main(argv: list[str] | None = None, gateway: Any = None) -> int:
     import argparse
 
@@ -294,13 +302,21 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
     parser.add_argument("--max-requests", type=int, help="stop before this many model requests (default: the printed upper bound)")
     parser.add_argument("--cap-eur", type=float, help="stop before the suite costs more than this (required for a priced remote model)")
     parser.add_argument("--max-steps", type=int, default=16, help="tool calls per run (default 16)")
+    parser.add_argument("--split", choices=("dev", "test"), help="run the cases of the frozen benchmark's split (14.3) instead of the judgment suite's; "
+                        "the result goes to evidence/campaigns/benchmark_v2/results, and a run on the sealed test set is always recorded")
     parser.add_argument("--output", type=Path, help="where to store the result (default: the next AEV file of the campaign)")
     args = parser.parse_args(argv)
     if gateway is None:
         gateway = for_workspace()  # the workspace usage log, its monthly cap and its routing, as the other command-line tools
         gateway.shadows = None  # benchmark traffic stays out of the shadow log and the agreement rates the Admin page shows
     wanted = {c.strip() for c in (args.cases or "").split(",") if c.strip()}
-    cases = [c for c in CASES if not wanted or c.id in wanted]
+    if args.split:
+        from . import benchmark
+
+        universe: tuple[Case, ...] = benchmark.split(args.split)
+    else:
+        universe = CASES
+    cases = [c for c in universe if not wanted or c.id in wanted]
     if wanted - {c.id for c in cases}:
         parser.error(f"unknown case(s): {', '.join(sorted(wanted - {c.id for c in cases}))}")
     if not 1 <= args.repeats <= 10:
@@ -343,7 +359,7 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
               "run_id": uuid.uuid4().hex[:12], "model": p["model"], "tier": p["tier"], "local": p["local"], "suite": SUITE,
               "question": "On the judgment suite's planted traps, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
               "started_at": started.isoformat(timespec="seconds"), "completed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-              "plan": {**p, "max_requests_cap": max_requests, "cap_eur": args.cap_eur}, "requests": live["requests"], "spent": live["spent"],
+              "plan": {**p, "max_requests_cap": max_requests, "cap_eur": args.cap_eur, "repeats": args.repeats}, "requests": live["requests"], "spent": live["spent"],
               "stopped": live["stopped"], "summary": summary, "runs": live["runs"],
               "cases": [{"id": c.id, "fingerprint": c.fingerprint()} for c in cases], "limitations": [SCOPE,
               f"{args.repeats} repeats per case: the interval is about this model's varying answers on these cases, not about other tables."]}
@@ -356,9 +372,13 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
     from dclab_rnd import prompts
 
     report["prompt_hashes"] = prompts.fingerprints()
-    path = args.output or next_path(p["model"])
+    if args.split:  # the frozen benchmark: its own campaign, its own file names, and no comparison with the judgment suite's runs
+        report.update(campaign_id=benchmark.VERSION, kind="benchmark_live", suite=f"{benchmark.VERSION}:{args.split}", split=args.split, sealed=args.split == "test",
+                      question="On the frozen benchmark's unseen cases, how often does the intern, driven by this model, keep the leak out and the clean columns in?")
+        report["limitations"].append("One repeat per case is enough for the gate (cases are the unit); a model's answers vary, so a rerun can differ.")
+    path = args.output or (next_benchmark_path(args.split, p["model"]) if args.split else next_path(p["model"]))
     try:  # A4.3: the last completed live result of this model on the same cases is the baseline; print what moved
-        base = baseline(p["model"], cases, before=path)
+        base = None if args.split else baseline(p["model"], cases, before=path)
         if base:
             then_path, then = base
             report["baseline"] = {"path": then_path.name, "same_prompts": then.get("prompt_hashes") == report["prompt_hashes"],

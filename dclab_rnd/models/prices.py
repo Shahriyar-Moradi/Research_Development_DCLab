@@ -28,6 +28,7 @@ class Price:
 PRICES: dict[str, Price] = {  # only checked prices belong here, with the date and the page they came from
     # The page gives US dollars; they are entered as euros, which overstates the euro spend by the exchange rate
     # (a dollar is worth less than a euro): a cap then stops a little early, never late.
+    "text-embedding-3-small": Price(0.02, 0.0, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
     "gpt-6-luna": Price(0.10, 0.50, "2026-10-07", "developers.openai.com/api/docs/pricing, standard tier, USD per 1M tokens entered as EUR"),
 }
 
