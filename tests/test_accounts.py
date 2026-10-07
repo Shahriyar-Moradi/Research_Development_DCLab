@@ -179,8 +179,12 @@ class AccountsTests(unittest.TestCase):
 
     def test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there(self):
         other = self.clients["owner2"]
-        draft = other.post("/api/drafts", json={"problem": "Predict which invoices are paid late"}).json()
-        deadline = time.time() + 120  # a CI runner running six test files at once is slow
+        # Through the client whose event loop stays up (entered in setUpClass), with owner2's session: the Home agent
+        # starts as a task on the request's loop, and a client that was never entered closes that loop with the response,
+        # so on a busy runner the task was cancelled before it began (as under uvicorn, the loop must outlive the request).
+        draft = self.main.post("/api/drafts", json={"problem": "Predict which invoices are paid late"}, cookies=other.cookies,
+                               headers={"X-DCLab-Token": other.headers["X-DCLab-Token"]}).json()
+        deadline = time.time() + 120
         while time.time() < deadline and not other.get(f"/api/drafts/{draft['id']}").json()["messages"]:
             time.sleep(0.2)
         state = other.get(f"/api/drafts/{draft['id']}").json()
