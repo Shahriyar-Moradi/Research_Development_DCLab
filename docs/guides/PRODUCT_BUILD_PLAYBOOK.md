@@ -130,6 +130,8 @@ How to work:
 | 8.3 | Remove the old UI at `/classic` | Done (2026-10-07) | The owner decided: drop the old UI; research campaigns stay on the command line (`python -m dclab_rnd.agentic run|resume`). An inventory of what only the old UI did: starting, pausing and resuming campaigns (now the command line; Ctrl+C pauses a run, and Compute shows a stopped run's resume command), the Knowledge view of campaign lessons (`/api/knowledge` stays for API users), and four things now built in the product with its existing components: deleting a project (Workflow page) and an intern session (Sessions tab), each with a confirm dialog; a link to the field guide `/guide` (Evidence); and each research trial's files (Compute's job detail). Removed: the `/classic` route, its 16 files in `agentic/static/{index.html,css,js}`, its entry among the public page shells, Compute's "Open in the classic UI" link and the stale Playwright script that drove the old page; the docs and texts that pointed to it now name the command line. The `/api/runs` routes stay (the Jobs page's export link, the command line's runs and API users read them); tests check that `/classic` and its files answer 404 and that the research map is on the Lab page |
 | 8.4 | Meter the euro budget | Done (built in A1.2, 10.6 and 11.x; recorded 2026-10-07) | The owner decided: model spend at a price list; compute on this machine is not billed. Every model request of the product (Home agent, intern, evidence, parsing, synthetic, explanations) goes through the gateway, which records its tokens with the project (`models/usage.py`), turns them into euros with the one price table (`models/prices.py`, or a file named by `DCLAB_PRICES_FILE`), shows the month's total on Compute and Admin, and refuses before sending a request that would pass the project's wizard budget, an intern session's cap, the workspace's `DCLAB_WORKSPACE_MONTHLY_EUR` or a person's monthly limit, saying which and what is left (the legacy research campaign's own client is stopped only once a cap is reached: `check_external`). Open: no price is configured (none is ever guessed), so until the owner adds the model's checked price to `models/prices.py` or to a JSON file named by `DCLAB_PRICES_FILE` the pages say money is not metered and euro caps cannot stop remote requests; local models cost nothing |
 
+Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file.
+
 ---
 
 ## Phase 0 — Commit and freeze demo v1
@@ -1068,3 +1070,114 @@ that the stats on screen equal the API's numbers. Run them in CI against the con
 4. **11.1** and **11.2** (the AI layer), then **11.3**.
 5. **12.1 to 12.5**, **13.1** and **13.2**; **12.6** (cloud) last.
 
+
+---
+
+# Part 3 — Prove it works
+
+**What exists, plainly.** Parts 1 and 2 built the product and its foundation, and they are tested: about 750 tests,
+the end-to-end flows on a temporary server, browser tests on 19 pages, the scripted judgment suite of 20 seeded
+cases (`make agent-eval`), and every model path once against a small local model (8.1). None of that shows that
+the agent makes good decisions on cases it has never seen, that it helps a data scientist, or that it runs for real
+users. `docs/SYSTEM_EVALUATION.md` names the four questions, and the release decision is an AND gate over them:
+
+| Question | Measured by | Package |
+|---|---|---|
+| Does the software obey its rules? | invariant violations: the tests, the validator, the audit | done (Parts 1 and 2) |
+| Is the scientific evidence internally valid? | reconstructed metrics, splits and provenance | done for the archive (`evaluation/`), kept by `make rd-check` |
+| Does the agent choose good actions? | completion and safe decisions on unseen cases | 14.3, 14.4, 14.5 |
+| Does it help a data scientist? | tasks completed, time, corrections, trust | 14.6 |
+
+A safety failure is never averaged into a good score for writing or speed. 20 seeded cases, or 579 registry
+records, are not that many independent tests of judgment.
+
+**Decided by the owner on 2026-10-07:** the next phase is this evaluation. First write Part 3, then build the frozen
+benchmark (14.3), then continue with what does not wait for the owner.
+
+| # | Package | Status |
+|---|---|---|
+| 14.1 | The owner's inputs: contracts, reviewers, tasks, model access | Open: needs the owner |
+| 14.2 | Every live check against the production model | Open: needs credit on the OpenAI account |
+| 14.3 | A frozen benchmark of 100 or more unseen cases | Open |
+| 14.4 | Expert review of the benchmark's labels | Open: needs two reviewers |
+| 14.5 | Baselines on the benchmark, with the gate written first | Open (the scripted part can run now) |
+| 14.6 | A user study: with and without DCLab | Open: needs 3–5 users |
+| 14.7 | Staging in a cloud, smoke-tested | Open: needs the owner's yes, region and account |
+| 14.8 | The policy model's gate (A6.3) | Waiting: 14.3–14.6 first, then enough opted-in projects |
+
+## 14. Evaluation
+
+### 14.1 The owner's inputs
+
+- **Delivers:** the answers in `evaluation/OWNER_INPUTS.md` turned into files: the prediction contracts for HyperAck and churn as solutions (`evaluation/contracts/*.json`, checked by `studio.solution`), the reviewers' names, two or three real tasks with a success criterion and a time budget, and the provider check.
+- **Needs:** the owner's answers. Nothing is guessed: an unanswered question stays open in the file.
+- **Done when:** each contract loads as a valid solution, and the HyperAck and churn projects can be re-run under it.
+
+```text
+Package 14.1. Read evaluation/OWNER_INPUTS.md and the owner's answers. Write each prediction contract as a
+solution file under evaluation/contracts/ (target, prediction moment, forbidden columns with reasons, time and
+group columns, metric) and check it with studio.solution. Record the reviewers, the tasks and the provider check in
+evaluation/OWNER_INPUTS.md. Leave every unanswered question visibly open; never fill one in.
+```
+
+### 14.2 Every live check against the production model
+
+- **Delivers:** `make model-paths ARGS="--configured --cap-eur 2"` (8.1 on the main model, including a workflow proposal), the five fixed specialist cases in `evaluation/live_cases_v1.json`, and `make agent-eval-live ARGS="--yes --cap-eur 2"`, each with its requests, tokens and euros.
+- **Needs:** credit on the account (8.1 found none), and the model's checked price (8.4) so the caps can stop spending.
+- **Done when:** each check has run, every provider or executor failure stays in the result (never replaced by a mock), and anything that broke has a fix and a test.
+
+```text
+Package 14.2. With the owner's yes and a cap, run make model-paths ARGS="--configured --cap-eur 2", the five live
+specialist cases and make agent-eval-live ARGS="--yes --cap-eur 2". Synthetic or public data only. Report, per
+path and case, what the model proposed and what the code accepted or refused, with requests, tokens and euros.
+Keep every failure in the record. Fix defects with a scripted-client test.
+```
+
+### 14.3 A frozen benchmark of 100 or more unseen cases
+
+- **Delivers:** `dclab_rnd/agent_eval/benchmark.py` (`make benchmark`): 100 or more cases, each a seeded table with a prediction moment, at most one planted trap, and the decisions a careful data scientist would accept (columns to keep out, columns that must stay usable, the time or group column to declare, rows that repeat). The tables come from base generators that no prompt was tuned on and from real public tables that ship with scikit-learn (no download); the traps are the families of `docs/SYSTEM_EVALUATION.md` (a post-outcome feature under a telling or a neutral name, a noisy copy of the target, an identifier in target order, the target in another unit or as a sum, a value missing exactly when the outcome happened, entity leakage across a split, a time-ordered table split at random, repeated rows) and clean controls (constant columns, honest strong drivers, informative missingness known at the start, a harmless "post" name). The cases are split into a **dev** set (about 40, for building and tuning) and a **sealed test** set (60 or more): the test set's fingerprints are committed, a test fails if one changes, and running a policy on it is recorded.
+- **Done when:** 100 or more cases (60 or more sealed), the same on every machine; the scripted policies (standard plan, audit, bad) scored on both sets, per family, with Wilson intervals; the sealed set never used to change a prompt or a rule (written in the module and checked by a test that the dev and test seeds do not overlap).
+
+```text
+Package 14.3. Build a frozen benchmark next to the judgment suite (dclab_rnd/agent_eval). Generate 100 or more
+cases from seeded base tables: new generators (claims, loans, readmissions, demand, sensors, subscriptions) and
+the scikit-learn tables that ship with the library (no download). Plant at most one trap per case from the families
+in docs/SYSTEM_EVALUATION.md, and include clean controls. Each case states its prediction moment and the decisions
+that are acceptable. Split into dev and a sealed test set; commit the test fingerprints; a test fails when a case
+changes. Score the scripted policies with the existing score() on both sets, per family, with Wilson intervals,
+and store the result as evidence. Never tune a prompt or a rule on the sealed set.
+```
+
+### 14.4 Expert review of the benchmark's labels
+
+- **Delivers:** two reviewers label a sample of cases (dev and test) without seeing the expected decisions; the agreement rate between them and with the benchmark; labels corrected on dev; the sealed set frozen after review (a new version if a test label changes, never an edit).
+- **Done when:** the sample is reviewed, disagreements are resolved and recorded, and the benchmark's version says which labels were reviewed.
+
+### 14.5 Baselines on the benchmark, with the gate written first
+
+- **Delivers:** the thresholds of the AND gate written before any run (for example: no unsafe move; leaks kept out on at least 90% of leakage cases with the lower 95% bound above 80%; false alarms on at most 10% of controls); then the standard plan, the audit reference, a prompted base model and the current agent run on the sealed set with identical tools and budgets.
+- **Done when:** a result per policy and family with intervals, every failure kept, the gate's verdict stated as evidence about these policies on these cases, never as a production claim.
+
+### 14.6 A user study: with and without DCLab
+
+- **Delivers:** a protocol (the tasks from 14.1, consent, what is recorded), a harness that times each task and records corrections without keeping cell values, and an analysis script: tasks completed, time, correction time, citation correctness and severe false alarms, with and without the assistant.
+- **Needs:** 3–5 data scientists; the tasks from 14.1.
+- **Done when:** the protocol is approved by the owner, the harness is tested, and the first sessions are recorded.
+
+### 14.7 Staging in a cloud, smoke-tested
+
+- **Delivers:** `tofu plan` for the chosen cloud's staging (12.6) with a cost estimate; after the owner's yes, `apply`; then `make product-e2e` and the browser tests (13.2) against the staging address, and a backup and restore drill (12.5).
+- **Needs:** the region, the account, a domain, and the owner's explicit yes before any apply.
+- **Done when:** staging passes the flows and the browser tests, and the plan, the cost and the drill are recorded. Production is a separate yes.
+
+### 14.8 The policy model's gate (A6.3)
+
+- **Delivers:** nothing is trained until 14.3–14.6 have results and A6.2's threshold is met (50 distinct trajectories from 10 opted-in projects); the sealed benchmark never enters a training set.
+- **Done when:** the owner approves the compute and the cost, and the trained model is scored on the sealed set against the 14.5 baselines.
+
+## Suggested order for Part 3
+
+1. **14.1** (the owner) and **14.3** (now), side by side.
+2. **14.5** with the scripted policies, then **14.4** (the reviewers).
+3. **14.2** when there is credit, then **14.5** with the live models.
+4. **14.6**, then **14.7**; **14.8** last.
