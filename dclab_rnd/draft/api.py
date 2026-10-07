@@ -75,10 +75,20 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     def agent(draft_id: str | None = None) -> HomeAgent:
         return work_now().agent(draft_id)
 
+    def drafts_exists(draft_id: str) -> bool:
+        try:
+            drafts.get(draft_id)
+            return True
+        except Exception:  # noqa: BLE001
+            return False
+
     def background(key: str, fn, *args) -> None:
         async def go():
             try:
                 await asyncio.to_thread(fn, *args)
+            except (KeyError, FileNotFoundError):  # the draft was deleted while this ran: nothing left to do
+                if drafts_exists(key.split(":")[0]):
+                    raise
             finally:
                 jobs.pop(key, None)
         task = asyncio.get_running_loop().create_task(go())
@@ -134,19 +144,24 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.delete("/api/drafts/{draft_id}", status_code=204, response_class=Response)
     async def delete_draft(draft_id: str):
-        get(draft_id)
+        draft = get(draft_id)
         from ..storage.files import files_for
         try:
             files = files_for(drafts)
             prefix = files.key_of(drafts.data_dir(draft_id).parent)
         except Exception:  # noqa: BLE001 — a draft is always deletable
             files = prefix = None
-        drafts.delete(draft_id)
+        await asyncio.to_thread(drafts.delete, draft_id)  # it waits for a write in progress: never on the event loop
+        forgotten: list[str] = []
         if files is not None:
             try:
-                files.forget(prefix)  # the records of its files go with it (package 9.3)
+                forgotten = files.forget(prefix)  # the records of its files go with it (package 9.3)
             except Exception:  # noqa: BLE001
                 pass
+        from .. import audit  # the draft and its files are gone; who deleted it stays (package 12.5)
+
+        audit.record_for(drafts, "deletion", "human", draft_id=draft_id, move="delete_draft", status="allowed",
+                         assets=len(draft.get("assets") or []), project_id=draft.get("project_id"), files=len(forgotten))
         try:
             if traces is not None:
                 traces.delete(draft_id)

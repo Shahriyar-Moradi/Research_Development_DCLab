@@ -24,19 +24,20 @@ STEPS = ("structuring", "cleaning", "analysing")
 def new_asset(store: DraftStore, draft_id: str, kind: str, name: str, filename: str, actor: str = "human", **extra: Any) -> dict[str, Any]:
     """A new asset, queued for the pipeline, and its import in the audit (source and SHA-256; it reads the whole file,
     so an async route calls this in a thread)."""
+    from .. import audit
+
+    source = extra.get("source") if isinstance(extra.get("source"), dict) else {}
+    raw_sha = source.get("sha256") or audit.sha256_of(store.data_dir(draft_id) / filename)
     asset = {"id": "a" + secrets.token_hex(4), "kind": kind, "name": name, "filename": filename, "status": "queued",
-             "added": now(), "synthetic": bool(extra.pop("synthetic", False)), **extra}
+             "added": now(), "synthetic": bool(extra.pop("synthetic", False)), "raw_sha256": raw_sha, **extra}
 
     def add(d):
         d["assets"].append(asset)
     store.update(draft_id, add)
     store.emit(draft_id, "pipeline", {"asset": asset, "step": "queued", "text": f"Received {name}"})
-    from .. import audit
-
-    source = asset.get("source") if isinstance(asset.get("source"), dict) else {}
     audit.record_for(store, "data_import", actor, "Home agent" if actor == "agent" else None, draft_id=draft_id,
                      move="add_asset", status="allowed", source={"kind": kind, **{k: v for k, v in source.items() if k != "sha256"}},
-                     filename=filename, sha256=source.get("sha256") or audit.sha256_of(store.data_dir(draft_id) / filename),
+                     filename=filename, sha256=raw_sha,
                      synthetic=asset["synthetic"], bytes=asset.get("bytes"))
     return asset
 

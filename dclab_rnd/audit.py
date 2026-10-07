@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any, Iterable, Protocol
 
 KINDS = ("move", "approval", "approval_used", "policy", "routing", "solution", "data_import", "lesson_review", "memory_removed",
-         "sign_in", "role_change")
+         "sign_in", "role_change", "deletion", "retention")
 FILTERS = ("kind", "status", "actor", "project_id", "draft_id")
 
 

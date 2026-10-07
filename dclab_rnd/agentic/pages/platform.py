@@ -309,6 +309,20 @@ def _spend() -> dict[str, Any]:
                      + " GPU jobs are not switched on.")}
 
 
+def _retention() -> dict[str, Any]:
+    """The retention rule as the privacy list states it (package 12.5): what DCLAB_RETENTION_RAW_DAYS does, and that it is off."""
+    from ... import retention
+
+    days = retention.raw_days()
+    if days is None:
+        return {"title": "Retention", "on": False, "text": "No timed retention: raw uploads stay until their draft is deleted "
+                "(DCLAB_RETENTION_RAW_DAYS turns it on). Deleting a project or a draft removes its files and leaves an audit entry."}
+    return {"title": "Retention", "on": True, "text": f"A draft's raw upload is deleted {days} day{'s' if days != 1 else ''} after it became a cleaned "
+            "table; the cleaned table, its SHA-256 and every record stay, and each deletion is in the audit. An upload that failed "
+            "to process is kept until its draft is deleted (a retry needs it). Deleting a project or a draft removes its files and "
+            "leaves an audit entry."}
+
+
 def limits(projects) -> dict[str, Any]:
     cfg = model_settings.public("standard")  # the gateway's default tier; GET /api/models lists every tier and purpose
     return {
@@ -332,7 +346,7 @@ def limits(projects) -> dict[str, Any]:
                "model to work out the format, the data step says when that happened, and DCLAB_MODEL_READS_SAMPLE_LINES=0 turns it off; "
                "the intern gets its tool results, and describe_data includes up to three example values per column."},
             {"title": "Scan uploads for personal data", "on": False, "text": "Not built yet: uploads are not scanned for personal data."},
-            {"title": "Retention", "on": False, "text": "No timed retention: raw uploads stay until their project or draft is deleted."},
+            _retention(),
             {"title": "Training the policy model on your projects", "on": False,
              "text": "Off for every project until its owner opts it in (the Policy model page; settings.share_for_training). Nothing is collected "
                      "automatically: trajectory records leave only opted-in projects, and only when exported (python -m dclab_rnd.studio.sft --trajectories), "
@@ -400,7 +414,7 @@ def register(app, ctx) -> None:
 
         if limit < 1 or limit > 500 or offset < 0:
             raise HTTPException(422, "limit is 1 to 500 and offset is 0 or more")
-        for name, value, allowed in (("kind", kind, audit.KINDS), ("status", status, STATUSES), ("actor", actor, ("human", "agent"))):
+        for name, value, allowed in (("kind", kind, audit.KINDS), ("status", status, STATUSES), ("actor", actor, ("human", "agent", "system"))):
             if value not in (None, "") and value not in allowed:
                 raise HTTPException(422, f"{name} is one of {', '.join(allowed)}")
         if project not in (None, "") and not re.fullmatch(r"[0-9a-zA-Z_-]{1,64}", project):

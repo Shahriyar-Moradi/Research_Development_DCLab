@@ -94,6 +94,12 @@ dev:  ## local development on PostgreSQL: checks the server, creates and migrate
 db-reset:  ## a clean development database (drops and recreates dclab_dev; needs CONFIRM=yes)
 	$(PYTHON) scripts/dev.py db-reset $(if $(filter yes,$(CONFIRM)),--yes,)
 
+backup:  ## the database (pg_dump) and the workspace folder into backups/<time>/, with a manifest of counts and hashes (TO=DIR)
+	$(PYTHON) -m dclab_rnd.storage backup --to $(or $(TO),backups)
+
+restore:  ## a backup into a new, empty database (DCLAB_DATABASE_URL) and folder: make restore FROM=backups/<time> HOME_DIR=DIR
+	$(PYTHON) -m dclab_rnd.storage restore $(FROM) --home $(HOME_DIR)
+
 test-db:  ## create and migrate the database the tests use (dclab_test)
 	$(PYTHON) scripts/dev.py test-db
 

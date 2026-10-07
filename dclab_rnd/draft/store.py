@@ -53,7 +53,7 @@ class DraftStore:
 
     def data_dir(self, draft_id: str) -> Path:
         path = self.directory(draft_id) / "data"
-        path.mkdir(parents=True, exist_ok=True)
+        path.mkdir(exist_ok=True)  # not parents: a deleted draft's folder is never made again by a late writer
         return path
 
     def lock(self, draft_id: str) -> threading.Lock:
@@ -111,7 +111,9 @@ class DraftStore:
     def delete(self, draft_id: str) -> None:
         import shutil
 
-        shutil.rmtree(self.directory(draft_id), ignore_errors=True)
+        # under the draft's locks: an update already reading it (its agent starting) cannot write it back after this
+        with self.lock(draft_id), self.lock(draft_id + ":events"):
+            shutil.rmtree(self.directory(draft_id), ignore_errors=True)
 
     # ------------------------------------------------------------------ events
     def emit(self, draft_id: str, kind: str, data: dict[str, Any] | None = None) -> dict[str, Any]:

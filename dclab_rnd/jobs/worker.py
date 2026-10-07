@@ -159,7 +159,7 @@ class Worker:
             self._started, self.stopping = True, False
             self._halt, self._wake = threading.Event(), threading.Event()
         self.recover()
-        loops = [(self._keep, "dclab-job-heartbeat")] + ([(self._loop, "dclab-job-dispatch")] if self.threads > 0 else [])
+        loops = [(self._keep, "dclab-job-heartbeat"), (self._retain, "dclab-retention")] + ([(self._loop, "dclab-job-dispatch")] if self.threads > 0 else [])
         for target, name in loops:
             threading.Thread(target=target, args=(self._halt,), name=name, daemon=True).start()
         return self
@@ -267,6 +267,17 @@ class Worker:
                     last_recovery = time.monotonic()
                     self.recover()
             except Exception:  # noqa: BLE001 — the next beat tries again
+                traceback.print_exc()
+
+    def _retain(self, halt: threading.Event) -> None:
+        """Raw uploads past DCLAB_RETENTION_RAW_DAYS (package 12.5): on a thread of its own, so a long sweep never delays a heartbeat."""
+        from .. import retention
+
+        state: dict[str, float] = {}
+        while not halt.wait(60):
+            try:
+                retention.sweep_due(self.env, state, time.monotonic())
+            except Exception:  # noqa: BLE001 — the next hour tries again
                 traceback.print_exc()
 
     def recover(self) -> list[dict[str, Any]]:

@@ -294,6 +294,11 @@ class LocalFiles:
         self._remove(key)
         self.records.delete(check_key(key))
 
+    def forget_one(self, key: str) -> None:
+        """The record and a bucket's copy of a file whose local copy the caller removed itself (retention, 12.5)."""
+        self._remove(key)
+        self.records.delete(check_key(key))
+
     def _remove(self, key: str) -> None:
         pass
 

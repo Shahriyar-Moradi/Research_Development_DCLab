@@ -95,7 +95,7 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
 @router.delete("/api/projects/{project_id}", status_code=204, response_class=Response)
 async def delete_project(project_id: str, s: Services = Depends(services)):
     projects = s.projects
-    s.project(project_id)
+    project = s.project(project_id)
     if project_id in s.jobs and not s.jobs[project_id].done():
         raise HTTPException(409, "Stop the running stage first")
     from ...storage.files import files_for
@@ -105,12 +105,17 @@ async def delete_project(project_id: str, s: Services = Depends(services)):
         prefix = files.key_of(projects.data_dir(project_id).parent)
     except Exception:  # noqa: BLE001 — a project is always deletable; its file records then stay (they point at nothing)
         files = prefix = None
+    data = project.get("data") or {}
     projects.delete(project_id)
+    forgotten: list[str] = []
     if files is not None:
         try:
-            files.forget(prefix)  # the records of its files go with it
+            forgotten = files.forget(prefix)  # the records of its files go with it
         except Exception:  # noqa: BLE001
             pass
+    # the project and its files are gone; who deleted it, and which table it held, stay (package 12.5)
+    audit.record(s.audit, "deletion", "human", project={"id": project_id, "name": project.get("name")}, move="delete_project", status="allowed",
+                 filename=data.get("filename"), sha256=data.get("sha256"), files=len(forgotten))
     return Response(status_code=204)
 
 
