@@ -49,6 +49,29 @@ class PackTests(unittest.TestCase):
         d = pack.detect("Predict churn")
         self.assertEqual((d["key"], d["source"]), ("tabular", "default"))
 
+    def test_a_small_typo_in_a_pack_word_is_still_read(self):
+        """A user typed "fruad deetction" and got the generic tabular pack: the keywords wanted exact words."""
+        d = pack.detect("i want a classification for fruad deetction and prediction")
+        self.assertEqual(d["key"], "imbalanced")
+        self.assertIn("fruad", " ".join(d["signals"]))  # the reason says what was typed and what it was read as
+        self.assertIn("fraud", " ".join(d["signals"]))
+        self.assertEqual(pack.detect("forcast daily demnad")["key"], "timeseries")
+        # short words and unrelated words are left alone
+        self.assertEqual(pack.detect("Predict which care plans are rare")["key"], "imbalanced")  # "rare" is exact
+        self.assertEqual(pack.detect("Predict which customers cancel their subscription")["key"], "tabular")
+        self.assertEqual(pack.detect("Predict the fraudster")["key"], "imbalanced")  # exact words are not touched
+
+    def test_every_pack_has_its_own_opening_question(self):
+        seen = set()
+        for p in pack.PACKS:
+            q = pack.opening_question(p["key"])
+            self.assertTrue(q.endswith("?"), p["key"])
+            self.assertNotIn("customer leave", q, p["key"])
+            seen.add(q)
+        self.assertEqual(len(seen), len(pack.PACKS))  # no two packs share a question
+        self.assertEqual(pack.opening_question("nonsense"), pack.opening_question("tabular"))
+        self.assertEqual(pack.opening_question(None), pack.opening_question("tabular"))
+
     def test_a_horizon_alone_does_not_make_a_classification_a_time_series(self):
         for sentence in ("Predict which subscribers will cancel next month so support can call them first.",
                          "Rank telecom customers by their risk of leaving next month", "Who will renew their plan next year?",
@@ -101,6 +124,21 @@ class ScriptedClient:
 class AgentTests(unittest.TestCase):
     def setUp(self):
         self.store = DraftStore(Path(tempfile.mkdtemp()))
+
+    def test_the_first_question_fits_the_pack_the_problem_was_read_as(self):
+        asked = {}
+        for sentence in ("Find card fraud at authorization time", "Forecast daily demand per store", "Classify support tickets by topic"):
+            agent = HomeAgent(self.store, None)
+            d = self.store.create(sentence)
+            agent.start(d["id"])
+            d = self.store.get(d["id"])
+            asked[d["pack"]["key"]] = d["questions"][0]["text"]
+        self.assertEqual(set(asked), {"imbalanced", "timeseries", "text"})
+        self.assertEqual(asked["imbalanced"], pack.opening_question("imbalanced"))
+        self.assertIn("fraud", asked["imbalanced"].lower())
+        self.assertIn("ahead", asked["timeseries"].lower())
+        for question in asked.values():
+            self.assertNotIn("customer leave", question)  # the churn example was the same for every problem
 
     def test_script_asks_few_questions_then_summarises(self):
         requests = []

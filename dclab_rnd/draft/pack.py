@@ -43,8 +43,62 @@ HORIZON = r"\b(next (day|week|month|quarter|year)|tomorrow|daily|weekly|hourly)"
 WHICH_ONES = r"\b(which|who|whether)\b|\b(churn|cancel|leav(e|es|ing)|convert|respond|defaults?|renew)"
 
 
+# The first question Home asks, per pack: what the outcome is, in the words of that kind of problem. The examples are
+# of the pack's own kind, so a fraud problem is never asked about a customer who leaves.
+OPENING: dict[str, str] = {
+    "tabular": "What exactly should the model predict, and for which rows (customers, orders, machines)? Name the outcome and its time window if it has one, "
+               "for example: which loans default within 12 months?",
+    "imbalanced": "What is the rare event the model should flag (for example a fraudulent payment, a chargeback or a default), what is scored (a transaction, "
+                  "an account, a claim), and how long after it happens is the true label known?",
+    "timeseries": "What quantity should be forecast, for which unit (a store, a product, a region), and how far ahead, for example daily demand per store, "
+                  "7 days ahead?",
+    "text": "What should the model predict from the text (for example a ticket's topic, or whether a review is negative), and which structured fields "
+            "come with each text?",
+    "vision": "What should the model find or classify in the images (for example defects or pedestrians), and what is one case: a whole image, a frame or a region?",
+    "driving": "What should the model perceive or decide (for example detect pedestrians or predict a lane change), in which conditions (road type, weather, speed), "
+               "and is one case a frame or a whole trip?",
+    "maps": "What should be predicted on the road network (for example the speed or flow of each segment), and how far ahead?",
+    "scenegraph": "Which objects, relations or events should the model recognise in the video, and over what stretch of time (a frame, a clip)?",
+    "llm": "What should the fine-tuned model do (the task and the shape of its answer), and what examples do you already have for it?",
+}
+
+
+def opening_question(key: str | None) -> str:
+    return OPENING.get(key or "", OPENING["tabular"])
+
+
 def by_key(key: str | None) -> dict[str, Any] | None:
     return next((p for p in PACKS if p["key"] == key), None)
+
+
+def _one_edit(a: str, b: str) -> bool:
+    """Words a typist could have mixed up: one letter wrong, missing or extra, or two neighbours swapped."""
+    if a == b or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        wrong = [i for i in range(len(a)) if a[i] != b[i]]
+        return len(wrong) == 1 or (len(wrong) == 2 and wrong[1] == wrong[0] + 1 and a[wrong[0]] == b[wrong[1]] and a[wrong[1]] == b[wrong[0]])
+    short, long = sorted((a, b), key=len)
+    return any(long[:i] + long[i + 1:] == short for i in range(len(long)))
+
+
+_VOCABULARY = sorted({w for _, pattern in KEYWORDS for w in re.findall(r"[a-z]{5,}", pattern)})
+
+
+def _typos(text: str) -> tuple[str, list[tuple[str, str]]]:
+    """Read a word that is one slip away from a keyword (fruad, forcast) as the keyword. Only words of five letters or
+    more with the same first letter, and only when the sentence matched no keyword as typed."""
+    fixed: list[tuple[str, str]] = []
+
+    def swap(found: re.Match) -> str:
+        word = found.group(0)
+        if len(word) >= 5:
+            for known in _VOCABULARY:
+                if word[0] == known[0] and _one_edit(word, known):
+                    fixed.append((word, known))
+                    return known
+        return word
+    return re.sub(r"[a-z]+", swap, text), fixed
 
 
 def detect(problem: str, analysis: dict[str, Any] | None = None, chosen: str | None = None) -> dict[str, Any]:
@@ -54,9 +108,17 @@ def detect(problem: str, analysis: dict[str, Any] | None = None, chosen: str | N
     text = (problem or "").lower()
     signals: list[str] = []
     from_text = next((key for key, pattern in KEYWORDS if re.search(pattern, text)), None)
+    if not from_text:  # a typo in a keyword ("fruad") is read as the keyword, and the reason says so
+        corrected, fixed = _typos(text)
+        from_text = next((key for key, pattern in KEYWORDS if re.search(pattern, corrected)), None)
+        if from_text:
+            text = corrected
+            typed = dict((known, wrong) for wrong, known in fixed)
+    else:
+        typed = {}
     if from_text:
         word = re.search(dict(KEYWORDS)[from_text], text).group(0).strip()
-        signals.append(f'the problem mentions "{word}"')
+        signals.append(f'the problem mentions "{word}"' + (f' (typed "{typed[word]}")' if word in typed else ""))
     elif re.search(HORIZON, text) and not re.search(WHICH_ONES, text):
         from_text = "timeseries"
         signals.append(f'the problem mentions "{re.search(HORIZON, text).group(0).strip()}"')

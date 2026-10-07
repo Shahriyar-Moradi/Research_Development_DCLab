@@ -375,8 +375,7 @@ class HomeAgent:
                     return ("target", "Which column is the outcome the model should predict?", candidates[:OPTION_COUNT] + ["Something else"],
                             "The outcome decides the task, the metric and which columns could leak it.")
                 if not has_data or opening:
-                    return ("target", "What exactly should the model predict, and for whom? For example: will this customer leave in the next 30 days?",
-                            [], "Everything else follows from the outcome.")
+                    return ("target", packs.opening_question(key), [], "Everything else follows from the outcome.")
                 continue  # a table without an outcome-like column: ask the rest first
             if field == "prediction_moment":
                 return ("prediction_moment", "When is the prediction made, and what is already known at that moment?", moment_options(key),
