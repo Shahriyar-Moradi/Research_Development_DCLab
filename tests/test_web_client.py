@@ -100,6 +100,17 @@ console.log(JSON.stringify(out));
         self.assertEqual(out["unknown"], "DC.client.opsJobs has no query parameter lmit")
 
 
+class BrowserTestsTests(unittest.TestCase):
+    def test_the_browser_tests_visit_every_page_the_app_has(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import browser_e2e
+
+        from dclab_rnd.agentic.web import build
+
+        self.assertEqual(browser_e2e.VIEWS, build.VIEWS)  # a new page is checked for errors and for 375 px too (13.2)
+        self.assertEqual(set(browser_e2e.CHECKS), {"flow", "stats", "pages", "mobile"})
+
+
 class StatesTests(unittest.TestCase):
     def test_pages_share_one_way_to_say_loading_empty_and_failed(self):
         core = (SRC / "core.js").read_text(encoding="utf-8")

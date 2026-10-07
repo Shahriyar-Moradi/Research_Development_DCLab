@@ -237,14 +237,20 @@ DC.view('compute', {
       return d.totals.running + d.totals.queued > 0;
     }
     this.load = load;
-    // Loads now, then every 2.5 s while a job runs or waits and the page is open.
+    // Loads now, then every 2.5 s while a job runs or waits and the page is open. The promise ends with the first load,
+    // so the page's own load is tracked (13.1: Loading… and a failed read) and a test waits for it (13.2).
     this.watch = () => {
       if (S.stop) S.stop();
-      S.stop = DC.poll(async () => DC.state.view !== 'compute' || !(await load()), 2500);
+      let firstDone;
+      const first = new Promise(resolve => { firstDone = resolve; });
+      S.stop = DC.poll(async () => {
+        try { return DC.state.view !== 'compute' || !(await load()); } finally { firstDone(); }
+      }, 2500);
+      return first;
     };
   },
   enter() {
-    this.watch();
+    return this.watch();
   },
 });
 </script>

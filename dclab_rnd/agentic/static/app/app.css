@@ -183,6 +183,7 @@ h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
 p { margin: 0; }
 ul, ol { margin: 0; padding-left: 18px; }
 code, kbd, .mono { font-family: var(--font-mono); font-size: .9em; }
+.panel-foot code { overflow-wrap: anywhere; }  /* a long path in a footnote breaks instead of pushing a phone screen sideways (13.2) */
 kbd {
   border: 1px solid var(--line-2);
   border-radius: 5px;

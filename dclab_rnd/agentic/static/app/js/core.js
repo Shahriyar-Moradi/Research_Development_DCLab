@@ -1161,7 +1161,7 @@
     });
   }
 
-  window.DC = { states, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
+  window.DC = { states, loading, showSignIn, explanation, synthetic, loadRecords, setNavCount, currentProject, markSample, connectors, setProjectLabel, graph, api, stream, poll, config, applyDataStyles, selectPane, reveal, $, $$, esc, fmt, pct, int, icon, chip, chips, linkIds, openRecord, toast, drawer, modal, charts, binormal, Phi, PhiInv, highlightPy, codeBlock, view, hydrate, Decisions, decideButtons, FEATURES, FMAP, STATUS_LABEL, RECORDS, REC, state, setRole, setBlueprint, startTour, applyBlueprintAttrs, copyText, TYPE_LABEL, TYPE_CLS };
   const start = () => config().catch(() => null).then(boot);  // the server says first whether someone must sign in
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else setTimeout(start, 0);
 })();

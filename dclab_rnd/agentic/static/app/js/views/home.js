@@ -35,6 +35,8 @@ DC.view('home', {
             <div class="li-main"><span class="li-title">${esc(n.title)}</span><span class="li-sub">${esc(n.sub || '')}</span><span class="row"><span class="pill warn">${n.kind === 'question' ? 'Question' : 'Solution'}</span><span class="tag">${esc(n.tag)}</span></span></div></a>`).join('')
           : '<div class="empty">Nothing waits for you. Start from one sentence above.</div>';
       }
+      const count = $(`.ptab[data-ptab="projects"] .n`, el);
+      if (count) count.textContent = ws.projects.length;  // the sample's count goes, also when there is no project yet
       if (ws.projects.length) {
         const pane = $('[data-pane="projects"]', el);
         $('#home-projects tbody', el).innerHTML = ws.projects.map(p => `

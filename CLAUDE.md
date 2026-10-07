@@ -36,6 +36,7 @@ make test-pg          # the whole suite on PostgreSQL (the local dclab_test data
 make agent-eval       # the scripted judgment suite: planted traps, the standard plan and reference policies (stores an AEV result)
 make agent-eval-live  # the same suite with the configured model: prints the plan; ARGS="--yes --cap-eur 2" runs it with caps and repeats
 make product-e2e      # the product's main flows on a temporary server (upload, no data, synthetic, log file; ~90 s, no model)
+make browser-test     # Chromium drives the real page: Home, the wizard, a run, the brief, stats against the API, 19 pages at 1280 and 375 px (pip install -r requirements/browser.txt; CI runs it on the container)
 python -m dclab_rnd.copilot review NOTEBOOK.ipynb   # methodology review of a notebook
 ```
 

@@ -1,4 +1,4 @@
-.PHONY: help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -190,12 +190,16 @@ test-pg:  ## the whole suite on PostgreSQL, in parallel: needs the local databas
 
 # Tests and the end-to-end flows never reach a live model, whatever .env configures (dclab_rnd/models/gateway.py)
 test test-serial rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
+browser-test: export DCLAB_NO_LIVE_MODELS = 1
 
 check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows
 	$(MAKE) rd-check
 	$(MAKE) test-pg
 	@if [ -x $(AGENT_PYTHON) ]; then $(TEST_TMP) $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi
 	$(MAKE) product-e2e
+
+browser-test:  ## Chromium drives the real page on a temporary server: Home, the wizard, a run, the brief; 19 pages at 1280 and 375 px (pip install -r requirements/browser.txt)
+	$(TEST_TMP) $(PYTHON) scripts/browser_e2e.py
 
 product-e2e:  ## run the product's main flows end to end on a temporary server (upload, no data, synthetic, log file; ~3 min, no model)
 	$(TEST_TMP) $(PYTHON) scripts/product_e2e.py

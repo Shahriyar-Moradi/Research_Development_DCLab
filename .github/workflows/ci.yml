@@ -64,7 +64,7 @@ jobs:
         run: make scan-secrets
 
   containers:
-    name: The product in containers (make up) passes the end-to-end flows
+    name: The product in containers (make up) passes the end-to-end flows and the browser tests
     needs: check
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -75,6 +75,21 @@ jobs:
         run: docker compose up -d --build --wait
       - name: The end-to-end flows against the containers
         run: python3 scripts/product_e2e.py --base http://127.0.0.1:8765
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Browser tests against the containers (Chromium drives the real page; package 13.2)
+        run: |
+          python -m pip install -r requirements/browser.txt
+          python -m playwright install --with-deps chromium
+          python scripts/browser_e2e.py --base http://127.0.0.1:8765 --out /tmp/browser
+      - name: The browser tests' screenshots, when one failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-screenshots
+          path: /tmp/browser
+          if-no-files-found: ignore
       - name: The image holds no secret
         run: |
           docker create --name scan dclab:local
