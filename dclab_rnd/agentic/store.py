@@ -1,5 +1,6 @@
 """Local append-only event/evidence ledger and small mutable run index."""
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,7 +16,10 @@ class Store:
     def __init__(self, home: Path):
         self.home = home
         home.mkdir(parents=True, exist_ok=True)
-        self.path = home / "research.sqlite3"
+        # DCLAB_RESEARCH_DB: on a shared network folder (a cloud's workspace), SQLite's WAL is not safe; the cloud keeps
+        # this file on each instance's own disk (12.6). It holds the legacy research campaign's runs only.
+        self.path = Path(os.environ["DCLAB_RESEARCH_DB"]) if os.environ.get("DCLAB_RESEARCH_DB") else home / "research.sqlite3"
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             db.executescript("""
               PRAGMA journal_mode=WAL;

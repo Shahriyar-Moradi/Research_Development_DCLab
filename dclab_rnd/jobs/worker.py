@@ -145,6 +145,7 @@ class Worker:
         self.stale = float(stale if stale is not None else os.environ.get("DCLAB_JOB_STALE_SECONDS") or 120)
         self.id = f"{socket.gethostname()}:{os.getpid()}:{secrets.token_hex(3)}"
         self.stopping = False
+        self.draining = False  # claims nothing new; finishes what it runs (a cloud deployment replacing it: 12.6)
         self.running: dict[str, Control] = {}
         self._wake, self._halt = threading.Event(), threading.Event()
         self._started = False
@@ -186,7 +187,7 @@ class Worker:
         while not halt.is_set():
             job = None
             self._wake.clear()  # before claiming: a job queued from now on wakes the wait below
-            if self._busy() < self.threads:
+            if self._busy() < self.threads and not self.draining:
                 try:
                     job = self.store.claim(self.id)
                 except Exception:  # noqa: BLE001 — a database that is briefly away: try again on the next poll
@@ -196,6 +197,14 @@ class Worker:
                 continue
             self._mine.add(job["id"])
             threading.Thread(target=self._run_claimed, args=(job,), name=f"dclab-job-{job['kind']}", daemon=True).start()
+
+    def drain(self) -> None:
+        """Claim nothing more; the jobs already running finish (another worker, a newer version, takes the queue)."""
+        self.draining = True
+
+    def has_work(self) -> bool:
+        """A job claimed (even one whose thread has not started yet) or running here."""
+        return bool(self._mine or self.running)
 
     def _busy(self) -> int:
         return len(self._mine)

@@ -41,6 +41,23 @@ class ObserveTests(unittest.TestCase):
             down = self.client.get("/readyz")
         self.assertEqual((down.status_code, down.json()["checks"]), (503, {"database": "failed", "files": "ok"}))
 
+    def test_a_load_balancer_probing_by_ip_reaches_the_probes_and_nothing_else(self):
+        from fastapi.testclient import TestClient
+
+        from dclab_rnd.agentic.server import create_app
+
+        sys.path.insert(0, str(ROOT / "tests"))
+        import pgtest
+
+        url = pgtest.require()  # sign-in (required with a public host name) needs PostgreSQL
+        with mock.patch.dict(os.environ, {"DCLAB_ALLOWED_HOSTS": "dclab.example.com", "DCLAB_AUTH": "password", "DCLAB_DATABASE_URL": url}), \
+                TestClient(create_app(Path(tempfile.mkdtemp()))) as client:
+            probe = {"Host": "10.40.10.7:8765"}  # how an ALB health check addresses a task
+            self.assertEqual(client.get("/healthz", headers=probe).status_code, 200)
+            self.assertIn(client.get("/readyz", headers=probe).status_code, (200, 503))
+            self.assertEqual(client.get("/api/config", headers=probe).status_code, 400)  # everything else still checks the name
+            self.assertIn(client.post("/healthz", headers=probe).status_code, (400, 403))  # only a GET or HEAD probe passes
+
     def test_a_request_id_and_one_log_line_with_the_route_never_its_values(self):
         from dclab_rnd import observe
 

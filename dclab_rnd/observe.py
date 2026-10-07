@@ -126,6 +126,13 @@ class Metrics:
             self._values[key] = self._values.get(key, 0.0) + amount
             self._about.setdefault(family, (mtype, about))
 
+    def set(self, name: str, value: float, about: str = "", **labels: Any) -> None:
+        """A gauge: the value now, not a sum (the queue's length)."""
+        key = (name, tuple(sorted((k, str(v)) for k, v in labels.items())))
+        with self._lock:
+            self._values[key] = float(value)
+            self._about.setdefault(name, ("gauge", about))
+
     def value(self, name: str, **labels: Any) -> float:
         with self._lock:
             return self._values.get((name, tuple(sorted((k, str(v)) for k, v in labels.items()))), 0.0)

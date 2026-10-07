@@ -33,6 +33,19 @@ from . import pages
 from ..draft import api as draft_api
 
 load_dotenv(ROOT / ".env", override=False)
+
+
+class HostCheck(TrustedHostMiddleware):
+    """The host check (12.2), except for the health probes: a cloud's load balancer probes each instance by its IP
+    address (12.6), and /healthz and /readyz say only "ok" or which check failed, never data."""
+
+    PROBES = ("/healthz", "/readyz")
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path") in self.PROBES and scope.get("method") in ("GET", "HEAD"):
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
 STATIC = ROOT / "dclab_rnd" / "agentic" / "static"
 # No inline scripts or styles anywhere, and nothing is loaded from outside this app: the fonts are served from /static/app/fonts.
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
@@ -73,7 +86,7 @@ def create_app(home=None) -> FastAPI:
     # with accounts on, the schema and the docs pages are not served: they are FastAPI's own routes, outside the role check
     docs = {} if settings.auth == "none" else {"openapi_url": None, "docs_url": None, "redoc_url": None}
     app = FastAPI(title="DCLab notebook", lifespan=lifespan, **docs)
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.hosts())  # DCLAB_ALLOWED_HOSTS adds a proxy's name (12.2)
+    app.add_middleware(HostCheck, allowed_hosts=settings.hosts())  # DCLAB_ALLOWED_HOSTS adds a proxy's name (12.2)
     app.state.services = s
     app.state.pool = pool
     app.state.settings = settings

@@ -74,10 +74,21 @@ def _config(url: str):
     return config
 
 
+MIGRATION_LOCK = 0x44434C4142  # "DCLAB": the advisory lock every instance takes before migrating
+
+
 def upgrade(url: str | None = None, revision: str = "head") -> None:
+    """Migrate to ``revision``, one process at a time: several app instances start together in a cloud (package 12.6),
+    and each runs the upgrade first; the second waits for the first, then finds nothing left to do."""
     from alembic import command
 
-    command.upgrade(_config(url or database_url()), revision)
+    url = url or database_url()
+    with engine(url).connect().execution_options(isolation_level="AUTOCOMMIT") as connection:  # not idle in a transaction meanwhile
+        connection.execute(sa.text("select pg_advisory_lock(:key)"), {"key": MIGRATION_LOCK})
+        try:
+            command.upgrade(_config(url), revision)
+        finally:
+            connection.execute(sa.text("select pg_advisory_unlock(:key)"), {"key": MIGRATION_LOCK})
 
 
 def current(url: str | None = None) -> str | None:

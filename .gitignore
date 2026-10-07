@@ -34,3 +34,10 @@ tests/.timings*.json
 # corpus v4 holds a workspace's projects (A6.2): built by python -m dclab_rnd.studio.corpus_v4, never committed
 research/llm-fine-tuning/experiments/sft/out_v4/
 backups/
+
+# infrastructure code (12.6): provider downloads, state and real variable values never go to git
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
