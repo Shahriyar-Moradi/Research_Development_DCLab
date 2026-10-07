@@ -53,8 +53,8 @@ def _libpq(url: str) -> dict[str, str]:
 
     u = make_url(url)
     env = {k: v for k, v in os.environ.items() if not k.startswith("PG")}  # only the URL decides where it goes
-    host = u.host or u.query.get("host")
-    pairs = [("PGHOST", host), ("PGPORT", u.port), ("PGUSER", u.username), ("PGPASSWORD", u.password), ("PGDATABASE", u.database)]
+    host = u.host or u.query.get("host")  # a socket folder and a port can also come in the query (?host=/tmp&port=5433)
+    pairs = [("PGHOST", host), ("PGPORT", u.port or u.query.get("port")), ("PGUSER", u.username), ("PGPASSWORD", u.password), ("PGDATABASE", u.database)]
     # the URL's TLS and timeout options too: a dump carries the whole database, never over a weaker connection than the app's
     pairs += [(variable, u.query.get(option)) for option, variable in (("sslmode", "PGSSLMODE"), ("sslrootcert", "PGSSLROOTCERT"),
               ("sslcert", "PGSSLCERT"), ("sslkey", "PGSSLKEY"), ("sslcrl", "PGSSLCRL"), ("connect_timeout", "PGCONNECT_TIMEOUT"),

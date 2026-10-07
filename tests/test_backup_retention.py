@@ -312,6 +312,8 @@ class ConnectionTests(unittest.TestCase):
         env = backup._libpq("postgresql+psycopg://dclab:not-a-real-pass@db.internal:6432/dclab?sslmode=verify-full&sslrootcert=/ca.pem")
         self.assertEqual((env["PGHOST"], env["PGPORT"], env["PGPASSWORD"], env["PGSSLMODE"], env["PGSSLROOTCERT"]),
                          ("db.internal", "6432", "not-a-real-pass", "verify-full", "/ca.pem"))
+        env = backup._libpq("postgresql+psycopg://me@/dclab_test?host=/tmp&port=5433")  # a socket folder and a port in the query
+        self.assertEqual((env["PGHOST"], env["PGPORT"], env["PGDATABASE"]), ("/tmp", "5433", "dclab_test"))
 
 
 if __name__ == "__main__":
