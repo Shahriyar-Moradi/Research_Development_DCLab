@@ -228,6 +228,26 @@ class RunTests(unittest.TestCase):
         self.r.register(Tool("finish", "End the run.", obj({"report": {"type": "string"}}, ["report"]), lambda report: {"report": report}))
         self.policy = Policy("test", "You add numbers.", ("add", "ask", "finish"), max_steps=6, terminal=("finish",), stop_after=("ask",))
 
+    def test_tool_calls_written_as_text_are_not_an_answer(self):
+        """8.1: a small model in Ollama wrote its calls as JSON in its answer; nothing ran, yet the run ended "answered"."""
+        as_text = '```json\n{"name": "add", "arguments": {"a": 2, "b": 3}}\n```'
+        model = Scripted(reply(as_text), reply(calls=[("add", {"a": 2, "b": 3})]), reply("The sum is 5."))
+        out = run(self.policy, model, self.r, [{"role": "system", "content": "s"}])
+        self.assertEqual((out.stopped, out.final, [s.tool for s in out.steps]), ("answered", "The sum is 5.", ["add"]))  # told once, it called
+        self.assertIn("wrote tool calls as text", model.seen[1]["messages"][-1]["content"])
+        model = Scripted(reply(as_text), reply(as_text))
+        out = run(self.policy, model, self.r, [{"role": "system", "content": "s"}])
+        self.assertEqual((out.stopped, out.steps), ("tools_as_text", []))  # twice: the run ends, nothing done in its name
+        out = run(self.policy, Scripted(reply('Use {"name": "Ada", "arguments": "none"} as the example.')), self.r, [])
+        self.assertEqual(out.stopped, "answered")  # JSON about something that is not one of its tools is just text
+        tags = '<tools>\n {"type": "function", "function": {add a b}}\n</tools>'  # another shape the same model used
+        self.assertEqual(run(self.policy, Scripted(reply(tags), reply(tags)), self.r, []).stopped, "tools_as_text")
+        out = run(self.policy, Scripted(reply(as_text), reply("I cannot run tools directly.")), self.r, [])
+        self.assertEqual(out.stopped, "tools_as_text")  # told once, it answered in prose without a call: still nothing ran
+        report = 'I called add. To repeat it: ```json {"name": "add", "arguments": {"a": 2, "b": 3}}``` The sum is 5.'
+        out = run(self.policy, Scripted(reply(calls=[("add", {"a": 2, "b": 3})]), reply(report)), self.r, [])
+        self.assertEqual((out.stopped, out.final), ("answered", report))  # after real work, a report that quotes a call is an answer
+
     def test_a_bad_call_is_returned_to_the_model_which_corrects_it(self):
         model = Scripted(reply(calls=[("add", {"a": "two", "b": 3})]), reply(calls=[("add", {"a": 2, "b": 3})]), reply("The sum is 5."))
         steps = []

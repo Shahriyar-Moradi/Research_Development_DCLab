@@ -14,10 +14,12 @@ Deterministic code still owns every decision: a tool that changes a project goes
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from .. import prompts
 from .registry import Registry
 
 
@@ -35,6 +37,7 @@ class Policy:
     stop_when: Callable[["Step"], bool] | None = None  # or a successful step whose result says so (a simulation that started)
     max_replies: int | None = None  # model requests per run() call, besides the tool-call budget
     result_chars: int = 4000  # what one tool result may add to the conversation
+    must_act: bool = False  # an answer before any tool call is not one (the intern's first turn: it has not looked at anything)
 
 
 @dataclass
@@ -53,8 +56,21 @@ class RunResult:
     messages: list[dict[str, Any]]
     steps: list[Step] = field(default_factory=list)
     final: str | None = None
-    stopped: str = "answered"  # answered, terminal, stop_after, steps, replies, time (a failing model or tool raises)
+    stopped: str = "answered"  # answered, terminal, stop_after, steps, replies, time, tools_as_text (a failing model or tool raises)
     usage: dict[str, int] = field(default_factory=lambda: {"input_tokens": 0, "output_tokens": 0})
+
+
+# A reply that writes its tool calls as text instead of calling them (small models served without native tool calling
+# do this; package 8.1 found it with qwen2.5-coder in Ollama, in several shapes: a ```json fence, a <tools> tag, a bare
+# object): nothing ran. A known tool's name inside such a block, in a run where no tool has run, is that case.
+_BLOCKS = re.compile(r"```.*?(?:```|$)|<tools?\b.*?(?:</tools?>|$)|\{(?:[^{}]|\{[^{}]*\})*\}", re.S)
+
+
+def writes_tool_calls(text: str, allowed: list[str] | set[str]) -> bool:
+    for block in _BLOCKS.findall(text or ""):
+        if any(re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", block) for name in allowed):
+            return True
+    return False
 
 
 def _text(result: Any, chars: int = 4000) -> str:
@@ -82,6 +98,7 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
     result = RunResult(messages=messages)
     count = steps_used
     reply = -1
+    nudged = False
     if trace is not None:
         trace.next_call()  # a tracer reused across run() calls continues its reply numbers
 
@@ -108,7 +125,16 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
         messages.append(out["assistant_message"])
         calls = out.get("tool_calls") or []
         if not calls:
-            result.final, result.stopped = (out.get("content") or "").strip(), "answered"
+            text = (out.get("content") or "").strip()
+            # Only in a run where no tool has run: a report that quotes a call after real work is an answer.
+            if not result.steps and (nudged or policy.must_act or writes_tool_calls(text, allowed)):
+                if not nudged:  # once: the model is told; any reply without a call after that ends the run
+                    nudged = True
+                    messages.append({"role": "user", "content": prompts.text("tools_as_text")})
+                    continue
+                result.final, result.stopped = text, "tools_as_text"
+                return result
+            result.final, result.stopped = text, "answered"
             return result
         for call in calls:
             # Every call in the reply gets an answer (the API requires one per call), but none runs after the run ended

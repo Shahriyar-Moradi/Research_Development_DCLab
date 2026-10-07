@@ -140,7 +140,7 @@ class _NoModels:
 def _cut_short(session: dict[str, Any]) -> str | None:
     """Why a run cannot be scored: an error, or a cap that stopped it (a run that used its own tool-call or minute
     budget is a real result: the model spent it)."""
-    if session["status"] == "failed":
+    if session["status"] == "failed" and session.get("ended") != "tools_as_text":  # writing calls as text is the model's own doing: scored
         return "the run failed: " + str(session.get("error") or session.get("final") or "")[:160]
     final = str(session.get("final") or "")
     if session["status"] == "budget_exhausted" and "tool calls is used up" not in final and "minutes is used up" not in final:

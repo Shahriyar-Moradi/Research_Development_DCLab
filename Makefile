@@ -1,4 +1,4 @@
-.PHONY: deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -197,6 +197,9 @@ check-all:  ## the gate for every package: rd-check on files, the suite on Postg
 	$(MAKE) test-pg
 	@if [ -x $(AGENT_PYTHON) ]; then $(TEST_TMP) $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi
 	$(MAKE) product-e2e
+
+model-paths:  ## every path that uses a model, once, against a real model on made-up data (8.1): ARGS="--ollama qwen2.5-coder:1.5b" (free, local) or ARGS="--configured --cap-eur 2" (costs money)
+	$(PYTHON) scripts/model_paths.py $(or $(ARGS),--ollama qwen2.5-coder:1.5b)
 
 deploy-check:  ## the cloud code (deploy/, package 12.6): tofu fmt -check and tofu validate for AWS and Google Cloud, staging and production (downloads the providers once; never plans or applies)
 	tofu fmt -check -recursive deploy

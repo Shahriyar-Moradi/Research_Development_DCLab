@@ -464,6 +464,8 @@ class HomeAgent:
             self.store.emit(draft_id, "status", {"thinking": False})
         if out.stopped == "answered" and out.final:
             self.say(draft_id, out.final, message_id=model.live)  # the chat event replaces the live bubble
+        elif out.stopped == "tools_as_text" and model.live:
+            self.store.emit(draft_id, "token", {"id": model.live, "drop": True})  # tool calls written as text are not a reply
         self.store.update(draft_id, lambda d: d["agent"].update(mode="model", turns=d["agent"].get("turns", 0) + 1))
         if not out.steps and text:
             # A model that only talks (small models often never call a tool) must not stall the conversation:
@@ -540,6 +542,9 @@ class _Model:
         self.agent, self.draft_id, self.live = agent, draft_id, None
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        if self.live:  # the reply streamed before (tool calls written as text, then a nudge) was not an answer: it goes
+            self.agent.store.emit(self.draft_id, "token", {"id": self.live, "drop": True})
+            self.live = None
         out, self.live = self.agent.complete(self.draft_id, messages, tools)
         return out
 

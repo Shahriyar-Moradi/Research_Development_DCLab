@@ -144,6 +144,40 @@ class LlmLoopTests(unittest.TestCase):
         self.assertEqual([(s["tool"], s["ok"]) for s in session["steps"]], [("write_plan", False), ("finish", False), ("finish", True)])
 
 
+class ToolsAsTextTests(unittest.TestCase):
+    def test_a_session_whose_model_writes_its_calls_as_text_is_not_completed(self):
+        """8.1: qwen2.5-coder in Ollama answered with its calls as JSON text; the session said "completed" with 0 steps."""
+        text = '```json\n{"name": "list_samples", "arguments": {}}\n```'
+
+        class TextModel:
+            model = "scripted"
+
+            def complete(self, messages, tools):
+                return {"content": text, "tool_calls": [], "finish_reason": "stop", "usage": {"input_tokens": 5, "output_tokens": 5},
+                        "assistant_message": {"role": "assistant", "content": text}}
+
+        projects, sessions = make(tempfile.mkdtemp())
+        intern = Intern(sessions, Toolbox(projects), TextModel())
+        session = intern.run(intern.start("Use the bike sample", {"max_steps": 5, "max_minutes": 2})["id"])
+        self.assertEqual((session["status"], session["steps"]), ("failed", []))
+        self.assertIn("wrote its tool calls as text", session["error"])
+
+    def test_a_first_turn_answered_in_prose_without_looking_is_not_a_report(self):
+        """8.1: the same model often answered the task in prose ("Load the dataset, then...") with no tool call at all."""
+        class ProseModel:
+            model = "scripted"
+
+            def complete(self, messages, tools):
+                return {"content": "To check for leakage, load the dataset and look at each column.", "tool_calls": [], "finish_reason": "stop",
+                        "usage": {"input_tokens": 5, "output_tokens": 5}, "assistant_message": {"role": "assistant", "content": "x"}}
+
+        projects, sessions = make(tempfile.mkdtemp())
+        intern = Intern(sessions, Toolbox(projects), ProseModel())
+        session = intern.run(intern.start("Check the bike sample for leakage", {"max_steps": 5, "max_minutes": 2})["id"])
+        self.assertEqual((session["status"], session.get("ended")), ("failed", "tools_as_text"))
+        self.assertIn("without calling a tool", session["error"])
+
+
 class StreamingClientTests(unittest.TestCase):
     """ChatClient.stream joins a streamed reply into the shape complete() returns, without a network or a key."""
 

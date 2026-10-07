@@ -163,5 +163,15 @@ class LiveTests(unittest.TestCase):
         self.assertTrue(lo < 0.7 < hi)
 
 
+
+class ToolsAsTextScoringTests(unittest.TestCase):
+    def test_a_model_that_writes_its_calls_as_text_is_scored_not_cut_short(self):
+        """8.1: such a session ends "failed"; it is the model's own behaviour, so the live suite scores it."""
+        from dclab_rnd.agent_eval.live import _cut_short
+
+        self.assertIsNone(_cut_short({"status": "failed", "ended": "tools_as_text", "error": "wrote its tool calls as text"}))
+        self.assertIn("the run failed", _cut_short({"status": "failed", "error": "ConnectionError"}))
+
+
 if __name__ == "__main__":
     unittest.main()

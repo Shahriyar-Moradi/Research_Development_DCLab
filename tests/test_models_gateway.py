@@ -419,8 +419,12 @@ class MoneyTests(unittest.TestCase):
         from dclab_rnd.studio import ProjectStore
         reply = {"content": "Not done yet.", "tool_calls": [], "usage": {"input_tokens": 9_000, "output_tokens": 1_000},
                  "assistant_message": {"role": "assistant", "content": "Not done yet."}}
+        # a first turn looks at something before it answers (an answer with no tool call first is not a report: 8.1)
+        look = {"content": "", "tool_calls": [{"id": "c1", "name": "list_samples", "arguments": {}}], "usage": {"input_tokens": 100, "output_tokens": 10},
+                "assistant_message": {"role": "assistant", "content": "", "tool_calls": [
+                    {"id": "c1", "type": "function", "function": {"name": "list_samples", "arguments": "{}"}}]}}
         with mock.patch.dict(os.environ, {"DCLAB_PRICES_FILE": str(self.dir / "prices.json")}):
-            gw = Gateway(self.usage, transport=lambda tier, purpose: Scripted([dict(reply) for _ in range(5)], tier, purpose))
+            gw = Gateway(self.usage, transport=lambda tier, purpose: Scripted([dict(look)] + [dict(reply) for _ in range(5)], tier, purpose))
             home = Path(tempfile.mkdtemp())
             sessions = SessionStore(home / "intern")
             s = Intern(sessions, Toolbox(ProjectStore(home / "projects")), gw.client("intern")).start("A task for the budget test", budget={"max_eur": 0.04})

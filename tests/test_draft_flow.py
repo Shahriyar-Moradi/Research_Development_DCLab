@@ -742,5 +742,26 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(p["draft"]["synthetic"])
 
 
+
+class StreamedBubbleTests(unittest.TestCase):
+    def test_a_reply_streamed_before_a_nudge_is_dropped_from_the_page(self):
+        """8.1: tool calls written as text were streamed into a bubble that stayed on the Home page after the nudge."""
+        from dclab_rnd.draft.chat import _Model
+
+        events, bubbles = [], iter(["m1", "m2"])
+
+        class Agent:
+            store = type("Store", (), {"emit": lambda self, draft_id, kind, data: events.append((kind, data))})()
+
+            def complete(self, draft_id, messages, tools):
+                return {"content": "x", "tool_calls": []}, next(bubbles)
+
+        model = _Model(Agent(), "d1")
+        model.complete([], None)
+        model.complete([], None)  # the next request after a nudge
+        self.assertIn(("token", {"id": "m1", "drop": True}), events)
+        self.assertEqual(model.live, "m2")  # the newest bubble is the one an answer replaces
+
+
 if __name__ == "__main__":
     unittest.main()

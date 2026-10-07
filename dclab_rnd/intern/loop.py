@@ -61,6 +61,7 @@ class Intern:
         self.tracer = self._trace(session)
         session["status"] = "running"
         session["error"] = None
+        session.pop("ended", None)
         session["used"]["minutes_before"] = session["used"]["minutes"]
         self.sessions.save(session)
         started = time.monotonic()
@@ -155,7 +156,8 @@ class Intern:
         """The intern as a policy on the runtime: its instructions, the project tools and its own two, its budget."""
         budget = session["budget"]
         return Policy("intern", POLICY, tuple(self.toolbox.names()) + SESSION_TOOLS, max_steps=int(budget["max_steps"]),
-                      max_seconds=float(budget["max_minutes"]) * 60, terminal=("finish",), result_chars=RESULT_CHARS)
+                      max_seconds=float(budget["max_minutes"]) * 60, terminal=("finish",), result_chars=RESULT_CHARS,
+                      must_act=not session.get("steps"))  # a first turn answered without looking at anything is no report
 
     def _llm_loop(self, session: dict[str, Any], started: float) -> None:
         def on_step(step: Step) -> None:
@@ -193,6 +195,13 @@ class Intern:
                       else f"the budget of {budget['max_minutes']} minutes is used up")
             session["status"] = "budget_exhausted"
             session["final"] = f"Stopped: {reason}. " + self._progress_note(session)
+            return
+        if out.stopped == "tools_as_text":  # the model wrote its tool calls as text, twice: nothing ran in its name
+            session["status"], session["ended"] = "failed", "tools_as_text"
+            session["error"] = ("The model answered without calling a tool (or wrote its tool calls as text), so nothing ran. "
+                                "Use a model that supports tool calling, or the standard plan (no model).")
+            session["final"] = self._progress_note(session)
+            self.sessions.save(session)
             return
         if out.stopped != "terminal":  # answered without finish: the answer is the report
             session["final"] = out.final or self._progress_note(session)
