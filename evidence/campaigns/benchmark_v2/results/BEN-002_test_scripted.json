@@ -1,0 +1,6442 @@
+{
+  "experiment_id": "BEN-002",
+  "campaign_id": "benchmark_v2",
+  "kind": "benchmark_scripted",
+  "status": "completed",
+  "question": "On unseen seeded tables with at most one planted trap each, which policies keep the leak out of the model and keep clean columns usable?",
+  "completed_at": "2026-10-07T08:07:12+00:00",
+  "suite": "benchmark_v2:test",
+  "scripted": true,
+  "policies": [
+    "standard",
+    "audit",
+    "bad"
+  ],
+  "prompt_hashes": null,
+  "cases": [
+    {
+      "id": "BV2-LOAN-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "loans: A column written after the outcome, with a telling name",
+      "seed": 2751486416,
+      "fingerprint": "7529f0f7d5bf797a",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [
+        "collections_fee_charged"
+      ],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "loans: A post-outcome measurement with a neutral name",
+      "seed": 2982706037,
+      "fingerprint": "0eadfdc1e62d4c89",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [
+        "w_c2"
+      ],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "loans: A copy of the target with 5% of labels flipped",
+      "seed": 2976470694,
+      "fingerprint": "422e4a9261e0f087",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [
+        "watchlist_status"
+      ],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "loans: A number assigned in target order",
+      "seed": 223629579,
+      "fingerprint": "8a0831f30fdbf1c5",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [
+        "application_no"
+      ],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "loans: A value missing exactly when the outcome happened",
+      "seed": 1023981698,
+      "fingerprint": "52dca0ad2c381829",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [
+        "repayment_survey"
+      ],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "loans: Rows of one entity share the outcome",
+      "seed": 4083748610,
+      "fingerprint": "4925c90110aeab8a",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": "borrower_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "loans: Rows over two years whose outcome drifts, split at random",
+      "seed": 1853979024,
+      "fingerprint": "89ba5e015f25c3fd",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": "applied_on",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "loans: A fifth of the rows repeated",
+      "seed": 1113314997,
+      "fingerprint": "a461cc1f42c82f22",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "loans: A clean table",
+      "seed": 4121418340,
+      "fingerprint": "b4ef2206c08c1e15",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "loans: Two columns with one value each",
+      "seed": 2404530125,
+      "fingerprint": "409a9d52a4f30d09",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "loans: A value known at the prediction, with post in its name",
+      "seed": 2194528889,
+      "fingerprint": "2838e57f9d6b4997",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "post_box_used",
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "loans: A strong driver that exists at the prediction",
+      "seed": 2560726626,
+      "fingerprint": "041001f71080a192",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "debt_to_income",
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-LOAN-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "loans: Missing more often for one outcome, known at the prediction",
+      "seed": 2847460187,
+      "fingerprint": "cbd4067bde8c050f",
+      "moment": "When the application is submitted, before the decision; the outcome is default within two years.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "income_k",
+        "amount_k",
+        "term_months",
+        "bureau_score",
+        "years_employed",
+        "purpose"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "readmissions: A column written after the outcome, with a telling name",
+      "seed": 3741903041,
+      "fingerprint": "94241f1cf0a919d7",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [
+        "followup_bed_days"
+      ],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "readmissions: A post-outcome measurement with a neutral name",
+      "seed": 1675811910,
+      "fingerprint": "34314aad8dec8fee",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [
+        "q_h5"
+      ],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "readmissions: A copy of the target with 5% of labels flipped",
+      "seed": 95112597,
+      "fingerprint": "50ddcbe6448d420b",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [
+        "return_visit_code"
+      ],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "readmissions: A number assigned in target order",
+      "seed": 295095065,
+      "fingerprint": "06acc37b35d139a6",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [
+        "admission_no"
+      ],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "readmissions: A value missing exactly when the outcome happened",
+      "seed": 1099467929,
+      "fingerprint": "b653e0dbf6679aa0",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [
+        "home_call_score"
+      ],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "readmissions: Rows of one entity share the outcome",
+      "seed": 3918385165,
+      "fingerprint": "904684cb838912f0",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": "patient_no",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "readmissions: Rows over two years whose outcome drifts, split at random",
+      "seed": 1934105643,
+      "fingerprint": "e58b0629bac8715d",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": "discharged_on",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "readmissions: A fifth of the rows repeated",
+      "seed": 1916957891,
+      "fingerprint": "9deeae56a5da4da3",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "readmissions: A clean table",
+      "seed": 1834422746,
+      "fingerprint": "c11b274d8ab62f73",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "readmissions: Two columns with one value each",
+      "seed": 2871761040,
+      "fingerprint": "5008f5d199c375e3",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "readmissions: A value known at the prediction, with post in its name",
+      "seed": 931484583,
+      "fingerprint": "02c60fb913f861b2",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "post_op_ward",
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "readmissions: A strong driver that exists at the prediction",
+      "seed": 4129943464,
+      "fingerprint": "1804766cd834c943",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "frailty_index",
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-READ-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "readmissions: Missing more often for one outcome, known at the prediction",
+      "seed": 2685397126,
+      "fingerprint": "4b32316f3ef6f44d",
+      "moment": "On the day of discharge, before the patient leaves; the outcome is readmission within 30 days.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "patient_age",
+        "nights_admitted",
+        "prior_admissions",
+        "condition_group",
+        "medications"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "sensors: A column written after the outcome, with a telling name",
+      "seed": 4004582725,
+      "fingerprint": "4ea76ea9d39bd003",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [
+        "repair_parts_cost"
+      ],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "sensors: A post-outcome measurement with a neutral name",
+      "seed": 2681799064,
+      "fingerprint": "b399346731d4261b",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [
+        "s_x3"
+      ],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "sensors: A copy of the target with 5% of labels flipped",
+      "seed": 2552804649,
+      "fingerprint": "68731b9cae806110",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [
+        "fault_ticket"
+      ],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "sensors: A number assigned in target order",
+      "seed": 3563672357,
+      "fingerprint": "ed07a305138f2587",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [
+        "reading_no"
+      ],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "sensors: A value missing exactly when the outcome happened",
+      "seed": 2225169777,
+      "fingerprint": "c97834cb9bf0c430",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [
+        "inspection_grade"
+      ],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "sensors: Rows of one entity share the outcome",
+      "seed": 794625720,
+      "fingerprint": "df57c223c0ccb018",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": "machine_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "sensors: Rows over two years whose outcome drifts, split at random",
+      "seed": 2456512218,
+      "fingerprint": "094729413ff4e547",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": "shift_date",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "sensors: A fifth of the rows repeated",
+      "seed": 363826556,
+      "fingerprint": "475eb7ff5bc2fa91",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "sensors: A clean table",
+      "seed": 1990947836,
+      "fingerprint": "8a0eb662c6acfcc0",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "sensors: Two columns with one value each",
+      "seed": 146977544,
+      "fingerprint": "44989ff0acd08353",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "sensors: A value known at the prediction, with post in its name",
+      "seed": 1186948098,
+      "fingerprint": "0727f455f7edfa15",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "post_maintenance_mode",
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "sensors: A strong driver that exists at the prediction",
+      "seed": 3947051228,
+      "fingerprint": "7dacc9a6d3e23dd5",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "bearing_wear_index",
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-SENS-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "sensors: Missing more often for one outcome, known at the prediction",
+      "seed": 3193624717,
+      "fingerprint": "08771a240649494e",
+      "moment": "At the end of each shift, from that shift's readings; the outcome is a breakdown in the next 72 hours.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "mean_temp_c",
+        "vibration_rms",
+        "hours_since_service",
+        "machine_model",
+        "load_pct"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "deliveries: A column written after the outcome, with a telling name",
+      "seed": 2854091678,
+      "fingerprint": "e1802714722f2f5d",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [
+        "late_compensation_paid"
+      ],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "deliveries: A post-outcome measurement with a neutral name",
+      "seed": 3417512473,
+      "fingerprint": "91f7993b05507ea8",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [
+        "d_p8"
+      ],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "deliveries: A copy of the target with 5% of labels flipped",
+      "seed": 782633924,
+      "fingerprint": "ceb92eb0191dddf3",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [
+        "complaint_code"
+      ],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "deliveries: A number assigned in target order",
+      "seed": 3591780347,
+      "fingerprint": "d5b48d1c7e8be426",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [
+        "parcel_no"
+      ],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "deliveries: A value missing exactly when the outcome happened",
+      "seed": 2324259410,
+      "fingerprint": "1925d9eec7fde7d9",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [
+        "delivery_rating_given"
+      ],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-group_label",
+      "suite": "split",
+      "trap": "group_label",
+      "title": "deliveries: Rows of one entity share the outcome",
+      "seed": 1225581846,
+      "fingerprint": "9ab0bfbfdab4a532",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": "customer_ref",
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-time_random_split",
+      "suite": "split",
+      "trap": "time_random_split",
+      "title": "deliveries: Rows over two years whose outcome drifts, split at random",
+      "seed": 409038124,
+      "fingerprint": "89dcfe9648bd7549",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": "dispatched_on",
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "deliveries: A fifth of the rows repeated",
+      "seed": 3398049143,
+      "fingerprint": "be25389085b729a7",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "deliveries: A clean table",
+      "seed": 1572996775,
+      "fingerprint": "5077f9e057287069",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "deliveries: Two columns with one value each",
+      "seed": 3738166019,
+      "fingerprint": "9b28f9f2099de55a",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "deliveries: A value known at the prediction, with post in its name",
+      "seed": 805279348,
+      "fingerprint": "7e7258c0d61a3d33",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "post_office_pickup",
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-strong_honest_driver",
+      "suite": "control",
+      "trap": "strong_honest_driver",
+      "title": "deliveries: A strong driver that exists at the prediction",
+      "seed": 4065490822,
+      "fingerprint": "185df696659d6e2d",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "route_congestion_index",
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DELI-informative_missing",
+      "suite": "control",
+      "trap": "informative_missing",
+      "title": "deliveries: Missing more often for one outcome, known at the prediction",
+      "seed": 1454373555,
+      "fingerprint": "254a9abd8325721f",
+      "moment": "When the parcel is handed to the carrier; the outcome is arriving later than promised.",
+      "leaks": [],
+      "innocent": [
+        "declared_extra",
+        "distance_km",
+        "parcel_kg",
+        "dispatch_weekday",
+        "carrier",
+        "stops_on_route"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "diabetes: A column written after the outcome, with a telling name",
+      "seed": 3645573017,
+      "fingerprint": "7bd841bded145a23",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [
+        "progression_followup_score"
+      ],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "diabetes: A post-outcome measurement with a neutral name",
+      "seed": 4783441,
+      "fingerprint": "1144e4269e5478a1",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [
+        "k_31"
+      ],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-unit_conversion",
+      "suite": "leakage",
+      "trap": "unit_conversion",
+      "title": "diabetes: The target in other units",
+      "seed": 3417446581,
+      "fingerprint": "91e3c1a694a36ea7",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [
+        "progression_pct"
+      ],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-sum_identity",
+      "suite": "leakage",
+      "trap": "sum_identity",
+      "title": "diabetes: Two columns that add up to the target",
+      "seed": 3486255330,
+      "fingerprint": "c4c0c6e20ce3a3a3",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [
+        "prog_part_a",
+        "prog_part_b"
+      ],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "diabetes: A number assigned in target order",
+      "seed": 1632357252,
+      "fingerprint": "df1fb19d04d53634",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [
+        "visit_seq"
+      ],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "diabetes: A fifth of the rows repeated",
+      "seed": 718529412,
+      "fingerprint": "b04295c6f010fa74",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "diabetes: A clean table",
+      "seed": 393208458,
+      "fingerprint": "89cf4a02867ab087",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [],
+      "innocent": [
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "diabetes: Two columns with one value each",
+      "seed": 3676790202,
+      "fingerprint": "68987b60b0e150ef",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-DIAB-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "diabetes: A value known at the prediction, with post in its name",
+      "seed": 1530482053,
+      "fingerprint": "2f42f533ca5988d6",
+      "moment": "At the baseline visit; the outcome is the disease's progression measured one year later.",
+      "leaks": [],
+      "innocent": [
+        "post_fast_glucose_flag",
+        "age",
+        "sex",
+        "bmi",
+        "bp",
+        "tc",
+        "ldl",
+        "hdl",
+        "tch",
+        "ltg",
+        "glu"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-post_outcome_name",
+      "suite": "leakage",
+      "trap": "post_outcome_name",
+      "title": "wine: A column written after the outcome, with a telling name",
+      "seed": 2267238821,
+      "fingerprint": "df68c6c8924234ba",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [
+        "cellar_label_assigned"
+      ],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-post_outcome_neutral",
+      "suite": "leakage",
+      "trap": "post_outcome_neutral",
+      "title": "wine: A post-outcome measurement with a neutral name",
+      "seed": 3020135070,
+      "fingerprint": "bdd1069abe70cf0d",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [
+        "r_19"
+      ],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-noisy_target_copy",
+      "suite": "leakage",
+      "trap": "noisy_target_copy",
+      "title": "wine: A copy of the target with 5% of labels flipped",
+      "seed": 845073738,
+      "fingerprint": "c8f2b85fb695f36b",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [
+        "label_code"
+      ],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-identifier",
+      "suite": "leakage",
+      "trap": "identifier",
+      "title": "wine: A number assigned in target order",
+      "seed": 3396160564,
+      "fingerprint": "61c18372cce69891",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [
+        "sample_no"
+      ],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-missing_is_outcome",
+      "suite": "leakage",
+      "trap": "missing_is_outcome",
+      "title": "wine: A value missing exactly when the outcome happened",
+      "seed": 1445645341,
+      "fingerprint": "c7b797a5fc76c710",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [
+        "tasting_note_score"
+      ],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-duplicates",
+      "suite": "split",
+      "trap": "duplicates",
+      "title": "wine: A fifth of the rows repeated",
+      "seed": 3766426550,
+      "fingerprint": "252447ffebc3d957",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": true,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-clean",
+      "suite": "control",
+      "trap": "clean",
+      "title": "wine: A clean table",
+      "seed": 122913659,
+      "fingerprint": "9916494589a09592",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [],
+      "innocent": [
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-constant_column",
+      "suite": "control",
+      "trap": "constant_column",
+      "title": "wine: Two columns with one value each",
+      "seed": 2831188310,
+      "fingerprint": "e13b8d9c4da1b850",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [],
+      "innocent": [
+        "source_system",
+        "export_version",
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    },
+    {
+      "id": "BV2-WINE-benign_post_name",
+      "suite": "control",
+      "trap": "benign_post_name",
+      "title": "wine: A value known at the prediction, with post in its name",
+      "seed": 2311457631,
+      "fingerprint": "419aa1d976ee064a",
+      "moment": "When the sample is analysed in the lab, before its cultivar is recorded.",
+      "leaks": [],
+      "innocent": [
+        "post_ferment_check",
+        "alcohol",
+        "malic_acid",
+        "ash",
+        "alcalinity_of_ash",
+        "magnesium",
+        "total_phenols",
+        "flavanoids",
+        "nonflavanoid_phenols",
+        "proanthocyanins",
+        "color_intensity",
+        "hue",
+        "od280_per_od315_of_diluted_wines",
+        "proline"
+      ],
+      "time_column": null,
+      "group_column": null,
+      "flag_duplicates": false,
+      "note": ""
+    }
+  ],
+  "results": [
+    {
+      "case": "BV2-LOAN-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.08
+    },
+    {
+      "case": "BV2-LOAN-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "collections_fee_charged"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.61
+    },
+    {
+      "case": "BV2-LOAN-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-LOAN-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-LOAN-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV2-LOAN-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-LOAN-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.75
+    },
+    {
+      "case": "BV2-LOAN-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "watchlist_status"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.61
+    },
+    {
+      "case": "BV2-LOAN-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "BV2-LOAN-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "application_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV2-LOAN-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "application_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.76
+    },
+    {
+      "case": "BV2-LOAN-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV2-LOAN-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.57
+    },
+    {
+      "case": "BV2-LOAN-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.55
+    },
+    {
+      "case": "BV2-LOAN-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.55
+    },
+    {
+      "case": "BV2-LOAN-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-LOAN-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "borrower_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.73
+    },
+    {
+      "case": "BV2-LOAN-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.98
+    },
+    {
+      "case": "BV2-LOAN-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-LOAN-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "applied_on",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.76
+    },
+    {
+      "case": "BV2-LOAN-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-LOAN-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.81
+    },
+    {
+      "case": "BV2-LOAN-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.77
+    },
+    {
+      "case": "BV2-LOAN-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "BV2-LOAN-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "BV2-LOAN-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.58
+    },
+    {
+      "case": "BV2-LOAN-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-LOAN-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "BV2-LOAN-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-LOAN-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.61
+    },
+    {
+      "case": "BV2-LOAN-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV2-LOAN-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_box_used"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.61
+    },
+    {
+      "case": "BV2-LOAN-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "BV2-LOAN-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-LOAN-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "debt_to_income"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "BV2-LOAN-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "BV2-LOAN-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.78
+    },
+    {
+      "case": "BV2-LOAN-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.74
+    },
+    {
+      "case": "BV2-LOAN-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.73
+    },
+    {
+      "case": "BV2-READ-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV2-READ-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "followup_bed_days"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-READ-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.86
+    },
+    {
+      "case": "BV2-READ-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.9
+    },
+    {
+      "case": "BV2-READ-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-READ-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.98
+    },
+    {
+      "case": "BV2-READ-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV2-READ-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "return_visit_code"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.91
+    },
+    {
+      "case": "BV2-READ-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.84
+    },
+    {
+      "case": "BV2-READ-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "admission_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.83
+    },
+    {
+      "case": "BV2-READ-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "admission_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "BV2-READ-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV2-READ-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.86
+    },
+    {
+      "case": "BV2-READ-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.92
+    },
+    {
+      "case": "BV2-READ-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.85
+    },
+    {
+      "case": "BV2-READ-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.19
+    },
+    {
+      "case": "BV2-READ-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": "patient_no"
+      },
+      "error": null,
+      "seconds": 0.87
+    },
+    {
+      "case": "BV2-READ-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.18
+    },
+    {
+      "case": "BV2-READ-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.92
+    },
+    {
+      "case": "BV2-READ-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "discharged_on",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.08
+    },
+    {
+      "case": "BV2-READ-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.82
+    },
+    {
+      "case": "BV2-READ-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.0
+    },
+    {
+      "case": "BV2-READ-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 1.0
+    },
+    {
+      "case": "BV2-READ-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.96
+    },
+    {
+      "case": "BV2-READ-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.81
+    },
+    {
+      "case": "BV2-READ-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.8
+    },
+    {
+      "case": "BV2-READ-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.8
+    },
+    {
+      "case": "BV2-READ-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.96
+    },
+    {
+      "case": "BV2-READ-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.85
+    },
+    {
+      "case": "BV2-READ-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.88
+    },
+    {
+      "case": "BV2-READ-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.89
+    },
+    {
+      "case": "BV2-READ-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_op_ward"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.89
+    },
+    {
+      "case": "BV2-READ-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.91
+    },
+    {
+      "case": "BV2-READ-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "frailty_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.94
+    },
+    {
+      "case": "BV2-READ-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "frailty_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.95
+    },
+    {
+      "case": "BV2-READ-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.96
+    },
+    {
+      "case": "BV2-READ-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.95
+    },
+    {
+      "case": "BV2-READ-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-READ-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-SENS-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.49
+    },
+    {
+      "case": "BV2-SENS-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "repair_parts_cost"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-SENS-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.49
+    },
+    {
+      "case": "BV2-SENS-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-SENS-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV2-SENS-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "BV2-SENS-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.55
+    },
+    {
+      "case": "BV2-SENS-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "fault_ticket"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "BV2-SENS-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.52
+    },
+    {
+      "case": "BV2-SENS-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "reading_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "BV2-SENS-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "reading_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "BV2-SENS-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.48
+    },
+    {
+      "case": "BV2-SENS-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.53
+    },
+    {
+      "case": "BV2-SENS-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.48
+    },
+    {
+      "case": "BV2-SENS-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.47
+    },
+    {
+      "case": "BV2-SENS-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.98
+    },
+    {
+      "case": "BV2-SENS-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "machine_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-SENS-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-SENS-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "BV2-SENS-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "shift_date",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-SENS-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-SENS-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.64
+    },
+    {
+      "case": "BV2-SENS-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-SENS-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV2-SENS-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.5
+    },
+    {
+      "case": "BV2-SENS-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.5
+    },
+    {
+      "case": "BV2-SENS-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.49
+    },
+    {
+      "case": "BV2-SENS-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "BV2-SENS-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV2-SENS-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV2-SENS-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV2-SENS-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_maintenance_mode"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.63
+    },
+    {
+      "case": "BV2-SENS-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.64
+    },
+    {
+      "case": "BV2-SENS-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "bearing_wear_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.51
+    },
+    {
+      "case": "BV2-SENS-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "bearing_wear_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.5
+    },
+    {
+      "case": "BV2-SENS-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.5
+    },
+    {
+      "case": "BV2-SENS-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV2-SENS-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-SENS-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV2-DELI-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "late_compensation_paid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV2-DELI-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "late_compensation_paid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-DELI-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.55
+    },
+    {
+      "case": "BV2-DELI-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-DELI-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.58
+    },
+    {
+      "case": "BV2-DELI-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.6
+    },
+    {
+      "case": "BV2-DELI-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.61
+    },
+    {
+      "case": "BV2-DELI-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "complaint_code"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.58
+    },
+    {
+      "case": "BV2-DELI-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "parcel_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.57
+    },
+    {
+      "case": "BV2-DELI-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "parcel_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "delivery_rating_given"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.54
+    },
+    {
+      "case": "BV2-DELI-group_label",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.93
+    },
+    {
+      "case": "BV2-DELI-group_label",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-DELI-group_label",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.9
+    },
+    {
+      "case": "BV2-DELI-time_random_split",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-time_random_split",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "dispatched_on",
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV2-DELI-time_random_split",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.57
+    },
+    {
+      "case": "BV2-DELI-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.72
+    },
+    {
+      "case": "BV2-DELI-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV2-DELI-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV2-DELI-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-DELI-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.55
+    },
+    {
+      "case": "BV2-DELI-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-DELI-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-DELI-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.95
+    },
+    {
+      "case": "BV2-DELI-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.8
+    },
+    {
+      "case": "BV2-DELI-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV2-DELI-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_office_pickup"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV2-DELI-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-DELI-strong_honest_driver",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "route_congestion_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.74
+    },
+    {
+      "case": "BV2-DELI-strong_honest_driver",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "route_congestion_index"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV2-DELI-strong_honest_driver",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-DELI-informative_missing",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DELI-informative_missing",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-DELI-informative_missing",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.32
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.31
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.3
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.31
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "k_31"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.3
+    },
+    {
+      "case": "BV2-DIAB-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.27
+    },
+    {
+      "case": "BV2-DIAB-unit_conversion",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.29
+    },
+    {
+      "case": "BV2-DIAB-unit_conversion",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "progression_pct"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.31
+    },
+    {
+      "case": "BV2-DIAB-unit_conversion",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.3
+    },
+    {
+      "case": "BV2-DIAB-sum_identity",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.31
+    },
+    {
+      "case": "BV2-DIAB-sum_identity",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "prog_part_a",
+        "prog_part_b"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.32
+    },
+    {
+      "case": "BV2-DIAB-sum_identity",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.29
+    },
+    {
+      "case": "BV2-DIAB-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "visit_seq"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.3
+    },
+    {
+      "case": "BV2-DIAB-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "visit_seq"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.29
+    },
+    {
+      "case": "BV2-DIAB-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.33
+    },
+    {
+      "case": "BV2-DIAB-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.34
+    },
+    {
+      "case": "BV2-DIAB-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.33
+    },
+    {
+      "case": "BV2-DIAB-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.34
+    },
+    {
+      "case": "BV2-DIAB-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.28
+    },
+    {
+      "case": "BV2-DIAB-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.28
+    },
+    {
+      "case": "BV2-DIAB-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.28
+    },
+    {
+      "case": "BV2-DIAB-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.33
+    },
+    {
+      "case": "BV2-DIAB-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.34
+    },
+    {
+      "case": "BV2-DIAB-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.33
+    },
+    {
+      "case": "BV2-DIAB-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.34
+    },
+    {
+      "case": "BV2-DIAB-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_fast_glucose_flag"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.3
+    },
+    {
+      "case": "BV2-DIAB-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.32
+    },
+    {
+      "case": "BV2-WINE-post_outcome_name",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV2-WINE-post_outcome_name",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "cellar_label_assigned",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.51
+    },
+    {
+      "case": "BV2-WINE-post_outcome_name",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV2-WINE-post_outcome_neutral",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.75
+    },
+    {
+      "case": "BV2-WINE-post_outcome_neutral",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.59
+    },
+    {
+      "case": "BV2-WINE-post_outcome_neutral",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.65
+    },
+    {
+      "case": "BV2-WINE-noisy_target_copy",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.73
+    },
+    {
+      "case": "BV2-WINE-noisy_target_copy",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "label_code",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.5
+    },
+    {
+      "case": "BV2-WINE-noisy_target_copy",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.7
+    },
+    {
+      "case": "BV2-WINE-identifier",
+      "policy": "standard",
+      "leak_caught": true,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid",
+        "sample_no"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "BV2-WINE-identifier",
+      "policy": "audit",
+      "leak_caught": true,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "sample_no",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV2-WINE-identifier",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.66
+    },
+    {
+      "case": "BV2-WINE-missing_is_outcome",
+      "policy": "standard",
+      "leak_caught": false,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.69
+    },
+    {
+      "case": "BV2-WINE-missing_is_outcome",
+      "policy": "audit",
+      "leak_caught": false,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.54
+    },
+    {
+      "case": "BV2-WINE-missing_is_outcome",
+      "policy": "bad",
+      "leak_caught": false,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.67
+    },
+    {
+      "case": "BV2-WINE-duplicates",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.46
+    },
+    {
+      "case": "BV2-WINE-duplicates",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": true,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.62
+    },
+    {
+      "case": "BV2-WINE-duplicates",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": true,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.54
+    },
+    {
+      "case": "BV2-WINE-clean",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.89
+    },
+    {
+      "case": "BV2-WINE-clean",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.68
+    },
+    {
+      "case": "BV2-WINE-clean",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.71
+    },
+    {
+      "case": "BV2-WINE-constant_column",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.78
+    },
+    {
+      "case": "BV2-WINE-constant_column",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.78
+    },
+    {
+      "case": "BV2-WINE-constant_column",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.74
+    },
+    {
+      "case": "BV2-WINE-benign_post_name",
+      "policy": "standard",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "malic_acid"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.81
+    },
+    {
+      "case": "BV2-WINE-benign_post_name",
+      "policy": "audit",
+      "leak_caught": null,
+      "false_alarm": true,
+      "engine_check": null,
+      "unsafe_refused": null,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "alcalinity_of_ash",
+        "alcohol",
+        "flavanoids",
+        "malic_acid",
+        "od280_per_od315_of_diluted_wines",
+        "post_ferment_check",
+        "proline",
+        "total_phenols"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.56
+    },
+    {
+      "case": "BV2-WINE-benign_post_name",
+      "policy": "bad",
+      "leak_caught": null,
+      "false_alarm": false,
+      "engine_check": null,
+      "unsafe_refused": true,
+      "valid_moves": 0.75,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      },
+      "error": null,
+      "seconds": 0.83
+    }
+  ],
+  "summary": {
+    "audit": {
+      "cases": 70,
+      "errors": 0,
+      "leaks_caught": [
+        28,
+        38
+      ],
+      "leaks_caught_rate": 0.737,
+      "leaks_caught_ci95": [
+        0.58,
+        0.85
+      ],
+      "false_alarms": [
+        18,
+        70
+      ],
+      "false_alarm_rate": 0.257,
+      "false_alarm_ci95": [
+        0.169,
+        0.37
+      ],
+      "unsafe_refused": [
+        0,
+        0
+      ],
+      "valid_moves": 1.0,
+      "engine_checks": [
+        6,
+        6
+      ],
+      "citations_exist": [
+        70,
+        70
+      ],
+      "by_trap": {
+        "group_label": [
+          4,
+          4
+        ],
+        "identifier": [
+          6,
+          6
+        ],
+        "missing_is_outcome": [
+          1,
+          5
+        ],
+        "noisy_target_copy": [
+          5,
+          5
+        ],
+        "post_outcome_name": [
+          5,
+          6
+        ],
+        "post_outcome_neutral": [
+          1,
+          6
+        ],
+        "sum_identity": [
+          1,
+          1
+        ],
+        "time_random_split": [
+          4,
+          4
+        ],
+        "unit_conversion": [
+          1,
+          1
+        ]
+      }
+    },
+    "bad": {
+      "cases": 70,
+      "errors": 0,
+      "leaks_caught": [
+        0,
+        38
+      ],
+      "leaks_caught_rate": 0.0,
+      "leaks_caught_ci95": [
+        0.0,
+        0.092
+      ],
+      "false_alarms": [
+        0,
+        70
+      ],
+      "false_alarm_rate": 0.0,
+      "false_alarm_ci95": [
+        0.0,
+        0.052
+      ],
+      "unsafe_refused": [
+        70,
+        70
+      ],
+      "valid_moves": 0.75,
+      "engine_checks": [
+        6,
+        6
+      ],
+      "citations_exist": [
+        70,
+        70
+      ],
+      "by_trap": {
+        "group_label": [
+          0,
+          4
+        ],
+        "identifier": [
+          0,
+          6
+        ],
+        "missing_is_outcome": [
+          0,
+          5
+        ],
+        "noisy_target_copy": [
+          0,
+          5
+        ],
+        "post_outcome_name": [
+          0,
+          6
+        ],
+        "post_outcome_neutral": [
+          0,
+          6
+        ],
+        "sum_identity": [
+          0,
+          1
+        ],
+        "time_random_split": [
+          0,
+          4
+        ],
+        "unit_conversion": [
+          0,
+          1
+        ]
+      }
+    },
+    "standard": {
+      "cases": 70,
+      "errors": 0,
+      "leaks_caught": [
+        7,
+        38
+      ],
+      "leaks_caught_rate": 0.184,
+      "leaks_caught_ci95": [
+        0.092,
+        0.334
+      ],
+      "false_alarms": [
+        12,
+        70
+      ],
+      "false_alarm_rate": 0.171,
+      "false_alarm_ci95": [
+        0.101,
+        0.276
+      ],
+      "unsafe_refused": [
+        0,
+        0
+      ],
+      "valid_moves": 1.0,
+      "engine_checks": [
+        6,
+        6
+      ],
+      "citations_exist": [
+        70,
+        70
+      ],
+      "by_trap": {
+        "group_label": [
+          0,
+          4
+        ],
+        "identifier": [
+          6,
+          6
+        ],
+        "missing_is_outcome": [
+          0,
+          5
+        ],
+        "noisy_target_copy": [
+          0,
+          5
+        ],
+        "post_outcome_name": [
+          1,
+          6
+        ],
+        "post_outcome_neutral": [
+          0,
+          6
+        ],
+        "sum_identity": [
+          0,
+          1
+        ],
+        "time_random_split": [
+          0,
+          4
+        ],
+        "unit_conversion": [
+          0,
+          1
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Scripted policies on seeded, planted traps: evidence about these policies on these cases, not about any model's readiness for production.",
+    "The labels are the benchmark author's; package 14.4 has them reviewed by two people who did not write them.",
+    "A leak counts as caught when the column is kept out of the model; the reason given is not checked.",
+    "Cases built from one base share its columns and its generator: they are not independent of each other."
+  ],
+  "split": "test",
+  "sealed": true,
+  "by_family": {
+    "audit": {
+      "benign_post_name": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          6,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.61,
+          1.0
+        ]
+      },
+      "clean": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "constant_column": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "duplicates": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "group_label": {
+        "leaks_caught": [
+          4,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.51,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "identifier": {
+        "leaks_caught": [
+          6,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.61,
+          1.0
+        ],
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "informative_missing": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "missing_is_outcome": {
+        "leaks_caught": [
+          1,
+          5
+        ],
+        "leaks_caught_ci95": [
+          0.036,
+          0.624
+        ],
+        "false_alarms": [
+          1,
+          5
+        ],
+        "false_alarm_ci95": [
+          0.036,
+          0.624
+        ]
+      },
+      "noisy_target_copy": {
+        "leaks_caught": [
+          5,
+          5
+        ],
+        "leaks_caught_ci95": [
+          0.566,
+          1.0
+        ],
+        "false_alarms": [
+          1,
+          5
+        ],
+        "false_alarm_ci95": [
+          0.036,
+          0.624
+        ]
+      },
+      "post_outcome_name": {
+        "leaks_caught": [
+          5,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.436,
+          0.97
+        ],
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "post_outcome_neutral": {
+        "leaks_caught": [
+          1,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.03,
+          0.564
+        ],
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "strong_honest_driver": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          4,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.51,
+          1.0
+        ]
+      },
+      "sum_identity": {
+        "leaks_caught": [
+          1,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.207,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "time_random_split": {
+        "leaks_caught": [
+          4,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.51,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "unit_conversion": {
+        "leaks_caught": [
+          1,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.207,
+          1.0
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      }
+    },
+    "bad": {
+      "benign_post_name": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "clean": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "constant_column": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "duplicates": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "group_label": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "identifier": {
+        "leaks_caught": [
+          0,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.39
+        ],
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "informative_missing": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "missing_is_outcome": {
+        "leaks_caught": [
+          0,
+          5
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.434
+        ],
+        "false_alarms": [
+          0,
+          5
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.434
+        ]
+      },
+      "noisy_target_copy": {
+        "leaks_caught": [
+          0,
+          5
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.434
+        ],
+        "false_alarms": [
+          0,
+          5
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.434
+        ]
+      },
+      "post_outcome_name": {
+        "leaks_caught": [
+          0,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.39
+        ],
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "post_outcome_neutral": {
+        "leaks_caught": [
+          0,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.39
+        ],
+        "false_alarms": [
+          0,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.39
+        ]
+      },
+      "strong_honest_driver": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "sum_identity": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "time_random_split": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "unit_conversion": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      }
+    },
+    "standard": {
+      "benign_post_name": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "clean": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "constant_column": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "duplicates": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "group_label": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "identifier": {
+        "leaks_caught": [
+          6,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.61,
+          1.0
+        ],
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "informative_missing": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "missing_is_outcome": {
+        "leaks_caught": [
+          0,
+          5
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.434
+        ],
+        "false_alarms": [
+          1,
+          5
+        ],
+        "false_alarm_ci95": [
+          0.036,
+          0.624
+        ]
+      },
+      "noisy_target_copy": {
+        "leaks_caught": [
+          0,
+          5
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.434
+        ],
+        "false_alarms": [
+          1,
+          5
+        ],
+        "false_alarm_ci95": [
+          0.036,
+          0.624
+        ]
+      },
+      "post_outcome_name": {
+        "leaks_caught": [
+          1,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.03,
+          0.564
+        ],
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "post_outcome_neutral": {
+        "leaks_caught": [
+          0,
+          6
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.39
+        ],
+        "false_alarms": [
+          1,
+          6
+        ],
+        "false_alarm_ci95": [
+          0.03,
+          0.564
+        ]
+      },
+      "strong_honest_driver": {
+        "leaks_caught": [
+          0,
+          0
+        ],
+        "leaks_caught_ci95": null,
+        "false_alarms": [
+          3,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.301,
+          0.954
+        ]
+      },
+      "sum_identity": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      },
+      "time_random_split": {
+        "leaks_caught": [
+          0,
+          4
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.49
+        ],
+        "false_alarms": [
+          0,
+          4
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.49
+        ]
+      },
+      "unit_conversion": {
+        "leaks_caught": [
+          0,
+          1
+        ],
+        "leaks_caught_ci95": [
+          0.0,
+          0.793
+        ],
+        "false_alarms": [
+          0,
+          1
+        ],
+        "false_alarm_ci95": [
+          0.0,
+          0.793
+        ]
+      }
+    }
+  }
+}

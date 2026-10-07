@@ -94,9 +94,11 @@ class PgShadows:
 
 
 def open_shadows(home: Path) -> ShadowLog:
-    from ..storage import db
+    from ..storage.url import database_url
 
-    if db.database_url(required=False):
+    if database_url(required=False):
+        from ..storage import db
+
         return PgShadows(db.workspace_for(Path(home)))
     return FileShadows(Path(home) / "model_shadow.jsonl")
 

@@ -145,8 +145,11 @@ class PlatformApiTests(unittest.TestCase):
         p = self.client.post("/api/projects", json={"name": "Limit"}, headers=self.h).json()
         self.assertEqual(self.client.put(f"/api/projects/{p['id']}/data?filename=t.csv", content=b"a,b\n1,2\n3,4", headers=self.h).status_code, 413)
         self.assertTrue(d["spend"]["tracked"])  # the gateway counts every model request (package A1.2)
-        self.assertEqual((d["spend"]["eur_this_month"], d["spend"]["priced_models"]), (0.0, []))
-        self.assertIn("No model has a configured price yet", d["spend"]["note"])  # nothing is guessed
+        from dclab_rnd.models import prices
+
+        priced = sorted(prices.load())  # only checked prices, each with its date and source (8.4)
+        self.assertEqual((d["spend"]["eur_this_month"], d["spend"]["priced_models"]), (0.0, priced))
+        self.assertIn("Prices are configured for: " + ", ".join(priced) if priced else "No model has a configured price yet", d["spend"]["note"])
         sees = next(p for p in d["privacy"] if p["title"] == "What a model sees")
         self.assertFalse(sees["on"])
         self.assertIn("nothing is sent", sees["text"])

@@ -1,0 +1,652 @@
+{
+  "experiment_id": "AEV-012",
+  "campaign_id": "agent_eval_v1",
+  "kind": "judgment_suite_live",
+  "status": "stopped",
+  "run_id": "8a2d9ffda87b",
+  "model": "gpt-6-luna",
+  "tier": "strong",
+  "local": false,
+  "suite": "judgment_v1",
+  "question": "On the judgment suite's planted traps, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
+  "started_at": "2026-10-07T08:08:26+00:00",
+  "completed_at": "2026-10-07T08:08:28+00:00",
+  "plan": {
+    "model": "gpt-6-luna",
+    "tier": "strong",
+    "local": false,
+    "available": true,
+    "tiers": {
+      "intern": {
+        "tier": "strong",
+        "model": "gpt-6-luna",
+        "local": false
+      }
+    },
+    "remote_priced": [
+      "intern"
+    ],
+    "remote_unpriced": [],
+    "cases": [
+      "AE-01",
+      "AE-02",
+      "AE-03",
+      "AE-04",
+      "AE-05",
+      "AE-06",
+      "AE-07",
+      "AE-08",
+      "AE-09",
+      "AE-10",
+      "AE-11",
+      "AE-12",
+      "AE-13",
+      "AE-14",
+      "AE-15",
+      "AE-16",
+      "AE-17",
+      "AE-18",
+      "AE-19",
+      "AE-20"
+    ],
+    "repeats": 2,
+    "runs": 40,
+    "max_steps": 16,
+    "max_requests": 720,
+    "max_input_tokens": 16288560,
+    "max_eur": 2.28,
+    "priced": true,
+    "max_requests_cap": 720,
+    "cap_eur": 0.5
+  },
+  "requests": 1,
+  "spent": {
+    "eur": 0.0,
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "stopped": "the run failed: RuntimeError: BadRequestError: the model request failed",
+  "summary": {
+    "scores": {
+      "leaks_caught": {
+        "mean": null,
+        "ci95": null,
+        "n": 0
+      },
+      "false_alarms": {
+        "mean": null,
+        "ci95": null,
+        "n": 0
+      },
+      "valid_moves": {
+        "mean": null,
+        "ci95": null,
+        "n": 0
+      },
+      "citations_exist": {
+        "mean": null,
+        "ci95": null,
+        "n": 0
+      }
+    },
+    "by_case": {
+      "AE-01": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-02": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-03": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-04": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-05": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-06": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-07": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-08": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-09": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-10": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-11": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-12": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-13": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-14": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-15": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-16": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-17": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-18": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-19": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      },
+      "AE-20": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          0
+        ]
+      }
+    },
+    "runs": 0,
+    "not_run": 40,
+    "complete_repeats": 0,
+    "note": "Intervals are over complete repeats only; per-case counts include every scored run."
+  },
+  "runs": [
+    {
+      "case": "AE-01",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed",
+      "status": "failed",
+      "tokens": [
+        0,
+        0
+      ]
+    },
+    {
+      "case": "AE-02",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-03",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-04",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-05",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-06",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-07",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-08",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-09",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-10",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-11",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-12",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-13",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-14",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-15",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-16",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-17",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-18",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-19",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-20",
+      "repeat": 0,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-01",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-02",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-03",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-04",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-05",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-06",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-07",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-08",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-09",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-10",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-11",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-12",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-13",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-14",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-15",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-16",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-17",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-18",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-19",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    },
+    {
+      "case": "AE-20",
+      "repeat": 1,
+      "ran": false,
+      "why": "the run failed: RuntimeError: BadRequestError: the model request failed"
+    }
+  ],
+  "cases": [
+    {
+      "id": "AE-01",
+      "fingerprint": "2a29395068e46a92"
+    },
+    {
+      "id": "AE-02",
+      "fingerprint": "1904715d2d65f5f2"
+    },
+    {
+      "id": "AE-03",
+      "fingerprint": "22b76a9f4b5c2b7a"
+    },
+    {
+      "id": "AE-04",
+      "fingerprint": "4590a4aea1620866"
+    },
+    {
+      "id": "AE-05",
+      "fingerprint": "5b89170d2c7ae599"
+    },
+    {
+      "id": "AE-06",
+      "fingerprint": "b31e1d0c1d653190"
+    },
+    {
+      "id": "AE-07",
+      "fingerprint": "07a43727f76bf5c5"
+    },
+    {
+      "id": "AE-08",
+      "fingerprint": "38ad54d4cbfba878"
+    },
+    {
+      "id": "AE-09",
+      "fingerprint": "fe5c52bf84d2c7e8"
+    },
+    {
+      "id": "AE-10",
+      "fingerprint": "15ab000c2aa1268f"
+    },
+    {
+      "id": "AE-11",
+      "fingerprint": "45d5c36f9f25b1f1"
+    },
+    {
+      "id": "AE-12",
+      "fingerprint": "d97bdf6bc0625383"
+    },
+    {
+      "id": "AE-13",
+      "fingerprint": "23ceb08a566a07a5"
+    },
+    {
+      "id": "AE-14",
+      "fingerprint": "1d581a54166976c4"
+    },
+    {
+      "id": "AE-15",
+      "fingerprint": "aef92f375092b275"
+    },
+    {
+      "id": "AE-16",
+      "fingerprint": "96190d7f3f92cee8"
+    },
+    {
+      "id": "AE-17",
+      "fingerprint": "c1159f2630084a98"
+    },
+    {
+      "id": "AE-18",
+      "fingerprint": "c80d88da8bd31ac0"
+    },
+    {
+      "id": "AE-19",
+      "fingerprint": "5caf8f77baced109"
+    },
+    {
+      "id": "AE-20",
+      "fingerprint": "25e0e34e263af2ba"
+    }
+  ],
+  "limitations": [
+    "Scores on these cases are evidence about this model on these planted traps, not about any model's readiness for production.",
+    "2 repeats per case: the interval is about this model's varying answers on these cases, not about other tables."
+  ],
+  "prompt_hashes": {
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:home_agent": "cdd86dda083d9f04",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "03299d06968ff8e7",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:synthetic_schema": "90f444b5eed17145",
+    "prompt:tools_as_text": "12bbc00ec34548c6",
+    "tools:project": "1bc32a5b14afffd8",
+    "tools:draft": "2bc6603d41758b8e",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "validator:graph": "3b6895b8b3afbd2e"
+  }
+}

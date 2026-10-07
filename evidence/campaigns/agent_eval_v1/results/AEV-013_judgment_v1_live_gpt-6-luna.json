@@ -1,0 +1,1382 @@
+{
+  "experiment_id": "AEV-013",
+  "campaign_id": "agent_eval_v1",
+  "kind": "judgment_suite_live",
+  "status": "completed",
+  "run_id": "3d4658886552",
+  "model": "gpt-6-luna",
+  "tier": "strong",
+  "local": false,
+  "suite": "judgment_v1",
+  "question": "On the judgment suite's planted traps, how often does the intern, driven by this model, keep the leak out and the clean columns in?",
+  "started_at": "2026-10-07T08:15:20+00:00",
+  "completed_at": "2026-10-07T08:36:32+00:00",
+  "plan": {
+    "model": "gpt-6-luna",
+    "tier": "strong",
+    "local": false,
+    "available": true,
+    "tiers": {
+      "intern": {
+        "tier": "strong",
+        "model": "gpt-6-luna",
+        "local": false
+      }
+    },
+    "remote_priced": [
+      "intern"
+    ],
+    "remote_unpriced": [],
+    "cases": [
+      "AE-01",
+      "AE-02",
+      "AE-03",
+      "AE-04",
+      "AE-05",
+      "AE-06",
+      "AE-07",
+      "AE-08",
+      "AE-09",
+      "AE-10",
+      "AE-11",
+      "AE-12",
+      "AE-13",
+      "AE-14",
+      "AE-15",
+      "AE-16",
+      "AE-17",
+      "AE-18",
+      "AE-19",
+      "AE-20"
+    ],
+    "repeats": 2,
+    "runs": 40,
+    "max_steps": 16,
+    "max_requests": 720,
+    "max_input_tokens": 16288560,
+    "max_eur": 2.28,
+    "priced": true,
+    "max_requests_cap": 720,
+    "cap_eur": 0.5
+  },
+  "requests": 547,
+  "spent": {
+    "eur": 0.340713,
+    "input_tokens": 3253184,
+    "output_tokens": 30784
+  },
+  "stopped": null,
+  "summary": {
+    "scores": {
+      "leaks_caught": {
+        "mean": 0.962,
+        "ci95": [
+          0.473,
+          1.0
+        ],
+        "n": 2
+      },
+      "false_alarms": {
+        "mean": 0.275,
+        "ci95": [
+          0.0,
+          0.593
+        ],
+        "n": 2
+      },
+      "valid_moves": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 2
+      },
+      "citations_exist": {
+        "mean": 1.0,
+        "ci95": [
+          1.0,
+          1.0
+        ],
+        "n": 2
+      }
+    },
+    "by_case": {
+      "AE-01": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-02": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-03": {
+        "leak_caught": [
+          1,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-04": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-05": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-06": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          2,
+          2
+        ]
+      },
+      "AE-07": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-08": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-09": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          1,
+          2
+        ]
+      },
+      "AE-10": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-11": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-12": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-13": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          2
+        ]
+      },
+      "AE-14": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          1,
+          2
+        ]
+      },
+      "AE-15": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          2,
+          2
+        ]
+      },
+      "AE-16": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          2,
+          2
+        ]
+      },
+      "AE-17": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          2,
+          2
+        ]
+      },
+      "AE-18": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-19": {
+        "leak_caught": [
+          0,
+          0
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      },
+      "AE-20": {
+        "leak_caught": [
+          2,
+          2
+        ],
+        "false_alarm": [
+          0,
+          2
+        ]
+      }
+    },
+    "runs": 40,
+    "not_run": 0,
+    "complete_repeats": 2,
+    "note": "Intervals are over complete repeats only; per-case counts include every scored run."
+  },
+  "runs": [
+    {
+      "case": "AE-01",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 15,
+      "tokens": [
+        89995,
+        1197
+      ],
+      "eur": 0.009599,
+      "seconds": 31.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_balance_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-02",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        84853,
+        639
+      ],
+      "eur": 0.008806,
+      "seconds": 28.0,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_status_closed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-03",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85289,
+        797
+      ],
+      "eur": 0.008928,
+      "seconds": 28.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "x_adj7"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-04",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        83878,
+        664
+      ],
+      "eur": 0.008719,
+      "seconds": 28.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "score_v2"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-05",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 13,
+      "tokens": [
+        75154,
+        1118
+      ],
+      "eur": 0.008076,
+      "seconds": 32.9,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "label_text"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-06",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        82761,
+        1040
+      ],
+      "eur": 0.008796,
+      "seconds": 31.0,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_id",
+        "support_calls"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-07",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        90407,
+        648
+      ],
+      "eur": 0.009364,
+      "seconds": 24.5,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "weight_lb"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-08",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        89433,
+        685
+      ],
+      "eur": 0.009285,
+      "seconds": 24.1,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "evening_kg",
+        "morning_kg"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-09",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        83645,
+        716
+      ],
+      "eur": 0.008723,
+      "seconds": 28.9,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "exit_survey_score",
+        "monthly_spend",
+        "support_calls",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-10",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        55189,
+        653
+      ],
+      "eur": 0.005844,
+      "seconds": 18.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": "account_ref"
+      }
+    },
+    {
+      "case": "AE-11",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        92295,
+        814
+      ],
+      "eur": 0.009637,
+      "seconds": 27.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "event_date",
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-12",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        86626,
+        590
+      ],
+      "eur": 0.008958,
+      "seconds": 26.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "patient_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-13",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        86933,
+        717
+      ],
+      "eur": 0.009049,
+      "seconds": 34.9,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "monthly_spend",
+        "support_calls",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-14",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        85144,
+        614
+      ],
+      "eur": 0.008821,
+      "seconds": 25.8,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-15",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        89046,
+        948
+      ],
+      "eur": 0.009377,
+      "seconds": 31.7,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_income",
+        "monthly_spend",
+        "plan",
+        "support_calls",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-16",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        81146,
+        755
+      ],
+      "eur": 0.008493,
+      "seconds": 26.7,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_signup_survey"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-17",
+      "repeat": 0,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        78475,
+        1289
+      ],
+      "eur": 0.008491,
+      "seconds": 31.3,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "contract_months_left",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-18",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        77719,
+        650
+      ],
+      "eur": 0.008098,
+      "seconds": 23.5,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-19",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        89038,
+        804
+      ],
+      "eur": 0.009307,
+      "seconds": 35.1,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-20",
+      "repeat": 0,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        62878,
+        710
+      ],
+      "eur": 0.006642,
+      "seconds": 56.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "refund_issued_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-01",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        94776,
+        695
+      ],
+      "eur": 0.009826,
+      "seconds": 29.7,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "final_balance_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-02",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        79340,
+        667
+      ],
+      "eur": 0.008268,
+      "seconds": 76.6,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_status_closed"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-03",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        73155,
+        703
+      ],
+      "eur": 0.007668,
+      "seconds": 26.1,
+      "leak_caught": false,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-04",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        81227,
+        650
+      ],
+      "eur": 0.008449,
+      "seconds": 24.3,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "score_v2"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-05",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        70945,
+        724
+      ],
+      "eur": 0.007456,
+      "seconds": 22.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "label_text"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-06",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        90147,
+        894
+      ],
+      "eur": 0.009461,
+      "seconds": 39.8,
+      "leak_caught": true,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "customer_id",
+        "monthly_spend",
+        "support_calls"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-07",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        84838,
+        668
+      ],
+      "eur": 0.008818,
+      "seconds": 34.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "weight_lb"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-08",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        92373,
+        696
+      ],
+      "eur": 0.009585,
+      "seconds": 38.2,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "evening_kg",
+        "morning_kg"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-09",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        75099,
+        666
+      ],
+      "eur": 0.007844,
+      "seconds": 28.1,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "exit_survey_score"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-10",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        72239,
+        716
+      ],
+      "eur": 0.00758,
+      "seconds": 29.4,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "account_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": "account_ref"
+      }
+    },
+    {
+      "case": "AE-11",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        80382,
+        753
+      ],
+      "eur": 0.008415,
+      "seconds": 53.8,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": "event_date",
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-12",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        72991,
+        711
+      ],
+      "eur": 0.007656,
+      "seconds": 23.1,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "patient_ref"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": "patient_ref"
+      }
+    },
+    {
+      "case": "AE-13",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        62531,
+        687
+      ],
+      "eur": 0.006599,
+      "seconds": 18.5,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-14",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        76943,
+        737
+      ],
+      "eur": 0.008064,
+      "seconds": 30.2,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "monthly_spend",
+        "schema_version",
+        "support_calls",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-15",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        78900,
+        819
+      ],
+      "eur": 0.008299,
+      "seconds": 31.0,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "declared_income"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-16",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        100352,
+        676
+      ],
+      "eur": 0.010372,
+      "seconds": 24.6,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "post_signup_survey"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-17",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        65528,
+        786
+      ],
+      "eur": 0.006946,
+      "seconds": 19.2,
+      "leak_caught": null,
+      "false_alarm": true,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "contract_months_left",
+        "monthly_spend",
+        "support_calls",
+        "tenure_months"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-18",
+      "repeat": 1,
+      "ran": true,
+      "status": "completed",
+      "steps": 14,
+      "tokens": [
+        74500,
+        1003
+      ],
+      "eur": 0.007951,
+      "seconds": 48.5,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-19",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        83609,
+        824
+      ],
+      "eur": 0.008774,
+      "seconds": 39.2,
+      "leak_caught": null,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    },
+    {
+      "case": "AE-20",
+      "repeat": 1,
+      "ran": true,
+      "status": "budget_exhausted",
+      "steps": 16,
+      "tokens": [
+        93405,
+        661
+      ],
+      "eur": 0.009669,
+      "seconds": 31.1,
+      "leak_caught": true,
+      "false_alarm": false,
+      "valid_moves": 1.0,
+      "citations_exist": true,
+      "kept_out": [
+        "refund_issued_after"
+      ],
+      "declared": {
+        "time_column": null,
+        "group_column": null
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "AE-01",
+      "fingerprint": "2a29395068e46a92"
+    },
+    {
+      "id": "AE-02",
+      "fingerprint": "1904715d2d65f5f2"
+    },
+    {
+      "id": "AE-03",
+      "fingerprint": "22b76a9f4b5c2b7a"
+    },
+    {
+      "id": "AE-04",
+      "fingerprint": "4590a4aea1620866"
+    },
+    {
+      "id": "AE-05",
+      "fingerprint": "5b89170d2c7ae599"
+    },
+    {
+      "id": "AE-06",
+      "fingerprint": "b31e1d0c1d653190"
+    },
+    {
+      "id": "AE-07",
+      "fingerprint": "07a43727f76bf5c5"
+    },
+    {
+      "id": "AE-08",
+      "fingerprint": "38ad54d4cbfba878"
+    },
+    {
+      "id": "AE-09",
+      "fingerprint": "fe5c52bf84d2c7e8"
+    },
+    {
+      "id": "AE-10",
+      "fingerprint": "15ab000c2aa1268f"
+    },
+    {
+      "id": "AE-11",
+      "fingerprint": "45d5c36f9f25b1f1"
+    },
+    {
+      "id": "AE-12",
+      "fingerprint": "d97bdf6bc0625383"
+    },
+    {
+      "id": "AE-13",
+      "fingerprint": "23ceb08a566a07a5"
+    },
+    {
+      "id": "AE-14",
+      "fingerprint": "1d581a54166976c4"
+    },
+    {
+      "id": "AE-15",
+      "fingerprint": "aef92f375092b275"
+    },
+    {
+      "id": "AE-16",
+      "fingerprint": "96190d7f3f92cee8"
+    },
+    {
+      "id": "AE-17",
+      "fingerprint": "c1159f2630084a98"
+    },
+    {
+      "id": "AE-18",
+      "fingerprint": "c80d88da8bd31ac0"
+    },
+    {
+      "id": "AE-19",
+      "fingerprint": "5caf8f77baced109"
+    },
+    {
+      "id": "AE-20",
+      "fingerprint": "25e0e34e263af2ba"
+    }
+  ],
+  "limitations": [
+    "Scores on these cases are evidence about this model on these planted traps, not about any model's readiness for production.",
+    "2 repeats per case: the interval is about this model's varying answers on these cases, not about other tables."
+  ],
+  "prompt_hashes": {
+    "prompt:evidence_answer": "1d5a29ab7625c442",
+    "prompt:home_agent": "cdd86dda083d9f04",
+    "prompt:home_plan": "4a5997517306687b",
+    "prompt:intern": "940712db9ba17a4e",
+    "prompt:intern_memory": "03299d06968ff8e7",
+    "prompt:leakage_review": "8a2ad6a0c8b4464f",
+    "prompt:lesson_proposal": "82be48a747b7fa03",
+    "prompt:notebook_fixes": "ba2518c858e53ff2",
+    "prompt:parse_pattern": "0c7f52395e5d583d",
+    "prompt:stage_critique": "0c28d31fea660837",
+    "prompt:stage_explain": "2bb437ac6f749d1e",
+    "prompt:synthetic_schema": "90f444b5eed17145",
+    "prompt:tools_as_text": "12bbc00ec34548c6",
+    "tools:project": "1bc32a5b14afffd8",
+    "tools:draft": "2bc6603d41758b8e",
+    "tools:session": "efe01ef63a00e175",
+    "tools:campaign": "959a1dfb09b41b8f",
+    "validator:graph": "3b6895b8b3afbd2e"
+  }
+}

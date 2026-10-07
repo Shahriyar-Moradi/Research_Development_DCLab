@@ -615,5 +615,91 @@ class ApiTests(unittest.TestCase):
         self.assertNotIn("sk-never-logged", json.dumps(overview))
 
 
+class ToolsWithoutReasoningTests(unittest.TestCase):
+    def test_a_model_that_takes_tools_only_without_reasoning_is_retried_once_and_remembered(self):
+        """14.2: gpt-6-luna refused every tool request on chat completions unless reasoning_effort is "none"."""
+        from dclab_rnd.models import client as mc
+
+        sent = []
+
+        class Completions:
+            def create(self, **kwargs):
+                sent.append(dict(kwargs))
+                if kwargs.get("tools") and kwargs.get("reasoning_effort") != "none":
+                    raise RuntimeError("Error code: 400 - Function tools with reasoning_effort are not supported for m-x in /v1/chat/completions. "
+                                       "To use function tools, use /v1/responses or set reasoning_effort to 'none'.")
+                message = type("M", (), {"content": "", "tool_calls": []})()
+                return type("R", (), {"choices": [type("C", (), {"message": message, "finish_reason": "stop"})()], "usage": None})()
+
+        c = mc.ChatClient(model="m-x", base_url="https://api.openai.com/v1", api_key="sk-test-not-real")
+        c._client = type("O", (), {"chat": type("Ch", (), {"completions": Completions()})()})()
+        self.addCleanup(mc.TOOLS_WITHOUT_REASONING.discard, "m-x")
+        tools = [{"type": "function", "function": {"name": "t", "parameters": {"type": "object", "properties": {}}}}]
+        c.complete([{"role": "user", "content": "x"}], tools=tools)
+        self.assertEqual([k.get("reasoning_effort") for k in sent], [None, "none"])  # refused, then retried once
+        c.complete([{"role": "user", "content": "x"}], tools=tools)
+        self.assertEqual(sent[-1].get("reasoning_effort"), "none")  # remembered: sent from the start
+        c.complete([{"role": "user", "content": "x"}])
+        self.assertNotIn("reasoning_effort", sent[-1])  # without tools the model keeps its own reasoning
+        self.assertEqual(len(sent), 4)
+
+    def _fake(self, create):
+        from dclab_rnd.models import client as mc
+
+        c = mc.ChatClient(model="m-y", base_url="https://api.openai.com/v1", api_key="sk-test-not-real")
+        c._client = type("O", (), {"chat": type("Ch", (), {"completions": type("Co", (), {"create": staticmethod(create)})()})()})()
+        self.addCleanup(mc.TOOLS_WITHOUT_REASONING.discard, "m-y")
+        from dclab_rnd.models import pause
+
+        self.addCleanup(pause.clear)  # a refusal that stays pauses the model; the next test starts without it
+        return mc, c
+
+    def test_any_other_refusal_is_not_retried(self):
+        sent = []
+
+        def create(**kwargs):
+            sent.append(kwargs)
+            raise RuntimeError("Error code: 400 - Invalid 'messages[0].content': string too long.")
+
+        mc, c = self._fake(create)
+        tools = [{"type": "function", "function": {"name": "t", "parameters": {"type": "object", "properties": {}}}}]
+        with self.assertRaises(RuntimeError):
+            c.complete([{"role": "user", "content": "x"}], tools=tools)
+        self.assertEqual(len(sent), 1)
+        self.assertNotIn("m-y", mc.TOOLS_WITHOUT_REASONING)
+
+    def test_a_streamed_request_is_retried_and_the_refusal_counts_as_an_attempt(self):
+        sent = []
+
+        def create(**kwargs):
+            sent.append(kwargs)
+            if kwargs.get("reasoning_effort") != "none":
+                raise RuntimeError("Function tools with reasoning_effort are not supported; set reasoning_effort to 'none'.")
+            usage = type("U", (), {"prompt_tokens": 7, "completion_tokens": 2})()
+            delta = type("D", (), {"content": "hi", "tool_calls": None})()
+            return iter([type("K", (), {"usage": None, "choices": [type("Ch", (), {"delta": delta, "finish_reason": "stop"})()]})(),
+                         type("K", (), {"usage": usage, "choices": []})()])
+
+        mc, c = self._fake(create)
+        tools = [{"type": "function", "function": {"name": "t", "parameters": {"type": "object", "properties": {}}}}]
+        out = c.stream([{"role": "user", "content": "x"}], tools=tools)
+        self.assertEqual((out["content"], out["reasoning_effort"], out["refused_attempts"]), ("hi", "none", 1))
+        self.assertEqual(len(sent), 2)
+
+
+class AgentEnvironmentTests(unittest.TestCase):
+    def test_the_gateway_opens_on_files_without_sqlalchemy(self):
+        """.venv-agent has no SQLAlchemy: the specialists' live check (14.2) failed there before it sent a request."""
+        import subprocess, sys, tempfile
+        code = ("import sys; sys.modules['sqlalchemy'] = None\n"
+                "from pathlib import Path; from dclab_rnd.models import gateway\n"
+                "g = gateway.for_workspace(Path(sys.argv[1])); print(type(g.usage).__name__)")
+        env = {k: v for k, v in os.environ.items() if k != "DCLAB_DATABASE_URL"}
+        with tempfile.TemporaryDirectory() as home:
+            out = subprocess.run([sys.executable, "-c", code, home], capture_output=True, text=True, env=env, cwd=Path(__file__).resolve().parents[1])
+        self.assertEqual(out.returncode, 0, out.stderr[-600:])
+        self.assertEqual(out.stdout.strip(), "FileUsage")
+
+
 if __name__ == "__main__":
     unittest.main()

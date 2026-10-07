@@ -282,8 +282,11 @@ def next_path(model: str) -> Path:
 def main(argv: list[str] | None = None, gateway: Any = None) -> int:
     import argparse
 
-    from dclab_rnd.models.gateway import for_workspace
+    if gateway is None:  # the configured model is in .env, as for the server (a test passes its own gateway); read before
+        from dotenv import load_dotenv  # the gateway is imported, which reads DCLAB_MODEL_RETRIES and _BACKOFF
 
+        load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
+    from dclab_rnd.models.gateway import for_workspace
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.agent_eval.live", description="Run the judgment suite with the configured model (A4.2).")
     parser.add_argument("--yes", action="store_true", help="run it; without this flag the plan is printed and nothing is sent")
     parser.add_argument("--repeats", type=int, default=5, help="runs per case (a model's answers vary; default 5)")
@@ -344,6 +347,12 @@ def main(argv: list[str] | None = None, gateway: Any = None) -> int:
               "stopped": live["stopped"], "summary": summary, "runs": live["runs"],
               "cases": [{"id": c.id, "fingerprint": c.fingerprint()} for c in cases], "limitations": [SCOPE,
               f"{args.repeats} repeats per case: the interval is about this model's varying answers on these cases, not about other tables."]}
+    from dclab_rnd.models.client import TOOLS_WITHOUT_REASONING
+
+    if p["model"] in TOOLS_WITHOUT_REASONING:  # the provider took tools from this model only without reasoning (models/client.py)
+        report["tools_reasoning_effort"] = "none"
+        report["limitations"].append(f"{p['model']} refused function tools with its default reasoning, so every request with tools was sent "
+                                     "with reasoning_effort \"none\": these scores are for the model without reasoning on tool turns.")
     from dclab_rnd import prompts
 
     report["prompt_hashes"] = prompts.fingerprints()

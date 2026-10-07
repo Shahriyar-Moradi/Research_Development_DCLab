@@ -213,7 +213,28 @@ def _prompt_hashes() -> dict[str, str]:
 
 
 def _trap(case_id: str) -> str:
-    return next(c.trap for c in CASES if c.id == case_id)
+    found = next((c.trap for c in CASES if c.id == case_id), None)
+    if found is None:  # a case of the frozen benchmark (14.3)
+        from .benchmark import CASES as BENCHMARK
+
+        found = next(c.trap for c in BENCHMARK if c.id == case_id)
+    return found
+
+
+def by_trap_families(results: list[dict[str, Any]], traps: dict[str, str]) -> dict[str, Any]:
+    """Per policy and trap family: leaks caught and false alarms, with their 95% intervals (results as dicts)."""
+    out: dict[str, Any] = {}
+    for policy in sorted({r["policy"] for r in results}):
+        rows = [r for r in results if r["policy"] == policy]
+        fam: dict[str, Any] = {}
+        for trap in sorted({traps[r["case"]] for r in rows}):
+            leak = [r for r in rows if traps[r["case"]] == trap and r["leak_caught"] is not None]
+            alarm = [r for r in rows if traps[r["case"]] == trap and r["false_alarm"] is not None]
+            caught, alarms = sum(bool(r["leak_caught"]) for r in leak), sum(bool(r["false_alarm"]) for r in alarm)
+            fam[trap] = {"leaks_caught": [caught, len(leak)], "leaks_caught_ci95": wilson(caught, len(leak)),
+                         "false_alarms": [alarms, len(alarm)], "false_alarm_ci95": wilson(alarms, len(alarm))}
+        out[policy] = fam
+    return out
 
 
 def run(policies: tuple[str, ...] = ("standard", "audit", "bad"), cases: tuple[Case, ...] = CASES, home: Path | None = None) -> dict[str, Any]:

@@ -374,6 +374,8 @@ class Bound:
                     continue
                 self._record(messages, None, time.monotonic() - started, attempts, str(error).split(": ", 1)[-1][:200])
                 raise
+            if isinstance(out, dict):  # a request the provider refused before the client sent it again counts as an attempt
+                attempts += int(out.pop("refused_attempts", 0) or 0)
             self._record(messages, out, time.monotonic() - started, attempts, "ok")
             return out
 

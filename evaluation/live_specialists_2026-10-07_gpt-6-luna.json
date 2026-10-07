@@ -1,0 +1,207 @@
+{
+  "suite_id": "dclab_specialists_v1",
+  "manifest_sha256": "5859a92f8b35f844fa86eca125b64103cf94af09ffd9aac0539bb23ed6b5eb78",
+  "created_at": "2026-10-07T08:16:02.384272+00:00",
+  "model": "gpt-6-luna",
+  "cases_requested": 5,
+  "cases_run": 5,
+  "cases_not_run": 0,
+  "hard_check_passed": 5,
+  "schema_valid": 5,
+  "records": [
+    {
+      "id": "planner_missing_prediction_time",
+      "agent": "ResearchPlanner",
+      "hard_check": "mentions_prediction_time_gap",
+      "expert_question": "Does the planner stop or request a corrected prediction time rather than promising an impossible pre-receipt content model?",
+      "human_review": null,
+      "context_sha256": "209c13a6fad5f6660092127e2d26da973f3df583eaa17bb0cba73150ca7d9b8f",
+      "status": "completed",
+      "schema_valid": true,
+      "hard_check_pass": true,
+      "answer": {
+        "goal_interpretation": "The requested prediction must be made before a message is received, but the only described measurements are derived from received-message content. The task is therefore not yet defined well enough to train a model for the stated decision time. At most, the data could support a retrospective content-based classification study, if a target label is present and verified.",
+        "research_questions": [
+          "Is there a verified target label for each of the 2,000 rows, and what event does it represent?",
+          "Which measurements, if any, are available at the intended prediction time before message receipt, with a documented availability contract?",
+          "Can a pre-receipt feature set and a retrospective received-content feature set be defined separately for a meaningful comparison?"
+        ],
+        "sequence": [
+          "Check whether the dataset contains a usable target and clarify the prediction event, prediction time, and intended action; do not assume labels or timing details that are not provided.",
+          "Inventory candidate features and record when each is generated and available. Treat the described content measurements as unavailable for a before-receipt prediction unless evidence establishes otherwise.",
+          "If labels and a defensible pre-receipt feature set exist, compare within the same evaluation design: a baseline using only verified pre-receipt measurements versus a content-feature retrospective benchmark. Keep the latter explicitly separate from the intended task.",
+          "If no pre-receipt measurements or verified target are available, stop the intended-task modeling and request appropriate point-in-time inputs and label documentation."
+        ],
+        "success_criteria": [
+          "The target, prediction event, and prediction time are explicitly defined and supported by the dataset documentation.",
+          "Every feature used for the intended model has evidence of availability before message receipt; content-derived measurements are excluded unless that timing is verified.",
+          "Any paired comparison uses the same rows and evaluation procedure, and results are described as development evidence rather than unbiased test performance.",
+          "If the necessary target or pre-receipt inputs cannot be verified, the conclusion is a clear no-go for training the stated pre-receipt model, rather than a content-model score presented as evidence for it."
+        ],
+        "limitations": [
+          "The supplied profile does not identify a target column, feature-level timing, label provenance, or intended action.",
+          "The available measurements are described as coming from received message content, so they do not establish predictive information available before receipt.",
+          "No experiments or trial results are provided; model performance cannot be assessed from this context.",
+          "A retrospective content-based benchmark, even if feasible, would not establish performance for the pre-receipt task."
+        ]
+      },
+      "model_calls": 1,
+      "usage": {
+        "input_tokens": 753,
+        "output_tokens": 812,
+        "total_tokens": 1565
+      }
+    },
+    {
+      "id": "review_post_call_duration",
+      "agent": "DataScientist",
+      "hard_check": "flags_duration",
+      "expert_question": "Does the reviewer identify duration as post-call leakage and keep balance as a conditional availability question?",
+      "human_review": null,
+      "context_sha256": "01560b7f716b34a4bc6dcd854d5c7eb321e244eb402852abdea2e97d74df8d0e",
+      "status": "completed",
+      "schema_valid": true,
+      "hard_check_pass": true,
+      "answer": {
+        "dataset_findings": [
+          "bank_marketing is the only selected dataset. Its profile reports 2,000 rows and describes two columns: duration (numeric, blocked) and balance (numeric, unblocked). No target definition, missingness, class balance, or other column profiles are provided.",
+          "balance is described as an account balance before the call, making it a candidate pre-call feature, subject to confirming its timestamp and the prediction-time data pipeline.",
+          "duration is the length of the call after it ends and is correctly blocked for a prediction made immediately before the call."
+        ],
+        "leakage_risks": [
+          "Using duration would leak information unavailable at the prediction time; keep it excluded from features and any preprocessing used to create them.",
+          "The profile does not describe the target or other dataset columns, so target proxies, duplicate or entity leakage, and leakage from other post-call fields cannot be assessed."
+        ],
+        "availability_assumptions": [
+          "The stated timing for balance is accepted provisionally; verify that the value is recorded and accessible before the marketing call, rather than updated afterward.",
+          "No production availability, join keys, or point-in-time guarantees are provided. Do not assume any unprofiled fields are usable."
+        ],
+        "recommended_tests": [
+          "Verify the target definition and prediction timestamp, and inspect the full feature list for fields measured or updated after the call.",
+          "Check balance timestamps and lineage against the pre-call decision point; confirm missingness and value distributions on the training data.",
+          "Check for duplicate records and repeated customers, then use entity-aware splitting if customers recur across rows.",
+          "Validate that duration is excluded from feature selection, transformations, and model inputs; report performance only with splits that respect the intended evaluation setup."
+        ],
+        "external_data_hypotheses": [
+          "If a licensed point-in-time source and suitable join keys exist, evaluate pre-call local economic indicators as candidate context. Neither their availability nor joinability is established by the provided profile.",
+          "If available before each call and reliably keyed, prior customer contact or campaign history could be a useful candidate feature; these data are not included in the provided profile and must not be assumed available."
+        ]
+      },
+      "model_calls": 1,
+      "usage": {
+        "input_tokens": 829,
+        "output_tokens": 634,
+        "total_tokens": 1463
+      }
+    },
+    {
+      "id": "designer_first_baseline",
+      "agent": "ExperimentDesigner",
+      "hard_check": "valid_first_baseline",
+      "expert_question": "Is the first proposal executable, transparent and free of invented evidence or post-call inputs?",
+      "human_review": null,
+      "context_sha256": "565f7c69b97fa474bcf994b8bb0881acbc7697059a948d68728aeb6a06cd8cdf",
+      "status": "completed",
+      "schema_valid": true,
+      "hard_check_pass": true,
+      "answer": {
+        "dataset": "bank_marketing",
+        "title": "Pre-call logistic regression baseline",
+        "hypothesis": "A regularized logistic regression using the available pre-call numeric columns, age and balance, provides an interpretable initial subscription-prediction baseline without using call duration, which is unavailable before the call.",
+        "model": "logistic_regression",
+        "parameters": {
+          "C": 1.0,
+          "n_estimators": null,
+          "max_depth": null,
+          "min_samples_leaf": null,
+          "learning_rate": null
+        },
+        "features": [],
+        "drop_columns": [
+          "duration"
+        ],
+        "stress_columns": [
+          "age",
+          "balance"
+        ],
+        "evidence_ids": [],
+        "reference_evidence_id": null,
+        "expected_learning": "Establish baseline performance and assess sensitivity to simulated missingness in age and balance; this is an initial development result, not an unbiased estimate of generalization."
+      },
+      "model_calls": 1,
+      "usage": {
+        "input_tokens": 1844,
+        "output_tokens": 457,
+        "total_tokens": 2301
+      }
+    },
+    {
+      "id": "critic_tradeoff_and_no_significance_claim",
+      "agent": "ResultsCritic",
+      "hard_check": "cites_both_and_mentions_tradeoff",
+      "expert_question": "Does the critic say AUC rose while AP and probability quality worsened, without declaring significance or production readiness?",
+      "human_review": null,
+      "context_sha256": "6239ddf5f65ddf750485020fa79a125892839c63b6ce13645ca90ff22c81cc77",
+      "status": "completed",
+      "schema_valid": true,
+      "hard_check_pass": true,
+      "answer": {
+        "observation": "In the reported repeated development CV metrics, random_forest had ROC AUC 0.76 versus 0.75 for logistic_regression (+0.01), average precision 0.33 versus 0.35 (-0.02), Brier score 0.17 versus 0.14 (+0.03), and log loss 0.50 versus 0.44 (+0.06). The paired comparison is described as development folds, but no fold-level scores or paired deltas are provided.",
+        "interpretation": "The random forest has a slightly higher aggregate ROC AUC, while the logistic regression has higher average precision and better aggregate Brier score and log loss. These descriptive results do not establish a generally superior model or a meaningful difference; both evaluations are reused development CV, not independent confirmation.",
+        "limitations": [
+          "No paired fold-level results, variability estimates, or uncertainty measures are available, so the consistency of the metric differences across folds cannot be assessed.",
+          "The model inputs and preprocessing details are not provided, preventing comparison of what information each candidate used.",
+          "Aggregate Brier and log-loss values do not show calibration behavior across score ranges or relevant subgroups.",
+          "No stress-test failures or negative results beyond the reported metric tradeoffs are supplied."
+        ],
+        "next_question": "If another evaluation is available, do paired per-fold metric differences persist under the same inputs and preprocessing, and do calibration plots or equivalent diagnostics explain the worse aggregate Brier score and log loss for random_forest?",
+        "evidence_ids": [
+          "eval:trial-001",
+          "eval:trial-002"
+        ],
+        "continue_research": true
+      },
+      "model_calls": 1,
+      "usage": {
+        "input_tokens": 1032,
+        "output_tokens": 809,
+        "total_tokens": 1841
+      }
+    },
+    {
+      "id": "curator_failed_trial_only",
+      "agent": "KnowledgeCurator",
+      "hard_check": "no_empirical_lesson_from_failure",
+      "expert_question": "Does the curator report the operational failure without inventing a model finding?",
+      "human_review": null,
+      "context_sha256": "0c7ed9913f6e20e5dc20136f7943be0406645564e85faa33d49a8c717e04a684",
+      "status": "completed",
+      "schema_valid": true,
+      "hard_check_pass": true,
+      "answer": {
+        "summary": "One attempt on the credit_default dataset (2,000 rows) was blocked when the provider refused the request before training (eval:trial-001). No model training or evaluation succeeded, so this attempt supports no dataset-specific findings.",
+        "lessons": [],
+        "theoretical_principles": [
+          "A provider refusal before training is an execution failure, not evidence about model performance or dataset properties.",
+          "Treat empirical claims as supported only by successful measurements; separate infrastructure or access failures from model outcomes."
+        ],
+        "workflow_blocks": [
+          "Before interpreting results, verify that the provider accepts the request and training begins; if it refuses, record the failure and do not infer model or dataset performance.",
+          "After a successful run, confirm that training and evaluation completed before recording findings, with the evidence ID and evaluation scope."
+        ],
+        "unanswered_questions": [
+          "Will a provider accept a subsequent request for credit_default and allow training to complete?",
+          "If training succeeds, what evaluation results, if any, will be observed?"
+        ]
+      },
+      "model_calls": 1,
+      "usage": {
+        "input_tokens": 985,
+        "output_tokens": 291,
+        "total_tokens": 1276
+      }
+    }
+  ],
+  "overall_release_ready": false,
+  "limitation": "Researcher-authored development pilot; lexical checks and no independent expert adjudication."
+}

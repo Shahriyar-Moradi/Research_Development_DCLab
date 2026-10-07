@@ -24,11 +24,7 @@ _ENGINES: dict[str, sa.Engine] = {}
 _GUARD = threading.Lock()
 
 
-def database_url(required: bool = True) -> str | None:
-    url = os.environ.get("DCLAB_DATABASE_URL", "").strip()
-    if not url and required:
-        raise RuntimeError("DCLAB_DATABASE_URL is not set. Example: postgresql+psycopg://USER@/dclab_dev (see .env.example)")
-    return url or None
+from .url import database_url  # noqa: E402,F401 — kept here for every caller of db.database_url
 
 
 def _finite(value: Any) -> Any:

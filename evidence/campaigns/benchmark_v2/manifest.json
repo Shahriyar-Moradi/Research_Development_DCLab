@@ -1,0 +1,9 @@
+{
+  "campaign_id": "benchmark_v2",
+  "objective": "The frozen benchmark (package 14.3): 108 seeded cases from base tables no prompt was tuned on, each with a prediction moment and at most one planted trap (a post-outcome column, a noisy copy of the target, an identifier, a value missing when the outcome happened, entity or time leakage, repeated rows) or a clean control, scored like the judgment suite. Split by source into a dev set (38 cases, 3 bases) and a sealed test set (70 cases, 6 bases, two of them real tables shipped with scikit-learn).",
+  "rule": "Scores are evidence about these policies on these cases, not about any model's readiness for production. The sealed test set is never used to change a prompt, a rule or a policy; every run on it is recorded here.",
+  "command": "make benchmark SPLIT=dev | make benchmark SPLIT=test",
+  "known_limits": [
+    "In the missing_is_outcome family two columns carry a telling name (exit_rating in the dev set, delivery_rating_given in the test set): the audit keeps them out by that name, not by the missingness. They stay as they are because the sealed set has been scored; a new version renames them."
+  ]
+}

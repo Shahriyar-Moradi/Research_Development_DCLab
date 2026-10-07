@@ -65,6 +65,17 @@ def settings() -> dict[str, Any]:
             "sdk_installed": sdk, "key_configured": bool(key)}
 
 
+# Models whose chat-completions endpoint takes function tools only with reasoning_effort "none" (OpenAI's gpt-6-luna
+# refuses tools with its default reasoning: "use /v1/responses or set reasoning_effort to 'none'", found in 14.2).
+# Learned from the refusal itself, once per process, so no model name is hard-coded and a model that changes is followed.
+TOOLS_WITHOUT_REASONING: set[str] = set()
+
+
+def _wants_no_reasoning(exc: BaseException) -> bool:
+    text = str(exc)
+    return "reasoning_effort" in text and "'none'" in text and "tool" in text.lower()
+
+
 class ChatClient:
     """One ``complete`` call = one chat-completions request. A failure is raised as ``RuntimeError("<Type>: <reason>")``
     with a reason safe to show (see ``failure``); after a refusal that will not go away, requests pause for a while."""
@@ -107,6 +118,22 @@ class ChatClient:
         error.transient = not pointless and reason != "the model request failed"  # type: ignore[attr-defined]
         return error
 
+    def _create(self, kwargs: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
+        """One chat-completions request, and what the result should say about how it was sent. With tools, a model
+        that takes them only without reasoning gets reasoning_effort "none" (learned from its refusal, then sent from
+        the start); nothing else changes. The refused request is counted as an attempt, and the answer says it was
+        written without reasoning, so a usage row or a live result never hides either."""
+        if kwargs.get("tools") and self.model in TOOLS_WITHOUT_REASONING and "reasoning_effort" not in kwargs:
+            kwargs = {**kwargs, "reasoning_effort": "none"}
+        note = {"reasoning_effort": kwargs["reasoning_effort"]} if "reasoning_effort" in kwargs else {}
+        try:
+            return self.client.chat.completions.create(**kwargs), note
+        except Exception as exc:  # noqa: BLE001 — retried only for this one refusal; anything else goes on as it was
+            if not (kwargs.get("tools") and "reasoning_effort" not in kwargs and _wants_no_reasoning(exc)):
+                raise
+            TOOLS_WITHOUT_REASONING.add(self.model)
+            return self.client.chat.completions.create(**{**kwargs, "reasoning_effort": "none"}), {"reasoning_effort": "none", "refused_attempts": 1}
+
     @property
     def client(self):
         if self._client is None:
@@ -130,7 +157,8 @@ class ChatClient:
         finish, usage = None, None
         self._ready()
         try:
-            for chunk in self.client.chat.completions.create(**kwargs):
+            chunks, note = self._create(kwargs)
+            for chunk in chunks:
                 if getattr(chunk, "usage", None):
                     usage = chunk.usage
                 if not chunk.choices:
@@ -164,6 +192,7 @@ class ChatClient:
             "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
             "assistant_message": {"role": "assistant", "content": content,
                                   **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}} for c in calls]} if calls else {})},
+            **note,
         }
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800, **options: Any) -> dict[str, Any]:
@@ -173,7 +202,7 @@ class ChatClient:
             kwargs.update(tools=tools, tool_choice="auto")
         self._ready()
         try:
-            response = self.client.chat.completions.create(**kwargs)
+            response, note = self._create(kwargs)
         except Exception as exc:  # noqa: BLE001 — provider errors can carry headers; keep only the type
             raise self._failed(exc) from None
         choice = response.choices[0]
@@ -192,4 +221,5 @@ class ChatClient:
             "usage": {"input_tokens": getattr(usage, "prompt_tokens", 0) or 0, "output_tokens": getattr(usage, "completion_tokens", 0) or 0},
             "assistant_message": {"role": "assistant", "content": choice.message.content or "",
                                   **({"tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}} for c in calls]} if calls else {})},
+            **note,
         }
