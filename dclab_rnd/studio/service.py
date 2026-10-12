@@ -94,6 +94,8 @@ def export(store, project_id: str, out: Path) -> dict[str, Any]:
     bundle = p.bundle
     if bundle.task_type == "text_tabular_binary":
         raise ServiceRefused("A text project's vocabulary is learned from its rows: its service export is not built yet")
+    if not p.kind.export.get("service", True):  # 16.1: the kind says what its export supports
+        raise ServiceRefused(f"The {p.kind.title.lower()} kind has no service export yet: {p.kind.export.get('why', 'not built')}")
     fitted = rn.fit_and_predict(bundle, recipe_name, family, params, bundle.X_train, bundle.y_train, bundle.X_test)
     metric = final_record.get("primary_metric") or bundle.spec.primary_metric
     recorded = (final.get("holdout_metrics") or {}).get(metric)

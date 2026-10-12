@@ -12,17 +12,12 @@ from typing import Any, Literal
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from dclab_rnd import tools
+from dclab_rnd import kinds, tools
 
 from .data import detect_task
 
-TASKS = ("binary", "multiclass", "regression")
-METRICS = {
-    "binary": [("roc_auc", "ROC-AUC (ranking quality, balanced classes)"), ("average_precision", "Average precision (rare positives)"),
-               ("recall_at_budget", "Recall at the review budget (the share of cases found when the team reviews its budget)")],
-    "multiclass": [("macro_f1", "Macro-F1 (every class counts equally)")],
-    "regression": [("mae", "Mean absolute error")],
-}
+TASKS = kinds.BASE_TASKS
+METRICS = {task: list(kinds.get(task).metrics) for task in TASKS}  # each task's own kind (16.1); a kind may offer others
 
 
 class Forbidden(BaseModel):
@@ -50,6 +45,10 @@ class Solution(BaseModel):
     label_provenance: str = Field(default="", max_length=600)
     # package 15.3: the share of rows the team can review (asked in words: "about 70 a day" over the rows of a day)
     alert_budget: float | None = Field(default=None, gt=0, lt=1)
+    # package 16.1: the problem kind (dclab_rnd.kinds) and its own fields, validated by the kind. None: the kind follows
+    # from the task, the project's Domain pack and the text columns (kinds.resolve)
+    kind: str | None = Field(default=None, max_length=60)
+    kind_fields: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def coherent(self):
@@ -59,13 +58,26 @@ class Solution(BaseModel):
         if self.time_column and self.time_column in names:
             raise ValueError("The time column orders the split and is kept out of the model automatically, so it cannot also be "
                              "forbidden: untick it under Forbidden, or choose another time column")
-        if self.metric and self.metric not in {m for m, _ in METRICS[self.task]}:
+        kind = self.problem_kind()
+        if self.kind_fields and not self.kind:
+            raise ValueError("A kind's fields need the kind itself: declare `kind` with them")
+        if kind.base_task != self.task:
+            raise ValueError(f"The {kind.title.lower()} kind runs as a {kind.base_task} task, not {self.task}")
+        self.kind_fields = kind.fields(self.kind_fields)
+        if self.metric and self.metric not in kind.metric_keys():
             raise ValueError(f"Metric {self.metric!r} does not fit a {self.task} task")
         if len(names) != len(self.forbidden):
             raise ValueError("A column is listed twice under forbidden")
         if self.metric == "recall_at_budget" and not self.alert_budget:
             raise ValueError("Recall at the review budget needs the budget: say how many rows the team can review")
         return self
+
+    def problem_kind(self, pack: str | None = None):
+        """The kind this solution runs as (16.1): the declared one, else the pack's, else the task's."""
+        try:
+            return kinds.resolve(self, pack)
+        except KeyError as error:
+            raise ValueError(str(error.args[0])) from None
 
     def check_columns(self, columns: list[str]) -> None:
         known = set(columns)
@@ -81,13 +93,12 @@ class Solution(BaseModel):
 
 
 def default_metric(task: str, positive_rate: float | None = None) -> str:
-    if task == "binary":
-        return "average_precision" if positive_rate is not None and positive_rate < 0.10 else "roc_auc"
-    return "macro_f1" if task == "multiclass" else "mae"
+    return kinds.get(task).default_metric(None, positive_rate)
 
 
-def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None) -> dict[str, Any]:
-    """What the agent suggests for the solution, with the signal behind each suggestion."""
+def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None) -> dict[str, Any]:
+    """What the agent suggests for the solution, with the signal behind each suggestion. The problem kind (16.1) follows
+    from the task, the Domain pack and the text columns; its metrics are the options offered."""
     if target not in frame.columns:
         raise ValueError(f"Target {target!r} is not in the data")
     detected = detect_task(frame, target)
@@ -111,16 +122,22 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         # when the audit has any other signal against it (then it should not order the split either).
         if name in time_candidates and all(s.startswith("identifier-like") for s in row["signals"]):
             continue
+        # free text is unique on most rows too; that makes it text to model, not an identifier (16.2's review)
+        if name in profile.get("text_candidates", []) and all(s.startswith("identifier-like") for s in row["signals"]):
+            continue
         proof = [s.split("precedent ")[-1] for s in row["signals"] if "precedent" in s]
         forbidden.append({"column": name, "reason": "; ".join(row["signals"]), "risk_score": row["risk_score"],
                           "proof": proof + ["DCLAB-R04", "DCLAB-R05"]})
     text_columns = [name for name in profile["text_candidates"] if name != target]
     positive_rate = detected.get("positive_rate")
+    kind = kinds.resolve({"task": task, "text_columns": text_columns}, pack)
     return {
-        "target": target, "task": task, "detected": detected,
+        "target": target, "task": task, "kind": kind.key, "kind_title": kind.title, "detected": detected,
         "positive_label": detected.get("positive_label"),
         "forbidden": forbidden, "identifiers": identifiers, "time_candidates": time_candidates,
         "group_candidates": group_candidates, "text_columns": text_columns,
+        # the metric proposed stays the task's own, as before 16.1 (the wizard saves it): a pack's metric applies when the
+        # person leaves the metric empty
         "metric": default_metric(task, positive_rate), "metric_options": METRICS[task],
         "prediction_moment_hint": _moment_hint(task, time_candidates, forbidden),
         "audit_note": audit["note"],

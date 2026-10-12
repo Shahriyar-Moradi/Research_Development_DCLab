@@ -1,0 +1,226 @@
+{
+ "generated_by": "make kinds-check",
+ "at": "2026-10-12T19:54:34+00:00",
+ "results": [
+  {
+   "kind": "rare_event",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "the label file is joined on the order, never on a coarser key",
+     "ok": true,
+     "detail": "joined on ['order_id']"
+    },
+    {
+     "decision": "labels from a sample are partial: an unlabelled ride is unknown",
+     "ok": true,
+     "detail": "partial"
+    },
+    {
+     "decision": "behaviour features are chosen over the raw columns",
+     "ok": true,
+     "detail": "entity_behaviour"
+    },
+    {
+     "decision": "folds are grouped by biker",
+     "ok": true,
+     "detail": "StratifiedGroupKFold(3) by `biker_id` on training rows"
+    },
+    {
+     "decision": "rules, anomaly detectors and PU bagging are screened",
+     "ok": true,
+     "detail": "ecod, extra_trees, hist_gradient_boosting, isolation_forest, lightgbm, logistic_regression, percentile_rules, pu_bagging, xgboost"
+    },
+    {
+     "decision": "the holdout average precision is above 0.35 and 20 times chance",
+     "ok": true,
+     "detail": "0.5689178120761622 against 0.00582039911308204"
+    },
+    {
+     "decision": "recall at the budget beats reviewing at random",
+     "ok": true,
+     "detail": "0.6190476190476191"
+    },
+    {
+     "decision": "precision is reported as a lower bound",
+     "ok": true,
+     "detail": "The labels are partial (known_frauds.csv: 103 of 108 label rows found in the table, joined on order_id (103 rows marked)"
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['majority_class'], computed ['majority_class']"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "text_tabular",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "`shop_reply` is kept out of the model (written after the review)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`review_id` is kept out of the model (an identifier)",
+     "ok": true,
+     "detail": "its role: identifier"
+    },
+    {
+     "decision": "the review text is modelled",
+     "ok": true,
+     "detail": "its role: text"
+    },
+    {
+     "decision": "a text recipe is chosen over the structured fields alone",
+     "ok": true,
+     "detail": "tfidf_word"
+    },
+    {
+     "decision": "the chosen recipe beats the structured fields by 0.1 training-CV",
+     "ok": true,
+     "detail": "0.8008313105319611 against 0.5292315852003646"
+    },
+    {
+     "decision": "the holdout ROC-AUC is at least 0.8",
+     "ok": true,
+     "detail": "0.8685767879316265"
+    },
+    {
+     "decision": "no copy of the label is left (holdout ROC-AUC below 0.99)",
+     "ok": true,
+     "detail": "0.8685767879316265"
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['majority_class'], computed ['majority_class']"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "binary",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`subscriber_id` is kept out of the model (an identifier)",
+     "ok": true,
+     "detail": "its role: identifier"
+    },
+    {
+     "decision": "the holdout is the latest signups",
+     "ok": true,
+     "detail": "last 600 of 3000 rows by `signup_time`"
+    },
+    {
+     "decision": "scored by ROC-AUC (cancellations are not rare)",
+     "ok": true,
+     "detail": "roc_auc"
+    },
+    {
+     "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+     "ok": true,
+     "detail": "apparent lift 0.34356039289356244"
+    },
+    {
+     "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+     "ok": true,
+     "detail": "0.7463216641298832 against 0.5"
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['majority_class'], computed ['majority_class']"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "multiclass",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "`resolved_by` is kept out of the model (the agent who closed the ticket, nearly a copy of the label)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`first_response_minutes` is kept out of the model (known only after the queue answers)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "scored by macro-F1 (two teams hold 0.3 % of tickets each)",
+     "ok": true,
+     "detail": "macro_f1"
+    },
+    {
+     "decision": "the holdout macro-F1 is 0.1 above the majority class",
+     "ok": true,
+     "detail": "0.4006960571082485 against 0.021739130434782608"
+    },
+    {
+     "decision": "no copy of the label is left (holdout macro-F1 below 0.99)",
+     "ok": true,
+     "detail": "0.4006960571082485"
+    },
+    {
+     "decision": "the worst classes are named",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['majority_class'], computed ['majority_class']"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "regression",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "`delivered_at` is kept out of the model (the target can be recomputed from it)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "`courier_rating` is kept out of the model (given after the delivery)",
+     "ok": true,
+     "detail": "its role: blocked"
+    },
+    {
+     "decision": "scored by mean absolute error",
+     "ok": true,
+     "detail": "mae"
+    },
+    {
+     "decision": "the holdout MAE is at most 0.9 times the training median's",
+     "ok": true,
+     "detail": "8.463764920081084 against 10.126000000000001"
+    },
+    {
+     "decision": "the cap at 60 minutes is found on the training rows and its errors called censored",
+     "ok": true,
+     "detail": "{\"cap\": 60.0, \"holdout_rows_at_cap\": 35, \"mae_at_cap\": 29.5277, \"mae_below_cap\": 7.1589, \"note\": \"values at the cap are censored: their error is a lower bound\"}"
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+    }
+   ],
+   "missing": []
+  }
+ ]
+}

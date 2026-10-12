@@ -252,6 +252,7 @@
     readJob: ["GET", "/jobs/{job_id}", ["job_id"], []],
     retryJob: ["POST", "/jobs/{job_id}/retry", ["job_id"], []],
     stopJob: ["POST", "/jobs/{job_id}/stop", ["job_id"], []],
+    problemKinds: ["GET", "/kinds", [], []],
     knowledge: ["GET", "/knowledge", [], []],
     labBenchmarkRoute: ["GET", "/lab/benchmark", [], []],
     labSummaryRoute: ["GET", "/lab/summary", [], []],
@@ -584,6 +585,12 @@
    *  @returns {Promise<Doc>} */
   client.stopJob = (...args) => call('stopJob', args);
   client.path.stopJob = (...args) => build('stopJob', args).path;
+  /** GET /api/kinds: Problem Kinds
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.problemKinds = (...args) => call('problemKinds', args);
+  client.path.problemKinds = (...args) => build('problemKinds', args).path;
+  client.href.problemKinds = (...args) => '/api' + build('problemKinds', args).path;
   /** GET /api/knowledge: Knowledge
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Array<Doc>>} */

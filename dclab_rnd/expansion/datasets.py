@@ -338,8 +338,10 @@ def prepare_bundle(
     sampling: dict[str, Any] | None = None,
     class_labels: list[Any] | None = None,
     cv_folds: int = CV_FOLDS,
+    stratify: bool | None = None,
 ) -> TaskBundle:
-    """Create the locked holdout and training-only CV folds for ``spec``."""
+    """Create the locked holdout and training-only CV folds for ``spec``. ``stratify`` says whether random and grouped
+    splits keep class strata (a problem kind's choice, 16.1); None: every task but regression does."""
     from sklearn.model_selection import (
         GroupKFold,
         KFold,
@@ -349,7 +351,7 @@ def prepare_bundle(
         train_test_split,
     )
 
-    regression = spec.task_type == "timeseries_regression"
+    regression = (spec.task_type == "timeseries_regression") if stratify is None else not stratify  # no class strata
     X = X.reset_index(drop=True)
     y = y.reset_index(drop=True)
     n = len(X)
@@ -402,7 +404,7 @@ def prepare_bundle(
         # a rare outcome on a few entities can leave a fold without one case: the holdout is the first fold that holds
         # both classes, so its metric can be measured (a classification only; still decided before any model is fitted)
         chosen = 0
-        if not regression:
+        if spec.task_type != "timeseries_regression":  # a classification, stratified or not
             chosen = next((i for i, (_, te) in enumerate(folds) if y.iloc[te].nunique() > 1 and y.iloc[_].nunique() > 1), 0)
         train_idx, test_idx = folds[chosen]
         inner = outer_cls(n_splits=cv_folds, **outer_kw)

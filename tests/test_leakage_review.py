@@ -81,6 +81,16 @@ class ReviewerTests(unittest.TestCase):
         out = leakage_review.review(profile, "At signup; region and age are known but the outcome is not available", [], "y")
         self.assertEqual([i["column"] for i in out["items"]], ["outcome_code"])
 
+    def test_the_moment_rule_reads_later_and_names_no_column_by_a_generic_word(self):
+        columns = [{"name": n} for n in ("order_time", "basket_value", "price", "delivered_at", "courier_rating", "first_response_minutes")]
+        later = leakage_review.from_moment(columns, "When the ticket is created; the first response time comes later.", set())
+        self.assertEqual([i["column"] for i in later], ["first_response_minutes"])
+        named = leakage_review.from_moment(columns, "When the order is placed: the basket value and the price are known, and the delivery time "
+                               "comes later.", set())
+        self.assertEqual([i["column"] for i in named], ["delivered_at"])  # not order_time ("time"), not the basket or the price
+        listed = leakage_review.from_moment(columns, "Exclude the courier rating, delivery stamps.", set())
+        self.assertEqual({i["column"] for i in listed}, {"courier_rating", "delivered_at"})  # a list after "exclude" stays one clause
+
     def test_an_unreadable_or_failing_model_leaves_the_rules(self):
         class Broken:
             def complete(self, *a, **k):

@@ -111,7 +111,7 @@ DC.view('packs', {
         foot: 'Proposed in research/cross-industry-workflows: the same ten steps outside machine learning. No implementation yet.' },
     };
     /* Research packs the page documents but the server does not offer (not in dclab_rnd/draft/pack.py, so never detected or picked). */
-    const PAGE_ONLY = [{ key: 'software', name: 'Software bug-fixing', desc: 'The first non-ML pack: fix an issue so the tests pass.', maturity: 'Research', cls: '', icon: 'bug', page_only: true }];
+    const PAGE_ONLY = [{ key: 'software', name: 'Software bug-fixing', desc: 'The first non-ML pack: fix an issue so the tests pass.', maturity: 'Not built', cls: '', icon: 'bug', page_only: true }];
     const NO_DOC = { steps: U.map(() => 'Not mapped yet'), checks: U.map(() => '—'), rules: [], tools: [], metrics: [], engine: TAB_ENGINE, foot: 'This pack has no step map written yet.' };
     const S = this.S = { packs: [], usage: null, current: 'tabular' };
     this.PAGE_ONLY = PAGE_ONLY;
@@ -140,7 +140,10 @@ DC.view('packs', {
       const list = u.project_list.slice(0, 6).map(x => `<a href="#project" data-open-project="${esc(x.id)}">${esc(x.name)}</a>`).join(', ');
       const usage = p.page_only ? '<b>In use:</b> not offered in projects.' : !S.usage ? 'Loading usage…'
         : `<b>In use:</b> ${n(u.projects, 'project')}${list ? ` (${list}${u.project_list.length > 6 ? ', …' : ''})` : ''} · ${n(u.drafts, 'draft')}${u.drafts ? `, ${int(u.open_drafts)} still open` : ''}.`;
-      $('#pk-usage', el).innerHTML = `<div>${usage}</div><div class="${k === 'tabular' ? '' : 'muted'}">${esc(d.engine)}</div>`;
+      const cap = p.capability || null;
+      const capText = !cap ? '' : cap.status === 'supported' ? `<b>Capability:</b> supported; the acceptance of ${esc(cap.kinds.join(', '))} passes on its replica.`
+        : `<b>Capability:</b> ${cap.status === 'partial' ? 'partial' : 'not built'}. Missing: ${esc(cap.missing.join('; '))}.`;
+      $('#pk-usage', el).innerHTML = `<div>${usage}</div>${capText ? `<div class="small">${capText}</div>` : ''}<div class="${k === 'tabular' ? '' : 'muted'}">${esc(d.engine)}</div>`;
       $('#pk-table tbody', el).innerHTML = U.map((s, i) => `<tr><td><span class="tag">WF-${String(i + 1).padStart(2, '0')}</span> <b class="small">${s}</b></td><td>${esc(d.steps[i])}</td><td class="small muted">${esc(d.checks[i])}</td></tr>`).join('');
       $('#pk-rules', el).innerHTML = d.rules.map(r => `<div>${DC.linkIds(r)}</div>`).join('') || '<div class="muted">None written yet.</div>';
       $('#pk-tools-h', el).textContent = k === 'tabular' ? 'Tools it uses (built)' : 'Tools it would add (not built yet)';
@@ -170,8 +173,8 @@ DC.view('packs', {
     });
     $('#pack-builder-btn', el).addEventListener('click', () => DC.modal.open({
       eyebrow: '<span class="eyebrow">Pack builder</span>', title: 'Packs are defined in code today', hideConfirm: true, cancel: 'Close',
-      html: `<p>There is no pack builder yet. A pack is an entry in <code>dclab_rnd/draft/pack.py</code> (<code>PACKS</code>: key, name, description, maturity), with keywords that detect it from the problem sentence, and step labels in <code>dclab_rnd/draft/workflow.py</code> (<code>PACK_CHANGES</code>) that change how the solution workflow is drawn.</p>
-        <p>Whatever the pack, the engine runs the same five tabular stages today. Pack-specific rules, tools, metrics and validators, as described on this page, are design.</p>
+      html: `<p>There is no pack builder yet. A pack is an entry in <code>dclab_rnd/draft/pack.py</code> (<code>PACKS</code>: key, name, description), with keywords that detect it from the problem sentence, and step labels in <code>dclab_rnd/draft/workflow.py</code> (<code>PACK_CHANGES</code>) that change how the solution workflow is drawn.</p>
+        <p>A pack reaches the engine through its problem kind (<code>dclab_rnd/kinds/</code>): the kind sets the target, metrics, split, recipes and model families. A pack's label is not written by hand: it is Supported only when every kind it runs as passes its acceptance on a replica (<code>make kinds-check</code>), Partial when one does not, and Not built when no kind runs it yet.</p>
         <p class="muted small">To add a pack: add it to both files, run <code>make rd-check</code>, and it appears here, on Home and in the solution draft.</p>`,
     }));
   },

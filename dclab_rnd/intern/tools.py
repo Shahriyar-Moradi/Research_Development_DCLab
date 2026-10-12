@@ -251,7 +251,7 @@ class Toolbox:
         if not project.get("data"):
             return {"error": "The project has no data yet."}
         frame = studio_data.load_table(studio_data.data_path(self.projects, project))  # checked against the recorded SHA-256
-        proposal = studio_solution.propose(frame, project["data"]["profile"], target, task)
+        proposal = studio_solution.propose(frame, project["data"]["profile"], target, task, studio_engine.pack_of(project))
         self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
         return {k: proposal.get(k) for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
                                              "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint",
@@ -313,7 +313,7 @@ class Toolbox:
         from dclab_rnd.models import installed
         from dclab_rnd.studio import leakage_review
         frame = studio_data.load_table(studio_data.data_path(self.projects, project))  # checked against the recorded SHA-256
-        proposal = studio_solution.propose(frame, project["data"]["profile"], target)
+        proposal = studio_solution.propose(frame, project["data"]["profile"], target, None, studio_engine.pack_of(project))
         moment = prediction_moment or (project.get("solution") or {}).get("prediction_moment") or (project.get("suggestion") or {}).get("prediction_moment")
         gateway = installed()
         client = gateway.client("leakage_review", project_id=project_id) if gateway is not None else None

@@ -21,7 +21,7 @@ import secrets
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from dclab_rnd import prompts
+from dclab_rnd import kinds, prompts
 from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
@@ -89,8 +89,9 @@ def rank_targets(profile: dict[str, Any], problem: str) -> list[str]:
 def moment_options(pack: str | None) -> list[str]:
     if pack == "timeseries":
         return ["The day before", "A week ahead", "A month ahead"]
-    if pack in ("imbalanced",):
-        return ["At the moment of the transaction", "Before approving the case", "In a nightly review"]
+    kind = kinds.for_pack(pack)
+    if kind is not None and kind.moments:  # the pack's kind words them (16.1)
+        return list(kind.moments)
     return ["Right before we act (e.g. before the call)", "At a fixed snapshot each month", "As soon as the event happens"]
 
 
@@ -237,9 +238,9 @@ class HomeAgent:
 
     def set_pack(self, draft_id: str, key: str, source: str, why: str) -> None:
         def put(d):
-            d["pack"] = {"key": key, "source": source, "why": why}
+            d["pack"] = {"key": key, "source": source, "why": why, "kind": packs.kind_for(key)}
         self.store.update(draft_id, put)
-        self.store.emit(draft_id, "status", {"pack": {"key": key, "source": source, "why": why}})
+        self.store.emit(draft_id, "status", {"pack": {"key": key, "source": source, "why": why, "kind": packs.kind_for(key)}})
 
     # ------------------------------------------------------------------ entry points
     @turn

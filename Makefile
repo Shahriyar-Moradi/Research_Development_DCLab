@@ -227,6 +227,17 @@ retrieval-eval:  ## evidence search on the 60-question set (A5.1): recall at 5 f
 	@n=$$(ls evidence/campaigns/retrieval_v1/results/RET-*.json 2>/dev/null | wc -l | tr -d ' '); \
 	$(PYTHON) -m dclab_rnd.retrieval $(ARGS) --output evidence/campaigns/retrieval_v1/results/RET-$$(printf '%03d' $$((n + 1)))_recall_at_5.json
 
+dev-archive:  ## copy this project's Claude Code session transcripts into dev_trajectories/raw/ (gitignored, local only: they may hold private data); the curated records beside it are what is committed
+	@mkdir -p research/llm-fine-tuning/experiments/dev_trajectories/raw
+	rsync -a "$$HOME/.claude/projects/$$(pwd | sed 's#[/ &]#-#g')/" research/llm-fine-tuning/experiments/dev_trajectories/raw/
+	@du -sh research/llm-fine-tuning/experiments/dev_trajectories/raw
+
+sft-dev:  ## the development-trajectory SFT examples (how DCLab is built and fixed) from dev_trajectories/records -> research/llm-fine-tuning/experiments/sft/out_dev/
+	$(PYTHON) -m dclab_rnd.devlog
+
+kinds-check:  ## every problem kind's acceptance on its replica (16.2): writes dclab_rnd/kinds/capability.json, which the capability matrix reads (no model is called)
+	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.kinds $(ARGS)
+
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json

@@ -19,11 +19,12 @@ import json
 import re
 from typing import Any
 
-from dclab_rnd import prompts
+from dclab_rnd import kinds, prompts
 
 FIELDS = ("target", "prediction_moment", "action", "data_plan")  # in the order they are asked
-# 15.6: a pack's own questions, in the place of the generic ones (Home still asks at most MAX_QUESTIONS)
-PACK_FIELDS = {"imbalanced": ("target", "prediction_moment", "entity", "labels", "budget", "data_plan")}
+# 15.6: a pack's own questions, in the place of the generic ones (Home still asks at most MAX_QUESTIONS); they belong
+# to the pack's problem kind (16.1)
+PACK_FIELDS = {pack: kind.home_fields for kind in kinds.all_kinds() if kind.home_fields for pack in kind.packs}
 ALL_FIELDS = tuple(dict.fromkeys([*FIELDS, *(f for fields in PACK_FIELDS.values() for f in fields)]))
 
 

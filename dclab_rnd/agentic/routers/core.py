@@ -161,6 +161,20 @@ async def studio_status():
     return {**studio_engine.capabilities(), "industries": list(studio_data.INDUSTRIES) if hasattr(studio_data, "INDUSTRIES") else [], "stages": studio_engine.STAGES}
 
 
+@router.get("/api/kinds", response_model=Page)
+async def problem_kinds():
+    """The problem kinds DCLab runs (16.1): each kind's parts, as dclab_rnd.kinds declares them, and the capability
+    matrix built from their acceptance results (16.2)."""
+    from ... import kinds
+    from ...kinds import acceptance
+
+    matrix = acceptance.matrix()
+    capability = {row["kind"]: row for row in matrix}
+    return {"kinds": [{**k, "capability": capability.get(k["key"])} for k in kinds.describe_all()], "matrix": matrix,
+            "note": "baselines are what the final stage computes; checks, reliability and evidence_track are each kind's declaration, "
+                    "read by the per-kind agents and evidence of package 16.14, not yet by the engine"}
+
+
 @router.get("/api/samples", response_model=list[Doc])
 async def samples():
     return studio_data.sample_catalog()

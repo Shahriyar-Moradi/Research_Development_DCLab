@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from dclab_rnd import kinds
 from dclab_rnd.categoricals import HEURISTIC_RULE, category_code_columns
 from dclab_rnd.expansion import datasets as ds
 from dclab_rnd.expansion import runner as rn
@@ -27,7 +28,7 @@ from .solution import Solution
 from .data import column_kind, data_path, load_table, sha256
 from .store import STAGE_KEYS, ProjectStore
 
-TASK_TYPE = {"binary": "binary_imbalanced", "multiclass": "multiclass", "regression": "timeseries_regression"}
+TASK_TYPE = {task: kinds.get(task).task_type for task in kinds.BASE_TASKS}  # each task's own kind's machine (16.1)
 STAGES: list[dict[str, str]] = [
     {"key": "data", "kind": "data_understanding", "title": "Understand the data", "workflow": "WF-04",
      "question": "What is in the data, and what could make a score untrustworthy?"},
@@ -54,14 +55,20 @@ def cv_folds(project: dict[str, Any]) -> int:
     return max(FOLD_CAPS[0], min(folds, FOLD_CAPS[1]))
 
 
-def split_for(solution: Any) -> str:
-    """The split the engine uses. The solution decides it, not a setting: a declared time column means the holdout
-    is the latest period (DCLAB-R02); otherwise a declared group column keeps each group on one side; otherwise
-    a stratified random split. ``solution`` is a Solution or its dict."""
+def split_for(solution: Any, pack: str | None = None) -> str:
+    """The split the engine uses. The solution decides it, not a setting, through its kind (16.1); every kind today
+    keeps the shared rule (kinds.default_split): a declared time column means the holdout is the latest period
+    (DCLAB-R02); otherwise a declared group column keeps each group on one side; otherwise a stratified random split;
+    time and group together keep both (15.3). ``solution`` is a Solution or its dict, possibly still incomplete."""
     get = solution.get if isinstance(solution, dict) else lambda key: getattr(solution, key, None)
-    if get("time_column") and get("group_column"):
-        return "time_group"  # 15.3: forward in time and no entity on both sides, never one silently dropped
-    return "time" if get("time_column") else "group" if get("group_column") else "stratified"
+    if get("kind") or get("task") in kinds.BASE_TASKS:
+        return kinds.resolve(solution, pack).split(solution)
+    return kinds.default_split(solution)
+
+
+def pack_of(project: dict[str, Any]) -> str | None:
+    """The project's Domain pack key (15.6): its own, else the draft's it was built from."""
+    return project.get("pack") or ((project.get("draft") or {}).get("pack") or {}).get("key")
 _BUNDLES: dict[tuple[str, str, str], Any] = {}
 
 
@@ -81,6 +88,7 @@ class Prepared:
         self.plan: dict[str, Any] | None = None  # the project's adopted dclab_core plan (17.4), set on every prepare
         self.label_info: dict[str, Any] | None = None  # the project's label file (15.2), set on every prepare
         self.critic: Any = None  # the critic's advisor (18.6) when the project turns it on, set on every prepare
+        self.kind: kinds.ProblemKind = kinds.get(solution.task)  # the problem kind (16.1), set on every prepare
 
     @property
     def task(self) -> str:
@@ -91,27 +99,12 @@ class Prepared:
         return self.bundle.spec.primary_metric
 
 
-def _target_series(frame: pd.DataFrame, solution: Solution) -> tuple[pd.Series, list[str] | None]:
-    raw = frame[solution.target]
-    if solution.task == "binary":
-        positive = solution.positive_label
-        if positive is None:
-            values = sorted(raw.dropna().unique(), key=str)
-            positive = str(values[-1])
-        y = (raw.astype(str).str.strip() == str(positive)).astype(int)
-        return y, None
-    if solution.task == "multiclass":
-        labels = sorted(raw.dropna().astype(str).unique(), key=str)
-        mapping = {label: i for i, label in enumerate(labels)}
-        return raw.astype(str).map(mapping).astype(int), labels
-    return pd.to_numeric(raw, errors="coerce").astype(float), None
-
-
 def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     """Load the table, apply the solution, lock the holdout and register the feature recipes."""
     if not project.get("data") or not project.get("solution"):
         raise ValueError("The project needs data and a solution first")
     solution = Solution(**project["solution"])
+    kind = solution.problem_kind(pack_of(project))
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared)
            + str(project.get("pack")) + _hash(project.get("labels")) + _hash(project.get("feature_programs")))  # each changes what runs
@@ -133,21 +126,16 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
             frame[column] = pd.to_numeric(frame[column].astype("object").map({True: 1.0, False: 0.0}), errors="coerce")
     source_rows = len(frame)
     frame = frame[frame[solution.target].notna()].reset_index(drop=True)
-    y, class_labels = _target_series(frame, solution)
+    y, class_labels = kind.target(frame, solution)
     keep = y.notna()
     frame, y = frame[keep].reset_index(drop=True), y[keep].reset_index(drop=True)
     X = frame.drop(columns=[solution.target])
 
     roles: dict[str, str] = {}
     identifiers: dict[str, str] = {c: "declared identifier (never a feature)" for c in solution.identifiers if c in X}
-    text_columns = tuple(c for c in solution.text_columns if c in X)
-    task_type = TASK_TYPE[solution.task]
-    if text_columns and solution.task == "binary":
-        task_type = "text_tabular_binary"
-    elif text_columns:
-        for column in text_columns:
-            identifiers[column] = "free text is modeled for binary targets only; excluded here"
-        text_columns = ()
+    text_columns, excluded = kind.text_columns(solution, X)
+    identifiers.update(excluded)
+    task_type = kind.machine(solution, text_columns)
     time_column = solution.time_column
     if time_column:
         if column_kind(X[time_column]) == "datetime":
@@ -187,13 +175,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         X, y = X.iloc[order].reset_index(drop=True), y.iloc[order].reset_index(drop=True)
     sampling["rows_used"] = int(len(X))
 
-    positive_rate = float(y.mean()) if solution.task == "binary" else None
-    from ..draft.pack import engine_defaults
-
-    pack = engine_defaults(project.get("pack") or ((project.get("draft") or {}).get("pack") or {}).get("key"))  # 15.6: one place
-    metric = solution.metric or (pack.get("metric") if solution.task == "binary" else None) or solution.resolved_metric(positive_rate)
-    split = split_for(solution)
-    regression = solution.task == "regression"
+    positive_rate = kind.positive_rate(y)
+    metric = solution.metric or kind.default_metric(solution, positive_rate)  # a pack's defaults live in its kind (15.6, 16.1)
+    split = kind.split(solution)
+    regression = kind.base_task == "regression"
     spec = ds.DatasetSpec(
         key=f"project_{project['id']}", name=project["name"], task_type=task_type, primary_metric=metric,
         target=solution.target, url=f"upload://{project['data']['filename']}", filename=project["data"]["filename"],
@@ -204,19 +189,19 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         positive_rate=positive_rate,
         settings={"precision_target": 0.9, "fe_tolerance": 0.01 if regression else 0.002, "fe_tolerance_relative": regression,
                   "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression,
-                  **({"rare_event": True} if pack.get("rare_event") and solution.task == "binary" else {}),
-                  **({"alert_budget": solution.alert_budget} if solution.alert_budget and solution.task == "binary" else {})},
+                  **kind.spec_settings(solution)},
     )
-    bundle = ds.prepare_bundle(spec, X, y, data_paths=[path], source_rows=source_rows, sampling=sampling,
-                               class_labels=class_labels, cv_folds=cv_folds(project))
+    bundle = kind.bundle(spec, X, y, data_paths=[path], source_rows=source_rows, sampling=sampling,
+                         class_labels=class_labels, cv_folds=cv_folds(project))
     # Numeric columns that stand for categories get no log or product feature (DCLAB-R11). Decided once,
     # on training rows: the declaration when there is one, otherwise the conservative heuristic.
     features = [c for c, role in roles.items() if role == "feature"]
     codes = category_code_columns(bundle.X_train[features], declared)
     bundle.spec = replace(spec, categorical_columns=tuple(codes))
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
-    recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"))
+    recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"), kind)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
+    prepared.kind = kind
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.critic = _critic_advisor(project)
     _BUNDLES.clear()
@@ -265,7 +250,7 @@ def _programs_config(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str
 
 
 def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], datetime_time: bool,
-                      engineered: list[dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
+                      engineered: list[dict[str, Any]] | None = None, kind: kinds.ProblemKind | None = None) -> dict[str, dict[str, Any]]:
     features = [c for c, role in roles.items() if role == "feature"]
     codes = set(spec.categorical_columns)
     numeric = [c for c in features if c not in codes and pd.api.types.is_numeric_dtype(X[c]) and X[c].nunique() > 2]
@@ -301,6 +286,8 @@ def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
             k = max(5, int(round(0.6 * len(features))))
             recipes["selected_mi"] = {"description": f"top-{k} inputs by fit-fold mutual information", "derive": (), "select_k": k}
         rn.LEAKAGE_RECIPE[spec.key] = "raw"
+    if kind is not None:  # 16.1: the kind's own recipes join the ladder, never replacing a shared one
+        recipes.update({k: v for k, v in kind.extra_recipes(spec, X, roles).items() if k not in recipes})
     rn.RECIPES[spec.key] = recipes
     return recipes
 
@@ -351,26 +338,8 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
         "column_roles": dict(p.roles),
         "note": "Holdout feature distributions (never labels) are compared via PSI; the holdout labels stay sealed until the final stage.",
     }
-    if p.task == "binary":
-        positives, rate = int(y_tr.sum()), float(y_tr.mean())
-        evidence["target_summary"] = {"positive_rate_train": rate, "positives_train": positives, "negatives_train": int(len(y_tr) - positives),
-                                      "imbalance_ratio_neg_per_pos": float((len(y_tr) - positives) / max(positives, 1)),
-                                      "majority_baseline_accuracy_train": float(max(rate, 1 - rate)), "positive_label": p.solution.positive_label}
-        target_text = f"a positive rate of {rate:.1%} ({positives} positives)"
-    elif p.task == "multiclass":
-        counts = y_tr.value_counts().sort_index()
-        share = counts / counts.sum()
-        evidence["target_summary"] = {"classes": int(len(counts)),
-                                      "class_counts_train": {str(p.class_labels[i] if p.class_labels else i): int(v) for i, v in counts.items()},
-                                      "smallest_class_count": int(counts.min()), "largest_class_count": int(counts.max()),
-                                      "imbalance_ratio_max_min": float(counts.max() / max(counts.min(), 1)),
-                                      "majority_baseline_accuracy_train": float(share.max())}
-        target_text = f"{len(counts)} classes with {counts.min()}–{counts.max()} training rows each"
-    else:
-        evidence["target_summary"] = {"mean_train": float(y_tr.mean()), "std_train": float(y_tr.std()), "min_train": float(y_tr.min()),
-                                      "median_train": float(y_tr.median()), "max_train": float(y_tr.max()),
-                                      "coefficient_of_variation_train": float(y_tr.std() / y_tr.mean()) if y_tr.mean() else None}
-        target_text = f"a target mean of {y_tr.mean():.4g} (std {y_tr.std():.4g}, range {y_tr.min():.4g}–{y_tr.max():.4g})"
+    evidence["problem_kind"] = p.kind.key  # 16.1: the kind whose summary, claim and checks these are
+    evidence["target_summary"], target_text = p.kind.summarise_target(y_tr, p.class_labels, p.solution)
     if spec.time_column:
         evidence["time_range"] = {"train": [str(X_tr[spec.time_column].iloc[0]), str(X_tr[spec.time_column].iloc[-1])],
                                   "holdout": [str(X_te[spec.time_column].iloc[0]), str(X_te[spec.time_column].iloc[-1])]}
@@ -391,21 +360,8 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
                ["evidence.feature_profiles", "evidence.risk_features"],
                ["PSI on feature distributions is a smoke check; it uses no holdout labels and does not prove production stability."]),
     ]
-    if p.task == "binary":
-        ts = evidence["target_summary"]
-        claims.append(_claim(f"{eid}-C3", "risk", f"Predicting the majority class for every row already scores {ts['majority_baseline_accuracy_train']:.1%} accuracy, "
-                             f"so accuracy alone cannot judge this model; the solution scores {_label(p.metric)}.",
-                             ["evidence.target_summary"]))
-    elif p.task == "multiclass":
-        ts = evidence["target_summary"]
-        claims.append(_claim(f"{eid}-C3", "risk", f"The smallest class has {ts['smallest_class_count']} training rows (largest/smallest ratio {ts['imbalance_ratio_max_min']:.1f}); "
-                             f"macro-F1 weights every class equally, so rare classes decide the score.", ["evidence.target_summary"]))
-    else:
-        ts = evidence["target_summary"]
-        claims.append(_claim(f"{eid}-C3", "fact", f"The target's coefficient of variation is {ts['coefficient_of_variation_train'] or 0:.2f}; "
-                             + (f"rows are ordered by `{spec.time_column}` so the holdout is strictly later than training." if spec.time_column
-                                else "no time column was declared, so rows are split at random; if these rows are events in time, declare the time column."),
-                             ["evidence.target_summary", "evidence.holdout_split"]))
+    claim_kind, statement, paths = p.kind.target_claim(evidence["target_summary"], _label(p.metric), spec)
+    claims.append(_claim(f"{eid}-C3", claim_kind, statement, paths))
     summary = (f"Profiled {len(X_tr)} training rows × {X_tr.shape[1]} columns (holdout: {bundle.holdout_description}); "
                f"per-column missingness, uniqueness and PSI; {len(risks)} columns flagged for review.")
     return evidence, claims, summary
@@ -550,8 +506,7 @@ PRACTICAL = 0.9  # a simpler family is preferred only within 10% of the best's m
 
 
 def _rare_event(p: Prepared) -> bool:
-    return p.bundle.task_type == "binary_imbalanced" and ((p.bundle.spec.positive_rate or 1) < 0.05 or p.solution.labels == "partial"
-                                                          or bool(p.bundle.spec.settings.get("rare_event")))
+    return p.kind.rare_screen(p.bundle.task_type, p.bundle.spec.positive_rate, p.solution, p.bundle.spec.settings)
 
 
 def _rare_choice(ranked: list[dict[str, Any]], metric: str, higher: bool) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -587,7 +542,7 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
                  f"best mean training-CV {_label(metric)}, then the simplest family ({' < '.join(SIMPLICITY)}) within {1 - PRACTICAL:.0%} of "
                  "the best's mean whose paired fold gap to the best stays within the one-sided 90% t bound (folds without a positive left "
                  "out), never one the best beats on every fold.") if rare else None
-    families = rn.model_families(bundle.task_type) + (list(rn.RARE_FAMILIES) if rare else [])
+    families = p.kind.model_families(rn.model_families(bundle.task_type), rare)
     rows = [rn.cross_validate(bundle, recipe, family, config_id=family) for family in families]
     for row in rows:
         row["adjusted_score"] = rn.adjusted_score(rn._mean(row, metric), rn._std(row, metric), higher)
@@ -667,7 +622,7 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
 
         bundle, spec, family = p.bundle, p.bundle.spec, selected["model"]
         metric, higher = spec.primary_metric, spec.higher_is_better
-        kind = "binary" if "binary" in bundle.task_type else ("multiclass" if bundle.task_type == "multiclass" else "regression")
+        kind = p.kind.base_task
         rounds_allowed = int(spec.settings.get("review_rounds", REVIEW_ROUNDS))
         margin = float(spec.settings.get("tuning_margin", 0.001))
         relative = bool(spec.settings.get("tuning_margin_relative", False))
@@ -761,7 +716,7 @@ def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: p
         from dclab_core.assess import assess, threshold_inputs
 
         bundle = p.bundle
-        kind = "binary" if "binary" in task else ("multiclass" if task == "multiclass" else "regression")
+        kind = p.kind.base_task
         oof_y = bundle.y_train.to_numpy()[selected["_oof_index"]]
         classes = labels = None
         if kind == "multiclass" and p.class_labels:
@@ -1101,7 +1056,8 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
 
 def capabilities() -> dict[str, Any]:
     return {
-        "tasks": ["binary", "multiclass", "regression"],
+        "tasks": list(kinds.BASE_TASKS),
+        "kinds": [k.key for k in kinds.all_kinds()],
         "text_columns": "binary targets only",
         "split_strategies": ["time (declared time column)", "group (declared group column)", "stratified random"],
         "model_families": {t: rn.model_families(tt) for t, tt in TASK_TYPE.items()},

@@ -116,7 +116,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
     @router.get("/api/packs", response_model=list[Doc])
     async def list_packs():
-        return packs.PACKS
+        return packs.cards()  # labelled from the capability matrix (16.2)
 
     @router.get("/api/drafts", response_model=list[Doc])
     async def list_drafts():
@@ -206,7 +206,8 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         if not target:
             raise HTTPException(422, "Name the target column")
         try:
-            proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"))
+            proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"),
+                                               (draft.get("pack") or {}).get("key"))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
         hint = asset.get("suggestion") or {}

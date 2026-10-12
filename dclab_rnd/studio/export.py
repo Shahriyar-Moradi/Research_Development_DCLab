@@ -102,6 +102,15 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     models = records.get("models", {}).get("decision", {})
     final = records.get("final", {}).get("evidence", {})
     recipe = features.get("chosen") or features.get("selected") or "raw"
+    from dclab_rnd import kinds
+
+    try:  # 16.1: the kind says what its export supports; one that reads its own target needs its own notebook code
+        kind = kinds.resolve(solution, project.get("pack") or ((project.get("draft") or {}).get("pack") or {}).get("key"))
+    except KeyError as error:
+        raise ExportUnsupported(f"This notebook cannot be exported: {error.args[0]}") from None
+    if not kind.export.get("notebook", True) or type(kind).target is not type(kinds.get(kind.base_task)).target:
+        raise ExportUnsupported(f"This notebook cannot be exported yet: the {kind.title.lower()} kind reads its own target, and "
+                                "its notebook code is not written")
     if recipe in NOT_EXPORTED:
         raise ExportUnsupported(f"This notebook cannot be exported yet: {NOT_EXPORTED[recipe]}.")
     family = models.get("chosen") or models.get("selected") or ("ridge" if regression else "logistic_regression")

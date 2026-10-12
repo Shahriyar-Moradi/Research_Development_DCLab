@@ -3,6 +3,7 @@ fraud replica), solved end to end: every rubric line covered or explained, and t
 no model request."""
 
 import subprocess
+import re
 import sys
 import tempfile
 import unittest
@@ -106,6 +107,9 @@ class ChallengeTest(unittest.TestCase):
         # the private data is in no deliverable: no data file, and no value of a row
         self.assertFalse([f for f in out.rglob("*") if f.suffix in (".csv", ".parquet", ".xlsx")])
         blob = b"".join(f.read_bytes() for f in out.rglob("*") if f.is_file() and ".git" not in f.parts and "vendor" not in f.parts)
+        # the service's salted hashes ("h:" and 16 hex digits, a random key) can hold any six digits by chance: they are
+        # one-way, so they are left out of the search rather than letting a coincidence fail the test
+        blob = re.sub(rb"h:[0-9a-f]{16}", b"h:", blob)
         for value in list(replica.rides["order_id"].astype(str).head(20)) + list(replica.rides["sender_phone"].dropna().astype(str).head(20)) \
                 + list(orders["order_id"].astype(str).head(20)):
             self.assertNotIn(value.encode(), blob)

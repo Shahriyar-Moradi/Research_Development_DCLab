@@ -12,17 +12,49 @@ import re
 from typing import Any
 
 PACKS: list[dict[str, Any]] = [
-    {"key": "tabular", "name": "Tabular", "desc": "Binary, multiclass and regression on tables.", "maturity": "GA", "cls": "ok", "icon": "models"},
-    {"key": "imbalanced", "name": "Imbalanced and fraud", "desc": "Rare positives: PR-AUC, cost curves, time splits.", "maturity": "GA", "cls": "ok", "icon": "alert"},
-    {"key": "timeseries", "name": "Time series", "desc": "Forecasts with horizons and backtests against naive baselines.", "maturity": "Beta", "cls": "info", "icon": "trend"},
-    {"key": "text", "name": "Text + tabular", "desc": "Reviews, tickets and notes next to structured fields.", "maturity": "Beta", "cls": "info", "icon": "text"},
-    {"key": "vision", "name": "Computer vision", "desc": "Detection and classification, split by scene or drive.", "maturity": "Preview", "cls": "warn", "icon": "image"},
-    {"key": "driving", "name": "Driving perception", "desc": "Operating domain (ODD) as the solution; split by trip and route.", "maturity": "Research", "cls": "", "icon": "car"},
-    {"key": "maps", "name": "Maps and road flow", "desc": "Road graphs, speed and flow forecasts.", "maturity": "Research", "cls": "", "icon": "route"},
-    {"key": "scenegraph", "name": "Scene graphs", "desc": "Objects, relations and events in video.", "maturity": "Research", "cls": "", "icon": "nodes"},
-    {"key": "llm", "name": "LLM and SLM fine-tuning", "desc": "Training data, LoRA runs and evaluation.", "maturity": "Beta", "cls": "info", "icon": "brain"},
+    {"key": "tabular", "name": "Tabular", "desc": "Binary, multiclass and regression on tables.", "icon": "models"},
+    {"key": "imbalanced", "name": "Imbalanced and fraud", "desc": "Rare positives: PR-AUC, cost curves, time splits.", "icon": "alert"},
+    {"key": "timeseries", "name": "Time series", "desc": "Forecasts with horizons and backtests against naive baselines.", "icon": "trend"},
+    {"key": "text", "name": "Text + tabular", "desc": "Reviews, tickets and notes next to structured fields.", "icon": "text"},
+    {"key": "vision", "name": "Computer vision", "desc": "Detection and classification, split by scene or drive.", "icon": "image"},
+    {"key": "driving", "name": "Driving perception", "desc": "Operating domain (ODD) as the solution; split by trip and route.", "icon": "car"},
+    {"key": "maps", "name": "Maps and road flow", "desc": "Road graphs, speed and flow forecasts.", "icon": "route"},
+    {"key": "scenegraph", "name": "Scene graphs", "desc": "Objects, relations and events in video.", "icon": "nodes"},
+    {"key": "llm", "name": "LLM and SLM fine-tuning", "desc": "Training data, LoRA runs and evaluation.", "icon": "brain"},
 ]
 KEYS = [p["key"] for p in PACKS]
+# 16.2: a pack's label is not written by hand. It comes from the capability matrix (dclab_rnd.kinds.acceptance, made by
+# `make kinds-check`): the kinds a pack runs as, each supported only when its acceptance passes.
+TABULAR_KINDS = ("binary", "multiclass", "regression")  # the tabular pack spans the tasks; the others name one kind
+LABELS = {"supported": ("Supported", "ok"), "partial": ("Partial", "warn"), "none": ("Not built", "")}
+
+
+def kinds_of(key: str) -> list[str]:
+    from dclab_rnd import kinds
+
+    if key == "tabular":
+        return list(TABULAR_KINDS)
+    return [k.key for k in kinds.all_kinds() if key in k.packs]
+
+
+def cards(results: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """The packs as the product shows them, each labelled from the matrix: supported when every kind it runs as passes
+    its acceptance, partial when one does not (with what is missing), not built when no kind runs it yet."""
+    from dclab_rnd.kinds import acceptance
+
+    rows = {r["kind"]: r for r in acceptance.matrix(results)}
+    out = []
+    for p in PACKS:
+        mine = [rows[k] for k in kinds_of(p["key"]) if k in rows]
+        if not mine:
+            status, missing = "none", ["no problem kind runs this pack yet (Part 5 of the playbook)"]
+        else:
+            status = "supported" if all(r["status"] == "supported" for r in mine) else "partial"
+            missing = [f"{r['kind']}: {m}" for r in mine for m in r["missing"]]
+        label, cls = LABELS[status]
+        out.append({**p, "maturity": label, "cls": cls,
+                    "capability": {"status": status, "kinds": [r["kind"] for r in mine], "missing": missing}})
+    return out
 
 # Ordered: the first pack whose words appear wins (more specific packs first).
 KEYWORDS: list[tuple[str, str]] = [
@@ -66,14 +98,22 @@ OPENING: dict[str, str] = {
 RARE_SHARE = 0.01  # positives under 1 % of rows: a rare event, whatever the words
 
 
-# The engine defaults a pack sets (15.6): one place the engine reads, so a pack changes what runs, not only its labels.
-ENGINE_DEFAULTS: dict[str, dict[str, Any]] = {
-    "imbalanced": {"metric": "average_precision", "rare_event": True},
-}
+# A pack reaches the engine through its problem kind (16.1): `imbalanced` is the rare-event kind, `text` the text +
+# tabular kind, `tabular` the task's own kind. The kind holds the defaults (15.6), so a pack changes what runs.
+def kind_for(key: str | None, task: str | None = None) -> str | None:
+    """The problem kind a pack means for this task, or None (the pack only labels the workflow)."""
+    from dclab_rnd import kinds
+
+    kind = kinds.for_pack(key, task)
+    return kind.key if kind else None
 
 
 def engine_defaults(key: str | None) -> dict[str, Any]:
-    return dict(ENGINE_DEFAULTS.get(key or "", {}))
+    """The defaults a pack's kind sets for a binary target (the metric, the rare-event screen)."""
+    from dclab_rnd import kinds
+
+    kind = kinds.for_pack(key, "binary")
+    return dict(getattr(kind, "pack_defaults", {}) or {})
 
 
 def opening_question(key: str | None) -> str:

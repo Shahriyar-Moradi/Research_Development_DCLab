@@ -152,7 +152,8 @@ async def _proposal(project_id: str, body: ProposalRequest, s: Services) -> dict
     p = s.project(project_id)
     frame = s.load_frame(p)
     try:
-        proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], str(body.target if body.target is not None else ""), body.task)
+        proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], str(body.target if body.target is not None else ""), body.task,
+                                               studio_engine.pack_of(p))
     except ValueError as exc:
         raise HTTPException(422, str(exc))
     if p.get("suggestion"):  # a studied sample carries the R&D's whole solution; a draft-built project only what the chat established

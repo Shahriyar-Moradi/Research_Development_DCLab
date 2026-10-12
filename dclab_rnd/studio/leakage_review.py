@@ -25,10 +25,12 @@ VERDICTS = ("available", "after the moment")
 SOURCES = ("audit", "moment", "model")
 REASON_CHARS = 300
 MOMENT_RECORD = "DCLAB-R01"  # write the prediction moment and judge every column against it
-EXCLUDES = re.compile(r"\b(?:exclud\w*|forbidden|post-[a-z]+|not available|unavailable|not known|unknown)", re.I)
-CLAUSES = re.compile(r"[.;]\s*|\s+\b(?:but|while|whereas|although)\b\s+", re.I)  # "region is known but the outcome is not": two clauses
+EXCLUDES = re.compile(r"\b(?:exclud\w*|forbidden|post-[a-z]+|not available|unavailable|not known|unknown|afterwards"
+                      r"|(?:comes?|came|known|written|recorded|arrives?|given|filled in)\s+later)", re.I)  # 16.2: "… come later"
+CLAUSES = re.compile(r"[.;:]\s*|,\s+(?:and|but)\s+(?=(?:the|a|an|its|their)\b)|\s+\b(?:but|while|whereas|although)\b\s+", re.I)  # "region is known but the outcome is not": two clauses
+WEAK = {"time", "date", "day", "hour", "value", "price", "id", "count", "total", "amoun", "numbe", "rate"}  # too common to name a column alone
 STOP = {"the", "and", "are", "not", "for", "with", "from", "that", "this", "those", "these", "which", "only", "each", "every", "known",
-        "avail", "forbi", "exclu", "post", "unkno", "unava", "itsel", "its", "own", "same", "use", "using"}
+        "avail", "forbi", "exclu", "post", "unkno", "unava", "later", "come", "comes", "came", "after", "itsel", "its", "own", "same", "use", "using"}
 
 PROMPT = prompts.text("leakage_review")  # dclab_rnd/prompts/leakage_review.md (A4.3: prompts are versioned files)
 
@@ -99,7 +101,8 @@ def from_moment(columns: list[dict[str, Any]], moment: str | None, skip: set[str
             name = str(c.get("name"))
             if name in skip or any(i["column"] == name for i in items):
                 continue
-            if _column_stems(name) & words:
+            shared = _column_stems(name) & words
+            if shared and not shared <= WEAK:  # a generic word ("time") alone never names a column
                 items.append({"column": name, "verdict": "after the moment", "reason": f"The moment says: “{clause.strip()[:240]}”.",
                               "records": [MOMENT_RECORD], "source": "moment", "apply": False})
     return items
