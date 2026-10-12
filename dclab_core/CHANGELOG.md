@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9 and 15.9. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9 and 18.7. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -16,6 +16,8 @@ Packages 16.2, 16.9 and 15.9. The six contracts are unchanged: all still at v1.
   set by a formula of the other columns. Every result states its assumption (16.9).
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).
+- `report.REPORTER` and `report.write_prose` (18.7): a model's summary above a section's lines, labelled as a model's, each
+  sentence kept only when the host's check and the report's own stricter rules pass it; nothing kept without a check.
 - `understand.label_coverage`: "partial" when a sentence about the labels says unmarked rows are unknown (15.9).
 - `report`: the decision, when a run made one, in "Results, with their intervals", every number traced to
   `final.evidence.decision`; a requirement asking for a price or a fee maps to it.

@@ -82,7 +82,8 @@ def roles() -> dict[str, Role]:
     from dclab_core.analyse import DATA_INVESTIGATOR
     from dclab_core.features import FEATURE_ENGINEER
     from dclab_core.plan import SOLUTION_PLANNER
+    from dclab_core.report import REPORTER
     from dclab_core.review import CRITIC
     from dclab_core.understand import BRIEF_CHECKER, PROBLEM_ANALYST
 
-    return {role.name: role for role in (PROBLEM_ANALYST, BRIEF_CHECKER, DATA_INVESTIGATOR, FEATURE_ENGINEER, SOLUTION_PLANNER, CRITIC)}
+    return {role.name: role for role in (PROBLEM_ANALYST, BRIEF_CHECKER, DATA_INVESTIGATOR, FEATURE_ENGINEER, SOLUTION_PLANNER, CRITIC, REPORTER)}

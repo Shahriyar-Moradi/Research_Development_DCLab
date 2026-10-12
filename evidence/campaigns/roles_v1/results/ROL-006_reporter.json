@@ -1,0 +1,113 @@
+{
+ "id": "ROL-006",
+ "experiment_id": "ROL-006",
+ "campaign_id": "roles_v1",
+ "kind": "reporter_measured",
+ "role": "reporter",
+ "at": "2026-10-12T21:53:30+00:00",
+ "completed_at": "2026-10-12T21:53:30+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "reporter_gate_v1",
+  "fixed": "2026-10-13, before its first run",
+  "rule": "on the binary, multiclass and regression kinds' replicas (16.2), no kept sentence fails an independent re-check (every number among its section's lines, no overclaim), every section's lines stay intact, and a sentence is kept in at least two of the three reports"
+ },
+ "plan": {
+  "purpose": "reporter",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "max_requests": 3,
+  "max_eur": 0.006
+ },
+ "spent_eur": 0.0025,
+ "requests": 3,
+ "failures": [],
+ "result": {
+  "rows": [
+   {
+    "kind": "binary",
+    "source": "advisor",
+    "reason": "accepted after validation",
+    "kept": 7,
+    "dropped": 4,
+    "kept_sentences": [
+     "The run kept `final_refund_amount` out because it is described as written after the outcome; the analysis also flags it for review, and including it would change training-CV ROC AUC by +0.344 in a way that would not exist at prediction time.",
+     "The evaluation used time-ordered expanding-window folds and a later holdout; a random split scored ROC AUC +0.006 against the time-ordered approach.",
+     "Accuracy alone cannot judge a model here: predicting the majority class scores 81.6% accuracy, while the analysis notes that ROC AUC or average precision rank cases and accuracy depends on the threshold.",
+     "On the holdout, used once, the final model scored ROC AUC 0.746, with a bootstrap interval from 0.712 to 0.772.",
+     "The holdout is one draw from the same data as the training rows, so it cannot show how the model does on a later period, another source, or after the data-writing process changes.",
+     "The leakage rules propose a review, while whether a column is known at prediction time depends on the process and the run relies on the stated prediction moment.",
+     "The brief leaves open the assumptions of one scored row, label coverage, and which entities rows repeat for."
+    ],
+    "failed_recheck": [],
+    "lines_intact": true,
+    "sections_with_prose": [
+     "What the data shows",
+     "Results, with their intervals",
+     "Limits, and what the data cannot show"
+    ]
+   },
+   {
+    "kind": "multiclass",
+    "source": "advisor",
+    "reason": "accepted after validation",
+    "kept": 9,
+    "dropped": 2,
+    "kept_sentences": [
+     "The report describes results from the latest-row sample, with a time-ordered holdout and training-only, expanding-window validation.",
+     "Rare classes and classes that appear late make class-level measurement and time-aware validation important; the report notes that a random split would see the future.",
+     "The `raw` feature recipe and `extra_trees` model family were selected using the stated training-CV rules.",
+     "Tuning was rejected, and the final model used `extra_trees_baseline`.",
+     "The final model scored macro F1 0.401 on the holdout, and its reported bootstrap interval runs from 0.362 to 0.416.",
+     "The report gives the majority-class baseline as macro F1 0.022 and accuracy 0.150 on the same holdout.",
+     "The report describes the holdout as one draw and the candidate search as a sanity check, not an exhaustive search.",
+     "This holdout cannot show how the model performs on a later period, another source, or after the data-writing process changes.",
+     "The report says reliance on the model requires review by the decision owners and monitoring once it runs."
+    ],
+    "failed_recheck": [],
+    "lines_intact": true,
+    "sections_with_prose": [
+     "What the data shows",
+     "Decisions and reasons",
+     "Results, with their intervals",
+     "Limits, and what the data cannot show"
+    ]
+   },
+   {
+    "kind": "regression",
+    "source": "advisor",
+    "reason": "accepted after validation",
+    "kept": 12,
+    "dropped": 0,
+    "kept_sentences": [
+     "The evaluation uses time-ordered training folds and keeps the later rows as a holdout, so choices are not made using those holdout rows.",
+     "The target is determined by the time until delivery, so `delivered_at` is unavailable at prediction and is kept out; `courier_rating` is also kept out as a post-prediction field.",
+     "Rows repeat for restaurants, and the analysis warns that folds mixing the same restaurant across training and validation can let a model recognize it instead of learning a broader pattern.",
+     "The feature recipe was chosen to favor fewer features when its training-fold MAE was close enough to the best recipe.",
+     "The selected model family was ranked using both mean training-fold MAE and fold variability.",
+     "Tuning was rejected because the best candidate did not meet the required improvement, so the baseline model was used.",
+     "On the holdout, the final model had lower MAE than either simple baseline, supporting better average absolute accuracy on these rows.",
+     "The reported bootstrap interval describes how the score could vary on another draw of the same holdout rows, rather than establishing performance on other data.",
+     "Error was much higher on holdout rows at the target cap than below it, so the overall score does not describe performance equally across those cases.",
+     "The holdout is a single draw from the same data as training and cannot show performance in a later period, on another source, or after the data-writing process changes.",
+     "Values at the cap are censored, so their errors are lower bounds, and some row, label, and entity assumptions remain unresolved.",
+     "The candidate search was limited, and data heuristics alone do not confirm leakage; whether a column is available at prediction depends on the real process."
+    ],
+    "failed_recheck": [],
+    "lines_intact": true,
+    "sections_with_prose": [
+     "What the data shows",
+     "Decisions and reasons",
+     "Results, with their intervals",
+     "Limits, and what the data cannot show"
+    ]
+   }
+  ]
+ },
+ "verdict": {
+  "gate": "reporter_gate_v1",
+  "status": "pass"
+ },
+ "rule": "Measured on invented replicas; not a claim about other data or about production readiness."
+}

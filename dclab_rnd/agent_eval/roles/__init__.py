@@ -41,6 +41,10 @@ GATES = {  # fixed on 2026-10-12, before any live run
     "critic": {"version": "critic_gate_v1", "rule": "training-CV after the loop with the critic is never worse than the rules' own loop "
                                                    "(17.6) nor one pass, and better than one pass on at least one replica; every kept change "
                                                    "cites a measured weakness; holdout once (revised after review, before any run)"},
+    "reporter": {"version": "reporter_gate_v1", "fixed": "2026-10-13, before its first run",
+                 "rule": "on the binary, multiclass and regression kinds' replicas (16.2), no kept sentence fails an independent "
+                         "re-check (every number among its section's lines, no overclaim), every section's lines stay intact, and a "
+                         "sentence is kept in at least two of the three reports"},
 }
 
 DESCRIPTIONS = {
@@ -306,3 +310,63 @@ def critic_verdict(result: dict[str, Any]) -> dict[str, Any]:
     ok = (not any(r["worse"] or r["worse_than_rules"] for r in rows)) and any(r["better"] for r in rows) \
         and all(r["kept_cite_weaknesses"] for r in rows) and all(r["holdout_uses"] == 1 for r in rows)
     return {"gate": GATES["critic"]["version"], "status": "pass" if ok else "fail"}
+
+
+REPORTER_KINDS = ("binary", "multiclass", "regression")
+
+
+def _report_project(key: str) -> tuple[Any, str]:
+    """A finished project on the kind's replica, built as a person would (16.2's harness), quick settings."""
+    from dclab_rnd import kinds
+    from dclab_rnd.expansion import runner
+    from dclab_rnd.kinds import acceptance
+    from dclab_rnd.studio import engine
+
+    store, pid = acceptance.build(kinds.get(key).case(0), Path(tempfile.mkdtemp()))
+    from unittest import mock
+
+    with runner.fast_profile(), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
+            mock.patch("dclab_rnd.studio.agent.llm_available", return_value=False):  # the stage notes stay rule-written
+        engine.run_all(store, pid)
+    return store, pid
+
+
+def measure_reporter(advisor: Optional[Any]) -> dict[str, Any]:
+    """Each replica's report without and with the reporter; every kept sentence re-checked on its own."""
+    from dclab_core import report as core_report
+    from dclab_rnd import cited
+    from dclab_rnd.studio import solution_report
+
+    rows = []
+    for key in REPORTER_KINDS:
+        store, pid = _report_project(key)
+        inputs = solution_report.inputs(store, pid)
+        plain = core_report.build(**inputs)
+        written, info = core_report.write_prose(advisor, plain, cited.check) if advisor is not None else (plain, {"source": "fallback", "kept": 0, "dropped": 0, "reason": "no advisor"})
+        failed, intact, sentences = list(core_report.check(written, core_report.context(**inputs))), True, []  # the report's own check
+        for before, after in zip(plain.sections, written.sections):
+            if after.body == before.body:
+                continue
+            intact &= after.body.endswith("\n\n" + before.body)
+            summary = after.body[: -len(before.body)].strip()
+            summary = summary[len(core_report.PROSE_LABEL):] if summary.startswith(core_report.PROSE_LABEL) else summary
+            lines = [t for t in before.body.split("\n") if t]
+            for sentence in cited.sentences(summary):
+                sentences.append(sentence)
+                names = set(cited.NAME_WITH_DIGITS.findall(before.body))  # F1, R2: names, as the check itself reads them
+                if not cited.numbers(sentence, names=names) <= cited.numbers(before.body, source=True) or cited.overclaims(sentence) \
+                        or not core_report._strict(sentence, lines):  # both rule sets, on the whole section's lines
+                    failed.append(sentence)
+        rows.append({"kind": key, "source": info["source"], "reason": info.get("reason"), "kept": info["kept"], "dropped": info["dropped"],
+                     "kept_sentences": sentences, "failed_recheck": failed, "lines_intact": intact,
+                     "sections_with_prose": [a.title for a, b in zip(written.sections, plain.sections) if a.body != b.body]})
+    return {"rows": rows}
+
+
+def reporter_verdict(result: dict[str, Any]) -> dict[str, Any]:
+    rows = result["rows"]
+    if not any(r["source"] == "advisor" or r["dropped"] for r in rows):
+        return {"gate": GATES["reporter"]["version"], "status": "not scored", "why": "the reporter's answer was never used"}
+    ok = all(not r["failed_recheck"] and r["lines_intact"] for r in rows) and sum(r["kept"] > 0 for r in rows) >= 2
+    return {"gate": GATES["reporter"]["version"], "status": "pass" if ok else "fail"}
+

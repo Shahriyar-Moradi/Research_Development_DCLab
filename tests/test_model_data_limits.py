@@ -246,9 +246,54 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("solution_planner"), set())
         self.assertEqual(self.assertWithinLimit("critic"), set())
 
+    def test_the_reporter_sees_the_reports_lines_never_values(self):
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.expansion import runner
+        from dclab_rnd.studio import ProjectStore, data as sd, engine, solution_report
+        from dclab_rnd.studio.solution import Solution
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        pid = store.create("Marked", "general", "Predict which customers churn")["id"]
+        marked_table().to_csv(store.data_dir(pid) / "t.csv", index=False)
+        sd.attach_data(store, pid, "t.csv")
+        project = store.get(pid)
+        project["solution"] = Solution(target="churned", task="binary", identifiers=["note"],
+                                       prediction_moment="At signup, before the first month ends.").model_dump()
+        project["settings"]["quick"] = True
+        store.save(project)
+        with runner.fast_profile(), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
+                mock.patch("dclab_rnd.studio.agent.llm_available", return_value=False):
+            engine.run_all(store, pid)
+        gw = gateway({"reporter": [{"content": '{"summaries": []}', "tool_calls": [], "usage": {}}]})
+        solution_report.build(store, pid, analyse=False, advisor=GatewayAdvisor(gw))
+        self.assertEqual(self.assertWithinLimit("reporter"), set())
+
+    def test_the_reporter_may_see_a_multiclass_targets_classes_never_an_inputs_values(self):
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.expansion import runner
+        from dclab_rnd.studio import ProjectStore, data as sd, engine, solution_report
+        from dclab_rnd.studio.solution import Solution
+        table = marked_table(rows=400).drop(columns="churned")
+        table["plan_kind"] = [f"Q7Kxcls{i % 4}" if i % 50 else "Q7Kxrare" for i in range(len(table))]
+        store = ProjectStore(Path(tempfile.mkdtemp()))
+        pid = store.create("Marked classes", "general", "Predict the plan kind")["id"]
+        table.to_csv(store.data_dir(pid) / "t.csv", index=False)
+        sd.attach_data(store, pid, "t.csv")
+        project = store.get(pid)
+        project["solution"] = Solution(target="plan_kind", task="multiclass", identifiers=["note"],
+                                       prediction_moment="At signup, before the plan is chosen.").model_dump()
+        project["settings"]["quick"] = True
+        store.save(project)
+        with runner.fast_profile(), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None), \
+                mock.patch("dclab_rnd.studio.agent.llm_available", return_value=False):
+            engine.run_all(store, pid)
+        gw = gateway({"reporter": [{"content": '{"summaries": []}', "tool_calls": [], "usage": {}}]})
+        solution_report.build(store, pid, analyse=True, advisor=GatewayAdvisor(gw))
+        seen = self.assertWithinLimit("reporter")
+        self.assertFalse({m for m in seen if not m.startswith(("Q7Kxcls", "Q7Kxrare"))}, seen)  # the target's classes only
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
-                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic"}
+                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

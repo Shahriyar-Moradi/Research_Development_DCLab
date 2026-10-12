@@ -61,6 +61,10 @@ PURPOSES: dict[str, Purpose] = {
                                              "or cell values"),
     "solution_planner": Purpose("standard", 90, "the problem brief's fields, the data findings' ids, topics and statements (summaries), and "
                                                 "the rule plan's decisions (dclab_core's solution planner, package 18.4); never rows or cell values"),
+    "reporter": Purpose("standard", 90, "the solution report's sections and their lines, as code wrote them from the run's records "
+                                        "(aggregates, column names, decisions and their reasons; dclab_core's reporter, package 18.7), "
+                                        "including the target's class names (per-class results, confused pairs) and its range; never a "
+                                        "row or a value of an input column", cell_values=40),
     "critic": Purpose("standard", 90, "the error analysis' weaknesses (ids and statements), the screened model's name and training-CV score, "
                                       "and the catalogue of experiments (dclab_core's critic, package 18.6); never rows or cell values"),
     "feature_engineer": Purpose("standard", 90, "the goal, the prediction moment, the task, the target's name, the entity and time columns, "

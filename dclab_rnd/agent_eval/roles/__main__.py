@@ -15,14 +15,15 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import (GATES, RESULTS, critic_verdict, engineer_v2_verdict, engineer_verdict, measure_critic, measure_engineer,
+from . import (GATES, RESULTS, critic_verdict, measure_reporter, reporter_verdict, engineer_v2_verdict, engineer_verdict, measure_critic, measure_engineer,
                measure_engineer_v2, measure_planner, planner_verdict)
 
 MAX_TOKENS = 3000  # the planner's and the engineer's answers are longer than a field's
 ROLES = {"planner": ("solution_planner", 3, measure_planner, planner_verdict),
          "engineer": ("feature_engineer", 1, measure_engineer, engineer_verdict),
          "engineer_v2": ("feature_engineer", 2, measure_engineer_v2, engineer_v2_verdict),
-         "critic": ("critic", 4, measure_critic, critic_verdict)}
+         "critic": ("critic", 4, measure_critic, critic_verdict),
+         "reporter": ("reporter", 3, measure_reporter, reporter_verdict)}
 
 
 def main(argv: list[str] | None = None) -> int:

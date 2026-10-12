@@ -7,7 +7,7 @@ data findings, the solution plan and the stage records of a run (plain dicts, as
 the problem as understood, what the data shows, the decisions and their reasons, the results with their intervals, the
 limits (what the data cannot show among them), the next steps and, when a rubric is given, the deliverables map.
 
-**Every number comes from a record.** The prose is written by code, never by a model, and a number enters it only
+**Every number comes from a record.** The lines are written by code, and a number enters them only
 through the record field it is read from: ``SolutionReport.numbers`` maps each record path (``final.evidence.
 holdout_metrics.average_precision``) to the value written, and each section cites the paths its numbers come from.
 Text quoted from a record (a finding's statement, a decision's reason, the holdout's description) carries its own
@@ -17,6 +17,8 @@ cannot all be traced, or that calls a model production-ready or deployable (``dc
 rules, written here so the core stays pure), is left out, and :func:`build` runs that check once more on the finished
 sections. :func:`sources` maps each number written to its path; :func:`check` re-reads every path against the records.
 Record shapes no rule foresaw (a list where a mapping was expected, a missing part) cost a line, never the report.
+A model may add a summary above a section's lines (:func:`write_prose`, package 18.7), labelled as a model's, and only
+sentences that pass the host's check and this module's own stricter rules are kept; the lines stay as code wrote them.
 The host says how it chose the rows the findings were read on (``rows_note``); the report writes it beside their count.
 
 Renderers: :func:`to_markdown` and :func:`to_html` (self-contained, everything escaped) are pure; :func:`to_pdf` needs
@@ -1280,3 +1282,128 @@ def to_pdf(report: SolutionReport, path: Union[str, Path]) -> Path:
     SimpleDocTemplate(str(path), pagesize=A4, title=_text(report.title), author="DCLab", leftMargin=18 * mm, rightMargin=18 * mm,
                       topMargin=16 * mm, bottomMargin=16 * mm).build(story)
     return path
+
+
+# ------------------------------------------------------------------------------------------------ the reporter (18.7)
+
+PROSE_SECTIONS = ("What the data shows", "Decisions and reasons", "Results, with their intervals", "Limits, and what the data cannot show")
+PROSE_LINES, PROSE_LINE_CHARS, SUMMARY_CHARS = 12, 400, 1500
+_LINE_CITE = re.compile(r"\s*\[L\d+\]")
+_CITED_LINES = re.compile(r"\[L(\d+)\]")
+PROSE_LABEL = "In short (written by a model, checked against the lines below): "
+# words that state a quantity or a quality a line must say itself before a summary may say it
+CLAIM_WORDS = re.compile(r"\b(once|twice|thrice|never|always|unbiased|optimal|best possible|robust|reliable|significant(?:ly)?|"
+                         r"guarantee\w*|certain(?:ly)?|all|none|every)\b", re.I)
+_STOP = {"the", "a", "an", "of", "on", "in", "at", "to", "and", "or", "is", "was", "with", "by", "for", "its", "it", "as", "than",
+         "from", "this", "that", "were", "are", "be", "which", "while", "against"}
+
+
+def _words_before(text: str, at: int, n: int) -> set[str]:
+    words = re.findall(r"[a-z][a-z0-9_-]+", text[:at].lower())[-n:]
+    return {w.strip("`_") for w in words if w not in _STOP and len(w) >= 3}
+
+
+def _strict(sentence: str, lines: list[str]) -> bool:
+    """This module's own rules on a summary sentence, beyond the host's: no readiness claim even when denied; every number
+    written exactly as a cited line writes it (``18.4 percent`` is not ``18.4%``), beside two words that stand before it
+    in that line, its metric and its subject (so a baseline's accuracy cannot become the model's); and a quantity or quality word (once, unbiased,
+    reliable…) only when a cited line uses it."""
+    if overclaims(sentence) or not lines:
+        return False
+    joined = " ".join(lines).lower()
+    for word in CLAIM_WORDS.findall(sentence):
+        if not re.search(rf"\b{re.escape(word.lower())}\b", joined):
+            return False
+    for match in NUMBER.finditer(sentence):
+        token, before = match.group(0), _words_before(sentence, match.start(), 5)
+        homes = [(line, m) for line in lines for m in NUMBER.finditer(line) if m.group(0) == token]
+        need = min(2, len(before))  # the metric and its subject: "accuracy" alone could be the baseline's
+        if not homes or not need or not any(len(before & _words_before(line, m.start(), 8)) >= need for line, m in homes):
+            return False
+    return True
+
+
+def _prose_sections(report: SolutionReport) -> list[tuple[int, ReportSection, list[str]]]:
+    out = []
+    for index, section in enumerate(report.sections):
+        if section.title in PROSE_SECTIONS:
+            lines = [t for t in section.body.split("\n") if t and not t.startswith("|")][:PROSE_LINES]
+            if lines and lines != ["Nothing in the records covers this yet."]:
+                out.append((index, section, lines))
+    return out
+
+
+def _reporter_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    report: SolutionReport = inputs["report"]
+    return {"report": str(report.title)[:200],
+            "sections": [{"title": section.title, "lines": {f"L{i + 1}": line[:PROSE_LINE_CHARS] for i, line in enumerate(lines)}}
+                         for _, section, lines in _prose_sections(report)]}
+
+
+def _reporter_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict[str, Any]:
+    titles = {section.title for _, section, _ in _prose_sections(inputs["report"])}
+    summaries = answer.get("summaries")
+    if not isinstance(summaries, list):
+        raise ValueError("summaries must be a list")
+    out: dict[str, str] = {}
+    for item in summaries[:len(titles) + 2]:
+        if not isinstance(item, Mapping) or item.get("title") not in titles or not isinstance(item.get("text"), str):
+            continue  # a section the report does not have, or no text: left out, never invented
+        out[item["title"]] = item["text"][:SUMMARY_CHARS]
+    return {"summaries": out}
+
+
+def _reporter_role() -> Any:
+    from dclab_core.agents import Role
+
+    return Role(name="reporter", description="Writes a short summary above a report section's lines, each sentence citing the lines "
+                                             "it rests on; the host's check keeps a sentence only when its numbers are in the lines it cites.",
+                evidence=_reporter_evidence, parse=_reporter_parse, fallback=lambda inputs: {"summaries": {}})
+
+
+REPORTER = _reporter_role()
+
+
+def write_prose(advisor: Any, report: SolutionReport, check: Optional[Any] = None) -> tuple[SolutionReport, dict[str, Any]]:
+    """The report with a model's summaries added above its sections' lines (package 18.7), kept sentence by sentence by
+    ``check(text, sources)`` (the host's check of model-written prose: the R&D host passes ``dclab_rnd.cited.check``),
+    which must return ``{"kept": [{"text", "cites"}], "dropped": [reasons]}``. The lines written by code always stay;
+    with no advisor, no check, an abstention or nothing kept, the report is returned as it was. Without a check nothing a
+    model writes is kept: this library never keeps unchecked prose."""
+    from dclab_core.agents import run_role
+
+    info: dict[str, Any] = {"source": "fallback", "reason": "", "kept": 0, "dropped": 0, "sections": {}}
+    if advisor is None or check is None:
+        info["reason"] = "no advisor" if advisor is None else "no check of model-written prose was given"
+        return report, info
+    result = run_role(REPORTER, advisor, {"report": report})
+    info["reason"] = result.reason
+    if result.source != "advisor" or not result.output["summaries"]:
+        return report, info
+    sections = list(report.sections)
+    for index, section, lines in _prose_sections(report):
+        text = result.output["summaries"].get(section.title)
+        if not text:
+            continue
+        sources = {f"L{i + 1}": line for i, line in enumerate(lines)}
+        verdict = check(text, sources)
+        kept, strict_dropped = [], 0
+        for item in verdict.get("kept", []):
+            cites = list(item.get("cites") or []) or [f"L{n}" for n in _CITED_LINES.findall(item["text"])]
+            cited_lines = [sources[c] for c in cites if c in sources]
+            plain = _LINE_CITE.sub("", item["text"]).strip()
+            if plain and _strict(plain, cited_lines):
+                kept.append(render(plain))  # escaped, as every text a record holds
+            else:
+                strict_dropped += 1
+        info["kept"] += len(kept)
+        info["dropped"] += len(verdict.get("dropped", [])) + strict_dropped
+        info["sections"][section.title] = {"kept": len(kept), "dropped": list(verdict.get("dropped", []))
+                                           + ["the report's own rules (a number, its subject or a claim word not in the cited line)"] * strict_dropped}
+        if kept:
+            sections[index] = ReportSection(title=section.title, body=PROSE_LABEL + " ".join(kept) + "\n\n" + section.body,
+                                            cites=section.cites)  # the lines code wrote, untouched, after the summary
+    if info["kept"]:
+        info["source"] = "advisor"
+    return report.model_copy(update={"sections": sections}), info
+

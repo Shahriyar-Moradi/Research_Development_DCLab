@@ -77,8 +77,19 @@ def inputs(store: Any, project_id: str, rubric: Optional[list[dict[str, Any]]] =
             "title": f"Solution report: {project.get('name') or 'project'}"}
 
 
-def build(store: Any, project_id: str, rubric: Optional[list[dict[str, Any]]] = None, analyse: bool = True) -> SolutionReport:
-    return core_report.build(**inputs(store, project_id, rubric, analyse))
+def build(store: Any, project_id: str, rubric: Optional[list[dict[str, Any]]] = None, analyse: bool = True,
+          advisor: Any = None) -> SolutionReport:
+    """The report from the records; with ``advisor`` (a dclab_core Advisor, such as ``core_advisor.GatewayAdvisor``), the
+    reporter's summaries added above each section's lines, every sentence kept only when ``cited.check`` passes it
+    (package 18.7). A private project never gets prose: no model sees its report."""
+    report = core_report.build(**inputs(store, project_id, rubric, analyse))
+    if advisor is None or (store.get(project_id).get("settings") or {}).get("private"):
+        return report
+    from .. import cited
+
+    report, info = core_report.write_prose(advisor, report, cited.check)
+    store.log(project_id, "report_prose", {k: info[k] for k in ("source", "reason", "kept", "dropped")})
+    return report
 
 
 def write(store: Any, project_id: str, directory: Path, rubric: Optional[list[dict[str, Any]]] = None,
