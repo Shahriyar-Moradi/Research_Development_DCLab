@@ -274,6 +274,19 @@ def _target_findings(y: pd.Series, task: str, brief: Optional[ProblemBrief]) -> 
     return out
 
 
+def target_cap(y: Any) -> Optional[float]:
+    """The value a numeric target is capped at: a spike at the maximum at least three times the next value's share,
+    on a target with at least ten distinct values (a discrete scale or a constant is not capped). Read on training rows."""
+    values = pd.Series(np.asarray(y, dtype=float)).dropna()
+    if len(values) < 3 or values.nunique() < 10:
+        return None
+    top = float(values.max())
+    at_top = float((values == top).mean())
+    below = values[values < top]
+    next_share = float((below == below.max()).mean()) * len(below) / len(values) if len(below) else 0.0
+    return top if at_top > 0.02 and at_top >= 3 * max(next_share, 1e-9) else None
+
+
 def _distribution(y: pd.Series) -> list[Finding]:
     values = y.dropna().astype(float)
     if len(values) < 3:
@@ -282,7 +295,7 @@ def _distribution(y: pd.Series) -> list[Finding]:
     at_top = float((values == top).mean())
     below = values[values < top]
     next_share = float((below == below.max()).mean()) * len(below) / len(values) if len(below) else 0.0
-    capped = at_top > 0.02 and at_top >= 3 * max(next_share, 1e-9)  # a spike at the maximum, not a discrete scale
+    capped = target_cap(values) is not None  # a spike at the maximum, not a discrete scale
     body = values[values < top] if capped else values
     skew = float(body.skew()) if len(body) > 2 else 0.0
     skew = 0.0 if not np.isfinite(skew) else skew

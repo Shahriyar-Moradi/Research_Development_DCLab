@@ -125,11 +125,12 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("code", _recipe_code(recipe, time_column, codes, encode_codes)),
         _cell("markdown", f"## 4. Model `{family}`\n\n{models.get('rule', '')}\n\n"
               + (f"Tuned parameters accepted: `{params}`" if params else "Default parameters kept (tuning did not beat them by the required margin).")),
-        _cell("code", f"model = {ctor}\n" + (f"model.set_params(**{params!r})\n" if params else "") + "pipeline = Pipeline([('features', features), ('model', model)])"),
+        _cell("code", f"model = {ctor}\n" + (f"model.set_params(**{params!r})\n" if params else "") + "pipeline = Pipeline([('features', features), ('model', model)])"
+              + (MULTICLASS_HELPERS if task == "multiclass" else "")),
         _cell("markdown", "## 5. Training-only cross-validation\n\nThe same folds for every comparison; the holdout is still sealed."),
         _cell("code", _cv_code(task, metric_expr, regression)),
         _cell("markdown", "## 6. Score the holdout once\n\nThis is the honest number. Changing the model after seeing it would make the next score optimistic (DCLAB-R17)."),
-        _cell("code", "pipeline.fit(X_train, y_train)\n" + _score_code(task, metric_expr) + "print('holdout', round(float(holdout), 4))"),
+        _cell("code", _fit_code(task, "X_train", "y_train") + "\n" + _score_code(task, metric_expr) + "print('holdout', round(float(holdout), 4))"),
         _cell("markdown", _result_markdown(records, metric)),
     ]
     return {"cells": cells, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
@@ -201,16 +202,37 @@ def _recipe_code(recipe: str, time_column: str | None, codes: list[str], encode_
     return head + "\n" + pre + "features = preprocess"
 
 
+# A fold (or an early time window) may lack a class: the model learns the classes present as codes 0..m-1 (XGBoost
+# insists on that) and its probabilities are put back in the columns of every class, so argmax is always a class.
+MULTICLASS_HELPERS = """
+
+
+def fit(pipeline, X, y):
+    present = np.unique(y)
+    pipeline.fit(X, np.searchsorted(present, y))
+    pipeline.present_classes = present
+
+
+def class_scores(pipeline, X):
+    scores = np.zeros((len(X), len(labels)))
+    scores[:, pipeline.present_classes] = pipeline.predict_proba(X)
+    return scores"""
+
+
+def _fit_code(task: str, X: str, y: str) -> str:
+    return f"fit(pipeline, {X}, {y})" if task == "multiclass" else f"pipeline.fit({X}, {y})"
+
+
 def _cv_code(task: str, metric_expr: str, regression: bool) -> str:
-    score = "pipeline.predict(X_valid)" if regression else ("pipeline.predict_proba(X_valid)" if task == "multiclass" else "pipeline.predict_proba(X_valid)[:, 1]")
+    score = "pipeline.predict(X_valid)" if regression else ("class_scores(pipeline, X_valid)" if task == "multiclass" else "pipeline.predict_proba(X_valid)[:, 1]")
     return ("fold_scores = []\nfor fit_idx, valid_idx in cv.split(X_train, y_train, cv_groups) if cv_groups is not None else cv.split(X_train, y_train):\n"
-            "    pipeline.fit(X_train.iloc[fit_idx], y_train.iloc[fit_idx])\n    X_valid, y_true = X_train.iloc[valid_idx], y_train.iloc[valid_idx]\n"
+            f"    {_fit_code(task, 'X_train.iloc[fit_idx]', 'y_train.iloc[fit_idx]')}\n    X_valid, y_true = X_train.iloc[valid_idx], y_train.iloc[valid_idx]\n"
             f"    scores = {score}\n    fold_scores.append({metric_expr})\n"
             "print('CV mean', round(float(np.mean(fold_scores)), 4), 'std', round(float(np.std(fold_scores, ddof=1)), 4))")
 
 
 def _score_code(task: str, metric_expr: str) -> str:
-    score = "pipeline.predict(X_test)" if task == "regression" else ("pipeline.predict_proba(X_test)" if task == "multiclass" else "pipeline.predict_proba(X_test)[:, 1]")
+    score = "pipeline.predict(X_test)" if task == "regression" else ("class_scores(pipeline, X_test)" if task == "multiclass" else "pipeline.predict_proba(X_test)[:, 1]")
     return f"scores, y_true = {score}, y_test\nholdout = {metric_expr}\n"
 
 

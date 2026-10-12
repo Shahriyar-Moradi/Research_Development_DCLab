@@ -621,6 +621,8 @@ def predict_scores(model: Any, matrix: Any, task_type: str, n_classes: int | Non
     if task_type == "multiclass":
         proba = np.asarray(model.predict_proba(matrix), dtype=float)
         classes = np.asarray(model.classes_, dtype=int)
+        if getattr(model, "dclab_classes_", None) is not None:
+            classes = np.asarray(model.dclab_classes_)[classes]  # codes back to the classes they stand for
         full = np.zeros((proba.shape[0], int(n_classes or proba.shape[1])))
         full[:, classes] = proba
         return full
@@ -1124,7 +1126,15 @@ def fit_and_predict(
     rows = _fit_rows(y_values, fraction, seed)
     model = make_model(family, task, params, sparse_input=recipe.sparse)
     started = time.perf_counter()
-    model.fit(fit_matrix[rows], y_values[rows])
+    y_rows = y_values[rows]
+    present = np.unique(y_rows) if task == "multiclass" else None
+    if present is not None and not np.array_equal(present, np.arange(len(present))):
+        # a tiny class can be missing from a training fold; XGBoost needs labels 0..k-1, so fit on contiguous codes and
+        # remember the classes they stand for (predict_scores maps the probabilities back to every class)
+        model.fit(fit_matrix[rows], np.searchsorted(present, y_rows))
+        model.dclab_classes_ = present.astype(int)
+    else:
+        model.fit(fit_matrix[rows], y_rows)
     fit_seconds = time.perf_counter() - started
     predictions = predict_scores(model, eval_matrix, task, _n_classes(bundle))
     if fraction:

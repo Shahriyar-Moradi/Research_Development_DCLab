@@ -76,6 +76,7 @@ class Prepared:
         self.frame, self.solution, self.bundle, self.roles = frame, solution, bundle, roles
         self.class_labels, self.recipes, self.sampling = class_labels, recipes, sampling
         self.code_rule = code_rule  # how bundle.spec.categorical_columns was decided
+        self.plan: dict[str, Any] | None = None  # the project's adopted dclab_core plan (17.4), set on every prepare
 
     @property
     def task(self) -> str:
@@ -110,6 +111,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared))
     if key in _BUNDLES:
+        _BUNDLES[key].plan = project.get("plan")
         return _BUNDLES[key]
     path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
     frame = load_table(path)
@@ -200,6 +202,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
+    prepared.plan = project.get("plan")
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
@@ -507,6 +510,49 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
     return evidence, claims, summary
 
 
+def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any] | None:
+    """dclab_core's checks for this task (package 17.5): the alert threshold, calibration, per-class results and
+    confusions, or intervals and error by range and segment; chosen on the training rows' out-of-fold predictions and
+    read once on the holdout. None, logged, when they cannot be computed: the stage stands without them."""
+    try:
+        from dclab_core.analyse import target_cap
+        from dclab_core.assess import assess, threshold_inputs
+
+        bundle = p.bundle
+        kind = "binary" if "binary" in task else ("multiclass" if task == "multiclass" else "regression")
+        oof_y = bundle.y_train.to_numpy()[selected["_oof_index"]]
+        classes = labels = None
+        if kind == "multiclass" and p.class_labels:
+            names = p.class_labels if isinstance(p.class_labels, (list, tuple)) else [p.class_labels[i] for i in sorted(p.class_labels)]
+            classes = list(names)
+            to_label = lambda values: [names[int(v)] if 0 <= int(v) < len(names) else v for v in values]  # noqa: E731
+            oof_y, labels = to_label(oof_y), to_label(y_test.to_numpy())
+        segments = cap = None
+        if kind == "regression":  # the columns and the cap are chosen on the training rows
+            cats = [c for c in bundle.X_train.columns if not pd.api.types.is_numeric_dtype(bundle.X_train[c]) and 2 <= bundle.X_train[c].nunique() <= 20]
+            segments = {c: bundle.X_test[c].tolist() for c in cats[:3]} or None
+            cap = target_cap(bundle.y_train)
+        counts = pd.Series(oof_y).value_counts()
+        tiny = [c for c, n in counts.items() if n < 30 or n / counts.sum() < 0.01] if kind == "multiclass" else None
+        span_days = None
+        time_column = p.solution.time_column
+        if time_column and time_column in bundle.X_train.columns:
+            stamps = pd.to_datetime(bundle.X_train[time_column], errors="coerce").dropna()
+            span_days = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else None
+        inputs = threshold_inputs(p.plan, len(bundle.y_train), span_days)  # the plan's threshold policy and label coverage
+        out = assess(kind, oof_y, selected["_oof_pred"], labels if labels is not None else y_test.to_numpy(), predictions,
+                     budget=inputs["budget"], costs=inputs["costs"], partial_labels=inputs["partial_labels"], classes=classes,
+                     tiny_classes=tiny, segments=segments, cap=cap)
+        if kind == "binary" and inputs["note"]:
+            out["threshold"]["plan_note"] = inputs["note"]
+        return out
+    except Exception as exc:  # noqa: BLE001 - an assessment the data does not allow leaves the stage as it was
+        from ..observe import log
+
+        log.warning("task assessment unavailable: %s", type(exc).__name__)
+        return None
+
+
 def stage_final(p: Prepared, eid: str, recipe: str, family: str) -> tuple[dict, list, str]:
     bundle, spec, task = p.bundle, p.bundle.spec, p.bundle.task_type
     metric, higher = spec.primary_metric, spec.higher_is_better
@@ -561,6 +607,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str) -> tuple[dict, 
             if mask.any():
                 bins.append({"lower": float(lower), "upper": float(lower + 0.2), "count": int(mask.sum()), "predicted": float(predictions[mask].mean()), "observed": float(y_arr[mask].mean())})
         evidence["calibration_bins"] = bins
+    assessment = _task_assessment(p, task, selected, y_test, predictions)
+    if assessment is not None:
+        evidence["task_assessment"] = assessment  # 17.5: thresholds and intervals chosen out of fold, read on the holdout
     label = _label(metric)
     claims = [
         _claim(f"{eid}-C1", "fact", f"{family}/{selected['config_id']} on the `{recipe}` recipe scored {label} {rn._f(holdout_value)} on the once-consumed holdout "
