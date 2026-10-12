@@ -130,7 +130,7 @@ How to work:
 | 8.3 | Remove the old UI at `/classic` | Done (2026-10-07) | The owner decided: drop the old UI; research campaigns stay on the command line (`python -m dclab_rnd.agentic run|resume`). An inventory of what only the old UI did: starting, pausing and resuming campaigns (now the command line; Ctrl+C pauses a run, and Compute shows a stopped run's resume command), the Knowledge view of campaign lessons (`/api/knowledge` stays for API users), and four things now built in the product with its existing components: deleting a project (Workflow page) and an intern session (Sessions tab), each with a confirm dialog; a link to the field guide `/guide` (Evidence); and each research trial's files (Compute's job detail). Removed: the `/classic` route, its 16 files in `agentic/static/{index.html,css,js}`, its entry among the public page shells, Compute's "Open in the classic UI" link and the stale Playwright script that drove the old page; the docs and texts that pointed to it now name the command line. The `/api/runs` routes stay (the Jobs page's export link, the command line's runs and API users read them); tests check that `/classic` and its files answer 404 and that the research map is on the Lab page |
 | 8.4 | Meter the euro budget | Done (built in A1.2, 10.6 and 11.x; recorded 2026-10-07) | The owner decided: model spend at a price list; compute on this machine is not billed. Every model request of the product (Home agent, intern, evidence, parsing, synthetic, explanations) goes through the gateway, which records its tokens with the project (`models/usage.py`), turns them into euros with the one price table (`models/prices.py`, or a file named by `DCLAB_PRICES_FILE`), shows the month's total on Compute and Admin, and refuses before sending a request that would pass the project's wizard budget, an intern session's cap, the workspace's `DCLAB_WORKSPACE_MONTHLY_EUR` or a person's monthly limit, saying which and what is left (the legacy research campaign's own client is stopped only once a cap is reached: `check_external`). Open: no price is configured (none is ever guessed), so until the owner adds the model's checked price to `models/prices.py` or to a JSON file named by `DCLAB_PRICES_FILE` the pages say money is not metered and euro caps cannot stop remote requests; local models cost nothing |
 
-Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file. Part 4 (packages 15.x, rare events with partial labels: what a fraud challenge taught, built so DCLab solves such problems itself) follows it.
+Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file. Part 4 (packages 15.x, rare events with partial labels: what a fraud challenge taught, built so DCLab solves such problems itself) follows it, then Part 5 (packages 16.x: a problem-kind interface and many more kinds of problems, up to solving a whole challenge from its brief) and Part 6 (packages 17.x: understand the problem, analyse the data for decisions, plan, review and report, as a portable core the main product can adopt; built first, after 15.1).
 
 ---
 
@@ -1444,3 +1444,502 @@ projects. Add the flow to make product-e2e.
 3. **15.4** and **15.5** (features and families), then **15.6** (the pack and Home).
 4. **15.7** and **15.8** (checks and evidence) can run beside 3.
 5. **15.9**, then **15.10**; **15.11** last, with the owner.
+
+# Part 5 — Many kinds of problems
+
+**Why this Part.** The owner, 2026-10-12: the fraud challenge is only an example; DCLab should solve many kinds of
+machine-learning problems and challenges. Today the engine knows three tasks (`Solution.task`: binary, multiclass,
+regression; text tables as a variant of binary). Nine packs exist (`draft/pack.py`), but a pack only changes Home's
+first question and the workflow's labels: no pack reaches the engine. Each new kind of problem would today mean edits
+scattered across `solution.py`, `engine.py`, `expansion/datasets.py`, `expansion/runner.py`, `draft/*`, the copilot and
+the benchmark.
+
+**The idea.** A *problem kind* is one module that says everything DCLab must know to solve that kind well, and the
+engine, Home, the intern, the copilot, the benchmark and the export read it through one interface. A kind is only
+called supported when its own acceptance test passes on a synthetic replica of a realistic case, as 15.1 sets up
+for fraud. The ten workflow steps (WF-01…WF-10), the graph validator, the gates, the evidence and the cited explanations
+stay the same for every kind: they are what makes DCLab careful, whatever the problem.
+
+What a kind contributes (the interface of 16.1):
+
+| Part | Examples |
+|---|---|
+| detection | words in the problem, signals in the data (no target column → clustering; a censoring flag → survival) |
+| questions | the unit, the entity, the horizon, label coverage, the decision and its cost, in the kind's words |
+| solution fields | horizon, censoring column, treatment column, alert budget, entity, label files |
+| data assembly | joins, label files, event tables aggregated to an entity as of a cutoff |
+| split | stratified, grouped, time, time and group, rolling origin, spatial blocks, by user |
+| metrics and baselines | AP and recall at a budget; MASE against seasonal naive; C-index against Kaplan-Meier; NDCG@k against popularity |
+| feature recipes | lags and windows, entity behaviour, text, embeddings |
+| model families | classifiers, regressors, forecasters, survival models, rankers, detectors, clusterers, uplift learners |
+| checks | leakage traps of that kind for the audit, the copilot and the benchmark |
+| reliability | what the final stage must challenge (drift by time, calibration, subgroup gaps, censoring) |
+| export | notebook and scoring service (15.10) with the kind's inputs |
+| evidence | its research track and the claims agents may cite |
+
+**Order with Part 4.** 15.1 (the fraud replica) comes first. Then 16.1 and 16.2 build the interface and the acceptance
+harness, so 15.2–15.10 are built *as the first new kind* rather than as special cases; 16.3 onwards add kinds, and
+16.13 lets a whole challenge (a brief plus files) be solved end to end.
+
+| # | Package | Status |
+|---|---|---|
+| 16.1 | The problem-kind interface; today's tasks moved onto it | Not started |
+| 16.2 | The kind acceptance harness and an honest capability matrix | Not started |
+| 16.3 | Forecasting (horizons, rolling-origin backtests) | Not started |
+| 16.4 | Time to event (censoring) | Not started |
+| 16.5 | Ranking and recommendation | Not started |
+| 16.6 | Segmentation (no target) | Not started |
+| 16.7 | Uplift: who responds to an action | Not started |
+| 16.8 | Several tables: entity targets from event tables | Not started |
+| 16.9 | Decisions on top of a model: thresholds, prices, budgets | Not started |
+| 16.10 | Places: spatial splits and features | Not started |
+| 16.11 | Sequences of events and sensor anomalies | Not started |
+| 16.12 | Images and long text through pretrained embeddings | Not started |
+| 16.13 | Challenge mode: from a brief and files to every deliverable | Not started |
+| 16.14 | Agents and evidence per kind | Not started |
+
+## 16. Many kinds of problems
+
+### 16.1 The problem-kind interface; today's tasks moved onto it
+
+- **Delivers:** `dclab_rnd/kinds/` with a typed `ProblemKind` protocol (the parts in the table above) and a registry
+  (`kinds.get(key)`, `kinds.detect(problem, profile)`); binary, multiclass, regression and text-tabular moved onto it
+  with no change in behaviour; the engine, `Solution`, `prepare_bundle`, the runner and Home ask the kind instead of
+  branching on `solution.task`; packs map to kinds (`imbalanced` → the rare-event kind of Part 4). `Solution` keeps its
+  fields and gains a `kind` and a typed `kind_fields` block validated by the kind.
+- **Done when:** every existing test passes unchanged (behaviour identical, checked by re-running the HyperAck and
+  churn projects and comparing stage records), `/api/kinds` lists the kinds, and adding a kind touches only its module
+  and its tests (a test registers a toy kind and runs it through all five stages).
+
+```text
+Package 16.1. Introduce dclab_rnd/kinds/: a ProblemKind protocol (detect, questions, solution fields, data assembly,
+split, metrics and baselines, recipes, model families, checks, reliability, export, evidence track) and a registry.
+Move binary, multiclass, regression and text-tabular onto it without changing behaviour: compare the stage records of
+the HyperAck and churn projects before and after. The engine, Solution, prepare_bundle, the runner and Home read the
+kind. Add /api/kinds and a toy kind in tests that runs through all five stages with no edit outside its module.
+```
+
+### 16.2 The kind acceptance harness and an honest capability matrix
+
+- **Delivers:** each kind ships a replica generator (seeded, invented data shaped like a real case, with that kind's
+  traps) and an acceptance test of the decisions a careful data scientist reaches on it, like 15.1. `make kinds-check`
+  runs them all; the Domain packs page and `/api/kinds` show a capability matrix generated from the results (a kind is
+  "supported" only when its acceptance passes; otherwise it says what is missing), replacing the hand-written maturity
+  labels.
+- **Done when:** the matrix is generated, not edited; the existing kinds pass their acceptance; a failing acceptance
+  turns its row from supported to partial in a test.
+
+```text
+Package 16.2. Add a per-kind replica generator and acceptance test, make kinds-check, and a capability matrix built
+from the results for /api/kinds and the Domain packs page. Remove the hand-written maturity labels in favour of it.
+```
+
+### 16.3 Forecasting (horizons, rolling-origin backtests)
+
+- **Delivers:** a forecasting kind: a series id, a time index, a horizon and a forecast moment; rolling-origin backtests
+  with a gap; lag and window features computed only from the past of each origin; baselines naive, seasonal naive and
+  moving average; MASE, sMAPE and quantile loss; global gradient-boosted models with lags and a classical model per
+  series where the series is long enough; prediction intervals by backtest residuals; checks for future covariates
+  that are not known at the forecast moment.
+- **Done when:** the replica (demand per store and product with promotions known ahead and weather not) is solved:
+  backtests never see the future (tested), every model is compared with seasonal naive, and the leaky covariate is kept out.
+
+```text
+Package 16.3. Add the forecasting kind: series id, time index, horizon, forecast moment; rolling-origin backtests with
+a gap; past-only lags and windows; naive and seasonal-naive baselines; MASE, sMAPE, quantile loss; a global boosted
+model and a per-series classical model; intervals from backtest residuals; a check for covariates unknown at the
+moment. Replica: store-product demand with a known-ahead promotion and a leaky same-day covariate.
+```
+
+### 16.4 Time to event (censoring)
+
+- **Delivers:** a survival kind: a duration and an event flag (censoring), a start moment; Kaplan-Meier and Cox
+  baselines, gradient-boosted survival and discrete-time classification; C-index, integrated Brier score and
+  time-dependent AUC at named horizons; checks for durations measured past the moment and for treating censored rows
+  as events.
+- **Done when:** the replica (subscriptions with right-censoring) is solved, a model that drops censored rows is shown
+  to be biased against the honest one, and survival curves per group are in the final record.
+
+```text
+Package 16.4. Add the time-to-event kind (duration, event flag, start moment): Kaplan-Meier and Cox baselines,
+boosted survival and discrete-time models, C-index, integrated Brier score, time-dependent AUC; checks for censored
+rows treated as events or dropped. Replica: subscriptions with right-censoring.
+```
+
+### 16.5 Ranking and recommendation
+
+- **Delivers:** a ranking kind: users, items and interactions (implicit or explicit) with timestamps; splits by time
+  per user or by held-out users; popularity and recently-popular baselines; matrix factorisation and a gradient-boosted
+  ranker on candidate features; NDCG@k, recall@k, coverage and novelty; checks for interactions after the
+  recommendation moment and for items that did not exist yet.
+- **Done when:** the replica (a shop's views and purchases) is solved, every model is compared with popularity, and a
+  future-interaction leak is caught.
+
+```text
+Package 16.5. Add the ranking kind: user-item interactions with time; per-user time splits or held-out users;
+popularity baselines; matrix factorisation and a learning-to-rank model on candidates; NDCG@k, recall@k, coverage;
+checks for future interactions and not-yet-existing items. Replica: a shop's views and purchases.
+```
+
+### 16.6 Segmentation (no target)
+
+- **Delivers:** a segmentation kind for problems without an outcome: scaling and encoding choices recorded; k-means,
+  Gaussian mixtures and HDBSCAN; the number of segments chosen by stability (bootstrap agreement) and silhouette, not by
+  one run; each segment described in the data's own columns; an honest statement that no ground truth exists, and an
+  optional check against a business outcome if one is named.
+- **Done when:** the replica (customers with three planted behaviours and noise) is recovered with stability
+  intervals, and a too-high number of segments is rejected for instability.
+
+```text
+Package 16.6. Add the segmentation kind: recorded preprocessing, k-means, mixtures and HDBSCAN, the number of segments
+by bootstrap stability and silhouette, segment profiles in the data's columns, and the "no ground truth" limit in the
+record. Replica: customers with planted behaviours.
+```
+
+### 16.7 Uplift: who responds to an action
+
+- **Delivers:** an uplift kind: a treatment column, an outcome, and whether assignment was randomised; T- and
+  X-learners and uplift trees; Qini and AUUC with intervals; propensity overlap checks; a refusal to call effects causal
+  when assignment was not randomised and overlap is poor, said in the record.
+- **Done when:** the replica (a randomised campaign with a planted responsive segment) recovers the segment, and an
+  observational variant raises the overlap warning.
+
+```text
+Package 16.7. Add the uplift kind: treatment, outcome, randomised or not; T- and X-learners, uplift trees; Qini and
+AUUC with intervals; propensity overlap; no causal wording without randomisation or overlap. Replicas: randomised and
+observational campaigns.
+```
+
+### 16.8 Several tables: entity targets from event tables
+
+- **Delivers:** a project can hold several related tables (an entity table, event tables, label tables) with declared
+  keys; the target and features are built per entity *as of a cutoff time* (counts, recencies, sums and trends over
+  windows before the cutoff), with the cutoff per row recorded; generalises 15.2 (label files) and 15.4 (behaviour
+  counts); checks for events after the cutoff and for one-to-many joins that duplicate rows.
+- **Done when:** the replica (customers, orders, support tickets; churn in the 30 days after a cutoff) is solved with
+  no event after a row's cutoff used (tested), and a duplicating join is refused with the numbers.
+
+```text
+Package 16.8. Let a project hold related tables with keys. Build per-entity targets and window features as of a
+per-row cutoff, record the cutoffs, and refuse joins that duplicate rows. Generalise 15.2 and 15.4 onto it. Replica:
+customers, orders and tickets with a churn window after the cutoff; a test that no later event is used.
+```
+
+### 16.9 Decisions on top of a model: thresholds, prices, budgets
+
+- **Delivers:** a decision layer for any kind that predicts: the person states the action, its value and its cost
+  (Home already asks what a wrong prediction costs), and DCLab chooses the threshold, the review budget or the price
+  that maximises expected value on out-of-fold predictions, with an interval and a stated assumption about how the
+  outcome responds to the action. Price optimisation uses a model of acceptance by price (as in the challenge's first
+  part) and warns when prices in the data were not varied enough to learn a response.
+- **Done when:** the fraud replica gets a budget from the review cost, a pricing replica gets a price curve with an
+  interval, and a pricing replica with fixed prices gets the "cannot learn the response" warning.
+
+```text
+Package 16.9. Add a decision layer: from the stated value and cost of an action, choose a threshold, review budget or
+price maximising expected value on out-of-fold predictions, with intervals and the assumptions written. For prices,
+model acceptance by price and warn when prices did not vary. Replicas: fraud review budget; ride pricing with and
+without price variation.
+```
+
+### 16.10 Places: spatial splits and features
+
+- **Delivers:** a spatial part usable by any kind with coordinates: grid or H3-style cells, distances, neighbourhood
+  counts fitted inside folds, and spatial block cross-validation when places cluster; a check for random splits on
+  spatially autocorrelated data; ties the `maps` pack to it.
+- **Done when:** a replica with spatial autocorrelation shows the random split's optimism against spatial blocks, and
+  the engine picks blocks for it.
+
+```text
+Package 16.10. Add spatial features (cells, distances, fold-fitted neighbourhood counts) and spatial block CV for any
+kind with coordinates, a check for random splits on autocorrelated places, and wire the maps pack. Replica with
+spatial autocorrelation.
+```
+
+### 16.11 Sequences of events and sensor anomalies
+
+- **Delivers:** a kind for streams (machine sensors, logs, sessions): windows over the stream, features from each
+  window's past, labels that may be sparse or delayed; detectors from 15.5 applied per window and supervised models
+  when labels exist; event-based metrics (detection delay, alerts per day, recall of incidents rather than of rows);
+  splits by time and machine.
+- **Done when:** the replica (machines with planted failures and their warning signs) reports detection delay and
+  incident recall, with no window using the future.
+
+```text
+Package 16.11. Add a stream kind: windows, past-only window features, sparse or delayed labels, detectors and
+classifiers, incident-level metrics (delay, recall of incidents, alerts per day), splits by time and machine.
+Replica: machines with planted failures.
+```
+
+### 16.12 Images and long text through pretrained embeddings
+
+- **Delivers:** images and long text turned into features by a pretrained encoder run locally and cached (no training
+  of large networks on this machine), then any tabular kind on top; splits by scene, document source or author;
+  checks for near-duplicate images or texts across the split. Fine-tuning stays in the `llm` pack's own flow.
+- **Done when:** an image replica (synthetic shapes with a planted label) and a text replica are solved with the
+  embeddings cached by content hash, and near-duplicates across folds are found.
+
+```text
+Package 16.12. Add embedding features for images and long text from a local pretrained encoder, cached by content
+hash; grouped splits by source; a near-duplicate check across folds. Replicas for images and text. No large-network
+training on this machine.
+```
+
+### 16.13 Challenge mode: from a brief and files to every deliverable
+
+- **Delivers:** a challenge can be started from a brief (a PDF or text) and its files. DCLab reads the brief into a
+  requirement list with the rubric's points when given (models asked for, report sections, API, Docker, source
+  control, tests), detects the kinds involved (a challenge can hold several parts), builds one project per part, and
+  produces the deliverables: the notebook per part, the report as a PDF with the sections the rubric names, the
+  scoring service (15.10), tests, and a git repository; plus a coverage table mapping every requirement to the file
+  that meets it, or saying it is not met and why. Confidentiality words in the brief ("must not be disclosed")
+  mark the data as private: it stays out of exports, prompts and training data.
+- **Done when:** a written mock challenge (two parts: a classification with a pricing question and a fraud part, on
+  replicas) is solved end to end with every rubric line covered or explained, and a test proves the private data did
+  not enter any export or model request.
+
+```text
+Package 16.13. Add challenge mode: parse a brief into requirements (and rubric points), detect the kinds of each
+part, build a project per part, and produce notebooks, a PDF report with the named sections, the service export,
+tests and a git repository, plus a requirement-coverage table. Respect confidentiality words: private data never
+leaves the workspace. Acceptance: a two-part mock challenge on replicas.
+```
+
+### 16.14 Agents and evidence per kind
+
+- **Delivers:** each kind has a research track with a first campaign (as 15.8 for fraud), its pitfalls measured, its
+  traps in the benchmark (a new benchmark version when the sealed set changes), and its tools in the registry (the
+  intern can run a kind's checks); lessons are filed by kind; SFT trajectories carry the kind, and no kind's sealed
+  cases ever enter a training set.
+- **Done when:** for each supported kind an agent asked a method question cites that kind's evidence, and the
+  benchmark reports results per kind with intervals.
+
+```text
+Package 16.14. For each supported kind: scaffold its research track and first campaign, measure its pitfalls, add its
+traps to a new benchmark version, register its tools in the agent registry, file lessons and SFT trajectories by kind.
+Test that method questions cite the kind's evidence.
+```
+
+# Part 6 — Understand, analyse, decide: a portable solving core
+
+**Why this Part.** The owner, 2026-10-12: before anything kind-specific, DCLab must first *understand the problem or
+challenge as it is described*, then *analyse the data* for the decisions it implies, for binary, multiclass and
+regression alike, and solve problems better by improving **the solution and the solution workflow**, not the code
+around it. And: **what is built must be adoptable by DCLab's main product, not only by this R&D project.**
+
+**What "the solution workflow" means here.** A careful data scientist works in this order, and every step leaves a
+decision with its reason:
+
+1. **Understand**: the goal and the action a prediction feeds; what one scored row is; the target, or that there is
+   none; where the labels come from and whether they are complete; the prediction moment; the entities a row belongs
+   to; constraints (confidentiality, latency, review capacity); the deliverables and how they are judged.
+2. **Analyse for decisions**: what a row really is (grain, duplicates, several rows per entity), which keys join the
+   files, how the target behaves (prevalence; class sizes; skew, caps and zeros), time (range, drift), how the target
+   concentrates on entities, what looks like leakage, what is missing and whether missingness speaks. Each finding
+   ends in an *implication* ("150 rows per biker and labels on a few bikers → folds grouped by biker").
+3. **Plan**: framing, split, metric (from the cost of a wrong decision), baselines, feature directions, model
+   families, the risks to check, and what would change the plan, each with its reason and the alternatives set aside.
+4. **Run** the plan through the ten workflow steps (the engine as it is, then Parts 4 and 5).
+5. **Review and improve**: error analysis (by segment, class or residual), hypotheses, the next experiments ranked by
+   their expected value, a bounded number of rounds, the holdout untouched until the end.
+6. **Report**: the problem, the findings, the decisions and their reasons, the results with their uncertainty, the
+   limits and the next steps.
+
+Today DCLab does part of 1 (Home asks up to four questions: target, moment, action and cost, data), part of 2 (a
+profile and the leakage audit, not decision-oriented) and 4; 3 is `Solution.propose()` heuristics; 5 and 6 are thin.
+
+**Adoptable by the main product: the most important constraint.** The main product lives in its own repository
+(github.com/Shahriyar-Moradi/DCLab) and stays there: nothing of it is copied into this one. It was read on 2026-10-12
+(through `gh`, read only): a Python 3.12 FastAPI backend (`apps/api/app`: `api/` transport, `services/`
+orchestration, `domain/` contracts, `engine/` pure ML on DataFrames and typed plans) and a Next.js front end. Its
+engine already has planners (`engine/modeling/`: `ProblemProfile`, `MetricPlan`, `ValidationPlan`, `HoldoutPlan`,
+`Objective`), a versioned `ProblemSpec` (`services/problem_spec_service.py`), an `ExperimentPlan`
+(`domain/run_plans.py`) with one governed decision point per field, and `engine/investigate/` trust checks. Its rules:
+one training path, statistics on the training partition only, the holdout scored once, every model call through its
+gateway with a deterministic fallback, compact evidence only (never rows), and "no new parallel system for an
+existing concern". `docs/DCLAB_MASTER_CONTEXT.md` adds the bar for R&D work to enter it: reproducible evidence,
+defined user value, an integration design, a security and cost review, and stable interfaces.
+
+So the solving logic is built as **a pure library**, `dclab_core/`, at this repository's root, which the main product
+installs with pip (pinned) the way it packages `packages/dclab_client`:
+
+- it depends only on numpy, pandas, scikit-learn and pydantic, runs on Python 3.10-3.13, and never imports
+  `dclab_rnd` (a test fails if it does); it never trains a model, calls a model provider or touches a database;
+- it takes a DataFrame and an explicit training index, and never computes a statistic on rows outside it;
+- every output (problem brief, data findings, solution plan, decisions, review, report) is a frozen pydantic model with
+  a version string (`dclab_core.problem_brief.v1`) and a reason, with an exported JSON Schema;
+- a model is used only through an injected `Advisor` protocol (`ask(purpose, evidence) -> validated answer or None`);
+  `None` means the deterministic path, which always works; evidence passed to it is aggregates, never rows;
+- outputs are shaped to map onto the main product's contracts (`ProblemSpec`, `ProblemProfile`, `MetricPlan`,
+  `HoldoutPlan`, `ValidationPlan`, `ExperimentPlan` and its decision points, `Objective`), with the mapping written and
+  tested here from field lists, so the main product adopts proposals through its own governed decisions, never a
+  second pipeline;
+- the R&D studio is one consumer (an adapter in `dclab_rnd`); the main product is the other.
+
+The solving parts of Parts 4 and 5 (the label review, alert-budget metrics, behaviour recipes, model families, the
+problem-kind interface) are built inside `dclab_core` for the same reason, with the studio calling them.
+
+| # | Package | Status |
+|---|---|---|
+| 17.1 | The portable core and its contracts | Not started |
+| 17.2 | Understand the problem: from a description to a problem brief | Not started |
+| 17.3 | Initial data analysis for decisions, for every task | Not started |
+| 17.4 | The solution plan: decisions with reasons and alternatives | Not started |
+| 17.5 | A better workflow per task: binary, multiclass, regression | Not started |
+| 17.6 | Review and improve: error analysis and the next experiments | Not started |
+| 17.7 | The solution report, from the records | Not started |
+| 17.8 | The adoption kit for the main product | Not started |
+
+## 17. Understand, analyse, decide
+
+### 17.1 The portable core and its contracts
+
+- **Delivers:** `dclab_core/` with its own `pyproject.toml` (installable as a wheel), `contracts.py` (frozen pydantic
+  models with a version string: `ProblemBrief`, `DataFindings`, `SolutionPlan`, `Decision`, `Review`,
+  `SolutionReport`), `make core-schemas` writing their JSON Schemas under `dclab_core/schemas/` (generated, checked
+  fresh by `make rd-check`), the `Advisor` protocol, and boundary tests: importing `dclab_core` imports nothing from
+  `dclab_rnd`, it runs with only its own requirements, and no module uses syntax beyond Python 3.10 or below 3.13.
+  The studio gets an adapter that maps a project to and from these artefacts.
+- **Done when:** the schemas are generated and fresh, the boundary test passes, a round trip project → artefacts →
+  project loses nothing, and a breaking change to a contract fails a test unless its version moves.
+
+```text
+Package 17.1. Create dclab_core/ at the repository root as an installable library (its own pyproject): frozen,
+versioned pydantic contracts (ProblemBrief, DataFindings, SolutionPlan, Decision, Review, SolutionReport), generated
+JSON Schemas (make core-schemas, freshness in rd-check), an Advisor protocol for model help with a deterministic
+fallback, and tests that dclab_core never imports dclab_rnd and needs only numpy, pandas, scikit-learn and pydantic.
+Add the studio adapter (project <-> artefacts) with a round-trip test.
+```
+
+### 17.2 Understand the problem: from a description to a problem brief
+
+- **Delivers:** `dclab_core.understand`: from a description (a sentence, a page, a challenge's PDF text) and the file
+  names, a `ProblemBrief`: goal and action, scored unit, target (or none), label source (a column, another file,
+  none) and coverage (complete or a sample), prediction moment, entities, time, constraints (confidentiality words,
+  latency, review capacity), deliverables and the rubric with its points, success criteria, and the open questions,
+  ranked by how much the answer changes the plan. Each field records its status (stated, inferred, unknown) and, when
+  stated, the quote it came from; a model may propose fields, kept only when the quote is in the text (Home's rule).
+  Home and the intern start from the brief; Home asks the top open questions.
+- **Done when:** four written briefs (the delivery-fraud challenge in invented words, a churn brief, a delivery-time
+  regression brief, a ticket-routing multiclass brief) give the expected briefs without a model and with a scripted
+  one, no field is filled without a quote or a stated inference, and the fraud brief lists the API, Docker and report
+  as deliverables with their points.
+
+```text
+Package 17.2. Add dclab_core.understand: description and file names -> ProblemBrief, every field with status and
+quote, open questions ranked by impact on the plan, rubric and deliverables when present, confidentiality words
+noted. Deterministic first; a ModelClient may propose, kept only with a quote. Home and the intern start from it.
+Tests: four written briefs (fraud, churn, delivery-time regression, ticket routing), with and without a scripted model.
+```
+
+### 17.3 Initial data analysis for decisions, for every task
+
+- **Delivers:** `dclab_core.analyse`: from the tables (one or more) and the brief, `DataFindings`, each finding with
+  its evidence (numbers, never row values) and its *implication* for the plan. Common: grain and duplicates, keys and
+  joins across files (with what a join would mark, as in 15.2), rows per entity and target concentration by entity,
+  time range and drift, leakage suspects (the existing audit), missingness and whether it predicts the target,
+  types, cardinalities and impossible values. By task: binary (prevalence, rare-event regime, label coverage);
+  multiclass (class sizes, tiny classes, classes to merge or a hierarchy, confusable classes); regression (skew, caps,
+  zeros, outliers, units, censoring hints). Computed on the training part where it would steer choices (WF-04,
+  train-only EDA). New replicas: ticket routing (multiclass: rare classes, a leaky "resolved_by" column, duplicated
+  tickets) and delivery time (regression: heavy tail, a cap at 60 minutes, a leaky "actual_arrival").
+- **Done when:** on the three replicas the findings name the traps each one plants, with the right implication, and the
+  numbers match hand computations in the tests.
+
+```text
+Package 17.3. Add dclab_core.analyse: tables + brief -> DataFindings (evidence and implication per finding), common
+checks and per-task checks for binary, multiclass and regression, train-only where it steers choices. Add the
+ticket-routing (multiclass) and delivery-time (regression) replicas with their traps. Tests: each replica's findings
+name its traps with the right implication and hand-checked numbers.
+```
+
+### 17.4 The solution plan: decisions with reasons and alternatives
+
+- **Delivers:** `dclab_core.plan`: brief + findings -> `SolutionPlan`: framing (for example regression or a threshold
+  classification; flat or hierarchical classes; partial labels), split, primary metric from the decision's cost
+  (binary: AP, recall at a budget, cost; multiclass: macro-F1, top-k, cost matrix; regression: MAE, RMSE, a quantile
+  loss, error in percent), baselines, feature directions, model families, risks to check, and "what would change this
+  plan". Each decision is a `Decision` (choice, reason citing findings or evidence records, alternatives with why not).
+  `Solution.propose()` and the engine read the plan; a person can override any decision with a reason, and the
+  override is a recorded move.
+- **Done when:** on the three replicas and the fraud replica the plan's decisions match what the acceptance tests
+  expect, every decision cites a finding, and an override reaches the engine and the log.
+
+```text
+Package 17.4. Add dclab_core.plan: brief + findings -> SolutionPlan of Decisions (choice, reason with citations,
+alternatives). Metrics from decision cost per task. Make Solution.propose() and the engine use it; overrides are
+recorded moves. Tests on the four replicas.
+```
+
+### 17.5 A better workflow per task: binary, multiclass, regression
+
+- **Delivers:** what a careful data scientist adds per task, as stage evidence the engine records: binary
+  (a threshold from the stated cost or budget, calibration, precision as a lower bound with partial labels);
+  multiclass (per-class metrics, the confusion matrix with the most confused pairs, a class-merge or hierarchy check
+  for tiny classes, top-k when the action allows several); regression (target transform chosen by the residuals,
+  prediction intervals from out-of-fold residuals, error by segment and range, behaviour at caps). Each addition comes
+  from the plan, never on by default without a reason.
+- **Done when:** each replica's final record carries its task's additions with numbers, and the multiclass and
+  regression replicas each improve on the engine as it was by the margin their acceptance tests set.
+
+```text
+Package 17.5. Add per-task workflow steps to the engine from the plan: binary thresholds and calibration; multiclass
+per-class metrics, confusion pairs, merge or hierarchy checks, top-k; regression target transforms, residual-based
+intervals, error by segment. Record them as stage evidence. Acceptance on the multiclass and regression replicas.
+```
+
+### 17.6 Review and improve: error analysis and the next experiments
+
+- **Delivers:** `dclab_core.review`: after the models stage, error analysis (where the model fails: segments,
+  classes, ranges, entities), hypotheses that follow from it, and the next experiments ranked by expected gain and
+  cost; the engine runs at most N rounds on training folds only, each round a recorded decision; the holdout stays
+  untouched until the final stage (the existing gate). A model may propose hypotheses; code checks that each one cites
+  a measured weakness.
+- **Done when:** on the fraud replica a round finds the behaviour features (or on the regression replica the cap)
+  from the error analysis, the improvement is measured on folds, and the holdout is used once.
+
+```text
+Package 17.6. Add dclab_core.review: error analysis by segment, class, range and entity; hypotheses citing measured
+weaknesses; next experiments ranked by expected gain and cost; at most N recorded rounds on training folds; holdout
+once. Tests on the fraud and regression replicas.
+```
+
+### 17.7 The solution report, from the records
+
+- **Delivers:** `dclab_core.report`: a `SolutionReport` and its rendering (Markdown, HTML, PDF): the problem as
+  understood, the data findings, the decisions and reasons, the results with intervals, the limits (including what
+  the data cannot show), the next steps, and the deliverables map when a rubric exists. Every number comes from a
+  record; the prose goes through the citation check.
+- **Done when:** the report of each replica project renders, every number in it is traced to a record by a test, and
+  no sentence calls a model production-ready.
+
+```text
+Package 17.7. Add dclab_core.report: SolutionReport from the records, rendered to Markdown, HTML and PDF; every number
+traced to a record; prose through the citation check. Tests on the replica projects.
+```
+
+### 17.8 The adoption kit for the main product
+
+- **Delivers:** `dclab_core` built as a versioned wheel with a changelog; `dclab_core.adapters.main_product`: pure
+  functions mapping each output onto the main product's contracts by their field lists (`ProblemSpec` content,
+  `ProblemProfile`, `MetricPlan`, `HoldoutPlan`, `ValidationPlan`, `ExperimentPlan` per decision-point key,
+  `Objective`), without importing the main product; `docs/guides/CORE_INTEGRATION.md`: where each call goes in the
+  main product (the problem-spec service and wizard; the load-profile stage after the holdout lock; the experiment
+  planner and investigator agents as proposals through governed decision points; the experiment review and
+  improve decision points; the technical report), the `Advisor` to implement over its gateway, what never crosses
+  (rows, holdout labels), and the tests it should add on its side (holdout isolation, the benchmark harness).
+- **Done when:** the wheel builds and installs in a clean Python 3.12 environment with only its dependencies, the
+  mapping tests pass against the field lists recorded from the main product's code (with the commit read), and the
+  guide names every call site. Wiring it into the main product is done in that repository, as its own change.
+
+## Suggested order for Parts 4, 5 and 6
+
+1. **15.1** (done: the fraud replica and its acceptance test).
+2. **Part 6 first:** **17.1** (the core and contracts), **17.2** (understand), **17.3** (analyse, with the multiclass
+   and regression replicas), **17.4** (plan), **17.5** (per-task workflow), **17.6** (review and improve), **17.7**
+   (report). These raise the quality of every solution, whatever the kind.
+3. **16.1** and **16.2** inside `dclab_core` (problem kinds and their acceptance harness).
+4. **15.2-15.6**, **15.10**, then **16.13** (challenge mode): DCLab solves a challenge like the owner's end to end.
+5. **15.7-15.9** beside 4; the other kinds of Part 5 by the owner's priority; **15.11** with the owner.
+6. **17.8** after 17.4 (the first outputs worth adopting), then kept current with every package: each new output
+   gets its mapping onto the main product's contracts in the same package.
