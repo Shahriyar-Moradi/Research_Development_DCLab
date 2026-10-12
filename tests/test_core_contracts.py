@@ -49,6 +49,16 @@ def _module(path: Path) -> str:
     return ".".join(["dclab_core", *parts])
 
 
+# an optional extra a module may import only inside the function that needs it (17.7: the PDF renderer), never on import
+OPTIONAL_LAZY = {"report.py": {"reportlab"}}
+
+
+def _function_imports(tree: ast.AST) -> list[str]:
+    """The imports written inside a function body (they run only when the function is called)."""
+    return [name for node in ast.walk(tree) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            for statement in node.body for name in _imports(statement)]
+
+
 def _imports(tree: ast.AST) -> list[str]:
     names = []
     for node in ast.walk(tree):
@@ -75,8 +85,26 @@ class BoundaryTest(unittest.TestCase):
     def test_the_core_imports_only_the_safe_standard_library_its_four_dependencies_and_itself(self):
         for path in _sources():
             with self.subTest(file=path.name):
-                self.assertEqual(_violations(_imports(ast.parse(path.read_text(encoding="utf-8")))), [],
-                                 f"{path.relative_to(ROOT)} imports outside the boundary")
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+                names, lazy = _imports(tree), _function_imports(tree)
+                for name in lazy:  # an optional extra inside a function is allowed once; anywhere else it is not
+                    if name.split(".")[0] in OPTIONAL_LAZY.get(path.name, set()):
+                        names.remove(name)
+                self.assertEqual(_violations(names), [], f"{path.relative_to(ROOT)} imports outside the boundary")
+
+    def test_an_optional_extra_is_allowed_only_inside_a_function_of_its_module(self):
+        def violations(source: str, name: str) -> list[str]:
+            tree = ast.parse(source)
+            names = _imports(tree)
+            for imported in _function_imports(tree):
+                if imported.split(".")[0] in OPTIONAL_LAZY.get(name, set()):
+                    names.remove(imported)
+            return _violations(names)
+
+        self.assertEqual(violations("def to_pdf():\n    from reportlab.lib import colors\n", "report.py"), [])
+        self.assertTrue(violations("from reportlab.lib import colors\n", "report.py"))       # on import: refused
+        self.assertTrue(violations("def f():\n    import reportlab\n", "plan.py"))          # another module: refused
+        self.assertTrue(violations("def to_pdf():\n    import reportlab\nimport reportlab\n", "report.py"))
 
     def test_the_checker_catches_what_it_must(self):
         for source in ("import dclab_rnd", "import sqlalchemy", "import sqlite3", "from urllib import request",

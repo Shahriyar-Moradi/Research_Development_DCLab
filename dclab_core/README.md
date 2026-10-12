@@ -9,6 +9,9 @@ shared by the DCLab R&D studio and DCLab's main product.
 - **Outputs** are frozen, versioned contracts (`dclab_core.contracts`) with JSON Schemas in `schemas/`:
   `ProblemBrief`, `DataFindings`, `SolutionPlan` (of `Decision`s with reasons and alternatives), `Review`,
   `SolutionReport`.
+- **Reports** (`dclab_core.report`): the `SolutionReport` of a run, written by code from its records (every number
+  traced to the record path it was read from, no sentence calling a model production-ready), rendered to Markdown,
+  HTML and PDF (`pip install "dclab-core[pdf]"` for the PDF).
 - **Model help** only through an `Advisor` the host provides (`dclab_core.advisor`): compact evidence in, a validated
   answer or nothing out; without one, the deterministic path runs.
 
