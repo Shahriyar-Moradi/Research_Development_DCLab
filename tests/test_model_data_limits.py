@@ -197,8 +197,18 @@ class DataLimitTests(unittest.TestCase):
         self.assertEqual(self.assertWithinLimit("notebook_review"), set())  # no cell value, and none of the code's literals
         self.assertFalse([p for p in Capture.prompts["notebook_review"] if "Q7Kx" in p or "read_csv" in p])
 
+    def test_the_problem_analyst_sees_the_description_and_column_names_never_values(self):
+        from dclab_core.understand import understand
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        table = marked_table()
+        gw = gateway({"problem_analyst": [{"content": "{}", "tool_calls": [], "usage": {}}]})
+        understand("Predict whether a customer churns. The table has one row per customer.", {"customers.csv": list(table.columns)},
+                   advisor=GatewayAdvisor(gw))
+        self.assertEqual(self.assertWithinLimit("problem_analyst"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
-        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern", "leakage_review", "notebook_review"}
+        tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
+                  "leakage_review", "notebook_review", "problem_analyst"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

@@ -1,0 +1,987 @@
+{
+ "id": "ANA-004",
+ "campaign_id": "analyst_v1",
+ "kind": "problem_analyst_measured",
+ "split": "sealed",
+ "at": "2026-10-12T11:45:48+00:00",
+ "gate": {
+  "version": "analyst_gate_v1",
+  "split": "sealed",
+  "more_right": "fields right with the analyst > fields right with the rules alone",
+  "no_new_wrong": "fields wrong with the analyst that the rules had left unknown == 0",
+  "rules_kept": "fields the rules knew that the analyst changed == 0"
+ },
+ "plan": {
+  "purpose": "problem_analyst",
+  "tier": "standard",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "cases": 12,
+  "max_requests": 24,
+  "max_eur": 0.021
+ },
+ "spent_eur": 0.0074,
+ "rows": [
+  {
+   "case": "s01",
+   "values": {
+    "rules": {
+     "goal": "We want to rank listings by the chance the visitor applies, scoring each listing when the results page is requested.",
+     "action": null,
+     "unit": "listing",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "We want to rank listings by the chance the visitor applies, scoring each listing when the results page is requested.",
+     "action": "Rank listings by application probability",
+     "unit": "listing",
+     "task": "binary",
+     "target_column": "applied",
+     "prediction_moment": "When the results page is requested",
+     "horizon": "Within the session",
+     "primary_metric": "Area under the ROC curve"
+    },
+    "plain": {
+     "goal": "Rank listings by the chance a visitor applies.",
+     "action": "Rank listings.",
+     "unit": "listing",
+     "task": "binary",
+     "target_column": "applied",
+     "prediction_moment": null,
+     "horizon": "within the session",
+     "primary_metric": "area under the ROC curve"
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "right",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "missed",
+     "primary_metric": "missed"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "right"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "missed",
+     "horizon": "right",
+     "primary_metric": "right"
+    }
+   }
+  },
+  {
+   "case": "s02",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "hour",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Support day-ahead electricity purchasing using hourly city-demand forecasts.",
+     "action": "Use each hourly demand prediction to buy electricity for that hour.",
+     "unit": "hour",
+     "task": "regression",
+     "target_column": "demand_mw",
+     "prediction_moment": null,
+     "horizon": "the following day",
+     "primary_metric": "root mean squared error (RMSE) in megawatts"
+    },
+    "plain": {
+     "goal": "Forecast the city's hourly demand so the utility can buy electricity a day ahead.",
+     "action": "Buy electricity a day ahead using the demand predictions.",
+     "unit": "hour",
+     "task": "regression",
+     "target_column": "demand_mw",
+     "prediction_moment": null,
+     "horizon": "the following day",
+     "primary_metric": "root mean squared error"
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "missed",
+     "primary_metric": "missed"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "missed",
+     "horizon": "right",
+     "primary_metric": "right"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "missed",
+     "horizon": "right",
+     "primary_metric": "right"
+    }
+   }
+  },
+  {
+   "case": "s03",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "sample",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Predict soil texture class from field readings to prioritise urgent samples.",
+     "action": "Prioritise urgent samples.",
+     "unit": "sample",
+     "task": "multiclass",
+     "target_column": "texture_class",
+     "prediction_moment": "When the sample is collected, using the field readings available then.",
+     "horizon": null,
+     "primary_metric": null
+    },
+    "plain": {
+     "goal": "Guess each sample’s texture class from cheap field readings so urgent samples can be prioritised.",
+     "action": "Prioritise urgent samples.",
+     "unit": "sample",
+     "task": "multiclass",
+     "target_column": "texture_class",
+     "prediction_moment": "When the sample is collected, using the field readings taken then.",
+     "horizon": null,
+     "primary_metric": null
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    }
+   }
+  },
+  {
+   "case": "s04",
+   "values": {
+    "rules": {
+     "goal": "We would like to predict whether a patient misses an appointment, which we only know when the slot passes.",
+     "action": null,
+     "unit": "appointment",
+     "task": "binary",
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "We would like to predict whether a patient misses an appointment, which we only know when the slot passes.",
+     "action": "A nurse calls each flagged patient",
+     "unit": "appointment",
+     "task": "binary",
+     "target_column": "missed",
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": "precision"
+    },
+    "plain": {
+     "goal": "Predict whether a patient misses an appointment.",
+     "action": "A nurse calls each flagged patient with a reminder.",
+     "unit": "appointment",
+     "task": "binary",
+     "target_column": "missed",
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": "precision"
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "right",
+     "action": "missed",
+     "unit": "right",
+     "task": "right",
+     "target_column": "missed",
+     "prediction_moment": "abstained",
+     "horizon": "abstained",
+     "primary_metric": "missed"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "abstained",
+     "horizon": "abstained",
+     "primary_metric": "right"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "abstained",
+     "horizon": "abstained",
+     "primary_metric": "right"
+    }
+   }
+  },
+  {
+   "case": "s05",
+   "values": {
+    "rules": {
+     "goal": "Estimate the total amount that will finally be paid on the claim.",
+     "action": null,
+     "unit": "closed",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Estimate the total amount that will finally be paid on the claim.",
+     "action": "Set aside a reserve for each claim",
+     "unit": "closed",
+     "task": "regression",
+     "target_column": "total_paid",
+     "prediction_moment": "On the day the claim is opened",
+     "horizon": null,
+     "primary_metric": "mean absolute error"
+    },
+    "plain": {
+     "goal": "Estimate the final amount paid on each motor claim.",
+     "action": "Set aside a reserve for each claim.",
+     "unit": "claim",
+     "task": "regression",
+     "target_column": "total_paid",
+     "prediction_moment": "On the day the claim is opened.",
+     "horizon": null,
+     "primary_metric": "mean absolute error"
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "right",
+     "action": "missed",
+     "unit": "wrong",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "abstained",
+     "primary_metric": "missed"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "wrong",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "right"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "right"
+    }
+   }
+  },
+  {
+   "case": "s06",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "employee-quarter",
+     "task": null,
+     "target_column": "resigned_next_q",
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Identify employees at risk of resigning before the next review.",
+     "action": "HR reviews which employees are at risk.",
+     "unit": "employee-quarter",
+     "task": "binary",
+     "target_column": "resigned_next_q",
+     "prediction_moment": "At each quarterly review.",
+     "horizon": "Before the next review.",
+     "primary_metric": null
+    },
+    "plain": {
+     "goal": "Identify employees at risk of resigning before the next review.",
+     "action": "Show HR who is at risk of resigning.",
+     "unit": "employee-quarter",
+     "task": "binary",
+     "target_column": "resigned_next_q",
+     "prediction_moment": "At each quarterly review.",
+     "horizon": "Before the next review.",
+     "primary_metric": null
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "right",
+     "prediction_moment": "missed",
+     "horizon": "missed",
+     "primary_metric": "abstained"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "abstained"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "wrong",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "abstained"
+    }
+   }
+  },
+  {
+   "case": "s07",
+   "values": {
+    "rules": {
+     "goal": "Can you find something useful in it?",
+     "action": null,
+     "unit": null,
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Can you find something useful in it?",
+     "action": null,
+     "unit": null,
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "plain": {
+     "goal": null,
+     "action": null,
+     "unit": null,
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "wrong",
+     "action": "abstained",
+     "unit": "abstained",
+     "task": "abstained",
+     "target_column": "abstained",
+     "prediction_moment": "abstained",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    },
+    "analyst": {
+     "goal": "wrong",
+     "action": "abstained",
+     "unit": "abstained",
+     "task": "abstained",
+     "target_column": "abstained",
+     "prediction_moment": "abstained",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    },
+    "plain": {
+     "goal": "abstained",
+     "action": "abstained",
+     "unit": "abstained",
+     "task": "abstained",
+     "target_column": "abstained",
+     "prediction_moment": "abstained",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    }
+   }
+  },
+  {
+   "case": "s08",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "email-department",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Route each citizen email to the appropriate department.",
+     "action": "Route each email to a department.",
+     "unit": "email-department",
+     "task": "multiclass",
+     "target_column": "department",
+     "prediction_moment": "As each email arrives, using only its subject and text.",
+     "horizon": null,
+     "primary_metric": "Weighted F1"
+    },
+    "plain": {
+     "goal": "Route each citizen email to the appropriate department.",
+     "action": "Route each email to a department as it arrives.",
+     "unit": "email",
+     "task": "multiclass",
+     "target_column": "department",
+     "prediction_moment": "When the email arrives, using its subject and text.",
+     "horizon": null,
+     "primary_metric": "weighted F1"
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "abstained",
+     "primary_metric": "missed"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "right"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "right"
+    }
+   }
+  },
+  {
+   "case": "s09",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "trip",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": "next day",
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Identify stations that will run empty at some point the next day.",
+     "action": "Rebalance stations overnight.",
+     "unit": "trip",
+     "task": "binary",
+     "target_column": null,
+     "prediction_moment": "At midnight",
+     "horizon": "next day",
+     "primary_metric": null
+    },
+    "plain": {
+     "goal": "Identify which stations will run empty the next day.",
+     "action": "Rebalance stations overnight.",
+     "unit": "station",
+     "task": "binary",
+     "target_column": null,
+     "prediction_moment": "At midnight.",
+     "horizon": "The next day.",
+     "primary_metric": null
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "wrong",
+     "task": "missed",
+     "target_column": "abstained",
+     "prediction_moment": "missed",
+     "horizon": "right",
+     "primary_metric": "abstained"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "wrong",
+     "task": "right",
+     "target_column": "abstained",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "abstained"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "abstained",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "abstained"
+    }
+   }
+  },
+  {
+   "case": "s10",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "case",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Determine how many days to promise for resolution per case.",
+     "action": "Promise customers a resolution date when a case is opened.",
+     "unit": "case",
+     "task": "regression",
+     "target_column": "days_to_close",
+     "prediction_moment": "When the case is opened, using what is known then.",
+     "horizon": null,
+     "primary_metric": null
+    },
+    "plain": {
+     "goal": "Provide a number of days to promise for each case.",
+     "action": "Promise customers a resolution date.",
+     "unit": "case",
+     "task": "regression",
+     "target_column": "days_to_close",
+     "prediction_moment": "At case opening, using what is known then.",
+     "horizon": null,
+     "primary_metric": null
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    }
+   }
+  },
+  {
+   "case": "s11",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "household-mailing",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": null,
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Rank households by their likelihood of buying within 30 days of receiving the catalogue.",
+     "action": "Rank households for the mailing list.",
+     "unit": "household-mailing",
+     "task": "binary",
+     "target_column": "purchased_30d",
+     "prediction_moment": "On the day the mailing list is drawn, before the catalogue mailing.",
+     "horizon": "Within 30 days of receiving the catalogue.",
+     "primary_metric": "Lift in the top decile."
+    },
+    "plain": {
+     "goal": "Rank households by their likelihood of buying within 30 days of receiving the catalogue.",
+     "action": "Rank households to choose the 20,000 for the catalogue mailing.",
+     "unit": "household-mailing",
+     "task": "binary",
+     "target_column": "purchased_30d",
+     "prediction_moment": "On the day the mailing list is drawn, before the catalogue mailing.",
+     "horizon": "30 days after receiving the catalogue",
+     "primary_metric": "Lift in the top decile"
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "missed",
+     "primary_metric": "missed"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "right"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "right",
+     "primary_metric": "right"
+    }
+   }
+  },
+  {
+   "case": "s12",
+   "values": {
+    "rules": {
+     "goal": null,
+     "action": null,
+     "unit": "prescription",
+     "task": null,
+     "target_column": null,
+     "prediction_moment": null,
+     "horizon": "next day",
+     "primary_metric": null
+    },
+    "analyst": {
+     "goal": "Predict when each prescription will be collected so shelves can be stocked sensibly.",
+     "action": "Use the prediction to fill shelves sensibly.",
+     "unit": "prescription",
+     "task": "multiclass",
+     "target_column": "pickup_window",
+     "prediction_moment": "When the prescription is handed in.",
+     "horizon": "next day",
+     "primary_metric": null
+    },
+    "plain": {
+     "goal": "Predict collection timing so shelves can be managed sensibly.",
+     "action": null,
+     "unit": "prescription",
+     "task": "multiclass",
+     "target_column": "pickup_window",
+     "prediction_moment": "When the prescription is handed in.",
+     "horizon": null,
+     "primary_metric": null
+    }
+   },
+   "scores": {
+    "rules": {
+     "goal": "missed",
+     "action": "missed",
+     "unit": "right",
+     "task": "missed",
+     "target_column": "missed",
+     "prediction_moment": "missed",
+     "horizon": "wrong",
+     "primary_metric": "abstained"
+    },
+    "analyst": {
+     "goal": "right",
+     "action": "right",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "wrong",
+     "primary_metric": "abstained"
+    },
+    "plain": {
+     "goal": "right",
+     "action": "missed",
+     "unit": "right",
+     "task": "right",
+     "target_column": "right",
+     "prediction_moment": "right",
+     "horizon": "abstained",
+     "primary_metric": "abstained"
+    }
+   }
+  }
+ ],
+ "summary": {
+  "rules": {
+   "right": 15,
+   "wrong": 4,
+   "missed": 58,
+   "abstained": 19,
+   "fields": 96,
+   "by_field": {
+    "goal": {
+     "right": 3,
+     "wrong": 1
+    },
+    "action": {
+     "right": 0,
+     "wrong": 0
+    },
+    "unit": {
+     "right": 9,
+     "wrong": 2
+    },
+    "task": {
+     "right": 1,
+     "wrong": 0
+    },
+    "target_column": {
+     "right": 1,
+     "wrong": 0
+    },
+    "prediction_moment": {
+     "right": 0,
+     "wrong": 0
+    },
+    "horizon": {
+     "right": 1,
+     "wrong": 1
+    },
+    "primary_metric": {
+     "right": 0,
+     "wrong": 0
+    }
+   }
+  },
+  "analyst": {
+   "right": 72,
+   "wrong": 4,
+   "missed": 1,
+   "abstained": 19,
+   "fields": 96,
+   "by_field": {
+    "goal": {
+     "right": 11,
+     "wrong": 1
+    },
+    "action": {
+     "right": 11,
+     "wrong": 0
+    },
+    "unit": {
+     "right": 9,
+     "wrong": 2
+    },
+    "task": {
+     "right": 11,
+     "wrong": 0
+    },
+    "target_column": {
+     "right": 10,
+     "wrong": 0
+    },
+    "prediction_moment": {
+     "right": 9,
+     "wrong": 0
+    },
+    "horizon": {
+     "right": 5,
+     "wrong": 1
+    },
+    "primary_metric": {
+     "right": 6,
+     "wrong": 0
+    }
+   },
+   "new_wrong": [],
+   "rules_changed": []
+  },
+  "plain": {
+   "right": 71,
+   "wrong": 1,
+   "missed": 3,
+   "abstained": 21,
+   "fields": 96,
+   "by_field": {
+    "goal": {
+     "right": 11,
+     "wrong": 0
+    },
+    "action": {
+     "right": 9,
+     "wrong": 1
+    },
+    "unit": {
+     "right": 11,
+     "wrong": 0
+    },
+    "task": {
+     "right": 11,
+     "wrong": 0
+    },
+    "target_column": {
+     "right": 10,
+     "wrong": 0
+    },
+    "prediction_moment": {
+     "right": 8,
+     "wrong": 0
+    },
+    "horizon": {
+     "right": 5,
+     "wrong": 0
+    },
+    "primary_metric": {
+     "right": 6,
+     "wrong": 0
+    }
+   },
+   "new_wrong": [
+    "s06.action"
+   ],
+   "rules_changed": [
+    "s01.goal",
+    "s04.goal",
+    "s05.goal",
+    "s05.unit",
+    "s07.goal",
+    "s08.unit",
+    "s09.unit",
+    "s09.horizon",
+    "s12.horizon"
+   ]
+  }
+ },
+ "requests": 24,
+ "failures": [],
+ "verdict": {
+  "gate": "analyst_gate_v1",
+  "status": "pass",
+  "checks": {
+   "more_right": true,
+   "no_new_wrong": true,
+   "rules_kept": true
+  }
+ },
+ "rule": "Scores on 12 written briefs say how the analyst reads these descriptions; they are not a claim about any other text or about production readiness.",
+ "experiment_id": "ANA-004",
+ "status": "completed",
+ "completed_at": "2026-10-12T11:45:48+00:00"
+}

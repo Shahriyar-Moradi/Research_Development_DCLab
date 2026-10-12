@@ -1,0 +1,6 @@
+{
+  "campaign_id": "analyst_v1",
+  "objective": "The problem analyst (package 18.2): 24 written problem descriptions (a dev set of 12 and a sealed set of 12) read by dclab_core's rules alone, by the rules with the analyst role (proposals checked against the person's words), and by a plain prompted model; every brief field scored right, wrong, missed or abstained. Gate analyst_gate_v1, fixed before any run: on the sealed set, more fields right with the analyst and none wrong that the rules left unknown.",
+  "rule": "Scores say how these readers handle these descriptions, not how they handle any other text, and nothing about production readiness.",
+  "command": "python -m dclab_rnd.agent_eval.analyst --split dev|sealed [--yes --cap-eur N]"
+}

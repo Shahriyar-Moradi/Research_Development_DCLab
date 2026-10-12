@@ -1,0 +1,643 @@
+[
+ {
+  "id": "d01",
+  "description": "Our streaming service loses subscribers every month. We want a list, on the first day of each month, of the subscribers most likely to cancel during that month, so the retention team can call them with an offer. Each row in subscribers.csv is one subscriber-month. The cancelled column is 1 when they cancelled that month. We will judge the list by recall among the top 500.",
+  "files": {
+   "subscribers.csv": [
+    "subscriber_id",
+    "month",
+    "plan",
+    "tenure_months",
+    "watch_hours_prev_month",
+    "support_calls_prev_month",
+    "cancelled",
+    "cancel_reason"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "cancel",
+     "churn",
+     "retain",
+     "retention",
+     "lose subscribers"
+    ]
+   },
+   "action": {
+    "any": [
+     "call",
+     "offer"
+    ]
+   },
+   "unit": {
+    "any": [
+     "subscriber"
+    ]
+   },
+   "task": "binary",
+   "target_column": "cancelled",
+   "prediction_moment": {
+    "any": [
+     "first day",
+     "start month",
+     "beginning month"
+    ],
+    "none": [
+     "cancel reason"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "that month",
+     "the month",
+     "one month",
+     "1 month"
+    ]
+   },
+   "primary_metric": {
+    "any": [
+     "recall"
+    ]
+   }
+  }
+ },
+ {
+  "id": "d02",
+  "description": "We run a card payments platform. When a payment is authorised we have about 200 milliseconds to decide whether to hold it for a manual check. The analysts can check at most 0.5% of payments. Confirmed fraud comes from chargebacks, which arrive weeks later, in chargebacks.csv keyed by payment_id. payments.csv has one row per payment. Measure the work by average precision.",
+  "files": {
+   "payments.csv": [
+    "payment_id",
+    "card_id",
+    "merchant_id",
+    "amount",
+    "authorised_at",
+    "country",
+    "device_id"
+   ],
+   "chargebacks.csv": [
+    "payment_id",
+    "chargeback_date",
+    "reason_code"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "fraud",
+     "hold",
+     "manual check"
+    ]
+   },
+   "action": {
+    "any": [
+     "hold",
+     "manual check"
+    ]
+   },
+   "unit": {
+    "any": [
+     "payment"
+    ]
+   },
+   "task": "binary",
+   "target_column": null,
+   "prediction_moment": {
+    "any": [
+     "authorised",
+     "authorized"
+    ],
+    "none": [
+     "chargeback"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "average precision"
+    ]
+   }
+  }
+ },
+ {
+  "id": "d03",
+  "description": "Support tickets land in one queue and a person forwards each to a team, which takes hours. We'd like each new ticket sent straight to the right team as soon as it is submitted, using its subject, body and the customer's plan. There are six teams; the team that finally resolved the ticket is in resolved_by. Mistakes are cheap except for legal tickets, which must not go astray. Report macro F1.",
+  "files": {
+   "tickets.csv": [
+    "ticket_id",
+    "created_at",
+    "subject",
+    "body",
+    "plan",
+    "assigned_team",
+    "resolved_by",
+    "first_response_minutes"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "team",
+     "route",
+     "forward"
+    ]
+   },
+   "action": {
+    "any": [
+     "sent",
+     "send",
+     "route",
+     "forward"
+    ]
+   },
+   "unit": {
+    "any": [
+     "ticket"
+    ]
+   },
+   "task": "multiclass",
+   "target_column": "resolved_by",
+   "prediction_moment": {
+    "any": [
+     "submitted"
+    ],
+    "none": [
+     "resolved",
+     "response"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "f1"
+    ]
+   }
+  }
+ },
+ {
+  "id": "d04",
+  "description": "Customers see an arrival estimate the moment they check out, and late food is our top complaint. Estimate how many minutes each order will take from checkout to the door. Orders are in orders.csv, one row per order; actual_minutes was filled in when the courier marked it delivered. Mean absolute error is what the ops team watches.",
+  "files": {
+   "orders.csv": [
+    "order_id",
+    "restaurant_id",
+    "courier_id",
+    "created_at",
+    "distance_km",
+    "items",
+    "prep_estimate",
+    "actual_minutes",
+    "delivered_at",
+    "courier_rating"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "arrival",
+     "estimate",
+     "late",
+     "minutes"
+    ]
+   },
+   "action": {
+    "any": [
+     "estimate",
+     "see",
+     "show"
+    ]
+   },
+   "unit": {
+    "any": [
+     "order"
+    ]
+   },
+   "task": "regression",
+   "target_column": "actual_minutes",
+   "prediction_moment": {
+    "any": [
+     "check out",
+     "checkout"
+    ],
+    "none": [
+     "delivered",
+     "rating"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "mean absolute error",
+     "mae"
+    ]
+   }
+  }
+ },
+ {
+  "id": "d05",
+  "description": "A lender wants to decide on applications for small business loans. At the time an application is submitted we know the business's age, sector, requested amount and bank statement summary. We want the probability that the loan is not repaid within 12 months. applications.parquet has one row per application and defaulted_12m marks those that defaulted.",
+  "files": {
+   "applications.parquet": [
+    "application_id",
+    "submitted_at",
+    "sector",
+    "business_age_years",
+    "requested_amount",
+    "avg_balance_3m",
+    "defaulted_12m",
+    "collections_contacted"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "decide",
+     "default",
+     "repaid",
+     "applications"
+    ]
+   },
+   "action": {
+    "any": [
+     "decide",
+     "decision",
+     "approve"
+    ]
+   },
+   "unit": {
+    "any": [
+     "application"
+    ],
+    "none": [
+     "default"
+    ]
+   },
+   "task": "binary",
+   "target_column": "defaulted_12m",
+   "prediction_moment": {
+    "any": [
+     "submitted"
+    ],
+    "none": [
+     "collections"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "12 months"
+    ]
+   },
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "d06",
+  "description": "Help us with our sales data. We have a spreadsheet of deals.",
+  "files": {
+   "deals.xlsx": [
+    "deal_id",
+    "owner",
+    "stage",
+    "amount",
+    "created",
+    "closed",
+    "won"
+   ]
+  },
+  "gold": {
+   "goal": null,
+   "action": null,
+   "unit": {
+    "any": [
+     "deal"
+    ]
+   },
+   "task": null,
+   "target_column": null,
+   "prediction_moment": null,
+   "horizon": null,
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "d07",
+  "description": "Each evening the store managers order fresh produce for the day after tomorrow. We need, per store and product, the number of units that will sell that day, forecast from sales up to and including today. sales.csv has one row per store, product and day, with units_sold. Over-ordering wastes food and under-ordering loses sales; we use weighted absolute percentage error.",
+  "files": {
+   "sales.csv": [
+    "store_id",
+    "product_id",
+    "date",
+    "units_sold",
+    "price",
+    "promo",
+    "temperature_max"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "order",
+     "produce",
+     "sell",
+     "units",
+     "waste"
+    ]
+   },
+   "action": {
+    "any": [
+     "order"
+    ]
+   },
+   "unit": {
+    "any": [
+     "store",
+     "product",
+     "day"
+    ]
+   },
+   "task": "regression",
+   "target_column": "units_sold",
+   "prediction_moment": {
+    "any": [
+     "evening",
+     "today"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "day after tomorrow",
+     "two days",
+     "2 days"
+    ]
+   },
+   "primary_metric": {
+    "any": [
+     "weighted absolute percentage",
+     "wape"
+    ]
+   }
+  }
+ },
+ {
+  "id": "d08",
+  "description": "Our wind turbines report sensor readings every ten minutes. Maintenance crews are scheduled weekly, on Mondays, so on each Monday morning we want to know which turbines are likely to have a gearbox failure in the next 7 days. readings.csv holds the sensor rows; failures.csv lists each failure with its turbine and time.",
+  "files": {
+   "readings.csv": [
+    "turbine_id",
+    "timestamp",
+    "vibration",
+    "oil_temp",
+    "rotor_rpm",
+    "power_kw"
+   ],
+   "failures.csv": [
+    "turbine_id",
+    "failed_at",
+    "component"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "failure",
+     "maintenance",
+     "gearbox"
+    ]
+   },
+   "action": {
+    "any": [
+     "schedul",
+     "crew",
+     "maintenance"
+    ]
+   },
+   "unit": {
+    "any": [
+     "turbine"
+    ]
+   },
+   "task": "binary",
+   "target_column": null,
+   "prediction_moment": {
+    "any": [
+     "monday"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "7 days",
+     "seven days",
+     "next week",
+     "coming week"
+    ]
+   },
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "d09",
+  "description": "An online shop wants to know which shipping option a customer will pick at checkout, so the cart page can show that option first. The prediction is made when the cart page loads, from the cart's contents and the customer's history. sessions.csv has one row per cart session and chosen_shipping is standard, express, pickup or locker.",
+  "files": {
+   "sessions.csv": [
+    "session_id",
+    "customer_id",
+    "loaded_at",
+    "cart_value",
+    "items",
+    "distance_to_store_km",
+    "chosen_shipping",
+    "paid_at"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "shipping",
+     "show",
+     "option"
+    ]
+   },
+   "action": {
+    "any": [
+     "show",
+     "first"
+    ]
+   },
+   "unit": {
+    "any": [
+     "session",
+     "cart"
+    ]
+   },
+   "task": "multiclass",
+   "target_column": "chosen_shipping",
+   "prediction_moment": {
+    "any": [
+     "loads"
+    ],
+    "none": [
+     "checkout",
+     "paid"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "d10",
+  "description": "We price used cars for a dealer network. When a car is traded in, the appraiser enters its make, model, year, mileage and condition, and we suggest a resale price. cars.csv has one row per traded-in car, with list_price (what we advertised) and sale_price (what it finally sold for); we have not decided which of the two to learn.",
+  "files": {
+   "cars.csv": [
+    "car_id",
+    "traded_in_at",
+    "make",
+    "model",
+    "year",
+    "mileage",
+    "condition",
+    "list_price",
+    "sale_price",
+    "days_on_lot"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "price",
+     "resale"
+    ]
+   },
+   "action": {
+    "any": [
+     "suggest"
+    ]
+   },
+   "unit": {
+    "any": [
+     "car"
+    ]
+   },
+   "task": "regression",
+   "target_column": null,
+   "prediction_moment": {
+    "any": [
+     "traded",
+     "appraiser"
+    ],
+    "none": [
+     "sold"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "d11",
+  "description": "Claims adjusters spend the first hour of every claim deciding its complexity: simple, standard, complex or fraud-review. We'd like a suggested complexity as soon as the first notice of loss is filed, so simple claims skip the queue. claims.csv: one row per claim; complexity holds the adjuster's final grade. Judge it by accuracy, but a fraud-review claim graded simple is the worst mistake.",
+  "files": {
+   "claims.csv": [
+    "claim_id",
+    "filed_at",
+    "policy_type",
+    "claimed_amount",
+    "description",
+    "complexity",
+    "settled_amount",
+    "settled_at"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "complexity",
+     "skip",
+     "queue",
+     "adjuster"
+    ]
+   },
+   "action": {
+    "any": [
+     "skip",
+     "queue",
+     "suggest"
+    ]
+   },
+   "unit": {
+    "any": [
+     "claim"
+    ]
+   },
+   "task": "multiclass",
+   "target_column": "complexity",
+   "prediction_moment": {
+    "any": [
+     "first notice",
+     "filed"
+    ],
+    "none": [
+     "final grade",
+     "settled"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "accuracy"
+    ]
+   }
+  }
+ },
+ {
+  "id": "d12",
+  "description": "Hotel revenue managers set tomorrow's room prices at 6 pm each day. They need, for each hotel, how many rooms will be occupied in 30 days' time, given the bookings on the books today. occupancy.csv has one row per hotel and night with rooms_occupied and bookings snapshots.",
+  "files": {
+   "occupancy.csv": [
+    "hotel_id",
+    "night",
+    "rooms_occupied",
+    "on_books_30d",
+    "on_books_14d",
+    "on_books_7d",
+    "cancellations"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "price",
+     "occupied",
+     "revenue"
+    ]
+   },
+   "action": {
+    "any": [
+     "price",
+     "set"
+    ]
+   },
+   "unit": {
+    "any": [
+     "hotel",
+     "night"
+    ]
+   },
+   "task": "regression",
+   "target_column": "rooms_occupied",
+   "prediction_moment": {
+    "any": [
+     "6 pm",
+     "today",
+     "on the books"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "30 days"
+    ]
+   },
+   "primary_metric": null
+  }
+ }
+]

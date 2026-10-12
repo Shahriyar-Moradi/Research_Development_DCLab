@@ -14,7 +14,8 @@ Fields:
 - target_column: a column name from `files` that holds the label. Only a column that exists.
 - prediction_moment: when the prediction is made and what is known then. Never a moment that is part of the outcome
   ("whether a purchase is made at checkout" says nothing about when the prediction is made).
-- horizon: how far ahead the prediction looks.
+- horizon: the time window after the prediction moment in which the outcome is counted ("within 30 days", "the next
+  day"). Not the quantity being predicted ("minutes from checkout to the door" is a target, not a horizon).
 - primary_metric: a metric the description names for judging the work.
 
 Hard rules:

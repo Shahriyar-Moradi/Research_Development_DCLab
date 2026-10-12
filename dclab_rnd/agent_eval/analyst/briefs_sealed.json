@@ -1,0 +1,599 @@
+[
+ {
+  "id": "s01",
+  "description": "A job board shows each visitor ten listings. We want to rank listings by the chance the visitor applies, scoring each listing when the results page is requested. impressions.csv has one row per listing shown to a visitor; applied is 1 if they applied within the session. Offline we compare models by the area under the ROC curve.",
+  "files": {
+   "impressions.csv": [
+    "impression_id",
+    "visitor_id",
+    "listing_id",
+    "requested_at",
+    "position",
+    "salary_band",
+    "applied",
+    "time_on_listing_s"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "rank",
+     "appl",
+     "listing"
+    ]
+   },
+   "action": {
+    "any": [
+     "rank"
+    ]
+   },
+   "unit": {
+    "any": [
+     "listing",
+     "impression"
+    ]
+   },
+   "task": "binary",
+   "target_column": "applied",
+   "prediction_moment": {
+    "any": [
+     "requested"
+    ],
+    "none": [
+     "time on listing",
+     "applied"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "session"
+    ]
+   },
+   "primary_metric": {
+    "any": [
+     "roc",
+     "auc"
+    ]
+   }
+  }
+ },
+ {
+  "id": "s02",
+  "description": "A utility must buy electricity a day ahead. At 10 am each day it needs the city's demand, hour by hour, for the following day. load.csv has one row per hour with demand_mw and the weather observed in that hour. The error that matters is the root mean squared error in megawatts.",
+  "files": {
+   "load.csv": [
+    "hour_start",
+    "demand_mw",
+    "temp_c",
+    "humidity",
+    "is_holiday"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "buy",
+     "electricity",
+     "demand"
+    ]
+   },
+   "action": {
+    "any": [
+     "buy"
+    ]
+   },
+   "unit": {
+    "any": [
+     "hour"
+    ]
+   },
+   "task": "regression",
+   "target_column": "demand_mw",
+   "prediction_moment": {
+    "any": [
+     "10 am"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "following day",
+     "day ahead",
+     "next day"
+    ]
+   },
+   "primary_metric": {
+    "any": [
+     "root mean squared",
+     "rmse"
+    ]
+   }
+  }
+ },
+ {
+  "id": "s03",
+  "description": "Our lab receives soil samples and a technician assigns each a texture class (sand, loam, silt, clay, peat) after a two-day test. We want to guess the class from the cheap field readings taken when the sample is collected, so urgent samples can be prioritised. samples.csv: one row per sample, field readings plus texture_class from the lab.",
+  "files": {
+   "samples.csv": [
+    "sample_id",
+    "collected_at",
+    "ph",
+    "moisture",
+    "conductivity",
+    "organic_matter_field",
+    "texture_class",
+    "lab_days"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "class",
+     "prioritis",
+     "guess",
+     "texture"
+    ]
+   },
+   "action": {
+    "any": [
+     "prioritis"
+    ]
+   },
+   "unit": {
+    "any": [
+     "sample"
+    ]
+   },
+   "task": "multiclass",
+   "target_column": "texture_class",
+   "prediction_moment": {
+    "any": [
+     "collected"
+    ],
+    "none": [
+     "two-day",
+     "lab"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "s04",
+  "description": "We would like to predict whether a patient misses an appointment, which we only know when the slot passes. noshow.csv has one row per appointment with missed set to 1 or 0. Precision matters because each flagged patient gets a reminder call from a nurse.",
+  "files": {
+   "noshow.csv": [
+    "appointment_id",
+    "patient_id",
+    "booked_at",
+    "slot_at",
+    "clinic",
+    "sms_sent",
+    "missed"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "miss",
+     "appointment",
+     "reminder"
+    ]
+   },
+   "action": {
+    "any": [
+     "reminder",
+     "call"
+    ]
+   },
+   "unit": {
+    "any": [
+     "appointment"
+    ]
+   },
+   "task": "binary",
+   "target_column": "missed",
+   "prediction_moment": null,
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "precision"
+    ]
+   }
+  }
+ },
+ {
+  "id": "s05",
+  "description": "For every new motor claim we set aside a reserve on the day the claim is opened. Estimate the total amount that will finally be paid on the claim. claims.parquet has one row per closed claim, total_paid is the sum of all payments, and the reserve team is judged on mean absolute error.",
+  "files": {
+   "claims.parquet": [
+    "claim_id",
+    "opened_on",
+    "vehicle_age",
+    "injury_reported",
+    "region",
+    "initial_reserve",
+    "total_paid",
+    "closed_on",
+    "payments_count"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "reserve",
+     "paid",
+     "amount"
+    ]
+   },
+   "action": {
+    "any": [
+     "reserve",
+     "set aside"
+    ]
+   },
+   "unit": {
+    "any": [
+     "claim"
+    ]
+   },
+   "task": "regression",
+   "target_column": "total_paid",
+   "prediction_moment": {
+    "any": [
+     "opened"
+    ],
+    "none": [
+     "closed"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "mean absolute error",
+     "mae"
+    ]
+   }
+  }
+ },
+ {
+  "id": "s06",
+  "description": "HR reviews every team each quarter. At each quarterly review they'd like to see who is at risk of resigning before the next review. staff.csv has one row per employee and quarter; resigned_next_q is the label.",
+  "files": {
+   "staff.csv": [
+    "employee_id",
+    "quarter",
+    "department",
+    "tenure_years",
+    "last_raise_pct",
+    "overtime_hours",
+    "manager_changes",
+    "resigned_next_q",
+    "exit_interview_score"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "resign",
+     "risk"
+    ]
+   },
+   "action": {
+    "any": [
+     "review",
+     "see"
+    ]
+   },
+   "unit": {
+    "any": [
+     "employee"
+    ]
+   },
+   "task": "binary",
+   "target_column": "resigned_next_q",
+   "prediction_moment": {
+    "any": [
+     "review"
+    ],
+    "none": [
+     "exit",
+     "next review"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "next review",
+     "quarter"
+    ]
+   },
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "s07",
+  "description": "We have a CSV export from our CRM. Can you find something useful in it?",
+  "files": {
+   "crm_export.csv": [
+    "contact_id",
+    "company",
+    "industry",
+    "last_contacted",
+    "emails_opened",
+    "meetings",
+    "became_customer"
+   ]
+  },
+  "gold": {
+   "goal": null,
+   "action": null,
+   "unit": null,
+   "task": null,
+   "target_column": null,
+   "prediction_moment": null,
+   "horizon": null,
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "s08",
+  "description": "The front desk of a city council forwards about two thousand citizen emails a day to one of nine departments. Each email should be routed as it arrives, from its subject and text only. emails.csv has one row per email and department is where it was eventually handled. The council asked for weighted F1 above 0.8.",
+  "files": {
+   "emails.csv": [
+    "email_id",
+    "received_at",
+    "subject",
+    "text",
+    "department",
+    "reply_sent_at"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "route",
+     "forward",
+     "department"
+    ]
+   },
+   "action": {
+    "any": [
+     "route",
+     "forward"
+    ]
+   },
+   "unit": {
+    "any": [
+     "email"
+    ]
+   },
+   "task": "multiclass",
+   "target_column": "department",
+   "prediction_moment": {
+    "any": [
+     "arrives"
+    ],
+    "none": [
+     "reply",
+     "handled"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": {
+    "any": [
+     "f1"
+    ]
+   }
+  }
+ },
+ {
+  "id": "s09",
+  "description": "A bike-sharing operator rebalances stations overnight. At midnight it wants to know which stations will run empty at some point the next day. trips.csv has every trip with its start and end station and times; stations.csv lists the stations and their docks.",
+  "files": {
+   "trips.csv": [
+    "trip_id",
+    "start_station",
+    "end_station",
+    "started_at",
+    "ended_at",
+    "member"
+   ],
+   "stations.csv": [
+    "station_id",
+    "docks",
+    "lat",
+    "lon"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "rebalanc",
+     "empty"
+    ]
+   },
+   "action": {
+    "any": [
+     "rebalanc"
+    ]
+   },
+   "unit": {
+    "any": [
+     "station"
+    ]
+   },
+   "task": "binary",
+   "target_column": null,
+   "prediction_moment": {
+    "any": [
+     "midnight"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "next day"
+    ]
+   },
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "s10",
+  "description": "Account managers promise customers a resolution date when a case is opened. We'd like a number of days to promise, per case, from what is known at opening. cases.csv: one row per case, days_to_close computed from opened_at and closed_at.",
+  "files": {
+   "cases.csv": [
+    "case_id",
+    "opened_at",
+    "closed_at",
+    "product",
+    "severity",
+    "customer_tier",
+    "days_to_close",
+    "reopened"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "promise",
+     "resolution",
+     "days"
+    ]
+   },
+   "action": {
+    "any": [
+     "promise"
+    ]
+   },
+   "unit": {
+    "any": [
+     "case"
+    ]
+   },
+   "task": "regression",
+   "target_column": "days_to_close",
+   "prediction_moment": {
+    "any": [
+     "opened",
+     "opening"
+    ],
+    "none": [
+     "closed"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": null
+  }
+ },
+ {
+  "id": "s11",
+  "description": "Before each catalogue mailing, the marketing team picks 20,000 households from the database. They want households ranked by how likely they are to buy within 30 days of receiving the catalogue, scored on the day the mailing list is drawn. households.csv has one row per household and mailing, with purchased_30d. They judge a model by the lift in the top decile.",
+  "files": {
+   "households.csv": [
+    "household_id",
+    "mailing_id",
+    "drawn_on",
+    "past_orders",
+    "last_order_days",
+    "region",
+    "purchased_30d",
+    "order_value_30d"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "rank",
+     "buy",
+     "household",
+     "mailing",
+     "pick"
+    ]
+   },
+   "action": {
+    "any": [
+     "pick",
+     "mail",
+     "rank"
+    ]
+   },
+   "unit": {
+    "any": [
+     "household"
+    ]
+   },
+   "task": "binary",
+   "target_column": "purchased_30d",
+   "prediction_moment": {
+    "any": [
+     "drawn"
+    ],
+    "none": [
+     "receiving",
+     "order value"
+    ]
+   },
+   "horizon": {
+    "any": [
+     "30 days"
+    ]
+   },
+   "primary_metric": {
+    "any": [
+     "lift"
+    ]
+   }
+  }
+ },
+ {
+  "id": "s12",
+  "description": "A pharmacy chain prepares prescriptions in advance. When a prescription is handed in, staff would like to know when it will be collected: same day, next day, later, or never, so shelves fill sensibly. prescriptions.csv has one row per prescription; pickups.csv has its pickup_window, keyed by prescription_id.",
+  "files": {
+   "prescriptions.csv": [
+    "prescription_id",
+    "handed_in_at",
+    "store_id",
+    "drug_class",
+    "patient_age_band",
+    "refill"
+   ],
+   "pickups.csv": [
+    "prescription_id",
+    "pickup_window",
+    "collected_at"
+   ]
+  },
+  "gold": {
+   "goal": {
+    "any": [
+     "collect",
+     "shel",
+     "prepar"
+    ]
+   },
+   "action": {
+    "any": [
+     "shel",
+     "prepar"
+    ]
+   },
+   "unit": {
+    "any": [
+     "prescription"
+    ]
+   },
+   "task": "multiclass",
+   "target_column": "pickup_window",
+   "prediction_moment": {
+    "any": [
+     "handed in"
+    ],
+    "none": [
+     "collected"
+    ]
+   },
+   "horizon": null,
+   "primary_metric": null
+  }
+ }
+]
