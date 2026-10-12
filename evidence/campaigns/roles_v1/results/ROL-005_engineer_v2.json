@@ -1,0 +1,276 @@
+{
+ "id": "ROL-005",
+ "experiment_id": "ROL-005",
+ "campaign_id": "roles_v1",
+ "kind": "engineer_v2_measured",
+ "role": "engineer_v2",
+ "at": "2026-10-12T19:11:07+00:00",
+ "completed_at": "2026-10-12T19:11:07+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "engineer_gate_v2",
+  "fixed": "2026-10-12, before its first run",
+  "rule": "on fraud replica seeds 1 and 2 (unseen), with folds grouped by biker: the engineered recipe beats the raw columns by >= 0.05 training-CV average precision and matches or beats 15.4's behaviour recipe; both seeds"
+ },
+ "plan": {
+  "purpose": "feature_engineer",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "max_requests": 2,
+  "max_eur": 0.004
+ },
+ "spent_eur": 0.0011,
+ "requests": 2,
+ "failures": [],
+ "result": {
+  "rows": [
+   {
+    "seed": 1,
+    "source": "advisor",
+    "programs": [
+     {
+      "name": "rides_by_biker_day",
+      "op": "count",
+      "by": [
+       "biker_id",
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "biker_ride_share",
+      "op": "share",
+      "by": [
+       "biker_id"
+      ]
+     },
+     {
+      "name": "biker_mean_fare",
+      "op": "mean",
+      "by": [
+       "biker_id"
+      ],
+      "of": "biker_fare"
+     },
+     {
+      "name": "fare_vs_biker_mean",
+      "op": "deviation",
+      "by": [
+       "biker_id"
+      ],
+      "of": "biker_fare"
+     },
+     {
+      "name": "rides_by_sender",
+      "op": "count",
+      "by": [
+       "sender_phone"
+      ]
+     },
+     {
+      "name": "rides_from_source_place_day",
+      "op": "count",
+      "by": [
+       {
+        "place": "source"
+       },
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "rides_to_destination_place_day",
+      "op": "count",
+      "by": [
+       {
+        "place": "destination"
+       },
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "ride_distance",
+      "op": "value",
+      "by": [],
+      "of": {
+       "distance": [
+        "source",
+        "destination"
+       ]
+      }
+     },
+     {
+      "name": "fare_per_metre",
+      "op": "ratio",
+      "by": [],
+      "of": "biker_fare",
+      "per": {
+       "distance": [
+        "source",
+        "destination"
+       ]
+      }
+     },
+     {
+      "name": "time_since_biker_ride",
+      "op": "since_previous",
+      "by": [
+       "biker_id"
+      ]
+     },
+     {
+      "name": "recent_biker_mean_fare",
+      "op": "rolling_mean",
+      "by": [
+       "biker_id"
+      ],
+      "of": "biker_fare",
+      "rows": 5
+     }
+    ],
+    "refused": [],
+    "ladder": {
+     "raw": 0.055711184270015736,
+     "log_numeric": 0.035498043496685366,
+     "poly2": 0.01707528664278401,
+     "engineered": 0.6069105691056911,
+     "entity_behaviour": 0.5023871770930595,
+     "selected_mi": 0.010202371732151423
+    },
+    "chosen": "engineered",
+    "gain_over_raw": 0.5511993848356753,
+    "against_behaviour": 0.10452339201263161
+   },
+   {
+    "seed": 2,
+    "source": "advisor",
+    "programs": [
+     {
+      "name": "biker_rides_per_day",
+      "op": "count",
+      "by": [
+       "biker_id",
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "rides_per_sender_per_day",
+      "op": "count",
+      "by": [
+       "sender_phone",
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "rides_per_source_area_per_day",
+      "op": "count",
+      "by": [
+       {
+        "place": "source"
+       },
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "rides_per_destination_area_per_day",
+      "op": "count",
+      "by": [
+       {
+        "place": "destination"
+       },
+       {
+        "day": true
+       }
+      ]
+     },
+     {
+      "name": "rides_per_biker_source_area",
+      "op": "count",
+      "by": [
+       "biker_id",
+       {
+        "place": "source"
+       }
+      ]
+     },
+     {
+      "name": "mean_fare_per_biker",
+      "op": "mean",
+      "by": [
+       "biker_id"
+      ],
+      "of": "biker_fare"
+     },
+     {
+      "name": "fare_vs_biker_mean",
+      "op": "deviation",
+      "by": [
+       "biker_id"
+      ],
+      "of": "biker_fare"
+     },
+     {
+      "name": "recent_biker_mean_fare",
+      "op": "rolling_mean",
+      "by": [
+       "biker_id"
+      ],
+      "of": "biker_fare",
+      "rows": 5
+     },
+     {
+      "name": "time_since_previous_biker_ride",
+      "op": "since_previous",
+      "by": [
+       "biker_id"
+      ]
+     },
+     {
+      "name": "fare_per_metre",
+      "op": "ratio",
+      "by": [],
+      "of": "biker_fare",
+      "per": {
+       "distance": [
+        "source",
+        "destination"
+       ]
+      }
+     }
+    ],
+    "refused": [],
+    "ladder": {
+     "raw": 0.06742992360062083,
+     "log_numeric": 0.06313566475707592,
+     "poly2": 0.09772218432818429,
+     "engineered": 0.707467916244512,
+     "entity_behaviour": 0.6172812620983352,
+     "selected_mi": 0.10566084667415217
+    },
+    "chosen": "engineered",
+    "gain_over_raw": 0.6400379926438912,
+    "against_behaviour": 0.09018665414617677
+   }
+  ]
+ },
+ "verdict": {
+  "gate": "engineer_gate_v2",
+  "status": "pass",
+  "per_seed": {
+   "1": true,
+   "2": true
+  }
+ },
+ "rule": "Measured on invented replicas; not a claim about other data or about production readiness."
+}
