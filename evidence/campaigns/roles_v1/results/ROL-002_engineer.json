@@ -1,0 +1,104 @@
+{
+ "id": "ROL-002",
+ "experiment_id": "ROL-002",
+ "campaign_id": "roles_v1",
+ "kind": "engineer_measured",
+ "role": "engineer",
+ "at": "2026-10-12T16:39:32+00:00",
+ "completed_at": "2026-10-12T16:39:32+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "engineer_gate_v1",
+  "rule": "a repeated drop-off count and a short-trip share are proposed, and the engineered recipe beats the raw columns by >= 0.05 training-CV average precision"
+ },
+ "plan": {
+  "purpose": "feature_engineer",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "max_requests": 1,
+  "max_eur": 0.002
+ },
+ "spent_eur": 0.0008,
+ "requests": 1,
+ "failures": [],
+ "result": {
+  "programs": [
+   {
+    "name": "fare_per_metre",
+    "op": "ratio",
+    "by": [],
+    "of": "biker_fare",
+    "per": {
+     "distance": [
+      "source",
+      "destination"
+     ]
+    }
+   }
+  ],
+  "refused": [
+   {
+    "program": "{'name': 'biker_daily_ride_count', 'op': 'count', 'by': ['biker_id', {'day': True}], 'of': 'biker_id', 'per': 'biker_id', 'rows': 0}",
+    "why": "count reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'biker_recent_mean_fare', 'op': 'rolling_mean', 'by': ['biker_id'], 'of': 'biker_fare', 'per': 'biker_id', 'rows': 5}",
+    "why": "only ratio reads per"
+   },
+   {
+    "program": "{'name': 'biker_time_since_previous_ride', 'op': 'since_previous', 'by': ['biker_id'], 'of': 'created_date', 'per': 'created_date', 'rows': 0}",
+    "why": "since_previous reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'biker_fare_deviation', 'op': 'deviation', 'by': ['biker_id'], 'of': 'biker_fare', 'per': 'biker_id', 'rows': 0}",
+    "why": "only ratio reads per"
+   },
+   {
+    "program": "{'name': 'category_fare_deviation', 'op': 'deviation', 'by': ['category'], 'of': 'biker_fare', 'per': 'category', 'rows': 0}",
+    "why": "only ratio reads per"
+   },
+   {
+    "program": "{'name': 'sender_ride_count', 'op': 'count', 'by': ['sender_phone'], 'of': 'sender_phone', 'per': 'sender_phone', 'rows': 0}",
+    "why": "count reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'sender_ride_share', 'op': 'share', 'by': ['sender_phone'], 'of': 'sender_phone', 'per': 'sender_phone', 'rows': 0}",
+    "why": "share reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'biker_phone_ride_count', 'op': 'count', 'by': ['biker_phone'], 'of': 'biker_phone', 'per': 'biker_phone', 'rows': 0}",
+    "why": "count reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'destination_place_ride_count', 'op': 'count', 'by': [{'place': 'destination'}], 'of': 'biker_id', 'per': 'biker_id', 'rows': 0}",
+    "why": "count reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'source_place_ride_count', 'op': 'count', 'by': [{'place': 'source'}], 'of': 'biker_id', 'per': 'biker_id', 'rows': 0}",
+    "why": "count reads no of or per: say what it counts with by"
+   },
+   {
+    "program": "{'name': 'ride_distance_m', 'op': 'value', 'by': [], 'of': {'distance': ['source', 'destination']}, 'per': 'biker_fare', 'rows': 0}",
+    "why": "only ratio reads per"
+   }
+  ],
+  "source": "advisor",
+  "repeat_proposed": false,
+  "short_proposed": false,
+  "ladder": {
+   "raw": 0.044190846761851366,
+   "log_numeric": 0.0345586227031312,
+   "poly2": 0.042090541912834206,
+   "engineered": 0.6305971880056548,
+   "entity_behaviour": 0.4524523389361465,
+   "selected_mi": 0.018755509641085896
+  },
+  "gain_over_raw": 0.5864063412438034
+ },
+ "verdict": {
+  "gate": "engineer_gate_v1",
+  "status": "fail"
+ },
+ "rule": "Measured on invented replicas; not a claim about other data or about production readiness."
+}

@@ -1,0 +1,138 @@
+{
+ "id": "ROL-001",
+ "experiment_id": "ROL-001",
+ "campaign_id": "roles_v1",
+ "kind": "planner_measured",
+ "role": "planner",
+ "at": "2026-10-12T16:37:55+00:00",
+ "completed_at": "2026-10-12T16:37:55+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "planner_gate_v1",
+  "rule": "acceptance decisions matched with the planner >= with the rules alone, and every plan the planner leaves passes the validator"
+ },
+ "plan": {
+  "purpose": "solution_planner",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "max_requests": 3,
+  "max_eur": 0.006
+ },
+ "spent_eur": 0.0018,
+ "requests": 3,
+ "failures": [],
+ "result": {
+  "rows": [
+   {
+    "replica": "fraud",
+    "rules": {
+     "folds grouped by biker": true,
+     "labels partial": false,
+     "a rare-event metric": true,
+     "a review-budget threshold": true,
+     "PU or anomaly families": true,
+     "behaviour of each biker": true
+    },
+    "planner": {
+     "folds grouped by biker": true,
+     "labels partial": false,
+     "a rare-event metric": true,
+     "a review-budget threshold": true,
+     "PU or anomaly families": true,
+     "behaviour of each biker": true
+    },
+    "kept": [],
+    "refused": [],
+    "validator": [],
+    "source": "advisor"
+   },
+   {
+    "replica": "tickets",
+    "rules": {
+     "post-creation columns kept out": true,
+     "a macro metric": true,
+     "duplicates dropped": true,
+     "time order and customers kept apart": false,
+     "tiny classes handled": true
+    },
+    "planner": {
+     "post-creation columns kept out": true,
+     "a macro metric": true,
+     "duplicates dropped": true,
+     "time order and customers kept apart": false,
+     "tiny classes handled": true
+    },
+    "kept": [
+     {
+      "key": "features.forbidden",
+      "choice": [
+       {
+        "column": "resolved_by",
+        "reason": "Written after the outcome and predicts the target almost perfectly."
+       },
+       {
+        "column": "first_response_minutes",
+        "reason": "Written after the outcome, so it is unavailable when a ticket is created."
+       }
+      ],
+      "reason": "Both columns are post-outcome and unavailable at the prediction moment; first_response_minutes should be excluded rather than merely confirmed. Its low predictive value does not make it safe to use.",
+      "cites": [
+       "F-leak-resolved_by",
+       "F-name-first_response_minutes"
+      ]
+     }
+    ],
+    "refused": [],
+    "validator": [],
+    "source": "advisor"
+   },
+   {
+    "replica": "delivery",
+    "rules": {
+     "post-delivery columns kept out": true,
+     "mean absolute error": true,
+     "folds grouped by restaurant": false,
+     "a quantile model for the cap": true,
+     "impossible distances cleaned": true,
+     "a missing-weather indicator": true
+    },
+    "planner": {
+     "post-delivery columns kept out": true,
+     "mean absolute error": true,
+     "folds grouped by restaurant": true,
+     "a quantile model for the cap": true,
+     "impossible distances cleaned": true,
+     "a missing-weather indicator": true
+    },
+    "kept": [
+     {
+      "key": "split.strategy",
+      "choice": {
+       "kind": "group",
+       "group_column": "restaurant_id"
+      },
+      "reason": "Restaurant repeats can make a random holdout overly optimistic by putting the same restaurant on both sides. Grouping by restaurant_id tests performance on restaurants not represented in training.",
+      "cites": [
+       "F-entity-restaurant_id"
+      ]
+     }
+    ],
+    "refused": [],
+    "validator": [],
+    "source": "advisor"
+   }
+  ],
+  "summary": {
+   "rules": 14,
+   "decisions": 17,
+   "planner": 15,
+   "validator_problems": 0
+  }
+ },
+ "verdict": {
+  "gate": "planner_gate_v1",
+  "status": "pass"
+ },
+ "rule": "Measured on invented replicas; not a claim about other data or about production readiness."
+}

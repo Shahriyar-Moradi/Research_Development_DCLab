@@ -1,0 +1,141 @@
+{
+ "id": "ROL-003",
+ "experiment_id": "ROL-003",
+ "campaign_id": "roles_v1",
+ "kind": "critic_measured",
+ "role": "critic",
+ "at": "2026-10-12T16:59:16+00:00",
+ "completed_at": "2026-10-12T16:59:16+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "critic_gate_v1",
+  "rule": "training-CV after the loop with the critic is never worse than the rules' own loop (17.6) nor one pass, and better than one pass on at least one replica; every kept change cites a measured weakness; holdout once (revised after review, before any run)"
+ },
+ "plan": {
+  "purpose": "critic",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "max_requests": 4,
+  "max_eur": 0.008
+ },
+ "spent_eur": 0.0009,
+ "requests": 4,
+ "failures": [],
+ "result": {
+  "rows": [
+   {
+    "replica": "delivery",
+    "one_pass": 8.751663329283396,
+    "rules_loop": 8.751663329283396,
+    "loop": 8.751663329283396,
+    "better": false,
+    "worse": false,
+    "worse_than_rules": false,
+    "rounds": [
+     {
+      "round": 1,
+      "experiment": "loss.median",
+      "hypothesis": "An absolute-error metric is minimised by the median: a median loss stops chasing the long tail.",
+      "cites": [
+       "F-weak-residual_skew",
+       "F-weak-cap"
+      ],
+      "family": "hist_gradient_boosting",
+      "base_family": "ridge",
+      "change": {
+       "model__loss": "absolute_error"
+      },
+      "base_mean": 8.751663329283396,
+      "variant_mean": 8.567634469047738,
+      "margin": 0.08751663329283396,
+      "adopted": false,
+      "mean_gain": 0.184029,
+      "standard_error": 0.29043,
+      "bound": 0.547751,
+      "fold_gains": [
+       0.697434,
+       0.162613,
+       -0.30796
+      ],
+      "folds_better": 2,
+      "why": "paired gain +0.184 does not beat both the margin 0.0875 and 0.548 (t 0.90 x standard error)",
+      "critic": {
+       "source": "advisor",
+       "reason": "accepted after validation",
+       "order": [
+        "loss.median"
+       ],
+       "refused": [
+        {
+         "experiment": "predictions.clip",
+         "why": "predictions.clip does not follow from the weaknesses cited (none is what it addresses, or its condition fails)"
+        }
+       ],
+       "statement": "The lopsided out-of-fold errors suggest the ridge fit is chasing the long tail; minimizing median loss should better align it with the MAE metric."
+      }
+     }
+    ],
+    "kept_cite_weaknesses": true,
+    "holdout_uses": 1,
+    "critic_used": true
+   },
+   {
+    "replica": "tickets",
+    "one_pass": 0.4080757139263469,
+    "rules_loop": 0.4080757139263469,
+    "loop": 0.4080757139263469,
+    "better": false,
+    "worse": false,
+    "worse_than_rules": false,
+    "rounds": [
+     {
+      "round": 1,
+      "experiment": "weights.balanced",
+      "hypothesis": "Classes the model rarely finds get more weight in training.",
+      "cites": [
+       "F-weak-class_recall"
+      ],
+      "family": "extra_trees",
+      "base_family": "extra_trees",
+      "change": {
+       "review__class_weight": "balanced"
+      },
+      "base_mean": 0.4080757139263469,
+      "variant_mean": 0.4131418198147532,
+      "margin": 0.001,
+      "adopted": false,
+      "mean_gain": 0.005066,
+      "standard_error": 0.007188,
+      "bound": 0.013556,
+      "fold_gains": [
+       -0.008126,
+       0.016608,
+       0.006716
+      ],
+      "folds_better": 2,
+      "why": "paired gain +0.005066 does not beat both the margin 0.001 and 0.0136 (t 0.90 x standard error)",
+      "critic": {
+       "source": "advisor",
+       "reason": "accepted after validation",
+       "order": [
+        "weights.balanced",
+        "classes.merge_tiny"
+       ],
+       "refused": [],
+       "statement": "Class weighting may improve out-of-fold recall for the rarely found classes, including account, which is often confused with login."
+      }
+     }
+    ],
+    "kept_cite_weaknesses": true,
+    "holdout_uses": 1,
+    "critic_used": true
+   }
+  ]
+ },
+ "verdict": {
+  "gate": "critic_gate_v1",
+  "status": "fail"
+ },
+ "rule": "Measured on invented replicas; not a claim about other data or about production readiness."
+}
