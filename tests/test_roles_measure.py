@@ -45,6 +45,16 @@ class RolesMeasureTest(unittest.TestCase):
         self.assertEqual(engineer_verdict(row)["status"], "pass")
         self.assertEqual(engineer_verdict(measure_engineer(None))["status"], "not scored")
 
+    def test_the_engineer_gate_v2_judges_the_gain_on_every_seed(self):
+        from dclab_rnd.agent_eval.roles import GATES, engineer_v2_verdict
+
+        self.assertEqual(GATES["engineer_v2"]["version"], "engineer_gate_v2")
+        good = {"source": "advisor", "gain_over_raw": 0.3, "against_behaviour": 0.01}
+        self.assertEqual(engineer_v2_verdict({"rows": [{**good, "seed": 1}, {**good, "seed": 2}]})["status"], "pass")
+        below = {**good, "seed": 2, "against_behaviour": -0.02}  # worse than the behaviour recipe on one seed
+        self.assertEqual(engineer_v2_verdict({"rows": [{**good, "seed": 1}, below]})["status"], "fail")
+        self.assertEqual(engineer_v2_verdict({"rows": [{**good, "seed": 1, "source": "fallback"}]})["status"], "not scored")
+
     def test_the_critic_gate(self):
         from dclab_rnd.agent_eval.roles import critic_verdict
 

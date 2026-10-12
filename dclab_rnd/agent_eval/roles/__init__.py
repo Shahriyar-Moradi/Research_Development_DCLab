@@ -33,6 +33,11 @@ GATES = {  # fixed on 2026-10-12, before any live run
                                                      "and every plan the planner leaves passes the validator"},
     "engineer": {"version": "engineer_gate_v1", "rule": "a repeated drop-off count and a short-trip share are proposed, and the "
                                                        "engineered recipe beats the raw columns by >= 0.05 training-CV average precision"},
+    # written after engineer_gate_v1 failed twice on named shapes while the engineered recipe gained a lot (ROL-002, ROL-004):
+    # it judges the measured gain instead, and is measured on replica seeds the engineer was never run on (1 and 2)
+    "engineer_v2": {"version": "engineer_gate_v2", "fixed": "2026-10-12, before its first run",
+                    "rule": "on fraud replica seeds 1 and 2 (unseen), with folds grouped by biker: the engineered recipe beats the raw "
+                            "columns by >= 0.05 training-CV average precision and matches or beats 15.4's behaviour recipe; both seeds"},
     "critic": {"version": "critic_gate_v1", "rule": "training-CV after the loop with the critic is never worse than the rules' own loop "
                                                    "(17.6) nor one pass, and better than one pass on at least one replica; every kept change "
                                                    "cites a measured weakness; holdout once (revised after review, before any run)"},
@@ -219,6 +224,45 @@ def engineer_verdict(row: dict[str, Any]) -> dict[str, Any]:
         return {"gate": GATES["engineer"]["version"], "status": "not scored", "why": row.get("source")}
     ok = row["repeat_proposed"] and row["short_proposed"] and (row.get("gain_over_raw") or 0) >= 0.05
     return {"gate": GATES["engineer"]["version"], "status": "pass" if ok else "fail"}
+
+
+ENGINEER_SEEDS = (1, 2)
+
+
+def measure_engineer_v2(advisor: Optional[Any], seeds: tuple[int, ...] = ENGINEER_SEEDS) -> dict[str, Any]:
+    """The engineer on fresh replica seeds: its programs, and the ladder's training-CV AP for the raw columns, the
+    behaviour recipe and the engineered recipe, on the same folds grouped by biker."""
+    from dclab_core.features import Language, engineer
+    from dclab_core.replicas import delivery_fraud as dfr
+    from dclab_rnd.expansion import runner
+
+    rows = []
+    for seed in seeds:
+        r = dfr.generate(seed=seed)
+        rides = r.rides
+        allowed = [c for c in rides.columns if c not in ("order_id", "account_id", "biker_id", "created_date", "terminal_ref", "status")]
+        language = Language(allowed, target="is_fraud", time_column="created_date", entities=["biker_id"])
+        out = engineer(advisor, rides, language, moment="After delivery, in a daily audit of the day's rides.", task="binary",
+                       goal="Find fraudulent rides of bikers.", entities=["biker_id"])
+        row = {"seed": seed, "source": out["source"], "programs": out["programs"], "refused": out["refused"]}
+        if out["programs"]:
+            store, pid = run_project(rides, {"prediction_moment": "After delivery, in a daily audit of the day's rides.",
+                                             "group_column": "biker_id"}, programs=out["programs"], labels=(r.sample, "is_fraud"))
+            features = store.read_stage(pid, "features")
+            ladder = {x["recipe"]: runner._mean(x, "average_precision") for x in features["evidence"]["stage_results"]}
+            row.update(ladder=ladder, chosen=features["decision"]["chosen"],
+                       gain_over_raw=ladder.get("engineered", float("nan")) - ladder["raw"],
+                       against_behaviour=ladder.get("engineered", float("nan")) - ladder.get("entity_behaviour", float("nan")))
+        rows.append(row)
+    return {"rows": rows}
+
+
+def engineer_v2_verdict(result: dict[str, Any]) -> dict[str, Any]:
+    rows = result["rows"]
+    if any(r.get("source") != "advisor" for r in rows):
+        return {"gate": GATES["engineer_v2"]["version"], "status": "not scored", "why": "an engineer answer was not used"}
+    per_seed = {r["seed"]: bool((r.get("gain_over_raw") or 0) >= 0.05 and (r.get("against_behaviour") or -1) >= 0) for r in rows}
+    return {"gate": GATES["engineer_v2"]["version"], "status": "pass" if all(per_seed.values()) else "fail", "per_seed": per_seed}
 
 
 CRITIC_REPLICAS = {
