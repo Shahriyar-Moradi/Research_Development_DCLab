@@ -398,7 +398,13 @@ def prepare_bundle(
         # Regression targets cannot be stratified: fall back to plain group folds.
         outer_cls = GroupKFold if regression else StratifiedGroupKFold
         outer_kw = {} if regression else {"shuffle": True, "random_state": RANDOM_STATE}
-        train_idx, test_idx = next(outer_cls(n_splits=5, **outer_kw).split(X, y, groups))
+        folds = list(outer_cls(n_splits=5, **outer_kw).split(X, y, groups))
+        # a rare outcome on a few entities can leave a fold without one case: the holdout is the first fold that holds
+        # both classes, so its metric can be measured (a classification only; still decided before any model is fitted)
+        chosen = 0
+        if not regression:
+            chosen = next((i for i, (_, te) in enumerate(folds) if y.iloc[te].nunique() > 1 and y.iloc[_].nunique() > 1), 0)
+        train_idx, test_idx = folds[chosen]
         inner = outer_cls(n_splits=cv_folds, **outer_kw)
         cv_splits = [
             (a, b)
@@ -407,7 +413,8 @@ def prepare_bundle(
         cv_description = f"{outer_cls.__name__}({cv_folds}) by `{spec.group_column}` on training rows"
         holdout_description = (
             f"{len(test_idx)} rows from {len(np.unique(groups[test_idx]))} `{spec.group_column}` groups "
-            "never seen in training (first of 5 stratified group folds)"
+            f"never seen in training (fold {chosen + 1} of 5 stratified group folds"
+            + (", the first that holds both classes)" if chosen else ")")
         )
     else:
         indices = np.arange(n)

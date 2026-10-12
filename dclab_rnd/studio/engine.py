@@ -843,7 +843,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
                            + (f"{margin:.0%} (relative)" if relative else f"{margin}") + ", otherwise keep the default configuration."),
         "holdout_consumed": True, "holdout_split": bundle.holdout_description, "holdout_rows": int(len(y_test)), "train_rows": int(len(bundle.y_train)),
         "holdout_metrics": holdout, "holdout_primary_metric_ci": ci, "cv_selected_metric_mean": cv_mean,
-        "cv_to_holdout_gap": rn.oriented_gain(holdout_value, cv_mean, higher), "baselines": baselines, "top_final_features": top_features,
+        # a holdout without a case of each class cannot measure a ranking metric: said, never a crash
+        "cv_to_holdout_gap": rn.oriented_gain(holdout_value, cv_mean, higher) if holdout_value is not None else None,
+        "baselines": baselines, "top_final_features": top_features,
         "sampling": bundle.sampling, "production_approved": False,
         "production_feature_rule": "Promote a feature only if it is decision-time available, stable across folds, obtainable in production and monitored for drift.",
     }

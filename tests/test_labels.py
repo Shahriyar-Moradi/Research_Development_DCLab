@@ -153,6 +153,25 @@ class BudgetAndSplitTest(unittest.TestCase):
         self.assertIn("Declare only one", str(refusal.exception))
 
     @unittest.skipIf(STUDIO_MISSING, STUDIO_MISSING)
+    def test_a_grouped_holdout_always_holds_both_classes(self):
+        """Found by the engineer's gate v2 run: a rare outcome on a few entities left the first group fold without a case,
+        the holdout's average precision was undefined, and the final stage crashed."""
+        from dclab_rnd.expansion import datasets as ds
+
+        rng = np.random.default_rng(3)
+        n = 1500
+        who = rng.integers(0, 150, n)
+        y = pd.Series(np.isin(who, [3, 77]).astype(int))  # only two entities ever have the outcome
+        X = pd.DataFrame({"entity": who, "x": rng.normal(size=n)})
+        spec = ds.DatasetSpec(key="g", name="g", task_type="binary_imbalanced", primary_metric="average_precision", target="y", url="",
+                              filename="", sha256="", description="", decision_time_contract="", split_strategy="group",
+                              source_rows=n, feature_count=2, group_column="entity")
+        bundle = ds.prepare_bundle(spec, X, y)
+        self.assertEqual(bundle.y.iloc[bundle.test_idx].nunique(), 2)
+        self.assertEqual(bundle.y.iloc[bundle.train_idx].nunique(), 2)
+        self.assertFalse(set(bundle.X["entity"].iloc[bundle.test_idx]) & set(bundle.X["entity"].iloc[bundle.train_idx]))
+
+    @unittest.skipIf(STUDIO_MISSING, STUDIO_MISSING)
     def test_the_budget_metric_needs_a_budget(self):
         with self.assertRaises(ValueError):
             Solution(target="y", task="binary", prediction_moment="When the order is placed.", metric="recall_at_budget")
