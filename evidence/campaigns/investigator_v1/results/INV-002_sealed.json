@@ -1,0 +1,1798 @@
+{
+ "id": "INV-002",
+ "campaign_id": "investigator_v1",
+ "kind": "data_investigator_measured",
+ "split": "sealed",
+ "at": "2026-10-12T13:27:08+00:00",
+ "gate": {
+  "version": "investigator_gate_v1",
+  "split": "sealed",
+  "more_found": "planted traps found with the investigator > found with the rules alone",
+  "no_more_false_alarms": "clean columns accused with the investigator <= accused with the rules alone"
+ },
+ "plan": {
+  "purpose": "data_investigator",
+  "tier": "standard",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "cases": 70,
+  "max_requests": 140,
+  "max_eur": 0.154
+ },
+ "spent_eur": 0.0155,
+ "rows": [
+  {
+   "case": "BV2-LOAN-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "w_c2"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "watchlist_status"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "application_no"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-LOAN-informative_missing",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "q_h5"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "admission_no"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "patient_no"
+     ],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-READ-informative_missing",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "s_x3"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "reading_no"
+     ],
+     "false_alarms": [
+      "machine_model"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "inspection_grade"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SENS-informative_missing",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "d_p8"
+     ],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "parcel_no"
+     ],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DELI-informative_missing",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "carrier"
+     ]
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "progression_followup_score"
+     ],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "k_31"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-unit_conversion",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-sum_identity",
+   "scores": {
+    "rules": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "visit_seq"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DIAB-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "r_19"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "sample_no"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-WINE-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": [
+      "alcohol",
+      "flavanoids",
+      "proline"
+     ]
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  }
+ ],
+ "summary": {
+  "rules": {
+   "traps": 35,
+   "found": 33,
+   "false_alarms": 26,
+   "cases": 70
+  },
+  "investigator": {
+   "traps": 35,
+   "found": 35,
+   "false_alarms": 26,
+   "cases": 70
+  },
+  "plain": {
+   "traps": 35,
+   "found": 21,
+   "false_alarms": 13,
+   "cases": 70
+  }
+ },
+ "requests": 140,
+ "failures": [],
+ "verdict": {
+  "gate": "investigator_gate_v1",
+  "status": "pass",
+  "checks": {
+   "more_found": true,
+   "no_more_false_alarms": true
+  }
+ },
+ "rule": "Scores on these seeded tables say how the investigator reads these column names; they are not a claim about any other table or about production readiness.",
+ "experiment_id": "INV-002",
+ "status": "completed",
+ "completed_at": "2026-10-12T13:27:08+00:00"
+}

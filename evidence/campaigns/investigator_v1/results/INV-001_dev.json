@@ -1,0 +1,1000 @@
+{
+ "id": "INV-001",
+ "campaign_id": "investigator_v1",
+ "kind": "data_investigator_measured",
+ "split": "dev",
+ "at": "2026-10-12T13:20:44+00:00",
+ "gate": {
+  "version": "investigator_gate_v1",
+  "split": "sealed",
+  "more_found": "planted traps found with the investigator > found with the rules alone",
+  "no_more_false_alarms": "clean columns accused with the investigator <= accused with the rules alone"
+ },
+ "plan": {
+  "purpose": "data_investigator",
+  "tier": "standard",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "cases": 40,
+  "max_requests": 80,
+  "max_eur": 0.088
+ },
+ "spent_eur": 0.0078,
+ "rows": [
+  {
+   "case": "BV2-CLAI-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "z_rk4"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "claim_no"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "policy_holder"
+     ],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-CLAI-informative_missing",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "m_q9"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-noisy_target_copy",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "account_no"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-missing_is_outcome",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-SUBS-informative_missing",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-post_outcome_name",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "units_returned_next_week"
+     ],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-post_outcome_neutral",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "v_77"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-unit_conversion",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-sum_identity",
+   "scores": {
+    "rules": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-identifier",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 0,
+     "missed": [
+      "row_seq"
+     ],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-group_label",
+   "scores": {
+    "rules": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 1,
+     "found": 1,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-time_random_split",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-duplicates",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-clean",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-constant_column",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-benign_post_name",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "BV2-DEMA-strong_honest_driver",
+   "scores": {
+    "rules": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 0,
+     "found": 0,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "REP-delivery_time",
+   "scores": {
+    "rules": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  },
+  {
+   "case": "REP-ticket_routing",
+   "scores": {
+    "rules": {
+     "traps": 2,
+     "found": 1,
+     "missed": [
+      "first_response_minutes"
+     ],
+     "false_alarms": []
+    },
+    "investigator": {
+     "traps": 2,
+     "found": 1,
+     "missed": [
+      "first_response_minutes"
+     ],
+     "false_alarms": []
+    },
+    "plain": {
+     "traps": 2,
+     "found": 2,
+     "missed": [],
+     "false_alarms": []
+    }
+   }
+  }
+ ],
+ "summary": {
+  "rules": {
+   "traps": 23,
+   "found": 20,
+   "false_alarms": 0,
+   "cases": 40
+  },
+  "investigator": {
+   "traps": 23,
+   "found": 22,
+   "false_alarms": 0,
+   "cases": 40
+  },
+  "plain": {
+   "traps": 23,
+   "found": 17,
+   "false_alarms": 0,
+   "cases": 40
+  }
+ },
+ "requests": 80,
+ "failures": [],
+ "verdict": {
+  "gate": "investigator_gate_v1",
+  "status": "pass (dev: the gate is read on the sealed split)",
+  "checks": {
+   "more_found": true,
+   "no_more_false_alarms": true
+  }
+ },
+ "rule": "Scores on these seeded tables say how the investigator reads these column names; they are not a claim about any other table or about production readiness.",
+ "experiment_id": "INV-001",
+ "status": "completed",
+ "completed_at": "2026-10-12T13:20:44+00:00"
+}
