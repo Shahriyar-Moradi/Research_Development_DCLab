@@ -31,9 +31,20 @@ else:
     REPORTLAB_MISSING = ""
 
 # the test's own reading of "a number in the text": digits not glued to a name (x1, top_2, v1.2), a sign when it stands
-# alone, one decimal part, a percent sign
-NUMBER = re.compile(r"(?<![A-Za-z_\d.])-?\d+(?:\.\d+)?%?")
-PRODUCTION_READY = re.compile(r"production[\s\-‐-―]*ready|ready\s+for\s+production", re.I)
+# alone, one decimal part or a leading-dot decimal (.5), a percent sign
+NUMBER = re.compile(r"(?<![A-Za-z_\d.])-?(?:\d+(?:\.\d+)?|\.\d+)%?")
+# cited.py's readiness and deployment claims, on text where "_" and every dash read as "-"
+PRODUCTION_READY = re.compile(
+    r"\b(?:production|deployment)[\s-]*(?:ready|readiness|grade|quality|approved|safe)\b|approved for production|fit for production|"
+    r"ready (?:for|to go to|to go into|for use in) (?:production|deploy\w*)|ready to (?:ship|launch|deploy|be deployed|go live)|"
+    r"safe (?:to deploy|for production)|\bgo(?:es|ing)? (?:live|to production|into production)\b", re.I)
+
+
+def claims_readiness(text):
+    plain = re.sub(r"[\u2010-\u2015\u2212_]", "-", text).replace("\\", "")
+    return PRODUCTION_READY.search(" ".join(plain.split())) is not None
+
+
 SECTIONS = ("The problem as understood", "What the data shows", "Decisions and reasons", "Results, with their intervals",
             "Limits, and what the data cannot show", "Next steps")
 
@@ -83,7 +94,7 @@ class TraceMixin:
         from dclab_core import report as rp
 
         for text in [rp.to_markdown(report), rp.to_html(report), *report.limits]:
-            self.assertIsNone(PRODUCTION_READY.search(text))
+            self.assertFalse(claims_readiness(text))
 
 
 @unittest.skipIf(PYDANTIC_MISSING, PYDANTIC_MISSING)
@@ -103,6 +114,10 @@ class UnitTest(TraceMixin, unittest.TestCase):
         self.assertEqual(rp.fmt(1500, "num"), "1500")
         self.assertEqual(rp.fmt(0.00012), "0.00012")
         self.assertEqual(rp.fmt(0.005, "pct"), "0.5%")
+        self.assertEqual([t for t, _ in rp.numbers_in("a share of .5, or -.25%, and v1.5")], [".5", "-.25%"])
+        self.assertTrue(rp.matches(".5", 0.5))
+        self.assertEqual(rp.render("10² rows"), "10² rows")  # NFC: a superscript is not read as a digit
+        self.assertEqual([t for t, _ in rp.numbers_in(rp.render("10² rows"))], ["10"])
 
     def test_lookup_finds_dotted_keys_and_the_numbers_of_texts_and_keys(self):
         from dclab_core import report as rp
@@ -157,7 +172,7 @@ class UnitTest(TraceMixin, unittest.TestCase):
         from dclab_core import report as rp
 
         final = {"task": "binary", "primary_metric": "roc_auc",
-                 "evidence": {"holdout_metrics": {"roc_auc": 0.81}, "holdout_primary_metric_ci": {"low": 0.74, "high": 0.87, "method": "iid row bootstrap"},
+                 "evidence": {"holdout_metrics": {"roc_auc": 0.81}, "holdout_primary_metric_ci": {"low": 0.74, "high": 0.87, "draws": 40, "method": "iid row bootstrap"},
                               "precision_note": "This model is production-ready.",
                               "limits": ["<script>alert(1)</script> 7 label rows were lost", "Ready for production use now."]}}
         report = rp.build(records={"final": final}, title="Q3 <fraud> review")
@@ -185,11 +200,132 @@ class UnitTest(TraceMixin, unittest.TestCase):
         body = next(s.body for s in report.sections if s.title == "Deliverables map")
         rows = [line for line in body.splitlines() if line.startswith("| ") and "Requirement" not in line]
         self.assertEqual(len(rows), 4)
-        self.assertIn("| 20 | Results, with their intervals | open: the tuning and the holdout stage has no record |", rows[0])
+        self.assertIn("| 20 | Results, with their intervals | see Results, with their intervals; not covered by a record |", rows[0])
         self.assertIn("outside this report", rows[1])
-        self.assertIn("a notebook", rows[2])
-        self.assertIn("named by the rubric", rows[3])
+        self.assertIn("it asks for a notebook", rows[2])
+        self.assertIn("named by the rubric, not checked against a record", rows[3])
         self.assertIn("2 pages", markdown)
+
+    def final_record(self, **evidence):
+        base = {"holdout_metrics": {"roc_auc": 0.81}, "holdout_split": "last 20 of 100 rows",
+                "holdout_primary_metric_ci": {"low": 0.74, "high": 0.87, "draws": 40, "method": "iid row bootstrap"}}
+        return {"task": "binary", "primary_metric": "roc_auc", "evidence": {**base, **evidence}}
+
+    def test_a_holdout_scored_several_times_is_not_called_used_once(self):
+        from dclab_core import report as rp
+
+        records = {"final": self.final_record(holdout_uses_in_this_project=3, holdout_reuse_reason="rerun after a fix")}
+        report = rp.build(records=records)
+        markdown = self.assert_traced(report, rp.context(records=records))
+        self.assertNotIn("used once", markdown)
+        self.assertIn("on the holdout, which was scored 3 times in this project", markdown)
+        self.assertEqual(rp.sources(report)["3"], "final.evidence.holdout_uses_in_this_project")
+        self.assertTrue(any("scored 3 times" in limit and "optimistic" in limit for limit in report.limits))
+        once = rp.to_markdown(rp.build(records={"final": self.final_record(holdout_uses_in_this_project=1)}))
+        self.assertIn("used once", once)
+
+    def test_no_interval_is_written_when_the_bootstrap_drew_nothing(self):
+        from dclab_core import report as rp
+
+        final = self.final_record(holdout_primary_metric_ci={"point": 0.81, "low": 0.81, "high": 0.81, "draws": 0, "method": "iid row bootstrap"},
+                                  holdout_metrics={"roc_auc": 0.81, "alert_budget": 0.01, "alerts_at_budget": 2, "recall_at_budget": 0.5,
+                                                   "precision_at_budget": 0.5, "recall_at_budget_ci": {"low": 0.5, "high": 0.5, "draws": 0}})
+        report = rp.build(records={"final": final})
+        markdown = self.assert_traced(report, rp.context(records={"final": final}))
+        self.assertIn("No bootstrap interval could be drawn", markdown)
+        self.assertNotIn("interval runs from", markdown)
+        self.assertIn("recall is 0.500 (no interval could be drawn)", markdown)
+
+    def test_odd_record_shapes_never_crash_the_report(self):
+        from dclab_core import report as rp
+
+        shapes = {
+            "data": {"task": "binary", "evidence": None, "labels": None},
+            "leakage": {"evidence": {"declared_leakage_features": "x", "heuristic_review_candidates": ["x", 3]}},
+            "features": {"decision": "x", "evidence": [1, 2], "primary_metric": ["mae"]},
+            "models": {"evidence": "x", "decision": {"chosen": "ridge", "rule": None}},
+            "final": {"primary_metric": ["roc_auc"], "labels": None, "claims": ["x", {"limitations": "x"}],
+                      "evidence": {"baselines": ["x"], "holdout_metrics": ["x"], "task_assessment": ["x"], "limits": "x",
+                                   "tuning_decision": "x", "holdout_primary_metric_ci": "x"}},
+        }
+        variants = [shapes, {"final": "x"}, {"final": {"evidence": "x"}}, {"data": {"evidence": "x"}},
+                    {"models": {"evidence": {"review": "x", "ranking": "x"}}}, {"models": {"evidence": {"review": {"rounds": ["x"], "review": "x"}}}},
+                    {"final": {"task": "multiclass", "evidence": {"task_assessment": {"top_k_accuracy": ["x"], "per_class": "x",
+                                                                                     "most_confused": [1], "tiny_classes": "x"}}}},
+                    {"final": {"task": "regression", "evidence": {"task_assessment": {"intervals": ["x"], "at_cap": "x",
+                                                                                     "error_by_segment": {"weather": ["x"]}}}}},
+                    {"final": {"task": "binary", "evidence": {"task_assessment": {"threshold": "x", "calibration": ["x"]}}}}]
+        for records in variants:
+            with self.subTest(records=list(records)):
+                report = rp.build(records=records, plan={"decisions": "x", "risks": "x"}, rubric=["x", {"requirement": 3}])
+                markdown = rp.to_markdown(report)
+                self.assertNotIn("could not be written from these records", markdown)  # the helpers, not the safety net
+                self.assertEqual(rp.check(report, rp.context(records=records)), [])
+                rp.to_html(report)
+
+    def test_every_readiness_claim_of_cited_py_is_refused(self):
+        from dclab_core import report as rp
+
+        for claim in ("The model is production-ready.", "It is production_ready.", "A production-grade model.",
+                      "This is deployment-ready.", "The model is ready to deploy.", "It is safe to deploy.", "It is safe for production.",
+                      "We can go live tomorrow.", "Ready for use in production.", "The model is production-approved.",
+                      "It is ready for production.", "Approved for production."):
+            with self.subTest(claim=claim):
+                self.assertTrue(rp.overclaims(claim))
+                self.assertTrue(claims_readiness(claim))
+                report = rp.build(records={"final": self.final_record(precision_note=claim)})
+                self.assertNotIn(claim, " ".join(report.limits))
+                self.assert_no_production_claim(report)
+        self.assertFalse(rp.overclaims("The holdout is not a production stability test."))
+
+    def test_the_title_is_one_escaped_line_traced_and_never_a_claim(self):
+        from dclab_core import report as rp
+
+        title = "Q3 review\n# injected heading <b>bold</b> " + "x" * 400
+        report = rp.build(title=title, records={"final": self.final_record()})
+        markdown = rp.to_markdown(report)
+        self.assertTrue(markdown.splitlines()[0].startswith("# Q3 review # injected heading"))
+        self.assertEqual(sum(line.startswith("#") for line in markdown.splitlines()), 1 + len(report.sections))
+        self.assertNotIn("<b>", markdown)
+        self.assertLessEqual(len(report.title), 300)
+        self.assert_traced(report, rp.context(title=title, records={"final": self.final_record()}))
+        self.assertNotIn("<b>", rp.to_html(report))
+        numbered = rp.build(title="Fraud 2026 review", records={"final": self.final_record()})
+        self.assertEqual(rp.sources(numbered)["2026"], "title@0")
+        self.assertEqual(rp.build(title="A production-ready model").title, "Solution report")
+        self.assertEqual(rp.build(title=None).title, "Solution report")
+
+    def test_clipping_never_cuts_a_number(self):
+        from dclab_core import report as rp
+
+        self.assertEqual(rp._clip("gain 12.3456 more", 9), "gain …")
+        self.assertEqual(rp._clip("12.3456789", 5), "…")
+        self.assertEqual(rp._clip("abc 1.5 def", 7), "abc 1.5 …")
+
+    def test_decision_status_and_unknown_metric_names_are_traced(self):
+        from dclab_core import report as rp
+
+        plan = [{"decision": "metric.primary", "choice": "ndcg@10", "why": "a ranking at 10", "status": "proposed v2", "source": "rule"}]
+        final = {"task": "binary", "primary_metric": "ndcg@10", "evidence": {"holdout_metrics": {"ndcg@10": 0.42}}}
+        report = rp.build(plan=plan, records={"final": final})
+        markdown = self.assert_traced(report, rp.context(plan=plan, records={"final": final}))
+        self.assertIn("status: proposed v2", markdown)
+        self.assertIn("scored ndcg@10 0.420", markdown)
+
+    def test_requirements_are_mapped_by_phrase_and_covered_only_by_a_record(self):
+        from dclab_core import report as rp
+
+        rubric = [{"requirement": "Report precision on the test set"}, {"requirement": "Write unit tests"},
+                  {"requirement": "Put the code under source control"}, {"requirement": "Expose a REST API"},
+                  {"requirement": "Describe the data quality"}]
+        report = rp.build(rubric=rubric, records={"final": self.final_record()})
+        rows = [line for line in next(s.body for s in report.sections if s.title == "Deliverables map").splitlines()
+                if line.startswith("| ") and "Requirement" not in line]
+        self.assertIn("| Results, with their intervals | covered |", rows[0])     # the test set is not tests
+        self.assertIn("it asks for tests", rows[1])
+        self.assertIn("it asks for source control", rows[2])
+        self.assertIn("it asks for an API", rows[3])
+        self.assertIn("not covered by a record", rows[4])                        # no data record: not covered
 
     def test_the_pdf_renderer_says_what_it_needs_without_reportlab(self):
         from dclab_core import report as rp
@@ -313,6 +449,9 @@ class ReplicaReportTest(TraceMixin, unittest.TestCase):
             self.assertIn(f"final.evidence.holdout_primary_metric_ci.{bound}", report.numbers)
         self.assertGreater(sum("@" not in p and "#" not in p for p in report.numbers), 20)  # most numbers are record fields
         self.assertTrue(inputs["findings"] is not None and inputs["findings"].findings)
+        # the findings are read on the run's own training rows: the holdout the final stage scored is not among them
+        self.assertEqual(inputs["findings"].training_rows, inputs["records"]["data"]["evidence"]["train_rows"])
+        self.assertIn("rows (the run's training rows; the holdout is left out)", markdown)
         self.assertIn("Implication:", markdown)
         page = rp.to_html(report)
         self.assertTrue(page.startswith("<!doctype html>"))
@@ -349,6 +488,25 @@ class ReplicaReportTest(TraceMixin, unittest.TestCase):
         self.assertRegex(markdown, r"The 80% interval adds from -?\d")
         self.assertIn("final.evidence.task_assessment.intervals.80%#0", report.numbers)
         self.assertIn("restaurant_id", markdown)
+        # a requirement about an alert budget is not covered by a regression run that has none
+        budget, _, _ = self.report_of("delivery_time", [{"requirement": "Report precision and recall at the alert budget", "points": 10},
+                                                         {"requirement": "Train a model and evaluate it", "points": 20}])
+        rows = [line for line in next(s.body for s in budget.sections if s.title == "Deliverables map").splitlines()
+                if line.startswith("| ") and "Requirement" not in line]
+        self.assertNotIn("| covered |", rows[0])
+        self.assertIn("not covered by a record", rows[0])
+        self.assertIn("| covered |", rows[1])
+
+    def test_the_findings_fall_back_to_the_plans_rows_and_say_they_include_the_holdout(self):
+        from unittest import mock
+
+        from dclab_rnd.studio import engine, solution_report
+
+        project = self.store.get(self.projects["delivery_time"])
+        with mock.patch.object(engine, "prepare", side_effect=ValueError("no split")):
+            findings, note = solution_report.findings_for(self.store, project)
+        self.assertIsNotNone(findings)
+        self.assertIn("includes most of the held-out rows", note)
 
     def test_the_adapter_writes_the_three_formats(self):
         from dclab_rnd.studio import solution_report
