@@ -1,0 +1,174 @@
+{
+ "id": "ROL-004",
+ "experiment_id": "ROL-004",
+ "campaign_id": "roles_v1",
+ "kind": "engineer_measured",
+ "role": "engineer",
+ "at": "2026-10-12T17:23:15+00:00",
+ "completed_at": "2026-10-12T17:23:15+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "engineer_gate_v1",
+  "rule": "a repeated drop-off count and a short-trip share are proposed, and the engineered recipe beats the raw columns by >= 0.05 training-CV average precision"
+ },
+ "plan": {
+  "purpose": "feature_engineer",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "max_requests": 1,
+  "max_eur": 0.002
+ },
+ "spent_eur": 0.0008,
+ "requests": 1,
+ "failures": [],
+ "result": {
+  "programs": [
+   {
+    "name": "ride_distance_m",
+    "op": "value",
+    "by": [],
+    "of": {
+     "distance": [
+      "source",
+      "destination"
+     ]
+    }
+   },
+   {
+    "name": "fare_per_metre",
+    "op": "ratio",
+    "by": [],
+    "of": "biker_fare",
+    "per": {
+     "distance": [
+      "source",
+      "destination"
+     ]
+    }
+   },
+   {
+    "name": "biker_rides_today",
+    "op": "count",
+    "by": [
+     "biker_id",
+     {
+      "day": true
+     }
+    ]
+   },
+   {
+    "name": "biker_category_rides_today",
+    "op": "count",
+    "by": [
+     "biker_id",
+     "category",
+     {
+      "day": true
+     }
+    ]
+   },
+   {
+    "name": "sender_rides_today",
+    "op": "count",
+    "by": [
+     "sender_phone",
+     {
+      "day": true
+     }
+    ]
+   },
+   {
+    "name": "biker_sender_rides_today",
+    "op": "count",
+    "by": [
+     "biker_id",
+     "sender_phone",
+     {
+      "day": true
+     }
+    ]
+   },
+   {
+    "name": "biker_mean_fare_today",
+    "op": "mean",
+    "by": [
+     "biker_id",
+     {
+      "day": true
+     }
+    ],
+    "of": "biker_fare"
+   },
+   {
+    "name": "fare_vs_biker_today",
+    "op": "deviation",
+    "by": [
+     "biker_id",
+     {
+      "day": true
+     }
+    ],
+    "of": "biker_fare"
+   },
+   {
+    "name": "biker_previous_ride_gap",
+    "op": "since_previous",
+    "by": [
+     "biker_id"
+    ]
+   },
+   {
+    "name": "biker_recent_mean_fare",
+    "op": "rolling_mean",
+    "by": [
+     "biker_id"
+    ],
+    "of": "biker_fare",
+    "rows": 5
+   },
+   {
+    "name": "source_cell_rides_today",
+    "op": "count",
+    "by": [
+     {
+      "place": "source"
+     },
+     {
+      "day": true
+     }
+    ]
+   },
+   {
+    "name": "destination_cell_rides_today",
+    "op": "count",
+    "by": [
+     {
+      "place": "destination"
+     },
+     {
+      "day": true
+     }
+    ]
+   }
+  ],
+  "refused": [],
+  "source": "advisor",
+  "repeat_proposed": false,
+  "short_proposed": false,
+  "ladder": {
+   "raw": 0.044190846761851366,
+   "log_numeric": 0.0345586227031312,
+   "poly2": 0.042090541912834206,
+   "engineered": 0.5893562077745419,
+   "entity_behaviour": 0.4524523389361465,
+   "selected_mi": 0.018755509641085896
+  },
+  "gain_over_raw": 0.5451653610126905
+ },
+ "verdict": {
+  "gate": "engineer_gate_v1",
+  "status": "fail"
+ },
+ "rule": "Measured on invented replicas; not a claim about other data or about production readiness."
+}
