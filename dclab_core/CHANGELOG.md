@@ -32,6 +32,12 @@ Everything after the first release, built in packages 17.2 to 17.8 and 18.1 to 1
   `ExperimentPlan` per decision point, `ExperimentReview`, `ExperimentChangeSet`), field by field, from field lists
   recorded from its code at commit `7fa23b9` (`adapters/main_product_fields.json`); a field it cannot fill is `None`
   with a note. Proposals only: the main product adopts them through its governed decision points (17.8).
+- `features`: a small feature language compiled into fold-safe transformers, and the feature engineer role (18.5).
+- Roles: the solution planner (`plan.plan_with`, its proposals guarded and validated, 18.4) and the critic
+  (`review.critique`, each hypothesis citing a weakness its experiment addresses, 18.6).
+- `report`: the solution report from the records, every number traced to its record path; Markdown and HTML, and
+  PDF with the `pdf` extra (17.7).
+- `challenge`: a brief read into its parts and their kinds, requirements with rubric points, and confidentiality (16.13).
 - Packaging: the wheel carries the adapters' field lists and this changelog; it is built and used from a clean Python
   3.12 environment by `make core-wheel-check`.
 

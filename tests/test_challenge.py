@@ -88,6 +88,7 @@ class ChallengeTest(unittest.TestCase):
         self.assertIn("Points covered", coverage)
         for part in ("part1", "part2"):
             self.assertTrue((out / part / "REPORT.md").exists())
+            self.assertTrue((out / part / "REPORT.html").exists())  # the traced report of 17.7, not the fallback
             self.assertTrue((out / part / "service" / "Dockerfile").exists())
             self.assertTrue((out / part / "service" / "tests" / "test_service.py").exists())
         self.assertNotIn("production-ready", (out / "part1" / "REPORT.md").read_text().lower())

@@ -27,9 +27,9 @@ from typing import Any, Optional
 import numpy as np
 
 COVERED_BY = {  # a requirement's kind -> where the deliverables meet it (a path per part, or the repository)
-    "model": "partN/REPORT.md#results and partN/notebook.ipynb",
-    "features": "partN/REPORT.md#decisions (the feature recipe chosen and why)",
-    "analysis": "partN/REPORT.md#data-findings",
+    "model": "partN/REPORT.md (results, with their intervals) and partN/notebook.ipynb",
+    "features": "partN/REPORT.md (decisions and reasons: the feature recipe chosen and why)",
+    "analysis": "partN/REPORT.md (what the data shows)",
     "report": "partN/REPORT.md (and REPORT.pdf)",
     "api": "partN/service/app.py (Flask, served by Gunicorn)",
     "docker": "partN/service/Dockerfile",
@@ -210,9 +210,26 @@ def _part(part: dict[str, Any], spec: dict[str, Any], store: Any, out: Path, rea
         engine.approve(store, pid, "final", actor="human")  # the person who ran challenge mode with approve=True
         approved = True
         records = store.records(pid)
-    report = _report(store.get(pid), records, part, plan, quick)
+    rubric = [r for r in reading["requirements"] if r["part"] in (None, part["id"])]
+    try:  # 17.7: the solution report from the records, every number traced to one
+        from dclab_core import report as core_report
+
+        from ..studio import solution_report
+
+        built = solution_report.build(store, pid, rubric=rubric)
+        report = f"> Part of the challenge: {part['title']}\n\n" + core_report.to_markdown(built)
+        if quick:
+            report += "\n\nRun in quick mode: at most 3,000 rows were used, so the numbers are a first look, not the full table's.\n"
+        (folder / "REPORT.html").write_text(core_report.to_html(built), encoding="utf-8")
+        try:
+            core_report.to_pdf(built, folder / "REPORT.pdf")
+            pdf = True
+        except core_report.PdfUnavailable:
+            pdf = False
+    except Exception:  # noqa: BLE001 - the report from the records failed: the short one says what the records hold
+        report = _report(store.get(pid), records, part, plan, quick)
+        pdf = _pdf(report, folder / "REPORT.pdf")
     (folder / "REPORT.md").write_text(report, encoding="utf-8")
-    pdf = _pdf(report, folder / "REPORT.pdf")
     try:
         (folder / "notebook.ipynb").write_text(export.dumps_notebook(export.notebook(store.get(pid), records)), encoding="utf-8")
         notebook = "notebook.ipynb"
