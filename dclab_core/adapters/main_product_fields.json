@@ -1,0 +1,316 @@
+{
+  "about": "Field lists of DCLab main product contracts that dclab_core's outputs map onto (package 17.8). Recorded by reading the code at one commit with the gh CLI, read only; nothing of the main product is copied or imported. When the main product changes a contract, read it again at a new commit, update this file, and the mapping tests show what moved.",
+  "repository": "Shahriyar-Moradi/DCLab",
+  "commit": "7fa23b977685634c9e103771a9a502c96830afde",
+  "commit_date": "2026-10-09T04:58:26Z",
+  "read_on": "2026-10-12",
+  "read_with": "gh api repos/Shahriyar-Moradi/DCLab/contents/<path>?ref=<commit> (read only)",
+  "contracts": {
+    "ProblemSpec": {
+      "path": "apps/api/app/services/problem_spec_service.py",
+      "symbol": "_content_payload (the content digest); limits from ProblemSpecCreateRequest in apps/api/app/domain/workspace_identity.py",
+      "version": null,
+      "fields": {
+        "task_type": "str",
+        "business_objective": "str",
+        "target_column": "str | None",
+        "prediction_unit": "str | None",
+        "prediction_time_column": "str | None",
+        "prediction_horizon": "str | None",
+        "primary_metric": "str | None",
+        "constraints": "dict[str, Any]",
+        "success_criteria": "dict[str, Any]"
+      },
+      "max_length": {
+        "task_type": 64,
+        "business_objective": 4000,
+        "target_column": 256,
+        "prediction_unit": 128,
+        "prediction_time_column": 256,
+        "prediction_horizon": 128,
+        "primary_metric": 128
+      },
+      "json_max_bytes": 16384,
+      "json_max_bytes_applies_to": ["constraints", "success_criteria"],
+      "constraints_structured_keys": {
+        "primary_metric_reason": "str",
+        "metric_constraints": "list[{metric: str, op: '>=' | '<=', value: float}]",
+        "cost_matrix": "{false_positive: float >= 0, false_negative: float >= 0} (binary and classification only)"
+      },
+      "not_content": {
+        "status": "str: draft | locked (a person locks it)",
+        "plan": "UUID | None: an ExperimentPlanProposal whose target_column and primary_metric fill the spec"
+      },
+      "task_types": ["binary", "multiclass", "regression", "classification"]
+    },
+    "ProblemProfile": {
+      "path": "apps/api/app/engine/modeling/problem_profile.py",
+      "symbol": "ProblemProfile (dataclass); built by build_problem_profile(train, target=, task_type=) on the locked training partition",
+      "version": "dclab.problem_profile.v1",
+      "fields": {
+        "task_type": "str",
+        "target": "str",
+        "row_count": "int",
+        "feature_count": "int",
+        "class_distribution": "dict[str, int] | None",
+        "minority_class_fraction": "float | None",
+        "imbalance_ratio": "float | None",
+        "regression_target": "dict[str, Any] | None",
+        "numeric_columns": "list[str]",
+        "categorical_columns": "list[str]",
+        "boolean_columns": "list[str]",
+        "datetime_columns": "list[str]",
+        "identifier_columns": "list[str]",
+        "free_text_columns": "list[str]",
+        "high_cardinality_columns": "list[str]",
+        "high_missing_columns": "list[str]",
+        "constant_columns": "list[str]",
+        "repeated_entity_candidates": "list[dict[str, Any]]",
+        "time_candidates": "list[dict[str, Any]]",
+        "geo_coordinate_candidates": "list[dict[str, Any]]",
+        "version": "str"
+      },
+      "nested": {
+        "regression_target": ["count", "missing_count", "mean", "std", "min", "max", "median"],
+        "repeated_entity_candidates[]": ["column", "unique_count", "unique_ratio", "repeated_rows", "max_rows_per_entity", "mean_rows_per_entity", "row_count", "missing_count", "identifier_likelihood"],
+        "time_candidates[]": ["column", "parse_rate", "unique_count", "unique_ratio", "span_seconds", "monotonic_increasing", "name_tokens", "strong_name", "datetime_role"],
+        "geo_coordinate_candidates[]": ["lat_column", "lon_column", "row_count", "lat_in_range_fraction", "lon_in_range_fraction"]
+      }
+    },
+    "MetricPlan": {
+      "path": "apps/api/app/engine/modeling/metric_planner.py",
+      "symbol": "MetricPlan (dataclass); plan_metrics(profile, objective)",
+      "version": "dclab.metric_plan.v1",
+      "fields": {
+        "primary_metric": "str",
+        "secondary_metrics": "list[str]",
+        "reason": "str",
+        "version": "str"
+      }
+    },
+    "HoldoutPlan": {
+      "path": "apps/api/app/engine/modeling/holdout_planner.py",
+      "symbol": "HoldoutPlan (dataclass); plan_holdout(frame, target=, task_type=)",
+      "version": "dclab.holdout_plan.v1",
+      "fields": {
+        "strategy": "str",
+        "test_size": "float",
+        "random_state": "int",
+        "stratified": "bool",
+        "group_column": "str | None",
+        "time_column": "str | None",
+        "reason": "str",
+        "evidence": "dict[str, Any]",
+        "plan_version": "str"
+      },
+      "defaults": {"test_size": 0.2, "random_state": 42}
+    },
+    "ValidationPlan": {
+      "path": "apps/api/app/engine/modeling/validation_planner.py",
+      "symbol": "ValidationPlan (dataclass); plan_validation(profile, ...)",
+      "version": "dclab.validation_plan.v1",
+      "fields": {
+        "strategy": "str",
+        "requested_folds": "int",
+        "actual_folds": "int | None",
+        "shuffle": "bool",
+        "random_state": "int",
+        "group_column": "str | None",
+        "time_column": "str | None",
+        "stratified": "bool",
+        "reason": "str",
+        "fallback_reason": "str | None",
+        "evidence": "dict[str, Any]",
+        "version": "str"
+      },
+      "defaults": {"requested_folds": 5, "random_state": 42}
+    },
+    "Objective": {
+      "path": "apps/api/app/engine/modeling/objective.py",
+      "symbol": "Objective (dataclass); parse_objective(task_type, primary_metric=, constraints=) reads it from a ProblemSpec",
+      "version": "dclab.objective.v1",
+      "fields": {
+        "primary_metric": "str | None",
+        "primary_metric_reason": "str | None",
+        "constraints": "list[MetricConstraint{metric: str, op: str, value: float}]",
+        "cost_false_positive": "float | None",
+        "cost_false_negative": "float | None",
+        "version": "str"
+      }
+    },
+    "DecisionThreshold": {
+      "path": "apps/api/app/engine/modeling/objective.py",
+      "symbol": "select_decision_threshold(y_oof, scores_oof, objective) -> dict (THRESHOLD_VERSION)",
+      "version": "dclab.decision_threshold.v1",
+      "fields": {
+        "version": "str",
+        "value": "float",
+        "source": "str: default | cost_matrix | constraints | primary_metric",
+        "selected_on": "str: out_of_fold_cv",
+        "oof_row_count": "int",
+        "goal_metric": "str | None",
+        "threshold_status": "str: not_requested | satisfied | unsatisfiable",
+        "status": "str",
+        "reason": "str",
+        "expected_cost": "float | None",
+        "constraints": "list[dict]",
+        "oof_at_threshold": "dict[str, float]"
+      },
+      "nested": {
+        "oof_at_threshold": ["tp", "fp", "fn", "tn", "precision", "recall", "specificity", "f1", "accuracy", "balanced_accuracy"]
+      }
+    },
+    "ExperimentPlan": {
+      "path": "apps/api/app/domain/run_plans.py",
+      "symbol": "ExperimentPlan (frozen pydantic, extra=forbid): the payload of an ExperimentPlanProposal, one field group per decision point (PLAN_FIELDS)",
+      "version": null,
+      "fields": {
+        "target_column": "str | None",
+        "primary_metric": "str | None (pattern ^[a-z][a-z0-9_]{0,63}$)",
+        "split": "PlanSplit | None",
+        "families": "tuple[str, ...] | None (1-16 registry family keys)",
+        "max_training_seconds": "float | None (0 < x <= 600)",
+        "missing_values": "dict[str, impute_median | impute_most_frequent | drop_column] | None"
+      }
+    },
+    "PlanSplit": {
+      "path": "apps/api/app/domain/run_plans.py",
+      "symbol": "PlanSplit (frozen pydantic, extra=forbid)",
+      "version": null,
+      "fields": {
+        "strategy": "Literal['stratified_random', 'random', 'group_disjoint', 'temporal_future']",
+        "group_column": "str | None",
+        "time_column": "str | None",
+        "test_size": "float | None (0.05-0.5; the code-owned floor is 0.2)"
+      }
+    },
+    "ExperimentReview": {
+      "path": "apps/api/app/agents/classes/experiment_critic.py",
+      "symbol": "ExperimentReview: the payload of an ExperimentReviewProposal at decision point experiment.review",
+      "version": null,
+      "fields": {
+        "verdict": "Literal['promote_candidate', 'needs_work', 'reject']",
+        "summary": "str (max 2000)",
+        "cv_metrics": "list[CvMetricCitation{experiment_id: UUID, metric: str, value: float}] (max 20)",
+        "findings": "list[FindingCitation{check: str, status: pass | warning | fail | not_evaluated, note: str}] (max 10)",
+        "confidence": "float (0-1)"
+      },
+      "nested": {
+        "findings[]": ["check", "status", "note"]
+      }
+    },
+    "ExperimentChangeSet": {
+      "path": "apps/api/app/domain/experiment_changes.py",
+      "symbol": "ExperimentChangeSet: what a branched experiment changes (proposal:experiment_change at improve.next_action)",
+      "version": null,
+      "fields": {
+        "schema_version": "Literal[1]",
+        "changes": "list[ExperimentChange] (1-32; discriminated by kind)"
+      }
+    }
+  },
+  "vocabularies": {
+    "primary_metrics_classification": "binary and multiclass together: a ProblemSpec may say 'classification' before the target is inspected",
+    "primary_metrics": {
+      "binary": ["pr_auc", "roc_auc", "f1", "balanced_accuracy", "accuracy", "log_loss", "brier_score"],
+      "multiclass": ["macro_f1", "weighted_f1", "balanced_accuracy", "accuracy", "log_loss", "roc_auc_ovr"],
+      "regression": ["mae", "rmse", "mse", "r2", "median_absolute_error"]
+    },
+    "secondary_metrics": {
+      "binary": ["pr_auc", "roc_auc", "f1", "precision", "recall", "balanced_accuracy", "accuracy", "log_loss", "brier_score"],
+      "multiclass": ["balanced_accuracy", "accuracy", "weighted_f1", "macro_precision", "macro_recall", "log_loss", "roc_auc_ovr"],
+      "regression": ["rmse", "r2", "mse"]
+    },
+    "metric_aliases": {
+      "auc": "roc_auc", "roc-auc": "roc_auc", "average_precision": "pr_auc", "pr-auc": "pr_auc", "f1_macro": "macro_f1",
+      "macro-f1": "macro_f1", "f1_weighted": "weighted_f1", "logloss": "log_loss", "brier": "brier_score"
+    },
+    "holdout_strategies": ["stratified_random", "random", "group_disjoint", "temporal_future", "unsupported"],
+    "validation_strategies": ["StratifiedKFold", "KFold", "StratifiedGroupKFold", "GroupKFold", "TimeSeriesSplit", "unsupported"],
+    "plan_split_strategies": ["stratified_random", "random", "group_disjoint", "temporal_future"],
+    "portfolio_families": {
+      "classification": ["logistic_regression", "random_forest", "xgboost", "lightgbm", "catboost"],
+      "regression": ["linear_regression", "random_forest_regressor", "xgboost_regressor", "lightgbm_regressor", "catboost_regressor"]
+    },
+    "portfolio_source": "apps/api/app/engine/search/generator.py open_ingest_families (each family only when installed)",
+    "dummy_families": ["majority", "mean", "median"],
+    "change_kinds": ["hyperparameter_override", "family_include", "family_exclude", "class_weighting", "threshold_objective", "metric_override", "feature_transform_add", "feature_transform_remove"],
+    "missing_value_transforms": ["impute_median", "impute_most_frequent", "drop_column"],
+    "finding_statuses": ["pass", "warning", "fail", "not_evaluated"],
+    "code_pattern": "^[a-z][a-z0-9_]{0,63}$"
+  },
+  "plan_fields": {
+    "path": "apps/api/app/domain/run_plans.py",
+    "symbol": "PLAN_FIELDS",
+    "fields": {
+      "target.column": ["target_column"],
+      "spec.objective": ["primary_metric"],
+      "split.strategy": ["split"],
+      "training.families_budget": ["families", "max_training_seconds"],
+      "column.missing_value_action": ["missing_values"]
+    }
+  },
+  "decision_points": {
+    "path": "apps/api/app/agents/governance/decision_points.py",
+    "symbol": "REGISTRY (every point starts at L0; cap is the highest level code allows)",
+    "points": {
+      "target.column": {"stage": "run_target_resolution", "pattern": "ai_before", "ai_kind": "agent:dataset_investigator", "rule_id": "lab_decision_ledger.record_target_selection", "effects": ["proposal:problem_spec"], "evidence_partition": "metadata", "cap": 1},
+      "spec.objective": {"stage": "propose_problem_spec", "pattern": "ai_before", "ai_kind": "agent:experiment_planner", "rule_id": "metric_planner.default_metric", "effects": ["proposal:problem_spec"], "evidence_partition": "metadata", "cap": 1},
+      "column.is_identifier": {"stage": "run_column_roles", "pattern": "cross_check", "ai_kind": "jev:column.is_identifier", "rule_id": "schema_inference.identifier.v1", "effects": ["exclusion"], "evidence_partition": "metadata", "cap": 1},
+      "column.semantic_role": {"stage": "run_column_roles", "pattern": "cross_check", "ai_kind": "jev:column.semantic_role", "rule_id": "split_column_roles.v3", "effects": ["branch_change:feature_transform_add"], "evidence_partition": "metadata", "cap": 2},
+      "column.missing_value_action": {"stage": "run_train_only_decisions", "pattern": "ai_before", "ai_kind": "agent:dataset_investigator", "rule_id": "missing_value_rules.v1", "effects": ["branch_change:feature_transform_add"], "evidence_partition": "train", "cap": 2},
+      "feature.leakage_suspect": {"stage": "run_train_only_decisions", "pattern": "cross_check", "ai_kind": "jev:feature.leakage_suspect", "rule_id": "leakage_auditor.v1", "effects": ["flag"], "evidence_partition": "train", "cap": 1},
+      "split.strategy": {"stage": "run_holdout_lock", "pattern": "ai_before", "ai_kind": "agent:experiment_planner", "rule_id": "holdout_planner.v1", "effects": ["split_plan"], "evidence_partition": "metadata", "cap": 1},
+      "training.families_budget": {"stage": "run_preprocessing_setup", "pattern": "ai_before", "ai_kind": "agent:experiment_planner", "rule_id": "portfolio.v1", "effects": ["search_config"], "evidence_partition": "train", "cap": 2},
+      "experiment.review": {"stage": "agents.run", "pattern": "ai_after", "ai_kind": "agent:experiment_critic", "rule_id": "pipeline_verifier.v1", "effects": ["none"], "evidence_partition": "train", "cap": 1},
+      "improve.next_action": {"stage": "labs.improve", "pattern": "cross_check", "ai_kind": "agent:improvement_hypothesis", "rule_id": "rule_proposer.v1", "effects": ["proposal:experiment_change"], "evidence_partition": "train", "cap": 1},
+      "ops.diagnose": {"stage": "monitoring.drift_window", "pattern": "ai_after", "ai_kind": "agent:dataset_investigator", "rule_id": "drift_finding.v1", "effects": ["notify"], "evidence_partition": "train", "cap": 3},
+      "ops.retrain": {"stage": "ops.agent", "pattern": "ai_before", "ai_kind": "agent:ops", "rule_id": null, "effects": ["job:experiments.run"], "evidence_partition": "metadata", "cap": 2},
+      "ops.release": {"stage": "ops.agent", "pattern": "ai_before", "ai_kind": "agent:ops", "rule_id": "release_gate.v1", "effects": ["proposal:model_release"], "evidence_partition": "train", "cap": 1},
+      "ops.rollback": {"stage": "ops.agent", "pattern": "ai_before", "ai_kind": "agent:ops", "rule_id": "ops.rollback_threshold.v1", "effects": ["proposal:ref_move"], "evidence_partition": "train", "cap": 1},
+      "command.intent_route": {"stage": "assistant.turn", "pattern": "ai_before", "ai_kind": "jev:command.intent_route", "rule_id": null, "effects": ["none"], "evidence_partition": "metadata", "cap": 1},
+      "proposal.completeness": {"stage": "proposal.validated", "pattern": "ai_after", "ai_kind": "jev:proposal.completeness", "rule_id": "validator_verdict", "effects": ["none"], "evidence_partition": "metadata", "cap": 0}
+    },
+    "lead_tools": ["create_problem_spec", "propose_problem_spec", "record_decision", "request_agent_review", "move_ref", "run_experiment", "branch_experiment", "predict"]
+  },
+  "files_read": [
+    "apps/api/app/services/problem_spec_service.py",
+    "apps/api/app/domain/workspace_identity.py",
+    "apps/api/app/api/v1.py",
+    "apps/api/app/engine/modeling/problem_profile.py",
+    "apps/api/app/engine/modeling/metric_planner.py",
+    "apps/api/app/engine/modeling/holdout_planner.py",
+    "apps/api/app/engine/modeling/validation_planner.py",
+    "apps/api/app/engine/modeling/objective.py",
+    "apps/api/app/engine/modeling/leakage_auditor.py",
+    "apps/api/app/engine/models/registry.py",
+    "apps/api/app/engine/search/generator.py",
+    "apps/api/app/engine/features/contract.py",
+    "apps/api/app/domain/run_plans.py",
+    "apps/api/app/domain/experiment_changes.py",
+    "apps/api/app/domain/operating_points.py",
+    "apps/api/app/agents/governance/decision_points.py",
+    "apps/api/app/agents/classes/experiment_planner.py",
+    "apps/api/app/agents/classes/dataset_investigator.py",
+    "apps/api/app/agents/classes/experiment_critic.py",
+    "apps/api/app/agents/classes/common.py",
+    "apps/api/app/agents/gateway/service.py",
+    "apps/api/app/agents/gateway/contract.py",
+    "apps/api/app/agents/prompt_releases.py",
+    "apps/api/app/services/auto_train_service.py",
+    "apps/api/app/services/auto_train/load_profile.py",
+    "apps/api/app/services/auto_train/holdout.py",
+    "apps/api/app/services/auto_train/decisions.py",
+    "apps/api/app/services/auto_train/plan_points.py",
+    "apps/api/app/services/auto_train/decision_points.py",
+    "apps/api/app/services/auto_train/finalize.py",
+    "apps/api/app/services/run_plan_service.py",
+    "apps/api/app/services/decision_point_service.py",
+    "apps/api/app/services/technical_run_report.py",
+    "apps/api/app/engine/reporting/report.py",
+    "apps/web/lib/application/studio-wizard.ts",
+    "apps/api/tests/test_benchmark_harness.py",
+    "benchmarks/harness/run.py",
+    "docs/adr/0007-improve-loop.md"
+  ]
+}

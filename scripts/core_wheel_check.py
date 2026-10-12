@@ -1,0 +1,134 @@
+"""Build dclab_core as a wheel and use it from a clean Python 3.12 environment with only its dependencies (17.8).
+
+    python scripts/core_wheel_check.py            # what `make core-wheel-check` runs
+
+Steps, all in a temporary folder outside the repository: copy dclab_core (no build output), build the wheel with
+``uv build``, make a fresh ``uv venv --python 3.12``, ``uv pip install`` the wheel (its dependencies come from the
+package index or uv's cache), then run a smoke call from an unrelated folder with ``python -I``: understand a written
+brief, analyse a replica, plan, validate, and map the plan onto the main product's contracts. It prints one JSON
+summary; exit 0 when everything passed, 75 when it could not run here (no uv, no Python 3.12, no network for the
+dependencies: the reason is printed), 1 when the wheel is broken.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+CORE = ROOT / "dclab_core"
+SKIP = 75
+OFFLINE = re.compile(r"(?i)(failed to fetch|could not connect|dns error|network|connection (refused|reset)|"
+                     r"no solution found .* offline|offline mode|timed out|error sending request)")
+
+SMOKE = r'''
+import json, re, sys
+from importlib import metadata
+import dclab_core
+from dclab_core.adapters import main_product as mp
+from dclab_core.analyse import analyse
+from dclab_core.plan import plan, validate
+from dclab_core.replicas import delivery_time
+from dclab_core.understand import understand
+
+assert dclab_core.__file__.startswith(sys.prefix), dclab_core.__file__  # the installed wheel, not a source folder
+brief = understand(
+    "Estimate how many minutes a food delivery will take, to show the customer when they place the order. "
+    "Each row of orders.csv is an order; actual_minutes is the target. We are judged on MAE.",
+    {"orders.csv": list(delivery_time.generate(seed=0).orders.columns)})
+orders = delivery_time.generate(seed=0).orders
+findings = analyse({"orders.csv": orders}, target="actual_minutes", brief=brief, train_index=orders.index[: int(len(orders) * 0.8)])
+solution = plan(brief, findings)
+problems = validate(solution, findings)
+out = mp.proposals(brief, findings, solution)
+for name, mapped in out.items():
+    if name != "decision_points":
+        assert list(mapped["fields"]) == mp.fields_of(name), name
+def norm(name):
+    return re.sub(r"[-_.]+", "-", name).lower()
+dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())
+# what dclab-core's four requirements pull in, by their own metadata (an extra's requirements are not installed)
+closure, todo = set(), ["dclab-core"]
+while todo:
+    name = todo.pop()
+    for req in metadata.requires(name) or []:
+        if "extra ==" in req.replace("extra==", "extra =="):
+            continue
+        dep = norm(re.match(r"[A-Za-z0-9_.\-]+", req).group(0))
+        if dep not in closure:
+            closure.add(dep)
+            try:
+                metadata.distribution(dep)
+                todo.append(dep)
+            except metadata.PackageNotFoundError:  # a requirement for another platform or Python
+                pass
+print(json.dumps({
+    "python": sys.version.split()[0], "dclab_core": dclab_core.__version__, "installed": dists,
+    "plan_problems": problems, "split": out["HoldoutPlan"]["fields"]["strategy"],
+    "group": out["HoldoutPlan"]["fields"]["group_column"], "metric": out["MetricPlan"]["fields"]["primary_metric"],
+    "families": out["ExperimentPlan"]["fields"]["families"], "commit_read": out["ProblemSpec"]["main_product"]["commit"],
+    "direct": sorted(norm(re.match(r"[A-Za-z0-9_.\-]+", r).group(0)) for r in metadata.requires("dclab-core")),
+    "unexpected_distributions": sorted({d.split("==")[0] for d in dists} - closure - {"dclab-core"}),
+}))
+'''
+
+
+def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, capture_output=True, text=True, **kw)
+
+
+def _fail(step: str, result: subprocess.CompletedProcess) -> int:
+    text = (result.stdout + result.stderr)[-3000:]
+    if OFFLINE.search(text):
+        print(json.dumps({"status": "skipped", "reason": f"{step}: no network for the dependencies", "log": text[-600:]}))
+        return SKIP
+    print(json.dumps({"status": "failed", "step": step, "log": text}))
+    return 1
+
+
+def main() -> int:
+    uv = shutil.which("uv")
+    if uv is None:
+        print(json.dumps({"status": "skipped", "reason": "uv is not installed"}))
+        return SKIP
+    with tempfile.TemporaryDirectory(prefix="dclab-core-wheel-") as tmp:
+        tmp = Path(tmp)
+        src = tmp / "src" / "dclab_core"
+        shutil.copytree(CORE, src, ignore=shutil.ignore_patterns("build", "dist", "*.egg-info", "__pycache__"))
+        built = _run([uv, "build", "--wheel", "--out-dir", str(tmp / "dist"), str(src)])
+        if built.returncode:
+            return _fail("uv build", built)
+        wheels = sorted((tmp / "dist").glob("dclab_core-*.whl"))
+        if len(wheels) != 1:
+            print(json.dumps({"status": "failed", "step": "uv build", "log": f"wheels: {wheels}"}))
+            return 1
+        venv = _run([uv, "venv", "--python", "3.12", str(tmp / "venv")])
+        if venv.returncode:
+            text = venv.stdout + venv.stderr
+            if "No interpreter found" in text or "not found" in text.lower():
+                print(json.dumps({"status": "skipped", "reason": "no Python 3.12 for uv", "log": text[-600:]}))
+                return SKIP
+            return _fail("uv venv", venv)
+        python = tmp / "venv" / "bin" / "python"
+        installed = _run([uv, "pip", "install", "--python", str(python), str(wheels[0])])
+        if installed.returncode:
+            return _fail("uv pip install", installed)
+        (tmp / "elsewhere").mkdir()
+        smoke = _run([str(python), "-I", "-c", SMOKE], cwd=tmp / "elsewhere")
+        if smoke.returncode:
+            return _fail("smoke", smoke)
+        summary = json.loads(smoke.stdout.strip().splitlines()[-1])
+        ok = (summary["direct"] == ["numpy", "pandas", "pydantic", "scikit-learn"] and not summary["unexpected_distributions"]
+              and not summary["plan_problems"] and summary["python"].startswith("3.12."))
+        summary.update(status="passed" if ok else "failed", wheel=wheels[0].name)
+        print(json.dumps(summary))
+        return 0 if summary["status"] == "passed" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
