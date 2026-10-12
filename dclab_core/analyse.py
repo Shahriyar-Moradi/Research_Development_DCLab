@@ -1,0 +1,627 @@
+"""Initial data analysis for decisions (package 17.3): tables in, :class:`~dclab_core.contracts.DataFindings` out.
+
+Not a profile for its own sake: each finding ends in an *implication* for the plan and names the decision points it
+bears on (``split.strategy``, ``metric.primary``, ``features.forbidden``, ...). Evidence is numbers and column names,
+never row values.
+
+What is computed on which rows. Anything that reads the target, or would steer a modelling choice (how the target
+behaves, which columns predict it, drift, entities, conflicting labels), uses only the rows the host marks as training
+(``train_index``; the main product's rule: the holdout is never looked at). Facts about the table's structure that need
+no target (duplicates, keys, constant or impossible values) are computed on all rows, because a duplicate or an id
+across the split *is* the problem, and their findings say so (``scope``).
+
+Every signal that claims something about the target is measured *out of fold* (each half of the training rows is
+scored with what the other half taught), against chance, so a column or an entity is not called predictive because it
+memorises. Names alone never forbid a column: a name that sounds written after the outcome is a question to ask
+unless the column also predicts the target.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping, Sequence
+from typing import Any, Optional
+
+import numpy as np
+import pandas as pd
+
+from dclab_core.contracts import DataFindings, Finding, ProblemBrief, TableSummary, TaskType
+
+POST_MOMENT_NAME = re.compile(r"(^|_)(actual|final|resolved|resolution|result|outcome|closed|refund(ed)?|chargeback|"
+                              r"delivered|arrival|completed|settled|approved_by|rating|response|handled|paid_out)(_|$)", re.I)
+HISTORY_NAME = re.compile(r"(^|_)(prev|previous|prior|last|avg|average|mean|median|count|sum|total|history|historical|"
+                          r"expected|estimated|planned|scheduled|sla|target|lag|rolling|\d+d|\d+_days?)(_|$)", re.I)
+ID_NAME = re.compile(r"(^id$|_id$|_ref$|^id_|_key$|_uuid$)", re.I)
+TIME_NAME = re.compile(r"(date|time|_at$|timestamp|created|month)", re.I)
+TINY_SHARE, TINY_ROWS = 0.01, 30
+RARE_SHARE = 0.01
+LIST_CAP = 20
+
+# single-column power, out of fold: AUC for binary (folded to >= 0.5), gain over the majority class normalised to [0, 1]
+# for multiclass, |Spearman| for regression
+POWER_ALARM = {"binary": 0.9, "multiclass": 0.8, "regression": 0.95}   # predicts the target almost perfectly
+POWER_NAMED = {"binary": 0.6, "multiclass": 0.15, "regression": 0.3}   # with a post-outcome name: enough to forbid
+ENTITY_MARGIN = {"binary": 0.6, "multiclass": 0.1, "regression": 0.3}  # the entity alone tells the target
+
+
+def _slug(text: Any) -> str:
+    return re.sub(r"[^a-z0-9_.-]+", "-", str(text).lower()).strip("-")[:120] or "x"
+
+
+def _f(fid: str, topic: str, statement: str, evidence: dict[str, Any], implication: str, affects: Sequence[str],
+       severity: str = "info", scope: str = "training_rows") -> Finding:
+    return Finding(id=f"F-{_slug(fid)}", topic=topic, statement=statement[:3900], evidence=evidence,
+                   implication=implication[:3900], affects=list(affects), severity=severity, scope=scope)
+
+
+def _r(x: float, digits: int = 4) -> float:
+    return float(round(float(x), digits))
+
+
+def _names(values: Sequence[Any], n: int = 10) -> str:
+    values = [str(v) for v in values]
+    return ", ".join(values[:n]) + (f" and {len(values) - n} more" if len(values) > n else "")
+
+
+def _texty(s: pd.Series) -> bool:
+    return pd.api.types.is_object_dtype(s) or pd.api.types.is_string_dtype(s)
+
+
+def _infer_task(y: pd.Series) -> TaskType:
+    values = y.dropna()
+    if values.nunique() == 2:
+        return "binary"
+    if _texty(values) or str(values.dtype) in ("category", "bool") or (
+            pd.api.types.is_integer_dtype(values) and values.nunique() <= 20):
+        return "multiclass"
+    return "regression" if pd.api.types.is_numeric_dtype(values) else "multiclass"
+
+
+POSITIVE_WORDS = {"1", "1.0", "true", "yes", "y", "fraud", "positive"}
+NEGATIVE_WORDS = {"0", "0.0", "false", "no", "n", "negative", "legit", "clean"}
+
+
+def _positive(y: pd.Series) -> Any:
+    """The positive class: a yes/1/true paired with a no/0/false; otherwise the rarer class (labels coded 1/2 included)."""
+    values = y.dropna().unique().tolist()
+    words = {str(v).lower(): v for v in values}
+    if len(values) == 2:
+        pos = [k for k in words if k in POSITIVE_WORDS]
+        neg = [k for k in words if k in NEGATIVE_WORDS]
+        if len(pos) == 1 and len(neg) == 1:
+            return words[pos[0]]
+    return y.value_counts().index[-1]
+
+
+def _time_columns(df: pd.DataFrame) -> list[str]:
+    out = []
+    for c in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[c]):
+            out.append(c)
+        elif _texty(df[c]) and TIME_NAME.search(str(c)):  # pandas 3 reads text as the string dtype, not object
+            parsed = pd.to_datetime(df[c].dropna().head(200), errors="coerce", format="mixed")
+            if len(parsed) and parsed.notna().mean() > 0.9:
+                out.append(c)
+    return out
+
+
+def _as_time(s: pd.Series) -> pd.Series:
+    return s if pd.api.types.is_datetime64_any_dtype(s) else pd.to_datetime(s, errors="coerce", format="mixed")
+
+
+def _decimal(s: pd.Series) -> bool:
+    """A measured quantity (a fare, a coordinate) is not an identifier."""
+    if pd.api.types.is_datetime64_any_dtype(s):
+        return True
+    values = pd.to_numeric(s.dropna(), errors="coerce")
+    return bool(len(values) and values.notna().all() and (values % 1 != 0).any())
+
+
+# ----------------------------------------------------------------------------------------- single-column power
+
+
+def _halves(n: int, seed: int = 0) -> np.ndarray:
+    return np.random.default_rng(seed).random(n) < 0.5
+
+
+def _oof_encode(keys: pd.Series, y: pd.Series) -> pd.Series:
+    """Each value's target mean learned on the other half of the rows (so an id cannot score itself)."""
+    half = _halves(len(keys))
+    out = pd.Series(np.nan, index=keys.index)
+    for fit, apply in ((half, ~half), (~half, half)):
+        means = y[fit].groupby(keys[fit]).mean()
+        out[apply] = keys[apply].map(means).to_numpy()
+    return out.fillna(float(y.mean()))
+
+
+def _auc(score: np.ndarray, y: np.ndarray) -> float:
+    pos, neg = score[y == 1], score[y == 0]
+    if len(pos) == 0 or len(neg) == 0:
+        return 0.5
+    ranks = pd.Series(np.concatenate([pos, neg])).rank().to_numpy()
+    return float((ranks[: len(pos)].sum() - len(pos) * (len(pos) + 1) / 2) / (len(pos) * len(neg)))
+
+
+def _oof_modes(keys: pd.Series, y: pd.Series) -> float:
+    """Accuracy of guessing each key's most common class, learned on the other half (vectorised)."""
+    half = _halves(len(keys))
+    hits = 0
+    for fit, apply in ((half, ~half), (~half, half)):
+        counts = pd.DataFrame({"k": keys[fit].to_numpy(), "y": y[fit].to_numpy()}).value_counts()
+        modes = counts.reset_index().drop_duplicates("k").set_index("k")["y"]  # value_counts sorts by count, largest first
+        fallback = y[fit].value_counts().index[0]
+        guess = keys[apply].map(modes).fillna(fallback)
+        hits += int((guess.to_numpy() == y[apply].to_numpy()).sum())
+    return hits / len(y)
+
+
+def _power(x: pd.Series, y: pd.Series, task: str, categorical: bool = False) -> Optional[float]:
+    """How well one column alone predicts the target, out of fold, against chance: AUC (binary, folded to >= 0.5),
+    accuracy gain over the majority class normalised to [0, 1] (multiclass), |Spearman| (regression)."""
+    if pd.api.types.is_datetime64_any_dtype(x):
+        return None  # a timestamp is judged by whether it recomputes the target (_leakage), not as a category
+    ok = x.notna() & y.notna()
+    x, y = x[ok], y[ok]
+    if len(x) < 30 or x.nunique() < 2:
+        return None
+    numeric = (pd.api.types.is_numeric_dtype(x) and not pd.api.types.is_bool_dtype(x) and not categorical
+               and not ID_NAME.search(str(x.name or "")))
+    if not numeric and x.nunique() > 0.9 * len(x):
+        return None  # nearly unique text (free text, an id): no value repeats, so nothing can be learned out of fold
+    keys = x.astype(str) if not numeric else pd.qcut(x.rank(method="first"), 10, labels=False, duplicates="drop").astype(str)
+    if task == "binary":
+        target = (y == _positive(y)).astype(int)
+        score = x.astype(float) if numeric else _oof_encode(keys, target)
+        auc = _auc(score.to_numpy(dtype=float), target.to_numpy())
+        return max(auc, 1 - auc)
+    if task == "multiclass":
+        majority = float(y.value_counts(normalize=True).iloc[0])
+        if majority >= 1:
+            return None
+        return max(0.0, (_oof_modes(keys, y) - majority) / (1 - majority))
+    score = x.astype(float) if numeric else _oof_encode(keys, y.astype(float))
+    rho = pd.Series(score.to_numpy()).corr(pd.Series(y.to_numpy(dtype=float)), method="spearman")
+    return None if pd.isna(rho) else abs(float(rho))
+
+
+# ----------------------------------------------------------------------------------------- the checks
+
+
+def _grain(df: pd.DataFrame, name: str, target: Optional[str]) -> list[Finding]:
+    """Structure, no target: duplicates and keys, on all rows."""
+    out = []
+    features = [c for c in df.columns if c != target]
+    dup = int(df.duplicated().sum())
+    if dup:
+        out.append(_f("duplicates", "grain", f"{dup} rows of {name} are exact copies of another row.",
+                      {"duplicate_rows": dup, "rows": int(len(df)), "share": _r(dup / len(df))},
+                      "Drop the copies before splitting, or keep each copy on the same side: a copy on both sides scores the "
+                      "model on rows it trained on.", ["data.cleaning", "split.strategy"], "warning", "all_rows"))
+    keys = []
+    for c in features:
+        s = df[c]
+        if _decimal(s) or s.isna().mean() > 0.01:
+            continue
+        distinct = s.nunique() / max(len(s), 1)
+        if s.is_unique or (ID_NAME.search(str(c)) and distinct >= 0.95):  # an id stays an id through a few copied rows
+            keys.append(str(c))
+    out.append(_f("keys", "grain", f"{name} has {len(df)} rows; {len(keys)} column(s) identify rows: {_names(keys) or 'none'}.",
+                  {"rows": int(len(df)), "unique_columns": keys[:LIST_CAP]},
+                  "A column that identifies rows can only memorise: keep it out of the features.",
+                  ["features.identifiers"], "info", "all_rows"))
+    return out
+
+
+def _conflicts(train: pd.DataFrame, target: str) -> list[Finding]:
+    features = [c for c in train.columns if c != target]
+    if not features or len(train) > 500_000:
+        return []
+    g = train.groupby(features, dropna=False, sort=False)[target].nunique(dropna=True)
+    conflict = int((g > 1).sum())
+    if not conflict:
+        return []
+    return [_f("conflicting-labels", "grain", f"{conflict} groups of identical feature values carry different labels.",
+               {"groups": conflict}, "Some noise is in the label itself; no model can be perfect on these rows.",
+               ["metric.primary"], "info")]
+
+
+def _target_findings(y: pd.Series, task: str, brief: Optional[ProblemBrief]) -> list[Finding]:
+    out = []
+    n = int(y.notna().sum())
+    missing = int(y.isna().sum())
+    if missing:
+        out.append(_f("target-missing", "target", f"{missing} training rows have no label.", {"rows_without_label": missing},
+                      "Rows without a label are not negatives: leave them out of training, or treat the labels as partial.",
+                      ["labels.coverage"], "warning"))
+    if n == 0:
+        return out
+    if task == "binary":
+        pos = _positive(y)
+        rate = float((y == pos).mean())
+        rare = rate < RARE_SHARE
+        out.append(_f("prevalence", "target", f"The positive class ({pos}) is {rate:.2%} of training rows.",
+                      {"positive_class": str(pos), "positive_rate": _r(rate, 5), "positives": int((y == pos).sum()), "rows": n},
+                      ("Rare events: accuracy is meaningless (always 'no' scores high); rank by average precision and plan a "
+                       "review budget (recall in the top k)." if rare else
+                       "Average precision or ROC AUC rank the cases; accuracy depends on the threshold."),
+                      ["metric.primary", "threshold.policy", "split.strategy"], "warning" if rare else "info"))
+        if brief is not None and brief.label_coverage.value == "partial":
+            out.append(_f("partial-labels", "target", "The brief says the labels are a sample: unlabelled rows are not known negatives.",
+                          {"positive_rate_lower_bound": _r(rate, 5)},
+                          "Report precision as a lower bound; prefer methods that tolerate hidden positives (positive-unlabelled "
+                          "learning, anomaly scores) and never call unlabelled rows clean.",
+                          ["labels.coverage", "model.families", "metric.primary"], "warning"))
+    elif task == "multiclass":
+        counts = y.value_counts()
+        share = counts / counts.sum()
+        tiny = sorted(share[(share < TINY_SHARE) | (counts < TINY_ROWS)].index.astype(str).tolist())
+        out.append(_f("classes", "target", f"{counts.size} classes; the largest is {share.iloc[0]:.1%} of rows, the smallest "
+                      f"{share.iloc[-1]:.2%}.",
+                      {"classes": int(counts.size), "largest_share": _r(share.iloc[0]), "smallest_share": _r(share.iloc[-1]),
+                       "imbalance_ratio": _r(counts.iloc[0] / max(counts.iloc[-1], 1), 1)},
+                      "Score with macro F1 (every class counts) beside accuracy, and stratify the folds by class.",
+                      ["metric.primary", "split.strategy"]))
+        if tiny:
+            out.append(_f("tiny-classes", "target", f"{len(tiny)} classes have under {TINY_SHARE:.0%} of rows or {TINY_ROWS} rows: "
+                          + _names(tiny) + ".",
+                          {"tiny_classes": tiny[:LIST_CAP], "count": len(tiny),
+                           "rows": {str(k): int(counts[k]) for k in counts.index if str(k) in tiny[:LIST_CAP]}},
+                          "Too few rows to learn or to measure: consider merging them into an 'other' class or routing them by "
+                          "rule, keep them in every fold (stratify), and report their recall separately.",
+                          ["task.framing", "metric.primary", "split.strategy"], "warning"))
+    else:
+        out += _distribution(y)
+    return out
+
+
+def _distribution(y: pd.Series) -> list[Finding]:
+    values = y.dropna().astype(float)
+    if len(values) < 3:
+        return []
+    top = float(values.max())
+    at_top = float((values == top).mean())
+    below = values[values < top]
+    next_share = float((below == below.max()).mean()) * len(below) / len(values) if len(below) else 0.0
+    capped = at_top > 0.02 and at_top >= 3 * max(next_share, 1e-9)  # a spike at the maximum, not a discrete scale
+    body = values[values < top] if capped else values
+    skew = float(body.skew()) if len(body) > 2 else 0.0
+    skew = 0.0 if not np.isfinite(skew) else skew
+    q05, q50, q95 = (float(body.quantile(q)) for q in (0.05, 0.5, 0.95))
+    tail_ratio = (q95 - q50) / (q50 - q05) if q50 > q05 else 1.0  # robust to a cap and to outliers, unlike skew
+    long_tail = skew > 1 or tail_ratio > 1.5  # Bowley skewness above 0.2: a noticeably longer right tail
+    out = [_f("distribution", "target", f"The target ranges {values.min():.4g} to {top:.4g} (median {values.median():.4g}, "
+              f"skew {skew:.2f}" + (" below the cap" if capped else "") + ").",
+              {"min": _r(values.min()), "median": _r(values.median()), "max": _r(top), "skew": _r(skew, 2),
+               "upper_to_lower_tail": _r(tail_ratio, 2), "zero_share": _r((values == 0).mean()),
+               "negative_share": _r((values < 0).mean())},
+              ("A long right tail: compare a log target, and use MAE or a quantile loss rather than squared error, which the "
+               "tail would dominate." if long_tail else
+               "Close to symmetric: MAE reads in the target's own unit; RMSE if large errors cost far more."),
+              ["metric.primary", "target.transform"], "warning" if long_tail else "info")]
+    if capped:
+        out.append(_f("cap", "target", f"{at_top:.1%} of rows sit exactly at the maximum ({top:.4g}): a cap, not a measurement.",
+                      {"cap": _r(top), "share_at_cap": _r(at_top), "share_at_next_value": _r(next_share)},
+                      "The true value above the cap is unknown (censored): squared error chases the cap; evaluate below and at "
+                      "the cap separately, consider predicting 'at the cap' as its own question, and say so in the limits.",
+                      ["metric.primary", "task.framing", "risk.check"], "warning"))
+    return out
+
+
+def _entities(df: pd.DataFrame, y: Optional[pd.Series], task: str, brief: Optional[ProblemBrief], target: Optional[str]) -> list[Finding]:
+    named = [str(c) for c in (brief.entities.value or [])] if brief is not None and brief.entities.known else []
+    candidates = [c for c in df.columns if c != target and not _decimal(df[c])
+                  and (str(c) in named or (ID_NAME.search(str(c)) and not df[c].is_unique))]
+    out = []
+    for column in candidates[:6]:
+        sizes = df.groupby(column, dropna=True).size()
+        if sizes.empty or sizes.max() < 2 or (str(column) not in named and sizes.median() < 2):
+            continue  # an id that repeats only through duplicated rows is not an entity
+        evidence: dict[str, Any] = {"column": str(column), "entities": int(sizes.size),
+                                    "rows_per_entity_median": _r(sizes.median(), 1), "rows_per_entity_max": int(sizes.max())}
+        tells = False
+        if y is not None and task in ("binary", "multiclass", "regression"):
+            power = _power(df[column], y, task, categorical=True)  # the entity alone, learned on other rows
+            if power is not None:
+                evidence["target_from_entity_out_of_fold"] = _r(power)
+                tells = power >= ENTITY_MARGIN[task]
+            if task == "binary":
+                hit = (y == _positive(y)).groupby(df[column]).sum()
+                evidence["entities_with_positives"] = int((hit > 0).sum())
+        out.append(_f(f"entity-{column}", "entities",
+                      f"Rows repeat for {column}: {sizes.size} values, a median of {sizes.median():.0f} rows each.", evidence,
+                      (f"Group the folds by {column}: with rows of one {column} on both sides a model can recognise it "
+                       f"rather than learn the pattern" + (", and which one it is tells the target on rows it never saw." if tells else ".")),
+                      ["split.strategy", "features.direction"], "warning" if tells or str(column) in named else "info"))
+    return out
+
+
+def _time(df: pd.DataFrame, y: Optional[pd.Series], task: str, brief: Optional[ProblemBrief], target: Optional[str]) -> list[Finding]:
+    named = brief.time_column.value if brief is not None and brief.time_column.known else None
+    columns = [named] if named in df.columns else _time_columns(df)
+    if not columns:
+        return []
+    column = columns[0]
+    t = _as_time(df[column])
+    if t.notna().mean() < 0.8:
+        return []
+    evidence: dict[str, Any] = {"column": str(column), "start": str(t.min())[:19], "end": str(t.max())[:19],
+                                "days": int((t.max() - t.min()).days)}
+    drift = ""
+    if y is not None and len(df) >= 60 and y.notna().any():
+        order = t.rank(method="first")
+        first, last = order <= len(order) / 3, order > 2 * len(order) / 3
+        if task == "binary":
+            pos = _positive(y)
+            a, b = float((y[first] == pos).mean()), float((y[last] == pos).mean())
+            evidence.update(positive_rate_first_third=_r(a, 5), positive_rate_last_third=_r(b, 5))
+            moved = (a == 0 < b) or (a > 0 and (b / a > 1.5 or b / a < 0.67))
+            drift = " The positive rate moves over time." if moved else ""
+        elif task == "multiclass":
+            pa, pb = y[first].value_counts(normalize=True), y[last].value_counts(normalize=True)
+            tvd = 0.5 * float(pa.subtract(pb, fill_value=0).abs().sum())
+            new = sorted(set(pb.index.astype(str)) - set(pa.index.astype(str)))
+            evidence.update(class_shift_tvd=_r(tvd), classes_only_in_last_third=new[:LIST_CAP])
+            drift = (" Classes appear late: " + _names(new) + ".") if new else (" The class mix moves." if tvd > 0.1 else "")
+        else:
+            ya, yb = y[first].astype(float), y[last].astype(float)
+            sd = float(y.astype(float).std())
+            shift = (yb.mean() - ya.mean()) / sd if sd > 0 and np.isfinite(sd) else 0.0
+            shift = 0.0 if not np.isfinite(shift) else shift
+            evidence.update(mean_shift_in_sd=_r(shift, 2))
+            drift = " The target's level moves over time." if abs(shift) > 0.3 else ""
+    return [_f("time", "time", f"Rows span {evidence['days']} days by {column}.{drift}", evidence,
+               ("Rows have an order in time: validate on later rows than the model trained on (a forward split), and read "
+                "drift as a reason to retrain." + (" A random split would hide what the model cannot know yet." if drift else "")),
+               ["split.strategy", "risk.check"], "warning" if drift else "info")]
+
+
+def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str]) -> list[Finding]:
+    if y is None:
+        return []
+    out = []
+    times = _time_columns(df)
+    for column in df.columns:
+        if column == target:
+            continue
+        named = bool(POST_MOMENT_NAME.search(str(column))) and not HISTORY_NAME.search(str(column))
+        power = None if (ID_NAME.search(str(column)) and df[column].is_unique) else _power(df[column], y, task)
+        evidence: dict[str, Any] = {"column": str(column)}
+        if power is not None:
+            evidence["single_column_power"] = _r(power)
+        if power is not None and power >= POWER_ALARM[task]:
+            severity, says = "critical", "on its own it predicts the target almost perfectly" + ("; its name says it is written after the outcome" if named else "")
+        elif named and power is not None and power >= POWER_NAMED[task]:
+            severity, says = "warning", "its name says it is written after the outcome, and it predicts the target"
+        elif named:
+            out.append(_f(f"name-{column}", "leakage", f"{column}: the name sounds written after the outcome, but it predicts little.",
+                          evidence, f"Ask when {column} is written; keep it only if it is known at the prediction moment.",
+                          ["risk.check"], "info"))
+            continue
+        else:
+            continue
+        out.append(_f(f"leak-{column}", "leakage", f"{column}: {says}.", evidence,
+                      f"Keep {column} out unless it is known at the prediction moment; ask when it is written.",
+                      ["features.forbidden"], severity))
+    if task == "regression" and len(times) >= 2:
+        target_values = y.astype(float)
+        spread = float(target_values.std()) if target_values.notna().sum() > 1 else 0.0
+        for i, a in enumerate(times):
+            for b in times[i + 1:]:
+                gap = (_as_time(df[b]) - _as_time(df[a])).dt.total_seconds()
+                for unit, scale in (("seconds", 1.0), ("minutes", 60.0), ("hours", 3600.0), ("days", 86400.0)):
+                    diff = (gap / scale).abs()
+                    ok = diff.notna() & target_values.notna()
+                    if ok.sum() > 30 and spread > 0 and float(np.median(np.abs(diff[ok] - target_values[ok]))) < 0.05 * spread:
+                        later = b if float(gap.median()) >= 0 else a
+                        out.append(_f(f"leak-recompute-{a}-{b}", "leakage", f"The target equals the time between {a} and {b}, in {unit}.",
+                                      {"columns": [str(a), str(b)], "later": str(later), "unit": unit},
+                                      f"{later} is written when the outcome is known: keep it out.", ["features.forbidden"], "critical"))
+                        break
+    return out
+
+
+def _missing(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str]) -> list[Finding]:
+    out = []
+    for column in df.columns:
+        if column == target:
+            continue
+        miss = df[column].isna()
+        rate = float(miss.mean())
+        if rate == 0 or rate == 1:
+            continue
+        evidence: dict[str, Any] = {"column": str(column), "missing_rate": _r(rate)}
+        speaks = False
+        if y is not None and miss.sum() >= 10 and (~miss).sum() >= 10:
+            if task == "regression":
+                sd = float(y.astype(float).std())
+                d = (y[miss].astype(float).mean() - y[~miss].astype(float).mean()) / sd if sd > 0 else 0.0
+                d = 0.0 if not np.isfinite(d) else d
+                evidence["target_shift_when_missing_in_sd"] = _r(d, 2)
+                speaks = abs(d) > 0.2
+            elif task == "binary":
+                pos = _positive(y)
+                a, b = float((y[miss] == pos).mean()), float((y[~miss] == pos).mean())
+                evidence.update(positive_rate_when_missing=_r(a, 5), positive_rate_when_present=_r(b, 5))
+                speaks = (b == 0 < a) or (b > 0 and (a / b > 1.5 or a / b < 0.67))
+            elif task == "multiclass":
+                pa, pb = y[miss].value_counts(normalize=True), y[~miss].value_counts(normalize=True)
+                tvd = 0.5 * float(pa.subtract(pb, fill_value=0).abs().sum())
+                evidence["class_mix_shift_tvd"] = _r(tvd)
+                speaks = tvd > 0.1
+        if speaks or rate > 0.3:
+            out.append(_f(f"missing-{column}", "missingness",
+                          f"{column} is missing in {rate:.1%} of rows" + (", and its absence predicts the target." if speaks else "."),
+                          evidence,
+                          ("Missingness speaks: keep a missing indicator, and check whether the value is missing because of the "
+                           "outcome (then it is leakage) or before it (then it is signal)." if speaks else
+                           "Impute inside the training folds and keep a missing indicator."),
+                          ["features.direction", "features.forbidden"] if speaks else ["features.direction"], "warning" if speaks else "info"))
+    return out
+
+
+def _columns(df: pd.DataFrame, target: Optional[str]) -> list[Finding]:
+    out = []
+    constant = [str(c) for c in df.columns if c != target and df[c].nunique(dropna=False) <= 1]
+    if constant:
+        out.append(_f("constant", "columns", f"{len(constant)} column(s) hold a single value: {_names(constant)}.",
+                      {"columns": constant[:LIST_CAP]}, "Drop them: they carry nothing.", ["features.direction"], "info", "all_rows"))
+    for c in df.columns:
+        if c == target or not pd.api.types.is_numeric_dtype(df[c]) or pd.api.types.is_bool_dtype(df[c]):
+            continue
+        if re.search(r"(distance|age|price|amount|count|quantity|duration|minutes|weight|items|value)", str(c), re.I):
+            negative = int((df[c] < 0).sum())
+            if negative:
+                out.append(_f(f"impossible-{c}", "quality", f"{negative} rows have a negative {c}, which cannot be.",
+                              {"column": str(c), "rows": negative},
+                              f"Treat negative {c} as missing (or fix the sign if the source is known) inside the pipeline, and ask "
+                              "where the rows come from.", ["data.cleaning"], "warning", "all_rows"))
+    return out
+
+
+# ----------------------------------------------------------------------------------------- a label file
+
+
+KEYLIKE_NAME = re.compile(r"(^id$|_id$|_ref$|^id_|_key$|_uuid$|phone|email|_number$|_code$)", re.I)
+
+
+def _key_candidates(main: pd.DataFrame, labels: pd.DataFrame) -> list[tuple[str, ...]]:
+    """Columns that could identify a case: an id-like name, or nearly distinct within the label file; and pairs of
+    id-like columns (a coarse pair such as (customer, courier) is the classic way to inflate labels)."""
+    shared = [c for c in labels.columns if c in main.columns and labels[c].notna().any()]
+    single = [c for c in shared if not _decimal(labels[c]) and (KEYLIKE_NAME.search(str(c)) or labels[c].nunique() >= 0.8 * labels[c].notna().sum())]
+    idlike = [c for c in single if ID_NAME.search(str(c))]
+    pairs = [(a, b) for i, a in enumerate(idlike) for b in idlike[i + 1:]]
+    return [(c,) for c in single][:20] + pairs[:20]
+
+
+def _key_text(s: pd.Series) -> pd.Series:
+    """Keys as text, with 1305684.0 and 1305684 the same (an id read as a float in one file, an integer in the other).
+    Done on the text, never through a float, so long ids keep every digit."""
+    if pd.api.types.is_float_dtype(s):
+        whole = s.notna() & (s % 1 == 0) & (s.abs() < 2 ** 53)
+        out = s.astype(str)
+        out[whole] = s[whole].astype("int64").astype(str)
+        return out
+    return s.astype(str).str.replace(r"^(-?\d+)\.0+$", r"\1", regex=True)
+
+
+def label_join(main: pd.DataFrame, labels: pd.DataFrame) -> list[dict[str, Any]]:
+    """For each key that could identify a case (one column or a pair): how many label rows it finds and how many rows
+    of the main table one label row would mark. Package 15.2 builds the studio's label review on it."""
+    out = []
+    for key in _key_candidates(main, labels):
+        cols = list(key)
+        label_keys = labels[cols].dropna().apply(_key_text)
+        if label_keys.empty:
+            continue
+        main_keys = main[cols].dropna().apply(_key_text)
+        joined = pd.MultiIndex.from_frame(main_keys) if len(cols) > 1 else pd.Index(main_keys[cols[0]])
+        wanted = pd.MultiIndex.from_frame(label_keys) if len(cols) > 1 else pd.Index(label_keys[cols[0]])
+        marked = int(joined.isin(wanted.unique()).sum())
+        found = int(wanted.isin(joined.unique()).sum())   # label rows whose key is in the table
+        out.append({"key": "+".join(map(str, cols)), "label_rows": int(len(label_keys)), "label_rows_found": found,
+                    "rows_marked": marked, "rows_per_label": _r(marked / max(found, 1), 2)})
+    return sorted(out, key=lambda r: (r["rows_per_label"] > 1.5, -r["label_rows_found"], r["rows_per_label"]))
+
+
+def _disagreeing(main: pd.DataFrame, labels: pd.DataFrame, key: str) -> dict[str, float]:
+    """For a single-column key: the shared columns whose values differ between the files on the matched rows."""
+    if "+" in key:
+        return {}
+    left = labels.dropna(subset=[key]).assign(**{key: lambda d: _key_text(d[key])})
+    right = main.dropna(subset=[key]).assign(**{key: lambda d: _key_text(d[key])}).drop_duplicates(subset=[key])
+    matched = left.merge(right, on=key, suffixes=("__labels", "__main"))
+    out = {}
+    for column in [c for c in labels.columns if c in main.columns and c != key]:
+        a, b = matched.get(f"{column}__labels"), matched.get(f"{column}__main")
+        if a is None or b is None or len(matched) < 5:
+            continue
+        both = a.notna() & b.notna()
+        if both.sum() < 5:
+            continue
+        if pd.api.types.is_numeric_dtype(a) and pd.api.types.is_numeric_dtype(b):
+            same = np.isclose(a[both].astype(float), b[both].astype(float), rtol=1e-6, atol=1e-9)
+        else:
+            same = a[both].astype(str).to_numpy() == b[both].astype(str).to_numpy()
+        agree = float(np.mean(same))
+        if agree < 0.9:
+            out[str(column)[:100]] = _r(agree, 3)
+    return out
+
+
+def _labels(main: pd.DataFrame, name: str, labels: pd.DataFrame, label_name: str) -> list[Finding]:
+    joins = label_join(main, labels)
+    if not joins:
+        return [_f("labels-no-key", "labels", f"{label_name} shares no column with {name} that could identify a case.",
+                   {"label_rows": int(len(labels))}, "The labels cannot be joined; ask which key identifies a case.",
+                   ["labels.join"], "critical", "label_file")]
+    best = joins[0]
+    out = [_f("labels-join", "labels", f"{label_name} joins {name} best on {best['key']}: {best['label_rows_found']} of "
+              f"{best['label_rows']} label rows found, {best['rows_marked']} rows marked.",
+              {"key": best["key"], "joins": {j["key"][:100]: {k: v for k, v in j.items() if k != "key"} for j in joins[:12]}},
+              f"Join on {best['key']}; the {best['label_rows'] - best['label_rows_found']} label rows not found in {name} are kept "
+              "apart (they cannot be scored, but they can check the model from outside).",
+              ["labels.join", "labels.coverage"], "info", "label_file")]
+    for j in joins[1:]:
+        if j["rows_per_label"] > 1.5 and j["label_rows_found"] > 0:
+            out.append(_f(f"labels-inflation-{j['key'].replace('+', '-')}", "labels",
+                          f"Joining on {j['key']} would mark {j['rows_marked']} rows from {j['label_rows_found']} labels "
+                          f"({j['rows_per_label']} rows per label).", dict(j),
+                          f"Never join on {j['key']}: it labels every row that shares the value, most of which are not the cases.",
+                          ["labels.join"], "critical", "label_file"))
+    differ = _disagreeing(main, labels, best["key"])
+    if differ:
+        shown = dict(list(differ.items())[:LIST_CAP])
+        out.append(_f("labels-disagree", "labels", f"After joining on {best['key']}, {len(differ)} column(s) with the same name hold "
+                      "different values in the two files: " + _names(list(differ)) + ".", {"share_equal": shown, "count": len(differ)},
+                      "A shared name does not mean a shared meaning: never take these columns from the label file, ask what "
+                      "each one means there, and state it as a limit (the label file may know something the table does not).",
+                      ["labels.join", "risk.check"], "warning", "label_file"))
+    return out
+
+
+# ----------------------------------------------------------------------------------------- entry point
+
+
+def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, task: Optional[TaskType] = None,
+            brief: Optional[ProblemBrief] = None, train_index: Optional[Sequence[Any]] = None,
+            main: Optional[str] = None, labels: Optional[str] = None) -> DataFindings:
+    """Analyse the tables for the decisions they imply. ``train_index``: the rows of the main table the host may look
+    at for choices (its training partition); without it, every row is used and the findings say so."""
+    if not tables:
+        return DataFindings()
+    main = main or max((n for n in tables if n != labels), key=lambda n: len(tables[n]))
+    df = tables[main]
+    if target is None and brief is not None and brief.target_column.known and brief.target_column.value in df.columns:
+        target = brief.target_column.value
+    train = df.loc[list(train_index)] if train_index is not None else df
+    y = train[target] if target and target in train.columns else None
+    if task is None or task == "unknown":
+        task = (brief.task.value if brief is not None and brief.task.known and brief.task.value != "unknown" else None) \
+            or (_infer_task(y) if y is not None and y.notna().any() else "unknown")
+    findings: list[Finding] = []
+    if train_index is None and y is not None:
+        findings.append(_f("no-split", "scope", "No training partition was given: target statistics use every row.",
+                           {"rows": int(len(df))}, "Lock the holdout first and pass its training rows, so no choice looks at it.",
+                           ["split.strategy"], "warning", "all_rows"))
+    findings += _grain(df, main, target)
+    if y is not None:
+        findings += _conflicts(train, target)
+        findings += _target_findings(y, task, brief)
+    features = train.drop(columns=[target]) if target in train.columns else train
+    findings += _entities(train, y, task, brief, target)
+    findings += _time(train, y, task, brief, target)
+    findings += _leakage(features, y, task, target)
+    findings += _missing(train, y, task, target)
+    findings += _columns(df, target)
+    if labels and labels in tables:
+        findings += _labels(df, main, tables[labels], labels)
+    seen, unique = set(), []
+    for f in findings:
+        if f.id not in seen:
+            seen.add(f.id)
+            unique.append(f)
+    summaries = [TableSummary(name=str(n)[:300], role="labels" if n == labels else ("main" if n == main else "related"),
+                              rows=int(len(t)), columns=int(t.shape[1])) for n, t in tables.items()]
+    return DataFindings(task=task, target=target, tables=summaries[:20], training_rows=int(len(train)) if train_index is not None else None,
+                        findings=unique[:200])

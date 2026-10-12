@@ -42,6 +42,13 @@ def _sources() -> list[Path]:
     return files
 
 
+def _module(path: Path) -> str:
+    parts = list(path.relative_to(CORE).with_suffix("").parts)
+    if parts[-1] == "__init__":
+        parts = parts[:-1]
+    return ".".join(["dclab_core", *parts])
+
+
 def _imports(tree: ast.AST) -> list[str]:
     names = []
     for node in ast.walk(tree):
@@ -85,12 +92,13 @@ class BoundaryTest(unittest.TestCase):
     @unittest.skipIf(PYDANTIC_MISSING, PYDANTIC_MISSING)
     def test_importing_the_core_loads_nothing_outside_its_dependencies(self):
         # only what importing the core adds: an environment's .pth files load their own modules at start-up
-        modules = ", ".join("dclab_core" if p.stem == "__init__" else f"dclab_core.{p.stem}" for p in _sources())
+        modules = ", ".join(sorted({_module(p) for p in _sources()}))
         code = ("import sys, json; before = set(sys.modules); "
                 f"import {modules}; std = set(sys.stdlib_module_names); "
                 "print(json.dumps(sorted({m.split('.')[0] for m in set(sys.modules) - before} - std)))")
         out = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, check=True)
-        loaded = {m for m in json.loads(out.stdout.strip()) if not m.startswith("_sysconfigdata")}  # stdlib, named per platform
+        # stdlib modules named per platform, and the Cython runtime the dependencies' compiled code loads
+        loaded = {m for m in json.loads(out.stdout.strip()) if not m.startswith(("_sysconfigdata", "_cython_", "cython_runtime"))}
         self.assertNotIn("dclab_rnd", loaded)
         self.assertEqual(sorted(loaded - DEPENDENCY_TREE), [], "the core loads a module outside its dependencies")
 
@@ -101,6 +109,15 @@ class BoundaryTest(unittest.TestCase):
         self.assertEqual(names, ["numpy", "pandas", "pydantic", "scikit-learn"])
         self.assertIn('"pydantic>=2.10"', text)  # the published schemas are what pydantic 2.10 and later generate
         self.assertIn('requires-python = ">=3.10"', text)
+
+    def test_every_subpackage_is_in_the_wheel(self):
+        text = (CORE / "pyproject.toml").read_text(encoding="utf-8")
+        listed = text.split("packages = [", 1)[1].split("]", 1)[0]
+        for init in CORE.rglob("__init__.py"):
+            if {"build", "dist"} & set(init.parts):
+                continue
+            with self.subTest(package=_module(init)):
+                self.assertIn(f'"{_module(init)}"', listed)
 
     def test_build_output_is_ignored(self):
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")

@@ -19,7 +19,7 @@ dependencies = [
 # still be built as a wheel: pip install "dclab-core @ git+https://...#subdirectory=dclab_core"
 [tool.setuptools]
 package-dir = {"dclab_core" = "."}
-packages = ["dclab_core"]
+packages = ["dclab_core", "dclab_core.replicas"]
 
 [tool.setuptools.package-data]
 dclab_core = ["schemas/*.json", "README.md"]

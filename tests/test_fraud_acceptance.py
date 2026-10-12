@@ -25,7 +25,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from dclab_rnd.replicas import delivery_fraud as dfr  # noqa: E402
+from dclab_core.replicas import delivery_fraud as dfr  # noqa: E402
 
 try:
     from sklearn.ensemble import RandomForestClassifier

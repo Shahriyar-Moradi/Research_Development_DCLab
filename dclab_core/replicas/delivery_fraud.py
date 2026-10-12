@@ -30,7 +30,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from ..draft.synthetic import LABELS
+from dclab_core.replicas import LABELS
 
 CENTER = (12.480, 45.020)  # an invented city
 M_PER_DEG = 111_195.0
