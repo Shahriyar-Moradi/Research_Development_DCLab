@@ -13,6 +13,8 @@ Decision points: ``task.framing``, ``labels.coverage``, ``labels.join``, ``split
 
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from typing import Any, Optional
 
 from dclab_core.contracts import DataFindings, Decision, Finding, ProblemBrief, Risk, SolutionPlan
@@ -477,16 +479,175 @@ def validate(plan_: SolutionPlan, findings: DataFindings) -> list[str]:
     return problems
 
 
-def override(plan_: SolutionPlan, key: str, choice: Any, reason: str, by: str = "person") -> SolutionPlan:
+def override(plan_: SolutionPlan, key: str, choice: Any, reason: str, by: str = "person", cites: Optional[list[str]] = None) -> SolutionPlan:
     """Replace one decision; the old choice is kept as an alternative with the reason. ``by="advisor"`` marks a model's
     change, which :func:`validate` still checks; anyone else is a person, whose override stands."""
     old = plan_.decision(key)
     alternatives = ([{"choice": old.choice, "why_not": f"overridden by {by}: {reason}"}] if old is not None else [])
     if old is not None:
         alternatives += [a.model_dump() for a in old.alternatives]
-    new = Decision(key=key, choice=choice, reason=reason, cites=old.cites if old is not None else [],
+    new = Decision(key=key, choice=choice, reason=reason, cites=(cites or (old.cites if old is not None else []))[:20],
                    alternatives=alternatives[:8], source="advisor" if by == "advisor" else "person", status="overridden")
     decisions = [new if d.key == key else d for d in plan_.decisions]
     if old is None:
         decisions.append(new)
     return SolutionPlan.model_validate({**plan_.model_dump(), "decisions": [d.model_dump() for d in decisions]})
+
+
+# ------------------------------------------------------------------------------------------------ the solution planner (a role)
+
+PLANNABLE = ("task.framing", "labels.coverage", "split.strategy", "metric.primary", "metric.secondary", "baseline",
+             "features.forbidden", "features.to_confirm", "features.identifiers", "features.direction", "data.cleaning",
+             "model.families", "threshold.policy")
+
+
+def _compact(value: Any, n: int = 300) -> Any:
+    text = value if isinstance(value, str) else json.dumps(value, default=str)
+    return text[:n]
+
+
+def _plain_choice(choice: Any) -> Any:
+    """A rule choice for the planner's evidence: a column list as its names (never cut mid-entry), else compact JSON."""
+    if isinstance(choice, list) and choice and all(isinstance(c, Mapping) and "column" in c for c in choice):
+        return [str(c["column"])[:100] for c in choice][:40]
+    return _compact(choice, 300)
+
+
+def _columns(choice: Any) -> set[str]:
+    return {str(c.get("column")) if isinstance(c, Mapping) else str(c) for c in (choice or []) if c} if isinstance(choice, list) else set()
+
+
+ADDITIONS_ONLY = ("features.forbidden", "features.to_confirm", "features.identifiers")
+THRESHOLD_KINDS = ("review_budget", "expected_cost", "ask")
+
+
+def _known_families() -> set[str]:
+    return {"dummy", "pu_bagging", "isolation_forest", "ecod", "percentile_rules", "quantile_gradient_boosting",
+            "extra_trees", "lightgbm", "xgboost", "hist_gradient_boosting"} | {f for fams in FAMILIES.values() for f in fams}
+
+
+def _guard(key: str, choice: Any, current: SolutionPlan, findings: DataFindings) -> Optional[str]:
+    """What an advisor may not do to a decision, whatever the validator checks: undo a safety decision (a column kept
+    out, an identifier, the grouping a strong entity calls for), change the task, or write a shape the host cannot run."""
+    old = current.decision(key)
+    if key in ADDITIONS_ONLY:
+        if not isinstance(choice, list):
+            return "a column list is a list"
+        lost = _columns(old.choice if old else []) - _columns(choice)
+        if lost:
+            return f"an advisor may add columns here, never remove them (would drop {', '.join(sorted(lost)[:5])})"
+    elif key == "split.strategy":
+        kind, problem = _split_kind(choice)
+        if problem or kind not in SPLITS:
+            return problem or f"{kind!r} is not a split"
+        old_choice = old.choice if old is not None and isinstance(old.choice, Mapping) else {}
+        if old_choice.get("group_column"):
+            if kind not in ("group", "time_and_group") or not isinstance(choice, Mapping) or choice.get("group_column") != old_choice["group_column"]:
+                return f"the findings call for folds grouped by {old_choice['group_column']}: an advisor may not drop it"
+        time = _get(findings, "F-time")
+        if isinstance(choice, Mapping) and choice.get("time_column") and (time is None or choice["time_column"] != time.evidence.get("column")):
+            return "the time column must be the one the data has (F-time)"
+    elif key == "task.framing":
+        if not isinstance(choice, Mapping) or choice.get("task") != current.task:
+            return f"the task is {current.task}: an advisor may refine its framing, not change it"
+    elif key == "model.families":
+        if not isinstance(choice, list) or "dummy" not in choice or not set(map(str, choice)) <= _known_families():
+            return "families must be known names, with the dummy baseline kept"
+    elif key == "labels.coverage":
+        if choice not in ("partial", "complete"):
+            return "coverage is partial or complete"
+        if choice == "complete" and _get(findings, "F-partial-labels") is not None:
+            return "the findings say the labels are partial (F-partial-labels)"
+    elif key == "threshold.policy":
+        if not isinstance(choice, Mapping) or choice.get("kind") not in THRESHOLD_KINDS:
+            return f"a threshold policy is an object whose kind is one of {', '.join(THRESHOLD_KINDS)}"
+    elif key == "metric.secondary":
+        if not isinstance(choice, list) or not all(isinstance(m, str) and len(m) <= 60 for m in choice):
+            return "secondary metrics are a list of names"
+    return None
+
+
+def _planner_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    brief, findings, base = inputs["brief"], inputs["findings"], inputs["plan"]
+    known = {}
+    if brief is not None:
+        for name in ("goal", "action", "unit", "task", "target_column", "label_source", "label_coverage", "prediction_moment",
+                     "horizon", "entities", "time_column", "primary_metric"):
+            fact = getattr(brief, name)
+            if fact.known:
+                known[name] = _compact(fact.value, 200)
+        known["constraints"] = [_compact(f"{c.kind}: {c.text}", 200) for c in brief.constraints][:8]
+    return {"brief": known, "task": base.task,
+            "findings": [_compact(f"{f.id} [{f.severity}, {f.topic}] {f.statement}", 300) for f in findings.findings][:50],
+            "rule_plan": {d.key: _plain_choice(d.choice) for d in base.decisions},
+            "decision_keys": list(PLANNABLE)}
+
+
+def _planner_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict[str, Any]:
+    """Each proposal is an advisor's override of one decision, kept only if it cites measured findings and the plan
+    validator finds no new problem with it; every refusal is recorded with its reason."""
+    proposals = answer.get("decisions")
+    if not isinstance(proposals, list):
+        raise ValueError("decisions must be a list")
+    findings: DataFindings = inputs["findings"]
+    ids = {f.id for f in findings.findings}
+    current: SolutionPlan = inputs["plan"]
+    before = set(validate(current, findings))
+    kept, refused = [], []
+    for index, item in enumerate(proposals):
+        if index >= len(PLANNABLE) or not isinstance(item, Mapping):
+            refused.append({"key": str(item.get("key") if isinstance(item, Mapping) else item)[:80], "choice": None,
+                            "why": "more proposals than decisions" if index >= len(PLANNABLE) else "not a proposal object"})
+            continue
+        key, choice, reason, cites = item.get("key"), item.get("choice"), str(item.get("reason") or ""), item.get("cites") or []
+        why = None
+        if key not in PLANNABLE:
+            why = f"{key!r} is not a decision the planner may propose"
+        elif not isinstance(cites, list) or not cites or not set(map(str, cites)) <= ids:
+            why = "it must cite findings that were measured"
+        elif len(reason.strip()) < 10:
+            why = "it needs a reason"
+        elif current.decision(key) is not None and current.decision(key).choice == choice:
+            continue  # the rules already chose this: nothing to change
+        if why is None:
+            why = _guard(key, choice, current, findings)
+        if why is None:
+            try:
+                candidate = override(current, key, choice, reason[:MAX_REASON], by="advisor", cites=list(map(str, cites)))
+            except Exception as exc:  # noqa: BLE001 - a choice the contract cannot hold
+                why = f"not a valid decision: {type(exc).__name__}"
+            else:
+                new = sorted(set(validate(candidate, findings)) - before)
+                if new:
+                    why = "the plan validator refused it: " + "; ".join(new)[:400]
+                else:
+                    current, before = candidate, set(validate(candidate, findings))
+                    kept.append({"key": key, "choice": choice, "reason": reason[:400], "cites": list(map(str, cites))[:10]})
+                    continue
+        refused.append({"key": str(key)[:80], "choice": _compact(choice, 200), "why": why})
+    return {"plan": current, "kept": kept, "refused": refused}
+
+
+MAX_REASON = 3900
+
+
+def _planner_role():
+    from dclab_core.agents import Role
+
+    return Role(name="solution_planner",
+                description="Proposes changes to the rule plan's decisions from the brief and the findings, each citing them; the plan "
+                            "validator refuses an invalid one, and every refusal is recorded.",
+                evidence=_planner_evidence, parse=_planner_parse,
+                fallback=lambda inputs: {"plan": inputs["plan"], "kept": [], "refused": []})
+
+
+SOLUTION_PLANNER = _planner_role()
+
+
+def plan_with(advisor: Any, brief: Optional[ProblemBrief], findings: DataFindings) -> dict[str, Any]:
+    """The rule plan, then the solution planner's checked changes (none without an advisor)."""
+    from dclab_core.agents import run_role
+
+    base = plan(brief, findings)
+    result = run_role(SOLUTION_PLANNER, advisor, {"brief": brief, "findings": findings, "plan": base})
+    return {**result.output, "rule_plan": base, "source": result.source, "reason": result.reason}

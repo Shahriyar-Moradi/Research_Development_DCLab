@@ -15,12 +15,14 @@ request that would pass a run, project or workspace cap is refused before it is 
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import copy
 import json
 import os
 import threading
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 from . import prices, settings
 from .client import ChatClient
@@ -61,16 +63,30 @@ def workspace_cap() -> float | None:
     return float(raw) if raw else None
 
 
+_PRIVATE: contextvars.ContextVar[bool] = contextvars.ContextVar("dclab_private_data", default=False)
+
+
+@contextlib.contextmanager
+def private_scope(private: bool = True) -> Iterator[None]:
+    """Inside this scope no model is offered to any purpose: work on data the person said must not leave (package 16.13)."""
+    token = _PRIVATE.set(bool(private) or _PRIVATE.get())
+    try:
+        yield
+    finally:
+        _PRIVATE.reset(token)
+
+
 class Gateway:
     def __init__(self, usage: UsageLog | None = None, transport: Callable[[dict[str, Any], settings.Purpose], Any] = _transport,
                  sleep: Callable[[float], None] = time.sleep, project_cap: Callable[[str], float | None] | None = None,
                  routing: Any = None, shadows: Any = None, shadow_runner: Callable[[Callable[[], None]], None] | None = None,
-                 clock: Callable[[], str] | None = None):
+                 clock: Callable[[], str] | None = None, project_private: Callable[[str], bool] | None = None):
         """``project_cap(project_id)`` returns a project's monthly euro cap (the wizard's budget) or None. ``routing``
         (models/routing.py) moves a purpose to another tier or names a shadow; ``shadows`` (models/shadow.py) logs how
         the shadow's answers compare; ``shadow_runner`` runs a shadow request (a background thread unless a test runs it
         in line); ``clock`` stamps the shadow rows."""
         self.usage, self.transport, self.sleep, self.project_cap = usage, transport, sleep, project_cap
+        self.project_private = project_private  # 16.13: a project whose data must not leave never gets a model, from any caller
         self.routing, self.shadows, self.clock = routing, shadows, clock or now
         self.shadow_runner = shadow_runner or (lambda fn: threading.Thread(target=fn, daemon=True).start())
         self._lock, self._held = threading.Lock(), {}  # euros held by requests in flight, per project ("p:<id>") and workspace ("w")
@@ -181,8 +197,9 @@ class Gateway:
         """A client for one purpose, or None when no model serves it (callers then take their deterministic path).
         ``model`` replaces the tier's model on the same endpoint (a command-line choice); the usage log records it."""
         p = settings.purpose(purpose)
-        if not self.available(purpose):
-            return None
+        private = bool(project_id and self.project_private and self.project_private(project_id))
+        if _PRIVATE.get() or private or not self.available(purpose):
+            return None  # private data (a confidential brief, 16.13): no purpose gets a model; callers take their deterministic path
         return Bound(self, purpose, p, None, project_id, draft_id, model)
 
     def record(self, purpose: str, model: str, usage: dict[str, Any] | None, seconds: float, attempts: int, outcome: str,

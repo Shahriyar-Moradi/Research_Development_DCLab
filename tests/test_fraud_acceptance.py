@@ -196,9 +196,10 @@ class AcceptanceTest(unittest.TestCase):
         self.assertEqual(found["key"], "imbalanced")
         self.assertEqual(found["source"], "data")
 
-    @unittest.expectedFailure  # 15.10
     def test_a_finished_project_exports_a_scoring_service(self):
-        from dclab_rnd.studio import service  # noqa: F401  (the export module)
+        from dclab_rnd.studio import service
+
+        self.assertTrue(callable(service.export))  # tested end to end in tests/test_service_export.py
 
     def test_end_to_end_the_engine_reaches_the_hand_solutions_decisions(self):
         store = ProjectStore(Path(tempfile.mkdtemp()))

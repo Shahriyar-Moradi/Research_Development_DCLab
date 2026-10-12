@@ -951,6 +951,7 @@ class FrameRecipe:
         keep: tuple[str, ...] | None = None,
         select_k: int | None = None,
         behaviour: dict[str, Any] | None = None,
+        programs: dict[str, Any] | None = None,
     ) -> None:
         self.bundle = bundle
         self.name = name
@@ -959,6 +960,7 @@ class FrameRecipe:
         self.keep = keep
         self.select_k = select_k
         self.behaviour = behaviour  # 15.4: {"entities", "time_column", "mode", "numeric"} for dclab_core.behaviour
+        self.programs = programs  # 18.5: {"programs", "allowed", "entities", "time_column", "target", "mode"} for dclab_core.features
 
     def base_columns(self, frame: pd.DataFrame) -> list[str]:
         spec = self.bundle.spec
@@ -976,6 +978,8 @@ class FrameRecipe:
         extra = [_derive(self.bundle, name, frame) for name in self.derive]
         if self.behaviour is not None:  # computed from this frame (and the fit rows' labels): never from another fold
             extra.append(self.entity_model.transform(frame).set_axis(frame.index))
+        if self.programs is not None:  # 18.5: the language's programs, computed from this frame only (no label is read)
+            extra.append(self.program_model.transform(frame).set_axis(frame.index))
         return pd.concat([base, *extra], axis=1) if extra else base
 
     def fit(self, frame: pd.DataFrame, y: pd.Series) -> "FrameRecipe":
@@ -985,6 +989,12 @@ class FrameRecipe:
             from dclab_core.behaviour import EntityBehaviour
 
             self.entity_model = EntityBehaviour(**self.behaviour).fit(frame, y)
+        if self.programs is not None:
+            from dclab_core.features import Language, Programs
+
+            c = self.programs
+            language = Language(c["allowed"], target=c.get("target"), time_column=c.get("time_column"), entities=c.get("entities", ()))
+            self.program_model = Programs(language, c["programs"], c.get("mode", "event")).fit(frame, y)
         matrix = self._matrix(frame)
         self.names = list(matrix.columns)
         if self.select_k and self.select_k < len(self.names):
@@ -1148,6 +1158,7 @@ def make_recipe(bundle: TaskBundle, name: str, include_blocked: Iterable[str] = 
         keep=config.get("keep"),
         select_k=config.get("select_k"),
         behaviour=config.get("behaviour"),
+        programs=config.get("programs"),
     )
 
 
@@ -1235,6 +1246,7 @@ def fit_and_predict(
     return {
         "predictions": predictions,
         "model": model,
+        "recipe": recipe,  # the fitted feature builder (15.10's service export keeps it with the model)
         "names": names,
         "fit_rows": int(len(rows)),
         "fit_seconds": float(fit_seconds),

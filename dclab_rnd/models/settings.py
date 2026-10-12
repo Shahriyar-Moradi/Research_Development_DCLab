@@ -59,6 +59,13 @@ PURPOSES: dict[str, Purpose] = {
     "brief_checker": Purpose("standard", 60, "the problem's description, the names of their files and columns, and what dclab_core's rules "
                                              "read from the description with the words it rests on (package 18.2's follow-up); never rows "
                                              "or cell values"),
+    "solution_planner": Purpose("standard", 90, "the problem brief's fields, the data findings' ids, topics and statements (summaries), and "
+                                                "the rule plan's decisions (dclab_core's solution planner, package 18.4); never rows or cell values"),
+    "critic": Purpose("standard", 90, "the error analysis' weaknesses (ids and statements), the screened model's name and training-CV score, "
+                                      "and the catalogue of experiments (dclab_core's critic, package 18.6); never rows or cell values"),
+    "feature_engineer": Purpose("standard", 90, "the goal, the prediction moment, the task, the target's name, the entity and time columns, "
+                                                "the coordinate pairs and each column's name, kind, missing share and distinct share "
+                                                "(dclab_core's feature engineer, package 18.5); never rows or cell values"),
     "data_investigator": Purpose("standard", 60, "the prediction moment, the target's name and the task, and each column's name, kind, "
                                                  "missing share and distinct share (dclab_core's data investigator, package 18.3); "
                                                  "never rows or cell values"),

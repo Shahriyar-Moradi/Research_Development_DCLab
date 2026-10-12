@@ -223,9 +223,32 @@ class DataLimitTests(unittest.TestCase):
                    {"customers.csv": list(table.columns)}, checker=GatewayAdvisor(gw))
         self.assertEqual(self.assertWithinLimit("brief_checker"), set())
 
+    def test_the_feature_engineer_sees_column_names_and_shares_never_values(self):
+        from dclab_core.features import Language, engineer
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        table = marked_table()
+        gw = gateway({"feature_engineer": [{"content": '{"programs": []}', "tool_calls": [], "usage": {}}]})
+        engineer(GatewayAdvisor(gw), table, Language([c for c in table.columns if c != "churned"], target="churned"), moment="At signup.")
+        self.assertEqual(self.assertWithinLimit("feature_engineer"), set())
+
+    def test_the_planner_and_the_critic_see_summaries_never_values(self):
+        from dclab_core.analyse import analyse
+        from dclab_core.plan import plan_with
+        from dclab_core.review import critique, review
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        table = marked_table()
+        findings = analyse({"customers": table}, target="churned", task="binary")
+        gw = gateway({"solution_planner": [{"content": '{"decisions": []}', "tool_calls": [], "usage": {}}],
+                      "critic": [{"content": '{"hypotheses": []}', "tool_calls": [], "usage": {}}]})
+        plan_with(GatewayAdvisor(gw), None, findings)
+        y = table["churned"].to_numpy()
+        critique(GatewayAdvisor(gw), review("binary", y, np.full(len(y), 0.3), frame=table.drop(columns="churned")), "binary")
+        self.assertEqual(self.assertWithinLimit("solution_planner"), set())
+        self.assertEqual(self.assertWithinLimit("critic"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
-                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker"}
+                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

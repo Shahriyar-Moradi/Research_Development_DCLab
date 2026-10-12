@@ -41,7 +41,7 @@ class Services:
         self.workspace_id = db.workspace_for(self.store.home) if db.database_url(required=False) else None
         self.projects, self.drafts, self.intern_sessions = open_stores(self.store.home)  # files, or PostgreSQL when DCLAB_DATABASE_URL is set
         # every model request goes through it; the routing moves a purpose to another model or names a shadow (A6.4)
-        self.gateway = models.Gateway(models.open_usage(self.store.home), project_cap=self.project_cap,
+        self.gateway = models.Gateway(models.open_usage(self.store.home), project_cap=self.project_cap, project_private=self.project_private,
                                       routing=open_routing(self.store.home), shadows=open_shadows(self.store.home))
         if primary:  # the process's fallback is the server's own workspace; a request or job names its own (dclab_rnd.context)
             models.install(self.gateway)  # the engine's stage notes run outside a request
@@ -72,6 +72,12 @@ class Services:
         self.mcp = None
 
     # ------------------------------------------------------------------ the model budget
+    def project_private(self, project_id: str) -> bool:  # 16.13: data the person said must not leave reaches no model
+        try:
+            return bool((self.projects.get(project_id).get("settings") or {}).get("private"))
+        except KeyError:
+            return False
+
     def project_cap(self, project_id: str) -> float | None:  # the wizard's euro budget is the project's monthly cap
         try:
             value = (self.projects.get(project_id).get("budget") or {}).get("eur")

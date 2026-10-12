@@ -72,8 +72,10 @@ class ECOD(_Detector):
     """Empirical-cumulative-distribution outlier detection (Li et al., 2022): for each column, the tail probability of
     the value on the fit rows (the left, right or skew-chosen tail), summed as -log over columns."""
 
+    GRID = 1001  # the fit rows' distribution as quantiles: a detector's state never holds a row's value
+
     def _learn(self, X: np.ndarray) -> None:
-        self.sorted_ = np.sort(X, axis=0)
+        self.sorted_ = np.quantile(X, np.linspace(0, 1, min(self.GRID, max(len(X), 2))), axis=0)
         mean, std = X.mean(axis=0), X.std(axis=0)
         self.skew_ = np.where(std > 0, ((X - mean) ** 3).mean(axis=0) / np.where(std > 0, std, 1) ** 3, 0.0)
 

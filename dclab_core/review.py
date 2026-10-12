@@ -303,12 +303,7 @@ def review(task: str, y: Sequence[Any], pred: Any, *, metric: str = "", frame: O
         if task not in kind.tasks or name in tried:
             continue
         cited = [f for topic in kind.addresses for f in by_topic.get(topic, [])]
-        if not cited:
-            continue
-        if name == "predictions.clip" and not any(_topic_of(f) == "out_of_range" or
-                                                  (f.evidence.get("share_predicted_above_cap") or 0) > 0.01 for f in cited):
-            continue  # a cap alone does not make clipping useful: only predictions beyond it do
-        if name == "loss.median" and metric not in ABSOLUTE_METRICS:
+        if not _allowed(name, cited, metric):
             continue
         hypotheses.append(Hypothesis(statement=f"{kind.gain[:1].upper()}{kind.gain[1:]}.", cites=[f.id for f in cited][:20],
                                      test=("Cross-validate the same recipe and family with this change on the same training folds; "
@@ -319,6 +314,21 @@ def review(task: str, y: Sequence[Any], pred: Any, *, metric: str = "", frame: O
         experiments.append((rank, Experiment(name=name, hypothesis=len(hypotheses) - 1, expected_gain=kind.gain[:500], cost=kind.cost)))
     ranked = [e for _, e in sorted(experiments, key=lambda pair: pair[0])]
     return Review(weaknesses=found[:100], hypotheses=hypotheses[:20], next_experiments=ranked[:20])
+
+
+def _allowed(name: str, cited: Sequence[Finding], metric: str) -> bool:
+    """Whether an experiment follows from the cited weaknesses: one of them must be what it addresses, and its own
+    condition must hold (a median loss only for an absolute-error metric; clipping only when predictions leave the range)."""
+    kind = CATALOGUE.get(name)
+    relevant = [f for f in cited if kind is not None and _topic_of(f) in kind.addresses]
+    if not relevant:
+        return False
+    if name == "predictions.clip" and not any(_topic_of(f) == "out_of_range" or
+                                              (f.evidence.get("share_predicted_above_cap") or 0) > 0.01 for f in relevant):
+        return False  # a cap alone does not make clipping useful: only predictions beyond it do
+    if name == "loss.median" and metric not in ABSOLUTE_METRICS:
+        return False
+    return True
 
 
 def runnable(experiments: Sequence[Experiment]) -> list[Experiment]:
@@ -362,3 +372,84 @@ def adopt(base_folds: Sequence[float], variant_folds: Sequence[float], higher: b
     return {"adopted": bool(adopted), "mean_gain": _r(mean, 6), "standard_error": _r(se, 6), "bound": _r(bound, 6),
             "fold_gains": [_r(g, 6) for g in gains],
             "folds_better": int((gains > 0).sum()), "why": why}
+
+
+# ------------------------------------------------------------------------------------------------ the critic (a role)
+
+def _critic_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    review: Review = inputs["review"]
+    task = inputs["task"]
+    return {"task": task, "metric": inputs.get("metric", ""), "model": inputs.get("model", ""),
+            "training_cv": inputs.get("score"), "tried": list(inputs.get("tried", []))[:10],
+            "weaknesses": [f"{w.id}: {w.statement[:300]}" for w in review.weaknesses][:30],
+            "experiments": {name: f"{kind.gain} ({'runs on folds' if kind.runnable else 'needs ' + kind.needs})"
+                            for name, kind in CATALOGUE.items() if task in kind.tasks}}
+
+
+def _critic_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict[str, Any]:
+    """Hypotheses kept only when they cite measured weaknesses and name an experiment the catalogue has for this task;
+    the order of the kept ones is the critic's ranking."""
+    items = answer.get("hypotheses")
+    if not isinstance(items, list):
+        raise ValueError("hypotheses must be a list")
+    review, task, tried = inputs["review"], inputs["task"], set(inputs.get("tried", []))
+    kept, refused, order = [], [], []
+    for index, item in enumerate(items):
+        if index >= 10 or not isinstance(item, Mapping):
+            refused.append({"experiment": str(item.get("experiment") if isinstance(item, Mapping) else item)[:80],
+                            "why": "more than ten hypotheses" if index >= 10 else "not a hypothesis object"})
+            continue
+        name = item.get("experiment")
+        try:
+            hypothesis = Hypothesis(statement=str(item.get("statement") or "")[:3900] or "(no statement)",
+                                    cites=[str(c) for c in item.get("cites") or []][:20] or ["(none)"],
+                                    test=f"run {name} on the same folds")
+        except Exception:  # noqa: BLE001 - a malformed proposal
+            refused.append({"experiment": str(name)[:80], "why": "malformed"})
+            continue
+        why = check(hypothesis, review.weaknesses)
+        if why is None and (name not in CATALOGUE or task not in CATALOGUE[name].tasks):
+            why = f"{name!r} is not an experiment of the catalogue for a {task} task"
+        if why is None:
+            cited = [w for w in review.weaknesses if w.id in set(hypothesis.cites)]
+            if not _allowed(name, cited, inputs.get("metric", "")):
+                why = f"{name} does not follow from the weaknesses cited (none is what it addresses, or its condition fails)"
+        if why is None and name in tried:
+            why = f"{name} was already tried"
+        if why:
+            refused.append({"experiment": str(name)[:80], "why": why})
+            continue
+        kept.append({"experiment": name, "statement": hypothesis.statement, "cites": hypothesis.cites})
+        if name not in order:
+            order.append(name)
+    return {"order": order, "kept": kept, "refused": refused}
+
+
+def _critic_role():
+    from dclab_core.agents import Role
+
+    return Role(name="critic",
+                description="Reads the measured weaknesses and ranks the catalogue's experiments, each hypothesis citing what it fixes; "
+                            "code refuses one that cites nothing measured or names an experiment the catalogue lacks.",
+                evidence=_critic_evidence, parse=_critic_parse,
+                fallback=lambda inputs: {"order": [e.name for e in inputs["review"].next_experiments], "kept": [], "refused": []})
+
+
+CRITIC = _critic_role()
+
+
+def critique(advisor: Any, review_: Review, task: str, *, metric: str = "", model: str = "", score: Optional[float] = None,
+             tried: Sequence[str] = ()) -> dict[str, Any]:
+    """The experiments in the critic's order (the rule order with no advisor, or when it abstains or is refused)."""
+    from dclab_core.advisor import EvidenceError
+    from dclab_core.agents import run_role
+
+    score = score if score is not None and np.isfinite(score) else None  # a missing score is said as missing, never NaN
+    try:
+        result = run_role(CRITIC, advisor, {"review": review_, "task": task, "metric": metric, "model": model, "score": score,
+                                             "tried": list(tried)})
+    except EvidenceError:  # the critic is advice: a bad summary falls back to the rules' order, never drops the review
+        return {"order": [e.name for e in review_.next_experiments], "kept": [], "refused": [], "source": "fallback",
+                "reason": "the evidence could not be summarised"}
+    order = result.output["order"] + [e.name for e in review_.next_experiments if e.name not in result.output["order"]]
+    return {**result.output, "order": order, "source": result.source, "reason": result.reason}

@@ -80,6 +80,7 @@ class Prepared:
         self.code_rule = code_rule  # how bundle.spec.categorical_columns was decided
         self.plan: dict[str, Any] | None = None  # the project's adopted dclab_core plan (17.4), set on every prepare
         self.label_info: dict[str, Any] | None = None  # the project's label file (15.2), set on every prepare
+        self.critic: Any = None  # the critic's advisor (18.6) when the project turns it on, set on every prepare
 
     @property
     def task(self) -> str:
@@ -113,9 +114,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     solution = Solution(**project["solution"])
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared)
-           + str(project.get("pack")) + _hash(project.get("labels")))  # the pack and the label file (its key too) change what runs
+           + str(project.get("pack")) + _hash(project.get("labels")) + _hash(project.get("feature_programs")))  # each changes what runs
     if key in _BUNDLES:
         _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
+        _BUNDLES[key].critic = _critic_advisor(project)
         return _BUNDLES[key]
     path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
     frame = load_table(path)
@@ -213,9 +215,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     codes = category_code_columns(bundle.X_train[features], declared)
     bundle.spec = replace(spec, categorical_columns=tuple(codes))
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
-    recipes = _register_recipes(bundle.spec, X, roles, datetime_time)
+    recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"))
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
+    prepared.critic = _critic_advisor(project)
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
@@ -243,7 +246,26 @@ def _behaviour_config(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
             "grouped": [spec.group_column] if spec.group_column and spec.split_strategy in ("group", "time_group") else []}
 
 
-def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], datetime_time: bool) -> dict[str, dict[str, Any]]:
+def _programs_config(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], engineered: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+    """The engineered recipe's settings (18.5): the project's programs, checked again against this table's usable columns."""
+    if not engineered:
+        return None
+    from dclab_core.behaviour import mode_for
+    from dclab_core.features import Language
+
+    allowed = [c for c, role in roles.items() if role == "feature"]
+    entities = [c for c, role in roles.items() if role == "group"]
+    time = spec.time_column or next((c for c, role in roles.items() if role == "identifier" and column_kind(X[c]) == "datetime"), None)
+    language = Language(allowed, target=spec.target, time_column=time, entities=entities)
+    kept, _ = language.check_all(engineered)
+    if not kept:
+        return None
+    return {"programs": kept, "allowed": allowed, "entities": entities, "time_column": time, "target": spec.target,
+            "mode": mode_for(spec.decision_time_contract)}
+
+
+def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], datetime_time: bool,
+                      engineered: list[dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
     features = [c for c, role in roles.items() if role == "feature"]
     codes = set(spec.categorical_columns)
     numeric = [c for c in features if c not in codes and pd.api.types.is_numeric_dtype(X[c]) and X[c].nunique() > 2]
@@ -264,6 +286,11 @@ def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
         if 2 <= len(numeric) <= 8:
             pairs = len(numeric) * (len(numeric) - 1) // 2
             recipes["poly2"] = {"description": f"raw + all {pairs} pairwise products of the numeric inputs{left_out}", "derive": ("poly2",)}
+        programs = _programs_config(spec, X, roles, engineered)
+        if programs is not None:  # 18.5: the feature engineer's checked programs, screened like any recipe
+            recipes["engineered"] = {"description": f"raw + {len(programs['programs'])} proposed feature programs: "
+                                                    + ", ".join(p["name"] for p in programs["programs"][:8])
+                                                    + f"; mode `{programs['mode']}`", "derive": (), "programs": programs}
         behaviour = _behaviour_config(spec, X, roles, numeric)
         if behaviour is not None:  # 15.4: an entity (or places) to learn behaviour from
             recipes["entity_behaviour"] = {"description": f"raw + behaviour of each {', '.join(behaviour['entities']) or 'place'}: counts per entity, "
@@ -618,6 +645,16 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
 REVIEW_ROUNDS = 2
 
 
+def _critic_advisor(project: dict[str, Any]) -> Any:
+    """The critic (18.6) ranks the review's experiments only when the project turns it on (off until it is measured)."""
+    if not (project.get("settings") or {}).get("critic"):
+        return None
+    from ..core_advisor import GatewayAdvisor
+    from ..models import installed
+
+    return GatewayAdvisor(installed(), project_id=project.get("id"))
+
+
 def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
     """dclab_core.review on the leader's out-of-fold predictions (training rows only), then at most REVIEW_ROUNDS
     experiments, each a cross-validation on the same folds kept only by dclab_core.review.adopt (package 17.6). A change
@@ -626,7 +663,7 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
     None, logged, when the review cannot run: the stage stands as it was."""
     try:
         from dclab_core.analyse import target_cap
-        from dclab_core.review import CATALOGUE, adopt, review as review_of, runnable
+        from dclab_core.review import CATALOGUE, adopt, critique, review as review_of, runnable
 
         bundle, spec, family = p.bundle, p.bundle.spec, selected["model"]
         metric, higher = spec.primary_metric, spec.higher_is_better
@@ -652,10 +689,23 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
                              cap=cap, entities=entities, classes=names, tried=tried)
             if number > rounds_allowed:
                 break
+            reasons = {e.name: (last.hypotheses[e.hypothesis].statement, last.hypotheses[e.hypothesis].cites) for e in last.next_experiments}
+            ranked = [e.name for e in runnable(last.next_experiments)]
+            critic = None
+            if p.critic is not None:  # 18.6: the critic's ranking, each hypothesis checked against the measured weaknesses
+                critic = critique(p.critic, last, kind, metric=metric, model=family, score=rn._mean(current, metric), tried=tried)
+                for k in critic["kept"]:  # the critic may add a catalogue experiment the rules did not list, citing what it fixes
+                    if CATALOGUE[k["experiment"]].runnable and k["experiment"] not in ranked:
+                        ranked.append(k["experiment"])
+                    # the claim says what the catalogue says the experiment does; the critic's own words stay in the record only
+                    gain = CATALOGUE[k["experiment"]].gain
+                    reasons.setdefault(k["experiment"], (f"{gain[:1].upper()}{gain[1:]}.", k["cites"]))
+                position = {name: i for i, name in enumerate(critic["order"])}
+                ranked = sorted(ranked, key=lambda name: position.get(name, len(position)))
             pick = None
-            for e in runnable(last.next_experiments):
+            for e in ranked:
                 for candidate in [family] + [f for f in ranking if f != family]:
-                    change = rn.change_params(CATALOGUE[e.name].change, candidate, bundle.task_type)
+                    change = rn.change_params(CATALOGUE[e].change, candidate, bundle.task_type)
                     if change is not None:
                         pick = (e, candidate, change)
                         break
@@ -663,14 +713,14 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
                     break
             if pick is None:
                 break
-            experiment, candidate, change = pick
-            tried.append(experiment.name)
+            name, candidate, change = pick
+            tried.append(name)
             # another family keeps only the changes every family makes (the "_" ones), never the leader's own parameters
             trial = {**(params if candidate == family else {k: v for k, v in params.items() if k.startswith("review__")}), **change}
             try:
-                row = rn.cross_validate(bundle, recipe, candidate, trial, config_id=f"review-{experiment.name}")
+                row = rn.cross_validate(bundle, recipe, candidate, trial, config_id=f"review-{name}")
             except Exception as exc:  # noqa: BLE001 - this change cannot run here; the rounds before it stand
-                rounds.append({"round": number, "experiment": experiment.name, "family": candidate, "base_family": family,
+                rounds.append({"round": number, "experiment": name, "family": candidate, "base_family": family,
                                "adopted": False, "why": f"could not run: {type(exc).__name__}"})
                 break
             base_mean = rn._mean(current, metric)
@@ -681,10 +731,13 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
                             abs(rn._mean(screened[candidate], metric)) * margin if relative else margin)
                 decision = {**decision, "adopted": own["adopted"], "own_family_gain": own,
                             "why": decision["why"] + f"; against {candidate}'s own screen: " + own["why"]}
-            hypothesis = last.hypotheses[experiment.hypothesis]
-            rounds.append({"round": number, "experiment": experiment.name, "hypothesis": hypothesis.statement, "cites": hypothesis.cites,
+            statement, cites = reasons[name]
+            rounds.append({"round": number, "experiment": name, "hypothesis": statement, "cites": cites,
                            "family": candidate, "base_family": family, "change": trial, "base_mean": base_mean,
-                           "variant_mean": rn._mean(row, metric), "margin": needed, **decision})
+                           "variant_mean": rn._mean(row, metric), "margin": needed, **decision,
+                           **({"critic": {**{k: critic[k] for k in ("source", "reason", "order", "refused")},
+                                          "statement": next((k["statement"] for k in critic["kept"] if k["experiment"] == name), None)}}
+                              if critic else {})})
             if decision["adopted"]:
                 current, params, family = row, trial, candidate
         return {"family": family, "rounds": rounds, "adopted_params": params, "review": last.model_dump(mode="json") if last else None,
@@ -919,6 +972,13 @@ def _audit_use(store: ProjectStore, project_id: str, used: dict[str, Any] | None
 
 
 def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None) -> dict[str, Any]:
+    from ..models.gateway import private_scope
+
+    with private_scope(bool((project.get("settings") or {}).get("private"))):  # 16.13: private data never reaches a model
+        return _execute_stage(store, project_id, stage, project, reuse_reason)
+
+
+def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None) -> dict[str, Any]:
     p = prepare(store, project)
     meta = STAGE_BY_KEY[stage]
     eid = f"PRJ-{project_id[:6]}-{stage}"

@@ -83,13 +83,32 @@ class EntityBehaviour:
 
     # -------------------------------------------------------------------- the frame's own structure
 
+    def _hash(self, values: pd.Series) -> pd.Series:
+        """Entity values and place cells as salted hashes when ``salt`` is set (an exported service keeps no raw key)."""
+        salt = getattr(self, "salt", None)
+        if not salt:
+            return values
+        import hashlib
+
+        # every value as fit saw it (a missing one is "nan" there too), so a hashed key finds the same rate
+        return values.astype(str).map(lambda v: "h:" + hashlib.sha256(f"{salt}|{v}".encode()).hexdigest()[:16])
+
     def _places(self, frame: pd.DataFrame) -> dict[str, pd.Series]:
         cells = {}
         for prefix, lat, lon in self.pairs:
             ok = frame[lat].notna() & frame[lon].notna()
             cell = frame[lat].round(CELL_DIGITS).astype(str) + "_" + frame[lon].round(CELL_DIGITS).astype(str)
-            cells[prefix] = cell.where(ok)
+            cells[prefix] = self._hash(cell.where(ok)) if getattr(self, "salt", None) else cell.where(ok)
         return cells
+
+    def hide_keys(self, salt: str) -> None:
+        """Keep the learned rates under salted hashes of their keys; every later transform hashes its keys the same way,
+        so it computes the same features without any raw entity value or place in the object."""
+        import hashlib
+
+        h = lambda v: "h:" + hashlib.sha256(f"{salt}|{v}".encode()).hexdigest()[:16]  # noqa: E731
+        self.rates = {name: {h(k): v for k, v in table.items()} for name, table in self.rates.items()}
+        self.salt = salt
 
     def _day(self, frame: pd.DataFrame) -> Optional[pd.Series]:
         if not self.time_column or self.time_column not in frame:
@@ -101,30 +120,28 @@ class EntityBehaviour:
             return np.argsort(pd.to_datetime(frame[self.time_column], errors="coerce").to_numpy(), kind="stable")
         return np.arange(len(frame))  # no time: the frame's own order
 
+    def _stamp(self) -> Optional[pd.Series]:
+        if not self.time_column or self.time_column not in self.current:
+            return None
+        return pd.to_datetime(self.current[self.time_column], errors="coerce").reset_index(drop=True)
+
     def _until_day(self, values: pd.Series, keys: pd.DataFrame, how: str) -> np.ndarray:
-        """Per row, the sum (or count) over rows of the same keys whose day is on or before the row's day (audit)."""
-        day = self._day(self.current)
-        if day is None:  # no time: the window is the whole frame
-            grouped = values.groupby([keys[c] for c in keys.columns], dropna=False)
-            return grouped.transform("sum" if how == "sum" else "size").to_numpy(dtype=float)
-        frame = keys.assign(__day=day.to_numpy(), __v=values.to_numpy())
-        cols = list(keys.columns)
-        per_day = frame.groupby(cols + ["__day"], dropna=False)["__v"].agg("sum" if how == "sum" else "size").rename("__x").reset_index()
-        per_day = per_day.sort_values(cols + ["__day"])
-        per_day["__x"] = per_day.groupby(cols, dropna=False)["__x"].cumsum()
-        return frame.merge(per_day, on=cols + ["__day"], how="left")["__x"].to_numpy(dtype=float)
+        """Per row, the sum (or count) over rows of the same keys whose day is on or before the row's day (audit); a row
+        without a day has no window (NaN)."""
+        from dclab_core.features import _window
+
+        stamp = self._stamp()
+        values = values.reset_index(drop=True).astype(float) if how == "sum" else pd.Series(np.ones(len(keys)))
+        if stamp is None:  # no time: the window is the whole frame
+            return values.groupby([keys[c] for c in keys.columns], dropna=False).transform("sum").to_numpy(dtype=float)
+        return _window(keys.reset_index(drop=True), stamp.dt.floor("D"), values, strict=False)
 
     def _count(self, keys: pd.DataFrame) -> np.ndarray:
         """Rows sharing the keys: up to the end of the row's day (audit), or strictly earlier ones (event)."""
         keys = keys.astype(str).reset_index(drop=True)
         if self.mode == "audit":
             return self._until_day(pd.Series(np.ones(len(keys))), keys, "size")
-        order = self._order(self.current)
-        ordered = keys.iloc[order]
-        earlier = ordered.groupby(list(keys.columns), dropna=False).cumcount().to_numpy(dtype=float)
-        out = np.empty(len(keys))
-        out[order] = earlier
-        return out
+        return self._earlier(keys, pd.Series(np.ones(len(keys))))
 
     def _mean(self, values: pd.Series, entity: pd.Series) -> np.ndarray:
         values = values.reset_index(drop=True).astype(float)
@@ -134,14 +151,21 @@ class EntityBehaviour:
             total = self._until_day(values.fillna(0), keys, "sum")
             seen = self._until_day(values.notna().astype(float), keys, "sum")
             return total / np.where(seen > 0, seen, np.nan)
-        order = self._order(self.current)
-        v, e = values.iloc[order], entity.iloc[order]
-        total = v.fillna(0).groupby(e).cumsum() - v.fillna(0)
-        seen = v.notna().astype(float).groupby(e).cumsum() - v.notna().astype(float)
-        mean = (total / seen.replace(0, np.nan)).to_numpy()
-        out = np.empty(len(values))
-        out[order] = mean
-        return out
+        keys = entity.to_frame("e")
+        total = self._earlier(keys, values.fillna(0))
+        seen = self._earlier(keys, values.notna().astype(float))
+        return total / np.where(seen > 0, seen, np.nan)
+
+    def _earlier(self, keys: pd.DataFrame, values: pd.Series) -> np.ndarray:
+        """Event mode: the sum over rows of the same keys with a strictly earlier time (rows at the same time never see
+        each other; a row without a time has no history); without a time column, the rows above."""
+        from dclab_core.features import _window
+
+        stamp = self._stamp()
+        values = values.reset_index(drop=True).astype(float)
+        if stamp is None:
+            return (values.groupby([keys[c] for c in keys.columns], dropna=False).cumsum() - values).to_numpy(dtype=float)
+        return _window(keys.reset_index(drop=True), stamp, values, strict=True)
 
     # -------------------------------------------------------------------- fit and transform
 
@@ -198,7 +222,7 @@ class EntityBehaviour:
         for entity in self.entities:
             if entity not in f:
                 continue
-            e = f[entity]
+            e = self._hash(f[entity]) if getattr(self, "salt", None) else f[entity]
             scale = 1.0 if entity in self.grouped else rows  # raw when the entity's rows stay together, else a share
             out[f"{entity}_count"] = self._count(e.to_frame()) / scale
             if entity not in self.grouped:

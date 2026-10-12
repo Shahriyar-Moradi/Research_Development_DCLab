@@ -30,7 +30,9 @@ MODEL_IMPORTS = {
     "pu_bagging": ("from dclab_rnd.expansion.detectors import PUBagging", "PUBagging()"),
 }
 NOT_EXPORTED = {"entity_behaviour": "the entity behaviour recipe (package 15.4) is not written into notebooks yet: export the "
-                                    "project after choosing another recipe, or use the stage records"}
+                                    "project after choosing another recipe, or use the stage records",
+                "engineered": "the feature engineer's programs (package 18.5) are not written into notebooks yet: export the "
+                              "project after choosing another recipe, or use the stage records"}
 
 
 class ExportUnsupported(ValueError):
