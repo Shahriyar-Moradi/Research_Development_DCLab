@@ -130,7 +130,7 @@ How to work:
 | 8.3 | Remove the old UI at `/classic` | Done (2026-10-07) | The owner decided: drop the old UI; research campaigns stay on the command line (`python -m dclab_rnd.agentic run|resume`). An inventory of what only the old UI did: starting, pausing and resuming campaigns (now the command line; Ctrl+C pauses a run, and Compute shows a stopped run's resume command), the Knowledge view of campaign lessons (`/api/knowledge` stays for API users), and four things now built in the product with its existing components: deleting a project (Workflow page) and an intern session (Sessions tab), each with a confirm dialog; a link to the field guide `/guide` (Evidence); and each research trial's files (Compute's job detail). Removed: the `/classic` route, its 16 files in `agentic/static/{index.html,css,js}`, its entry among the public page shells, Compute's "Open in the classic UI" link and the stale Playwright script that drove the old page; the docs and texts that pointed to it now name the command line. The `/api/runs` routes stay (the Jobs page's export link, the command line's runs and API users read them); tests check that `/classic` and its files answer 404 and that the research map is on the Lab page |
 | 8.4 | Meter the euro budget | Done (built in A1.2, 10.6 and 11.x; recorded 2026-10-07) | The owner decided: model spend at a price list; compute on this machine is not billed. Every model request of the product (Home agent, intern, evidence, parsing, synthetic, explanations) goes through the gateway, which records its tokens with the project (`models/usage.py`), turns them into euros with the one price table (`models/prices.py`, or a file named by `DCLAB_PRICES_FILE`), shows the month's total on Compute and Admin, and refuses before sending a request that would pass the project's wizard budget, an intern session's cap, the workspace's `DCLAB_WORKSPACE_MONTHLY_EUR` or a person's monthly limit, saying which and what is left (the legacy research campaign's own client is stopped only once a cap is reached: `check_external`). Open: no price is configured (none is ever guessed), so until the owner adds the model's checked price to `models/prices.py` or to a JSON file named by `DCLAB_PRICES_FILE` the pages say money is not metered and euro caps cannot stop remote requests; local models cost nothing |
 
-Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file. Part 4 (packages 15.x, rare events with partial labels: what a fraud challenge taught, built so DCLab solves such problems itself) follows it, then Part 5 (packages 16.x: a problem-kind interface and many more kinds of problems, up to solving a whole challenge from its brief) and Part 6 (packages 17.x: understand the problem, analyse the data for decisions, plan, review and report, as a portable core the main product can adopt; built first, after 15.1).
+Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file. Part 4 (packages 15.x, rare events with partial labels: what a fraud challenge taught, built so DCLab solves such problems itself) follows it, then Part 5 (packages 16.x: a problem-kind interface and many more kinds of problems, up to solving a whole challenge from its brief) and Part 6 (packages 17.x: understand the problem, analyse the data for decisions, plan, review and report, as a portable core the main product can adopt; built first, after 15.1), and Part 7 (packages 18.x: the agentic layer, model roles that understand, investigate, plan, engineer features, criticise, improve and report, each checked by code and measured before it is on by default).
 
 ---
 
@@ -1943,3 +1943,130 @@ traced to a record; prose through the citation check. Tests on the replica proje
 5. **15.7-15.9** beside 4; the other kinds of Part 5 by the owner's priority; **15.11** with the owner.
 6. **17.8** after 17.4 (the first outputs worth adopting), then kept current with every package: each new output
    gets its mapping onto the main product's contracts in the same package.
+
+
+# Part 7 — The agentic layer: models that understand, investigate, plan, critique and improve
+
+**Why this Part.** The owner, 2026-10-12: involve more AI, agentic AI and LLMs inside the workflow, to understand
+problems better, build better workflows, decide better and do more, across the variety of machine-learning problems.
+
+**How, without losing what makes DCLab careful.** Models are strong at meaning and judgment: reading a brief, knowing
+what a column of a payments table usually means and when it is written, recalling which features a domain uses,
+criticising a plan, explaining a result. Code is strong at what must be exact: statistics, splits, fits, metrics and
+the selection rules. So every agent here *proposes*, and code *checks and executes* (the main product's rule as
+well: "agents propose; deterministic services validate"). Each agent:
+
+- is a role in `dclab_core/agents/` with a typed input (aggregates and names, never rows), a typed output, a validator
+  (quotes in the person's words, citations to findings or evidence records, values valid for the task) and a
+  deterministic fallback, so DCLab works with the model off and degrades to the rules when it abstains or fails;
+- has its prompt as a versioned file in `dclab_core/prompts/` (hash-checked, as in A4.3), so the main product runs the
+  same prompt through its own gateway (the `Advisor` protocol of 17.1);
+- records each proposal as a `Decision` with `source="advisor"`, kept, changed or refused by code or a person, and
+  traced (the agent-step traces of A2);
+- is on by default only after it is *measured*: on the replicas and the benchmark it must beat or match the
+  deterministic path on the quality that matters (traps caught, decisions right, score gained) with no more unsafe
+  moves, at a known cost per solved problem.
+
+The roles, at the workflow's steps:
+
+| Role | Step | Proposes | Checked by |
+|---|---|---|---|
+| Problem analyst | understand (WF-01) | brief fields the rules left open, the clarifying questions that matter most, the domain framing | `understand`: whole quoted words that support the value |
+| Data investigator | analyse (WF-04, WF-05) | when each column is written relative to the moment, leaks to test, entities, domain meanings | each claim cites a column and becomes a check code runs (`analyse`, the leakage audit) |
+| Solution planner | plan (WF-01, WF-03) | framing, split, metric from the cost of errors, families, risks | the plan's validator: decisions valid for the task and the findings (no random split against an entity finding without a reason) |
+| Feature engineer | features (WF-06) | feature recipes in a small language (counts per entity and place, ratios, distances, time since, rolling windows) | compiled and fitted inside the training folds by code; kept only when cross-validation says so |
+| Critic | review (WF-07 to WF-09) | weaknesses, hypotheses, the next experiments | `critic_gate`: every claim against the recorded numbers; hypotheses must cite a measured weakness |
+| Experimenter | improve loop | which experiment to run next, when to stop | budgets (steps, euros), training folds only, holdout once |
+| Reporter | report (WF-10) | the prose of the report and the explanations | `cited.py`: every sentence cites a record, every number is in it, no production-ready claims |
+| Challenge coordinator | challenge mode (16.13) | the parts of a brief, their kinds, the requirement map | the requirement coverage table, checked against the files produced |
+
+| # | Package | Status |
+|---|---|---|
+| 18.1 | The agent contract in dclab_core: roles, prompts as files, a host runner | Not started |
+| 18.2 | The problem analyst, measured | Not started |
+| 18.3 | The data investigator, measured | Not started |
+| 18.4 | The solution planner, measured | Not started |
+| 18.5 | The feature engineer and its feature language | Not started |
+| 18.6 | The critic and the improve loop | Not started |
+| 18.7 | The reporter | Not started |
+| 18.8 | The multi-agent workflow over WF-01 to WF-10, with gates and budgets | Not started |
+| 18.9 | The agentic layer judged: agents against rules and a plain model, per role | Not started |
+
+## 18. The agentic layer
+
+### 18.1 The agent contract in dclab_core
+
+- **Delivers:** `dclab_core/agents/`: a `Role` (name, purpose, input schema of aggregates, output schema, validator,
+  fallback, budget), `run_role(role, advisor, inputs)` returning a validated output or the fallback with the reason,
+  and the roles' prompts as files under `dclab_core/prompts/` with a hash test; a scripted advisor for tests; the R&D
+  host runs roles through the gateway (`dclab_rnd.models`), the main product through its own (17.8).
+- **Done when:** a role runs with a scripted advisor, with none, and with one that fails or answers badly, and the
+  outputs are identical to the fallback in the last two cases; a changed prompt fails the hash test until recorded.
+
+### 18.2 The problem analyst, measured
+
+- **Delivers:** the analyst's prompt and wiring into `understand` (the hook exists); 24 written briefs of every kind
+  (a dev set of 12 and a sealed set of 12) with the expected fields; a measurement of field accuracy and of *wrong*
+  fields, with the rules alone, with the analyst, and with a plain prompted model.
+- **Done when:** with the analyst, more fields are right and none is wrong that the rules left unknown (the gate is
+  written before the run), measured on the sealed set once, with its cost.
+
+### 18.3 The data investigator, measured
+
+- **Delivers:** a role that reads `DataFindings` and the column names and kinds (never values), and proposes for each
+  column when it is written relative to the moment, suspected leaks, entities and meanings; each proposal becomes a
+  check that `analyse` or the leakage audit runs. Measured on the replicas and benchmark v3: planted traps found and
+  clean columns falsely accused, with and without the role.
+- **Done when:** it finds more planted traps than the rules alone without raising false alarms above the gate.
+
+### 18.4 The solution planner, measured
+
+- **Delivers:** a role that proposes the `SolutionPlan`'s decisions from the brief and the findings, each citing them;
+  the plan validator (17.4) refuses invalid ones; measured against the replicas' acceptance decisions.
+- **Done when:** its plans pass the validator and match the acceptance decisions at least as often as the rule-based
+  planner, with every refusal recorded.
+
+### 18.5 The feature engineer and its feature language
+
+- **Delivers:** a small feature language (group counts and shares per entity, place and time window; ratios;
+  distances between coordinate pairs; time since an entity's previous row; rolling statistics over past rows) that code
+  compiles into fold-safe transformers (15.4's behaviour recipe becomes a set of programs in it); a role that proposes
+  programs from the brief, the findings and domain knowledge; the feature ladder screens them.
+- **Done when:** on the fraud replica the engineer proposes the repeated-drop-off and short-trip features without
+  being told, and the ladder keeps them for a measured gain; no proposal can read the target or the holdout.
+
+### 18.6 The critic and the improve loop
+
+- **Delivers:** a critic that reads the stage records and the error analysis (17.6) and proposes hypotheses and
+  experiments; an experimenter that runs the most promising within budgets on training folds; every claim through
+  `critic_gate`.
+- **Done when:** on the replicas the loop improves the cross-validated score over one pass, the holdout is used once,
+  and every kept change cites the measured weakness it fixed.
+
+### 18.7 The reporter
+
+- **Delivers:** the report's prose (17.7) written by a model from the records and kept sentence by sentence only when
+  `cited.py` passes it; the deterministic report when nothing passes.
+- **Done when:** the replicas' reports are written with the model on and off, and no kept sentence fails the check.
+
+### 18.8 The multi-agent workflow
+
+- **Delivers:** the roles placed on the workflow graph's nodes (WF-01 to WF-10), passed the artefacts of the earlier
+  nodes, under the graph validator, with a person's approval at the gates, budgets per project, and the conversation
+  (Home and the intern) as the front that asks the person what only they can say.
+- **Done when:** the fraud replica and a churn and a regression replica run end to end with all roles on, every move
+  validated and traced, within a set budget, and the person asked only what the roles could not settle.
+
+### 18.9 The agentic layer judged
+
+- **Delivers:** a comparison per role and for the whole workflow: rules only, a plain prompted model, and the roles,
+  on the replicas and the sealed benchmark, with intervals, unsafe moves, and euros per solved problem; the gate
+  written before the runs.
+- **Done when:** each role is on by default only where it passed its gate; the others stay available and off.
+
+## Suggested order with Part 7
+
+Part 7 is built beside Part 6, each role right after the deterministic step it advises: **18.1** after 17.3;
+**18.2** now (the hook exists in 17.2); **18.3** with 17.3; **18.4** after 17.4; **18.5** with 15.4; **18.6** with
+17.6; **18.7** with 17.7; **18.8** and **18.9** once the roles exist. Live runs go through the gateway with caps and
+the owner's spending limits; tests use scripted advisors only.
