@@ -90,7 +90,10 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     final = records.get("final", {}).get("evidence", {})
     recipe = features.get("chosen") or features.get("selected") or "raw"
     family = models.get("chosen") or models.get("selected") or ("ridge" if regression else "logistic_regression")
-    params = {k.replace("model__", ""): v for k, v in (final.get("selected_model_params") or {}).items()}
+    every = final.get("selected_model_params") or {}
+    params = {k.replace("model__", ""): v for k, v in every.items() if not k.startswith("review__")}
+    change = {k: v for k, v in every.items() if k.startswith("review__")}  # what a review round kept (17.6), replayed below
+    weighted, clip = change.get("review__class_weight") == "balanced", change.get("review__clip") == "fit_range"
     metric = records.get("final", records.get("features", {})).get("primary_metric") or ("mae" if regression else "roc_auc")
     forbidden = [f["column"] for f in solution.get("forbidden", [])]
     identifiers = list(solution.get("identifiers", []))
@@ -124,13 +127,16 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
         _cell("markdown", f"## 3. Feature recipe `{recipe}`\n\n{features.get('rule', '')}\n\nEvery statistic (imputation, scaling, one-hot categories) is learned inside the training folds only."),
         _cell("code", _recipe_code(recipe, time_column, codes, encode_codes)),
         _cell("markdown", f"## 4. Model `{family}`\n\n{models.get('rule', '')}\n\n"
-              + (f"Tuned parameters accepted: `{params}`" if params else "Default parameters kept (tuning did not beat them by the required margin).")),
-        _cell("code", f"model = {ctor}\n" + (f"model.set_params(**{params!r})\n" if params else "") + "pipeline = Pipeline([('features', features), ('model', model)])"
-              + (MULTICLASS_HELPERS if task == "multiclass" else "")),
+              + (f"Tuned parameters accepted: `{params}`" if params else "Default parameters kept (tuning did not beat them by the required margin).")
+              + (f"\n\nKept by a review round on the training folds: `{change}` (a log target, predictions held to the training range, "
+                 "or class weights), replayed below." if change else "")),
+        _cell("code", f"model = {ctor}\n" + (f"model.set_params(**{params!r})\n" if params else "") + _change_code(change)
+              + "pipeline = Pipeline([('features', features), ('model', model)])"
+              + (MULTICLASS_HELPERS if task == "multiclass" else "") + (WEIGHT_HELPER if weighted else "")),
         _cell("markdown", "## 5. Training-only cross-validation\n\nThe same folds for every comparison; the holdout is still sealed."),
-        _cell("code", _cv_code(task, metric_expr, regression)),
+        _cell("code", _cv_code(task, metric_expr, regression, weighted, clip)),
         _cell("markdown", "## 6. Score the holdout once\n\nThis is the honest number. Changing the model after seeing it would make the next score optimistic (DCLAB-R17)."),
-        _cell("code", _fit_code(task, "X_train", "y_train") + "\n" + _score_code(task, metric_expr) + "print('holdout', round(float(holdout), 4))"),
+        _cell("code", _fit_code(task, "X_train", "y_train", weighted) + "\n" + _score_code(task, metric_expr, clip) + "print('holdout', round(float(holdout), 4))"),
         _cell("markdown", _result_markdown(records, metric)),
     ]
     return {"cells": cells, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
@@ -207,9 +213,10 @@ def _recipe_code(recipe: str, time_column: str | None, codes: list[str], encode_
 MULTICLASS_HELPERS = """
 
 
-def fit(pipeline, X, y):
+def fit(pipeline, X, y, weighted=False):
     present = np.unique(y)
-    pipeline.fit(X, np.searchsorted(present, y))
+    codes = np.searchsorted(present, y)
+    pipeline.fit(X, codes, **({'model__sample_weight': balanced(codes)} if weighted else {}))
     pipeline.present_classes = present
 
 
@@ -219,21 +226,44 @@ def class_scores(pipeline, X):
     return scores"""
 
 
-def _fit_code(task: str, X: str, y: str) -> str:
-    return f"fit(pipeline, {X}, {y})" if task == "multiclass" else f"pipeline.fit({X}, {y})"
+# Class weights a review round kept: each class weighted against its share of the rows the model is fitted on.
+WEIGHT_HELPER = """
 
 
-def _cv_code(task: str, metric_expr: str, regression: bool) -> str:
+def balanced(y):
+    labels, counts = np.unique(y, return_counts=True)
+    share = dict(zip(labels, len(y) / (len(labels) * counts)))
+    return np.array([share[v] for v in y])"""
+
+
+def _change_code(change: dict[str, Any]) -> str:
+    """A log target a review round kept, as scikit-learn's own wrapper (the other changes live in fitting and scoring)."""
+    if change.get("review__target") == "log1p":
+        return ("from sklearn.compose import TransformedTargetRegressor\n"
+                "model = TransformedTargetRegressor(regressor=model, func=np.log1p, inverse_func=np.expm1)  # kept by a review round\n")
+    return ""
+
+
+def _fit_code(task: str, X: str, y: str, weighted: bool = False) -> str:
+    if task == "multiclass":
+        return f"fit(pipeline, {X}, {y}{', weighted=True' if weighted else ''})"
+    return f"pipeline.fit({X}, {y}{f', model__sample_weight=balanced({y})' if weighted else ''})"
+
+
+def _cv_code(task: str, metric_expr: str, regression: bool, weighted: bool = False, clip: bool = False) -> str:
     score = "pipeline.predict(X_valid)" if regression else ("class_scores(pipeline, X_valid)" if task == "multiclass" else "pipeline.predict_proba(X_valid)[:, 1]")
     return ("fold_scores = []\nfor fit_idx, valid_idx in cv.split(X_train, y_train, cv_groups) if cv_groups is not None else cv.split(X_train, y_train):\n"
-            f"    {_fit_code(task, 'X_train.iloc[fit_idx]', 'y_train.iloc[fit_idx]')}\n    X_valid, y_true = X_train.iloc[valid_idx], y_train.iloc[valid_idx]\n"
-            f"    scores = {score}\n    fold_scores.append({metric_expr})\n"
+            f"    {_fit_code(task, 'X_train.iloc[fit_idx]', 'y_train.iloc[fit_idx]', weighted)}\n    X_valid, y_true = X_train.iloc[valid_idx], y_train.iloc[valid_idx]\n"
+            f"    scores = {score}\n"
+            + ("    scores = np.clip(scores, y_train.iloc[fit_idx].min(), y_train.iloc[fit_idx].max())  # held to the fit rows' range\n" if clip else "")
+            + f"    fold_scores.append({metric_expr})\n"
             "print('CV mean', round(float(np.mean(fold_scores)), 4), 'std', round(float(np.std(fold_scores, ddof=1)), 4))")
 
 
-def _score_code(task: str, metric_expr: str) -> str:
+def _score_code(task: str, metric_expr: str, clip: bool = False) -> str:
     score = "pipeline.predict(X_test)" if task == "regression" else ("class_scores(pipeline, X_test)" if task == "multiclass" else "pipeline.predict_proba(X_test)[:, 1]")
-    return f"scores, y_true = {score}, y_test\nholdout = {metric_expr}\n"
+    held = "scores = np.clip(scores, y_train.min(), y_train.max())  # held to the training range\n" if clip else ""
+    return f"scores, y_true = {score}, y_test\n{held}holdout = {metric_expr}\n"
 
 
 def _result_markdown(records: dict[str, dict[str, Any]], metric: str) -> str:

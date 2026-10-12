@@ -615,6 +615,26 @@ def make_model(
     return pipeline
 
 
+MEDIAN_LOSS = {"lightgbm": {"model__objective": "l1"}, "xgboost": {"model__objective": "reg:absoluteerror"},
+               "hist_gradient_boosting": {"model__loss": "absolute_error"}}
+
+
+def change_params(change: dict[str, Any], family: str, task_type: str) -> dict[str, Any] | None:
+    """The parameters that make one review change (dclab_core.review.CATALOGUE) for this family, or None when the
+    family cannot make it (a median loss for a ridge regression, class weights for a regression)."""
+    family = _fallback_family(family)
+    regression = task_type == "timeseries_regression"
+    if change.get("loss") == "median":
+        return MEDIAN_LOSS.get(family) if regression else None
+    if change.get("target") == "log1p":
+        return {"review__target": "log1p"} if regression else None
+    if change.get("clip") == "fit_range":
+        return {"review__clip": "fit_range"} if regression else None
+    if change.get("class_weight") == "balanced":
+        return None if regression else {"review__class_weight": "balanced"}
+    return None
+
+
 def predict_scores(model: Any, matrix: Any, task_type: str, n_classes: int | None = None) -> np.ndarray:
     if task_type == "timeseries_regression":
         return np.asarray(model.predict(matrix), dtype=float)
@@ -1117,6 +1137,14 @@ def fit_and_predict(
 ) -> dict[str, Any]:
     task = bundle.task_type
     family = _fallback_family(family)
+    params = dict(params or {})
+    # changes a review round tries (package 17.6), each learned on the fit rows only: a log target, predictions held to
+    # the range the fit rows span (a capped target), class weights against the fit rows' class shares
+    # (named review__*, not _*: a record keeps no key that starts with "_", and these must reach the final stage)
+    target = params.pop("review__target", None)
+    clip = params.pop("review__clip", None)
+    weighting = params.pop("review__class_weight", None)
+    params = params or None
     recipe = make_recipe(bundle, recipe_name, include_blocked)
     recipe.fit(X_fit, y_fit)
     fit_matrix, names = recipe.transform(X_fit)
@@ -1127,16 +1155,29 @@ def fit_and_predict(
     model = make_model(family, task, params, sparse_input=recipe.sparse)
     started = time.perf_counter()
     y_rows = y_values[rows]
+    fit_kwargs: dict[str, Any] = {}
+    if weighting == "balanced" and task != "timeseries_regression":
+        labels, counts = np.unique(y_rows, return_counts=True)
+        share = dict(zip(labels, len(y_rows) / (len(labels) * counts)))
+        fit_kwargs["model__sample_weight"] = np.array([share[v] for v in y_rows])
+    if target == "log1p":
+        if task != "timeseries_regression" or float(np.min(y_rows)) <= -1:
+            raise ValueError("a log target needs a regression target above -1")
+        y_rows = np.log1p(y_rows.astype(float))
     present = np.unique(y_rows) if task == "multiclass" else None
     if present is not None and not np.array_equal(present, np.arange(len(present))):
         # a tiny class can be missing from a training fold; XGBoost needs labels 0..k-1, so fit on contiguous codes and
         # remember the classes they stand for (predict_scores maps the probabilities back to every class)
-        model.fit(fit_matrix[rows], np.searchsorted(present, y_rows))
+        model.fit(fit_matrix[rows], np.searchsorted(present, y_rows), **fit_kwargs)
         model.dclab_classes_ = present.astype(int)
     else:
-        model.fit(fit_matrix[rows], y_rows)
+        model.fit(fit_matrix[rows], y_rows, **fit_kwargs)
     fit_seconds = time.perf_counter() - started
     predictions = predict_scores(model, eval_matrix, task, _n_classes(bundle))
+    if target == "log1p":
+        predictions = np.expm1(predictions)
+    if clip == "fit_range" and task == "timeseries_regression":
+        predictions = np.clip(predictions, float(np.min(y_values)), float(np.max(y_values)))
     if fraction:
         predictions = prior_correct(predictions, fraction)
     return {

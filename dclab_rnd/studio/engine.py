@@ -507,7 +507,113 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
                ["evidence.ranking"]),
     ]
     summary = f"Screened {len(rows)} model families on the `{recipe}` recipe and {bundle.cv_description}: {table}."
+    review = _review_rounds(p, recipe, selected, {r["model"]: r for r in ranked})
+    if review is not None:
+        evidence["review"] = review
+        if review["family"] != selected["model"]:  # a round kept a change only another family can make: the review's choice
+            evidence["screen_leader"], evidence["selected_model"] = selected["model"], review["family"]
+            evidence["selected_metric_mean"], evidence["selected_metric_std"] = review["selected_mean"], review["selected_std"]
+            evidence["selection_rule"] += (" A review round may then move to another family, when that family with a kept change beats "
+                                           "both the leader and its own screen on the same folds (17.6).")
+        for r in review["rounds"]:
+            if "variant_mean" not in r:  # a change that could not run: said in the record, not claimed
+                continue
+            who = r["family"] if r["family"] == r["base_family"] else f"{r['family']} (against the leader {r['base_family']})"
+            claims.append(_claim(f"{eid}-R{r['round']}", "decision",
+                                 f"Review round {r['round']}: {r['experiment']} on {who} ({r['hypothesis']}) {'kept' if r['adopted'] else 'not kept'}: "
+                                 f"{_label(metric)} {rn._f(r['base_mean'])} → {rn._f(r['variant_mean'])} on the same folds; {r['why']}.",
+                                 ["evidence.review.rounds"],
+                                 ["Measured on training folds only; the holdout is still sealed.",
+                                  "The change was chosen from the same folds' errors it is tested on, so the kept training-CV score is optimistic; "
+                                  "the holdout, used once, is the honest number."]))
+        if review["rounds"]:
+            kept = [r["experiment"] for r in review["rounds"] if r["adopted"]]
+            summary += f" Review: {len(review['rounds'])} round(s) on the same folds, kept {', '.join(kept) if kept else 'nothing'}."
     return evidence, claims, summary
+
+
+REVIEW_ROUNDS = 2
+
+
+def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    """dclab_core.review on the leader's out-of-fold predictions (training rows only), then at most REVIEW_ROUNDS
+    experiments, each a cross-validation on the same folds kept only by dclab_core.review.adopt (package 17.6). A change
+    the leader's family cannot make is tried on the best-screened family that can (``screened``, in rank order), and kept
+    only if it beats both the leader and that family's own screen row.
+    None, logged, when the review cannot run: the stage stands as it was."""
+    try:
+        from dclab_core.analyse import target_cap
+        from dclab_core.review import CATALOGUE, adopt, review as review_of, runnable
+
+        bundle, spec, family = p.bundle, p.bundle.spec, selected["model"]
+        metric, higher = spec.primary_metric, spec.higher_is_better
+        kind = "binary" if "binary" in bundle.task_type else ("multiclass" if bundle.task_type == "multiclass" else "regression")
+        rounds_allowed = int(spec.settings.get("review_rounds", REVIEW_ROUNDS))
+        margin = float(spec.settings.get("tuning_margin", 0.001))
+        relative = bool(spec.settings.get("tuning_margin_relative", False))
+        ranking = list(screened)
+        names = list(p.class_labels) if kind == "multiclass" and p.class_labels else None
+        cap = target_cap(bundle.y_train) if kind == "regression" else None
+        entities = [c for c in ([p.solution.group_column] if p.solution.group_column else []) + list(p.solution.identifiers)
+                    if c in bundle.X_train and bundle.X_train[c].nunique() < 0.5 * len(bundle.X_train)]
+        # only what a model may learn from goes into the segment analysis (never a forbidden, time or text column), and the entities
+        safe = [c for c in bundle.X_train.columns if p.roles.get(c) == "feature" or c in entities]
+        current, params, tried, rounds = selected, {}, [], []
+        last = None
+        for number in range(1, rounds_allowed + 2):  # one more review than rounds: what is left after the last round
+            index = current["_oof_index"]
+            y = bundle.y_train.to_numpy()[index]
+            if names:
+                y = np.array([names[int(v)] if 0 <= int(v) < len(names) else v for v in y])
+            last = review_of(kind, y, current["_oof_pred"], metric=metric, frame=bundle.X_train.iloc[index][safe].reset_index(drop=True),
+                             cap=cap, entities=entities, classes=names, tried=tried)
+            if number > rounds_allowed:
+                break
+            pick = None
+            for e in runnable(last.next_experiments):
+                for candidate in [family] + [f for f in ranking if f != family]:
+                    change = rn.change_params(CATALOGUE[e.name].change, candidate, bundle.task_type)
+                    if change is not None:
+                        pick = (e, candidate, change)
+                        break
+                if pick:
+                    break
+            if pick is None:
+                break
+            experiment, candidate, change = pick
+            tried.append(experiment.name)
+            # another family keeps only the changes every family makes (the "_" ones), never the leader's own parameters
+            trial = {**(params if candidate == family else {k: v for k, v in params.items() if k.startswith("review__")}), **change}
+            try:
+                row = rn.cross_validate(bundle, recipe, candidate, trial, config_id=f"review-{experiment.name}")
+            except Exception as exc:  # noqa: BLE001 - this change cannot run here; the rounds before it stand
+                rounds.append({"round": number, "experiment": experiment.name, "family": candidate, "base_family": family,
+                               "adopted": False, "why": f"could not run: {type(exc).__name__}"})
+                break
+            base_mean = rn._mean(current, metric)
+            needed = abs(base_mean) * margin if relative else margin
+            decision = adopt([f[metric] for f in current["fold_metrics"]], [f[metric] for f in row["fold_metrics"]], higher, needed)
+            if candidate != family and decision["adopted"]:  # the change itself must help that family, not only the switch
+                own = adopt([f[metric] for f in screened[candidate]["fold_metrics"]], [f[metric] for f in row["fold_metrics"]], higher,
+                            abs(rn._mean(screened[candidate], metric)) * margin if relative else margin)
+                decision = {**decision, "adopted": own["adopted"], "own_family_gain": own,
+                            "why": decision["why"] + f"; against {candidate}'s own screen: " + own["why"]}
+            hypothesis = last.hypotheses[experiment.hypothesis]
+            rounds.append({"round": number, "experiment": experiment.name, "hypothesis": hypothesis.statement, "cites": hypothesis.cites,
+                           "family": candidate, "base_family": family, "change": trial, "base_mean": base_mean,
+                           "variant_mean": rn._mean(row, metric), "margin": needed, **decision})
+            if decision["adopted"]:
+                current, params, family = row, trial, candidate
+        return {"family": family, "rounds": rounds, "adopted_params": params, "review": last.model_dump(mode="json") if last else None,
+                "selected_mean": rn._mean(current, metric), "selected_std": rn._std(current, metric),
+                "rule": ("dclab_core.review reads the leader's out-of-fold errors on the training rows; each round cross-validates one "
+                         "proposed change on the same folds and keeps it only if its paired gain beats the tuning margin and the one-sided "
+                         f"90% t bound of the fold differences; at most {rounds_allowed} rounds; the holdout is not touched.")}
+    except Exception as exc:  # noqa: BLE001 - a review the data does not allow leaves the stage as it was
+        from ..observe import log
+
+        log.warning("review rounds unavailable: %s", type(exc).__name__)
+        return None
 
 
 def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any] | None:
@@ -553,13 +659,17 @@ def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: p
         return None
 
 
-def stage_final(p: Prepared, eid: str, recipe: str, family: str) -> tuple[dict, list, str]:
+def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[str, Any] | None = None) -> tuple[dict, list, str]:
+    """``reviewed``: the change the models stage's review kept (17.6), applied when the family is the one it was kept for."""
     bundle, spec, task = p.bundle, p.bundle.spec, p.bundle.task_type
     metric, higher = spec.primary_metric, spec.higher_is_better
     n_classes = rn._n_classes(bundle)
-    baseline = rn.cross_validate(bundle, recipe, family, config_id=f"{family}_baseline")
+    kept = dict(reviewed or {})
+    baseline = rn.cross_validate(bundle, recipe, family, kept or None, config_id=f"{family}_baseline")
     candidates = rn.optimization_candidates(family, task)
-    tuned = [rn.cross_validate(bundle, recipe, family, c["params"], config_id=c["candidate_id"]) for c in candidates]
+    if "review__class_weight" in kept:  # weights kept by the review: a candidate's own class weights would apply them twice
+        candidates = [{**c, "params": {k: v for k, v in c["params"].items() if k != "model__class_weight"}} for c in candidates]
+    tuned = [rn.cross_validate(bundle, recipe, family, {**c["params"], **kept}, config_id=c["candidate_id"]) for c in candidates]
     margin = float(spec.settings.get("tuning_margin", 0.001))
     relative = bool(spec.settings.get("tuning_margin_relative", False))
     decision = rn.tuning_decision(baseline, tuned, metric, higher, margin, relative=relative)
@@ -583,6 +693,7 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str) -> tuple[dict, 
     evidence: dict[str, Any] = {
         "feature_recipe": recipe, "model": family, "configuration_results": [baseline, *tuned], "optimization_search_space": candidates,
         "tuning_decision": decision, "selected_optimization": selected["config_id"], "selected_model_params": selected["model_params"],
+        "review_change": kept,
         "selection_rule": (f"Evaluate {len(candidates)} explicit parameter candidates on training CV ({bundle.cv_description}); take the best by mean "
                            f"{'-' if higher else '+'} 0.25×std and accept it only if its mean {_label(metric)} beats the default by at least "
                            + (f"{margin:.0%} (relative)" if relative else f"{margin}") + ", otherwise keep the default configuration."),
@@ -731,9 +842,12 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
                                      "elapsed_seconds": r["elapsed_seconds"], "features": r["feature_count_mean"]} for r in evidence["ranking"]]}
         else:
             recipe = chosen(store.read_stage(project_id, "features"), "selected_recipe")
-            family = chosen(store.read_stage(project_id, "models"), "selected_model")
+            models = store.read_stage(project_id, "models")
+            family = chosen(models, "selected_model")
+            review = ((models or {}).get("evidence") or {}).get("review") or {}
+            reviewed = review.get("adopted_params") if review.get("family") == family else None  # kept for this family only
             project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
-            evidence, claims, summary = stage_final(p, eid, recipe, family)
+            evidence, claims, summary = stage_final(p, eid, recipe, family, reviewed)
             evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
             if reuse_reason:
                 evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
