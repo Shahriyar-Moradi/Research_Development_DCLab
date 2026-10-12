@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dclab-core"
+version = "0.1.0"
+description = "How DCLab understands a problem, analyses its data for decisions and plans a solution: a pure library."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pydantic>=2.10",
+    "scikit-learn>=1.3",
+]
+
+# The package is this folder itself, so it can live at the R&D repository's root (imported without installation) and
+# still be built as a wheel: pip install "dclab-core @ git+https://...#subdirectory=dclab_core"
+[tool.setuptools]
+package-dir = {"dclab_core" = "."}
+packages = ["dclab_core"]
+
+[tool.setuptools.package-data]
+dclab_core = ["schemas/*.json", "README.md"]

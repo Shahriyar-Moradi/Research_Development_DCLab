@@ -1,4 +1,4 @@
-.PHONY: benchmark embeddings staging-check model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all
+.PHONY: benchmark embeddings staging-check model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all core-schemas
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -254,6 +254,9 @@ new-track:  ## scaffold research/NAME from the template: make new-track NAME=x T
 	@test -n "$(NAME)" || (echo 'usage: make new-track NAME=my-idea TITLE="My idea" PREFIX=MI' && exit 1)
 	$(PYTHON) scripts/new_research_track.py "$(NAME)" "$(or $(TITLE),$(NAME))" $(if $(PREFIX),--prefix $(PREFIX),)
 	$(PYTHON) -m dclab_rnd.research_map
+
+core-schemas:  ## regenerate dclab_core/schemas/*.json from the contracts (the library the main product adopts)
+	$(PYTHON) -m dclab_core.schemas
 
 research-index:  ## regenerate research/<track>/INDEX.md and the track graph
 	$(PYTHON) -m dclab_rnd.research_map

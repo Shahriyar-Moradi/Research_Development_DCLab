@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "Alternative": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "why_not": {
+          "maxLength": 4000,
+          "minLength": 3,
+          "title": "Why Not",
+          "type": "string"
+        }
+      },
+      "required": [
+        "choice",
+        "why_not"
+      ],
+      "title": "Alternative",
+      "type": "object"
+    },
+    "Decision": {
+      "additionalProperties": false,
+      "description": "One decision of the plan: what was chosen, why (citing findings or evidence records), and what was set aside.\n\nKeys are decision points, for example ``task.framing``, ``labels.coverage``, ``split.strategy``,\n``metric.primary``, ``baseline``, ``features.direction``, ``features.forbidden``, ``model.families``,\n``threshold.policy``.",
+      "properties": {
+        "alternatives": {
+          "items": {
+            "$ref": "#/$defs/Alternative"
+          },
+          "maxItems": 8,
+          "title": "Alternatives",
+          "type": "array"
+        },
+        "choice": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Cites",
+          "type": "array"
+        },
+        "key": {
+          "maxLength": 80,
+          "pattern": "^[a-z_]+(\\.[a-z_]+)*$",
+          "title": "Key",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 4000,
+          "minLength": 10,
+          "title": "Reason",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "dclab_core.decision.v1",
+          "default": "dclab_core.decision.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "default": "rule",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "default": "proposed",
+          "enum": [
+            "proposed",
+            "accepted",
+            "overridden"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "key",
+        "choice",
+        "reason"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Risk": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "maxLength": 4000,
+          "title": "Check",
+          "type": "string"
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Cites",
+          "type": "array"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "check"
+      ],
+      "title": "Risk",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.solution_plan.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/Decision"
+      },
+      "maxItems": 60,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "risks": {
+      "items": {
+        "$ref": "#/$defs/Risk"
+      },
+      "maxItems": 30,
+      "title": "Risks",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_plan.v1",
+      "default": "dclab_core.solution_plan.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "task": {
+      "default": "unknown",
+      "enum": [
+        "binary",
+        "multiclass",
+        "regression",
+        "unknown"
+      ],
+      "title": "Task",
+      "type": "string"
+    },
+    "would_change": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Would Change",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "SolutionPlan",
+  "type": "object"
+}

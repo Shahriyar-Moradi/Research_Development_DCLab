@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "Finding": {
+      "additionalProperties": false,
+      "description": "One thing the data shows, with its evidence (numbers and names, never row values) and what it implies.",
+      "properties": {
+        "affects": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Affects",
+          "type": "array"
+        },
+        "evidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Evidence",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^F-[a-z0-9_.-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "implication": {
+          "maxLength": 4000,
+          "title": "Implication",
+          "type": "string"
+        },
+        "scope": {
+          "default": "training_rows",
+          "enum": [
+            "training_rows",
+            "all_rows",
+            "label_file",
+            "schema"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "severity": {
+          "default": "info",
+          "enum": [
+            "info",
+            "warning",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "title": "Statement",
+          "type": "string"
+        },
+        "topic": {
+          "maxLength": 80,
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "topic",
+        "statement",
+        "implication"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "TableSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "minimum": 0,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 300,
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "default": "main",
+          "enum": [
+            "main",
+            "labels",
+            "related"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "rows": {
+          "minimum": 0,
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "rows",
+        "columns"
+      ],
+      "title": "TableSummary",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.data_findings.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "maxItems": 200,
+      "title": "Findings",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.data_findings.v1",
+      "default": "dclab_core.data_findings.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/TableSummary"
+      },
+      "maxItems": 20,
+      "title": "Tables",
+      "type": "array"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target"
+    },
+    "task": {
+      "default": "unknown",
+      "enum": [
+        "binary",
+        "multiclass",
+        "regression",
+        "unknown"
+      ],
+      "title": "Task",
+      "type": "string"
+    },
+    "training_rows": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The rows statistics that steer choices were computed on.",
+      "title": "Training Rows"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "DataFindings",
+  "type": "object"
+}

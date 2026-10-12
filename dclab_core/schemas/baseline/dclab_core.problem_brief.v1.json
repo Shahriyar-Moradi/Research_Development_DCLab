@@ -1,0 +1,898 @@
+{
+  "$defs": {
+    "Constraint": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "confidential",
+            "latency",
+            "review_capacity",
+            "budget",
+            "fairness",
+            "regulation",
+            "other"
+          ],
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "text",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "stated",
+          "enum": [
+            "stated",
+            "inferred"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "type": "object"
+    },
+    "CoverageFact": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "stated"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "quote": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "text",
+                  "person"
+                ]
+              }
+            },
+            "required": [
+              "quote",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "inferred"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "rule",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "stated",
+            "inferred",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "enum": [
+                "complete",
+                "partial"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "Deliverable": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "points": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "text",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "stated",
+          "enum": [
+            "stated",
+            "inferred"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "LabelSourceFact": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "stated"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "quote": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "text",
+                  "person"
+                ]
+              }
+            },
+            "required": [
+              "quote",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "inferred"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "rule",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "stated",
+            "inferred",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "enum": [
+                "column",
+                "file",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "NamesFact": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "stated"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "quote": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "text",
+                  "person"
+                ]
+              }
+            },
+            "required": [
+              "quote",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "inferred"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "rule",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "stated",
+            "inferred",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "Question": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "impact": {
+          "maximum": 5,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "text": {
+          "maxLength": 1000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "text",
+        "impact"
+      ],
+      "type": "object"
+    },
+    "TaskFact": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "stated"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "quote": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "text",
+                  "person"
+                ]
+              }
+            },
+            "required": [
+              "quote",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "inferred"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "rule",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "stated",
+            "inferred",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "enum": [
+                "binary",
+                "multiclass",
+                "regression",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "TextFact": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "stated"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "quote": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "text",
+                  "person"
+                ]
+              }
+            },
+            "required": [
+              "quote",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "inferred"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "quote": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "source": {
+          "default": "rule",
+          "enum": [
+            "text",
+            "data",
+            "person",
+            "advisor",
+            "rule"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "unknown",
+          "enum": [
+            "stated",
+            "inferred",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "constraints": {
+      "items": {
+        "$ref": "#/$defs/Constraint"
+      },
+      "maxItems": 30,
+      "type": "array"
+    },
+    "deliverables": {
+      "items": {
+        "$ref": "#/$defs/Deliverable"
+      },
+      "maxItems": 50,
+      "type": "array"
+    },
+    "entities": {
+      "$ref": "#/$defs/NamesFact"
+    },
+    "goal": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "horizon": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "label_coverage": {
+      "$ref": "#/$defs/CoverageFact"
+    },
+    "label_source": {
+      "$ref": "#/$defs/LabelSourceFact"
+    },
+    "open_questions": {
+      "items": {
+        "$ref": "#/$defs/Question"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "prediction_moment": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "primary_metric": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "schema_version": {
+      "const": "dclab_core.problem_brief.v1",
+      "default": "dclab_core.problem_brief.v1",
+      "type": "string"
+    },
+    "source_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "success_criteria": {
+      "items": {
+        "$ref": "#/$defs/TextFact"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "target_column": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "target_definition": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "task": {
+      "$ref": "#/$defs/TaskFact"
+    },
+    "time_column": {
+      "$ref": "#/$defs/TextFact"
+    },
+    "unit": {
+      "$ref": "#/$defs/TextFact"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

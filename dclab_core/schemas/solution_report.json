@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "ReportSection": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 20000,
+          "title": "Body",
+          "type": "string"
+        },
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Cites",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 200,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "body"
+      ],
+      "title": "ReportSection",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.solution_report.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "title": "Limits",
+      "type": "array"
+    },
+    "numbers": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Numbers",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_report.v1",
+      "default": "dclab_core.solution_report.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/ReportSection"
+      },
+      "maxItems": 40,
+      "title": "Sections",
+      "type": "array"
+    },
+    "title": {
+      "maxLength": 300,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "title"
+  ],
+  "title": "SolutionReport",
+  "type": "object"
+}

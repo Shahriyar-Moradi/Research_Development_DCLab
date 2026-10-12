@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "affects": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "evidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^F-[a-z0-9_.-]+$",
+          "type": "string"
+        },
+        "implication": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "scope": {
+          "default": "training_rows",
+          "enum": [
+            "training_rows",
+            "all_rows",
+            "label_file",
+            "schema"
+          ],
+          "type": "string"
+        },
+        "severity": {
+          "default": "info",
+          "enum": [
+            "info",
+            "warning",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "topic": {
+          "maxLength": 80,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "topic",
+        "statement",
+        "implication"
+      ],
+      "type": "object"
+    },
+    "JsonValue": {},
+    "TableSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 300,
+          "type": "string"
+        },
+        "role": {
+          "default": "main",
+          "enum": [
+            "main",
+            "labels",
+            "related"
+          ],
+          "type": "string"
+        },
+        "rows": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "rows",
+        "columns"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.data_findings.v1",
+      "default": "dclab_core.data_findings.v1",
+      "type": "string"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/TableSummary"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task": {
+      "default": "unknown",
+      "enum": [
+        "binary",
+        "multiclass",
+        "regression",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "training_rows": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

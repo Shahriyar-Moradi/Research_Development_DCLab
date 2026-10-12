@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "Experiment": {
+      "additionalProperties": false,
+      "properties": {
+        "cost": {
+          "default": "medium",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Cost",
+          "type": "string"
+        },
+        "expected_gain": {
+          "maxLength": 500,
+          "title": "Expected Gain",
+          "type": "string"
+        },
+        "hypothesis": {
+          "minimum": 0,
+          "title": "Hypothesis",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "hypothesis",
+        "expected_gain"
+      ],
+      "title": "Experiment",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "description": "One thing the data shows, with its evidence (numbers and names, never row values) and what it implies.",
+      "properties": {
+        "affects": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Affects",
+          "type": "array"
+        },
+        "evidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Evidence",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^F-[a-z0-9_.-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "implication": {
+          "maxLength": 4000,
+          "title": "Implication",
+          "type": "string"
+        },
+        "scope": {
+          "default": "training_rows",
+          "enum": [
+            "training_rows",
+            "all_rows",
+            "label_file",
+            "schema"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "severity": {
+          "default": "info",
+          "enum": [
+            "info",
+            "warning",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "title": "Statement",
+          "type": "string"
+        },
+        "topic": {
+          "maxLength": 80,
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "topic",
+        "statement",
+        "implication"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Cites",
+          "type": "array"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "title": "Statement",
+          "type": "string"
+        },
+        "test": {
+          "maxLength": 4000,
+          "title": "Test",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "cites",
+        "test"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.review.v1.json",
+  "additionalProperties": false,
+  "properties": {
+    "hypotheses": {
+      "items": {
+        "$ref": "#/$defs/Hypothesis"
+      },
+      "maxItems": 20,
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "next_experiments": {
+      "items": {
+        "$ref": "#/$defs/Experiment"
+      },
+      "maxItems": 20,
+      "title": "Next Experiments",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.review.v1",
+      "default": "dclab_core.review.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "weaknesses": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "maxItems": 100,
+      "title": "Weaknesses",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "Review",
+  "type": "object"
+}

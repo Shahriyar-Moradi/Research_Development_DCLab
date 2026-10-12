@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "Alternative": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "why_not": {
+          "maxLength": 4000,
+          "minLength": 3,
+          "title": "Why Not",
+          "type": "string"
+        }
+      },
+      "required": [
+        "choice",
+        "why_not"
+      ],
+      "title": "Alternative",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.decision.v1.json",
+  "additionalProperties": false,
+  "description": "One decision of the plan: what was chosen, why (citing findings or evidence records), and what was set aside.\n\nKeys are decision points, for example ``task.framing``, ``labels.coverage``, ``split.strategy``,\n``metric.primary``, ``baseline``, ``features.direction``, ``features.forbidden``, ``model.families``,\n``threshold.policy``.",
+  "properties": {
+    "alternatives": {
+      "items": {
+        "$ref": "#/$defs/Alternative"
+      },
+      "maxItems": 8,
+      "title": "Alternatives",
+      "type": "array"
+    },
+    "choice": {
+      "$ref": "#/$defs/JsonValue"
+    },
+    "cites": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Cites",
+      "type": "array"
+    },
+    "key": {
+      "maxLength": 80,
+      "pattern": "^[a-z_]+(\\.[a-z_]+)*$",
+      "title": "Key",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 4000,
+      "minLength": 10,
+      "title": "Reason",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision.v1",
+      "default": "dclab_core.decision.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "default": "rule",
+      "enum": [
+        "text",
+        "data",
+        "person",
+        "advisor",
+        "rule"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "status": {
+      "default": "proposed",
+      "enum": [
+        "proposed",
+        "accepted",
+        "overridden"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "key",
+    "choice",
+    "reason"
+  ],
+  "title": "Decision",
+  "type": "object"
+}

@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "Alternative": {
+      "additionalProperties": false,
+      "properties": {
+        "choice": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "why_not": {
+          "maxLength": 4000,
+          "minLength": 3,
+          "type": "string"
+        }
+      },
+      "required": [
+        "choice",
+        "why_not"
+      ],
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alternatives": {
+      "items": {
+        "$ref": "#/$defs/Alternative"
+      },
+      "maxItems": 8,
+      "type": "array"
+    },
+    "choice": {
+      "$ref": "#/$defs/JsonValue"
+    },
+    "cites": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "key": {
+      "maxLength": 80,
+      "pattern": "^[a-z_]+(\\.[a-z_]+)*$",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 4000,
+      "minLength": 10,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision.v1",
+      "default": "dclab_core.decision.v1",
+      "type": "string"
+    },
+    "source": {
+      "default": "rule",
+      "enum": [
+        "text",
+        "data",
+        "person",
+        "advisor",
+        "rule"
+      ],
+      "type": "string"
+    },
+    "status": {
+      "default": "proposed",
+      "enum": [
+        "proposed",
+        "accepted",
+        "overridden"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "key",
+    "choice",
+    "reason"
+  ],
+  "type": "object"
+}

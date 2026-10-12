@@ -1,0 +1,157 @@
+{
+  "$defs": {
+    "Experiment": {
+      "additionalProperties": false,
+      "properties": {
+        "cost": {
+          "default": "medium",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "expected_gain": {
+          "maxLength": 500,
+          "type": "string"
+        },
+        "hypothesis": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 200,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "hypothesis",
+        "expected_gain"
+      ],
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "affects": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "type": "array"
+        },
+        "evidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^F-[a-z0-9_.-]+$",
+          "type": "string"
+        },
+        "implication": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "scope": {
+          "default": "training_rows",
+          "enum": [
+            "training_rows",
+            "all_rows",
+            "label_file",
+            "schema"
+          ],
+          "type": "string"
+        },
+        "severity": {
+          "default": "info",
+          "enum": [
+            "info",
+            "warning",
+            "critical"
+          ],
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "topic": {
+          "maxLength": 80,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "topic",
+        "statement",
+        "implication"
+      ],
+      "type": "object"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "cites": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "type": "array"
+        },
+        "statement": {
+          "maxLength": 4000,
+          "type": "string"
+        },
+        "test": {
+          "maxLength": 4000,
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "cites",
+        "test"
+      ],
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "hypotheses": {
+      "items": {
+        "$ref": "#/$defs/Hypothesis"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "next_experiments": {
+      "items": {
+        "$ref": "#/$defs/Experiment"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.review.v1",
+      "default": "dclab_core.review.v1",
+      "type": "string"
+    },
+    "weaknesses": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "maxItems": 100,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}
