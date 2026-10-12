@@ -34,7 +34,12 @@
    "scenario": "An uploaded Telco CSV went through cleaning (Yes/No became True/False); the engine's data stage then failed on its drift check because numpy cannot take quantiles of booleans, and the column auditor crashed on a regression table with two yes/no columns because numpy refuses to subtract booleans (a 500 in the wizard).",
    "cause": "Booleans count as numeric in pandas but not in numpy arithmetic, and a cleaning step made them common.",
    "fix": "The engine turns boolean features into 0/1 with missing kept missing (the target stays compared as text), and the auditor compares column pairs as floats.",
-   "test": "test_data_stage_runs_with_boolean_columns; test_auditor_reads_yes_no_and_nullable_columns_in_the_arithmetic_check."
+   "test": "test_data_stage_runs_with_boolean_columns; test_auditor_reads_yes_no_and_nullable_columns_in_the_arithmetic_check.",
+   "impact": "Every upload with a yes/no column, the Telco churn CSV among them, failed in the engine's data stage on the drift check. Any regression table with two yes/no columns made the wizard's solution proposal answer 500, so the user could not get past the Solution draft step.",
+   "alternatives": [
+    "Stop turning yes/no text into booleans during cleaning: set aside, because CSV uploads that already hold True/False produce booleans anyway; the consumers had to handle them."
+   ],
+   "open": "Only the engine's prepare() and the auditor's pair check were changed. Any other code that does numpy arithmetic on a boolean column would fail the same way."
   }
  ],
  "measurements": [
@@ -45,7 +50,14 @@
    "result": "A 300,000-row CSV cleaned in 2.0 s; a 200,000-line access log in 2.4 s.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The 300,000-row CSV cleaned in 2.0 s and the 200,000-line access log in 2.4 s. Both are seconds, which is all the gate asks.",
+   "limits": [
+    "The gate fixed no number for 'large' or for 'seconds', so it guards only against a slowdown to minutes.",
+    "The CSV held amounts written as currency text and dates in every row, so the number and date steps converted every row; long free-text columns were not timed.",
+    "The log was a test fixture repeated many times, so most of its rows were exact duplicates for the duplicate step to remove.",
+    "One run on one laptop."
+   ]
   }
  ],
  "outcome": "Done: cleaning is structural and lossless, logged step by step, and never changes its input. The booleans it produces are now handled by the engine and the auditor.",
@@ -56,5 +68,12 @@
   "15c4958",
   "4e9b0d9",
   "cb11497"
+ ],
+ "risks": [
+  "A step that learns from the data (imputation, scaling, outlier removal) on all rows lets the future holdout shape the training data (rules 1 and 2).",
+  "Turning codes into numbers loses meaning: leading zeros in postcodes, a decimal comma read as a thousands separator.",
+  "Over-eager date parsing turns weekday names or phone numbers into dates.",
+  "A step that changes a column's type breaks every consumer downstream that does arithmetic on it.",
+  "Changing the caller's frame in place hides which version a later step saw."
  ]
 }

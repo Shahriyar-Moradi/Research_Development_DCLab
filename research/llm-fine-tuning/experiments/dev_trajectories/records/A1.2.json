@@ -35,7 +35,8 @@
    "scenario": "A session with max_eur=1 spends 1 euro and is refused; POST /message gives it another euro, and again, with no limit. A server restart does the same.",
    "cause": "The server builds a new Intern and a new bound client for each start or message, and a new bound client starts with spent_eur=0.",
    "fix": "The session keeps its spend in session['used']['eur']; the loop loads it into the client before each request and writes it back afterwards.",
-   "test": "A test of a session refused at its cap that stays refused after a follow-up."
+   "test": "A test of a session refused at its cap that stays refused after a follow-up.",
+   "impact": "An intern session capped at 1 euro could spend another euro on every follow-up message, without limit. The owner's budget field would look enforced while each message or restart reset it to zero."
   },
   {
    "id": "F2",
@@ -45,7 +46,8 @@
    "scenario": "DCLAB_PRICES_FILE holds a model price without as_of: the request is sent, then the cost computation raises KeyError; the answer is lost and no usage row is written.",
    "cause": "The price was looked up after sending and outside the error handling.",
    "fix": "The price table is loaded and checked before a request is sent; a broken table stops requests before they cost anything.",
-   "test": "A test with a malformed price file that sends nothing."
+   "test": "A test with a malformed price file that sends nothing.",
+   "impact": "One malformed entry in the price file would make requests cost money and return nothing: the provider charges, the answer is dropped and no usage row records the spend, so Compute and Admin under-report what was paid."
   },
   {
    "id": "F3",
@@ -55,7 +57,9 @@
    "scenario": "The NOOA clients only record after a request, so DCLAB_WORKSPACE_MONTHLY_EUR never stops a campaign on the strong tier; NOOA names the model 'openai/<model>', so every price lookup misses; and 'local' was judged from the campaign tier's URL while litellm sends to OPENAI_BASE_URL, so remote calls could be logged as free.",
    "cause": "The campaign adapters were wired for counting only, not for checking.",
    "fix": "The campaign clients ask the gateway for a refusal before each request and raise if refused, and record the model name without the 'openai/' prefix.",
-   "test": "Campaign adapter tests with a cap reached."
+   "test": "Campaign adapter tests with a cap reached.",
+   "impact": "A research campaign on the strong tier, the most expensive purpose, would run past the workspace's monthly cap; every request would show 'no price'; and with a local strong tier its remote calls would be logged as free.",
+   "open": "The campaign clients ask only whether a cap is already reached, without an upper-bound estimate, so the request that crosses a cap can still be sent on that path."
   },
   {
    "id": "F4",
@@ -65,7 +69,9 @@
    "scenario": "https://api.example.com:11434/v1, https://localhost.example.com/v1 and a URL with '127.0.0.1' in its query were all judged local.",
    "cause": "The check searched the URL text.",
    "fix": "Local means the host is exactly localhost, 127.0.0.1 or ::1, or the tier says DCLAB_TIER_<T>_LOCAL=1.",
-   "test": "A settings test over the three misleading URLs."
+   "test": "A settings test over the three misleading URLs.",
+   "impact": "A remote endpoint on port 11434, or under a domain that merely starts with 'localhost', would be treated as this machine: its requests cost nothing in the log and no cap could stop them.",
+   "open": "A server elsewhere on a private network counts as local only when its tier sets DCLAB_TIER_<T>_LOCAL=1; without the flag it is 'no price', never free."
   },
   {
    "id": "F5",
@@ -75,7 +81,12 @@
    "scenario": "The request that crosses the cap was always sent (the test itself expected 3.60 euros spent of a 3.00 cap); the project message always said '0.00 left'; N concurrent requests near the cap were all sent.",
    "cause": "The gateway compared spent with the cap before sending, without reserving anything.",
    "fix": "Under a gateway lock, reserve an upper-bound estimate and refuse when spent plus the estimate is over the cap; report cap minus spent as what is left.",
-   "test": "The money tests were rewritten to the 'would pass' rule, with a concurrent case."
+   "test": "The money tests were rewritten to the 'would pass' rule, with a concurrent case.",
+   "impact": "Every cap would be overshot by one request (the old test itself expected 3.60 spent against a 3.00 cap), the project refusal always said '0.00 left', and a burst of concurrent turns near the cap would all be sent.",
+   "alternatives": [
+    "Estimate input tokens as four characters each, as the reviewer suggested: set aside for three, a more generous count, so the estimate stays an upper bound even for text that tokenises densely."
+   ],
+   "open": "A model without a price has no estimate, so it cannot be stopped in euros; it is counted in tokens only until a price is configured."
   },
   {
    "id": "F6",
@@ -85,7 +96,8 @@
    "scenario": "max_eur 'nan' became 0.0 and 'abc' gave a 500; max_eur=0 refused even free local requests; a budget refusal ended the session as 'failed' with a RuntimeError, while the step and minute budgets end it as 'budget_exhausted' with a progress note.",
    "cause": "No validation of the value, and the budget error was not caught in the loop.",
    "fix": "Non-finite and non-numeric values are refused with a clear message; a zero cap refuses only priced requests; the loop catches the budget error and ends the session as budget used up.",
-   "test": "Intern tests for each value and for the session's end state."
+   "test": "Intern tests for each value and for the session's end state.",
+   "impact": "A session given max_eur 'nan' ran with a zero cap, 'abc' crashed the request with a 500, a zero cap blocked free local models, and a budget refusal showed the session as failed rather than as having used its budget."
   },
   {
    "id": "S1",
@@ -95,7 +107,8 @@
    "scenario": "The test passed whether or not local requests were exempt.",
    "cause": "The scripted endpoint was not marked local.",
    "fix": "The test now uses a local tier and asserts the request is sent at zero cost.",
-   "test": ""
+   "test": "",
+   "impact": "The suite would have stayed green if local requests lost their exemption, and a zero cap would then quietly block every local model."
   }
  ],
  "measurements": [],
@@ -105,5 +118,14 @@
   "Anything computed after a paid request must not be able to lose its answer.",
   "Decide 'local' from the parsed host, never from a substring of the URL."
  ],
- "commits": ["6862544"]
+ "risks": [
+  "A cap checked as 'already over' lets through the request that crosses it, and concurrent requests near the cap all pass the same check.",
+  "A run's spend kept only in a client object resets whenever the server builds a new client for a message, or restarts.",
+  "Something computed after a paid request, such as its cost, fails and loses both the answer and its usage row.",
+  "Clients that do not send through the gateway, such as the research campaign's, record spend but never ask whether a cap allows the request.",
+  "'Local' judged loosely makes a remote endpoint free in the log and impossible to cap."
+ ],
+ "commits": [
+  "6862544"
+ ]
 }

@@ -35,7 +35,9 @@
    "scenario": "The HyperAck notebook fits a scaler and KMeans on the full coordinate frame and adds geo_cluster before the later train/test split; the prototype's same-cell detector did not connect the fit to the split in another cell. It did catch full-data StandardScaler fitting before the split in other cells.",
    "cause": "The prototype checked fits only within one cell.",
    "fix": "Recorded as the pilot's next step 4 (fix the cross-cell pattern and keep the seven cases as development tests); the copilot rewritten on 2026-10-03 reviews notebooks in cell order with state carried across cells.",
-   "test": "The frozen case hyperack_full_data_clustering in the notebook suite."
+   "test": "The frozen case hyperack_full_data_clustering in the notebook suite.",
+   "impact": "A data scientist using the prototype would get no warning on a notebook whose geo_cluster feature was fitted on the test rows, and would report a test score that had already seen them.",
+   "open": "The frozen case file is not committed, so the case does not run in the suite; whether the rewritten copilot catches this pattern has not been measured on it."
   },
   {
    "id": "F2",
@@ -45,7 +47,9 @@
    "scenario": "On the churn notebook the copilot called cancellation_date 'confirmed leaky' from its name alone, without the prediction moment or source timestamps, and cited DCLAB-R06 (score-gap interpretation) instead of DCLAB-R05 (a name is only a warning).",
    "cause": "The warning text and the rule lookup did not distinguish a name match from a proven leak.",
    "fix": "Recorded as a next step: word name matches as an availability question and cite DCLAB-R05; the owner must define churn's snapshot time and outcome horizon.",
-   "test": "The frozen case churn_cancellation_date_availability (wording 0 of 1, proof 3 of 4 overall)."
+   "test": "The frozen case churn_cancellation_date_availability (wording 0 of 1, proof 3 of 4 overall).",
+   "impact": "Told that cancellation_date is 'confirmed leaky' from its name alone, a user could drop a column that may be legitimate at the prediction moment, and the cited rule would not support the claim if they checked it.",
+   "open": "Churn's snapshot time and outcome horizon are still the owner's to define; until then the column's status cannot be decided."
   },
   {
    "id": "F3",
@@ -55,7 +59,12 @@
    "scenario": "The first specialist case was attempted three times on the configured model and once on another model name; every call returned InternalServerError with no response or token usage.",
    "cause": "Provider-side failure; changing the model name did not restore access.",
    "fix": "Recorded as failed cases, no further retries, and a provider-access check added to the owner worksheet before the suite is rerun.",
-   "test": "live_specialists probe reports kept as immutable files."
+   "test": "live_specialists probe reports kept as immutable files.",
+   "impact": "Without a working provider the planner's decision quality stayed unmeasured; substituting mock answers would have turned an outage into a fake pass on the scorecard.",
+   "alternatives": [
+    "Retry until a call succeeds: set aside after three attempts and a second model name all failed the same way, with no response or token usage."
+   ],
+   "open": "Four of the five specialist cases were never attempted; the suite waits for provider access."
   }
  ],
  "measurements": [
@@ -65,7 +74,13 @@
    "fixed_before_run": true,
    "result": "Detection 6 of 7; retrieved proof matched the predeclared rule 3 of 4; cautious wording 0 of 1.",
    "verdict": "not scored",
-   "next": "Build a new, source-held-out, blinded notebook set with clean and flawed examples before claiming any accuracy."
+   "next": "Build a new, source-held-out, blinded notebook set with clean and flawed examples before claiming any accuracy.",
+   "against_gate": "No threshold: detection 6 of 7, proof matching the predeclared rule 3 of 4, and cautious wording 0 of 1; the gate itself forbids reading these as a population estimate.",
+   "limits": [
+    "Seven cases from the same HyperAck and churn notebooks, labelled by the people who built the tool, so nothing is blinded.",
+    "Several checks share notebooks and code, so the cases are not independent.",
+    "Wording was judged on a single case, which cannot estimate a rate."
+   ]
   },
   {
    "name": "archived Studio cycles and trial records",
@@ -73,7 +88,13 @@
    "fixed_before_run": true,
    "result": "3 of 6 cycles completed; 7 of 12 trial records passed the evidence audit; trace checks: 4 of 4 first proposals were transparent baselines, 26 of 26 citations referenced prior successful trials, 5 of 9 comparisons named a reference trial id, 1 of 37 outputs no longer validates against the current schema.",
    "verdict": "not scored",
-   "next": "Remediate the five failing trial records; require an explicit reference trial id in every comparison."
+   "next": "Remediate the five failing trial records; require an explicit reference trial id in every comparison.",
+   "against_gate": "No threshold: 3 of 6 cycles completed and 7 of 12 trial records passed the evidence audit. In the traces, 4 of 4 first proposals were transparent baselines and 26 of 26 citations referenced prior successful trials, but only 5 of 9 comparisons named a reference trial id and 1 of 37 outputs no longer validates.",
+   "limits": [
+    "Completion is operational; it does not show whether the agents chose well.",
+    "The traces span code versions, so a failed schema check can reflect an old version rather than a wrong answer.",
+    "Some runs share a source, so they are not independent cases."
+   ]
   },
   {
    "name": "bank trial replay with the current worker",
@@ -81,7 +102,12 @@
    "fixed_before_run": true,
    "result": "ROC-AUC, AP, log loss and Brier identical (4 of 4); 4,000 out-of-fold records and the split fingerprint byte-identical; the exact-replay command refused because the worker and catalog hashes differ.",
    "verdict": "pass",
-   "next": "Label it a cross-version reproduction; it shows reproducibility, not validity on new data."
+   "next": "Label it a cross-version reproduction; it shows reproducibility, not validity on new data.",
+   "against_gate": "All 4 of 4 metrics and the 4,000 out-of-fold records match the archived trial byte for byte, which meets the gate; because the worker and catalog hashes differ, it counts as a cross-version reproduction, not an exact replay.",
+   "limits": [
+    "One trial and one configuration; other configurations may not reproduce.",
+    "Reproducing a result shows it is stable, not that it is valid on a new period or population."
+   ]
   }
  ],
  "outcome": "The first honest scorecard: the copilot is useful on a tiny development suite, the agents' decision quality is still unmeasured, and one trial reproduces exactly. Nothing here is proof of overall correctness; the release decision stayed false.",
@@ -90,5 +116,12 @@
   "Do not turn 6 of 7 on two notebooks into an accuracy claim.",
   "A replay command that refuses when code hashes changed is a safeguard working, not a failure."
  ],
- "commits": []
+ "commits": [],
+ "risks": [
+  "Replacing a provider failure with a mock answer, which turns an outage into a pass.",
+  "Scoring a notebook cell that changed after it was labelled against the old label.",
+  "Reading a handful of cases on two known notebooks as an accuracy figure.",
+  "Training on the pilot's answers and contaminating the cases meant for evaluation.",
+  "Calling a replay exact when the worker or the catalog code has changed."
+ ]
 }

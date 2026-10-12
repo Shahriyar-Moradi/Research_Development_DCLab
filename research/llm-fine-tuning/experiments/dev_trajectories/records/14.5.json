@@ -39,7 +39,8 @@
    "scenario": "Passing a dev base-model file (split dev, 38 cases) produced a 'sealed test' verdict, because each policy's expected total was the file's own case count and the report wrote split test and sealed true regardless; a dev agent file crashed with a bare KeyError.",
    "cause": "The expected total was circular and the split was never compared with the benchmark.",
    "fix": "Require every input's split to be test and its case ids and fingerprints to equal the sealed set; the expected total is the sealed set's size (times repeats for the agent).",
-   "test": "test_a_result_that_is_not_the_whole_sealed_set_is_refused_not_judged."
+   "test": "test_a_result_that_is_not_the_whole_sealed_set_is_refused_not_judged.",
+   "impact": "A dev-set file, or a run on a subset, could be published as the sealed test verdict, with 'every case ran' passing by circular counting; the one gate meant to be judged once, on the sealed set, could have been judged on the wrong evidence."
   },
   {
    "id": "F6",
@@ -49,7 +50,11 @@
    "scenario": "On the 32 pure control cases the base model has 3 false alarms against 6 of 70 as gated, and the audit 13 of 32 against 18 of 70; a policy could pass as implemented and fail the literal text.",
    "cause": "The gate used the benchmark's existing false-alarm count.",
    "fix": "The gate keeps its definition (stated in the 14.5 text and the limitations), and the report gives both rates: over the 70 cases and over the 32 pure controls.",
-   "test": ""
+   "test": "",
+   "impact": "A policy could pass the gate as built while failing the gate as written in the playbook, because false alarms were averaged over cases where most columns are clean; the denominator decides whether the agent's false-alarm rate looks acceptable.",
+   "alternatives": [
+    "Gate on the pure controls only, as a new gate version: set aside because the gate was fixed before the runs; the definition stays and both rates are reported."
+   ]
   },
   {
    "id": "N1",
@@ -59,7 +64,9 @@
    "scenario": "The prompt mentions a copy of the target in another unit, a sum or difference, a value that exists only when the outcome happened and a harmless name that sounds like an outcome, so it is a hinted baseline, not a plain prompted model; the playbook asks for identical tools and budgets, but the base model has no tools and the agent has 16 steps.",
    "cause": "The prompt was written with the families in mind.",
    "fix": "Stated in the result's limitations and the playbook row as a hinted baseline; the differences in tools and steps are disclosed.",
-   "test": ""
+   "test": "",
+   "impact": "The prompted base model looked closer to the agent than a plain model would, because its prompt hinted at the very trap families being scored; a comparison of the two would credit the base model with knowledge the prompt handed it.",
+   "open": "The base model also has no tools while the agent has 16 steps, so the two are not compared on identical tools and budgets as the package asked."
   }
  ],
  "measurements": [
@@ -70,7 +77,14 @@
    "result": "No policy passes. Leaks kept out of 38 / false alarms of 70 (of the 32 pure controls): standard plan 7 (9–33%) / 12 (7); audit rules 28 (58–85%) / 18 (13); bad policy 0 / 0 with valid moves 0.75; prompted base model 33 (73–94%) / 6 (3); the agent 35 (79–97%) / 26 (21), valid moves and citations 1.0. The agent forbids clean columns on 37% of cases (for example a real wine feature), and 53 of its 70 runs ended on the step budget.",
    "verdict": "fail",
    "cost_eur": 0.59,
-   "next": "The agent's over-forbidding of clean columns is the next engineering target; the base model is closest on false alarms and short on leaks. Labels are the author's until 14.4; one repeat per case."
+   "next": "The agent's over-forbidding of clean columns is the next engineering target; the base model is closest on false alarms and short on leaks. Labels are the author's until 14.4; one repeat per case.",
+   "against_gate": "No policy meets every condition. The agent kept 35 of 38 leaks out, but its interval of 79–97% starts below the required lower bound of 80%, and its 26 false alarms in 70 are well over the 10% allowed; its valid moves and citations at 1.0 pass. The prompted base model kept 33 of 38 out, short of 90%, with an interval of 73–94% that also starts below 80%, though its 6 false alarms in 70 stay within 10%. The audit rules (28, 58–85%, with 18 false alarms) and the standard plan (7, 9–33%, with 12) fail on leaks and on false alarms. The bad policy kept 0 out and its valid moves of 0.75 fall short of 1.0.",
+   "limits": [
+    "The labels are the author's until the expert review; every rate depends on them.",
+    "The base model's prompt hints at the trap families, and it has no tools while the agent has steps, so the two are not compared on equal terms.",
+    "53 of the agent's 70 runs ended on the step budget, so its result is for unfinished runs.",
+    "The sealed set has now been scored by every policy; any change tuned after reading these numbers needs a new sealed version to be tested fairly."
+   ]
   }
  ],
  "outcome": "Done (48acdb4 for the gate, c291a1b for the runs and the report): no policy passes gate_v1 on the sealed set; the agent keeps the most leaks out and fails on false alarms. The verdict is evidence about these policies on these cases, not a production claim.",
@@ -80,5 +94,12 @@
   "A baseline prompt that names the trap families is a hinted baseline; say so, or it flatters the comparison.",
   "An agent that catches the most leaks by forbidding clean columns has not passed; false alarms are part of safety for a data scientist."
  ],
- "commits": ["48acdb4", "c291a1b"]
+ "commits": ["48acdb4", "c291a1b"],
+ "risks": [
+  "A gate written after seeing the numbers can be bent to the result; the thresholds must be committed before any run.",
+  "The report must check that its inputs are the sealed test split, complete, or it can judge the wrong evidence.",
+  "A false-alarm rate depends on its denominator; the gate's definition and the playbook text must say the same thing.",
+  "A prompted baseline can be hinted toward the benchmark's families, inflating it next to the agent.",
+  "A model's run that ends on the step budget is scored as if finished unless that is reported alongside."
+ ]
 }

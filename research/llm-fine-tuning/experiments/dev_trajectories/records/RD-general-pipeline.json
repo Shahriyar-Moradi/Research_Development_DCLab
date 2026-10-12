@@ -35,7 +35,9 @@
    "scenario": "bank_marketing reached ROC-AUC 0.939 with call duration as an input, though duration is known only when the call ends; online_shoppers reached 0.932 with PageValues. The later evidence campaign measured their apparent lifts at +0.1842 and +0.1968 training-CV ROC-AUC and honest holdouts of 0.7718 and 0.7394.",
    "cause": "The external runner had no prediction contract per dataset, so every column was used.",
    "fix": "The playbook ladders carry a safe-vs-unsafe arm where the leak is known (bank duration, shoppers PageValues), and the evidence campaign blocks both columns by its decision-time contract.",
-   "test": "evidence/campaigns/model_building_50_v1 leakage audits EXP-007 and EXP-042."
+   "test": "evidence/campaigns/model_building_50_v1 leakage audits EXP-007 and EXP-042.",
+   "impact": "Read as a leaderboard, the benchmark put bank_marketing at 0.939 and online_shoppers at 0.932. Without the leaky columns the honest holdouts were 0.7718 and 0.7394, so anyone sizing a decision on the benchmark would have expected far more than a deployable model gives.",
+   "open": "The 140-run results stay as recorded, with the leaky columns in them; only runs made under a decision-time contract are protected."
   }
  ],
  "measurements": [
@@ -45,7 +47,13 @@
    "fixed_before_run": false,
    "result": "Safe optimized: LightGBM 0.9449, stacking 0.9445, CatBoost baseline 0.9435, FT-Transformer 0.9186 (0.9051 at defaults, the largest tuning lift, +0.0135), logistic regression 0.8818. Leakage lifted every family: boosting +0.034 to +0.041, FT-Transformer +0.046 (0.9186 to 0.9647).",
    "verdict": "not scored",
-   "next": "Treat the transformer as not worth its cost on this table unless a later dataset says otherwise."
+   "next": "Treat the transformer as not worth its cost on this table unless a later dataset says otherwise.",
+   "against_gate": "There is no threshold. On the safe side, optimized LightGBM leads at 0.9449, with stacking at 0.9445 and the CatBoost baseline at 0.9435; the FT-Transformer reaches 0.9186 after the largest tuning lift, +0.0135 from 0.9051. Leakage lifts boosting by +0.034 to +0.041 and the FT-Transformer by +0.046, so the leak is of similar size for every family.",
+   "limits": [
+    "Every quadrant uses the same single split; the gaps between the top models (0.9449, 0.9445, 0.9435) are smaller than one split can resolve.",
+    "Models are compared on the split they are reported on, so no number here is a held-out estimate of a chosen model.",
+    "The size of the leakage gap belongs to HyperAck's two final fares; other leaks behave differently."
+   ]
   },
   {
    "name": "public benchmark, 140 runs",
@@ -53,7 +61,14 @@
    "fixed_before_run": false,
    "result": "adult 0.927, bank_marketing 0.939 (with duration), breast_cancer 0.999, credit_default 0.797, german_credit 0.811, heart_disease 0.962, mushroom 1.000, online_shoppers 0.932 (with PageValues), spambase 0.988, wine_quality 0.916.",
    "verdict": "not scored",
-   "next": "Rerun the datasets through an evidence-first campaign with a contract, training-only selection and one holdout read."
+   "next": "Rerun the datasets through an evidence-first campaign with a contract, training-only selection and one holdout read.",
+   "against_gate": "No threshold was set. The best scores run from credit_default's 0.797 to mushroom's 1.000, but bank_marketing's 0.939 includes duration and online_shoppers' 0.932 includes PageValues, so those two measure leaks, not models.",
+   "limits": [
+    "The best model and setting is picked on the same split it is reported on, so each best score is optimistic.",
+    "Large tables were subsampled, so their scores describe a sample of the data.",
+    "The optimized arm reused HyperAck's tuned settings instead of tuning per dataset.",
+    "No dataset had a prediction contract, so nothing kept post-outcome columns out."
+   ]
   }
  ],
  "outcome": "One pipeline every later campaign imports; the leakage gap measured across 11 architectures; ten public projects ready for the evidence campaign. The best-per-dataset table is a leaderboard, not evidence, until each dataset has a contract.",
@@ -66,5 +81,12 @@
   "784f82a",
   "33fa74d",
   "2051e38"
+ ],
+ "risks": [
+  "Running the safe and leaky arms on different splits, so the leakage effect is mixed up with split noise.",
+  "A benchmark over many public datasets without a prediction contract per dataset, which reports leaks as wins.",
+  "Reading a best-of-many score on one split as an estimate of real performance.",
+  "Placing the pipeline where other tracks and dclab_rnd cannot import it without installation.",
+  "Generic feature generation that cannot tell category codes from quantities."
  ]
 }

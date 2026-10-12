@@ -35,7 +35,12 @@
    "scenario": "The fresh install resolved mcp>=1.20 to 2.3.0, a new major version that removed Server.list_tools, which the MCP server uses; locally 1.27 was installed.",
    "cause": "An unbounded dependency range met a new major release.",
    "fix": "Pin mcp below 2.",
-   "test": "The second CI run passed the app-building tests."
+   "test": "The second CI run passed the app-building tests.",
+   "impact": "A fresh install, on CI or on a new team member's machine, got an MCP library without the call DCLab's MCP server uses, and nearly every test that builds the app failed for a reason no local run could show.",
+   "alternatives": [
+    "Port the MCP server to the new major version: a larger change, outside this package, while pinning below 2 restored a known-good set at once."
+   ],
+   "open": "The dependencies are still not locked; any other unbounded range can break a fresh install the same way."
   },
   {
    "id": "T2",
@@ -45,7 +50,8 @@
    "scenario": "CI's PostgreSQL service answers from the container's own address, which the 12.0 'this machine only' check rightly refuses.",
    "cause": "The test assumed a database on the same machine.",
    "fix": "The test names the scratch database as remote on purpose.",
-   "test": "tests/test_dev_script.py passes on CI."
+   "test": "tests/test_dev_script.py passes on CI.",
+   "impact": "CI's check job was red on a test whose refusal was the 12.0 safety guard working as designed; left that way, either the guard would be weakened to make CI pass or the red job would be ignored."
   },
   {
    "id": "T3",
@@ -55,7 +61,11 @@
    "scenario": "tests/test_config.py holds a made-up key and a made-up database password; the local scan reads tracked files only, and the file was not yet committed, so only CI found them.",
    "cause": "The scan covers what is tracked; a new test file was untracked locally.",
    "fix": "Allow-list the two made-up values by the hash of their value; the scan reports zero findings in the files and the history.",
-   "test": "make scan-secrets in CI."
+   "test": "make scan-secrets in CI.",
+   "impact": "The secrets scan blocked CI on two made-up test values; the tempting fix of loosening the patterns would also have let a real key in a test file through.",
+   "alternatives": [
+    "Allow-list the whole test file: set aside because a real secret added to that file later would then be missed; listing each value by its hash keeps the file scanned."
+   ]
   },
   {
    "id": "T4",
@@ -65,7 +75,11 @@
    "scenario": "On GitHub's runner the draft never got the agent's first message within 30 seconds, and later not within 120. Locally the same test takes about a second.",
    "cause": "Not slowness: the signed-in test clients were never entered, so each request ran on an event loop that closes with the response; the Home agent starts as a task on that loop, and on a busy runner the task was cancelled before it began. Under uvicorn the loop outlives the request, so the product was fine.",
    "fix": "First the wait was raised to 120 seconds with the draft's state printed on failure (which did not fix it); then the draft is created through the client entered in setUpClass, with the second owner's session.",
-   "test": "The second-workspace test in tests/test_accounts.py; CI went green after the fix."
+   "test": "The second-workspace test in tests/test_accounts.py; CI went green after the fix.",
+   "impact": "A test failing only on CI, again and again, taught everyone to rerun until green; the first fix, a longer wait, would have hidden the real cause, which was in the test's own client and not in the product.",
+   "alternatives": [
+    "Raise the wait to 120 seconds and print the draft's state on failure: tried first, and it still failed, because the task was cancelled rather than slow."
+   ]
   }
  ],
  "measurements": [
@@ -74,7 +88,14 @@
    "gate": "A run on main passes both jobs: the check job (rd-check, test-pg, product-e2e, scan-secrets) and the containers job.",
    "result": "Run 37547513100 passed both jobs after two failing runs (first mcp 2.x, the remote-database test and the scan; then the second-workspace wait). The same wait failed again on later pushes until its real cause was fixed.",
    "verdict": "pass",
-   "next": "The owner turns on branch protection for main with the two checks required; a lock file would make CI repeatable."
+   "next": "The owner turns on branch protection for main with the two checks required; a lock file would make CI repeatable.",
+   "against_gate": "The gate asks a run on main to pass both jobs; run 37547513100 passed the check job and the containers job, after two failing runs that the fixes above addressed.",
+   "limits": [
+    "The run that passed came after fixes made to get it green; the same wait test failed again on later pushes until its real cause was fixed, so one green run did not prove the suite stable.",
+    "Without a lock file, the next fresh install may resolve different versions and fail where this run passed.",
+    "No job uses a model key, so every model path on CI runs scripted; CI cannot show that a live model still works.",
+    "A passing run blocks nothing until the owner protects main with the two checks required."
+   ]
   }
  ],
  "outcome": "Done (482b67b, 24f1dfb, 905e8d0, f7b9b7b; the flaky test's real cause fixed in 532c51f): CI runs the whole check, the PostgreSQL suite, the end-to-end flows and the secrets scan on every push with no model key, and the containers on main. Open: blocking the merge needs main protected by the owner; the dependencies are not locked.",
@@ -83,5 +104,12 @@
   "A fresh install on CI finds what a long-lived local environment hides: unpinned major versions and untracked files.",
   "Raising a timeout is not a diagnosis; a test that takes one second locally and never finishes on CI is usually a lifecycle problem, here an event loop that closed with the request."
  ],
- "commits": ["482b67b", "24f1dfb", "905e8d0", "f7b9b7b", "532c51f"]
+ "commits": ["482b67b", "24f1dfb", "905e8d0", "f7b9b7b", "532c51f"],
+ "risks": [
+  "A fresh install on CI resolves newer versions than the laptop has; an unbounded range can break on a new major release.",
+  "Tests that pass on a fast laptop can fail on a busy shared runner, through timing or event loops that close early.",
+  "CI's PostgreSQL service is a separate container, so tests that assume a database on this machine are refused by the local-only guard.",
+  "No job may see a model key, so every model path must stay scripted, and the secrets scan must not be silenced by test values.",
+  "A failing check blocks nothing until branch protection is turned on, which only the owner can do."
+ ]
 }

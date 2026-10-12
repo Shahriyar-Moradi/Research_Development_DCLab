@@ -36,7 +36,12 @@
    "scenario": "A churn draft with a 1,000-row sample uploaded first and then the full 4,000-row table with the same columns: the sample became the label file, the target question was never asked, and build_project produced a target 'was in the sample' with partial labels, ignoring the real churned column.",
    "cause": "Any file at most half the size that shared a near-unique key was classed as labels.",
    "fix": "A label file must bring a column of its own that the table does not have.",
-   "test": "test_a_sample_of_the_same_table_is_not_a_label_file"
+   "test": "test_a_sample_of_the_same_table_is_not_a_label_file",
+   "impact": "In the reviewer's churn probe the project would have been built to predict 'was this row in the sample', with partial labels declared and the real churned column never offered as the target. Every stage score and the report would then answer a question nobody asked, and anyone who uploads a sample before the full file would hit it.",
+   "alternatives": [
+    "Refuse a label file that shares at least half of the table's columns (the reviewer's threshold): set aside for the rule that a label file must add a column the table lacks, which defines it by what it brings and leaves no share to tune."
+   ],
+   "open": "Home still does not ask the person to confirm a detected label file (the reviewer's other suggestion), so a smaller file that joins by a key and adds any column, even one that is not a label, is still taken for labels."
   },
   {
    "id": "F8",
@@ -46,7 +51,12 @@
    "scenario": "Answers such as 'Not all cases are labelled' or 'we haven't found all' matched the word 'all' and became complete, so precision was presented as exact.",
    "cause": "The parser looked for a keyword and ignored negation.",
    "fix": "Negations and sample words mean partial; complete needs 'every/all ... labelled/known/found' or 'complete'; partial is the default.",
-   "test": "test_a_label_coverage_answer_is_complete_only_when_it_says_so"
+   "test": "test_a_label_coverage_answer_is_complete_only_when_it_says_so",
+   "impact": "With partial labels, alerts that hit frauds nobody labelled count as false alarms, so the measured precision is only a floor. Read as complete, the final stage would have stated that floor as the model's exact precision and dropped the lower-bound limit, and a team sizing its review budget would have planned around a number that understates the model.",
+   "alternatives": [
+    "Match only the text of the offered options (the reviewer's first suggestion): the person can answer Home in their own words, so the parser has to read free text in any case."
+   ],
+   "open": "The error now falls on the safe side but still happens: an answer such as 'all labelled, not just a sample' contains 'not' and 'sample' and reads as partial, so a truly complete label set is reported with precision as a lower bound."
   },
   {
    "id": "T1",
@@ -56,7 +66,8 @@
    "scenario": "The target question was asked after the ride table arrived but before the label file, then withdrawn when the label file supplied the target; the test counted it.",
    "cause": "The test read every question ever asked, not the questions still standing.",
    "fix": "The test looks only at the questions still standing.",
-   "test": "test_home_asks_the_packs_questions_and_the_project_runs_with_its_defaults"
+   "test": "test_home_asks_the_packs_questions_and_the_project_runs_with_its_defaults",
+   "impact": "The Home test would have stayed red on correct behaviour, and the tempting repair, never withdrawing the target question, would have made Home spend one of its four questions on something the label file already answers."
   }
  ],
  "measurements": [
@@ -67,13 +78,27 @@
    "result": "Every decision is reached; holdout AP 0.54 on seed 0 (the engine as it was: 0.277). Seed 1, outside the test, reaches 0.18 on a holdout with a handful of fraud bikers. The Home draft reaches the entity, partial labels, the label file and a budget in 4 questions.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "15.10 (the service) and 16.13 (challenge mode) build on the solved replica."
+   "next": "15.10 (the service) and 16.13 (challenge mode) build on the solved replica.",
+   "against_gate": "Holdout AP 0.54 on seed 0 clears the required 0.35, where the engine as it was reached 0.277 and would have failed; every decision on the gate's list is reached. The test also asserts the 20-times-chance condition, but the result does not state the chance level, so that part cannot be read from these numbers. Seed 1's 0.18 sits outside the gate and below 0.35.",
+   "limits": [
+    "The gate is decided on seed 0 alone; seed 1, run outside the test, reaches 0.18, so 0.54 is one draw rather than a stable level.",
+    "A holdout grouped by biker holds only a handful of fraud bikers, so one biker more or less moves its AP a lot.",
+    "Home's part was shown on a draft of the replica; the scripted-model test checks that a model may ask and record the pack's fields, not that the project it builds runs.",
+    "The pack was picked from the rare labels of a label file; a single table with a rare target column is not yet read as the pack, so this run says nothing about that path."
+   ]
   }
  ],
  "outcome": "Done: from a draft of the replica, Home finds the label file, picks the fraud pack, asks four questions and builds a project that runs with the pack's defaults; the fraud acceptance tests pass. Open: a single table under 1% positives is not yet read as the pack; Home does not ask to confirm a detected label file.",
  "lessons": [
   "A detector of file roles must be tested on the ordinary case it could misread (a sample of the same table), not only on the case it was built for.",
   "When an answer is free text, default to the safer reading and require explicit words for the riskier one."
+ ],
+ "risks": [
+  "A second upload of the same table (a sample first, the full file after) taken for a label file, so the target question is withdrawn and the project learns 'was in the sample'.",
+  "The label file, arriving second, replacing the ride table as the draft's active table, so Home analyses the wrong file.",
+  "A free-text coverage answer read as 'complete' when the labels are a sample, turning a precision floor into a claimed exact precision.",
+  "The pack's own questions (entity, coverage, budget) pushing a needed question past MAX_QUESTIONS.",
+  "The engine's prepared-data cache serving a target built before the label file or the pack was attached."
  ],
  "commits": [
   "abb5729"

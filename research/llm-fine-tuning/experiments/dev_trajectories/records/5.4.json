@@ -31,7 +31,10 @@
    "scenario": "With no model, the task 'Audit the credit-card fraud data for leakage' copied elapsed Time into both forbidden and time_column; the solution validator rightly refused ('the time column orders the split; it is excluded automatically'), and the session ended 'completed' with a red step.",
    "cause": "The plan did not respect column roles, and step failures did not reach the session status.",
    "fix": "Columns that have a time, group or identifier role are no longer also forbidden, and a failed proposal or solution ends the session as 'failed'.",
-   "test": "test_time_column_is_not_also_forbidden (checks the saved solution itself)."
+   "test": "test_time_column_is_not_also_forbidden (checks the saved solution itself).",
+   "impact": "With no model configured, an intern audit of a table whose time column was also listed as forbidden saved no solution, yet the session said 'completed'. The user would read a finished audit that had changed nothing in the project.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -42,12 +45,25 @@
    "result": "'Forecast daily bike rentals' with a 12-call, 5-minute budget completed in 8 calls; plan marks and the graph rail updated live; no console error.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks that 'Intern drives' lands on a running session that completes with the standard plan. 'Forecast daily bike rentals' completed in 8 calls of its 12-call, 5-minute budget, with plan marks and the graph rail updating live and no console error: it passes.",
+   "limits": [
+    "One session on one sample task, with the standard plan only; a model-driven session was not watched.",
+    "It shows the page follows a session live; it does not judge whether the intern's audit was right.",
+    "Checked by hand in a browser, so a later change to the page is not caught by it."
+   ]
   }
  ],
  "outcome": "Done: the Intern page shows real sessions live, and a session whose saves fail now ends as failed.",
  "lessons": [
   "A session that ends 'completed' with a failed step is a lie on the screen; derive the status from the steps."
+ ],
+ "risks": [
+  "A session whose step failed could still be shown as 'completed'.",
+  "Errors and an exhausted budget drawn like ordinary steps would hide failures from the user.",
+  "A euro figure on the budget card before spend is tracked would be an invented number.",
+  "Progress marks on a model's free-text plan would claim progress that cannot be read reliably.",
+  "'Intern drives' in the wizard could still open the old UI instead of the session in the product."
  ],
  "commits": [
   "6faef03",

@@ -44,5 +44,12 @@
   "dd41bc5",
   "71bf3c2",
   "cba27c2"
+ ],
+ "risks": [
+  "An agent that writes and runs Python could touch the data, skip a fold or invent a metric.",
+  "Raw rows or API keys sent to a hosted model, or stored by the provider.",
+  "Derived features escaping a blocked column's mask, so a forbidden ancestor still reaches the model.",
+  "Trajectories used for training before a person has checked their claims, licences and privacy.",
+  "A reviewer model that fails and leaves invented findings in the field guide."
  ]
 }

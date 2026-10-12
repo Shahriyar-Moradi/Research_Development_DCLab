@@ -53,7 +53,13 @@
    "scenario": "A person or the intern ran the final stage, did not like the score, changed something and ran it again: the holdout counter rose but nothing stopped the second look or recorded why.",
    "cause": "The only guard in execute was 'run the previous stage first'.",
    "fix": "The validator refuses a second holdout use by the agent outright, and asks a person for a written reason that is kept in the stage's evidence.",
-   "test": "test_holdout_reuse_needs_a_person_with_a_reason_and_never_the_agent; the studio test now reruns the final stage with a reason and checks it is recorded."
+   "test": "test_holdout_reuse_needs_a_person_with_a_reason_and_never_the_agent; the studio test now reruns the final stage with a reason and checks it is recorded.",
+   "impact": "The intern could read the holdout, change a recipe and read it again until the score pleased it. The final score would then be the best of several holdout reads, optimistic in the way PIT-006 measured, and nothing in the project would show that the holdout had been reused.",
+   "alternatives": [
+    "Forbid every rerun of the final stage, by anyone: set aside because a person can have a real reason (a bug fixed upstream); the rule only needs that reason kept in the evidence.",
+    "Keep counting holdout uses and only warn: set aside because the counter already rose without stopping anything, and a warning the agent can ignore is not a guard."
+   ],
+   "open": "A person can still reuse the holdout by writing a reason. The graph keeps the reason with the stage's evidence but does not judge whether it is a good one."
   },
   {
    "id": "S2",
@@ -63,7 +69,9 @@
    "scenario": "All five stages done; the features stage is rerun and picks another recipe; the models and final records still show results for the previous recipe.",
    "cause": "Only an approval with an override cleared later stages; a plain rerun did not.",
    "fix": "A rerun of a completed stage clears every later result, and the verdict names that side effect before the move.",
-   "test": "Not covered by a dedicated test in this commit; test_approve_with_override_clears_downstream covers only the approval path."
+   "test": "Not covered by a dedicated test in this commit; test_approve_with_override_clears_downstream covers only the approval path.",
+   "impact": "After the rerun, the models and final records still showed scores and a model choice computed on the old recipe, next to the new recipe. A person reading the project could report or ship a combination that was never evaluated together.",
+   "open": "The plain-rerun path still has no test of its own; only the override-approval path is tested, so a regression on plain reruns would pass the suite."
   },
   {
    "id": "S3",
@@ -73,7 +81,8 @@
    "scenario": "An intern session ran stages and approvals; afterwards there was no record of which moves were proposed, which were refused, and under which rule.",
    "cause": "Moves were executed directly with no validator and no log.",
    "fix": "Every verdict is appended to transitions.jsonl with the actor, the move, the state before, the failed checks, the rules, the evidence and the outcome.",
-   "test": "test_every_verdict_can_be_logged_as_a_trajectory_step"
+   "test": "test_every_verdict_can_be_logged_as_a_trajectory_step",
+   "impact": "After an intern session nobody could audit which moves it proposed or under which rule one was refused, and the refused moves, the negative examples a policy model needs, were lost for good."
   }
  ],
  "measurements": [],
@@ -85,5 +94,12 @@
  ],
  "commits": [
   "9470f3e"
+ ],
+ "risks": [
+  "A validator that the engine calls but the intern's tools or the API bypass, so one caller can still skip a step or reuse the holdout.",
+  "A check() with side effects, so asking what a move would do already changes the project.",
+  "Gates switched on by default, breaking the flows and tests that run the stages without a signature or an approval.",
+  "A contract signature that stays valid after the contract it signed is edited.",
+  "Logging only allowed moves, which loses the refused ones the policy model must learn from."
  ]
 }

@@ -40,7 +40,8 @@
    "scenario": "A table whose forbidden columns include a coordinate pair recorded after the outcome would have had that pair turned into place counts and rates.",
    "cause": "Coordinate detection scanned every column of the frame.",
    "fix": "Detect coordinate pairs only among the columns the model may use.",
-   "test": ""
+   "test": "",
+   "impact": "A coordinate pair the person had forbidden, for example one recorded after the outcome, would have re-entered the model as place counts and rates, undoing the leakage decision without any trace in the features record."
   },
   {
    "id": "S2",
@@ -50,7 +51,8 @@
    "scenario": "Cancelled rides have no biker, so their group key is missing, and the bootstrap over bikers failed on NaN keys.",
    "cause": "The bootstrap assumed every row has an entity.",
    "fix": "A row without an entity counts as its own cluster.",
-   "test": ""
+   "test": "",
+   "impact": "On any table with rows that have no entity, such as cancelled rides with no biker, the final stage's interval could not be computed and the run failed at its last step."
   },
   {
    "id": "F1",
@@ -60,7 +62,12 @@
    "scenario": "On replica seed 1 the recipe scored CV AP 0.208, the ladder picked poly2, and the holdout AP was 0.0067 against chance 0.006, with recall at the budget 0.0. With only the rate columns dropped the recipe scored about 0.67, was chosen, and reached holdout AP 0.205 and recall 0.46. The acceptance test passed only because it uses seed 0.",
    "cause": "FrameRecipe.fit fitted the rates on the fit rows and then transformed the same rows, so each row's rate counted its own label; validation entities, unseen under grouped folds, always got the prior, so the model learnt to rely on a feature that carries nothing at scoring time.",
    "fix": "Leave-one-out rates on fit rows ((sum - y_i + shrink * prior) / (n - 1 + shrink)); the full-fit rates only for other frames; no rate for the entity the folds are grouped by.",
-   "test": "test_a_fit_row_never_sees_its_own_label_and_a_grouped_entity_has_no_rate"
+   "test": "test_a_fit_row_never_sees_its_own_label_and_a_grouped_entity_has_no_rate",
+   "impact": "The recipe looked strong in cross-validation and then collapsed on new entities: on seed 1 the holdout AP fell to 0.0067 against chance 0.006, with recall at the budget 0.0. The acceptance test passed only because it used seed 0, so the leak would have shipped as the package's headline feature.",
+   "alternatives": [
+    "Out-of-fold rates from a grouped K-fold inside the fit rows: also suggested by the reviewer; leave-one-out removes each row's own label exactly with one formula and no extra folds."
+   ],
+   "open": "No rate is computed for the entity the folds are grouped by, so that entity's own history reaches the model only through counts."
   },
   {
    "id": "F2",
@@ -70,7 +77,8 @@
    "scenario": "The replica's moment is a daily audit of the day's rides, but a ride on the holdout's first day got biker counts, repeat counts, place and route counts built from that biker's rides on every later day of the holdout. The counts also differed in scale between the fit frame (about two thirds of training rows) and the validation frame.",
    "cause": "In audit mode, counts and means covered the whole frame being transformed, many days long.",
    "fix": "Counts see only rows of the same key up to the end of the row's own day; place counts become shares.",
-   "test": "test_the_audit_window_ends_with_the_rows_day"
+   "test": "test_the_audit_window_ends_with_the_rows_day",
+   "impact": "A ride on a holdout's first day was described with that biker's rides from later days, information a daily audit does not have, so the holdout score was optimistic and a team would have expected more catches than the model can make on the day."
   },
   {
    "id": "F5",
@@ -80,7 +88,12 @@
    "scenario": "entity_behaviour fell through to the raw preprocessing in the export, so the notebook's scores would not match the stage records.",
    "cause": "The export had no case for the new recipe.",
    "fix": "The export refuses the recipe with its reason (ExportUnsupported) rather than write a wrong notebook.",
-   "test": ""
+   "test": "",
+   "impact": "A person who exported the project would have received a notebook whose scores did not match the stage records, without any warning that the recipe had been swapped.",
+   "alternatives": [
+    "Write the behaviour recipe into the notebook as its own cell: the reviewer offered it beside a refusal; the refusal was the smaller change, and the cell is left for later."
+   ],
+   "open": "The notebook export of this recipe is still refused."
   },
   {
    "id": "F5s3",
@@ -90,7 +103,8 @@
    "scenario": "With dates without times and a file sorted by label within each day, rows of the same timestamp saw each other in file order; in the sibling feature language a count by entity and day correlated 0.71 with the label. The same stable-sort pattern was in behaviour.py.",
    "cause": "Rows were ordered with a stable argsort, so ties were broken by file order.",
    "fix": "One shared window implementation excludes the whole tie group from a row's history, gives rows without a time no history, and makes the rolling mean order-independent.",
-   "test": ""
+   "test": "",
+   "impact": "On any table with dates but no times that happened to be sorted by label within a day, rows saw same-day rows ahead of them in file order, so a feature could carry the label (a count correlated 0.71 with it) while 'event mode' promised only earlier rows."
   }
  ],
  "measurements": [
@@ -101,7 +115,14 @@
    "result": "After the leak fixes, the ladder picks entity_behaviour on seeds 0 and 1: CV AP 0.51 and 0.62 against 0.06 to 0.24 for the row-wise recipes; holdout AP 0.54 and 0.18, the latter on a holdout with only a handful of fraud bikers.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "The notebook export of this recipe stays open."
+   "next": "The notebook export of this recipe stays open.",
+   "against_gate": "The gate asks the ladder to pick the behaviour recipe for a measured reason; after the leak fixes it picks entity_behaviour on seeds 0 and 1 with CV AP 0.51 and 0.62 against 0.06 to 0.24 for the row-wise recipes, and reaches holdout AP 0.54 and 0.18.",
+   "limits": [
+    "Only seeds 0 and 1; before the leak fixes, seed 0 passed while seed 1 exposed the leak, so one seed was not enough and two are still few.",
+    "The holdout AP of 0.18 comes from a holdout with only a handful of fraud bikers, so it is very uncertain.",
+    "Invented data whose behaviour signal was planted by someone who knew the hand solution.",
+    "The CV and holdout numbers are from the stage records; a person cannot reproduce them in the exported notebook, which refuses this recipe."
+   ]
   }
  ],
  "outcome": "Done: dclab_core.behaviour fitted inside folds, two modes from the moment, chosen by the ladder on the replica for a measured gain; three leaks (own-label rates, later days in audit mode, timestamp ties) found by reviews and fixed with tests.",
@@ -110,8 +131,12 @@
   "A feature that is always the prior at scoring time but informative in training is a leak in disguise.",
   "'Earlier rows only' must define what happens to ties."
  ],
- "commits": [
-  "abb5729",
-  "4487916"
+ "commits": ["abb5729", "4487916"],
+ "risks": [
+  "A target-encoded or shrunk rate fitted and applied on the same rows carries each row's own label into its feature.",
+  "'Known at the prediction moment' differs by mode: an audit window must not see later days, and event mode must not see ties in the same timestamp.",
+  "Counts computed over a frame scale with the frame's size, so fit and validation frames give features on different scales.",
+  "Coordinates found by scanning every column can pull forbidden columns back into the model.",
+  "A recipe the notebook export cannot reproduce must be refused there, not silently replaced."
  ]
 }

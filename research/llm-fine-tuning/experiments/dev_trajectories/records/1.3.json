@@ -30,7 +30,9 @@
    "scenario": "test_page_loads_split_assets requested / and looked for the old map view's markup and its scripts; after the change / returned the product and the test failed.",
    "cause": "The route moved; the test still named the old path.",
    "fix": "The test reads /classic, where the old UI now lives.",
-   "test": "tests/test_research_map.py reads /classic; tests/test_web_build.py checks / and the CSP."
+   "test": "tests/test_research_map.py reads /classic; tests/test_web_build.py checks / and the CSP.",
+   "impact": "The suite went red on a correct change. Left alone, someone could have 'fixed' it by moving the old UI back to / or by deleting the map-view assertion, losing the only check that the old research map still loads.",
+   "open": "The assertion lives only as long as /classic does; when the old UI was removed in 8.3, this check had to go or move with it."
   }
  ],
  "measurements": [],
@@ -40,5 +42,11 @@
  ],
  "commits": [
   "b9abbad"
+ ],
+ "risks": [
+  "Anything that loads the old UI by the root path (tests, bookmarks, habits) breaks once / serves the new app.",
+  "Removing the old UI first would drop research campaign starts, which the new UI could not do yet.",
+  "Admitting Google Fonts in the CSP opens the policy to an outside host, and a loose edit could admit more.",
+  "The old UI's files under /static and the new app's under /static/app could shadow each other."
  ]
 }

@@ -34,7 +34,10 @@
    "scenario": "The page fetched /export/notebook to show cells; that route calls the graph's capture, so opening the page wrote a WF-10 move and could mark the project captured.",
    "cause": "A route with a side effect was used for display.",
    "fix": "A read-only /review route returns the cells, summary and findings built with the same export function; the Download button still uses /export/notebook, so capture is logged only on a real export.",
-   "test": "test_review_returns_summary_cells_and_findings_without_side_effects."
+   "test": "test_review_returns_summary_cells_and_findings_without_side_effects.",
+   "impact": "Each visit to the Notebook page would have written a WF-10 capture move to the project's transition log and could mark the project captured. The log would then show knowledge captured that nobody exported, and a project could look finished when it was not.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "T1",
@@ -44,13 +47,23 @@
    "scenario": "Projects built from Home keep their data as Parquet, but the notebook always called pd.read_csv on the data file.",
    "cause": "The export assumed CSV.",
    "fix": "The notebook reads the file the way data.load_table does, by its type.",
-   "test": "tests/test_studio.py export test."
+   "test": "tests/test_studio.py export test.",
+   "impact": "Every notebook exported from a project built through Home failed on its first cell, so the user's reproducible copy of the work could not be run at all. Only older projects with CSV data exported cleanly.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [],
  "outcome": "Done: every result page shows the project's own records with intervals, and the exports run and say when data is synthetic. Still sample-only and labelled: running notebook cells, one-click fixes, slice results and monitoring.",
  "lessons": [
   "Never use a route with side effects to render a page; add a read-only twin."
+ ],
+ "risks": [
+  "A page rendered from a route with side effects writes to the project's log on every visit.",
+  "A score shown without its interval, or a model shown as production-ready, would overstate benchmark evidence (rule 6).",
+  "Exports written when every project held a CSV may fail on projects that keep their data as Parquet.",
+  "Synthetic data shown without a label would let scores on invented rows pass as evidence about real cases.",
+  "Panels the project has no data for (slices, the masking test, scoring time) could fall back to the demo's sample figures."
  ],
  "commits": [
   "6faef03",

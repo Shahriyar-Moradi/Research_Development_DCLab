@@ -29,7 +29,14 @@
    "fixed_before_run": false,
    "result": "First build 104 examples; final v1 141 examples (127 train, 14 validation): 50 from campaign claims, 22 rules, 22 rule diagnostics, 10 workflow blocks and 37 from Studio traces.",
    "verdict": "not scored",
-   "next": "Fix examples that cite an experiment id without saying what was done (done in v3)."
+   "next": "Fix examples that cite an experiment id without saying what was done (done in v3).",
+   "against_gate": "There is no quality gate: the final build has 141 examples, 127 for training and 14 for validation, from 50 campaign claims, 22 rules, 22 rule diagnostics, 10 workflow blocks and 37 Studio traces.",
+   "limits": [
+    "A validation share of 14 examples is too small to measure anything about a trained model.",
+    "Nothing held out whole sources; corpus v3 later did, because examples from one dataset are near-duplicates.",
+    "The claim examples cite experiment ids without saying what was done, so they teach recitation.",
+    "No model was trained or scored on it; the counts describe the corpus, not its value."
+   ]
   }
  ],
  "outcome": "A first corpus and a roadmap for a small model. The owner later found that its claim examples teach recitation of experiment ids rather than reasoning; v3 replaced them (see RD-sft-v3).",
@@ -39,5 +46,11 @@
  "commits": [
   "e2cdf66",
   "59830c2"
+ ],
+ "risks": [
+  "Questions that name an experiment id without its context, teaching the model to recite.",
+  "Provenance noise (hashes, machine details) leaking into the training text.",
+  "Raw trial results or out-of-fold predictions dumped into the text.",
+  "Near-duplicate examples on both sides of the split, so validation measures memory."
  ]
 }

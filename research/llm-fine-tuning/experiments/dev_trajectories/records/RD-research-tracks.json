@@ -38,10 +38,12 @@
    "source": "self",
    "severity": "behaviour",
    "defect": "The ten external-project data symlinks pointed at a folder that no longer existed.",
-   "scenario": "After the first reorganization renamed external_data/ to data/public/, each external project's data link still pointed at external_data/<name> and resolved to nothing.",
-   "cause": "Symlinks are not rewritten by git mv of their target folder.",
+   "scenario": "Each of the ten external projects reached its data through a relative link (../../external_data/<name>). The projects were moved deeper, into research/tabular-classification/ and later into its experiments/ folder, and external_data/ was renamed data/public/, so every link resolved to nothing.",
+   "cause": "The links were relative paths, and git mv moves a symlink without rewriting its target, so both the deeper location and the renamed target broke them.",
    "fix": "Repoint all ten links to data/public/<name>.",
-   "test": ""
+   "test": "",
+   "impact": "Any external-project script or notebook that read its table through the link failed to find it, so none of the ten public projects could be rerun from its own folder.",
+   "open": "No test checks these links; the link check covered Markdown only, so the next move can break them again without a failing check."
   },
   {
    "id": "F2",
@@ -51,7 +53,8 @@
    "scenario": "The model-tagged copy of the LLM review report (Markdown and a 2.8 MB PDF) and its memory, a 'previous' memory archive equal to the gpt-4o-mini snapshot, prototype copies of the v1 SFT samples and two unused benchmark images were all committed twice; plotting code kept re-copying the images.",
    "cause": "Copies made for convenience were never removed.",
    "fix": "Remove the duplicates and the plotting code that re-copied them; scripts/clean_workspace.py removes caches and empty folders without touching tracked files, data, environments or secrets.",
-   "test": ""
+   "test": "",
+   "impact": "Every clone carried a second 2.8 MB PDF and copies that could drift from their originals, and the plotting code would have recreated the image copies on its next run."
   }
  ],
  "measurements": [
@@ -61,7 +64,12 @@
    "fixed_before_run": true,
    "result": "Same 579 registry records with identical metrics; regenerated files differed only in paths, path-derived run ids and one timestamp; all relative Markdown links resolve; checks passed locally and in a clean CI-only environment.",
    "verdict": "pass",
-   "next": "Keep make research-index in rd-check so an INDEX never goes stale."
+   "next": "Keep make research-index in rd-check so an INDEX never goes stale.",
+   "against_gate": "The registry kept the same 579 records with identical metrics, the regenerated files differed only in paths, path-derived run ids and one timestamp, and every relative Markdown link resolves: each condition of the gate holds.",
+   "limits": [
+    "Markdown links were checked; symlinks were not, and the broken data links were found by hand.",
+    "A diff of generated files proves nothing was lost only for generated files; hand-written documents rely on the link check alone."
+   ]
   }
  ],
  "outcome": "22 research tracks with one shape and a generated index each, a root grouped by role, a research map in the app, and CLAUDE.md so later local sessions start with the map, commands and rules.",
@@ -78,5 +86,12 @@
   "df270d8",
   "64c4e15",
   "8a22abf"
+ ],
+ "risks": [
+  "Moving a results/ folder so the registry no longer finds it, or changing a number on the way.",
+  "Symlinks and relative paths that git mv does not rewrite.",
+  "Losing text when merging the owner's track charters from another machine.",
+  "Moving shared code into a folder where python -m dclab_rnd stops working without installation.",
+  "Generated INDEX files going stale after the moves."
  ]
 }

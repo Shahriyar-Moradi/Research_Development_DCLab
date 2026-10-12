@@ -39,7 +39,9 @@
    "scenario": "The person wrote the moment 'When the ticket is created, before anyone reads it; the agent who closes it and the first response time come later.' The audit flagged resolved_by (a near copy of the label) but not first_response_minutes, whose name and signal look harmless; the multiclass kind was partial.",
    "cause": "The leakage reviewer's moment rule recognised only clauses with 'excluded', 'not known', 'unavailable' and similar, not 'come later'.",
    "fix": "The moment rule now also reads 'come(s) later', 'known later', 'written later', 'recorded later', 'afterwards', with those words kept out of the column-matching stems.",
-   "test": "The multiclass acceptance (first_response_minutes kept out) and the leakage reviewer's tests."
+   "test": "The multiclass acceptance (first_response_minutes kept out) and the leakage reviewer's tests.",
+   "impact": "A ticket project whose moment says the first response time comes later would still train on first_response_minutes. Its holdout would credit the model with information that does not exist when the ticket is created.",
+   "open": "The moment rule still reads a list of wordings. A moment that says the column is entered by the agent who answers, without a 'later' phrase, would miss it again."
   },
   {
    "id": "M2",
@@ -49,7 +51,8 @@
    "scenario": "Both files were written to the data folder before attaching the rides; attaching the data clears the folder, so the label file was gone.",
    "cause": "attach_data keeps only the data file it registers.",
    "fix": "The harness writes the label file again after attaching the data.",
-   "test": "test_the_rare_event_kind_reaches_its_decisions."
+   "test": "test_the_rare_event_kind_reaches_its_decisions.",
+   "impact": "The rare-event acceptance could not run at all, so the fraud kind would have been shown as partial for a harness bug, not for anything the product does."
   },
   {
    "id": "M3",
@@ -59,7 +62,8 @@
    "scenario": "A six-digit order id appeared inside a random salted hash in the service's model.pkl ('h:901433f9...'): the search for row values in the deliverables found it.",
    "cause": "Hex hashes made with a random key can contain any short digit string.",
    "fix": "The test removes the one-way salted hash tokens (h: and 16 hex digits) before searching for row values; every real value is still searched.",
-   "test": "test_a_two_part_mock_challenge_end_to_end."
+   "test": "test_a_two_part_mock_challenge_end_to_end.",
+   "impact": "The challenge privacy test would fail now and then on a clean tree. People learn to rerun such a test until it is green, and a real row value leaking into model.pkl could then be waved away."
   },
   {
    "id": "R1",
@@ -69,7 +73,12 @@
    "scenario": "The proposal forbade review_text as 'identifier-like (100% unique)' and also proposed it as the text column; its role was 'blocked', yet the TF-IDF recipe on review_text was chosen. Made worse on purpose (shop_reply as free text carrying the label, review_text carrying nothing), all six decisions still passed with holdout AUC 1.0.",
    "cause": "The kind's text columns did not drop forbidden ones; the text recipe builds documents from every declared text column; kept_out read only the role; the 'text is modelled' check read the solution, not what was modelled; free text was flagged as an identifier.",
    "fix": "A forbidden column is never modelled as text; free text is no longer flagged as an identifier when uniqueness is its only signal; kept_out requires the role blocked (or identifier where allowed) and the column absent from the modelled text; the text check reads the role 'text' and the data stage's text columns; a 'no copy of the label' bound (AUC below 0.99) was added, and the replica's words made noisier so an honest model lands near 0.9.",
-   "test": "test_kind_acceptance (text: 8 decisions)."
+   "test": "test_kind_acceptance (text: 8 decisions).",
+   "impact": "A text project whose label sits in a free-text column marked forbidden would still be modelled on that column through TF-IDF. The holdout would measure a copy of the label, and the matrix would call the text kind supported.",
+   "alternatives": [
+    "Refuse a solution that lists a column as both forbidden and text, the reviewer's other option: set aside because dropping forbidden columns from the text inputs honours the person's forbidden list without rejecting their solution."
+   ],
+   "open": "The bound of AUC below 0.99 catches only a near copy of the label. A partial leak through a text column would still pass."
   },
   {
    "id": "R2",
@@ -79,7 +88,9 @@
    "scenario": "The harness ticked every moment-rule proposal, though the product shows them unticked; the case moments were written to name the leaks. With a neutral moment the multiclass kind turned partial; delivered_at 'passed' only because it was a second date column set aside, not because it was blocked.",
    "cause": "The simulated person did more than the product offers, and kept_out accepted any non-feature role.",
    "fix": "The person adopts the plan beside the proposal (the adopt_plan move the product offers): its forbidden columns and the ones it keeps out until confirmed; moments are neutral; leak checks require the role blocked.",
-   "test": "Multiclass and regression acceptances with neutral moments."
+   "test": "Multiclass and regression acceptances with neutral moments.",
+   "impact": "The matrix would call the multiclass and regression kinds supported because the harness ticked leak proposals a real person is shown unticked. A person following the product would run with the leak.",
+   "open": "The acceptance assumes the person adopts the plan's forbidden list. A person who ignores it gets the leak, and no acceptance measures that path."
   },
   {
    "id": "R3",
@@ -89,7 +100,9 @@
    "scenario": "'When the order is placed: the basket value and the price are known, and the delivery time comes later.' flagged order_time, basket_value and price, because the whole sentence was one clause and 'time' matched order_time.",
    "cause": "Clauses were split only at full stops, semicolons and but/while; a generic word could name a column alone.",
    "fix": "Clauses also split at a colon and at ', and the/a/its…' (a list after 'exclude' stays one clause); generic stems (time, date, value, price, count…) never name a column alone.",
-   "test": "test_the_moment_rule_reads_later_and_names_no_column_by_a_generic_word; the studied A3.2 samples unchanged."
+   "test": "test_the_moment_rule_reads_later_and_names_no_column_by_a_generic_word; the studied A3.2 samples unchanged.",
+   "impact": "A person writing an ordinary moment would be told to forbid order_time, basket_value and price, all honest features. Accepting the advice would weaken the model for no reason.",
+   "open": "Because 'after' is a stop word, a column whose only stem starts with 'after' can no longer be named by a moment."
   },
   {
    "id": "R4",
@@ -99,7 +112,11 @@
    "scenario": "python -m dclab_rnd.kinds without DCLAB_NO_LIVE_MODELS: the critic was mocked, but the stage notes (narrate, explain_stage) still went through the gateway.",
    "cause": "Only one model path was switched off.",
    "fix": "The stages run inside the gateway's private scope, where no purpose is offered a model.",
-   "test": ""
+   "test": "",
+   "impact": "Anyone running python -m dclab_rnd.kinds with a key configured would send stage records to a live model, spending money and breaking the rule that this kind of run never calls a model.",
+   "alternatives": [
+    "Mock each model path one by one: set aside because the first attempt did exactly that, mocked only the critic and missed narrate and explain_stage; the private scope closes every purpose at once."
+   ]
   },
   {
    "id": "R5",
@@ -109,7 +126,8 @@
    "scenario": "'The data stage says accuracy flatters' checked a sentence the binary kind always writes.",
    "cause": "Checks written for coverage, not for what can go wrong.",
    "fix": "The harness checks every kind's declared baselines against the final stage's; tests for stratify=False on a classification keeping both classes, /api/kinds' matrix and note, /api/packs labels; the binary check replaced by the leakage audit's measured inflation (above 0.1); the rare-event kind checks the label join is on the order.",
-   "test": "BundleTest, ApiTest, the acceptances."
+   "test": "BundleTest, ApiTest, the acceptances.",
+   "impact": "The binary kind kept a decision that passes whatever the engine does, and the declared baselines could drift from the computed ones again without a red test. The matrix would overstate how much is checked."
   }
  ],
  "measurements": [
@@ -118,7 +136,14 @@
    "gate": "Each decision of each kind holds on its replica (fixed with the kind before its first run): rare event 7 decisions, text 6, binary 6, multiclass 6, regression 5.",
    "result": "After the review: all five supported under stricter decisions (rare event 9/9, text 8/8, binary 7/7, multiclass 7/7, regression 6/6). Text holdout AUC 0.87-0.91 over three seeds after the replica was made honest; before, 0.99.",
    "verdict": "pass",
-   "next": "Every new kind (16.3 onward) ships its case and decisions; the matrix shows it partial until they hold."
+   "next": "Every new kind (16.3 onward) ships its case and decisions; the matrix shows it partial until they hold.",
+   "against_gate": "Every kind holds all its decisions, and more than the gate fixed: rare event 9/9 against the 7 fixed, text 8/8 against 6, binary 7/7 against 6, multiclass 7/7 against 6, regression 6/6 against 5.",
+   "limits": [
+    "Each kind is judged on a replica written by the same people who wrote its decisions, so a pass covers the traps planted there and no others.",
+    "The decisions became stricter after the first run, so the passing counts belong to a later set than the counts fixed before it.",
+    "The text replica was made noisier after the first run gave AUC 0.99, so the replica itself was adjusted once after a result was seen.",
+    "Stability over seeds is given for the text kind only (three seeds); the other kinds report a single run each."
+   ]
   }
  ],
  "outcome": "Done: make kinds-check, a generated capability matrix in /api/kinds and on the Domain packs page, all five kinds supported; one real leakage gap found by the first run and fixed in the product.",
@@ -128,6 +153,13 @@
   "A simulated person in an acceptance harness must do only what the product offers, or the acceptance measures the harness.",
   "Every acceptance check should be able to fail: a check that reads a sentence the code always writes measures nothing.",
   "A replica that is too easy (AUC 0.99) cannot tell a leak from skill: tune it to land where an honest model would."
+ ],
+ "risks": [
+  "The harness acts as a person who does more than the product offers, such as ticking proposals the page shows unticked, so a kind passes on the harness's diligence.",
+  "A replica is so easy that a leaked column looks like skill, and a leak decision passes.",
+  "A decision check reads a sentence the code always writes, so it can never fail.",
+  "The matrix trusts a stored 'supported' that was edited by hand or written by a run that partly failed.",
+  "Running the acceptance outside make sends stage records to a configured live model."
  ],
  "commits": [
   "fab8a74"

@@ -31,7 +31,20 @@
    "scenario": "The pipeline saved the asset as 'ready' in one update and the analysis, cleaning log and active asset in the next; a reader in between (the page, the Home agent, a test polling for ready) saw ready data with nothing to show. The PostgreSQL run of the draft-flow test failed on exactly that once.",
    "cause": "One logical change was written as two writes.",
    "fix": "Both go in one update.",
-   "test": "tests/test_draft_flow.py full-flow test, stable on files and on PostgreSQL."
+   "test": "tests/test_draft_flow.py full-flow test, stable on files and on PostgreSQL.",
+   "impact": "Between the two writes, the Home page or a script polling for 'ready' found a ready table with no analysis, cleaning log or active asset, and could show an empty analysis card. On PostgreSQL the draft-flow test failed on it once, which made the suite look flaky rather than the code wrong."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "privacy",
+   "defect": "The project upload route wrote the file under the name the caller sent, so a name such as ../x landed outside the project's data folder.",
+   "scenario": "While mounting the draft routes, a check for studio.data.safe_name failed: the function did not exist. The existing project upload route called it only if present, so PUT /api/projects/{id}/data?filename=../x wrote the body one folder up, into the project's own folder, and a longer chain of ../ reached further.",
+   "cause": "The route guarded the call with hasattr(studio_data, \"safe_name\") and fell back to the raw name; the sanitiser it expected had never been written, and the guard hid that.",
+   "fix": "safe_name now exists in studio/data.py (the last path part, safe characters only, no leading dots, at most 120 characters); the project route calls it unconditionally and answers 422 when nothing is left, and the draft upload route uses the same rule.",
+   "test": "tests/test_studio.py test_project_flow_over_http uploads ../evil.csv and expects the stored name evil.csv; tests/test_draft_flow.py uploads ../../tickets.csv to a draft.",
+   "impact": "A request with filename=../project.json would have written over the project's own record, and a deeper ../ chain could put uploaded bytes anywhere the server's user can write, outside the workspace. The server listens on loopback and needs the request token, so the caller had to be a page or script on the machine, but a mistyped or hostile name was enough.",
+   "open": "At this commit each route had to call the sanitiser itself, and a new route that forgot would repeat the defect. The file storage added later (9.3) refuses any key with '..' or a leading slash as a second line."
   }
  ],
  "measurements": [
@@ -42,7 +55,14 @@
    "result": "Both flows passed; a web-server log was parsed at 100% and got a descriptive analysis.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "Both flows the gate names passed, the upload of the Telco CSV and the log file, and the web-server log was parsed at 100%.",
+   "limits": [
+    "No model was configured, so the model's parse pattern and the chat's model path were not exercised.",
+    "The log was written by the check itself in the standard combined format, so a full parse shows the built-in reader works, not that messy real logs parse.",
+    "One public CSV and one log; a pass shows the flow completes, not that the analysis is right.",
+    "One run: the ready-without-analysis race showed up only on a later PostgreSQL run."
+   ]
   }
  ],
  "outcome": "Done: data is prepared in the background with every step streamed to Home.",
@@ -53,5 +73,12 @@
   "15c4958",
   "88acb12",
   "ead9baa"
+ ],
+ "risks": [
+  "A long upload or parse run on the server's event loop freezes Home for every user.",
+  "A status flag written apart from the data it promises lets a reader see 'ready' with nothing to show.",
+  "A file name from the user can escape the draft's data folder ('../x') unless it is sanitised.",
+  "An oversized upload fills the disk unless the route caps its size.",
+  "A cleaned table stored as CSV loses the types cleaning established."
  ]
 }

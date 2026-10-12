@@ -35,7 +35,13 @@
    "result": "Walked through in the browser with the Telco CSV: the steps, the analysis card and the questions appeared, the workflow redrew, and no console error was logged; the outcome ordering was corrected in 3.7.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "Cleaning steps, an analysis card, the questions and a redrawn workflow appeared with no console error. The outcome column came first only after the ordering was corrected in 3.7, so that part of the gate held on the corrected code, not on the first walk.",
+   "limits": [
+    "One walk with one file (the Telco CSV) and one sentence, driven by hand in the browser; it was not a repeatable test.",
+    "No model was configured, so a model's streamed replies were not part of the walk.",
+    "The pass came after a fix found on the same walk, so the check was not blind to the case it passed."
+   ]
   }
  ],
  "outcome": "Done: Home starts a real flow in the demo's look, with real counts and an Activity tab on real jobs.",
@@ -45,5 +51,12 @@
  "commits": [
   "15c4958",
   "aeb1221"
+ ],
+ "risks": [
+  "New pieces on Home that do not reuse existing components break the frozen demo look.",
+  "Streamed replies inserted as HTML could run markup.",
+  "The page forgets the open draft on reload, and the user loses the conversation.",
+  "Stats, Projects and 'Needs you' keep showing demo samples next to real drafts.",
+  "'Let's build the solution' creates the project directly and skips the wizard's check of the solution, the split and the budget."
  ]
 }

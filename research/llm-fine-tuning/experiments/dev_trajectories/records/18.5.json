@@ -53,7 +53,9 @@
    "scenario": "Dates without times, and a file sorted by label within each day: count by [entity, day] correlated 0.71 with the label, and a zero since_previous gap occurred in 100% of positives against 80% of negatives, because rows of one timestamp saw each other in file order. Rows with no time sorted last and saw every row; in audit mode the 'NaT' day string sorted after every date.",
    "cause": "Windows used a stable argsort on time, so ties were ordered by file position.",
    "fix": "The whole tie group is excluded from a row's window, and a row with no time has no history (NaN); the same window implementation was put into 15.4's behaviour features.",
-   "test": "test_rows_at_the_same_time_never_see_each_other_and_a_missing_time_has_no_past."
+   "test": "test_rows_at_the_same_time_never_see_each_other_and_a_missing_time_has_no_past.",
+   "impact": "On any table whose dates carry no time and whose rows are sorted by label within a day, a per-day count would have carried the label (correlation 0.71 in the probe), and the engineered recipe would have scored well for that reason alone; the same leak sat in 15.4's behaviour features, which the fraud pack uses by default.",
+   "open": "A whole tie group is now excluded, so rows at the same recorded moment never inform each other even when they really happened in order; coarse timestamps cost some history."
   },
   {
    "id": "R2",
@@ -63,7 +65,9 @@
    "scenario": "A project whose ladder chose 'engineered' fell through to the raw preprocessing in the notebook export, so the notebook's scores would not match the records.",
    "cause": "'engineered' was neither handled nor in NOT_EXPORTED.",
    "fix": "'engineered' is in NOT_EXPORTED: the export refuses with a reason rather than writing a wrong notebook.",
-   "test": ""
+   "test": "",
+   "impact": "A person exporting an engineered project's notebook would have received raw-recipe code whose scores do not match the approved records, with nothing saying the recipe had been swapped.",
+   "open": "The notebook export refuses the engineered recipe, so a project whose ladder chose it has no notebook at all."
   },
   {
    "id": "R3",
@@ -73,7 +77,8 @@
    "scenario": "A program named biker_fare on the fraud replica collided in pd.concat; the engineered AP came out identical to raw, so the program had no effect and nothing said so.",
    "cause": "Program outputs shared the table's column namespace.",
    "fix": "Every program output is named prog__<name>.",
-   "test": "test_core_features assertions on prog__ names."
+   "test": "test_core_features assertions on prog__ names.",
+   "impact": "A program named like a table column vanished in the concat, the engineered score equalled raw, and the measurement would have blamed the engineer for a proposal that never ran."
   },
   {
    "id": "R4",
@@ -83,7 +88,8 @@
    "scenario": "{op: count, by: [biker_id], of: {below: [distance, 50]}} was kept and counted as the short-trip share although count ignores 'of' (a plain per-biker count); any column paired with any place, the pick-up place too, counted as the repeated drop-off.",
    "cause": "_is_short and _is_repeat matched loosely, and the language kept 'of' and 'per' on operations that never read them.",
    "fix": "_is_short accepts only a mean of a short-distance indicator per biker; _is_repeat needs the entity and the drop-off pair; the language refuses 'of' and 'per' on count, share and since_previous, and 'per' on anything but ratio.",
-   "test": "test_the_engineer_path_finds_the_shapes_and_measures_the_gain; test_the_role_keeps_checked_programs_and_says_what_it_refused."
+   "test": "test_the_engineer_path_finds_the_shapes_and_measures_the_gain; test_the_role_keeps_checked_programs_and_says_what_it_refused.",
+   "impact": "The harness would have credited the short-trip share to a plain per-biker count and the repeated drop-off to any column paired with the pick-up place, so gate v1 could have passed on shapes never proposed."
   },
   {
    "id": "R5",
@@ -93,7 +99,8 @@
    "scenario": "Fit rows and test rows got different floors, and a ratio's sign could flip near zero.",
    "cause": "The floor was a statistic of the frame being transformed.",
    "fix": "The floor is learned on the fit rows only (fit learns no label, only this floor) and the sign is kept.",
-   "test": ""
+   "test": "",
+   "impact": "Fit rows and test rows got ratios computed with different floors, and a slightly negative denominator flipped a ratio's sign, so the same row's feature differed between a training fold and the holdout."
   },
   {
    "id": "M1",
@@ -103,7 +110,12 @@
    "scenario": "ROL-002: the engineer filled every argument on every program (for example a daily count per biker with 'of' and 'per'); the language refused them ('count reads no of or per: say what it counts with by'), including counts per drop-off and pick-up place.",
    "cause": "The prompt's template listed every argument for every operation, while R4's fix had made the language refuse unused ones.",
    "fix": "The prompt shows each operation with only its own arguments, with examples from an unrelated domain; re-pinned.",
-   "test": "ROL-004: all 12 programs kept, none refused."
+   "test": "ROL-004: all 12 programs kept, none refused.",
+   "impact": "11 of the 12 programs never reached the ladder, so ROL-002 judged the engineer on a single feature, fare per metre; the failure was the prompt's format, not the model's idea of fraud.",
+   "alternatives": [
+    "Let the language ignore unused arguments again: set aside, because R4 showed that keeping arguments an operation ignores is what let a plain count pass for a short-trip share."
+   ],
+   "open": "With the new prompt every program parses, but the engineer still counted places per day rather than per biker (ROL-004), so whether it ever proposes the per-biker place features is unsettled."
   },
   {
    "id": "M2",
@@ -113,7 +125,9 @@
    "scenario": "On fraud replica seed 2, fraud sits on a few bikers, so the first stratified group fold's holdout held no fraud; the holdout AP was None and the final stage raised TypeError computing the CV-to-holdout gap. The two attempts sent 4 engineer requests, about EUR 0.003, and stored nothing.",
    "cause": "prepare_bundle always took the first group fold, and the gap was computed without checking for a missing holdout score.",
    "fix": "For a classification, the split takes the first group fold whose holdout and training rows both hold each class (decided before any model is fitted) and names that fold; a holdout metric that cannot be measured gives no gap instead of a crash. Reproduced offline with a scripted engineer before spending more.",
-   "test": "test_a_grouped_holdout_always_holds_both_classes."
+   "test": "test_a_grouped_holdout_always_holds_both_classes.",
+   "impact": "Any problem whose positives sit on a few entities could draw a grouped holdout with no positive case and crash at the final stage after all the earlier work; here 4 paid engineer requests were spent and nothing was stored.",
+   "open": "If no grouped fold holds both classes, the holdout metric is reported as missing instead of crashing, so the person gets no holdout score at all."
   }
  ],
  "measurements": [
@@ -124,7 +138,13 @@
    "result": "12 programs proposed, 11 refused for unused arguments; the one kept, fare per metre of the trip, lifted training-CV AP from 0.044 (raw) to 0.631, above 15.4's behaviour recipe at 0.452, on folds grouped by biker. Neither named shape was proposed. gpt-6-luna, 1 request.",
    "verdict": "fail",
    "cost_eur": 0.0008,
-   "next": "Fix the prompt's template (each operation with only its own arguments) and measure again under the same gate."
+   "next": "Fix the prompt's template (each operation with only its own arguments) and measure again under the same gate.",
+   "against_gate": "Neither named shape was proposed, so the first condition fails. The second holds on its own: 0.631 against 0.044 raw is well beyond the required 0.05, but it rests on the one program kept out of 12.",
+   "limits": [
+    "11 of 12 programs were refused for a template error, so this run measures the prompt's format more than the engineer's choice of features.",
+    "One request on one replica seed; the whole gain belongs to one program, fare per metre.",
+    "The gain is training-CV AP on folds grouped by biker; no holdout score enters the gate."
+   ]
   },
   {
    "name": "ROL-004, feature engineer after the prompt fix, gate v1",
@@ -133,7 +153,13 @@
    "result": "All 12 programs kept (trip distance, fare per metre, rides per biker and day, per sender, per pick-up and drop-off cell and day, the biker's fare against his mean, time since his previous ride, a rolling fare). Engineered AP 0.589 against 0.044 raw and 0.452 for the behaviour recipe. Neither a repeated drop-off per biker nor a short-trip share was proposed (places were counted per day, not per biker). Owner's cap EUR 0.01.",
    "verdict": "fail",
    "cost_eur": 0.0008,
-   "next": "v1 stays failed. The engineered recipe stays off by default. A gate that judges the measured gain would be a new version, fixed before a fresh measurement, if the owner wants it."
+   "next": "v1 stays failed. The engineered recipe stays off by default. A gate that judges the measured gain would be a new version, fixed before a fresh measurement, if the owner wants it.",
+   "against_gate": "Again neither a repeated drop-off per biker nor a short-trip share was proposed, so the gate fails on its first condition; the gain condition is met, 0.589 against 0.044 raw, well over 0.05, and above the behaviour recipe's 0.452.",
+   "limits": [
+    "The same replica seed and the same evidence as the run before the prompt fix, so it repeats the case rather than testing a new one.",
+    "Places were counted per day, not per biker: close to a named shape, but the gate gives no partial credit.",
+    "One request; another sample from the model might or might not propose the named shapes."
+   ]
   },
   {
    "name": "ROL-005, feature engineer on unseen seeds, gate v2",
@@ -142,7 +168,14 @@
    "result": "Seed 1: 11 programs kept, none refused; engineered AP 0.607 against raw 0.056 (+0.551) and behaviour 0.502 (+0.105). Seed 2: 10 kept; 0.707 against 0.067 (+0.640) and 0.617 (+0.090). The ladder chose the engineered recipe on both. 2 requests, plus about EUR 0.003 for the two crashed attempts, within the owner's EUR 0.01 cap.",
    "verdict": "pass",
    "cost_eur": 0.0011,
-   "next": "Record v2's pass beside v1's two fails. The notebook export still refuses the engineered recipe. The named shapes of the original Done when were never proposed."
+   "next": "Record v2's pass beside v1's two fails. The notebook export still refuses the engineered recipe. The named shapes of the original Done when were never proposed.",
+   "against_gate": "Seed 1 gains +0.551 over raw against the required 0.05, and +0.105 over the behaviour recipe, which it only had to match; seed 2 gains +0.640 and +0.090. Both conditions hold on both seeds, so the gate passes.",
+   "limits": [
+    "Two seeds of one invented replica, one request each: the pass shows the gain is not a single-seed accident, not how large it would be on real rides.",
+    "An offline replay of the programs from the second gate-v1 run on these seeds fell slightly below the behaviour recipe on seed 2, so the margin there depends on which programs the model happens to propose.",
+    "The gate judges training-CV AP; the holdout of these seeds is not part of it.",
+    "Passing v2 does not meet v1: the named shapes of the original Done when were never proposed, and v1 stays failed."
+   ]
   }
  ],
  "outcome": "Done under gate v2 (ROL-005: the engineered recipe beat the raw columns by +0.55 and +0.64 AP and the behaviour recipe by +0.10 and +0.09 on two unseen seeds; EUR 0.0011). Gate v1, the package's original Done when (the two named fraud shapes), failed twice (ROL-002, ROL-004) and stays recorded as failed; v2 is a separate, later gate written at the owner's request and fixed before its own run. The measurements also found a real engine bug (a grouped holdout with no positive) and a prompt template that made the model's programs unparseable. The review's tie-ordering leak was fixed here and in 15.4's behaviour features.",
@@ -151,6 +184,13 @@
   "Fixing one finding (refuse unused arguments) can break the next measurement through the prompt: re-read the prompt whenever the checker tightens.",
   "'Strictly earlier' must handle ties and missing times, or a sorted file leaks its labels into time features.",
   "Reproduce a crash offline with a scripted role before paying for another live run."
+ ],
+ "risks": [
+  "A 'strictly earlier' window that lets rows at the same timestamp, or rows with no time, see each other, so a file's order leaks labels into time features.",
+  "A program that reads the target, a forbidden column or the holdout, or uses an entity as a value.",
+  "Program outputs colliding with the table's columns, so a feature silently vanishes.",
+  "A prompt that hints at the answer, so the measurement credits the hint instead of the engineer.",
+  "A gate that names specific features, judging recall of an answer key rather than measured usefulness."
  ],
  "commits": [
   "4487916",

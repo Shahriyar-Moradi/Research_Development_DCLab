@@ -30,7 +30,9 @@
    "scenario": "Ready for HyperAck was true when no HyperAck question was open and any hyperack*.json file existed, even if the check marked that file invalid; the text 'can be re-run under its contract' implied a re-run nothing performs. The provider check, pre-filled by the author, counted as answered.",
    "cause": "Readiness checked presence, not validity.",
    "fix": "Readiness requires a valid contract and is worded 'contract loads'; an answer the assistant recorded is listed as unconfirmed.",
-   "test": "test_a_contract_must_be_a_valid_solution_that_fits_its_data and test_the_sheet_ships_with_the_owner_questions_open_except_the_provider_check."
+   "test": "test_a_contract_must_be_a_valid_solution_that_fits_its_data and test_the_sheet_ships_with_the_owner_questions_open_except_the_provider_check.",
+   "impact": "The status would have told the owner that the HyperAck contract was ready while the file failed its own check, so a re-run of the research under that contract, which nothing performs, could have been believed done; and a provider check the assistant had filled in counted as the owner's answer.",
+   "open": "Ten of the eleven questions still wait for the owner, and the two contracts are not written."
   }
  ],
  "measurements": [],
@@ -39,5 +41,11 @@
   "When a decision belongs to the owner, build the form and the check, and leave the answer open; never fill it in to make a package look done.",
   "Readiness means valid, not present."
  ],
- "commits": ["c291a1b"]
+ "commits": ["c291a1b"],
+ "risks": [
+  "Filling a contract or an answer on the owner's behalf turns a guess into a recorded fact; every unanswered question must stay visibly open.",
+  "A readiness flag that checks only that a file exists will report a broken contract as ready.",
+  "An answer the assistant wrote down (such as the provider check) must be marked unconfirmed until the owner confirms it.",
+  "Status wording must not imply work nothing performs, such as a re-run under the contract."
+ ]
 }

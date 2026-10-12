@@ -36,9 +36,10 @@
    "severity": "behaviour",
    "defect": "The report said the holdout was used once when the record said otherwise.",
    "scenario": "A final record with holdout_uses_in_this_project 3 produced 'used once' in Results and 'scored 3 times' in Limits of the same report.",
-   "cause": "The sentence was unconditional.",
+   "cause": "The Results sentence was fixed text, while the engine adds one to holdout_uses_in_this_project on every re-run of the final stage.",
    "fix": "Write 'used once' only when the record says 1; otherwise the number of uses, traced, and the limits say the score is optimistic.",
-   "test": "test_a_holdout_scored_several_times_is_not_called_used_once"
+   "test": "test_a_holdout_scored_several_times_is_not_called_used_once",
+   "impact": "A project whose final stage was re-run would give its reader a report that says 'used once' in Results and 'scored 3 times' in Limits; anyone reading only Results would take an optimistic holdout score for a clean one."
   },
   {
    "id": "F2",
@@ -48,7 +49,8 @@
    "scenario": "A data record with evidence None, a final record with labels None, a decision given as a string, baselines or holdout metrics as lists, a review as a string: each raised AttributeError or TypeError.",
    "cause": "Nested .get and iteration assumed mappings.",
    "fix": "Helpers that read any non-mapping as empty and any non-sequence as none, at every depth; the primary metric coerced to text.",
-   "test": "test_odd_record_shapes_never_crash_the_report"
+   "test": "test_odd_record_shapes_never_crash_the_report",
+   "impact": "One malformed nested field in any stage record, a None or a string where a mapping belongs, would stop the whole report from being built, so the person gets no report rather than one that names what is missing."
   },
   {
    "id": "F3",
@@ -58,7 +60,11 @@
    "scenario": "A record limit 'The model is ready to deploy.' passed; so did production-grade, deployment-ready, safe to deploy, go live and production_ready with an underscore.",
    "cause": "Only the phrase 'production-ready' was matched.",
    "fix": "Copy cited.py's readiness and deployment phrases, fold underscores into separators; strict, a denial does not excuse it.",
-   "test": "test_every_readiness_claim_of_cited_py_is_refused"
+   "test": "test_every_readiness_claim_of_cited_py_is_refused",
+   "impact": "A record limit or note saying 'ready to deploy' or 'safe for production' would be printed in a report meant for a grader or the main product, while the report's own check passed it; the rule that benchmark evidence never claims readiness would hold only for one spelling.",
+   "alternatives": [
+    "Import cited.py's rule instead of copying it: not possible, because dclab_core may not import dclab_rnd."
+   ]
   },
   {
    "id": "F4",
@@ -68,7 +74,8 @@
    "scenario": "A project named 'Production-ready churn model' became the report's heading and the report failed its own check; a name with HTML or a newline reached report.md raw; the traced title differed from the written one.",
    "cause": "The title bypassed the line rules.",
    "fix": "Render, clip and escape the title as one line, trace its numbers, and replace it when it over-claims.",
-   "test": "test_the_title_is_one_escaped_line_traced_and_never_a_claim"
+   "test": "test_the_title_is_one_escaped_line_traced_and_never_a_claim",
+   "impact": "A project named 'Production-ready churn model' would get a report whose heading breaks the readiness rule and fails its own check, and a project name holding HTML or a newline would inject raw markup or a fake heading into report.md."
   },
   {
    "id": "F5",
@@ -78,7 +85,11 @@
    "scenario": "A regression run with the rubric line 'Report precision and recall at the alert budget' was marked covered with no such line; 'on the test set' was mapped outside the report as tests; 'customer service tickets' as a service.",
    "cause": "Single-word matching, and 'covered' whenever the stage record existed.",
    "fix": "Match phrases (unit tests, a REST API, source control, a notebook are outside a report; the test set is not tests); a requirement is covered only when a kept line was written from its record, otherwise the map says where to look.",
-   "test": "test_requirements_are_mapped_by_phrase_and_covered_only_by_a_record"
+   "test": "test_requirements_are_mapped_by_phrase_and_covered_only_by_a_record",
+   "impact": "A grader reading the deliverables map would see 'covered' next to precision and recall at the alert budget on a regression run that wrote no such line, and requirements about the test set marked as outside the report, so the map misstates what was delivered.",
+   "alternatives": [
+    "Write 'see <section>' for every matched requirement, the reviewer's smallest option: it would never claim coverage, but it would also never confirm a requirement the report does meet; coverage tied to a kept line from the requirement's record does both."
+   ]
   },
   {
    "id": "F6",
@@ -88,7 +99,8 @@
    "scenario": "A model name ending in a 200-digit run was cut mid-token; the report printed a truncated number that matched no record.",
    "cause": "The clip had no notion of tokens.",
    "fix": "Never cut inside a number, and run the check again on the finished sections.",
-   "test": "test_clipping_never_cuts_a_number"
+   "test": "test_clipping_never_cuts_a_number",
+   "impact": "A long model or parameter name ending in digits would be cut mid-number, so the report printed a number no record holds and then failed check(), which a host calls before showing the report."
   },
   {
    "id": "F7",
@@ -98,7 +110,8 @@
    "scenario": "Decision status and source were rendered plainly, and an unknown metric name such as ndcg@10 was written raw; with a tolerance on integers a number could be attributed to the wrong path.",
    "cause": "Not every field went through the tracing writer.",
    "fix": "Trace status, source and unknown metric names like any record text.",
-   "test": "test_decision_status_and_unknown_metric_names_are_traced"
+   "test": "test_decision_status_and_unknown_metric_names_are_traced",
+   "impact": "A number inside an untraced status or metric name could be matched, through the tolerance on integers, to a different record path, so a reader following the trace would land on the wrong value."
   },
   {
    "id": "F8",
@@ -108,7 +121,8 @@
    "scenario": "Record text 'threshold .5 kept' passed the check because a leading-dot decimal was not a number; NFKC normalisation turned a record's '10²' into '102'.",
    "cause": "The number pattern and the text normalisation.",
    "fix": "Leading-dot decimals are numbers; text is normalised with NFC, not NFKC.",
-   "test": "test_numbers_are_read_as_written_and_names_are_not_numbers"
+   "test": "test_numbers_are_read_as_written_and_names_are_not_numbers",
+   "impact": "A record's '.5' entered the report with no trace and no check, and '10²' was printed as '102', a value the record never held, in a report whose whole promise is that every number traces."
   },
   {
    "id": "F9",
@@ -118,7 +132,8 @@
    "scenario": "When every draw failed the runner returned low = high = point with 0 draws, and the report still wrote the interval as the range the score could take.",
    "cause": "The draws count was not read.",
    "fix": "Write an interval only when its bootstrap drew resamples.",
-   "test": "test_no_interval_is_written_when_the_bootstrap_drew_nothing"
+   "test": "test_no_interval_is_written_when_the_bootstrap_drew_nothing",
+   "impact": "When every bootstrap draw failed, the report would present a zero-width interval as the range the holdout score could take, telling the reader the score was certain when nothing had been resampled."
   },
   {
    "id": "F10",
@@ -128,7 +143,9 @@
    "scenario": "reportlab was installed nowhere, so every PDF assertion was skipped, while the playbook row said all three formats render.",
    "cause": "An optional dependency absent from the test environment.",
    "fix": "Install reportlab in the main environment so the PDF tests run (skipped where it is missing); reportlab is still not in requirements/base.txt, recorded as open.",
-   "test": "test_the_adapter_writes_the_three_formats"
+   "test": "test_the_adapter_writes_the_three_formats",
+   "impact": "The PDF, one of the three formats the package claims, could have been broken with every test green, because each PDF assertion was skipped where reportlab was missing.",
+   "open": "reportlab is still not in requirements/base.txt, so the PDF tests skip on any environment where it was not installed by hand."
   },
   {
    "id": "F11",
@@ -138,7 +155,12 @@
    "scenario": "The adapter re-ran the analysis on a seeded 80% of the whole table, which overlaps the run's grouped holdout; the core hard-coded a sentence calling these rows 'before the holdout'.",
    "cause": "The adapter did not rebuild the run's split.",
    "fix": "Read the findings on the run's own training rows (rebuilt through engine.prepare, at most 20,000 rows); when the split cannot be rebuilt, fall back to the plan's rows and say they include most held-out rows; the host passes the sentence.",
-   "test": "test_the_findings_fall_back_to_the_plans_rows_and_say_they_include_the_holdout"
+   "test": "test_the_findings_fall_back_to_the_plans_rows_and_say_they_include_the_holdout",
+   "impact": "'What the data shows' related columns to the target partly on rows the run had held out, under a sentence calling them pre-holdout rows, so a reader would take holdout-informed figures for training-only ones; no model used them, but the report's honesty claim was false.",
+   "alternatives": [
+    "Only reword the sentence to say the rows include most of the holdout, the reviewer's first option: kept as the fallback when the split cannot be rebuilt, because reading the run's own training rows removes the overlap instead of disclosing it."
+   ],
+   "open": "When the run's split cannot be rebuilt, the findings are still read on the plan's rows, which include most held-out rows; the report says so instead of avoiding it."
   }
  ],
  "measurements": [
@@ -149,7 +171,14 @@
    "result": "The fraud (label-file flow), ticket and delivery-time projects run end to end; every number in each Markdown is parsed and traced to a record value, every digit is a traced number or part of a name; Markdown, HTML and PDF render (reportlab 4.4.5).",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "Every number in each replica's Markdown (fraud through its label-file flow, tickets, delivery time) was parsed and traced to a record value, and every digit is a traced number or part of a name, which meets 'every number traced'. Markdown, HTML and PDF render, the PDF with reportlab 4.4.5, which meets 'renders'. The numbers given do not restate the readiness clause; the replica tests assert that no sentence makes such a claim.",
+   "limits": [
+    "Tracing shows each number came from a record, not that the record is right or that the sentence around it reads the record correctly.",
+    "The test traces with the same number pattern as the code, so a number form neither recognises (as leading-dot decimals were before the review) passes both.",
+    "Only replica projects built from invented data were traced end to end; odd real-record shapes are covered by unit tests of shapes, not by a traced report.",
+    "The review fixes were committed without a further review of their own."
+   ]
   }
  ],
  "outcome": "Done: a SolutionReport built from the records, every number traced to its path, no readiness claim, robust to any record shape, in Markdown, HTML and PDF; 11 findings from two reviews fixed. Open: no route, page or intern tool shows it yet; reportlab is not in the base requirements; model-written prose is 18.7.",
@@ -158,6 +187,13 @@
   "Copy a safety rule completely, or reference it; a narrower copy gives a false sense of coverage.",
   "Unicode compatibility normalisation can change numbers; use NFC for text that carries figures.",
   "A test that is skipped where the dependency is missing proves nothing there; install it where the claim is made."
+ ],
+ "risks": [
+  "Connective text such as 'used once', 'covered' or 'the range the score could take' can contradict the records even when every number traces.",
+  "A copied safety rule (the readiness phrases of cited.py) can drift narrower than its source and give false coverage.",
+  "Normalising, clipping or a narrow number pattern can change or hide a number between the record and the page.",
+  "Real records come in odd shapes; a report that crashes on one leaves the reader with nothing.",
+  "Findings shown in the report may be read on rows that overlap the run's holdout unless the run's split is rebuilt."
  ],
  "commits": [
   "d108bef",

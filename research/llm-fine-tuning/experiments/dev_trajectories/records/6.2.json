@@ -43,12 +43,25 @@
    "result": "300 rows were read, cleaned and ready; the connection string appeared in no response, event or draft.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for a ready asset and no connection string in anything the browser receives. 300 rows were read, cleaned and ready, and the string appeared in no response, event or draft: both parts are met.",
+   "limits": [
+    "The database behind the dialog was SQLite; the PostgreSQL and MySQL rules of the query check were exercised only in unit tests.",
+    "A hostile query was not tried in this run; that defence rests on the tests and, finally, on a read-only database user.",
+    "The S3 and Google Cloud Storage imports were not part of this browser run."
+   ]
   }
  ],
  "outcome": "Done: read-only database and cloud imports with names only on the page; tests check that URLs never leak.",
  "lessons": [
   "Parse untrusted SQL with more than one dialect when the target database is not fixed; and still require a read-only user."
+ ],
+ "risks": [
+  "A connection string holds a password; it could reach the page, a draft, a log or an error message.",
+  "A query could hide a write or a second statement from one SQL dialect's parser.",
+  "A trailing comment in the user's query could swallow the row-limit wrapper, and its :words could be read as bound parameters.",
+  "A SELECT that calls a function with side effects passes any text check; only a read-only database user prevents it.",
+  "Reading a whole object from a bucket before checking its size could exhaust memory."
  ],
  "commits": [
   "96feb56"

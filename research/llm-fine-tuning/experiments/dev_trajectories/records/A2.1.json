@@ -35,7 +35,12 @@
    "scenario": "Calls that worked before were refused: set_solution with time_column, group_column and metric set to null; get_results with stage null; set_settings with max_rows 100 (the handler clamped to 200) or '5000' (the handler converted it); create_project with industry 'retail' (the store fell back to 'general'); search_evidence with k 50.",
    "cause": "The full JSON-schema check ran in the old call path, ahead of handlers that were written to be lenient.",
    "fix": "Registry.check has levels: full schema in run(), names only (unknown and missing) in Toolbox.call until A2.4; a null counts as not given.",
-   "test": "test_a_null_counts_as_not_given and the unchanged intern and MCP tests."
+   "test": "test_a_null_counts_as_not_given and the unchanged intern and MCP tests.",
+   "impact": "Models in strict mode send null for every optional field, so an ordinary set_solution or get_results call from the intern would have been refused, and the standard plan's settings refused instead of clamped: sessions that worked the day before would stall on a refactor that promised no behaviour change.",
+   "alternatives": [
+    "Move the clamping and fallbacks into the schemas (drop the minimum on max_rows and k, drop the industry enum), the reviewer's other option: set aside because the schemas are what the model is told and what run() checks in full; loosening them to match old handlers would hollow out that check. A2.4 later accepted one deliberate change instead (an oversized max_rows is refused, not clamped)."
+   ],
+   "open": "Until A2.4 moves the agents onto run(), Toolbox.call checks names only, so a wrongly typed argument still reaches the lenient handlers."
   },
   {
    "id": "F2",
@@ -45,7 +50,11 @@
    "scenario": "The CI workflow installs only requirements/ci.txt (numpy, pandas, scikit-learn, pyarrow). Blocking the jsonschema import made three runtime tests error: two handlers raised TypeError instead of returning an error, and the registry well-formedness test failed with ImportError.",
    "cause": "jsonschema came only transitively through the agent lock file, and the code had an ImportError fallback.",
    "fix": "jsonschema>=4.18 in base and CI requirements; the fallback removed.",
-   "test": "The runtime tests run in CI."
+   "test": "The runtime tests run in CI.",
+   "impact": "CI installs only requirements/ci.txt, so three runtime tests would have errored there; and wherever jsonschema was missing, bad model arguments would reach handlers and raise TypeError instead of returning an error the model can correct.",
+   "alternatives": [
+    "Keep the ImportError fallback and skip the affected tests when jsonschema is missing: set aside because the safety check would then depend on the environment, and CI would never exercise it."
+   ]
   },
   {
    "id": "F3",
@@ -55,7 +64,8 @@
    "scenario": "Policy with max_steps 2 and one reply holding five tool calls: all five ran (steps 5), then the run stopped for steps. The intern loop it replaces checked the budget before each call.",
    "cause": "Budgets were checked only before asking the model.",
    "fix": "The budget is checked before every call; a call past the budget gets a 'budget exhausted' tool message and is not run.",
-   "test": "A runtime test with five calls under a budget of two."
+   "test": "A runtime test with five calls under a budget of two.",
+   "impact": "One reply with five calls under a budget of two ran all five, so the tool-call budget that bounds an unsupervised agent's moves and cost would not have held once the intern moved onto run()."
   },
   {
    "id": "F4",
@@ -65,7 +75,9 @@
    "scenario": "One reply [finish, add]: add still ran after finish. Separately, run_tool(draft, 'get_profile', {'turn': 1}) raised 'got multiple values for argument turn', because every Home handler takes the turn as its first parameter.",
    "cause": "The loop did not stop at a terminal tool, and the handler context shared a name space with model arguments.",
    "fix": "After a terminal tool, the remaining calls get 'not run: the run ended'; the Home handlers' context is positional-only.",
-   "test": "Runtime tests for both cases."
+   "test": "Runtime tests for both cases.",
+   "impact": "A model that called finish and then add in one reply had the add applied after it declared the run over, a move no report mentions; and a stray argument named turn crashed the Home agent's turn with a TypeError instead of coming back as an error.",
+   "open": "The reviewer noted that an alias named in a policy's terminal or stop-after list does not match, because the comparison uses the canonical tool name; it was not part of this fix."
   }
  ],
  "measurements": [],
@@ -74,6 +86,13 @@
   "A refactor that adds validation in an existing path changes behaviour: lenient handlers depend on receiving what a strict schema would refuse.",
   "An optional import with a silent fallback makes a safety check depend on the environment; declare the dependency.",
   "A budget checked once per model reply is not a budget; check it before every call."
+ ],
+ "risks": [
+  "A stricter argument check in the shared call path refuses calls the lenient handlers used to clamp or coerce, which the package forbids.",
+  "A check that depends on an optional import (jsonschema) silently turns off in CI or any environment without it.",
+  "A budget checked once per model reply lets one reply with many tool calls run past max_steps.",
+  "Handler context parameters (the Home agent's turn) colliding with argument names a model sends.",
+  "Legacy tool names lost in the move, breaking MCP clients and stored sessions that use them."
  ],
  "commits": ["6e7c2ed"]
 }

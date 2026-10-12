@@ -35,7 +35,8 @@
    "scenario": "In a cluster bootstrap over a few fraud bikers, many resamples hold no positive; budget_metric_fn returned 0.0 for them, pulling the interval's low end to 0.",
    "cause": "A resample without a positive was scored as a total miss instead of as saying nothing.",
    "fix": "Return NaN for such a draw; bootstrap_ci already drops non-finite values.",
-   "test": ""
+   "test": "",
+   "impact": "With only a few fraud bikers, the reported interval for recall at the budget would start near zero whatever the model did, so a team would read a useful model as possibly worthless and could reject it on an artefact of the bootstrap."
   },
   {
    "id": "F11",
@@ -45,7 +46,11 @@
    "scenario": "dclab_core.plan proposed time_and_group from drift plus repeated entities without checking their overlap; with recurring customers fewer than about 10% of later rows remain once seen entities are removed, the new split refuses, and the project cannot run.",
    "cause": "The plan and the split applied different conditions.",
    "fix": "The plan reads the share of later rows that belong to entities seen earlier; at 90% or more it groups by the entity, states the drift, and lists the time-and-group split as an alternative with the share it would remove.",
-   "test": "test_the_plan_does_not_ask_for_a_split_that_cannot_test"
+   "test": "test_the_plan_does_not_ask_for_a_split_that_cannot_test",
+   "impact": "A person who adopted DCLab's own plan on a table of recurring customers would get a project in which every stage failed: the plan asked for a split the engine then refused, and the person had followed the advice exactly.",
+   "alternatives": [
+    "Let the engine fall back to another split and state it: set aside for checking the overlap in the plan, so the plan never proposes a split that cannot run and shows the share of rows it would remove."
+   ]
   }
  ],
  "measurements": [],
@@ -54,7 +59,12 @@
   "A resample with no positive carries no information about recall: drop it, never score it 0.",
   "A planner and an executor must share the condition that decides whether a choice can run."
  ],
- "commits": [
-  "abb5729"
+ "commits": ["abb5729"],
+ "risks": [
+  "A split that drops the group when time order is chosen lets one entity sit on both sides; time and entity must both hold, with the rows removed reported.",
+  "Removing entities seen in training can leave a test fold too small to test; the split must refuse then, and the plan must not propose it.",
+  "A cluster bootstrap over a few positive entities produces many resamples with no positive; how they are scored biases the interval.",
+  "With partial labels, precision at the budget is only a lower bound and must be reported as one.",
+  "Metrics at a budget must match hand-computed values, including ties at the budget's edge."
  ]
 }

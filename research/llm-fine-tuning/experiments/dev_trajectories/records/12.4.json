@@ -38,7 +38,8 @@
    "scenario": "The image runs uvicorn on h11, which accepts any token as a method; 50 requests with random methods such as XABC12 added 150 new series, each answered 403, with no sign-in needed, so anyone could grow the process's memory and Prometheus's series.",
    "cause": "request.method was used as a label as sent.",
    "fix": "Map the method to a fixed set (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS) or OTHER, in the counters and the log line.",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "Anyone on the network, without signing in, could send requests with made-up methods and add new metric series without limit, growing the app's memory and the monitoring system's storage until one of them fell over; each request was refused, so nothing in the access rules would have stopped it."
   },
   {
    "id": "F2",
@@ -48,7 +49,9 @@
    "scenario": "A developer sets DCLAB_METRICS_PORT=9464 in .env as .env.example suggests; the server and a separate worker both load it and collide, and the worker dies with 'Address already in use'; every parallel test process also loads .env and runs a lifespan, so every test file after the first fails to start its app. DCLAB_METRICS_PORT=abc raised a raw ValueError.",
    "cause": "The bind and the int() ran unguarded in the lifespan and in the worker's main.",
    "fix": "Wrap the bind in try/except OSError and log that metrics are off; check the value as an integer port in problems().",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "A developer who followed .env.example and set a metrics port could not run the server and a worker on one machine: the worker died at start, and every parallel test file after the first failed to start its app. Turning on monitoring, an optional extra, could take down the product.",
+   "open": "Each process serves its own counters on its own port and they reset on restart; a dashboard has to sum them."
   },
   {
    "id": "F3",
@@ -58,7 +61,8 @@
    "scenario": "A token counter at 123456789 rendered as 1.23457e+08; token counts reach millions within days and probe counts within weeks, after which rate() and increase() move in steps of 10, 100, 1000.",
    "cause": "Values rendered with the :g format.",
    "fix": "Render with full precision (repr of the float).",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "Once token or request counts passed a million, Prometheus would read them in steps of tens, then hundreds, then thousands, so rates and the model-spend graphs would show false jumps and flat lines just when usage was large enough to matter."
   },
   {
    "id": "F4",
@@ -68,7 +72,8 @@
    "scenario": "A route raising ValueError, called with X-Request-ID: trace-err-0001, returned 500 without the header: the error middleware outside this middleware built the response. Errors are when a person most needs an id to quote.",
    "cause": "call_next re-raised and the response was built outside the middleware.",
    "fix": "Catch the exception in the middleware, log the line and return a JSON 500 with the request id in the body and the header.",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "A person who hit a server error had no request id to quote, so support could not find the one log line that explains the failure; errors are exactly when that id is needed."
   },
   {
    "id": "F5",
@@ -78,7 +83,8 @@
    "scenario": "The worker container is killed for memory while running a stage; another process's recover() marks the job interrupted, but dclab_jobs_total and dclab_job_failures_total do not move and nothing is logged, though this is the failure an alert most needs.",
    "cause": "Only execute() counted; the recovery path did not.",
    "fix": "recover() counts the job as interrupted with its time and writes the 'job ended' line.",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "A worker killed for memory in the middle of a stage, the failure an alert most needs to catch, left the failure counter flat and wrote no log line, so a dashboard would show a healthy system while people's runs were dying."
   },
   {
    "id": "F6",
@@ -88,7 +94,8 @@
    "scenario": "Someone hits the rate limit: the line says user null, workspace null, so an operator cannot see who hit it.",
    "cause": "request.state.who was set after the rate-limit check returned.",
    "fix": "Set it right after the person is identified.",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "When someone was rate-limited, the log line could not say who or which workspace, so an operator could neither tell the person nor see whether one script was hammering the service."
   },
   {
    "id": "F7",
@@ -98,7 +105,12 @@
    "scenario": "Without DCLAB_LOG_FORMAT=json (the default for make notebook, make dev and make test) every request, including the Compute page's 2.5-second poll, printed a bare 'INFO dclab request' with no route, status or id, flooding the output the parallel runner prints for a failing file.",
    "cause": "The plain formatter dropped the record's fields.",
    "fix": "Plain text logs only server errors, with the same fields.",
-   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested).",
+   "impact": "In the default plain mode every request, including the Compute page's poll every 2.5 seconds, printed a line that said nothing, burying a failing test's real output under noise in the runner's report.",
+   "alternatives": [
+    "Append every field to each plain-text line: set aside because the lines themselves were the flood; plain text now logs only server errors, with the same fields."
+   ],
+   "open": "uvicorn's own error lines and a job's traceback still print as plain text, with the exception's text, outside the JSON stream."
   }
  ],
  "measurements": [],
@@ -108,7 +120,12 @@
   "Observability must fail soft: a busy metrics port should turn metrics off, never stop the server.",
   "Test the error path of a request-id feature first: a 500 is where the id matters most and where middleware order loses it."
  ],
- "commits": [
-  "412525c"
+ "commits": ["412525c"],
+ "risks": [
+  "A label taken from the request as sent (method, path, query) lets anyone grow the metric series without bound.",
+  "Logs must never hold a secret, a prompt or a data value; the route pattern, not the path with its ids, is what may be logged.",
+  "An optional metrics port that cannot bind must not stop the app or the worker from starting.",
+  "Failures that happen outside the normal path, a dead worker's jobs or an unhandled exception, are the ones most likely to go uncounted.",
+  "A readiness check that waits on an unreachable database without a timeout can block the threads the app needs."
  ]
 }

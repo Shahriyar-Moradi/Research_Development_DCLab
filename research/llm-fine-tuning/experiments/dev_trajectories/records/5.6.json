@@ -39,7 +39,10 @@
    "scenario": "An Admin toggled require_solution_signoff on a project; the change saved through PATCH /api/projects/{id} but never appeared in the audit log.",
    "cause": "The PATCH route predated the audit log.",
    "fix": "The project PATCH now logs gate switch changes and the platform audit includes them.",
-   "test": ""
+   "test": "",
+   "impact": "An Admin could switch require_solution_signoff off on a project and leave no trace. The question 'who removed the sign-off gate before this model went ahead' would have no answer in the audit.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "S2",
@@ -49,7 +52,10 @@
    "scenario": "With a model configured, an intern session describing the data sent up to three example values per column to the provider, while /api/config said 'Raw rows ... not included'.",
    "cause": "The text described one agent and was read as covering all.",
    "fix": "The text now says that example values are sent by the intern; 'never rows' is stated only for the Home agent's context.",
-   "test": ""
+   "test": "",
+   "impact": "With a model configured, an owner reading /api/config would believe no row value left the machine, while every intern session that described the data sent up to three example values per column to the provider. For confidential data, that promise decides whether a model may be switched on at all.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "S3",
@@ -59,7 +65,12 @@
    "scenario": "Tracks whose README opens with '**Status: proposed research.**' showed 'see README.md' in their INDEX.md and an empty status on the map, hiding that they are proposals with no result; the Lab page had worked around it with its own looser pattern.",
    "cause": "The parser read only '**Status:** ...'.",
    "fix": "One shared reader handles both forms, the seven INDEX.md files were regenerated, and a test fails if any track declares a status the map does not read.",
-   "test": "test_every_track_readme_status_is_read_in_both_forms."
+   "test": "test_every_track_readme_status_is_read_in_both_forms.",
+   "impact": "Seven tracks that are only proposals showed no status on the research map, so a reader could take a proposal with no result for work that has been measured.",
+   "alternatives": [
+    "Keep the Lab page's own looser pattern beside the map's: set aside, because two readers of one field had already drifted apart once; both now use one reader and a test."
+   ],
+   "open": ""
   },
   {
    "id": "S4",
@@ -69,7 +80,10 @@
    "scenario": "The Benchmark leaderboard showed policy scores no run produced; the Lab listed a queued 'expansion_v2' campaign that does not exist; the Policy page showed an 8B training run's GPU hours and cost; the Admin plan table never rendered its cells (missing td).",
    "cause": "Demo content carried over.",
    "fix": "Scores read 'planned, no policy scored yet', the invented campaign row and run figures were removed, the cost ladder says no latency or cost is measured, and the table was fixed.",
-   "test": ""
+   "test": "",
+   "impact": "Visitors saw policy scores, a queued campaign, and GPU hours and cost that no run produced. Anyone deciding from these pages, for example whether training a policy model is affordable, would be deciding from invented figures.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -80,13 +94,26 @@
    "result": "None found on either.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for no console error on any of the 19 pages, on a workspace with projects and on an empty one: none was found on either, so it passes.",
+   "limits": [
+    "A clean console shows the pages load without script errors; it does not show that each figure on them is right.",
+    "Both workspaces were small and made for the check; a large workspace was not loaded.",
+    "A sweep at one commit; nothing reran it automatically until the later browser tests (make browser-test)."
+   ]
   }
  ],
  "outcome": "Done: every workspace and platform page shows real data or says plainly that a thing is not built or not metered. Open at the time: the wizard's euro budget was stored but not metered (8.4).",
  "lessons": [
   "When parallel helpers each own one file, collect their notes about shared code and fix those in one place.",
   "A governance action without an audit record is a gap even if it works."
+ ],
+ "risks": [
+  "Four helpers editing server.py at once would collide; each page group needs a file of its own.",
+  "One invented figure missed while replacing demo content stays on a page as if it were measured.",
+  "Admin text about policies or privacy could promise more than the code enforces.",
+  "A governance action saved through a generic route (a PATCH of the project) may leave no audit record.",
+  "Pages that read the files the product writes may fail on an empty workspace where those files do not exist yet."
  ],
  "commits": [
   "d7a8d37",

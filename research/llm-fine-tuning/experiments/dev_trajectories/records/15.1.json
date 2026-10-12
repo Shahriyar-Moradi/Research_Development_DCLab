@@ -44,7 +44,8 @@
    "scenario": "The first generator planted 16 fraud bikers, 6 of them self-dealers whose frauds leave no trace in the table. A 20% holdout grouped by biker gets about 4 fraud bikers. Simulating the hand method on seed 0 over 5 grouped holdouts gave point AP 0.50 to 0.73 every time, but a 2.5% bound of 0.001 to 0.003 on 3 of the 5, against 5 times chance of about 0.04.",
    "cause": "Too few fraud bikers, and a check on the interval's lower end, which swings with which bikers land in the holdout.",
    "fix": "Spread the frauds over more bikers (30 fake-trip and 12 self-dealing bikers; 37 to 40 bikers carry known frauds, closer to the real case's 94 frauds on 53 bikers), and assert the point AP above 0.35 and above 20 times chance with the interval computed by a cluster bootstrap over bikers.",
-   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions"
+   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions",
+   "impact": "The acceptance test meant to be the yardstick of all of Part 4 would have passed or failed depending on which few fraud bikers landed in the holdout, so a correct engine could stay red and the next packages would chase noise instead of the decisions."
   },
   {
    "id": "F2",
@@ -54,7 +55,11 @@
    "scenario": "The test expected the suggestion to name biker_id as the group column and expected recall at the budget, but only 15.6 (Home's entity and budget questions) supplies an entity or a budget; the test would have stayed red after 15.5.",
    "cause": "The test relied on what Home would ask, not on what the engine packages deliver.",
    "fix": "The test states the entity and the budget in the Solution itself, and the marker says 15.6 later makes Home ask for them.",
-   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions"
+   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions",
+   "impact": "After 15.5 the end-to-end test would still have been red for a reason no engine package addresses, and the failure could have been read as the engine falling short.",
+   "alternatives": [
+    "Name 15.6 in the expected-failure marker: set aside for stating the entity and the budget in the Solution itself, so the engine packages alone can turn the test green and 15.6 only adds Home's questions."
+   ]
   },
   {
    "id": "F3",
@@ -64,7 +69,8 @@
    "scenario": "Nothing checked that the folds actually used the biker groups, that the model was chosen by a stated rule, that recall at the budget beats the budget, or that a limit is stated; only the presence of keys was checked.",
    "cause": "The first draft asserted the presence of fields rather than the decisions.",
    "fix": "Assert the features record names biker_id in its CV protocol, the models record carries a rule, recall at the budget exceeds the budget, precision is called a lower bound, and the disagreeing column sender_phone is a stated limit.",
-   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions"
+   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions",
+   "impact": "An engine that wrote the right fields with the wrong content (random folds, no selection rule, recall at the budget no better than the budget, no stated limit) would have passed, so the yardstick could certify the very mistakes the challenge was set to catch."
   },
   {
    "id": "F4",
@@ -74,7 +80,8 @@
    "scenario": "On seeds 0 to 5 the correlation between order_id and the ride date was between -0.013 and 0.013; a time-ordered split (15.3) or any check that treats the id as a time proxy, as in the real files, would be misled.",
    "cause": "Ids were assigned to the shuffled frame before it was sorted by day.",
    "fix": "Sort the orders by day (a stable sort) before assigning ids; the correlation is now 0.99.",
-   "test": "test_the_traps_are_planted"
+   "test": "test_the_traps_are_planted",
+   "impact": "15.3's time-ordered split would have been built and tested on a replica where the order id carries no time at all, unlike the real files, so a bug in using the id as a time proxy could pass and a correct use could look wrong."
   },
   {
    "id": "F5",
@@ -84,7 +91,8 @@
    "scenario": "The random forest ran with n_jobs=-1 while the parallel runner starts one process per test file on an 8-core, 8 GB machine, so 8 processes each spawned 8 threads; generate() took 3 to 7 s and ran four times.",
    "cause": "Defaults copied from an interactive script.",
    "fix": "n_jobs=1, and the replica generated once and shared by the test classes.",
-   "test": ""
+   "test": "",
+   "impact": "Under the parallel runner on the 8 GB machine, this one file could start 8 processes of 8 threads each and slow the whole suite until other test files timed out, which looks like flakiness elsewhere."
   },
   {
    "id": "F6",
@@ -94,7 +102,8 @@
    "scenario": "The row said hand-method AP 0.45 to 0.54 and 100 frauds on 16 bikers; the reviewer measured 0.611 on seed 0 and 15 bikers carrying frauds. The row also hid that the replica has 3 accounts, not the 2 the text names.",
    "cause": "The numbers came from an earlier version of the generator.",
    "fix": "Re-measure every number on the final generator (seeds 0 to 3: 89 to 103 known fraud rows on 37 to 40 bikers; the pair join marks 18 to 24 times as many rows) and record the deviations from the text in the row.",
-   "test": ""
+   "test": "",
+   "impact": "Later packages would have measured their progress against numbers the generator no longer produces, so a lift claimed over the playbook's baseline could have been a lift over a phantom."
   },
   {
    "id": "F7",
@@ -104,7 +113,9 @@
    "scenario": "The reviewer could not compare with the challenge folder (access was refused, rightly) and listed the fraud reason strings, category names, account ids and the phone format as possibly copied.",
    "cause": "The first generator borrowed the shape of the real files too closely.",
    "fix": "Replace every label string, category name, account id and the phone format with clearly invented ones; the replica keeps only the structure of the traps.",
-   "test": "test_save_writes_the_two_files_marked_synthetic_and_never_the_truth"
+   "test": "test_save_writes_the_two_files_marked_synthetic_and_never_the_truth",
+   "impact": "Had any label string, category name, id or phone format been copied from the confidential challenge, it would sit in the repository and in every SFT corpus built from it, and a confidential hiring task cannot be un-shared.",
+   "open": "The reviewer could not compare the replica with the real files, rightly; that no vocabulary remains rests on the replacement having been complete."
   },
   {
    "id": "O1",
@@ -114,7 +125,8 @@
    "scenario": "After the 15.1 review fixes, make check-all (7 minutes or more on this machine) was started again while the plan for Parts 5 and 6 was still being written; the owner asked why check-all or rd-check runs every time.",
    "cause": "The gate was treated as a step after every change rather than before a commit.",
    "fix": "Run the affected test files while building, and the full rd-check once before a commit that touches shared code.",
-   "test": ""
+   "test": "",
+   "impact": "Each full gate takes 7 minutes or more on the owner's machine; running it after every edit while the plan was still moving spent the owner's time and memory on checks of work that was about to change."
   }
  ],
  "measurements": [
@@ -125,7 +137,14 @@
    "result": "Seeds 0 to 2: behaviour features with folds grouped by biker reach AP 0.47 to 0.54; raw columns 0.05 to 0.12; raw columns plus the biker id on a random split 0.27 to 0.31 (the leak). Chance is about 0.006. Known fraud rows 0.54 to 0.63% of scorable rides; 5 sample rows not in the table; about 90% of the sample's fares disagree with the table.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "Use the replica as the yardstick of every Part 4 package."
+   "next": "Use the replica as the yardstick of every Part 4 package.",
+   "against_gate": "Behaviour features with folds grouped by biker reach AP 0.47 to 0.54 against chance of about 0.006, and above raw columns at 0.05 to 0.12; raw columns plus the biker id on a random split reach 0.27 to 0.31, above the raw columns alone, so the random split flatters them as the gate requires.",
+   "limits": [
+    "Only seeds 0 to 2 were measured.",
+    "The replica was written by someone who knew the hand solution, so its signal being recoverable by that method is partly by construction; it says nothing about traps the author did not think of.",
+    "Invented data with planted traps, not the real challenge; the real files may hold signals and noise the replica lacks.",
+    "'Far above chance' had no number fixed in the gate, so how far was judged after the run."
+   ]
   },
   {
    "name": "the engine as it was, on the replica",
@@ -134,7 +153,13 @@
    "result": "Labels joined by hand, seed 0: holdout AP 0.277 (95% cluster bootstrap over bikers 0.086 to 0.501; chance 0.006), recipe selected_mi, extra trees.",
    "verdict": "not scored",
    "cost_eur": null,
-   "next": "15.2 to 15.6 must lift the same test above 0.35 with the right decisions."
+   "next": "15.2 to 15.6 must lift the same test above 0.35 with the right decisions.",
+   "against_gate": "There is no gate; as the baseline for the end-to-end test, the engine as it was reaches holdout AP 0.277 against the 0.35 the test will ask for, with a cluster bootstrap interval over bikers of 0.086 to 0.501 that reaches both below and above that mark; chance is 0.006.",
+   "limits": [
+    "One seed and one holdout split.",
+    "The labels were joined by hand, so the engine's own label handling was not part of this run.",
+    "The interval is wide because only a few fraud bikers fall in a holdout grouped by biker."
+   ]
   }
  ],
  "outcome": "Done: a seeded, fully invented two-file replica with every trap planted, four replica tests passing, and seven acceptance tests as expected failures, each failing for its own reason; the reviewer's six findings and the confidentiality concern were fixed before the commit.",
@@ -144,7 +169,12 @@
   "Check that every expected failure fails for its intended reason, not for a bug in the test.",
   "When data is confidential, invent even the vocabulary and formats, not only the values."
  ],
- "commits": [
-  "2876699"
+ "commits": ["2876699"],
+ "risks": [
+  "The confidential challenge files must never enter the repository, and nothing copied from them (labels, category names, ids, formats) may enter the replica either.",
+  "A replica built by someone who knows the real solution can be shaped to fit it; the planted signal must be checked by the method, with the leak's flattering split shown too.",
+  "An acceptance test that asserts on a noisy statistic (the lower end of an interval over few groups) can stay red with a correct engine.",
+  "Acceptance tests that check that fields exist, rather than the decisions in them, would certify a wrong engine.",
+  "Each expected failure must name the package that turns it green, or a test silently depends on work nobody planned."
  ]
 }

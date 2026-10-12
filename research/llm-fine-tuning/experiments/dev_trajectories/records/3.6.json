@@ -35,7 +35,9 @@
    "scenario": "Uploading a file with the sentence 'predict which subscribers will cancel next month' picked the time-series pack, which relabels the workflow for forecasting, though the task is to classify subscribers.",
    "cause": "A time horizon was read as a forecasting signal on its own.",
    "fix": "A horizon means forecasting only when the sentence does not ask 'which ones' (cancel, churn, leave, renew...); forecast, demand and 'per day' still decide it.",
-   "test": "test_a_horizon_alone_does_not_make_a_classification_a_time_series."
+   "test": "test_a_horizon_alone_does_not_make_a_classification_a_time_series.",
+   "impact": "A churn question went to the time-series pack, which relabels the workflow for forecasting. The user would have been steered toward a forecast for what is a per-subscriber classification, and the template and questions that follow would fit the wrong task.",
+   "open": "'Which ones' is recognised through a list of verbs (cancel, churn, leave, renew...). A classification phrased with other words and a horizon can still be read as a forecast."
   },
   {
    "id": "O1",
@@ -45,7 +47,9 @@
    "scenario": "The owner wrote 'i want a classification for fruad deetction and prediction'; detection needed exact words, so it chose the tabular pack and its template workflow instead of the fraud (imbalanced) pack.",
    "cause": "Exact keyword matching on user text.",
    "fix": "A word of five or more letters with the same first letter and one slip (a wrong, missing or extra letter, or two swapped) is read as the keyword, only when nothing matched as typed; the reason on screen says what was typed.",
-   "test": "test_a_small_typo_in_a_pack_word_is_still_read."
+   "test": "test_a_small_typo_in_a_pack_word_is_still_read.",
+   "impact": "The owner's fraud problem started on the generic tabular pack and its template workflow instead of the imbalanced and fraud pack, so a rare-event problem began without the steps written for imbalance.",
+   "open": "Only one slip in a word of five letters or more, with the right first letter, is read. Shorter words, a wrong first letter or two slips still fall back to the tabular pack, and a real word one slip from a keyword can be read as that keyword when nothing else matched."
   }
  ],
  "measurements": [],
@@ -57,5 +61,12 @@
   "15c4958",
   "2899447",
   "ddc34ee"
+ ],
+ "risks": [
+  "A model's workflow could drop a human gate ('solution signed', 'owner approves') unless code adds the gates itself.",
+  "Keyword detection misreads real phrasing: a time horizon inside a classification question, or a typo in the pack word.",
+  "The backend's pack keys drift from the nine cards the UI shows.",
+  "A proposal that goes backwards or misses WF-01, 03, 05 or 09 gives a workflow the validator later refuses.",
+  "Changing the workflow in place loses the version the user saw before."
  ]
 }

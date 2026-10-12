@@ -31,7 +31,10 @@
    "scenario": "Each audit of the product was a one-off script in a scratch folder; after a change nobody could rerun the same four flows.",
    "cause": "Exploratory checks were never promoted to a command.",
    "fix": "scripts/product_e2e.py (make product-e2e) runs the four flows on a temporary server and ends with 'all flows passed' or the failing step.",
-   "test": ""
+   "test": "",
+   "impact": "Each defect the audits found could come back after the next change to Home, the wizard or the engine with nobody noticing, because the flows that found them could not be run again.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -42,12 +45,26 @@
    "result": "All four flows passed (upload, no data, synthetic split by time, log file) in about 90 s; rd-check passed with 316 tests.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "Rerun after every change to Home, the wizard or the engine."
+   "next": "Rerun after every change to Home, the wizard or the engine.",
+   "against_gate": "The gate asks that make product-e2e ends with 'all flows passed'. All four flows passed (upload, no data, synthetic split by time, log file) in about 90 s, and rd-check passed with 316 tests: it passes.",
+   "limits": [
+    "No model was used, so the flows test the plumbing and the defaults, not any path where a model proposes something.",
+    "Quick mode and one holdout: the scores the script prints say nothing about model quality.",
+    "Fixed inputs; a table unlike the Telco CSV, the synthetic table or the log file may still fail.",
+    "It guards later changes only when it is rerun after them."
+   ]
   }
  ],
  "outcome": "Done: the four flows are one repeatable command. The audit before it found and fixed: folds not reaching the engine, a split control disconnected from the solution, a unique timestamp refused by its own defaults, guidance saved as the prediction moment, a stale Task box, 'Audit again' crashing for uploads, the auditor crashing on yes/no columns, a chat race, and a silent synthetic template.",
  "lessons": [
   "Promote every manual end-to-end check that found a bug into a command; the next change will need it."
+ ],
+ "risks": [
+  "Checks that live in throwaway scripts cannot be rerun after the next change.",
+  "A setting the wizard saves may never reach the engine (the folds, the split).",
+  "Untouched defaults can fail on their own, such as a unique timestamp pre-ticked as both forbidden and the time column.",
+  "Scores printed by a flow check could be mistaken for model results.",
+  "Making the script tolerate a defect instead of fixing the product would hide it from every user's run."
  ],
  "commits": [
   "19b13c0",

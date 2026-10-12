@@ -40,7 +40,8 @@
    "scenario": "Approve the final stage, DELETE the project, then accept the lesson: it is stored as accepted and becomes evidence, but the response is 500 and the page shows an error. The file store raised FileNotFoundError where PostgreSQL raised KeyError.",
    "cause": "The activity-log write after the review caught only KeyError.",
    "fix": "The route catches both KeyError and OSError.",
-   "test": "test_a_lesson_of_a_deleted_project_can_still_be_reviewed."
+   "test": "test_a_lesson_of_a_deleted_project_can_still_be_reviewed.",
+   "impact": "A reviewer accepting a lesson of a deleted project saw an error while the lesson had in fact become evidence, inviting a second action on something already done."
   },
   {
    "id": "F2",
@@ -50,7 +51,8 @@
    "scenario": "evidence_answer said 'no project data' but now received workspace lessons (a project's aggregate claims, its name, dataset file name, row count and split); project_answer and the intern also saw other projects' results through the merged index; the Admin page showed the old text.",
    "cause": "The merged index reached three purposes whose descriptions were not updated.",
    "fix": "The three purposes name the accepted workspace lessons (aggregate claims and scope, no rows).",
-   "test": ""
+   "test": "",
+   "impact": "The Admin page told the owner that evidence answers receive no project data while they received other projects' claims, names, file names and row counts, so the owner's picture of what reaches a model was wrong."
   },
   {
    "id": "F3",
@@ -60,7 +62,9 @@
    "scenario": "(a) Accept, then edit the claim within the same second: search still served the old claim. (b) The key used the id of the base index without holding it, so a new index after make knowledge could reuse the id and get the old records. (c) Another thread clearing the cache between a lookup and a return raised KeyError.",
    "cause": "The key used a timestamp to the second and an object id; the cache was not locked.",
    "fix": "The key is the lessons' content; the cache holds the base and checks it is the same object; it runs under a lock and returns a local.",
-   "test": "test_an_edit_in_the_same_second_is_searched_at_once."
+   "test": "test_an_edit_in_the_same_second_is_searched_at_once.",
+   "impact": "An edited lesson could keep being served in its old wording, and after make knowledge an old index could come back, so Ask and the intern would cite text a reviewer had corrected.",
+   "open": "The lesson store is one per process: two apps in one process would share one workspace's lessons."
   },
   {
    "id": "F4",
@@ -70,7 +74,8 @@
    "scenario": "Lesson L1 accepted, the final stage rerun and re-approved, L2 proposed: both cite PRJ-...-final-C1, which now resolves to the new run's numbers, and the old run's unreviewed proposals could still be accepted.",
    "cause": "Claim ids are stable across reruns and the record carried no run.",
    "fix": "The lesson's metadata names its final run; older unreviewed proposals are marked superseded and refused on review; the page shows no actions on them.",
-   "test": "test_a_withdrawn_lesson_leaves_the_search_and_a_rerun_supersedes_unreviewed_ones."
+   "test": "test_a_withdrawn_lesson_leaves_the_search_and_a_rerun_supersedes_unreviewed_ones.",
+   "impact": "After a rerun an old lesson cited claim ids that now resolve to the new run's numbers, so it could look supported by figures it was never written from, and stale proposals could still be accepted."
   },
   {
    "id": "F5",
@@ -80,7 +85,11 @@
    "scenario": "A store error while proposing lessons, inside the approve request after the approval committed, gave 500 and the page reported the approval as failed.",
    "cause": "Proposing ran in the approve request without its own error handling.",
    "fix": "A failed proposal is caught and logged as lessons_not_proposed; lessons can be proposed later.",
-   "test": ""
+   "test": "",
+   "impact": "The person approving the final stage was told the approval failed when it had been saved, and might approve again or distrust the stage's state.",
+   "alternatives": [
+    "Run the proposal as a background job, the reviewer's other option: set aside because lessons can be proposed again through their own route, so catching and logging the failure was enough."
+   ]
   },
   {
    "id": "F6",
@@ -90,7 +99,11 @@
    "scenario": "The three lessons of one proposal share a second, so the file store's order followed their random ids, while PostgreSQL used insertion order.",
    "cause": "A sort with an id tiebreak in one store only.",
    "fix": "Both keep insertion order.",
-   "test": ""
+   "test": "",
+   "impact": "The panel listed lessons in a different order on the two stores, so screens and tests disagreed between deployments.",
+   "alternatives": [
+    "Store a sequence number used by both stores: not needed, since the file store's JSON keeps insertion order once the id tiebreak is dropped."
+   ]
   },
   {
    "id": "F7",
@@ -100,7 +113,8 @@
    "scenario": "If a lesson id already belonged to another workspace, the conditional upsert wrote nothing and save() still returned the lesson as saved; the review route reported success.",
    "cause": "The upsert result was not checked.",
    "fix": "The upsert returns the id and raises when nothing was written (a 404 on review).",
-   "test": ""
+   "test": "",
+   "impact": "A review reported success for a lesson that was never written, so the reviewer would believe it was evidence when it was not."
   },
   {
    "id": "F8",
@@ -110,7 +124,8 @@
    "scenario": "Accepting a synthetic lesson showed 'it is searched with the records', which is false; the library's dataset count included workspace file names from lessons.",
    "cause": "Messages and counts written before lessons existed.",
    "fix": "A synthetic accept has its own message; the dataset count leaves out lessons.",
-   "test": ""
+   "test": "",
+   "impact": "The page told a reviewer that a synthetic lesson is searched with the records, the one thing it never is, and the library's dataset count was inflated by workspace file names."
   },
   {
    "id": "R1",
@@ -120,7 +135,9 @@
    "scenario": "The text said 'final stage run completed 2026-10-06T12:41:07 (run 1)'; 'The model used 12 features and 41 trees [LESSON-abc].' was kept, though the lesson only says AUC 0.81 and 400 rows, because 12 and 41 were in the timestamp.",
    "cause": "The citation check reads every number in a cited source as allowed.",
    "fix": "The time and run number stay in metadata only; the text names the run without numbers.",
-   "test": "The test asserts the numbers in the record text are exactly those of the claim, counter-argument, next test and scope."
+   "test": "The test asserts the numbers in the record text are exactly those of the claim, counter-argument, next test and scope.",
+   "impact": "Any answer citing a lesson could state numbers such as 12 or 41 taken from the timestamp, and the deterministic check would keep them.",
+   "open": "The run's time still reaches the intern through get_record's metadata, where nothing checks the numbers of its free text."
   }
  ],
  "measurements": [
@@ -129,7 +146,12 @@
    "gate": "A4.3's gate: a new prompt needs a complete scripted rerun.",
    "result": "Complete; same scores as AEV-001 to AEV-005.",
    "verdict": "pass",
-   "next": ""
+   "next": "",
+   "against_gate": "The rerun is complete, which is what the gate asks, and its scores are the same as the earlier runs.",
+   "limits": [
+    "The scripted suite never sends the new lesson-proposal prompt to a model, so the rerun records the change rather than tests it.",
+    "The suite scores how policies handle leaks and moves; it says nothing about the quality of proposed lessons."
+   ]
   }
  ],
  "outcome": "Done: lessons proposed from the final stage, reviewed by a person, searched with the evidence by the intern, /mcp and the Evidence library as workspace lessons with their scope and project; synthetic lessons never offered; evidence/knowledge untouched. Open: the role is declared until accounts exist; lessons come from the final stage only; one workspace's lessons per process. Nine review findings fixed over three rounds.",
@@ -137,6 +159,13 @@
   "Any number placed in a citable text becomes a number an answer may borrow; keep dates and counters in metadata.",
   "A cache keyed by a timestamp to the second or an object id serves stale results; key on content.",
   "A side effect run inside a request after the main write must not turn a successful write into a 500."
+ ],
+ "risks": [
+  "A model setting a lesson's scope or citations, making an unsupported lesson look supported.",
+  "Workspace lessons written into evidence/knowledge, which is generated and must not change.",
+  "Lessons from synthetic data offered as evidence.",
+  "Numbers placed in a lesson's text (dates, run counters) becoming numbers an answer may borrow.",
+  "Purpose descriptions no longer matching what models see once lessons join the search."
  ],
  "commits": ["46acc3e"]
 }

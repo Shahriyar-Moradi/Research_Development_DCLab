@@ -35,7 +35,13 @@
    "scenario": "The feature ladder contains a recipe literally named `selected` (a feature-selection subset). On adult's feature stage (EXP-003) the critic read it as the recipe the rule selected and objected that 'selected' scored below raw despite the rule; the recorded rule had chosen raw. An earlier chat praised this as a real catch. Across the campaign, 10 of 157 challenges were of this kind.",
    "cause": "A name collision between a recipe called selected and the rule's selected stage, and no step that recomputed the rule before trusting the objection.",
    "fix": "critic_gate.py recomputes each stage's choice from the recorded rows and rule; a challenge that disputes a confirmed choice is marked contradicted and dropped (10 dropped, 147 kept).",
-   "test": "tests/test_knowledge_layer.py checks the gate; the SFT v3 manifest records contradicted_challenges_dropped 10."
+   "test": "tests/test_knowledge_layer.py checks the gate; the SFT v3 manifest records contradicted_challenges_dropped 10.",
+   "impact": "Ten wrong objections, each worded carefully, would have entered durable memory and SFT v3 and taught a future model to dispute correct selections. An earlier chat had already praised one as a real catch, so people were believing them.",
+   "alternatives": [
+    "Ask a second model to judge the first: set aside because each stage records its rule beside the numbers, so recomputing it settles the dispute without another model's errors.",
+    "Rename the recipe called selected: not done, because the recorded result files are immutable and the name is part of them; the gate handles the collision instead."
+   ],
+   "open": "The recipe is still named selected, so a new reader, person or model, can make the same misreading; the gate only catches challenges about selections it can recompute."
   },
   {
    "id": "F2",
@@ -45,7 +51,9 @@
    "scenario": "The fraud experiments (EXP-054, EXP-055) select on average precision with a 0.005 margin; the gate recomputed them on ROC-AUC and reported disagreement with recorded choices that hold when recomputed on average precision.",
    "cause": "The metric, tolerance and margin were constants written for the binary campaign.",
    "fix": "Read the primary metric, its direction (MAE, RMSE, log loss and Brier are lower-is-better), the tolerance, the std penalty and the acceptance margin from each result's recorded rule.",
-   "test": "tests/test_knowledge_layer.py; afterwards all 42 recomputable selections across 70 experiments are consistent."
+   "test": "tests/test_knowledge_layer.py; afterwards all 42 recomputable selections across 70 experiments are consistent.",
+   "impact": "On the fraud experiments the gate reported disagreement with average-precision choices that were correct. Its verdicts decide which critic challenges are dropped, so a correct challenge could have been dropped or a wrong one kept, and lower-is-better metrics such as MAE and log loss would have been read in the wrong direction.",
+   "open": "Only selections with a recorded rule can be recomputed; challenges about anything else still reach memory unchecked."
   }
  ],
  "measurements": [
@@ -55,7 +63,13 @@
    "fixed_before_run": false,
    "result": "50 reviews by gpt-5.4-mini; confidence high on 4 and medium on 46; all 50 decisions withheld acceptance (do not accept, provisional, insufficient evidence or hold), most asking for repeated or nested CV and a decision-time audit.",
    "verdict": "not scored",
-   "next": "Check each challenge against the recorded numbers before it becomes memory."
+   "next": "Check each challenge against the recorded numbers before it becomes memory.",
+   "against_gate": "There is no accuracy threshold: all 50 reviews ended with a decision, and all 50 withheld acceptance; confidence was high on 4 and medium on 46.",
+   "limits": [
+    "Format was checked, not correctness: some challenges later proved wrong against the recorded numbers.",
+    "A critic that withholds acceptance everywhere cannot be told apart from one that judges; its verdicts carry no signal here.",
+    "One model and one pass, with no repeat to show how stable the reviews are."
+   ]
   },
   {
    "name": "critic gate consistency",
@@ -63,7 +77,13 @@
    "fixed_before_run": true,
    "result": "42 of 42 recomputable selections across 70 experiments consistent after the gate became metric-aware; 10 of 157 critic challenges contradicted.",
    "verdict": "pass",
-   "next": "Run the gate on every new campaign before make knowledge."
+   "next": "Run the gate on every new campaign before make knowledge.",
+   "against_gate": "All 42 of 42 recomputable selections agree with the recorded choice, as the gate requires; separately, 10 of 157 critic challenges are contradicted by the numbers and dropped.",
+   "limits": [
+    "It passed only after the gate was made metric-aware; the gate is only as right as its reading of each recorded rule.",
+    "Only selections with a replayable rule are checked: 42 across 70 experiments.",
+    "Consistency shows each recorded choice follows its rule, not that the rule was a good one."
+   ]
   }
  ],
  "outcome": "The critic's conservative reviews are kept as cited memory; its 10 checkably wrong objections are filtered out before they reach the evidence index or the SFT corpus.",
@@ -76,5 +96,12 @@
   "1d26339",
   "d9c4c24",
   "3212bd9"
+ ],
+ "risks": [
+  "A critic's fluent but wrong objection becoming durable memory or training data.",
+  "Letting the critic rewrite a measured metric or approve deployment.",
+  "Judging the critic with another model that adds its own errors.",
+  "A gate hard-wired to ROC-AUC that misjudges campaigns selecting on other metrics.",
+  "Storing free chat as memory, which nobody can later check against a result file."
  ]
 }

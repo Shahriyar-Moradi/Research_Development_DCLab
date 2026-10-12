@@ -41,7 +41,9 @@
    "scenario": "_app() imported the server before patching the environment; importing server.py loads .env and builds a module-level app, so make web, build --check (part of rd-check) and the client test built a full server on the owner's workspace folder against whatever database .env named, inserting a workspace row and running the audit backfill. With an unreachable database URL, or DCLAB_ALLOWED_HOSTS set without sign-in, build --check crashed with 'DCLab cannot start'.",
    "cause": "The import ran outside the patch, and the server module built its app at import time.",
    "fix": "The server's app is built on first use through a module __getattr__ (uvicorn's import string still resolves it); _app() imports inside the patch, empties the database, auth, hosts, files and metrics settings, drops DCLAB_*_FILE and points the workspace at a scratch folder.",
-   "test": "test_generating_the_client_opens_no_workspace_and_no_database: in a subprocess, importing the server does not build the app and the workspace folder is never created."
+   "test": "test_generating_the_client_opens_no_workspace_and_no_database: in a subprocess, importing the server does not build the app and the workspace folder is never created.",
+   "impact": "Every make web, every rd-check and the client test quietly built a full server against whatever database the owner's .env named, inserting a workspace row and running the audit backfill there; a build step was writing to a real database. With an unreachable database or a host setting without sign-in, the freshness check crashed and blocked every commit.",
+   "open": "The generator now depends on the list of settings it empties; a new setting that makes the server reach outside at start would need adding there."
   },
   {
    "id": "F2",
@@ -51,7 +53,8 @@
    "scenario": "/api/workspace returns 500: Home keeps the static sample stats with no warning, no Loading… and no Try again, because its enter did not return its loads and loadWorkspace swallowed the error; Intern's enter did not return sync(), so a failed list left the sample silently.",
    "cause": "Page tracking only sees a page whose enter returns a promise.",
    "fix": "Home's enter returns Promise.all of its loads; Intern's enter returns this.sync(); the failed read is recorded before the page's own catch.",
-   "test": "Checked in the browser with a failing workspace read."
+   "test": "Checked in the browser with a failing workspace read.",
+   "impact": "When the workspace read failed, Home kept showing the sample's numbers with no warning and no way to retry, so a person would take invented sample stats for their own workspace; the package claimed every page had a failed state."
   },
   {
    "id": "F3",
@@ -61,7 +64,9 @@
    "scenario": "Open Lab while its summary is slow, then click Home (which did not track): Home's failing workspace read later shows on Lab as 'Part of this page could not be loaded'. Brief's poll keeps running after leaving Brief, so its error landed on Solution.",
    "cause": "A failure was credited to whichever watch was current when it arrived, and track() never hid the box when it started.",
    "fix": "api() takes the watch when the request starts and only if it belongs to the current view; enterView clears the watch when enter returns no promise; track() hides the box first.",
-   "test": "Checked in the browser: a slow page left, then a failing read elsewhere."
+   "test": "Checked in the browser: a slow page left, then a failing read elsewhere.",
+   "impact": "A person could see 'Part of this page could not be loaded' on Lab for a failure that belonged to Home, or keep seeing an old banner on a page that had loaded fine, so the one signal meant to say what failed pointed at the wrong page.",
+   "open": "A poll started by another page, such as Brief's, can still count against the page that is loading."
   },
   {
    "id": "S1",
@@ -71,7 +76,8 @@
    "scenario": "With the workspace read failing, the page loaded without a warning.",
    "cause": "enterView called enter before it started tracking, so reads that start at once found no watch.",
    "fix": "Start the page's watch (loading.begin) before calling enter, after the view is set.",
-   "test": "Browser check: the warning appears, Try again clears it, and no banner shows on a healthy server."
+   "test": "Browser check: the warning appears, Try again clears it, and no banner shows on a healthy server.",
+   "impact": "The F2 fix looked done in code, yet in the browser Home still failed silently, because the reads started before anything watched them; only checking the real page showed it."
   },
   {
    "id": "S2",
@@ -81,7 +87,8 @@
    "scenario": "The generated code relied on DC being a global in the browser rather than reading window.DC.",
    "cause": "Generator template.",
    "fix": "The generator writes window.DC explicitly.",
-   "test": "The node test of the client's paths and argument checks."
+   "test": "The node test of the client's paths and argument checks.",
+   "impact": "Nothing failed in today's pages, but the generated client would break as soon as it ran in a module scope or a test harness where DC is not a bare global."
   }
  ],
  "measurements": [],
@@ -91,5 +98,12 @@
   "A test that checks strings exist is not proof of a state; a browser check with a failing read found that the tracking started too late.",
   "Credit an asynchronous failure to the context that started the request, not to whatever is current when it arrives."
  ],
- "commits": ["962f885"]
+ "commits": ["962f885"],
+ "risks": [
+  "Generating a client from the OpenAPI schema means importing the server; if importing builds an app, a build step touches the real database and settings.",
+  "Rewriting 98 hand-written calls can change a parameter or a method silently; a test must fail on any remaining path string or unknown route.",
+  "A page-level loading tracker sees only what a page's enter returns; pages that start reads without returning them stay silent on failure.",
+  "Requests that outlive their page (polls) can report their failure on whatever page is current.",
+  "The owner asked for no change to layout, colour or wording, so the new states must reuse existing components exactly."
+ ]
 }

@@ -40,7 +40,12 @@
    "scenario": "An editor writes and deletes a temporary file next to a source (a vim swap or probe file, a JetBrains safe-write file). changed_since calls is_file() then stat(); the file vanishes in between, stat raises FileNotFoundError outside the try that covers only build(), the thread ends, and make dev keeps serving a stale frontend with one traceback in the terminal.",
    "cause": "Only the build call was inside the try; the scan was not.",
    "fix": "changed_since skips a file whose stat raises OSError; watch_frontend wraps the first scan and every scan and build in a try, and on a failed first scan starts from the current time.",
-   "test": "test_the_watcher_survives_a_failing_build_and_a_vanishing_file."
+   "test": "test_the_watcher_survives_a_failing_build_and_a_vanishing_file.",
+   "impact": "A developer using vim or a JetBrains editor would, sooner or later, lose the frontend rebuild for the rest of the session and keep testing a stale page, with only one old traceback scrolled away in the terminal to explain why their change did not show.",
+   "alternatives": [
+    "Only move the scan inside the existing try: keeps the thread alive but still lets one vanished file abort a whole scan; skipping the file as well keeps the other changes."
+   ],
+   "open": "The watcher's test makes the whole scan raise, so it proves the outer try, not the per-file skip; a file moved in with an older mtime is not seen as a change."
   },
   {
    "id": "F2",
@@ -50,7 +55,11 @@
    "scenario": "A developer has DCLAB_DATABASE_URL pointing at a dclab_dev database on a staging server exported in the shell and runs make db-reset CONFIRM=yes: the script runs drop database with force on the remote server and ends every session there; make dev would also migrate any remote dclab_* database.",
    "cause": "check_name looked at the name in the URL and nothing else.",
    "fix": "Refuse any host other than this machine before connecting unless --remote is given; require the full match dclab_[A-Za-z0-9_]+ so a quoted or injected name is refused before any connection.",
-   "test": "Tests that another name or host is refused before connecting (the reachability check patched to fail if called) and that db-reset --yes on a remote URL returns 2."
+   "test": "Tests that another name or host is refused before connecting (the reachability check patched to fail if called) and that db-reset --yes on a remote URL returns 2.",
+   "impact": "A developer with a staging URL exported in the shell who ran the reset would have force-dropped the staging database and cut every session on it, from a command meant only for a scratch database on their laptop. make dev would also have run migrations against any remote dclab_* database.",
+   "alternatives": [
+    "Only print the host before acting: still drops it; a refusal unless --remote is given makes the remote case a deliberate choice."
+   ]
   },
   {
    "id": "F3",
@@ -60,7 +69,8 @@
    "scenario": ".env names a database on another host and the shell does not export it: dev.py falls back to the default local dclab_dev, creates and migrates it and hands it to uvicorn; because the server loads .env without overriding, it uses the local one too. On Linux, where the user's own role often does not exist, make dev fails with 'server did not answer' although .env holds a working URL.",
    "cause": "The server reads .env at import; the script never did.",
    "fix": "main() calls load_dotenv on the repository's .env without overriding, before anything else; tests that call main() restore the environment.",
-   "test": "The tests calling main() run under a patched environment so no key from the owner's .env leaks into other tests."
+   "test": "The tests calling main() run under a patched environment so no key from the owner's .env leaks into other tests.",
+   "impact": "A developer who followed the example config and put the database URL in .env got a different database from make dev than from make notebook, without a word; on Linux, where the user's own role often does not exist, make dev failed although .env held a working URL."
   },
   {
    "id": "F4",
@@ -70,7 +80,8 @@
    "scenario": "The README said 'set DCLAB_DATABASE_URL to use another database; only databases named dclab_* are ever created or dropped', but with a URL to an existing database named myapp make dev exits with 'refusing to create or drop the database myapp'.",
    "cause": "The name check runs before the existence check.",
    "fix": "The README now says the database must be named dclab_* and live on this machine, with --remote to override.",
-   "test": ""
+   "test": "",
+   "impact": "A developer who pointed the URL at an existing database of another name, as the README invited, got a refusal the docs did not explain."
   },
   {
    "id": "F5",
@@ -80,7 +91,8 @@
    "scenario": "No test for an unreachable server, for db-reset on a non-dclab URL, for a failing build keeping the watcher alive, or for the uvicorn command and environment that serve builds; the suite would fail without the change only because the module would be missing.",
    "cause": "Tests written for the smoke-tested path only.",
    "fix": "Added tests: an unreachable server on a closed port gives the start hint and creates nothing; refusals happen before any connection; serve builds uvicorn with --reload, --workers 1, the port and the environment (Popen patched); the watcher survives failures.",
-   "test": "tests/test_dev_script.py grew from 4 to 10 tests."
+   "test": "tests/test_dev_script.py grew from 4 to 10 tests.",
+   "impact": "Every guard in the script, the refusals, the start hint and the watcher's survival, could have broken without a red test; the one dangerous command, the reset, had no test of its refusal at all."
   },
   {
    "id": "R1",
@@ -90,7 +102,12 @@
    "scenario": "A URL with localhost in its netloc and ?host=staging.example.com in its query: SQLAlchemy's psycopg dialect connects to staging, the guard saw localhost and passed, and db-reset would drop the staging database. Likewise ?hostaddr=, ?service= and, with no host in the URL, PGHOST, PGHOSTADDR or PGSERVICE from the shell were never checked.",
    "cause": "The guard read parsed.host first and fell back to the query only when the netloc had no host.",
    "fix": "check_name reads the query's host and hostaddr (comma lists split) alongside the URL's host, reads PGHOST and PGHOSTADDR when the URL names no host, and refuses a service key or PGSERVICE; check_server runs select inet_server_addr() on the admin connection before the existence check, the drop or the create, and requires a socket (NULL) or a loopback address.",
-   "test": "Tests cover every URL and environment-variable source and both sides of check_server with a fake connection."
+   "test": "Tests cover every URL and environment-variable source and both sides of check_server with a fake connection.",
+   "impact": "The first host guard could still be walked past: a URL saying localhost with a host in its query, or a PGHOST exported in the shell, sent the force-drop to staging while the guard reported this machine.",
+   "alternatives": [
+    "Patch the URL parsing for each host source one by one: the reviewer advised checking the server instead, so the authoritative check asks the connected server for its own address; the URL checks stay as an early refusal."
+   ],
+   "open": "An SSH tunnel or local proxy forwarding a local port to another server passes both checks, because that server sees the connection on its own loopback address; only the dclab_* name and CONFIRM=yes stand there."
   }
  ],
  "measurements": [],
@@ -100,5 +117,12 @@
   "A background thread that loops forever must catch failures around every step it repeats, not only the one expected to fail.",
   "A development script must read configuration the same way the server it starts does, or the two silently diverge."
  ],
- "commits": ["cc87c29"]
+ "commits": ["cc87c29"],
+ "risks": [
+  "A reset command that drops a database is one exported variable away from dropping someone else's: the guard must check where the connection really goes, not only the name.",
+  "The script and the server can read the database URL from different places (.env against the shell) and silently use different databases.",
+  "A background watcher thread that dies on one exception leaves a stale frontend with no visible error.",
+  "Smoke-tested by hand on the happy path only, the refusals and hints would have no test that fails when they break.",
+  "The README's promise about which databases are touched can drift from the order of checks in the code."
+ ]
 }

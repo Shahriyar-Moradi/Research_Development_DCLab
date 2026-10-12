@@ -35,7 +35,11 @@
    "scenario": "At 375 px the mobile check found Benchmark 83 px too wide: a long file path inside a code element in a footnote would not wrap.",
    "cause": "Inline code does not break inside a long path.",
    "fix": "Let that code wrap (first as a global rule, narrowed after review).",
-   "test": "The mobile check at 375 px."
+   "test": "The mobile check at 375 px.",
+   "impact": "On a phone, the Benchmark page scrolled sideways, so a person reading the benchmark's footnotes on mobile saw a cut-off page; no API test could have shown it.",
+   "alternatives": [
+    "A global rule letting every code element wrap anywhere: tried first and narrowed after review, because it changed the layout of tables on other pages (F4)."
+   ]
   },
   {
    "id": "F1",
@@ -45,7 +49,11 @@
    "scenario": "The check took the first key of holdout_metrics as the metric; on files that is roc_auc, but JSONB orders keys by length, so on PostgreSQL the first key is f1 (about 0.55–0.6) while the brief shows ROC-AUC 0.85, and the check fails.",
    "cause": "Relying on a dict's key order that the database does not keep.",
    "fix": "Read the final record's primary_metric and compare that value.",
-   "test": "The script passes against a PostgreSQL-backed server."
+   "test": "The script passes against a PostgreSQL-backed server.",
+   "impact": "On CI, which stores records in PostgreSQL, the brief check compared the wrong metric and failed, so the new browser job would have been red from its first run and quickly ignored.",
+   "alternatives": [
+    "Sort the keys before taking the first: still guesses which metric matters; the final record's primary_metric names it."
+   ]
   },
   {
    "id": "F2",
@@ -55,7 +63,8 @@
    "scenario": "A console error injected 50 ms into the first load was in problems() after the browser opened, yet the pages check printed '19 pages without a console error', because it began counting from the current number and Home was not entered again.",
    "cause": "The check started its count after the first load.",
    "fix": "Wait for the first load to end and fail on anything logged so far; check once more after the last page.",
-   "test": "The reviewer's injected error is now caught."
+   "test": "The reviewer's injected error is now caught.",
+   "impact": "A console error during the app's first load, the moment most likely to break for every visitor, would pass the check that prints '19 pages without a console error'."
   },
   {
    "id": "F3",
@@ -65,7 +74,8 @@
    "scenario": "On a slow runner a page whose reads take over 1.2 s shows 'Loading…' and fails falsely; a failure arriving later is blamed on the next page or, on the last page, missed; the mobile width is measured before data renders.",
    "cause": "Hash navigation makes the load-state wait return at once.",
    "fix": "Export the 13.1 tracker as DC.loading and wait until the view is current and nothing is loading (60 s limit).",
-   "test": ""
+   "test": "",
+   "impact": "On a slow runner the check would fail on pages that were simply still loading, and could blame a late failure on the next page or miss it on the last one, so a red run would mean nothing and a green one would prove less than it said."
   },
   {
    "id": "F4",
@@ -75,7 +85,8 @@
    "scenario": "With code { overflow-wrap: anywhere }, Audit's day_of_week cell splits over two lines at 1280 px, and at 375 px Benchmark's leakage table squeezes its code column to about 34 px, breaking column names over several lines.",
    "cause": "'anywhere' lowers the min-content width of every code element, so table columns shrink.",
    "fix": "Scope the rule to the footnote: .panel-foot code.",
-   "test": "The mobile check passes and table cells are unaffected."
+   "test": "The mobile check passes and table cells are unaffected.",
+   "impact": "The wrapping fix for one footnote split column names in the Audit and Benchmark tables over several lines on desktop and phone, changing layouts the owner had asked to keep as they were."
   },
   {
    "id": "F5",
@@ -85,7 +96,8 @@
    "scenario": "--only stats on a fresh server fails: Home shows 8 projects (the sample) while the API has none; the full run passed only because the flow had already created a project.",
    "cause": "The count was updated only inside if (ws.projects.length).",
    "fix": "Set the count before the if.",
-   "test": "--only stats passes with 0 projects."
+   "test": "--only stats passes with 0 projects.",
+   "impact": "A new user with an empty workspace saw Home claim 8 projects, the sample's count, while they had none; the full test run had hidden it only because the flow created a project first."
   },
   {
    "id": "F6",
@@ -95,7 +107,8 @@
    "scenario": "The card shows holdouts opened exactly once over holdout projects (the sample shows 6 / 6); a wrong API count would pass.",
    "cause": "The check compared the other cards only.",
    "fix": "Compare both numbers of that card.",
-   "test": "The stats check."
+   "test": "The stats check.",
+   "impact": "If the API counted holdout openings wrongly, the card that shows the holdout rule, the one number about evaluation honesty on Home, could disagree with the records and the test would still pass."
   },
   {
    "id": "R1",
@@ -105,7 +118,11 @@
    "scenario": "On a runner where the jobs read takes over 2 s, the stats check reads 'loading' and raises 'no number in loading'; the mobile check measures the page before a wide jobs table renders.",
    "cause": "Compute's enter only started a poll and returned no promise.",
    "fix": "Make Compute's first load awaitable: enter returns the first load's promise.",
-   "test": "All four checks pass."
+   "test": "All four checks pass.",
+   "impact": "On a slow runner the stats check would read 'loading' instead of a number and fail falsely, and the mobile check would measure Compute before its wide table rendered, so a real overflow could pass.",
+   "alternatives": [
+    "Wait in the script until a digit appears: fixes the test only; making Compute's first load awaitable fixes the page's own loading state as well."
+   ]
   },
   {
    "id": "S1",
@@ -115,7 +132,8 @@
    "scenario": "rd-check failed because the line that exports DCLAB_NO_LIVE_MODELS had changed.",
    "cause": "The new target was added onto the pinned line.",
    "fix": "Restore that line and give browser-test its own export line.",
-   "test": "The Makefile test."
+   "test": "The Makefile test.",
+   "impact": "rd-check failed on the pinned line that turns live models off for every make target; had the pin not existed, a later edit could have let a test target reach a live model with the owner's key."
   }
  ],
  "measurements": [],
@@ -126,5 +144,12 @@
   "Fix a layout fault at the element that causes it; a global CSS rule fixes one page and breaks others.",
   "Run a stats check on an empty workspace too: sample values hide when real data happens to exist."
  ],
- "commits": ["7848118"]
+ "commits": ["7848118"],
+ "risks": [
+  "A browser test that waits with fixed sleeps fails on a slow runner and hides late errors; it must wait on the page's own loading state.",
+  "Checks that count console errors from 'now' miss what happens during the first load.",
+  "Comparing screen numbers with the API can rely on details, such as key order, that differ between file storage and PostgreSQL.",
+  "A fix for one page's overflow can change other pages' layout, which the owner asked to keep.",
+  "A test that only passes because an earlier step created data (a project) hides what a new user sees on an empty workspace."
+ ]
 }

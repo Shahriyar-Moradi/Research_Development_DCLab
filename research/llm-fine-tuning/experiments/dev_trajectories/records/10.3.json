@@ -41,7 +41,10 @@
    "scenario": "A model was configured in the developer's shell, so the intern ran in model mode and never waited on the patched tool the test used to hold it.",
    "cause": "The test inherited the shell's model settings.",
    "fix": "The test forces the standard plan, as test_intern does.",
-   "test": "test_an_intern_turn_and_a_data_pipeline_stop_too."
+   "test": "test_an_intern_turn_and_a_data_pipeline_stop_too.",
+   "impact": "The stop test passed or failed depending on the developer's shell, so a real regression in stopping an intern turn could be dismissed as environment noise.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F1",
@@ -51,7 +54,10 @@
    "scenario": "Worker A's heartbeat goes stale (a database outage, a debugger, a laptop asleep under make dev); worker B's recovery marks the job interrupted and settles it; a person retries and B claims it; A keeps running through every later checkpoint, so A and B run the same stage job on one project at once, and whichever finishes first marks it done.",
    "cause": "interrupt() did not re-check that the heartbeat was still stale; Control.check looked only at cancel and stopping; finish and progress did not check the worker id.",
    "fix": "interrupt takes older_than and requires the heartbeat to still be that old; Control.check stops a job whose row is no longer running or no longer this worker's; finish and progress are no-ops for another worker.",
-   "test": "test_a_live_worker_whose_job_was_taken_stops_at_its_next_checkpoint."
+   "test": "test_a_live_worker_whose_job_was_taken_stops_at_its_next_checkpoint.",
+   "impact": "When a live worker's heartbeat went stale (a laptop asleep, a database blip), two workers could run the same stage job on one project at once, their steps interleaved, and the first to finish marked the job done while the other still wrote to the project.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F2",
@@ -61,7 +67,12 @@
    "scenario": "After Retry the test waited 20 s for the retried turn to run the whole standard plan with five real stages; it failed three times out of three with three copies in parallel and twice during check-all, while passing alone in 12 to 16 s.",
    "cause": "The test waited for real work instead of the state it was checking.",
    "fix": "After Retry the test waits for attempts == 2, stops the job and waits for it to end.",
-   "test": "test_jobs passes three times at once on a loaded machine."
+   "test": "test_jobs passes three times at once on a loaded machine.",
+   "impact": "The retry test failed under the parallel gate on a loaded machine, so check-all went red over a test that waited on real work instead of the state it checked.",
+   "alternatives": [
+    "Patch the toolbox to return a canned result once the gate is set: offered by the reviewer; waiting for attempts == 2 and then stopping checks the claim without any real work."
+   ],
+   "open": ""
   },
   {
    "id": "F3",
@@ -71,7 +82,12 @@
    "scenario": "On a fresh .venv from requirements/base.txt the worker subprocess exits with 'No module named watchfiles'; the API runs with DCLAB_WORKER=external, so every stage run, pipeline and intern turn stays queued for ever, silently.",
    "cause": "watchfiles was present only because another package pulled it in.",
    "fix": "worker_command() falls back to running the worker without reload, and a watcher thread warns loudly if the worker exits while the API runs.",
-   "test": "tests/test_dev_script.py covers the fallback and the warning."
+   "test": "tests/test_dev_script.py covers the fallback and the warning.",
+   "impact": "On a fresh environment the worker of make dev exited at once while the API waited for an external worker, so every stage run, pipeline and intern turn stayed queued for ever with no error anywhere.",
+   "alternatives": [
+    "Add watchfiles to the requirements: offered by the reviewer; the fallback runs the worker without reload whenever it is missing, and a watcher warns if the worker exits, which covers any environment."
+   ],
+   "open": ""
   },
   {
    "id": "F4",
@@ -81,7 +97,10 @@
    "scenario": "Once the synthetic asset exists, its Compute row looks up a pipeline job keyed by draft and asset, which does not exist because the pipeline runs inside the synthetic job; the page offers no Stop though the job would honour one.",
    "cause": "The row's control lookup did not know a pipeline can run inside a synthetic job.",
    "fix": "A draft's pipeline row falls back to the active synthetic job.",
-   "test": "test_a_synthetic_tables_pipeline_offers_stop."
+   "test": "test_a_synthetic_tables_pipeline_offers_stop.",
+   "impact": "While a synthetic-data job ran its pipeline, Compute offered no Stop, so a user could not stop work the job would have honoured.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F5",
@@ -91,7 +110,10 @@
    "scenario": "A server killed and restarted within 120 s leaves its job running: the project shows running, new runs get 409, and a Stop does nothing for up to about three minutes until the periodic recovery runs.",
    "cause": "Recovery at start only caught heartbeats older than DCLAB_JOB_STALE_SECONDS.",
    "fix": "A running job whose worker was a process of this machine that has ended (a dead pid) is interrupted at once, provided its heartbeat is at least 15 s old.",
-   "test": "test_a_job_of_a_dead_process_on_this_machine_is_recovered_at_once (a live pid stays untouched)."
+   "test": "test_a_job_of_a_dead_process_on_this_machine_is_recovered_at_once (a live pid stays untouched).",
+   "impact": "After a quick restart a job stayed 'running' for up to about three minutes: the project showed running, new runs got 409, and Stop did nothing.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F6",
@@ -101,7 +123,12 @@
    "scenario": "Instance A queues the final stage while instance B's run-all passes its active check in the same window: B overwrites data to models as queued, wiping their completed status, then gets 409, and those stages stay queued for good.",
    "cause": "mark_queued saved the project before the insert that may raise ActiveJob, with no undo.",
    "fix": "mark_queued returns a snapshot that start_job and retry restore on ActiveJob; the pipeline retry checks for an active job first.",
-   "test": "test_a_run_that_loses_the_race_puts_the_project_back."
+   "test": "test_a_run_that_loses_the_race_puts_the_project_back.",
+   "impact": "With two app instances, a run that lost the race for the job key reset completed stages to queued and left them there for good, so finished results looked as if they had never run.",
+   "alternatives": [
+    "Check for an active job again after the insert: offered by the reviewer; restoring a snapshot on ActiveJob undoes exactly what was changed."
+   ],
+   "open": ""
   },
   {
    "id": "F7",
@@ -111,7 +138,10 @@
    "scenario": "GET /api/jobs returned payload.text (the user's intern message) and payload.prompt (text sent to the synthetic-schema model).",
    "cause": "The routes returned whole job rows.",
    "fix": "A public view drops text and prompt in list, read, stop and retry.",
-   "test": "The intern retry test checks the payload text is absent."
+   "test": "The intern retry test checks the payload text is absent.",
+   "impact": "GET /api/jobs returned the user's intern messages and the text sent to the synthetic-schema model to anyone who could list jobs.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R1",
@@ -121,7 +151,10 @@
    "scenario": "A goes stale, B recovers and later claims the retried job; A reaches a checkpoint and stops, then settles again: B's current stage becomes failed ('Interrupted'), its remaining stages go back to pending and the project's running field is cleared while B keeps executing.",
    "cause": "execute() settled whatever the stop reason, and the stage handler's finally always tidied.",
    "fix": "Control records that the job was lost; execute skips settling and the stage handler tidies only when the job is still this worker's. A last gap (taken over during its last stage, so no later checkpoint) was closed with Control.owned(), checked before tidying.",
-   "test": "test_a_live_worker_whose_job_was_taken_stops_at_its_next_checkpoint asserts nothing is settled after the takeover; test_a_stage_job_taken_over_during_its_last_stage_leaves_the_project_alone."
+   "test": "test_a_live_worker_whose_job_was_taken_stops_at_its_next_checkpoint asserts nothing is settled after the takeover; test_a_stage_job_taken_over_during_its_last_stage_leaves_the_project_alone.",
+   "impact": "After the F1 fix, the displaced worker's tidy-up still marked the new owner's current stage failed, reset its waiting stages to pending and cleared the project's running field while the new owner kept executing, so the page showed a broken run that was in fact going on.",
+   "alternatives": [],
+   "open": "A worker taken over during its last stage still writes that stage's result when it finishes, since a stage is never cut."
   },
   {
    "id": "R2",
@@ -131,7 +164,10 @@
    "scenario": "Two containers report the same hostname with separate process namespaces: os.kill(pid, 0) on the other container's live worker raises ProcessLookupError, so its job beating every 5 s is interrupted at once.",
    "cause": "The F5 path skipped the heartbeat check.",
    "fix": "The dead-pid path also requires a heartbeat at least max(3 beats, 15 s) old.",
-   "test": "A fresh heartbeat is left alone; one 20 s old is recovered."
+   "test": "A fresh heartbeat is left alone; one 20 s old is recovered.",
+   "impact": "Two containers sharing a host name would interrupt each other's live jobs at once, each taking the other's worker for a dead process.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "T2",
@@ -141,7 +177,10 @@
    "scenario": "Under load the stop arrived while the intern job was still queued, which is valid, but the test expected one finished step.",
    "cause": "The test assumed the job had started before the stop.",
    "fix": "The test waits until the first tool call has started before stopping.",
-   "test": "Passes three times in parallel; the gate then passed."
+   "test": "Passes three times in parallel; the gate then passed.",
+   "impact": "The final gate failed once under load on a timing the product handles correctly, so the gate could go red over the test's own assumption rather than a defect.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "T3",
@@ -151,7 +190,10 @@
    "scenario": "Between the test's Retry and the second worker's claim, the worker under test, polling every 50 ms, claimed the job back.",
    "cause": "A race in the test itself.",
    "fix": "The test hands the job to the other worker in one step.",
-   "test": "Four parallel runs pass; shipped with the 10.4 commit."
+   "test": "Four parallel runs pass; shipped with the 10.4 commit.",
+   "impact": "The test of the most delicate race, a takeover, failed once under load because the worker under test claimed the job back, so it could fail for a race in itself.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -160,7 +202,13 @@
    "gate": "Killing the server mid-run and starting it again resumes or cleanly fails the job, and Retry runs it (the package's Done when).",
    "result": "On files and on PostgreSQL: SIGKILL during the leakage stage, restart, the job is interrupted, the stage it was on failed and the rest pending; Retry ran all five stages to done (attempts 2). Two API instances and one worker process on one database: the second instance refused the run the first had queued, and the worker process ran it.",
    "verdict": "pass",
-   "next": "The first attempt wrongly showed the job finishing: an older test server from a failed run still held the port and did the work; the script then used a free port and cleaned up its server."
+   "next": "The first attempt wrongly showed the job finishing: an older test server from a failed run still held the port and did the work; the script then used a free port and cleaned up its server.",
+   "against_gate": "The gate asks that killing the server mid-run and starting it again resumes or cleanly fails the job, and that Retry runs it. On files and on PostgreSQL, after SIGKILL during the leakage stage the job was interrupted, that stage failed and the rest stayed pending, and Retry ran all five stages to done (attempts 2); with two API instances and one worker process, the second instance refused the run the first had queued and the worker ran it: it passes.",
+   "limits": [
+    "One kill at one point, during the leakage stage; a kill during a pipeline, a synthetic job or an intern turn is covered only by tests.",
+    "Done by hand; an earlier attempt was invalid because a leftover test server held the port, so the result rests on the rerun on a free port.",
+    "Recovery after a quick restart and a live worker whose job was taken are proven by tests, not by this run."
+   ]
   }
  ],
  "outcome": "Done after three review rounds: four kinds of work are jobs in one table, claimed with SKIP LOCKED by a worker in the server or its own process, stoppable between steps, recovered after a crash and retryable. Left open: Home agent turns stay asyncio tasks (10.5 moved the turn lock), a stop waits for the step it is on, a retried run re-runs completed stages it was asked for, jobs are not copied by storage migrate.",
@@ -170,5 +218,14 @@
   "A by-hand crash test must start on a free port and clean up, or a leftover server answers and the test proves nothing.",
   "Tests that wait for real work to finish flake under the parallel gate; wait for the state being checked."
  ],
- "commits": ["d2b4b86"]
+ "risks": [
+  "Recovery could take a job from a worker that is alive but slow, and both would run it.",
+  "Cutting a stage mid-fit would leave half a record and break the rule that a stage is deterministic.",
+  "Two app instances could start the same project's stages unless the database alone decides.",
+  "A by-hand crash test could pass because a leftover server on the same port did the work.",
+  "Job rows carry user text (intern messages, prompts to a model) that an API could return."
+ ],
+ "commits": [
+  "d2b4b86"
+ ]
 }

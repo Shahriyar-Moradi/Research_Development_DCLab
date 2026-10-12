@@ -36,7 +36,8 @@
    "scenario": "A scripted synthetic spec names a column 'patient_ssn_...' and lists a category twice: the check row's reason holds the column name from the validation message, and the Admin page shows it as last_reason. This breaks the column's own comment ('never the model's output or the user's data').",
    "cause": "The synthetic path passed str(error), and pydantic and the spec validator quote the input in their messages.",
    "fix": "Pass a fixed reason (for example 'spec failed validation') or the error class only, never the error text.",
-   "test": "A test with a marked column name that is absent from the check log."
+   "test": "A test with a marked column name that is absent from the check log.",
+   "impact": "A column name proposed by a model, or a value quoted by pydantic, would be stored in the check log and shown to every Admin viewer as the last reason. A sensitive column name would leave its project through a monitoring page."
   },
   {
    "id": "F2",
@@ -46,7 +47,8 @@
    "scenario": "The intern's unknown tool names, bad arguments and validator refusals, the Home agent's unknown pack or tool, and NOOA's typed-output parse failures were all unreported.",
    "cause": "Only the callers that already had an explicit check were wired.",
    "fix": "The intern loop reports each tool call (unknown tool, invalid arguments, refused by the validator, or passed); the Home agent reports its tool calls; the campaign's ask() and the guide reviewer report their typed outputs.",
-   "test": "Intern and campaign tests that read the verdicts."
+   "test": "Intern and campaign tests that read the verdicts.",
+   "impact": "A strong-tier model calling unknown tools or failing its typed output on every request would never appear on Admin. Those purposes run on the most expensive tier, and the owner would have no signal to move them to another model."
   },
   {
    "id": "F3",
@@ -56,7 +58,8 @@
    "scenario": "A search of tests/ found nothing exercising Bound.output, Gateway.check, record_check, failing() or the threshold of two.",
    "cause": "The reporting path was written without its own test.",
    "fix": "OutputCheckTests check summary()['failing'] with zero, one and two failing verdicts, purpose, tier and model present, on files and on PostgreSQL.",
-   "test": "OutputCheckTests in tests/test_models_gateway.py."
+   "test": "OutputCheckTests in tests/test_models_gateway.py.",
+   "impact": "The threshold of two failures, the purpose and tier fields and the PostgreSQL path could all break without a red test. The Admin list could stay empty while models failed."
   },
   {
    "id": "F4",
@@ -66,7 +69,8 @@
    "scenario": "Adding min and max to the Home agent's profile fields stayed green, because the markers were strings only; the stage-notes case ran only the data stage. The reviewer found no live leak today, so this was coverage, not a leak.",
    "cause": "Markers were text values only.",
    "fix": "The planted table has unique findable numbers and a date column, and every stage plus the project answer runs in the test.",
-   "test": "test_model_data_limits.py; shown to fail when the Home agent is deliberately given top values, quantiles, min and max."
+   "test": "test_model_data_limits.py; shown to fail when the Home agent is deliberately given top values, quantiles, min and max.",
+   "impact": "A change that sent a column's minimum, maximum or dates to the Home agent would have passed the guard, so 'no cell values' would be claimed while numbers left the workspace. The reviewer found no such leak in the code of the day."
   },
   {
    "id": "F5",
@@ -76,7 +80,8 @@
    "scenario": "The model returns a JSON list: the check is logged as passed, then reading review['experiment_id'] raises a TypeError.",
    "cause": "output(True) was called right after parsing.",
    "fix": "Report a pass only when the critique is a JSON object; otherwise report 'the critique is not a JSON object'.",
-   "test": "A scripted critic test with a list reply."
+   "test": "A scripted critic test with a list reply.",
+   "impact": "A critique returned as a JSON list would be counted as a pass and then crash the review. The check log would show the model as healthy in the very case where it failed."
   },
   {
    "id": "S1",
@@ -86,7 +91,8 @@
    "scenario": "The scripted replies left out the token counts the real client always returns, and the intern's call path stopped early.",
    "cause": "A scripted reply that did not look like a real one.",
    "fix": "The scripted replies carry token counts like the real client's.",
-   "test": "The intern case now finds its three examples per column and no more."
+   "test": "The intern case now finds its three examples per column and no more.",
+   "impact": "The intern's limit of three examples per column was never exercised, so a change sending whole columns to the intern would have passed the data-limit test."
   }
  ],
  "measurements": [
@@ -95,7 +101,13 @@
    "gate": "With a local model on the cheap tier, parse patterns and evidence answers run on it and the usage log says so (the package's Done-when).",
    "result": "With the cheap tier pointed at qwen2.5-coder 1.5B in a local Ollama, one evidence answer and one parse pattern ran on it; the usage log shows two requests on that model, both local, 0 euros. The model's evidence answer failed the citation and number check (0 sentences kept), and its parse pattern failed (parse rate 0, built-in parser used): the code fell back both times.",
    "verdict": "pass",
-   "next": "Better local or remote models are a later choice; the fallback held."
+   "next": "Better local or remote models are a later choice; the fallback held.",
+   "against_gate": "The gate asks only that both purposes run on the local model and that the usage log say so: it shows two requests on that model, both local, at 0 euros, so it passes. The answers themselves failed their checks, with 0 sentences kept and a parse rate of 0, and the code fell back both times.",
+   "limits": [
+    "There was a single request per purpose, so the run shows routing and logging, not how often a small local model passes its checks.",
+    "Both of the model's outputs failed, so on this model the cheap tier adds requests without adding answers.",
+    "The fallback held on these two requests; a reply that passes the checks but is wrong is not measured here."
+   ]
   }
  ],
  "outcome": "Done: each purpose names its tier and its cell-value limit, tested on findable text, numbers and dates through all five stages; every caller that checks a model's output reports a verdict, and a model failing a purpose twice a month is listed on Admin. The gate passed with 391 tests on each backend and the four flows; five review findings fixed.",
@@ -104,5 +116,14 @@
   "Prove a guard test can fail by adding the leak on purpose once.",
   "Error messages quote their input; never log str(error) from validating a model's output."
  ],
- "commits": ["968d172"]
+ "risks": [
+  "A purpose's data limit written as prose drifts from what its callers really send, and only planted values can show the drift.",
+  "The output-check log, shown on Admin, picks up the model's text or the user's column names through validation error messages.",
+  "The 'fails twice' report is wired only into callers that already validate outputs, leaving the strong-tier purposes unreported.",
+  "A guard test whose planted values are all text cannot see numbers or dates leaking.",
+  "A scripted reply that does not look like the real client's makes a test skip the very call it means to cover."
+ ],
+ "commits": [
+  "968d172"
+ ]
 }

@@ -49,7 +49,9 @@
    "scenario": "A session ran, then received a follow-up turn; the minutes recorded did not match the time actually spent, so the minutes budget was checked against a wrong number.",
    "cause": "The turn's elapsed time was added to the running total without a fixed baseline for where the turn started.",
    "fix": "Keep a minutes_before baseline when a turn starts and set minutes to that baseline plus the turn's elapsed time.",
-   "test": "Not covered by a dedicated test: test_budget_is_enforced checks the tool-call budget only."
+   "test": "Not covered by a dedicated test: test_budget_is_enforced checks the tool-call budget only.",
+   "impact": "The minutes budget was checked against a wrong total, so a session could be stopped early or run past its minutes on a follow-up turn.",
+   "open": "No test covers the minutes budget; test_budget_is_enforced checks the tool-call budget only."
   },
   {
    "id": "T1",
@@ -59,7 +61,8 @@
    "scenario": "The standard-plan test and the API test each built a whole project on larger samples.",
    "cause": "The tests used samples bigger than the behaviour under test needs.",
    "fix": "Run the standard-plan test on the small heart disease sample and the API test on the bike sample; the file now takes about 11 seconds.",
-   "test": "tests/test_intern.py"
+   "test": "tests/test_intern.py",
+   "impact": "About 35 seconds for one file slows the suite run before every commit, which pushes people to skip it."
   }
  ],
  "measurements": [],
@@ -68,6 +71,13 @@
   "An agent's edge is the tools it is allowed to call: give it only verified, bounded tools and keep splits, metrics and selection in code.",
   "A deterministic fallback plan with the same transcript shape keeps the product usable offline and the tests free.",
   "A test of an agent must own its environment; a key present on the machine silently turns a scripted test into a live one."
+ ],
+ "risks": [
+  "A tool that lets the model own a split, a metric or a selection rule.",
+  "Tests that depend on a live key or the network.",
+  "Budgets (tool calls and minutes) miscounted across follow-up turns.",
+  "Tools that can run arbitrary code, reach the network or write outside the project home.",
+  "The standard plan and the model loop drifting apart in what a session looks like."
  ],
  "commits": [
   "21cd670"

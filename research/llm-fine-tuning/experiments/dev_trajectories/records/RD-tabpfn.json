@@ -25,7 +25,9 @@
    "scenario": "load_part1 in train_tabpfn.py passes final_customer_fare and final_biker_fare to every model, so TabPFN's HyperAck ROC-AUC of 0.981 (histogram boosting 0.973) is leakage-inflated; the honest safe champion on that data is 0.9455.",
    "cause": "The loader was written before the safe-vs-unsafe analysis and never got the HyperAck contract.",
    "fix": "Found during the repository reorganization (2026-10-03); the track README now carries a warning that the HyperAck rows are inflated, and a rerun without the fares is queued as the track's next step (it needs TabPFN, torch and the token).",
-   "test": ""
+   "test": "",
+   "impact": "Read at face value, the benchmark says TabPFN reaches 0.981 on HyperAck, far above the honest champion of 0.9455; anyone choosing a foundation model from it would be choosing on a leak.",
+   "open": "The rerun has not happened (it needs TabPFN, torch and the token), so the track has no leakage-safe HyperAck result for TabPFN."
   }
  ],
  "measurements": [
@@ -33,9 +35,16 @@
    "name": "TabPFN benchmark on Telco churn",
    "gate": "Same split for every model; compare ROC-AUC.",
    "fixed_before_run": false,
-   "result": "TabPFN in thinking mode 0.850; logistic regression 0.841; XGBoost 0.841; TabPFN-2 0.841.",
+   "result": "TabPFN in thinking mode 0.850 on the full training set (fit 254.2 s); logistic regression 0.841 and XGBoost 0.841 on the full training set (fit 0.069 s for logistic regression); TabPFN-2 0.841 with only 1,024 training rows as context.",
    "verdict": "not scored",
-   "next": "Repeat on leakage-safe HyperAck before drawing any conclusion about foundation models."
+   "next": "Repeat on leakage-safe HyperAck before drawing any conclusion about foundation models.",
+   "against_gate": "There is no threshold: TabPFN in thinking mode leads at 0.850, logistic regression and XGBoost reach 0.841 on the full training set, and TabPFN-2 reaches 0.841 from only 1,024 context rows. Thinking mode took 254.2 s to fit against 0.069 s for logistic regression.",
+   "limits": [
+    "One stratified split with a fixed seed and no interval; a lead of this size can be split noise.",
+    "TabPFN-2 and the full-data models saw different amounts of training data, so their tie is not a like-for-like comparison.",
+    "Telco churn lacks the prediction time, so even this clean comparison is a development estimate.",
+    "Thinking mode runs on a hosted service; its fit time depends on that service and was measured once."
+   ]
   },
   {
    "name": "TabPFN benchmark on HyperAck",
@@ -43,7 +52,12 @@
    "fixed_before_run": false,
    "result": "TabPFN thinking mode 0.981, histogram boosting 0.973, both with the leaky final fares in the inputs.",
    "verdict": "not scored",
-   "next": "Discard these numbers as evidence; rerun with the fares removed."
+   "next": "Discard these numbers as evidence; rerun with the fares removed.",
+   "against_gate": "There is no threshold, and none could apply: TabPFN in thinking mode at 0.981 and histogram boosting at 0.973 both include the final fares, so the numbers measure the leak as much as the models.",
+   "limits": [
+    "Leakage need not inflate every model by the same amount, so even the ranking cannot be trusted.",
+    "One split with no interval."
+   ]
   }
  ],
  "outcome": "On Telco churn TabPFN in thinking mode gave the best ranking (0.850) with no tuning, about +0.009 over logistic regression. The HyperAck result is invalid until rerun without the final fares.",
@@ -52,5 +66,11 @@
  ],
  "commits": [
   "31d2413"
+ ],
+ "risks": [
+  "A loader written before a dataset's contract that still passes post-outcome columns.",
+  "The hosted model's API token committed in code or pasted in chat.",
+  "Comparing an untuned model with tuned baselines on one split and calling a small gap a win.",
+  "Judging the pretrained model on score alone, ignoring its latency and its data-size limits."
  ]
 }

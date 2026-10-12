@@ -41,7 +41,10 @@
    "scenario": "Workspace B saves a session whose id belongs to workspace A: the contract test expected KeyError, none was raised, and the row stayed A's while B believed it had saved.",
    "cause": "The upsert's ON CONFLICT DO UPDATE ... WHERE workspace matched no row, but the driver reported rowcount -1, so the check 'rowcount == 0' never fired.",
    "fix": "The upsert returns the saved id (RETURNING); no id back means the row belongs to another workspace, and save raises KeyError.",
-   "test": "test_storage_contract: test_a_workspace_never_sees_another_workspaces_rows."
+   "test": "test_storage_contract: test_a_workspace_never_sees_another_workspaces_rows.",
+   "impact": "Workspace B was told its session was saved while nothing was written and the row stayed A's, so B lost its work without an error; the isolation between workspaces rested on a check that could never fire.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "T2",
@@ -51,7 +54,10 @@
    "scenario": "write_stage with score NaN: the file store raised ValueError (strict JSON); the PostgreSQL store's lenient encoder wrote null, so the same defect was hidden on one backend.",
    "cause": "The PostgreSQL store encoded records with a helper that turned NaN into null.",
    "fix": "Stage records are encoded strictly on both backends (allow_nan=False): a non-number score is a defect to surface, not to store.",
-   "test": "test_storage_contract: test_stage_records asserts ValueError and that no stage was written."
+   "test": "test_storage_contract: test_stage_records asserts ValueError and that no stage was written.",
+   "impact": "A stage that produced a NaN score was refused on a laptop with files but stored with a null score on PostgreSQL, so the same defect would surface in development and hide in the team deployment, where a stage with no score could pass for a finished one.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "T3",
@@ -61,7 +67,10 @@
    "scenario": "Two projects created and updated within the same second: the file store sorts by an ISO time with one-second precision, so the order between them was arbitrary; four of five repeated runs failed.",
    "cause": "The file store's timestamps have one-second precision.",
    "fix": "The test waits just over a second between the two changes.",
-   "test": "test_storage_contract: test_project_documents passes repeatedly."
+   "test": "test_storage_contract: test_project_documents passes repeatedly.",
+   "impact": "The contract test failed at random, four runs in five, so a red result would soon be read as noise and a real ordering bug in either backend could hide behind it.",
+   "alternatives": [],
+   "open": "The file store still orders two changes made within the same second arbitrarily; only the test steps around it."
   },
   {
    "id": "T4",
@@ -71,7 +80,10 @@
    "scenario": "test_pages_ops and test_pages_learn built file stores themselves and wrote files into their folders; with DCLAB_DATABASE_URL set the server read the database, so the jobs list lacked stage, intern and data entries and a pack count was 0 instead of 1.",
    "cause": "The tests seeded data by writing store files directly instead of going through the stores the server uses.",
    "fix": "The tests open their stores with open_stores, so seeding goes to the same backend the server reads; the project log gained an at= argument so tests can seed times through it.",
-   "test": "The whole suite passes on both backends (347 tests each)."
+   "test": "The whole suite passes on both backends (347 tests each).",
+   "impact": "Three page tests failed on PostgreSQL though the product was right; tests that seed by writing files check the file backend while claiming to check the database, so a real PostgreSQL defect on those pages would have gone unseen.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -80,14 +92,26 @@
    "gate": "The projects list stays fast with 10,000 projects, measured with the query plan (the package's Done when).",
    "result": "A page of 50 takes about 1 ms and uses the workspace index; reading one project takes 0.5 ms.",
    "verdict": "pass",
-   "next": "Page the /api/projects route itself (10.1 gave every route its models; paging stayed open)."
+   "next": "Page the /api/projects route itself (10.1 gave every route its models; paging stayed open).",
+   "against_gate": "The gate asks that the projects list stays fast at 10,000 projects, with the query plan. A page of 50 takes about 1 ms and uses the workspace index, and reading one project takes 0.5 ms. The gate names no time limit, so 'fast' is read from these figures and the plan.",
+   "limits": [
+    "Measured on the developer's machine with a local database and no other load; a shared server under many users will differ.",
+    "The /api/projects route itself was not paged yet, so the measured query is not what the page called at the time.",
+    "The projects were made for the measurement; documents of real size may read slower."
+   ]
   },
   {
    "name": "results unchanged by the storage backend",
    "gate": "The whole suite and make product-e2e pass on PostgreSQL with the same results as on files.",
    "result": "347 tests pass on files and on PostgreSQL; the end-to-end flows give the same scores on both (0.8503 and 12.0954).",
    "verdict": "pass",
-   "next": "One earlier test run was very slow (110 s) with one error; eight repeats did not reproduce it, so it was reported as unexplained rather than hidden."
+   "next": "One earlier test run was very slow (110 s) with one error; eight repeats did not reproduce it, so it was reported as unexplained rather than hidden.",
+   "against_gate": "The gate asks for the whole suite and make product-e2e to pass on PostgreSQL with the same results as on files. 347 tests pass on files and on PostgreSQL, and the end-to-end flows give the same scores on both (0.8503 and 12.0954): it passes.",
+   "limits": [
+    "Equal scores on the end-to-end flows show storage does not change those results; they say nothing about model quality, since the flows run in quick mode.",
+    "One earlier run was very slow with a single error and did not reproduce; it stays unexplained, not ruled out.",
+    "Both backends ran on the same machine; several app instances sharing one database were not part of this check."
+   ]
   }
  ],
  "outcome": "Done: projects, drafts and intern sessions run on PostgreSQL when DCLAB_DATABASE_URL is set, with ten tables and migrations, row and advisory locks that hold across processes, and tested workspace isolation. Tables and exports stayed files (9.3); old workspaces were not imported yet (9.4).",
@@ -97,5 +121,14 @@
   "Tests that seed data by writing a store's files bypass the backend under test; seed through the store.",
   "Report a failure that does not reproduce as unexplained; do not drop it."
  ],
- "commits": ["4e1cf7f"]
+ "risks": [
+  "Tests that empty their database would delete the owner's projects if they shared it with working data.",
+  "An upsert guarded by a WHERE clause can look successful when it wrote nothing.",
+  "Two backends can disagree silently (strict against lenient JSON) unless one contract test runs on both.",
+  "A lock held in one process means nothing to another: updates, draft event numbers and agent turns need locks in the database.",
+  "Lists that filter or sort inside JSON documents slow down at thousands of projects without indexed columns."
+ ],
+ "commits": [
+  "4e1cf7f"
+ ]
 }

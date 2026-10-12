@@ -40,7 +40,9 @@
    "scenario": "The first export test searched the exported files for row values and found a phone value of the replica inside the model files: category levels and entity keys were stored as they were.",
    "cause": "The fitted encoders and count tables keep their keys.",
    "fix": "Hash category levels, feature names, entity values and place keys; the scorer applies the same hash to its input.",
-   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data",
+   "impact": "Anyone who received the exported folder, or the deliverables' repository it is committed to, could have read replica phone values straight from the model files. On the confidential challenge the same export would have handed real people's numbers to a grader.",
+   "open": "Hashed keys are pseudonyms, not anonymity: whoever holds both the folder and DCLAB_SERVICE_KEY can still enumerate phone numbers and grid cells."
   },
   {
    "id": "F4",
@@ -50,7 +52,12 @@
    "scenario": "The salt was pickled next to the hashes: the top levels of the phone columns and about one drop-off cell per training ride, with label-derived rates, could be enumerated (about a billion phone candidates, a few million grid cells). If ECOD was the final family it stored every training value of every feature column.",
    "cause": "The key travelled with the data it protects, and ECOD kept its sorted training columns.",
    "fix": "The key is supplied at serve time and never written to the folder (it was found once more on the behaviour object and cleared before pickling); ECOD keeps a quantile grid instead of the training values.",
-   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data",
+   "impact": "With the salt in model.pkl, anyone holding the file could hash every candidate phone number or grid cell and match the stored hashes, recovering the top phone levels and roughly one drop-off place per training ride with its fraud rate. Because model.pkl is committed to the deliverables' git repository, that recovery would stay possible from the history after any later fix.",
+   "alternatives": [
+    "Refuse ECOD as a final family (the reviewer's other option): set aside for a quantile grid, which keeps the detector usable while its state holds no training row's value."
+   ],
+   "open": "Per-key tables (hashed places with their label-derived rates) still go into model.pkl for private projects; the reviewer's option to refuse or drop them for private data was not taken."
   },
   {
    "id": "F1",
@@ -60,7 +67,8 @@
    "scenario": "The 15.10 acceptance test, marked expectedFailure, only imported the service module; once the module existed, make test and rd-check failed.",
    "cause": "The marker was left after the package that passes it was built.",
    "fix": "Remove the marker and make the test real: export the approved replica project and check the refusal.",
-   "test": "test_a_finished_project_exports_a_scoring_service"
+   "test": "test_a_finished_project_exports_a_scoring_service",
+   "impact": "make test, rd-check and check-all all failed on an unexpected success, so nothing could be committed; deleting the test to get green would have left 15.10's acceptance unchecked."
   },
   {
    "id": "F3",
@@ -70,7 +78,12 @@
    "scenario": "Scoring one row at a time against the engine's holdout scores: part 1 (event mode) differed by up to 0.25 in score and 4 of 60 alerts flipped; part 2 by up to 0.046. The parity test passed the whole holdout as one request, which hid it.",
    "cause": "The service keeps no state, so each request's counts come only from its own rows.",
    "fix": "Kept within-request semantics deliberately (see the decision), a single row gets a note that it has no history, and the package is marked done in part with the stateful service open.",
-   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data",
+   "impact": "A caller scoring rides one at a time, the usual way to call an API, would get scores up to 0.25 away from the evaluated model in event mode and see 4 of 60 alerts flip, so the holdout AP the person approved would not describe the service they run.",
+   "alternatives": [
+    "Store per-key counts and sums at export and add each batch to them without counting a known row twice, as the package text asks: not built now, because the engine measured the model with features computed within each fold, and training-period history in the service would make served features differ from the evaluated ones."
+   ],
+   "open": "The stateful service the package asks for is not built, and a single-row request still gets a score from features with no history, flagged only by a note."
   },
   {
    "id": "F5",
@@ -80,7 +93,9 @@
    "scenario": "A regression project whose review kept a log target was fitted on log1p(y), but the scorer returned the raw predictions with no expm1 and no clip, serving log-scale numbers.",
    "cause": "The scorer did not know the review's changes.",
    "fix": "Write the review operations and the target range into model.json and apply them in the scorer.",
-   "test": ""
+   "test": "",
+   "impact": "A regression project whose review kept a log target would have served predictions on the log scale, far too small, with no error raised; anything decided on them, a promised delivery time or a price, would be wrong.",
+   "open": "No test exports a regression project with a kept log target or clip; the exported tests cover the binary fraud replica only."
   },
   {
    "id": "F6",
@@ -90,7 +105,9 @@
    "scenario": "On rows with no drop-off, place_destination_rate was 0.0189 in the engine and 0.0068 in the service: fit turned NaN into the key 'nan', serving kept NaN, so the row got the prior.",
    "cause": "Fit and serve normalised missing keys differently.",
    "fix": "Hash the keys as text exactly as fit does.",
-   "test": ""
+   "test": "",
+   "impact": "Every ride with no drop-off would have been scored with the prior rate (0.0068) instead of the rate the model learned for a missing drop-off (0.0189), so the rows where a missing place may itself be a signal score differently in service than in evaluation.",
+   "open": "No test compares a row with a missing key between the engine and the service."
   },
   {
    "id": "F7",
@@ -100,7 +117,9 @@
    "scenario": "If one row of a JSON or CSV batch lacked an integer column, pandas made the column float and '3' became '3.0': row 0's account_id one-hot sum was 1.0 in a complete batch and 0.0 otherwise.",
    "cause": "The scorer inferred types from each request.",
    "fix": "Store the training column types in model.json and cast before encoding and hashing.",
-   "test": ""
+   "test": "",
+   "impact": "Whether a row matched a known category level depended on the other rows in the request: row 0 lost its account_id match when another row lacked the column, so the same ride could get two scores from two requests.",
+   "open": "No test sends a batch with a missing integer column."
   },
   {
    "id": "F12",
@@ -110,7 +129,9 @@
    "scenario": "Two identical runs of the mock challenge recorded part-2 holdout AP 0.254 and 0.504 (2 positives in the holdout); a refit of the approved configuration after run 1 gave 0.504, not the recorded 0.254. The test compared one refit with another.",
    "cause": "The export trusted the refit.",
    "fix": "Refuse the export unless the refit reproduces the recorded holdout metric, and test against the record.",
-   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data",
+   "impact": "With 2 positives in the holdout, the same configuration gave AP 0.254 in one run and 0.504 in another, so the export could have served a model whose holdout score differs from the approved record while the person believed they deployed what they had approved.",
+   "open": "Why two identical runs gave different holdout scores was not traced; until it is, a project whose fit does not repeat is refused at export rather than served."
   },
   {
    "id": "F13",
@@ -120,7 +141,8 @@
    "scenario": "It emitted 'alert' at the task assessment's threshold, while the plan says the threshold is chosen with the person.",
    "cause": "The threshold was taken whatever its source.",
    "fix": "An alert only at a stated budget; otherwise scores.",
-   "test": ""
+   "test": "",
+   "impact": "The service would have raised alerts at a threshold DCLab picked, so a team would staff reviews around an alert rate nobody agreed to."
   }
  ],
  "measurements": [
@@ -131,7 +153,13 @@
    "result": "Equal within 1e-6 on the fraud replica's holdout scored as one batch; no order id or phone value of the table in the export; the key absent; the refit reproduces the approved holdout AP.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "Predictions equal the engine's within 1e-6 on the fraud replica's holdout, no order id, phone value or key is in the export, and the refit reproduces the approved holdout AP: each condition of the gate is met. The equality was shown for the holdout scored as one batch.",
+   "limits": [
+    "Parity was checked with the whole holdout as one request; scored one row at a time, event-mode scores differ (the review's F3), so this equality does not cover how an API is usually called.",
+    "Only the fraud replica's project was exported; regression or multiclass projects, and review changes such as a log target, are outside this check.",
+    "The search for row values looks for raw strings; it cannot see values recoverable from hashes, which is why the key had to leave the folder."
+   ]
   },
   {
    "name": "the export's own tests",
@@ -140,7 +168,13 @@
    "result": "3 passed in a clean Python 3.12 environment, run once by hand; no repository test runs them.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "3 passed in a clean Python 3.12 environment, which is what the gate asks; it was run once, by hand.",
+   "limits": [
+    "No repository test runs the generated tests, so a later change to the template can break them unnoticed.",
+    "Flask and Gunicorn are in none of the repository's requirement files, so the suite cannot run the service's tests; they ran in an environment set up for the occasion.",
+    "The generated tests use made-up rows: they check the app's contract, not the model's quality."
+   ]
   },
   {
    "name": "the Docker image in the end-to-end flows",
@@ -149,7 +183,12 @@
    "result": "Not run: Docker was not running on this machine, and product-e2e has no service flow yet.",
    "verdict": "not scored",
    "cost_eur": null,
-   "next": "Build the image and add the flow when Docker is available."
+   "next": "Build the image and add the flow when Docker is available.",
+   "against_gate": "The image was never built and make product-e2e has no service flow, so there is nothing to set against the gate.",
+   "limits": [
+    "Without a built image, 'no data in the image' is checked only by reading the Dockerfile, not by inspecting an image.",
+    "Until the flow exists in product-e2e, nothing in the regular checks would catch a broken image."
+   ]
   }
  ],
  "outcome": "Done in part: a Flask and Gunicorn service with a Dockerfile and tests, no data or key inside, predictions equal to the engine's, refused for unapproved projects or a refit that does not reproduce the approved score. Open: the stateful service (a batch's counts added to stored ones), the Docker image, and the product-e2e flow.",
@@ -157,6 +196,13 @@
   "Hashing is not anonymisation when the key travels with the hashes and the space of values is small.",
   "A parity test that scores the whole holdout at once hides features that depend on the batch; also score single rows.",
   "Pin training column types in a served model; JSON batches change them silently."
+ ],
+ "risks": [
+  "Row values (phone numbers, ids, places) surviving inside fitted encoders, count tables or detectors, and so travelling in model.pkl.",
+  "Served features that differ from the evaluated ones: behaviour counts that depend on which rows share a request, column types inferred per request, missing keys normalised differently at fit and at serve.",
+  "A refit at export time that is not the model the person approved, unnoticed because a parity test compares a refit with itself.",
+  "A service built from a project no person approved, or raising alerts at a threshold the person never chose.",
+  "Review changes such as a log target or clipping applied in training and forgotten by the scorer."
  ],
  "commits": [
   "4487916",

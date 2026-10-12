@@ -36,7 +36,10 @@
    "scenario": "The Home agent's turn lock, the Admin page, the Compute page (twice) and the intern's notebook export each joined store.home or data_dir with a file name; with a database behind the store there is no such folder, so each would fail or read nothing.",
    "cause": "The stores had no method for these uses, so callers reached around them.",
    "fix": "Each use became a store method; the callers call it.",
-   "test": "tests/test_storage_interface.py: code outside the stores that reaches into their folders fails the test."
+   "test": "tests/test_storage_interface.py: code outside the stores that reaches into their folders fails the test.",
+   "impact": "On PostgreSQL the Home agent's turn lock, the Admin page, two Compute views and the intern's notebook export would each have failed or shown nothing, and no test pointed at them; the first sign would have been broken pages after the switch.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [],
@@ -45,5 +48,13 @@
   "Before replacing a storage backend, count every use of the old one's internals outside it; those are the places a new backend breaks.",
   "A refactor meant to change nothing is proven by the existing suite and end-to-end flows passing without edits to their expectations."
  ],
- "commits": ["ec3b64a"]
+ "risks": [
+  "Callers that build paths inside a store's folder will fail or read nothing once the store is a database.",
+  "An interface wider than callers need must be built twice in 9.2; a narrower one leaves callers reaching into folders.",
+  "A refactor meant to change nothing can still change behaviour, and editing test expectations to match would hide it.",
+  "Without a test on the boundary, the next change can reach into a store's folder again."
+ ],
+ "commits": [
+  "ec3b64a"
+ ]
 }

@@ -44,7 +44,8 @@
    "scenario": "DCLAB_LLM_BASE_URL points at a local Ollama and DCLAB_INTERN_MODEL=qwen2.5:7b. Before, every caller used that model. Now only the strong tier reads it, so the Home agent sends the default OpenAI model name to Ollama, gets a 404, pauses for 10 minutes and falls back to its script.",
    "cause": "Only the strong tier's settings read the legacy variable.",
    "fix": "DCLAB_INTERN_MODEL is the model for every tier that names none, before OPENAI_MODEL.",
-   "test": "A gateway settings test with only the legacy variable set."
+   "test": "A gateway settings test with only the legacy variable set.",
+   "impact": "Anyone running DCLab on a local Ollama with DCLAB_INTERN_MODEL set would find the Home agent, evidence answers, synthetic data and parse patterns sending the default OpenAI model name to Ollama, getting a 404, pausing for 10 minutes and falling back to scripts, with nothing saying the setting was now ignored."
   },
   {
    "id": "F2",
@@ -54,7 +55,8 @@
    "scenario": "With only DCLAB_TIER_STANDARD_API_KEY set, the intern, evidence answers and parse patterns got no client at all. The other way round, a tier with its own BASE_URL (for example the Hugging Face router) and no key of its own was sent the OpenAI key.",
    "cause": "An unset tier inherited the standard tier's URL and model but read its key from OPENAI_API_KEY.",
    "fix": "A tier inherits the standard tier's key only when it has no BASE_URL of its own; a key is never sent to another host.",
-   "test": "Gateway settings tests for both directions."
+   "test": "Gateway settings tests for both directions.",
+   "impact": "A tier pointed at another provider, such as the Hugging Face router, with no key of its own would send the OpenAI key to that host; the other way round, a workspace with only the standard tier's key would have no intern, evidence answers or parse patterns at all."
   },
   {
    "id": "F3",
@@ -64,7 +66,11 @@
    "scenario": "server.py loads .env on import. With DCLAB_TIER_CHEAP_BASE_URL set to a local Ollama (the example in .env.example), the cheap tier's key becomes 'ollama', so parse patterns and evidence answers call the local model during rd-check. The tests blanked only OPENAI_API_KEY.",
    "cause": "The test environment cleared one variable, not the new DCLAB_TIER_* family.",
    "fix": "DCLAB_NO_LIVE_MODELS=1, set by the make targets and product_e2e, makes the gateway refuse every live endpoint whatever .env holds.",
-   "test": "A test that a configured tier under DCLAB_NO_LIVE_MODELS sends nothing."
+   "test": "A test that a configured tier under DCLAB_NO_LIVE_MODELS sends nothing.",
+   "impact": "With the cheap tier set to a local Ollama, as .env.example suggests, rd-check would call a live model from parse patterns and evidence answers; with a real tier key in .env, tests would spend money and their results would depend on a model's replies.",
+   "alternatives": [
+    "Blank every DCLAB_TIER_* variable in each test's environment and in product_e2e, as the reviewer first proposed: set aside for one switch the gateway itself obeys, because a list of variables to blank misses the next setting someone adds."
+   ]
   },
   {
    "id": "F4",
@@ -74,7 +80,8 @@
    "scenario": "agentic/live_eval.py and agentic/guide_review.py subclass NOOA's ResponsesClient and never report; the guard regex ResponsesClient\\( misses 'class X(ResponsesClient):'; under python -m dclab_rnd.agentic run nothing is installed, so installed() returns a gateway with no usage log and every campaign request is dropped.",
    "cause": "The guard looked for constructor calls only, and the command-line entry point never installed the workspace gateway.",
    "fix": "Both subclasses record each request; the guard matches the word ResponsesClient; agentic/__main__.py installs the workspace's gateway so command-line runs log to the workspace.",
-   "test": "test_only_the_gateway_makes_model_clients with the wider pattern."
+   "test": "test_only_the_gateway_makes_model_clients with the wider pattern.",
+   "impact": "Requests from live_eval and guide_review, and every request of a campaign started from the command line, would be missing from the usage log, so the spend shown on the pages and the caps A1.2 builds on that log would undercount."
   },
   {
    "id": "F5",
@@ -84,7 +91,8 @@
    "scenario": "Every intern request was logged with project_id None, so A1.2's per-project caps could never see intern spend.",
    "cause": "The intern's client was built once, without the session's project.",
    "fix": "The client is bound per session with the session's project id.",
-   "test": "An intern test that reads the project on its usage rows."
+   "test": "An intern test that reads the project on its usage rows.",
+   "impact": "A1.2's per-project caps could never see what the intern spends, so a project could run past its budget through the intern without being refused."
   },
   {
    "id": "F6",
@@ -94,7 +102,8 @@
    "scenario": "A base URL of the form https://user:password@host/v1: urlparse(...).netloc keeps user and password, so they appear in the usage log, /api/models, /api/intern and /api/platform/limits.",
    "cause": "The endpoint label used netloc.",
    "fix": "Endpoints are shown and stored as host and port only.",
-   "test": "A settings test with credentials in the URL."
+   "test": "A settings test with credentials in the URL.",
+   "impact": "An endpoint URL with a user and password would write the password into every usage row and show it on /api/models, /api/intern and /api/platform/limits, to anyone who can open those pages or export the log."
   },
   {
    "id": "F7",
@@ -104,7 +113,8 @@
    "scenario": "A long JSON critique is cut at 4,000 tokens and fails to parse. A stage-notes request to a reasoning model is rejected; the helper swallows the error and the critique silently disappears.",
    "cause": "Moving the callers onto one chat-completions client changed their token parameters.",
    "fix": "The critic keeps no token cap; OpenAI models get max_completion_tokens.",
-   "test": "Scripted tests for the critic and the stage notes."
+   "test": "Scripted tests for the critic and the stage notes.",
+   "impact": "A long campaign critique would be cut at 4,000 tokens and fail to parse, and a stage-notes request to an OpenAI reasoning model would be rejected and swallowed, so the stage's critique would vanish without an error."
   },
   {
    "id": "F8",
@@ -114,7 +124,8 @@
    "scenario": "Nothing checked that an answer still comes back when the usage log raises, that a paused model is not retried, or what stream() does on a transport without streaming (it fell back to complete and never called on_text).",
    "cause": "Only the happy path was tested.",
    "fix": "Tests for a broken usage log, the pause, and the streaming fallback.",
-   "test": "test_models_gateway.py grew from 12 to 22 tests."
+   "test": "test_models_gateway.py grew from 12 to 22 tests.",
+   "impact": "A regression in any failure path (a broken usage log losing a paid answer, a paused model being retried) would pass every test; and the streaming fallback already returned text without calling on_text, so a caller waiting on on_text got nothing."
   },
   {
    "id": "S1",
@@ -124,7 +135,8 @@
    "scenario": "The intern relied on the SDK's single retry; the gateway now retries itself.",
    "cause": "One client served both.",
    "fix": "The retry count is a parameter: the intern keeps 1, the gateway passes 0 and retries with its own backoff.",
-   "test": ""
+   "test": "",
+   "impact": "The intern, which relied on the SDK's single retry, would have lost it, so a transient failure that used to recover would end the intern's turn with an error."
   }
  ],
  "measurements": [],
@@ -133,6 +145,13 @@
   "When a setting is split into tiers, check what every old setting meant for every caller: a legacy variable that silently stops applying changes the model in use.",
   "A key belongs to its endpoint; any fallback that moves a URL must move the key with it, or not at all.",
   "A guard against live calls in tests must be one switch the gateway obeys, not a list of variables each test blanks."
+ ],
+ "risks": [
+  "Splitting one model setting into tiers can silently change the model a caller uses when an old variable stops applying to it.",
+  "A key must follow its endpoint; a fallback that moves a URL without its key sends one provider's key to another host.",
+  "Any new setting can let tests reach a live model unless the gateway itself refuses live endpoints under test.",
+  "Requests made outside the gateway, by subclassed clients or command-line runs, go uncounted and break the caps built on the usage log.",
+  "Usage rows and API pages can expose credentials or prompts if endpoints and prompts are stored as given."
  ],
  "commits": ["6955ed1"]
 }

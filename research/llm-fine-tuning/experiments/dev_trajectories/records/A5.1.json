@@ -43,7 +43,8 @@
    "scenario": "With the server running, make knowledge adds a record: GET /api/evidence lists it, but POST /api/evidence/ask can never return it until a restart; reproduced with PIT-003 removed from the cached index.",
    "cause": "ask() called retrieval.search, which used a process-wide index singleton that is never reloaded, while the page reloads its own index when the file changes.",
    "fix": "retrieval.search takes the page's reloaded index; the vectors are fitted once per index content.",
-   "test": "test_the_evidence_page_searches_its_own_index_by_the_measured_method."
+   "test": "test_the_evidence_page_searches_its_own_index_by_the_measured_method.",
+   "impact": "After make knowledge added a record while the server ran, the Evidence page listed it but Ask could never cite it until a restart, so answers missed the newest evidence."
   },
   {
    "id": "F2",
@@ -53,7 +54,8 @@
    "scenario": "With the hybrid chosen, 'How often may I peek at the sealed evaluation rows?' returned covered False, weak True: the fused first hit scored 3.95 below the threshold of 4.0 while another hit scored 8.19. In .venv-agent, which has no scikit-learn, every Ask would raise once a stored result chose the hybrid.",
    "cause": "ask() judged weakness from the first hit's keyword score, which is 0 or low for a fused hit.",
    "fix": "The check uses the strongest keyword score among the hits; search falls back to keyword search when scikit-learn is missing.",
-   "test": "In the re-check round, an assertion that the peek question is not marked weak (it fails with the old check)."
+   "test": "In the re-check round, an assertion that the peek question is not marked weak (it fails with the old check).",
+   "impact": "With the hybrid chosen, a question with a strong keyword match among its hits would be labelled 'not covered', telling the person the library has no answer when it does; in the agent environment every Ask would return 500."
   },
   {
    "id": "F3",
@@ -63,7 +65,11 @@
    "scenario": "Q22 used 'formula', the last word of DCLAB-R09's title, so keyword search ranked R09 first; Q16, Q18 and Q20 shared words with their answers' text. The set's own note had narrowed 'shares no words with the record' to 'avoids the words of the title'.",
    "cause": "The questions were written without a check.",
    "fix": "Q16, Q18, Q19, Q20 and Q22 were rewritten, with a test that no paraphrase shares a word with the title or text of any of its answers; all three local methods then scored 0.000 on paraphrases.",
-   "test": "The paraphrase word test in tests/test_retrieval.py."
+   "test": "The paraphrase word test in tests/test_retrieval.py.",
+   "impact": "Keyword search got credit on 'paraphrases' through shared words, so the measurement would understate what embeddings add and could keep the product on keyword search for the wrong reason.",
+   "alternatives": [
+    "Keep the narrowed definition (avoid the words of the title only): set aside because words shared with the record's text still let keyword search find the answer."
+   ]
   },
   {
    "id": "F4",
@@ -73,7 +79,8 @@
    "scenario": "Precedent questions Q34 to Q39 left out the DATASET records that answer them directly (bank_marketing's post-call duration, bike_sharing's casual and registered); keyword search ranked those first and was penalised, which made the whole precedent-group gap. Q20 and Q09 listed different answers for the same rule.",
    "cause": "Answers were listed from the rules and pitfalls, not from every record type.",
    "fix": "The DATASET ids were added and Q20 aligned with Q09; measured again.",
-   "test": "test_recall_is_what_the_stored_measurement_says."
+   "test": "test_recall_is_what_the_stored_measurement_says.",
+   "impact": "Methods that ranked the right DATASET record first were penalised, and the whole precedent-group gap came from one question, enough to tip the choice rule."
   },
   {
    "id": "F5",
@@ -83,7 +90,11 @@
    "scenario": "The prompt asks for a sentence-embedding model or an embeddings endpoint; what was built was latent semantic analysis computed in memory, so the hybrid measured and rejected was not the one the package describes.",
    "cause": "No neural embedding was available on the machine without a download or an embeddings call.",
    "fix": "The row was marked Partial until the neural embedding was added through the gateway and measured (RET-002).",
-   "test": ""
+   "test": "",
+   "impact": "The package would be marked Done after rejecting a hybrid that was not the one asked for, closing the question of embeddings on evidence that never tested one.",
+   "alternatives": [
+    "Ask the owner to accept latent semantic analysis as the embedding: overtaken when the owner asked to finish everything, which included choosing an embedding model; a neural embedding was added through the gateway."
+   ]
   },
   {
    "id": "F6",
@@ -93,7 +104,8 @@
    "scenario": "Reverting the evidence page's search change left every test passing; no test ran Ask with the hybrid chosen.",
    "cause": "Tests covered the measurement, not the product path.",
    "fix": "A test patches the chosen method and asserts that Ask returns the search's ids from the page's own index.",
-   "test": "test_the_evidence_page_searches_its_own_index_by_the_measured_method."
+   "test": "test_the_evidence_page_searches_its_own_index_by_the_measured_method.",
+   "impact": "Reverting the product change left every test green, so the product could silently stop using the measured method."
   },
   {
    "id": "F7",
@@ -103,7 +115,8 @@
    "scenario": "With the embedding chosen, an available gateway and a garbage vectors file, search raised BadZipFile and /api/evidence/ask returned 500; the 'never an error' claim covered only a failed request.",
    "cause": "Loading the record vectors ran outside the error handling.",
    "fix": "A damaged vectors file falls back to keyword search like every other failure.",
-   "test": "An embeddings test with a damaged file."
+   "test": "An embeddings test with a damaged file.",
+   "impact": "A damaged vectors file turned every Ask into a 500 once the embedding was chosen."
   },
   {
    "id": "F8",
@@ -113,7 +126,8 @@
    "scenario": "The error text said 'run make embeddings' and no such target existed; vectors could only be built by a measurement run that writes a new result each time; a deployment with another home folder never found them; a later plain make retrieval-eval became the latest result and flipped the choice back to keyword search with no warning.",
    "cause": "The choice was read from the latest result whatever it measured, and building vectors was tied to measuring.",
    "fix": "make embeddings builds the vectors; a later result without the neural methods does not undo the neural choice; the row says each deployment builds its own vectors.",
-   "test": ""
+   "test": "",
+   "impact": "One routine make retrieval-eval without embeddings would switch the product back to keyword search without warning, and a deployment told to run make embeddings would find no such target."
   }
  ],
  "measurements": [
@@ -122,7 +136,13 @@
    "gate": "A method replaces keyword search only if it is not worse on any question group (fixed in the package before the run).",
    "result": "Keyword 0.700 overall (paraphrases 0.000), LSA 0.706, LSA hybrid 0.689. The LSA hybrid lost on rules (0.733 against 0.800) and LSA lost on rules too, so neither qualified; keyword search was kept. Paraphrases were found by no method (0 of 10).",
    "verdict": "fail",
-   "next": "The paraphrase group is the gap a neural embedding would have to close; the package stayed partial."
+   "next": "The paraphrase group is the gap a neural embedding would have to close; the package stayed partial.",
+   "against_gate": "Keyword search is 0.700 overall. LSA is 0.706 overall but loses on rules; the LSA hybrid is 0.689 overall and also loses on rules (0.733 against 0.800). A method must be worse on no group, so neither qualifies and keyword search stays: both candidates fail the gate.",
+   "limits": [
+    "The questions were written by the same project that wrote the records; the paraphrase group found nothing with any local method (0 of 10), so it cannot separate them.",
+    "The choice is made on the same questions it reports, and LSA is fitted on the same records it retrieves; there is no held-out set.",
+    "LSA is not the neural embedding the package describes, so this run rejects LSA, not embeddings."
+   ]
   },
   {
    "name": "RET-002, recall at 5 with a neural embedding (text-embedding-3-small)",
@@ -130,7 +150,14 @@
    "result": "Embedding 0.872 overall (rules 0.867, paraphrases 0.680, pitfalls 0.875, precedents 1.000, experiments 1.000, workflow 0.812), against keyword 0.700. The embedding hybrid qualified too (0.800, paraphrases 0.200). The embedding was chosen. Cost 0.0011 euros.",
    "verdict": "pass",
    "cost_eur": 0.0011,
-   "next": "The choice is made on the same 60 questions it reports (no held-out set); the accepted workspace lessons are not embedded."
+   "next": "The choice is made on the same 60 questions it reports (no held-out set); the accepted workspace lessons are not embedded.",
+   "against_gate": "The embedding is 0.872 overall against keyword search's 0.700, strictly better overall; per group it scores rules 0.867, paraphrases 0.680, pitfalls 0.875, precedents 1.000, experiments 1.000 and workflow 0.812, and the result states it qualified (worse on no group). The embedding hybrid also qualified at 0.800 overall (paraphrases 0.200); the best that qualifies is the embedding, so it is chosen and the gate passes.",
+   "limits": [
+    "The choice is made on the same questions it reports, with no held-out set, so 0.872 is an in-sample figure.",
+    "One run with one embedding model; another model, or a change of the index, needs its own run and its own vectors.",
+    "The paraphrase figure rests on the smallest group of hand-written questions.",
+    "Accepted workspace lessons are not embedded, so searching them is keyword only."
+   ]
   }
  ],
  "outcome": "Done: evidence search is measured on 60 hand-written questions, and the product searches by a neural embedding (recall at 5 from 0.700 to 0.872, paraphrases from 0.000 to 0.680) only when the vectors are built and a model answers, by keyword otherwise. Eight review findings over two reviews fixed.",
@@ -139,6 +166,13 @@
   "Answer lists written from one record type penalise a method for finding the right record of another type.",
   "A product that reads 'the latest measurement' to choose its method can be switched by an unrelated rerun; tie the choice to what the measurement covered.",
   "Every failure of an optional retriever (no key, cap, failed request, damaged file) must fall back to the baseline, not to an error."
+ ],
+ "risks": [
+  "A paraphrase set that shares words with its answers, crediting keyword search with finds it did not earn.",
+  "Answer lists that leave out records of other types, penalising a method for finding the right record.",
+  "The product searching a different index than the page lists, or not using the measured method at all.",
+  "Every failure of the optional retriever (no key, a cap, a failed request, a damaged vectors file) turning into an error.",
+  "The product's choice flipping when an unrelated measurement becomes the latest result."
  ],
  "commits": ["3961be4", "c291a1b"]
 }

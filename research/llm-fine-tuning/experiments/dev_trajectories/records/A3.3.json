@@ -39,7 +39,11 @@
    "scenario": "Kept: 'There is no sign of leakage, so the model is production-ready [C1].', 'It is not only accurate but production ready [C3].', 'No one doubts the model is production-ready [C1].' A bullet list '- No leakage was found\\n- The model is production-ready' was one sentence and kept.",
    "cause": "overclaims() returned false if a negation matched anywhere in the sentence.",
    "fix": "A denial counts only right before the phrase (a few words at most), 'not only' excluded, with citations stripped before matching.",
-   "test": "test_a_denial_must_sit_right_before_the_phrase."
+   "test": "test_a_denial_must_sit_right_before_the_phrase.",
+   "impact": "'There is no sign of leakage, so the model is production-ready' would be shown on the Notebook, Reliability and brief pages, labelled as written from the stage record: the one claim the repository forbids from benchmark evidence. The critique note and project answer had the same hole.",
+   "alternatives": [
+    "A two-word denial window, as first proposed: adopted, then widened to four words in R4 because it dropped natural disclaimers such as 'This does not mean the model is ready for production.'"
+   ]
   },
   {
    "id": "F2",
@@ -49,7 +53,8 @@
    "scenario": "Kept: 'production  ready' (two spaces), a non-breaking space or a non-breaking hyphen between the words, 'production-\\nready', 'deployment-ready', 'fit for production', 'ready to ship', 'ready to be deployed', 'can go to production'.",
    "cause": "A literal pattern on raw text.",
    "fix": "Unicode is normalised and whitespace collapsed before matching; the pattern covers production or deployment ready, readiness, grade, quality, fit for production, ready to ship or be deployed, go live or to production.",
-   "test": "Overclaim tests over every variant."
+   "test": "Overclaim tests over every variant.",
+   "impact": "A model writing 'ready to ship' or 'deployment-ready' instead of the exact phrase would put a production claim in front of the person, with the record's label lending it authority."
   },
   {
    "id": "F3",
@@ -59,7 +64,8 @@
    "scenario": "'The model scored .99 on the holdout [C1]' while the claim says 0.9248: kept. 'AUC0.99' and '~.99' gave no numbers. The text cleaner also turned the kept text into 'scored.99'.",
    "cause": "The number pattern's lookbehind excluded word characters and required a digit before the point.",
    "fix": "Numbers such as .99 and AUC0.99 are read; the cleaner removes only spaces before a final stop or comma.",
-   "test": "Tests for .99 and AUC0.99."
+   "test": "Tests for .99 and AUC0.99.",
+   "impact": "'The model scored .99 on the holdout' would be kept beside a claim of 0.9248, so a person would read an invented score as checked against the record."
   },
   {
    "id": "F4",
@@ -69,7 +75,8 @@
    "scenario": "'The model is safe, fair and ready to ship. extra_trees scored 0.9248 on the holdout [A].' was kept whole, cited to A; bullets merged, so a number in one bullet passed on another bullet's source.",
    "cause": "The split required a capital letter or bracket after the stop.",
    "fix": "Split at a stop followed by whitespace and at line breaks; fragments fail closed.",
-   "test": "Splitter tests with lowercase model names and bullets."
+   "test": "Splitter tests with lowercase model names and bullets.",
+   "impact": "An uncited claim ('safe, fair and ready to ship') rode on the next sentence's citation, so the page showed it as cited when no record supports it."
   },
   {
    "id": "F5",
@@ -79,7 +86,12 @@
    "scenario": "Against a source saying '61 rows': '61k rows', '61%' and '61 million rows' were kept; 'doubled', 'ninety-nine percent' and a fraction sign passed as having no number; '0.0034 up' was kept against '-0.0034'.",
    "cause": "Units, scale words, number words and signs were dropped before comparing.",
    "fix": "Numbers keep their unit and their sign when the sentence writes one; number words are read as digits or must be words of a cited source; the gap that numbers are checked against cited sources, not subjects, is written in the status row.",
-   "test": "Number tests for each case."
+   "test": "Number tests for each case.",
+   "impact": "A model could write '61%' or '61 million rows' where the record says 61 rows, or drop a minus sign so a loss reads as a gain, and the check would keep it.",
+   "alternatives": [
+    "Match each number to the subject it describes: set aside because it needs understanding the sentence; the limit is written in the status row instead."
+   ],
+   "open": "A number is checked against the sources a sentence cites, not against what it describes; an unsigned number matches a signed one in the source by design."
   },
   {
    "id": "F6",
@@ -89,7 +101,11 @@
    "scenario": "The features stage selects recipe X and the explanation says so; the person approves with choice Y; the Notebook card and the brief still say X beside the changed decision.",
    "cause": "approve rewrote the decision and kept record['explanation'].",
    "fix": "When the approved choice overrides the rule's selection, the explanation is removed.",
-   "test": "An approve test: kept on the rule's option, removed on another."
+   "test": "An approve test: kept on the rule's option, removed on another.",
+   "impact": "After the person overrode a stage's choice, the Notebook card and the brief still explained the rule's pick, so a reader of the brief would see a recipe that was not used.",
+   "alternatives": [
+    "Mark the explanation stale instead of removing it, the reviewer's other option: set aside because stale text labelled as written from the record is still wrong text on the page."
+   ]
   },
   {
    "id": "R1",
@@ -99,7 +115,8 @@
    "scenario": "A critique 'Risks:\\n- Leakage is possible\\n- Small sample\\n- Check the time split' came back as one flattened line with count 0.",
    "cause": "The filter split at every line break, stripped bullets and re-joined with spaces.",
    "fix": "The original text is returned when nothing is removed; otherwise line breaks are kept.",
-   "test": "A test on a bullet list with no stops."
+   "test": "A test on a bullet list with no stops.",
+   "impact": "Every critique note and project answer written as a list came back flattened into one line even with nothing removed, so the fix for F4 degraded every structured answer."
   },
   {
    "id": "R2",
@@ -109,7 +126,9 @@
    "scenario": "'The model is safe and fair.It scored 0.9248 [A].' was kept whole, uncited claim included.",
    "cause": "The split required whitespace after the stop.",
    "fix": "A stop glued to a capital also ends a sentence (and, after A3.4's review, not when it is the dot of a code name such as pd.DataFrame).",
-   "test": "Splitter tests for glued stops."
+   "test": "Splitter tests for glued stops.",
+   "impact": "'The model is safe and fair.It scored 0.9248 [A].' kept the uncited first half as if [A] supported it.",
+   "open": "A glued stop followed by a lowercase word (a model name such as extra_trees) still merges; it cannot be told apart from a dotted code name such as pandas.read_csv."
   },
   {
    "id": "R3",
@@ -119,7 +138,8 @@
    "scenario": "'It is not just production-ready.' and 'It is without doubt production-ready.' were kept.",
    "cause": "Only 'not only' was excluded, and 'without' counted as a denial.",
    "fix": "'not just', 'not merely' and 'not simply' are excluded, and 'without doubt' or 'without question' is not a denial.",
-   "test": "Both sentences added to test_a_denial_must_sit_right_before_the_phrase."
+   "test": "Both sentences added to test_a_denial_must_sit_right_before_the_phrase.",
+   "impact": "'It is without doubt production-ready' would be shown, the strongest form of the forbidden claim."
   },
   {
    "id": "R4",
@@ -129,7 +149,9 @@
    "scenario": "'This does not mean the model is ready for production.' and 'Benchmark evidence should not be treated as production-ready.' were dropped (the denial window was two words), so the final stage's caveat was the sentence most likely lost; 'ten folds' was dropped against '10 folds'; 'claim C1' in prose was dropped as a number.",
    "cause": "A two-word denial window, number words not mapped to digits, and short ids read as numbers.",
    "fix": "The denial window is four words; count words are read as digits with their unit; a name with digits is hidden only when a cited source writes it.",
-   "test": "Disclaimer and count-word tests."
+   "test": "Disclaimer and count-word tests.",
+   "impact": "The caveat the final-stage prompt asks for ('This does not mean the model is ready for production') would be removed, so explanations would lose exactly the limit they exist to state.",
+   "open": "Other fail-closed losses remain: the two index records that quote [fact] or [decision] verbatim fail the citation check, as they did before."
   }
  ],
  "measurements": [],
@@ -138,6 +160,13 @@
   "A filter for a forbidden claim needs Unicode normalisation, whitespace collapse and a denial that sits right before the phrase; 'a negation somewhere' is a bypass.",
   "Every tightening of a text check has a cost in lost good sentences; measure both directions on real text (here the 137-record index) before and after.",
   "A filter that finds nothing to remove must return its input unchanged."
+ ],
+ "risks": [
+  "The forbidden claim ('production-ready') slipping through a negation, a Unicode variant or a synonym.",
+  "A rounded, converted or invented number passing because the check reads digits only.",
+  "A sentence splitter that lets an uncited sentence borrow the next sentence's citation.",
+  "A stricter check dropping honest disclaimers and ordinary sentences.",
+  "An explanation going stale when a person overrides the stage's choice."
  ],
  "commits": ["927510a"]
 }

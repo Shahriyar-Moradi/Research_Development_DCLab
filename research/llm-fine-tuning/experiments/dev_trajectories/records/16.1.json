@@ -40,7 +40,8 @@
    "scenario": "A draft about support tickets gets the text pack from the word 'ticket'; the table has no long-text column; resolve returns text_tabular (its machine is still binary, so the run is identical) but text_tabular's export says service False, so the export is refused where it worked before.",
    "cause": "resolve used the pack's kind whether or not it fit the solution.",
    "fix": "Give every kind applies(solution); resolve uses the pack's kind only when it applies (the text kind needs text columns), otherwise the task's own kind.",
-   "test": "test_a_packs_kind_applies_only_when_it_fits: a text pack without text columns resolves to binary; with a text column, to text_tabular."
+   "test": "test_a_packs_kind_applies_only_when_it_fits: a text pack without text columns resolves to binary; with a text column, to text_tabular.",
+   "impact": "A project whose draft mentioned tickets but whose table has no long-text column would lose its scoring-service export after the upgrade, although its model runs exactly as before. The team would be blocked from deploying with a refusal that has nothing to do with their data."
   },
   {
    "id": "F2",
@@ -50,7 +51,12 @@
    "scenario": "500 rows with 30% positives: no pack proposes roc_auc, the imbalanced pack average_precision; the wizard always saves the proposed metric, so the engine now runs AP where it ran ROC-AUC. The parity run missed it because the fraud replica is under 10% positives.",
    "cause": "propose took the metric from the resolved kind's default, which carries the pack's defaults.",
    "fix": "The proposal keeps the task's own metric and options, as before; the pack's metric still applies when the person leaves the metric empty. The kind is reported beside it.",
-   "test": "test_the_proposal_keeps_the_tasks_metric_whatever_the_pack."
+   "test": "test_the_proposal_keeps_the_tasks_metric_whatever_the_pack.",
+   "impact": "New imbalanced-pack projects with 10% or more positives would be tuned and selected on average precision instead of ROC-AUC, without the person choosing it. Scores would stop being comparable with earlier projects, and the chosen model could differ.",
+   "alternatives": [
+    "Keep average precision and declare it as an intended change with its own test, as the reviewer allowed: set aside because 16.1 promised no change in behaviour and the parity run had not covered that population."
+   ],
+   "open": "A project written through the API with an empty metric still gets the pack's metric, so the wizard and the API can choose different metrics for the same data."
   },
   {
    "id": "F3",
@@ -60,7 +66,12 @@
    "scenario": "The toy late-payment kind (target: days late above a grace period) exported a notebook whose target line compares the column with the string 'None': every row is 0, while the stage records hold AP on days_late > 25.",
    "cause": "export._target_code still branched on the task, and the kind's export flags were never read.",
    "fix": "The notebook export resolves the kind and refuses (ExportUnsupported) when the kind's export says no notebook or when the kind reads its own target, rather than writing a wrong one.",
-   "test": "The toy kind test asserts the export raises ExportUnsupported."
+   "test": "The toy kind test asserts the export raises ExportUnsupported.",
+   "impact": "Someone exporting the notebook of a kind with its own target would get code whose target column is all zeros. Rerun, it trains on a constant and contradicts every score in the stage records, and nothing warns them.",
+   "alternatives": [
+    "Give the kind interface a target_code() method so each kind writes its own notebook target, as the reviewer suggested: set aside for a refusal, the smaller change that cannot write a wrong notebook while no built-in kind reads its own target."
+   ],
+   "open": "A kind with its own target has no notebook export until the interface lets the kind write its target code."
   },
   {
    "id": "F4",
@@ -70,7 +81,12 @@
    "scenario": "Once the rare-event kind declares an entity field, Solution(task='binary', kind_fields={'entity': 'x'}) on an imbalanced-pack project fails as an unknown field: the validator checks against binary (no pack known), the engine runs rare_event.",
    "cause": "The validator has no pack; nothing saves the resolved kind.",
    "fix": "A kind's fields now need the kind itself declared: kind_fields without kind is refused with a plain message. Home will save the resolved kind once a kind has fields of its own.",
-   "test": "Solution(task='binary', kind_fields={...}) without kind raises."
+   "test": "Solution(task='binary', kind_fields={...}) without kind raises.",
+   "impact": "The first pack-reached kind to declare a field of its own, such as an entity for rare events, would reject every solution that sets it: validation checks the fields against binary while the engine runs the rare-event kind.",
+   "alternatives": [
+    "Save the resolved kind into the solution from the wizard, build_project and challenge mode, as the reviewer proposed: deferred because no pack-reached kind declares fields yet, and the refusal makes the gap loud instead of silent."
+   ],
+   "open": "Nothing saves the resolved kind yet. The first kind with fields of its own must make Home save it."
   },
   {
    "id": "F5",
@@ -80,7 +96,12 @@
    "scenario": "The regression kind listed a naive lag baseline and the text kind a tabular-only one; the final stage computes only the majority class or the training mean and median.",
    "cause": "Declarations written as intentions, not as what runs.",
    "fix": "Each kind declares only the baselines the final stage computes; the route says checks, reliability and the evidence track are declarations read by a later package.",
-   "test": "Covered by the /api/kinds test reading each kind's parts."
+   "test": "Covered by the /api/kinds test reading each kind's parts.",
+   "impact": "A reader of /api/kinds, or of the Domain packs page built on it, would believe regression projects are compared with a naive lag and text projects with a tabular-only model. Neither comparison exists, so any claim of beating them would be unfounded.",
+   "alternatives": [
+    "Make the final stage compute every declared baseline: set aside because it changes what runs, which a no-behaviour-change refactor must not do."
+   ],
+   "open": "The checks, reliability and evidence-track declarations are still read by nothing. A later package must wire them or drop them."
   },
   {
    "id": "F6",
@@ -90,7 +111,12 @@
    "scenario": "expansion/runner.py still branches 57 times on task_type.",
    "cause": "A deliberate scope cut that was not written down.",
    "fix": "Recorded in the playbook: the runner is the machine layer; a kind chooses the machine; a kind needing a new machine adds it in its own package.",
-   "test": ""
+   "test": "",
+   "impact": "The playbook would claim the runner asks the kind while it still branches on the task 57 times. The next package that adds a kind needing a new machine would plan around an abstraction that does not exist.",
+   "alternatives": [
+    "Route the runner's family and metric choice through the kind now: set aside because those branches compute folds, fits and metrics for four numeric machines, and moving them risked behaviour with nothing gained until a kind needs a new machine."
+   ],
+   "open": "A kind that needs a new machine, such as forecasting or survival, must add it to the runner in its own package."
   },
   {
    "id": "F7",
@@ -100,7 +126,9 @@
    "scenario": "A future classification kind that sets stratify False would get plain group folds and could lock a holdout with one class, where no metric can be measured.",
    "cause": "One flag served two meanings.",
    "fix": "The both-classes guard is keyed on the task (any classification), and stratify only chooses the splitter.",
-   "test": "test_a_grouped_holdout_always_holds_both_classes still passes."
+   "test": "test_a_grouped_holdout_always_holds_both_classes still passes.",
+   "impact": "A future classification kind that turned stratification off on grouped data could lock a holdout holding one class. No metric can be measured on it, and the project's single holdout would be spent.",
+   "open": "No test exercised stratify=False on a classification when 16.1 was committed; 16.2's review added it."
   },
   {
    "id": "F8",
@@ -110,7 +138,8 @@
    "scenario": "A project built from a fraud draft has draft.pack but no pack of its own: the proposal said binary, the engine ran rare_event.",
    "cause": "Two pack lookups.",
    "fix": "Every caller uses engine.pack_of(project), which falls back to the draft's pack.",
-   "test": ""
+   "test": "",
+   "impact": "For a project built from a fraud draft, the proposal showed binary defaults while the run used rare-event ones. The person would approve one setup and get another."
   }
  ],
  "measurements": [
@@ -119,7 +148,13 @@
    "gate": "Stage records identical before and after, ids and timings normalised, with the run-to-run noise of two baseline runs as the reference.",
    "result": "All eight projects identical; the only difference is the new data-stage field problem_kind (binary, multiclass, regression, text_tabular, rare_event as expected).",
    "verdict": "pass",
-   "next": "Keep the parity script for every later refactor of the engine."
+   "next": "Keep the parity script for every later refactor of the engine.",
+   "against_gate": "The gate has no numeric threshold. It asks for identical records against the noise of two baseline runs, and all eight projects matched, with problem_kind as the only new field.",
+   "limits": [
+    "Eight projects cover only the paths they exercise: the imbalanced pack with a high positive rate and a text pack without text columns were outside them, and the reviewer found a change on each.",
+    "Exports were not among the compared records, so a wrong notebook could not show up as a parity difference.",
+    "Parity was compared with a script by hand, not by a test that runs in the suite."
+   ]
   }
  ],
  "outcome": "Done: five kinds on one interface, identical behaviour, /api/kinds, a toy kind through all five stages; 1076 tests pass; seven review findings fixed.",
@@ -127,6 +162,13 @@
   "Record a refactor's baseline twice before changing code: the second run tells noise from change.",
   "A parity run on representative projects misses paths it does not exercise (a pack with positives above 10%); the reviewer found them.",
   "An export that cannot do something must refuse, never produce a plausible wrong artefact."
+ ],
+ "risks": [
+  "Moving the engine's task branches into kinds changes a stage record on a path the parity projects never exercise, such as a pack combined with a positive rate none of the replicas has.",
+  "A pack's kind is applied to a project whose table it does not fit, so a project that exported or scored fine before is refused or scored differently.",
+  "A kind declares baselines or checks that no stage computes, and /api/kinds then advertises work DCLab does not do.",
+  "Exports keep branching on the task and write a plausible but wrong notebook for a kind that defines its own target.",
+  "The Solution validator and the engine resolve the kind in two places, one without the pack, and disagree about which fields a solution may carry."
  ],
  "commits": [
   "fab8a74"

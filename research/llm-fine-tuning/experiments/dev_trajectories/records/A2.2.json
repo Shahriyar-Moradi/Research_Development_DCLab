@@ -39,7 +39,8 @@
    "scenario": "A project with data and a saved but unsigned solution, policy require_solution_signoff on, handed to the intern with no model: run_all returns {'error': ..., 'status': 'needs_approval'} at the top level; the report loops over the result expecting stage records and raises 'string indices must be integers'; the session ends failed instead of completing with a report naming the refusal. The same happens while a stage is running.",
    "cause": "The guard returned its refusal directly, where before the engine's refusal came back keyed by stage.",
    "fix": "In the run_all refusal branch, keep the old shape: the refusal keyed by the stage.",
-   "test": "The run_all case in tests/test_agents_validator.py reads result[stage]."
+   "test": "The run_all case in tests/test_agents_validator.py reads result[stage].",
+   "impact": "A person who handed a project with an unsigned solution to the intern without a model would get a failed session with a Python TypeError instead of a report saying the owner must sign first: the refusal, the one useful answer, was lost."
   },
   {
    "id": "F2",
@@ -49,7 +50,11 @@
    "scenario": "request_data with no text, set_pack with a key but no why, ask_user with a question but no field, and record without field all worked before and now came back as 'Missing required argument'.",
    "cause": "The registry's names-level check still enforced the schemas' required lists, which were stricter than the handlers.",
    "fix": "The Home handlers keep defaulting what small models leave out (the defaults are filled before the registry check); A2.4 later made those keys optional in the schemas.",
-   "test": "Draft flow tests with the short calls."
+   "test": "Draft flow tests with the short calls.",
+   "impact": "Small models that leave out a defaulted key would have had ordinary Home calls refused (asking a question, offering data, choosing a pack), so the conversation stalled on 'Missing required argument' where it used to move on.",
+   "alternatives": [
+    "Make those keys optional in the draft schemas, the reviewer's other option: deferred to A2.4, which moved the Home agent onto the full schema check and changed the schemas there."
+   ]
   },
   {
    "id": "S1",
@@ -59,7 +64,8 @@
    "scenario": "With draft writes declaring moves, the test checked them against the project move list and failed.",
    "cause": "The test was written when only one scope had writes.",
    "fix": "Each move is checked against its own scope's list.",
-   "test": "test_agents_runtime registry tests."
+   "test": "test_agents_runtime registry tests.",
+   "impact": "Nothing wrong reached a person; the stale assumption blocked the gate, and left as it was it would have checked every draft move against the project move list."
   }
  ],
  "measurements": [],
@@ -68,6 +74,13 @@
   "Moving a check to a new place can change the shape of a refusal; callers that parse the old shape break.",
   "When a guard becomes mandatory, list the writes the old code never checked: here four, one of which let the agent replace data under a signed solution.",
   "Do not log users' free text in a log that will become training data."
+ ],
+ "risks": [
+  "A write tool registered without a declared move bypasses the validator entirely.",
+  "Moving refusals into the registry changes the shape of the result that callers such as the intern's report loop parse.",
+  "Project writes the old code never checked (create_project, attach_data, set_settings, propose_solution) could let the agent replace data under a signed solution.",
+  "Logging refusals puts the user's free text into the transition log, which later becomes training data.",
+  "The registry's names-level check refusing short calls the Home handlers always defaulted."
  ],
  "commits": ["b66021c"]
 }

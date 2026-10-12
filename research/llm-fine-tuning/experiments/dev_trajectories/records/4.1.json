@@ -31,7 +31,8 @@
    "scenario": "After 'Let's build the solution' and a completed build, reopening the wizard loaded the same draft again, inviting a second build of a draft that already had its project.",
    "cause": "The wizard took the last open draft without checking whether it was built.",
    "fix": "The wizard does not reopen a built draft.",
-   "test": ""
+   "test": "",
+   "impact": "A user who came back to the wizard after building was put back on the finished draft and invited to build again. Building is idempotent, so no second project would appear, but the wizard showed finished work as open and could walk the user through the steps for nothing."
   }
  ],
  "measurements": [],
@@ -41,5 +42,11 @@
  ],
  "commits": [
   "15c4958"
+ ],
+ "risks": [
+  "Removing the Domain pack step loses the pack choice unless it reappears on Home and in the solution draft.",
+  "The wizard opens on a stale or already-built draft and invites a second build.",
+  "The 'DCLab understood' sheet presents assumptions as if the user had said them.",
+  "Changing the stepper's markup breaks the frozen demo look."
  ]
 }

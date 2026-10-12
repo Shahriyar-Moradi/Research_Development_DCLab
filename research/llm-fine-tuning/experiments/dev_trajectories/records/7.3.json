@@ -31,7 +31,10 @@
    "scenario": "The project upload route called studio.data.safe_name only if it existed; it did not exist under that name, so a file named '../x' was written outside the data folder.",
    "cause": "A defensive call guarded by 'if present' silently did nothing.",
    "fix": "safe_name now exists, strips paths and unsafe characters, rejects an empty name, and the route calls it directly.",
-   "test": "tests/test_studio.py uploads ../evil.csv to a project and tests/test_draft_flow.py uploads ../../tickets.csv to a draft; both land inside the data folder."
+   "test": "tests/test_studio.py uploads ../evil.csv to a project and tests/test_draft_flow.py uploads ../../tickets.csv to a draft; both land inside the data folder.",
+   "impact": "An upload to a project named '../x' was written outside the project's data folder, so a crafted name could overwrite files elsewhere in the workspace. The guard that should have stopped it looked present in the code and did nothing.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "S2",
@@ -41,13 +44,23 @@
    "scenario": "The Admin page and /api/config said rows never reach a model, while the intern sends up to three example values per column and an unparseable file sends up to 20 lines to work out its format.",
    "cause": "Texts written for one agent were not updated as paths were added.",
    "fix": "Both paths are named in the privacy text; the line sending can be switched off with DCLAB_MODEL_READS_SAMPLE_LINES=0.",
-   "test": ""
+   "test": "",
+   "impact": "An owner reading the Admin page would believe no row left the machine, while the intern sent example values and an unreadable file sent up to 20 of its lines to the provider. With confidential data, that promise is what decides whether a model may be switched on.",
+   "alternatives": [],
+   "open": "The intern's example values have no switch of their own; only the sample lines can be turned off, with DCLAB_MODEL_READS_SAMPLE_LINES=0."
   }
  ],
  "measurements": [],
  "outcome": "Done: the listed protections are tested; the upload traversal is closed; the privacy text matches the code.",
  "lessons": [
   "A security call wrapped in 'if the helper exists' is a silent no-op waiting to happen; call it directly and let a missing helper fail loudly."
+ ],
+ "risks": [
+  "A security call guarded by 'if the helper exists' can silently do nothing.",
+  "An upload name holding '..' or a path could write outside a draft's or a project's data folder.",
+  "A write route that skips the CSRF token, or a request with another Host header, could act for a signed-in browser.",
+  "Privacy text written for one agent may not cover what other paths send to a model.",
+  "A CSP that still names an outside host (the fonts) lets every page load tell a third party the workspace was opened."
  ],
  "commits": [
   "93a9a65",

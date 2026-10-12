@@ -30,13 +30,22 @@
    "scenario": "Home and the wizard read Parquet, Excel, Hugging Face datasets, databases and cloud objects, but none of those libraries were in the requirements file; on this machine openpyxl was missing, so an Excel import downloaded and then failed when the pipeline read it.",
    "cause": "Optional imports were never written down.",
    "fix": "List the libraries in requirements/base.txt; install openpyxl here with the owner's approval.",
-   "test": "tests/test_connectors.py checks status() names the missing package."
+   "test": "tests/test_connectors.py checks status() names the missing package.",
+   "impact": "On a fresh environment an Excel import downloaded and then failed when the pipeline read it, and a cleaned table could not be kept as Parquet. A new user would meet the failure far from its cause, after the data had already been fetched.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [],
  "outcome": "Done: the status route names configured sources without secrets, no secret appears anywhere in tests, and the requirements list the libraries.",
  "lessons": [
   "An optional dependency that the product needs for a promised feature belongs in the requirements, even if it is imported lazily."
+ ],
+ "risks": [
+  "A connector library missing at start could stop the whole product from starting.",
+  "A route that says which sources are configured could reveal a key, a token or a connection string.",
+  "A refused credential echoed in an error message would land in logs and on the page.",
+  "Libraries imported lazily are easy to leave out of the requirements, so a fresh environment fails on a format the product promises."
  ],
  "commits": [
   "96feb56",

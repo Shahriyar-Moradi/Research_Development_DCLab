@@ -41,7 +41,8 @@
    "scenario": "max_steps 3 and one reply [list_samples x4, finish{'report': 'my report'}]: before, the session completed with 'my report'; now it ended budget_exhausted with 'Stopped: the budget of 3 tool calls is used up', and the report was lost.",
    "cause": "After the first refused call the run's end reason was 'steps', and the terminal-tool exemption was never evaluated again.",
    "fix": "The exemption is evaluated for a terminal tool even when the end reason is already 'steps'.",
-   "test": "A runtime test with a report after the budget is used in the same reply."
+   "test": "A runtime test with a report after the budget is used in the same reply.",
+   "impact": "A model that spent its budget and then reported in the same reply lost its report: the session ended 'budget exhausted' and the person saw a stop message instead of the work's result."
   },
   {
    "id": "F2",
@@ -51,7 +52,8 @@
    "scenario": "First reply write_plan {} or write_plan with a list: the session ended failed with \"'NoneType' object is not subscriptable\"; before, it completed.",
    "cause": "The step summary sliced session['plan'], which starts as None.",
    "fix": "The summary uses an empty string when there is no plan.",
-   "test": "An intern test with a refused write_plan."
+   "test": "An intern test with a refused write_plan.",
+   "impact": "A model's first malformed write_plan, a common small-model mistake, ended the whole session as failed with a Python error instead of letting the model correct itself."
   },
   {
    "id": "F3",
@@ -61,7 +63,11 @@
    "scenario": "finish {} or finish with report null: the session was completed with final None; before, it ended with the progress note.",
    "cause": "The runtime marked the run terminal even though the handler never ran.",
    "fix": "Only a terminal call that ran ends the run; a refused one goes back to the model as an error.",
-   "test": "An intern test where a refused finish is followed by the model's corrected answer."
+   "test": "An intern test where a refused finish is followed by the model's corrected answer.",
+   "impact": "A malformed finish ended the session as completed with no text at all, so the person got an empty report for a session that looked successful.",
+   "alternatives": [
+    "Keep the run terminal and fill the final text with the progress note, the reviewer's first option: set aside because ending on a refused finish still throws away the model's report; the run now ends only on a terminal call that ran."
+   ]
   },
   {
    "id": "F4",
@@ -71,7 +77,8 @@
    "scenario": "Reply ask_user {'question': 'When is the prediction made?', 'field': 'prediction_time'} (a field outside the enum) or with an extra key: before, the question was posted; now one request, no agent message, and the conversation stalled until the user typed again.",
    "cause": "ask_user was in stop_after whether or not it succeeded, and the 'model only talks' fallback did not run because a step existed.",
    "fix": "The turn stops on ask_user only when it succeeded (stop_when), or when a simulation started.",
-   "test": "A draft-flow test with a refused question followed by a second request."
+   "test": "A draft-flow test with a refused question followed by a second request.",
+   "impact": "A question with a field outside the enum ended the Home turn with no message at all, so the person waited for an agent that had stopped until they typed again."
   },
   {
    "id": "F5",
@@ -81,7 +88,8 @@
    "scenario": "propose_workflow {'title': 'x'}: before, the verdict (False, 'no steps') was reported; now nothing, so A1.3's model-health check undercounted Home failures.",
    "cause": "on_step skipped propose_workflow because proposals report their own verdict, but a schema refusal never reached that code.",
    "fix": "on_step reports a failed verdict when a propose_workflow call was refused.",
-   "test": "A draft-flow test reading the verdicts."
+   "test": "A draft-flow test reading the verdicts.",
+   "impact": "Home's schema-refused proposals went unreported to the gateway, so A1.3's model-health check would show the Home model as healthier than it was."
   },
   {
    "id": "F6",
@@ -91,7 +99,8 @@
    "scenario": "Every reply is finish {} under max_steps 3: the session ends 'budget of 3 tool calls is used up' while used.steps shows 0, so a follow-up starts with the whole budget again (still bounded per run).",
    "cause": "The session counted every tool except finish.",
    "fix": "A finish counts when it was refused.",
-   "test": "Intern and runtime tests after the re-check."
+   "test": "Intern and runtime tests after the re-check.",
+   "impact": "A session ended by refused finish calls showed 0 steps used, so a follow-up started with the whole budget again; each run stayed bounded, but the session's total did not."
   },
   {
    "id": "S1",
@@ -101,7 +110,8 @@
    "scenario": "In .venv-agent the campaign test file imported the server, which needs pandas, so collection failed and the campaign was not tested at all.",
    "cause": "One import at the top of the test file.",
    "fix": "The file loads without the server; the one test that needs it skips there; make check-all runs the campaign tests in .venv-agent.",
-   "test": "8 campaign tests in check-all."
+   "test": "8 campaign tests in check-all.",
+   "impact": "The campaign agent, the one this package changed through an adapter, had no test running at all, so a regression in its experiment guard would have passed every gate."
   },
   {
    "id": "S2",
@@ -111,7 +121,9 @@
    "scenario": "About 13,600 tmp folders (around 7.8 GB) from one day of test runs were left in the temp directory; the owner had to restart to free space mid-package.",
    "cause": "Tests create folders with tempfile.mkdtemp and never remove them.",
    "fix": "Each test command gets its own TMPDIR, removed when it ends whatever its result; the old folders were deleted after the owner said yes.",
-   "test": "A full gate run leaves nothing behind."
+   "test": "A full gate run leaves nothing behind.",
+   "impact": "The machine ran out of disk mid-package and the owner had to restart; a full disk also makes gates fail for reasons unrelated to the code (it happened again in A4.3).",
+   "open": "Direct test runs outside make do not get the per-command temporary folder and its cleanup."
   }
  ],
  "measurements": [],
@@ -120,6 +132,13 @@
   "When a refactor makes a check stricter, every 'stop after this tool' rule must ask whether the tool actually ran.",
   "A re-check after fixes finds the edge cases of the fixes (here a refused finish counted in one budget and not the other).",
   "Tests that never clean up their temporary folders will eventually stop the work; give every test command its own temp folder."
+ ],
+ "risks": [
+  "Terminal and stop-after rules firing for tools that were refused, now that every call is checked strictly.",
+  "The step budget refusing the very report that ends a session, losing the work the budget paid for.",
+  "The Home agent's streaming, scripted fallback and one-turn lock regressing when its own loop is removed.",
+  "Forcing the campaign agent onto run() although its specialists return typed objects, not tool calls.",
+  "Agent tests silently not loading in the agent environment, leaving an agent untested."
  ],
  "commits": ["00b488f", "8c0814a"]
 }

@@ -31,7 +31,8 @@
    "scenario": "A user chose 5 folds; the project stored 5, but cross-validation, the random-versus-time comparison and the notebook all ran 3.",
    "cause": "The engine had a hard-coded fold count.",
    "fix": "The project's folds drive the cross-validation and the comparison, and the exported notebook reads the fold count the stages recorded.",
-   "test": "test_the_wizard_folds_reach_the_cross_validation_and_the_solution_decides_the_split."
+   "test": "test_the_wizard_folds_reach_the_cross_validation_and_the_solution_decides_the_split.",
+   "impact": "A user who chose 5 folds got 3 in the cross-validation, the random-versus-time comparison and the notebook, while the project said 5. The reported spread came from fewer folds than promised, and the settings no longer described the run."
   },
   {
    "id": "T2",
@@ -41,7 +42,11 @@
    "scenario": "On a table with a declared time column the control could be set to a random stratified split, which the engine would not run; the stored and shown setting then differed from what ran.",
    "cause": "The control was a free choice disconnected from the solution.",
    "fix": "The solution decides the split; the wizard shows that choice, disables the others and says how to change it.",
-   "test": "Same test: the stored split follows the solution."
+   "test": "Same test: the stored split follows the solution.",
+   "impact": "On a table with a declared time column the page could show a random stratified split while the engine ran a time split. The user would read the scores as random-split scores and compare them with the wrong baseline.",
+   "alternatives": [
+    "Let the user's split override the solution: set aside, because a random split on rows with a declared time column answers a different question (PIT-005, DCLAB-R02)."
+   ]
   }
  ],
  "measurements": [
@@ -52,7 +57,14 @@
    "result": "Both appeared: the Telco CSV ran with 5 stratified folds and the synthetic demand table with 5 time-ordered folds; all five stages completed.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "The scores in that run show the flow works; they are not results (quick mode, one holdout)."
+   "next": "The scores in that run show the flow works; they are not results (quick mode, one holdout).",
+   "against_gate": "StratifiedKFold(5 appeared for the Telco upload and TimeSeriesSplit(5) for the synthetic demand table, the two strings the gate names, and all five stages completed.",
+   "limits": [
+    "Quick mode with one holdout: the scores show the flow works, not how good a model is.",
+    "The group-column split was not exercised; only the stratified and time paths ran.",
+    "No model was configured, so 'Intern drives' with a model and a budget was not part of this check.",
+    "The demand table is synthetic, so its time split shows the wiring, not behaviour on real time-ordered data."
+   ]
   }
  ],
  "outcome": "Done: what the wizard sets is what runs; the review lists what will run; both start buttons work.",
@@ -63,5 +75,12 @@
  "commits": [
   "15c4958",
   "7ef1cea"
+ ],
+ "risks": [
+  "A visible setting (folds, rows, quick mode) is stored but never reaches the engine.",
+  "A free split choice contradicts the solution: a random split on rows with a time column answers a different question (PIT-005, DCLAB-R02).",
+  "A euro budget looks like a cap but nothing meters it.",
+  "'Intern drives' starts a session without the budget the user set.",
+  "The page offers a place to run (a sandbox) that does not exist yet."
  ]
 }

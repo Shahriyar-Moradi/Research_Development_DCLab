@@ -40,7 +40,11 @@
    "scenario": "With the sentence 'predict which subscribers will cancel next month' and a file with a cancelled column, the agent offered plan, monthly_fee and paperless, because candidates were ordered by data shape only.",
    "cause": "Ranking ignored the user's own words.",
    "fix": "Candidates are ranked with the columns the problem sentence names first, then the source's own outcome column; only names and the sentence are compared, so nothing is learned from values before the split.",
-   "test": "test_columns_the_problem_sentence_names_are_offered_first; test_a_source_that_knows_its_outcome_column_is_offered_first."
+   "test": "test_columns_the_problem_sentence_names_are_offered_first; test_a_source_that_knows_its_outcome_column_is_offered_first.",
+   "impact": "The agent offered plan, monthly_fee and paperless and left out the cancelled column the user had just named. A hurried user could pick a fee as the outcome and build a model of the wrong question.",
+   "alternatives": [
+    "Rank candidates by how the columns' values behave: set aside, because reading values against a possible outcome before the split would leak; only names and the sentence are compared."
+   ]
   },
   {
    "id": "T2",
@@ -50,7 +54,9 @@
    "scenario": "The user answered just as the data became ready; the data-ready turn withdrew the open question in another thread, and the answer was stored as a note.",
    "cause": "Two agent turns for the same draft ran concurrently in different threads.",
    "fix": "Agent turns for one draft run one at a time.",
-   "test": "test_a_message_waits_for_the_data_ready_turn_to_finish."
+   "test": "test_a_message_waits_for_the_data_ready_turn_to_finish.",
+   "impact": "A user who answered at the moment the data became ready had the answer, in the reproduction the outcome 'left', stored as a note. The chat then lacked the outcome it had just been given.",
+   "open": "The first fix was a lock inside one server process. With several app instances it had to move into the store, a thread lock for files and an advisory lock in PostgreSQL, which it later did."
   },
   {
    "id": "S1",
@@ -60,7 +66,8 @@
    "scenario": "On a wide table the model could not look at columns beyond the 40 in its state, although the plan lists tools to page through the profile and the analysis.",
    "cause": "A first version put summaries in the state instead of building the tools.",
    "fix": "Both tools exist and return aggregates and findings only, and the privacy text says what the agent may read.",
-   "test": "test_the_model_reads_column_summaries_and_findings_but_never_values."
+   "test": "test_the_model_reads_column_summaries_and_findings_but_never_values.",
+   "impact": "On a table wider than 40 columns the model could not see or offer the columns past the 40th, so an outcome column late in the file could never be proposed."
   },
   {
    "id": "S2",
@@ -70,7 +77,8 @@
    "scenario": "The Home page listened for token events but nothing sent them, so a long model reply showed nothing until it was complete.",
    "cause": "The streaming half on the server was missing.",
    "fix": "ChatClient.stream() hands the text to a callback and the agent sends 48-character chunks; a step that ends in tool calls, or fails, drops its bubble because that text is never said.",
-   "test": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them; test_a_streamed_step_that_ends_in_tool_calls_or_fails_drops_its_bubble."
+   "test": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them; test_a_streamed_step_that_ends_in_tool_calls_or_fails_drops_its_bubble.",
+   "impact": "With a model configured, a long reply left Home's thread blank until it was complete, so the user could not tell a working agent from a stuck one."
   },
   {
    "id": "M1",
@@ -80,7 +88,9 @@
    "scenario": "Against qwen2.5-coder:1.5b in Ollama the model never called record or ask_user; nothing was recorded and no next question came.",
    "cause": "The loop relied on the model to call tools.",
    "fix": "When a model turn uses no tool, code records the reply as the open question's answer and asks the next thing, as the script would.",
-   "test": "test_a_model_that_only_talks_does_not_stall_the_conversation."
+   "test": "test_a_model_that_only_talks_does_not_stall_the_conversation.",
+   "impact": "With a small local model, the kind a user without a cloud key runs, the chat replied in prose and stopped: nothing was recorded, no next question came, and the workflow never filled in.",
+   "open": "The user's message is taken whole as the answer to whatever question is open. If the user asked something back instead of answering, that text is stored as the answer."
   },
   {
    "id": "M2",
@@ -90,7 +100,8 @@
    "scenario": "A live check found every request refused for an empty balance; the note read like 'wait a moment', each turn waited on a doomed request, and when a reply started a simulation the summary appeared twice and read 'Predict A customer counts as lost...'.",
    "cause": "Error handling showed the exception type and retried every turn; the summary path ran twice.",
    "fix": "The client maps the HTTP status and the provider's short error code to a reason safe to show (never the provider's message, which can repeat a key), pauses requests for ten minutes after a refusal that will not go away, says it once per draft, and posts the summary once with the answers quoted under labels.",
-   "test": "test_a_refusal_gets_a_safe_reason_and_no_credit_pauses_further_requests; test_the_summary_is_said_once_and_quotes_the_answers."
+   "test": "test_a_refusal_gets_a_safe_reason_and_no_credit_pauses_further_requests; test_the_summary_is_said_once_and_quotes_the_answers.",
+   "impact": "A user whose account had no credit saw 'RateLimitError' on every turn, read it as 'wait a moment', and waited on requests that could never pass. The summary, the one message meant to confirm the problem, appeared twice and garbled."
   },
   {
    "id": "O1",
@@ -100,7 +111,8 @@
    "scenario": "The owner described a fraud detection problem and the first question was 'What exactly should the model predict, and for whom? For example: will this customer leave in the next 30 days?'.",
    "cause": "One fixed opening string with a churn example.",
    "fix": "Each of the nine packs has its own opening question with an example of its own kind (a rare event and when its label is known for fraud, the quantity and horizon for a forecast, and so on).",
-   "test": "test_every_pack_has_its_own_opening_question; test_the_first_question_fits_the_pack_the_problem_was_read_as."
+   "test": "test_every_pack_has_its_own_opening_question; test_the_first_question_fits_the_pack_the_problem_was_read_as.",
+   "impact": "A user describing fraud was first asked about customers leaving in 30 days. The example frames the answer, so the outcome, prediction moment and costs recorded next could have been written for the wrong kind of problem."
   }
  ],
  "measurements": [
@@ -111,7 +123,13 @@
    "result": "Passed without a model.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The flow passed with no model configured: on the gate's terms the chat asked its questions, drew the workflow and asked for a sample.",
+   "limits": [
+    "Without a model only the scripted questions ran; the model loop's failures in this package (a model that only talks, an account without credit) were found by other checks, not by this gate.",
+    "The flow uses one fixed problem sentence and fixed answers, so it shows the script completes, not that its questions fit other problems; the churn example asked of a fraud problem was found by the owner.",
+    "One run."
+   ]
   }
  ],
  "outcome": "Done: the Home agent asks at most four questions with or without a model, streams its replies, never sees rows, and keeps the conversation moving when a model misbehaves or is unavailable.",
@@ -127,5 +145,13 @@
   "07da5f1",
   "a8eae10",
   "ddc34ee"
+ ],
+ "risks": [
+  "A model that never calls a tool stalls the conversation with nothing recorded.",
+  "Rows of the user's data reach the model's context.",
+  "Two turns for one draft (the data-ready turn and a user message) run at once and file an answer in the wrong place.",
+  "A provider refusal (no credit, a refused key) shown as a raw exception name, or repeated from the provider's own message, which can echo a key.",
+  "One fixed opening question frames every problem as churn.",
+  "Streamed text inserted as HTML lets a reply run markup."
  ]
 }

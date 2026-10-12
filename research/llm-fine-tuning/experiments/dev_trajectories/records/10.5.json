@@ -36,7 +36,9 @@
    "scenario": "Two concurrent POST /api/drafts/{id}/messages after the start turn returned [202, 202] (the second got 409 before); the second task overwrote jobs[key], and the first turn's cleanup then removed the second's entry, so shutdown no longer cancelled it.",
    "cause": "The new 'await asyncio.to_thread(answering, ...)' sat between the in-memory jobs check and background(), breaking a check-then-act that used to run in one go on the event loop.",
    "fix": "Await the shared-lock probe first, then do the jobs check and background() with no await between them.",
-   "test": "BusyTests.test_two_messages_at_once_to_one_instance_one_is_refused asserts [202, 409]."
+   "test": "BusyTests.test_two_messages_at_once_to_one_instance_one_is_refused asserts [202, 409].",
+   "impact": "A double-click or two open tabs got both messages accepted. The second turn's entry was then removed from the job table when the first turn ended, so a server shutdown neither cancelled nor awaited that turn and could cut it off mid-write. The lock still kept the two turns from interleaving, which is why nothing visibly broke.",
+   "open": "A message that arrives just as another instance takes the turn lock still waits for the lock instead of getting 409."
   },
   {
    "id": "F2",
@@ -46,7 +48,8 @@
    "scenario": "The stream reads no events, an event commits after the SELECT's snapshot and before the stream registers its waiter; the wake finds no waiter and the stream sleeps up to 2 s, worse than the old 0.4 s poll, likely during token bursts and for a turn's last event.",
    "cause": "The waiter was registered after the read.",
    "fix": "The stream subscribes once before its loop, clears its event before each read and waits on it after; it unsubscribes in finally.",
-   "test": "Covered by the multi-instance stream test."
+   "test": "Covered by the multi-instance stream test.",
+   "impact": "Someone watching the chat saw a burst of tokens, or the last event of a turn, up to 2 s late instead of within the old 0.4 s poll. Nothing was lost, because the stream rereads the rows; only the latency got worse, and it got worse exactly where people watch."
   },
   {
    "id": "F3",
@@ -56,7 +59,9 @@
    "scenario": "On psycopg 3.1, conn.notifies(timeout=...) raises TypeError right after connecting; the bare except swallowed it and reconnected every 2 s for ever, so LISTEN never worked and nothing was logged.",
    "cause": "A version floor below the API used, and an exception swallowed without a word.",
    "fix": "Require psycopg 3.2 or later; the listener prints the exception type once, and again after a reconnect.",
-   "test": ""
+   "test": "",
+   "impact": "On any install that resolved psycopg 3.1, live wake-ups never worked: streams fell back to the poll, a new database connection was opened every 2 s for ever, and no log line said why. The feature would have looked shipped while doing nothing.",
+   "open": "The listener still needs a direct database connection: behind a pooler in transaction mode, LISTEN stops delivering and streams fall back to the 2-second poll without an error."
   },
   {
    "id": "F4",
@@ -66,7 +71,8 @@
    "scenario": "A ?wait=1 stream while events keep arriving (a long pipeline, token streaming) stayed open until the events stopped, where it closed after about 1 s before.",
    "cause": "Waiting time was counted only on the waiting path, never on the path that read new events.",
    "fix": "Elapsed time is measured from a start clock; keep-alives use a separate quiet clock.",
-   "test": ""
+   "test": "",
+   "impact": "A page streaming a long pipeline or a token-heavy answer kept its request open for as long as events kept coming, past the cap every stream was meant to have. Each such page holds a server connection, so a few long runs could tie up an instance."
   },
   {
    "id": "F5",
@@ -76,7 +82,8 @@
    "scenario": "The upsert of a pause fails on a connection blip; the next get() reads the database successfully, finds no row, and a request is sent again to a key the provider refused.",
    "cause": "get() returned only the database row when the read worked.",
    "fix": "get() returns the later of the local and the shared pause and drops an expired local entry.",
-   "test": ""
+   "test": "",
+   "impact": "After one failed write of a pause, the next call read the database, found no pause and sent another request to a key the provider had just refused. The pause exists to stop exactly that repeat, so it failed on the one path where the database was flaky."
   },
   {
    "id": "F6",
@@ -86,7 +93,9 @@
    "scenario": "If answering() always returned False every test would still pass: the helper retried on 409 without asserting one, and the lock alone keeps messages from interleaving.",
    "cause": "The tests covered the guarantee, not the check.",
    "fix": "Add a test that holds the turn lock elsewhere and expects 409.",
-   "test": "BusyTests.test_a_turn_held_elsewhere_refuses_a_message."
+   "test": "BusyTests.test_a_turn_held_elsewhere_refuses_a_message.",
+   "impact": "The new cross-instance refusal was unguarded: a change that made the busy probe always answer 'free' would have queued a second message behind another instance's turn instead of refusing it, and the whole suite would still have passed.",
+   "open": "The listener's reconnect after a database restart and the pause's fallback when the database cannot be read have no test yet."
   }
  ],
  "measurements": [],
@@ -97,5 +106,12 @@
   "An exception swallowed in a reconnect loop hides a permanent failure; log its type at least once.",
   "Test the check you added, not only the guarantee another mechanism already provides."
  ],
- "commits": ["3446c02"]
+ "commits": ["3446c02"],
+ "risks": [
+  "A stream that trusts notices alone loses an event whenever a notice is missed; the event rows must stay the source of truth and the poll the fallback.",
+  "Turning the in-memory busy check into an awaited database probe can split a check-then-act on the event loop and let two turns in.",
+  "LISTEN needs a long-lived direct connection and a driver that can wait with a timeout; a pooler or an older psycopg can disable it without any error.",
+  "The shared model pause must key on something that changes with the API key without ever storing the key.",
+  "A test with two server processes and a worker is heavy on an 8 GB machine; it can time out, and with output discarded it fails without a clue."
+ ]
 }

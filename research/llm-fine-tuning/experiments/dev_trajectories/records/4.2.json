@@ -27,5 +27,11 @@
  "lessons": [],
  "commits": [
   "15c4958"
+ ],
+ "risks": [
+  "A second upload path in the wizard cleans and analyses differently from Home's pipeline.",
+  "'Next' is enabled before the cleaned table exists, so the solution draft's column audit has nothing to read.",
+  "Element ids clash between Home's 'Bring the data' card and the wizard's copy of it.",
+  "A synthetic table shows without its 'synthetic' pill."
  ]
 }

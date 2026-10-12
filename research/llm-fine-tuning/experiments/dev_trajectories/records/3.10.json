@@ -31,7 +31,20 @@
    "scenario": "Building from a draft logged set_solution with the state after the move, while the project page's own rows record the state before the move; a built project's first row would not have matched how the page reads its log.",
    "cause": "The order of logging and applying was swapped.",
    "fix": "Record the state before the move, as the project page expects.",
-   "test": ""
+   "test": "",
+   "impact": "A built project's first log row would have shown the solution already set before set_solution ran. The Workflow page's replay of the log would start from the wrong state, and the record of the first move would not match what happened."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The notebook exported from a project built on Home failed on its first cell, because it read the project's Parquet file with pd.read_csv.",
+   "scenario": "Running the synthetic flow end to end and opening the exports: the project built from the draft holds its table as clean.parquet, and the notebook's data cell called pd.read_csv on that file, which cannot parse Parquet, so the notebook stopped at its first code cell.",
+   "cause": "The exporter was written when every project's table was an uploaded CSV and always emitted pd.read_csv; building from a draft introduced Parquet files the exporter did not know about.",
+   "fix": "The exporter writes the read call by the file's type, the same way data.load_table reads it: read_parquet for .parquet, read_csv with a tab separator for .tsv, read_excel for Excel, read_json for .json, read_csv otherwise.",
+   "test": "tests/test_studio.py export checks: a project whose file is sim.parquet exports frame = pd.read_parquet('sim.parquet'), and a .tsv file gets the tab separator.",
+   "impact": "Every project created from Home, uploads, studied samples and synthetic data alike, exported a notebook that could not run. The notebook is the artefact meant to let a reviewer reproduce the run, so the reproduction failed before any number could be checked.",
+   "open": "The exporter and data.load_table each keep their own list of file types; a type added to one and not the other would fail the same way."
   }
  ],
  "measurements": [],
@@ -41,6 +54,14 @@
  ],
  "commits": [
   "15c4958",
-  "7ef1cea"
+  "7ef1cea",
+  "c13bb6f"
+ ],
+ "risks": [
+  "A project starts in a state the workflow validator would refuse, because the solution bypassed the graph check.",
+  "A double click or a retried request creates two projects from one draft.",
+  "The synthetic flag, the settings or the cleaned file's types are lost between the draft and the project.",
+  "The transition log's first row does not mean what the project page assumes it means.",
+  "A draft without data cannot build at all, though the user wants to plan first."
  ]
 }

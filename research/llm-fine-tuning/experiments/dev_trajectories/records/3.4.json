@@ -34,7 +34,9 @@
    "scenario": "The first version left out every column the profile listed as a target candidate; the profile lists up to eight, so a table with about nine or fewer non-identifier columns had nothing left to correlate.",
    "cause": "The exclusion rule used a broad candidate list where a narrow one was meant.",
    "fix": "Correlations leave out the stated target and the columns whose names flag them as outcome-like, and nothing else.",
-   "test": "tests/test_draft_data.py: test_correlations_leave_out_the_target_and_outcome_like_columns, updated to the new rule."
+   "test": "tests/test_draft_data.py: test_correlations_leave_out_the_target_and_outcome_like_columns, updated to the new rule.",
+   "impact": "On a table with about nine or fewer non-identifier columns, which covers many small business files, the chat's analysis showed no correlations at all. The user lost the one view of redundant features before choosing them, and the empty card looked like a finding.",
+   "open": "Outcome-like columns are found by their names. A column filled after the event under a neutral name is still correlated with the features and shown."
   }
  ],
  "measurements": [
@@ -45,7 +47,13 @@
    "result": "A 300,000-row CSV was analysed in 0.9 s from a seeded sample.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The 300,000-row CSV was analysed in 0.9 s, which is about a second, as the gate asks.",
+   "limits": [
+    "The time is for a seeded sample, not every row, so it says how fast the sample is described, not the full table.",
+    "The table was narrow and random; correlations among a few numeric columns cost little, and a wide table would cost more.",
+    "One run on one laptop, and 'about a second' was given no margin."
+   ]
   }
  ],
  "outcome": "Done: the chat's analysis cards come from plain JSON; nothing relates a column to the outcome.",
@@ -54,5 +62,12 @@
  ],
  "commits": [
   "15c4958"
+ ],
+ "risks": [
+  "Any statistic relating a column to the outcome, computed on all rows before the split, lets the holdout's labels inform choices (rule 1).",
+  "A guard that drops too many columns as outcome-like leaves nothing to describe on a narrow table.",
+  "A NaN or infinity in the output breaks the JSON the page reads.",
+  "Describing a very large table row by row is slow, and an unseeded sample gives a different description each time.",
+  "Rounding small rates to a fixed number of decimals shows a rare class as zero."
  ]
 }

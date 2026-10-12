@@ -31,7 +31,12 @@
    "scenario": "The page's text mentions URLs (for example as input placeholders); a test that searched the whole page for http hosts failed although nothing was loaded from them.",
    "cause": "It tested the wrong property: mention instead of load.",
    "fix": "Narrow the test to resources the page loads: link, script and img tags, @import and url() in the stylesheet.",
-   "test": "tests/test_web_build.py: test_fonts_are_served_by_the_app_and_nothing_loads_from_outside, test_a_stale_or_missing_font_fails_the_check."
+   "test": "tests/test_web_build.py: test_fonts_are_served_by_the_app_and_nothing_loads_from_outside, test_a_stale_or_missing_font_fails_the_check.",
+   "impact": "The broad test would have stayed red on every build because placeholders and help text mention URLs. To make it pass, someone would have had to delete harmless text or weaken the test, and a real outside load could then hide behind the noise.",
+   "alternatives": [
+    "Keep the whole-page search and allow the URLs the text mentions: set aside, because it still tests mention rather than load, and every new placeholder would need an entry."
+   ],
+   "open": "The test reads the built page and stylesheet. A request made by script at run time is outside what it inspects; the CSP, which no longer names any outside host, is the guard there."
   },
   {
    "id": "O1",
@@ -41,7 +46,9 @@
    "scenario": "While checking the fonts change, a stash and pop pair touched the owner's uncommitted recap files; nothing was lost, which was verified afterwards.",
    "cause": "A habitual command in a repository whose rules forbid it.",
    "fix": "Verified the recap files and the existing stashes were intact, reported the mistake to the owner, and the rule 'never git stash' was recorded for later sessions.",
-   "test": ""
+   "test": "",
+   "impact": "A stash and pop moves the owner's uncommitted recap files out of the tree and back. A conflict on pop, or a pop that stopped halfway, could have lost work that exists nowhere else.",
+   "open": "Saying it once did not stop it: the same session ran another stash and pop about four hours later, before 'never git stash' was written into CLAUDE.md's gotchas, and an earlier stash had already been used that morning to compare a test with and without the demo changes. The rule is a written gotcha; no tooling enforces it."
   }
  ],
  "measurements": [
@@ -52,7 +59,13 @@
    "result": "In the browser the fonts loaded from localhost only; Persian and Latin-extended files loaded only on pages that use them; all 19 pages loaded under the stricter CSP with no console or policy error.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "All 19 pages loaded under the stricter CSP with no console or policy error, and the fonts came from localhost only, which meets the first half of the gate. That every named font is shipped is the second half; the build test checks it rather than this browser run.",
+   "limits": [
+    "The browser check covers what a page loads; requests the server makes for an action (Kaggle, Hugging Face, a model) are outside this gate.",
+    "The offline claim is inferred from 'no outside host'; no run with the network switched off is recorded.",
+    "One browser engine (Chromium) on one machine."
+   ]
   }
  ],
  "outcome": "Done: the fonts come from the app (about 268 KB, OFL), the CSP names no outside host, and the UI works offline with an identical look.",
@@ -62,5 +75,12 @@
  ],
  "commits": [
   "93a9a65"
+ ],
+ "risks": [
+  "Downloading font files without asking breaks the owner's rule to approve every download.",
+  "Self-hosted fonts under other family names or weights would change the look of every page.",
+  "Shipping Arabic and Latin-extended glyphs on every page slows the first load for pages that never use them.",
+  "A test that searches the page text for URLs fails on harmless placeholders, and people learn to ignore it.",
+  "The build copied text files only; binary woff2 files could go missing or stale without its check noticing."
  ]
 }

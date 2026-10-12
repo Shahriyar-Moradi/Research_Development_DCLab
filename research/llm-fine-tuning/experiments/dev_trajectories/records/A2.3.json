@@ -36,7 +36,11 @@
    "scenario": "The standard plan on 'Predict telco churn': trace rows for use_sample and describe_data stored the first customer ids of the table under columns[].examples, in agent_step.result and in agent_steps.jsonl.",
    "cause": "The result summary was the first 360 characters of the raw result as JSON.",
    "fix": "summary() removes the value-bearing keys (examples, preview and similar) before dumping.",
-   "test": "A test that runs the data tools and finds none of the table's values in any trace row."
+   "test": "A test that runs the data tools and finds none of the table's values in any trace row.",
+   "impact": "Every standard-plan run on a real table would have written the first customer ids into agent_step and agent_steps.jsonl, which A6 exports for training: the package's one hard rule broken on its first run.",
+   "alternatives": [
+    "Keep only scalar top-level fields of a result, the reviewer's other option: set aside because it also drops structured results (column names, stage statuses) that make a step readable on the Intern page."
+   ]
   },
   {
    "id": "F2",
@@ -46,7 +50,8 @@
    "scenario": "In the standard plan the create_project row showed a state with a project, though the intern saw none; the use_sample row showed data attached, though the agent saw none. A6.1 needs the state before the move.",
    "cause": "The tracer read the graph state when it wrote the row, after the tool ran.",
    "fix": "A snapshot is taken before the call and used for the row.",
-   "test": "A trace test comparing each row's state with the state before its move."
+   "test": "A trace test comparing each row's state with the state before its move.",
+   "impact": "A6.1's records would pair each move with the state after it (create_project shown with a project already there), so a policy trained on them would learn moves for states it never saw at decision time."
   },
   {
    "id": "F3",
@@ -56,7 +61,11 @@
    "scenario": "A session with 8 steps from before the package gets a follow-up: the session's step is 9 but the trace row is 1, so its trace line appears on step 1. Also, a reply [write_plan, get_graph] where get_graph raises reloads the session without the unsaved write_plan, while its trace row stays.",
    "cause": "Resuming numbered from the largest stored trace step, not from the session.",
    "fix": "The session's own step number is passed to the tracer.",
-   "test": "A follow-up test where trace and session numbers match."
+   "test": "A follow-up test where trace and session numbers match.",
+   "impact": "On a resumed or follow-up session the Intern page showed a step's trace under another step, so a person checking why the agent made a move would read the verdict and tokens of a different call.",
+   "alternatives": [
+    "Resume numbering from the larger of the stored trace number and the session's step count: set aside because it still drifts when a step is reloaded away after an error, while passing the session's own number is exact."
+   ]
   },
   {
    "id": "F4",
@@ -66,7 +75,8 @@
    "scenario": "The model calls set_contract (an old name of set_solution): recorded ok, replayed error, same=False.",
    "cause": "The row stored the name as called; the replay stub compared it with the canonical name.",
    "fix": "Replay resolves both names through the registry before comparing.",
-   "test": "A replay test with an aliased call."
+   "test": "A replay test with an aliased call.",
+   "impact": "Any run where the model used an old tool name would be reported as diverging on replay, a false regression in the check meant to show that an agent's decisions are reproducible."
   },
   {
    "id": "F5",
@@ -76,7 +86,9 @@
    "scenario": "A set_solution call with a long prediction moment and several forbidden columns with reasons: arguments over 1,200 characters were stored as {'_truncated': ...}, which the schema check refused on replay.",
    "cause": "A low cut for arguments that are names and sentences.",
    "fix": "Arguments are kept up to 8,000 characters; a run with a cut argument is refused by replay with 'arguments were cut'.",
-   "test": "A replay test with a cut argument."
+   "test": "A replay test with a cut argument.",
+   "impact": "The runs with long solutions, exactly those that state a detailed prediction moment and forbidden columns with reasons, could not be replayed, so the replay check failed on the runs that matter most.",
+   "open": "A run whose arguments were still cut (over 8,000 characters) cannot be replayed; it is refused with a reason rather than checked."
   },
   {
    "id": "F6",
@@ -86,7 +98,8 @@
    "scenario": "A torn last line left by a crash made delete() raise JSONDecodeError, so DELETE /api/intern/sessions/{id} returned 500 after the session was deleted and left its rows; the next appended row merged into the torn line and was lost; steps() read without the lock while delete() rewrote the file in place; a bad file broke GET of the session.",
    "cause": "No handling of bad lines, unlocked reads and in-place rewrites.",
    "fix": "delete() skips bad lines and writes a temporary file that replaces the old one; reads take the lock; a record starts a new line when the file does not end with one; the server wraps trace reads and deletes.",
-   "test": "test_a_broken_store_never_stops_the_run and file-store tests with a torn line."
+   "test": "test_a_broken_store_never_stops_the_run and file-store tests with a torn line.",
+   "impact": "One crash during an append would make deleting a session return 500 after the session was gone, leave its trace rows behind, lose the next row written, and break opening the session page."
   }
  ],
  "measurements": [],
@@ -95,6 +108,13 @@
   "A 'summary' made by truncating raw output still carries the first values; remove the value-bearing keys before cutting.",
   "Record the state an agent saw before its move, or the trace cannot teach what to do in that state.",
   "An append-only file needs a plan for a torn last line before anything rewrites it."
+ ],
+ "risks": [
+  "A result summary made by truncating raw output keeps the first values of the table, storing cell values in the future training source.",
+  "Recording the graph state after the move, which pairs each move with a state the agent never saw.",
+  "Trace step numbers drifting from the session's step numbers when a session resumes.",
+  "Replay reporting false divergences for aliased names or cut arguments.",
+  "An append-only file store that a crash leaves with a torn line, breaking the session routes."
  ],
  "commits": ["4d61745"]
 }

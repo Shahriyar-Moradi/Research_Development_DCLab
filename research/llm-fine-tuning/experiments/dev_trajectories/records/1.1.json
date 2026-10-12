@@ -35,7 +35,13 @@
    "result": "Screenshots matched demo v1 and five pages checked first had no console or CSP error; later all 19 pages were checked.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for every page. The first check covered five pages, with screenshots matching demo v1 and no console or CSP error; only the later check of all 19 pages covers the gate as written.",
+   "limits": [
+    "Screenshots were compared by eye, not pixel by pixel, so a small shift in spacing could pass.",
+    "The pages still showed demo sample data: the check says the look survived the copy, not that any page works against the API.",
+    "It was checked at a desktop width only; a phone-width top-bar problem was fixed in the product later."
+   ]
   }
  ],
  "outcome": "Done: the demo's exact UI is served by the real server from built files; make web rebuilds and rd-check fails when static/app is stale. Pages still showed sample data and were wired to the API phase by phase.",
@@ -44,5 +50,12 @@
  ],
  "commits": [
   "b9abbad"
+ ],
+ "risks": [
+  "The demo's build inlines every script and style into one page; under the server's CSP, which allows no inline code, a straight copy would render blank.",
+  "A hand edit to the generated static/app drifts from web/src without anyone noticing.",
+  "Checking against the owner's running notebook on port 8765 could touch real projects.",
+  "Pages still carry the demo's sample numbers after the copy and can be mistaken for real results.",
+  "A copy step can change the look slightly (fonts, spacing) in a way only a side-by-side screenshot shows."
  ]
 }

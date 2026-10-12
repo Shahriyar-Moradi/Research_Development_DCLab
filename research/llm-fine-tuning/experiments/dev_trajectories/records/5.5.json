@@ -30,7 +30,10 @@
    "scenario": "The page bundled 133 records at build time while the index the server and the intern use had 137; the Ask tab replayed four pre-written answers whatever was asked.",
    "cause": "The demo's data was bundled, not fetched.",
    "fix": "Serve the index from disk and answer from it.",
-   "test": "test_library_is_the_index_in_the_page_shape; test_library_follows_the_file."
+   "test": "test_library_is_the_index_in_the_page_shape; test_library_follows_the_file.",
+   "impact": "Readers of the Evidence library saw 133 records while the server and the intern searched 137, so four records existed nowhere on the page. The Ask tab replayed one of four written answers whatever was asked, which looked like an answer from the evidence but answered nothing.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -41,12 +44,25 @@
    "result": "137 of 137.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for as many records on the page as records.jsonl has lines: 137 of 137, so it passes.",
+   "limits": [
+    "A count shows the page loads the whole index; it says nothing about whether a search finds the right record.",
+    "Measured against the index as it was that day; later growth is guarded by the test that follows the file, not by this count.",
+    "The Ask tab's filter (cited sentences whose numbers appear in the record) was not part of this gate."
+   ]
   }
  ],
  "outcome": "Done: the Evidence library is the live index, and its answers keep only cited, number-checked sentences.",
  "lessons": [
   "Whatever a demo bundles goes stale; serve it from the source the product itself uses."
+ ],
+ "risks": [
+  "Data bundled into the page at build time goes stale against the index the server and the intern search.",
+  "A model's answer could add a figure the cited evidence does not hold.",
+  "Without a model, weak matches could be shown as an answer instead of saying the evidence does not cover the question.",
+  "Fetching the live index before the first paint would make every page slow to appear.",
+  "Invented 'From projects' lessons would pass as recorded evidence."
  ],
  "commits": [
   "8997529"

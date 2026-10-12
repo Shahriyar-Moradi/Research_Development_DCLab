@@ -44,7 +44,10 @@
    "scenario": "Owner signed in, GET /, /guide, /classic and /favicon.ico all returned 401: the product shell could not load in a browser, signed in or not.",
    "cause": "The middleware identified the caller only for /api/ and /mcp paths, while the Router gave the page shells a read check.",
    "fix": "Identify the caller on every path except /static/, and make the four page shells public (they hold no data; every API call they make is checked).",
-   "test": "test_pages_load_and_the_schema_is_not_served."
+   "test": "test_pages_load_and_the_schema_is_not_served.",
+   "impact": "With password sign-in on, nobody could open the product in a browser, signed in or not: the page shell itself answered 401, so switching accounts on made DCLab unusable.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "A2",
@@ -54,7 +57,10 @@
    "scenario": "As owner of a second workspace, POST /api/drafts returned 201 but the agent never spoke (the error was swallowed in the background task), and POST /api/drafts/{id}/pack raised KeyError, a 500; model use would have been charged to the first workspace's budget and routing.",
    "cause": "draft/api.py read services.draft_work once when the routes were registered, capturing the default workspace's stores and gateway.",
    "fix": "work_now() reads services.draft_work on every call; nothing is kept from registration.",
-   "test": "test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there (the agent speaks, the pack is 200, an upload's pipeline reaches ready)."
+   "test": "test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there (the agent speaks, the pack is 200, an upload's pipeline reaches ready).",
+   "impact": "In any workspace but the server's own, a new draft never heard from the Home agent and choosing a pack gave a 500; that workspace's model use would be charged to the first workspace's budget and routed by its settings.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "A3",
@@ -64,7 +70,12 @@
    "scenario": "Under make dev (DCLAB_WORKER=external) with password sign-in, a member of a second workspace runs a stage: the job stays queued for ever, because the worker process opened only its own folder's workspace and claims filter by workspace.",
    "cause": "Workers were started per workspace only when a job was queued in that process.",
    "fix": "Pool.start_all opens every workspace and starts its worker; the server's lifespan and python -m dclab_rnd.worker call it, the worker again every 60 s.",
-   "test": "Covered by the second-workspace test."
+   "test": "Covered by the second-workspace test.",
+   "impact": "Under make dev with accounts on, every stage run, pipeline and intern turn of a second workspace stayed queued for ever, and after a restart its jobs were recovered only when someone queued a new one.",
+   "alternatives": [
+    "List it as open in the status row: offered by the reviewer; a worker for every workspace was built instead."
+   ],
+   "open": ""
   },
   {
    "id": "A4",
@@ -74,7 +85,12 @@
    "scenario": "The parallel runner reuses slot databases; a second run saved the lesson with the fixed id 'lw1abc', which belonged to the previous run's workspace, so setUpClass raised KeyError.",
    "cause": "setUpClass never emptied the test database.",
    "fix": "setUpClass empties the database before building the app.",
-   "test": "test_accounts passes twice in a row on the same database."
+   "test": "test_accounts passes twice in a row on the same database.",
+   "impact": "test_accounts failed whenever the parallel runner reused a slot database that had run it before, so the gate went red at random for reasons unrelated to any change.",
+   "alternatives": [
+    "Use a random lesson id: set aside for emptying the database first, as the other database tests do."
+   ],
+   "open": ""
   },
   {
    "id": "A5",
@@ -84,7 +100,12 @@
    "scenario": "With accounts on, an anonymous GET /openapi.json returned 200 with the whole API schema.",
    "cause": "Those routes are not built by the shared Router.",
    "fix": "With accounts on, the app is built without openapi_url, docs_url and redoc_url.",
-   "test": "test_pages_load_and_the_schema_is_not_served checks the 404."
+   "test": "test_pages_load_and_the_schema_is_not_served checks the 404.",
+   "impact": "An anonymous visitor could read the whole API schema from /openapi.json, a map of every route of a deployment that requires sign-in.",
+   "alternatives": [
+    "Put the schema and docs routes behind the guard: set aside; with accounts on they are not built at all."
+   ],
+   "open": ""
   },
   {
    "id": "A6",
@@ -94,7 +115,10 @@
    "scenario": "PostgreSQL is away for a moment when the worker's once-a-minute start_all lists the workspaces: the error leaves main() and the process exits, so jobs in every workspace stay queued; a workspace whose folder names another workspace aborts the server's lifespan and leaves the later workspaces without a worker.",
    "cause": "start_all had no exception handling, unlike the worker's own loops.",
    "fix": "start_all wraps the listing and each workspace's opening in its own try, reports the workspace id and the error type, and carries on; a failed workspace is retried on the next call. The Router also collects every method's permission and requires each one.",
-   "test": "PoolTests.test_a_database_away_or_a_broken_workspace_stops_nothing; PoolTests.test_a_route_with_several_methods_needs_what_each_needs."
+   "test": "PoolTests.test_a_database_away_or_a_broken_workspace_stops_nothing; PoolTests.test_a_route_with_several_methods_needs_what_each_needs.",
+   "impact": "A moment's database outage while the worker listed workspaces killed the worker process, leaving jobs in every workspace queued until someone restarted it; one broken workspace stopped the server from starting.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "B1",
@@ -104,7 +128,10 @@
    "scenario": "A password owner owns the server's workspace and a second, unmapped workspace. An identity-provider user with another subject, group 'everyone' and an unverified email claim equal to the owner's email signs in: /api/auth/me shows the owner, switching into the second workspace returns 200 with role owner, and the group sync demotes the real owner to viewer, leaving the workspace with no owner.",
    "cause": "sign_in linked on the email claim without checking email_verified and overwrote a subject already linked.",
    "fix": "Find by subject first; link by email only when the provider verified it and the account has no other subject; otherwise refuse ('linked to another sign-in'); a new user gets the claimed email only when verified, else a placeholder; a partial unique index on the subject (migration 0013).",
-   "test": "test_an_email_links_an_account_only_when_the_provider_verified_it."
+   "test": "test_an_email_links_an_account_only_when_the_provider_verified_it.",
+   "impact": "Anyone able to set an unverified email at the identity provider could sign in as an existing owner, enter that owner's other workspaces with the owner role, and through the group sync demote the real owner, leaving a workspace with no owner.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "B2",
@@ -114,7 +141,10 @@
    "scenario": "DCLAB_OIDC_ROLES='ml-team=data_scientist,ml-team=wnope:viewer': each sign-in by a member of ml-team raised a foreign-key violation after the user was created, with some memberships changed and others not.",
    "cause": "Mapped workspaces were never checked, and each membership change was its own transaction in arbitrary order.",
    "fix": "Unknown mapped workspaces are refused with a 503 before the redirect; membership changes run in one transaction, in sorted order, ending sessions and tokens of a workspace the person left.",
-   "test": "test_a_mapping_that_names_no_workspace_is_refused_before_anyone_is_sent_away."
+   "test": "test_a_mapping_that_names_no_workspace_is_refused_before_anyone_is_sent_away.",
+   "impact": "A role mapping that named a missing workspace made every sign-in by that group a 500, with some memberships changed and others not, so people's roles ended in a state nobody chose.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "B3",
@@ -124,7 +154,10 @@
    "scenario": "The key endpoint returning 503 raised HTTPStatusError out of the callback; an email claim 'not-an-email' raised AccountError; a non-ASCII state made compare_digest raise TypeError.",
    "cause": "The routes caught only OidcError.",
    "fix": "Provider steps wrap network, value, key, type and attribute errors into OidcError; sign_in wraps account and integrity errors; state, nonce and MAC are compared as bytes; a malformed JWK or token is refused too.",
-   "test": "test_oidc covers a key endpoint returning 503 and a non-ASCII state."
+   "test": "test_oidc covers a key endpoint returning 503 and a non-ASCII state.",
+   "impact": "A provider outage or an odd claim showed users a server error instead of the refusal page, and a non-ASCII state crashed the comparison, so neither users nor operators learned why sign-in failed.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "B4",
@@ -134,7 +167,10 @@
    "scenario": "Providers such as Auth0 publish an issuer with a trailing slash and put it in iss; the token was verified against the stripped value, giving 403 InvalidIssuerError.",
    "cause": "config() stripped the slash and passed that value to the token check.",
    "fix": "Discovery compares stripped forms, but iss is checked against the provider's published issuer exactly.",
-   "test": "The test issuer now ends in '/'."
+   "test": "The test issuer now ends in '/'.",
+   "impact": "With a provider such as Auth0, whose issuer ends in '/', every sign-in was refused, so a team on that provider could not sign in at all.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "B5",
@@ -144,7 +180,10 @@
    "scenario": "A sign-in that adds, changes or removes a membership wrote nothing, while the same change on the Members routes wrote role_change.",
    "cause": "The sync path had no audit call.",
    "fix": "Every sign-in (password and OIDC) and each membership change from groups are written to that workspace's audit.",
-   "test": "test_leaving_a_group_takes_the_role_away_and_sign_ins_are_audited."
+   "test": "test_leaving_a_group_takes_the_role_away_and_sign_ins_are_audited.",
+   "impact": "Role changes made by the group sync, and every sign-in, left no audit row, so 'who gave this person the owner role, and when' had no answer for changes that came from the identity provider.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "B6",
@@ -154,7 +193,12 @@
    "scenario": "A secret containing '%', '+' or ':' fails on providers that decode it as RFC 6749 requires.",
    "cause": "auth=(client_id, client_secret) passed raw values.",
    "fix": "Both values are form-encoded; azp is required to equal the client when aud lists several audiences; DCLAB_OIDC_REDIRECT is required behind HTTPS.",
-   "test": ""
+   "test": "",
+   "impact": "A client secret containing '%', '+' or ':' failed at the token step on providers that decode it as RFC 6749 requires, so sign-in broke for that whole deployment.",
+   "alternatives": [
+    "Pick the client authentication method from the provider's token_endpoint_auth_methods_supported: offered by the reviewer; form-encoding the basic credentials was the smaller fix."
+   ],
+   "open": "Only client_secret_basic is supported; a provider that accepts only client_secret_post cannot be used."
   },
   {
    "id": "C1",
@@ -164,7 +208,12 @@
    "scenario": "Create a token and click 'Copy and close': the secret stays as hidden text in the modal body until another dialog replaces it.",
    "cause": "modal.close() only removed the open class.",
    "fix": "modal.close() clears the modal body.",
-   "test": "Re-checked in the source and the rebuilt static app; no other dialog reads its inputs after closing."
+   "test": "Re-checked in the source and the rebuilt static app; no other dialog reads its inputs after closing.",
+   "impact": "A new API token stayed in the page as hidden text after its dialog closed, readable from the page's DOM until another dialog replaced it, though the screen promised it was shown once.",
+   "alternatives": [
+    "Clear only the token dialog's text in its own handlers: set aside for clearing the dialog body on every close, after checking that no dialog reads its inputs once closed."
+   ],
+   "open": ""
   },
   {
    "id": "C2",
@@ -174,7 +223,10 @@
    "scenario": "A token named 'R&D laptop' showed as 'R&amp;D laptop: copy it now'.",
    "cause": "The title was escaped and then set as text.",
    "fix": "Pass the name unescaped, since the title is set with textContent.",
-   "test": ""
+   "test": "",
+   "impact": "A token named 'R&D laptop' showed as 'R&amp;D laptop' in the dialog that shows the secret once, so the user could doubt which token they were copying.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "C3",
@@ -184,7 +236,12 @@
    "scenario": "A link with ?signin_error=Your password expired, send it to ... puts an attacker's message on DCLab's own sign-in page.",
    "cause": "showSignIn read signin_error from the URL, though nothing in the server sets it.",
    "fix": "The sign-in page shows only the app's own note.",
-   "test": ""
+   "test": "",
+   "impact": "A crafted link could put any message, such as a request to send a password somewhere, on DCLab's own sign-in page, lending it the page's trust.",
+   "alternatives": [
+    "Map a few known error codes to fixed messages: set aside, since nothing in the server sets the parameter."
+   ],
+   "open": ""
   },
   {
    "id": "T1",
@@ -194,7 +251,12 @@
    "scenario": "The test passed in a second locally but failed on GitHub's runner with six test files at once; raising the wait from 30 s to 120 s did not help.",
    "cause": "The signed-in test clients were never entered, so each request ran on an event loop that closed with the response; the Home agent started as a task on that loop and on a busy runner was cancelled before it began. Under uvicorn the loop outlives the request, so the product was fine.",
    "fix": "The draft is created through the client entered in setUpClass, with the second owner's session.",
-   "test": "test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there passes on CI."
+   "test": "test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there passes on CI.",
+   "impact": "CI went red on this test for a reason that was not slowness, so ever longer waits could have hidden a real cancellation of the Home agent's task behind a timeout.",
+   "alternatives": [
+    "Raise the wait from 30 s to 120 s: tried first, and it did not help, because the event loop closed under the agent's task."
+   ],
+   "open": ""
   }
  ],
  "measurements": [
@@ -203,7 +265,13 @@
    "gate": "A change to studio/graph.py needs a fresh make agent-eval whose scores match the previous result (the prompt gate's rule).",
    "result": "AEV-010 scores the same as AEV-009.",
    "verdict": "pass",
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks that a fresh make agent-eval scores the same as the previous result: AEV-010 scores the same as AEV-009, so it passes.",
+   "limits": [
+    "The suite runs scripted policies on planted traps; equal scores show the change altered no verdict there, not that every move in use behaves the same.",
+    "No live model was involved.",
+    "A match with the earlier result checks for change, not for whether either result is right."
+   ]
   }
  ],
  "outcome": "Done in three parts: accounts, sessions, API tokens and the four roles checked on every route (A); sign-in through the company's identity provider with groups mapped to roles (B); the sign-in page, switcher, Members and API tokens tabs, and /mcp in the token's workspace (C). Without DCLAB_AUTH nothing changes. Left open: an owner can add an existing user without that user's consent; a group change reaches DCLab at the next sign-in; a sign-in that removes a workspace's last owner is allowed.",
@@ -214,5 +282,17 @@
   "When a test fails only on a busy CI runner, longer waits are not a fix until the cause is known; here the event loop was closing under the task.",
   "A fix that adds a periodic call must keep the loop's existing tolerance of a database that is briefly away."
  ],
- "commits": ["21e10cc", "035f887", "905e8d0", "532c51f"]
+ "risks": [
+  "A role check written per route can be forgotten on the next route; it belongs in the shared Router.",
+  "Services captured when routes are registered bind every workspace to the server's own.",
+  "Linking accounts by an email claim the provider did not verify allows an account takeover.",
+  "Tests that only check refusals cannot see that allowed users are refused too.",
+  "Turning accounts on must not break the single-owner local mode every existing test relies on."
+ ],
+ "commits": [
+  "21e10cc",
+  "035f887",
+  "905e8d0",
+  "532c51f"
+ ]
 }

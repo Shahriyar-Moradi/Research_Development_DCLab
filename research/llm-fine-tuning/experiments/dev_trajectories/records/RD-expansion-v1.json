@@ -44,7 +44,9 @@
    "scenario": "The identity rule found casual + registered == cnt on every training row; with them, time-ordered CV MAE fell from 833.1 to 419.5 (an apparent lift of 413.6: registered +263.5, casual +40.8), a gain that cannot exist when forecasting day d at the end of day d-2.",
    "cause": "Same-day counts that are parts of the target were shipped as features.",
    "fix": "Block casual and registered in the decision-time contract; keep the a + b == target identity check in the leakage heuristics.",
-   "test": "EXP-062 records the identity and the safe vs unsafe CV."
+   "test": "EXP-062 records the identity and the safe vs unsafe CV.",
+   "impact": "A bike-demand model trained with casual and registered would report a CV MAE near 419.5 instead of 833.1. The gain of 413.6 disappears as soon as it forecasts a day whose counts are not in yet, so anyone planning on that error would be planning on a model that cannot exist.",
+   "open": "The identity check catches exact sums only; a near-copy or a scaled part of the target still has to be caught by the decision-time contract."
   },
   {
    "id": "F2",
@@ -54,7 +56,8 @@
    "scenario": "For the bike data the safe recipe scored MAE 430.0 under random KFold(3) against 833.1 under expanding-window time-ordered CV, about 1.94 times too optimistic.",
    "cause": "Random folds let the model train on days after the ones it is scored on.",
    "fix": "Time-ordered CV for every selection on time data, and the random-vs-time gap measured in the leakage stage.",
-   "test": "EXP-062 records both CV protocols."
+   "test": "EXP-062 records both CV protocols.",
+   "impact": "Selecting on random folds would have reported MAE 430.0 instead of 833.1 and chosen features and settings that only look good when the model sees the future. The honest time-ordered holdout would then have come as a surprise."
   },
   {
    "id": "F3",
@@ -64,7 +67,9 @@
    "scenario": "1,222 CV validation rows repeat a feature vector from their fit fold and are predicted 100% correctly, against 95.6% for unique rows; 387 of 4,000 holdout rows repeat a training vector.",
    "cause": "Sixteen integer summaries of different glyph images can coincide.",
    "fix": "Recorded as contamination risk (not proven label leakage) in the leakage stage and the report's limits.",
-   "test": "EXP-057 measures exact duplicate contamination across folds and train/holdout."
+   "test": "EXP-057 measures exact duplicate contamination across folds and train/holdout.",
+   "impact": "Part of the letter-recognition score is recall of feature vectors already seen in training: 387 of 4,000 holdout rows repeat one, so the holdout macro-F1 of 0.9751 is somewhat optimistic for new glyphs.",
+   "open": "Duplicate vectors were recorded, not grouped into one fold, so the CV and holdout scores still include them; a grouped rerun would size the effect."
   },
   {
    "id": "F4",
@@ -74,7 +79,9 @@
    "scenario": "During development a fraud run slowed by about 40x, apparently from thread contention with another process; the final run did not.",
    "cause": "Parallel model threads competing with another job on the same cores.",
    "fix": "Test mode runs single-threaded so test time stays predictable; tests/test_expansion.py runs in about 6 seconds on synthetic data.",
-   "test": "tests/test_expansion.py."
+   "test": "tests/test_expansion.py.",
+   "impact": "Development runs became unpredictable: a fraud trial that should have taken minutes took about 40 times longer, and a test of the same code could have timed out for reasons that had nothing to do with the code.",
+   "open": "The cause was inferred (contention with another process), not proved; the final campaign run simply did not show it."
   }
  ],
  "measurements": [
@@ -84,7 +91,14 @@
    "fixed_before_run": true,
    "result": "Extra Trees at defaults (tuning rejected: -0.0048 vs the required +0.005); holdout AP 0.8139 [0.7317, 0.8847] against 0.0013 for random ranking; ROC-AUC 0.9891; accuracy 0.9994 vs 0.9987 for always 'not fraud'. A threshold of 0.2548 chosen on training out-of-fold scores for precision >= 0.90 gave holdout precision 0.963 and recall 0.693 (52 of 75 frauds, 54 alerts).",
    "verdict": "not scored",
-   "next": "With about 75 holdout frauds, precision and recall move by several points per case; V1-V28 were fitted by the publisher on all rows, an irreducible look-ahead."
+   "next": "With about 75 holdout frauds, precision and recall move by several points per case; V1-V28 were fitted by the publisher on all rows, an irreducible look-ahead.",
+   "against_gate": "Tuning changed AP by -0.0048 against the required +0.005, so it was rejected and Extra Trees stayed at defaults. The holdout AP of 0.8139 [0.7317, 0.8847] is far above 0.0013 for random ranking, while accuracy (0.9994 against 0.9987 for always 'not fraud') shows why accuracy is not the metric here.",
+   "limits": [
+    "About 75 frauds in the holdout: each fraud caught or missed moves recall noticeably, so the threshold's precision 0.963 and recall 0.693 are rough.",
+    "The publisher released the anonymised PCA components already fitted on all rows, including the holdout period; that look-ahead cannot be removed downstream.",
+    "Models were fitted on a seeded share of the negatives with probabilities corrected back to the base rate; calibration depends on that correction.",
+    "One dataset and one time-ordered holdout: evidence about this extract, not about fraud models in general."
+   ]
   },
   {
    "name": "letter recognition, macro-F1",
@@ -92,7 +106,13 @@
    "fixed_before_run": true,
    "result": "Raw recipe (ratios 0.9605 within tolerance of raw 0.9592); Extra Trees tuned (+0.0047); holdout macro-F1 0.9751 [0.9704, 0.9798] against 0.0030 for the majority class; log loss 0.259 vs 3.258 for the class prior.",
    "verdict": "not scored",
-   "next": "Verify that the source's label codes 1-26 map to A-Z in order."
+   "next": "Verify that the source's label codes 1-26 map to A-Z in order.",
+   "against_gate": "Ratios scored 0.9605 against raw's 0.9592, within the 0.002 tolerance, so the smaller raw recipe stands. Tuning gained +0.0047, above the 0.002 required, so tuned Extra Trees was used. The holdout macro-F1 of 0.9751 [0.9704, 0.9798] is far above the majority class's 0.0030, and log loss 0.259 is far below the prior's 3.258.",
+   "limits": [
+    "Some holdout rows repeat a training feature vector exactly, so part of the score is recall of seen vectors.",
+    "The mapping of the source's label codes to the letters A to Z was assumed, not verified; per-letter conclusions depend on it.",
+    "A single stratified holdout from one source; no shift in fonts or writers was tested."
+   ]
   },
   {
    "name": "bike sharing, MAE",
@@ -100,7 +120,14 @@
    "fixed_before_run": true,
    "result": "XGBoost tuned (+37.5 MAE gain vs a required 7.9); holdout MAE 680.0 [484.0, 890.1] against lag-2 1,156.4, lag-7 1,202.5 and the training mean 2,269.5; model minus lag-2 -476.5 [-731.8, -237.3]. Past-only lag and rolling recipes did not help.",
    "verdict": "not scored",
-   "next": "One holdout season (late 2012, including the Hurricane Sandy period) is not a full-year test."
+   "next": "One holdout season (late 2012, including the Hurricane Sandy period) is not a full-year test.",
+   "against_gate": "Tuning gained 37.5 MAE against the required 7.9, so tuned XGBoost was used. The holdout MAE of 680.0 [484.0, 890.1] beats lag-2 at 1,156.4, lag-7 at 1,202.5 and the training mean at 2,269.5, and the whole interval of the difference from lag-2, -476.5 [-731.8, -237.3], is negative.",
+   "limits": [
+    "The holdout covers a single late-year season, including the Hurricane Sandy period; it is not a full-year test.",
+    "The block-bootstrap interval is wide (484.0 to 890.1), and one series gives one draw.",
+    "The source's atemp column is on an undocumented scale; how it was derived was not checked.",
+    "Past-only lag and rolling recipes did not help on this series; that is one series, not a rule for forecasting."
+   ]
   },
   {
    "name": "clothing reviews, ROC-AUC",
@@ -108,7 +135,14 @@
    "fixed_before_run": true,
    "result": "Word TF-IDF with logistic regression (C01, +0.0034 above the 0.001 margin); holdout ROC-AUC 0.9459 [0.9391, 0.9525], AP 0.9864; tabular-only 0.5480; text minus tabular +0.398 [+0.350, +0.433]. Rating leaked: tabular-only CV went from 0.528 to 0.974 with it.",
    "verdict": "not scored",
-   "next": "Keep Rating and helpful votes blocked; they are written with or after the recommendation."
+   "next": "Keep Rating and helpful votes blocked; they are written with or after the recommendation.",
+   "against_gate": "Tuning gained +0.0034, above the 0.001 margin, so the tuned logistic regression was kept. On the 256 unseen products the holdout ROC-AUC is 0.9459 [0.9391, 0.9525] against 0.5480 for the tabular-only reference, and the whole interval of text minus tabular, +0.350 to +0.433, is positive.",
+   "limits": [
+    "The target is mostly positive, so an AP of 0.9864 says less than the ROC-AUC does here.",
+    "Grouping by Clothing ID holds out products, not reviewers or time; a later season of reviews was not tested.",
+    "Rating and helpful votes are blocked by the contract; the block rests on when they are written, not on the size of their lift.",
+    "One retailer's reviews: evidence about this table, not about text-plus-tabular problems in general."
+   ]
   }
  ],
  "outcome": "20 of 20 experiments completed in 8.3 minutes of stage time; a rerun gave identical numbers. DCLab's evidence now covers imbalanced, multiclass, time-series and text tasks, and the knowledge layer (gate, index, auditor replay, SFT) reads them.",
@@ -119,5 +153,12 @@
  ],
  "commits": [
   "3212bd9"
+ ],
+ "risks": [
+  "A random split on daily data, so the model trains on days after the ones it is scored on.",
+  "Judging a fraud problem with 0.17% positives by accuracy, where always answering 'not fraud' looks excellent.",
+  "Selecting text features outside the folds, repeating PIT-002's mistake on tens of thousands of sparse columns.",
+  "Downloading from a mirror that serves a different file from the one the results describe.",
+  "Same-day parts of a regression target shipped as features, so the target is rebuilt rather than predicted."
  ]
 }

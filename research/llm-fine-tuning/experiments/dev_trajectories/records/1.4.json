@@ -31,7 +31,9 @@
    "scenario": "With the product open in the browser, the server restarted (a new request token); every write from the page was refused with 403 and kept failing until the user reloaded.",
    "cause": "The page cached the token from its first load and never refreshed it.",
    "fix": "On a refused write the page fetches a fresh token from /api/config once and retries the request.",
-   "test": "Checked in the browser after a restart while wiring the connectors."
+   "test": "Checked in the browser after a restart while wiring the connectors.",
+   "impact": "After any routine restart (a reload in development, a crash, a deploy), every save, upload or run from an open page failed with 403, and nothing on screen said a reload would fix it. To a user the product looked broken.",
+   "open": "Any 403 on a write is now retried once after fetching /api/config again, including a refusal for another reason, such as a role that may not make the move once sign-in arrived in 10.2. The second answer is the one shown, so the cost is one extra request, not a wrong result; reads are not retried."
   }
  ],
  "measurements": [],
@@ -43,5 +45,12 @@
   "b9abbad",
   "15c4958",
   "96feb56"
+ ],
+ "risks": [
+  "The CSRF token is cached by the page and changes on every server restart, so every write from an open page fails until a reload.",
+  "A page mixing real numbers and demo samples misleads unless each page says which it shows.",
+  "Removing the demo's window.claude decision store breaks any page or tour that still calls it.",
+  "A server-sent event stream that drops on a network blip leaves the page silently out of date unless it reconnects.",
+  "Retrying a refused write could send a request twice if the first one had in fact been applied."
  ]
 }

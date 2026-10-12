@@ -29,5 +29,12 @@
  ],
  "commits": [
   "8469de7"
+ ],
+ "risks": [
+  "Someone edits docs/product-demo to change the product, and the reference moves with the thing it should measure.",
+  "A lightweight tag carries no statement of what it freezes; an annotated tag with a message does.",
+  "The demo stops building as its sources age, so the reference can no longer be opened; build --check in rd-check guards that.",
+  "Pushing main, dev and the tag without the owner's yes changes the shared repository.",
+  "Later fixes (the phone-width top bar, the fonts) applied to the demo as well, so the frozen copy no longer shows what was agreed."
  ]
 }

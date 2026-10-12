@@ -43,7 +43,12 @@
    "scenario": "'Predict whether a purchase is made at checkout' gave Home a stated moment 'at checkout'; 'whether the order will arrive late when it is delivered' gave 'when it is delivered', which would allow everything up to delivery; 'At the moment we use a rule-based system' became a moment.",
    "cause": "The moment pattern matched 'at checkout', 'when ...' and 'at the moment' anywhere in the text, and read_brief recorded it as the user's stated moment.",
    "fix": "Refuse a moment inside the outcome clause, drop the bare 'at the moment', accept 'when' clauses only with start-of-process verbs; Home never takes the moment from the brief.",
-   "test": "test_no_moment_is_read_from_the_outcome_or_from_a_description_of_the_present; test_home_takes_no_moment_from_the_brief"
+   "test": "test_no_moment_is_read_from_the_outcome_or_from_a_description_of_the_present; test_home_takes_no_moment_from_the_brief",
+   "impact": "Home would record 'at checkout' or 'when it is delivered' as the person's stated moment and stop asking for it. Everything known up to delivery would then count as available at prediction time, so post-outcome columns pass the leakage checks and every later score is optimistic.",
+   "alternatives": [
+    "Keep Home taking the moment from the brief once the core's moment rule is narrowed: set aside, because Home's own moment rules were written to refuse exactly these sentences, so Home keeps them and takes no moment from the brief."
+   ],
+   "open": "The main product would call understand() directly and has no second rule set like Home's; it relies on the core's narrowed moment rule alone."
   },
   {
    "id": "F2",
@@ -53,7 +58,8 @@
    "scenario": "'Predict which customers will churn next month. Drop refund_amount: it is written after the outcome.' gave the target refund_amount, the leaking column; 'The label is whether they upgrade their plan' gave the target plan.",
    "cause": "Bare cue words (label, target, outcome) claimed any column in the sentence.",
    "fix": "Claim a column only when the sentence binds it ('X is the label', 'the label is X', 'in X'); Home also requires its quote rule.",
-   "test": "test_a_column_is_the_target_only_when_the_sentence_binds_it"
+   "test": "test_a_column_is_the_target_only_when_the_sentence_binds_it",
+   "impact": "In the churn description the leaking refund_amount became the stated target, so a plan would predict a post-outcome column instead of churn, and Home skipped the target question that would have offered the real label column."
   },
   {
    "id": "F3",
@@ -63,7 +69,8 @@
    "scenario": "'We process 50,000 rides a day and want to detect fraudulent rides' gave the action '50,000 rides a day'; 'Estimate the cost of each repair' gave the whole sentence.",
    "cause": "Capacity matched any number per day, and the budget any sentence containing 'cost'.",
    "fix": "A review capacity needs a review verb, an error cost needs an error word; Home does not map constraints to the action.",
-   "test": "test_volume_and_unrelated_costs_are_not_constraints; test_home_does_not_take_volume_as_the_action"
+   "test": "test_volume_and_unrelated_costs_are_not_constraints; test_home_does_not_take_volume_as_the_action",
+   "impact": "Home recorded '50,000 rides a day' as the action and dropped its action-and-cost question, so a later alert threshold would have no review capacity or error cost behind it and would fall back to a default nobody chose."
   },
   {
    "id": "F4",
@@ -73,7 +80,12 @@
    "scenario": "An advisor returning the moment 'after the ride is completed and paid' with the quote 'e' kept that leaky moment; the existing test pinned a moment taken from an unrelated quote.",
    "cause": "Home's rule (whole words, a minimum length, the value supported by the quote) was not applied in the core.",
    "fix": "Port Home's quoted and supports rules into the core's parse; the test now expects the unrelated quote to be dropped.",
-   "test": "test_an_advisor_fills_gaps_only_with_the_persons_words_that_support_its_value"
+   "test": "test_an_advisor_fills_gaps_only_with_the_persons_words_that_support_its_value",
+   "impact": "An advisor answer quoting one letter, or just 'the', was kept, so a model could put a leaky moment such as 'after the ride is completed and paid' into the brief with none of the person's words behind it; the existing test even pinned a moment taken from an unrelated quote.",
+   "alternatives": [
+    "Call Home's quoted and supports rules directly: not possible, because dclab_core must never import dclab_rnd, so the rules were ported into the core's parse."
+   ],
+   "open": "The quote rules now live twice, in Home and in the core's port, and can drift apart unless a change is made in both."
   },
   {
    "id": "F5",
@@ -83,7 +95,8 @@
    "scenario": "Text pasted from a PDF made one sentence over 4,000 characters; with 'cost' or 'confidential' in it the contract refused the constraint; more than 30 cost sentences or 20 success criteria, a 5,000-character advisor value, or a file name over 100 characters also raised. The intern's project goal has no length limit.",
    "cause": "Quotes, texts and lists were passed to the contracts unclipped, and advisor values were validated outside consult's guard.",
    "fix": "Clip quotes and texts to the contract limits around the match, cut lists to the limits, validate advisor values in parse so an invalid answer is no answer, shorten long file names in the evidence.",
-   "test": "test_long_pasted_text_is_clipped_never_an_error; test_a_broken_or_wrong_advisor_is_no_advisor"
+   "test": "test_long_pasted_text_is_clipped_never_an_error; test_a_broken_or_wrong_advisor_is_no_advisor",
+   "impact": "A person pasting a challenge PDF into the intern's project goal, which has no length limit, would make understand_problem crash instead of returning a brief; the main product would see an exception from solving code that promised never to raise on long or odd input."
   },
   {
    "id": "F6",
@@ -93,7 +106,8 @@
    "scenario": "A 35,748-character brief of 30 paragraphs sent 2,000 characters.",
    "cause": "Paragraphs were split after whitespace had been normalised, so there was one paragraph.",
    "fix": "Split the raw description into paragraphs first (joining soft-wrapped lines), then normalise each.",
-   "test": "test_the_advisor_sees_every_paragraph_of_a_long_brief"
+   "test": "test_the_advisor_sees_every_paragraph_of_a_long_brief",
+   "impact": "On a 30-paragraph challenge only the first 2,000 characters reached the advisor, so anything stated later (deliverables, rubric points, the label source) was never proposed, and the brief looked complete while missing it."
   },
   {
    "id": "F7",
@@ -103,7 +117,8 @@
    "scenario": "'Predict which customers will churn next month. We do not know how much history matters.' gave regression; 'one of 3 analysts reviews each flagged ride' gave multiclass.",
    "cause": "Task rules ran in a fixed order over the whole text.",
    "fix": "Read the task from the goal sentence first.",
-   "test": "test_the_task_comes_from_the_goal_sentence_first"
+   "test": "test_the_task_comes_from_the_goal_sentence_first",
+   "impact": "A churn description became a regression because of an incidental 'how much', and a ticket-routing count became multiclass from 'one of 3 analysts'; the plan built on the wrong task would pick its metric and model families for the wrong problem, and the intern would report that task to the person."
   },
   {
    "id": "F8",
@@ -112,8 +127,10 @@
    "defect": "The intern did not start from the brief, Home's brief went stale, and only one brief was tested with an advisor.",
    "scenario": "The intern started with describe_data; the draft's brief was built before the data was analysed and never rebuilt, so target column, entities and time were not filled; only the fraud brief ran with a scripted advisor.",
    "cause": "Integration and the Done-when's 'with a scripted model' were done for one case.",
-   "fix": "The intern's standard plan reads the problem first and describe_data carries the compact brief; Home rebuilds the brief when the data is ready; all four briefs run with a scripted advisor. Asking label-coverage and entity questions was moved to 15.6.",
-   "test": "test_a_scripted_advisor_changes_nothing_the_rules_found_on_any_brief; test_the_intern_reads_a_project_into_a_brief"
+   "fix": "describe_data, the intern's first step on a project, now carries the compact brief, so its standard plan starts from the problem; Home rebuilds the brief when the data is ready; all four briefs run with a scripted advisor. Asking label-coverage and entity questions was moved to 15.6.",
+   "test": "test_a_scripted_advisor_changes_nothing_the_rules_found_on_any_brief; test_the_intern_reads_a_project_into_a_brief",
+   "impact": "The intern began a project with no view of the problem, and Home's brief, built before the data was read, never got the target column, entities or time column. Three of the four briefs never ran with an advisor, so the Done-when's 'with a scripted model' held for the fraud brief only.",
+   "open": "Home still does not ask the brief's label-coverage and entity questions (moved to 15.6), and the intern's model prompt still names describe_data first rather than the brief."
   },
   {
    "id": "S1",
@@ -123,7 +140,9 @@
    "scenario": "Running test files directly loaded the .env key, so Home's model path sent about 50 requests (about EUR 0.03) to a live model.",
    "cause": "DCLAB_NO_LIVE_MODELS=1 is set by the make targets, not by a direct run.",
    "fix": "Always prefix direct test runs with DCLAB_NO_LIVE_MODELS=1 (saved to memory); the spend is recorded in the playbook row.",
-   "test": ""
+   "test": "",
+   "impact": "Direct runs of the trace and intern tests loaded the owner's key from .env and called the paid model: about 50 requests and about EUR 0.03, invented test inputs sent to an outside provider, and a trace test that failed only because a live model answered, which looked like a regression in the change.",
+   "open": "The block is still a habit, not a default: a direct unittest run without DCLAB_NO_LIVE_MODELS=1 still reaches the live model; only the make targets set it."
   },
   {
    "id": "S2",
@@ -133,7 +152,8 @@
    "scenario": "Adding understand_problem changed the project tool schemas; test_prompt_gate failed on the next rd-check.",
    "cause": "A tool-schema change needs make agent-eval, which was not run.",
    "fix": "Run make agent-eval with live models blocked (AEV-015, scores identical to AEV-014), committed with 17.4.",
-   "test": "test_prompt_gate"
+   "test": "test_prompt_gate",
+   "impact": "rd-check went red and blocked the commit; had the prompt gate been bypassed, the judgment suite's recorded scores would have described a tool set the intern no longer had."
   },
   {
    "id": "O1",
@@ -143,7 +163,8 @@
    "scenario": "The owner asked to use every CPU core and the memory for tests.",
    "cause": "Test files were run one at a time.",
    "fix": "Run the suite through the parallel runner with JOBS=8: 208 related tests in 70 s instead of 291 s one at a time; the preference saved to memory.",
-   "test": ""
+   "test": "",
+   "impact": "Each rerun of the 208 related tests took 291 s one file at a time, on every fix of the review's findings; on 8 cores the same run took 70 s."
   }
  ],
  "measurements": [
@@ -154,7 +175,14 @@
    "result": "All four match with and without a scripted advisor; the fraud brief lists the API (2 points), Docker (1), source control (1), feature extraction (3) and the report; the seven adversarial sentences from the review give no moment, target, action or cost.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "All four briefs match their expected briefs both without a model and with a scripted advisor; the fraud brief lists the API (2 points), Docker (1), source control (1), feature extraction (3) and the report; and the seven adversarial sentences give no moment, target, action or cost. Each clause of the gate holds.",
+   "limits": [
+    "The four briefs were written in invented words together with the rules, by the same author, so the rules were shaped on the texts that judge them; no unseen description is part of this gate.",
+    "The scripted advisor shows that the quote rules hold and that an advisor changes nothing the rules found; it says nothing about how a live model reads a brief.",
+    "The seven adversarial sentences came from the reviewer after the first rules failed on them, so they guard known failures, not new phrasings of them.",
+    "The report deliverable carries no points in the challenge text, so its rubric weight cannot be checked here."
+   ]
   }
  ],
  "outcome": "Done: understand() turns a description into a ProblemBrief whose fields say how they are known; Home and the intern start from it; eight review findings fixed. Open: Home does not yet ask the brief's label-coverage and entity questions (15.6).",
@@ -163,6 +191,13 @@
   "A quote check must use whole words and must support the value, not only appear in the text.",
   "Long pasted input is normal input; clip, never raise.",
   "Block live models in every direct test run, not only in make targets."
+ ],
+ "risks": [
+  "A rule reads a moment or a target confidently from a sentence that does not bind it, putting a wrong value in a stated field where an unknown would have been safe.",
+  "An advisor's proposal passes a quote check that only looks for a substring, so a model fills a field with words the person never wrote.",
+  "Text pasted from a PDF breaks the contracts' length limits, and understand() raises instead of degrading.",
+  "Home starts trusting the brief over its own stricter rules and silently stops asking questions it used to ask.",
+  "Tests run directly, outside the make targets, without the live-model block and call the owner's paid model."
  ],
  "commits": [
   "f92db5b"

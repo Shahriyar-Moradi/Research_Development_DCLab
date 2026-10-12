@@ -55,7 +55,9 @@
    "scenario": "An approve test changed a stage's status from completed to approved; a later test that expected exactly 'completed' then failed when it ran after it.",
    "cause": "The tests shared one project and asserted one exact status where two are valid.",
    "fix": "Assert that the status is one of completed or approved, the two states that mean a stage is done.",
-   "test": "tests/test_studio.py passes in any order."
+   "test": "tests/test_studio.py passes in any order.",
+   "impact": "The suite passed or failed depending on test order, so a red result before a commit could be dismissed as noise.",
+   "open": "The tests still share one project; a new test that asserts one exact status where two are valid would bring it back."
   }
  ],
  "measurements": [],
@@ -64,6 +66,13 @@
   "Build the product on the code that produced the evidence; then every product claim can cite a measured precedent of the same shape.",
   "When trimming a UI, remove what repeats or decorates, and keep the one line that guards against misuse (research is not production approval).",
   "Stop a local server by its port (fuser -k PORT/tcp), not with pkill -f on a pattern: the pattern matched the agent's own shell and killed it."
+ ],
+ "risks": [
+  "Running stages on user data with a new pipeline instead of the code that produced the evidence, losing its leakage safety.",
+  "Any score computed before the prediction contract is written.",
+  "The sealed holdout touched more than once during tuning.",
+  "Generalising the expansion primitives (regression without time, generic derivations) changing the campaign's own results.",
+  "Tests sharing one project, so their outcome depends on run order."
  ],
  "commits": [
   "f769714",

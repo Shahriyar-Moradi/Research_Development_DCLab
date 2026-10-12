@@ -31,7 +31,10 @@
    "scenario": "At 375 px, a name such as 'Compute & jobs' or 'Evidence library' moved the theme button 7 to 19 px outside the viewport.",
    "cause": "The breadcrumb was flex 0 0 auto, so it could not shrink.",
    "fix": "Below 640 px the breadcrumb shrinks and its text ellipsizes.",
-   "test": "Measured at 375 px on all 19 pages; later covered by make browser-test (13.2)."
+   "test": "Measured at 375 px on all 19 pages; later covered by make browser-test (13.2).",
+   "impact": "On a phone, every page with a long name scrolled sideways and put the theme button 7 to 19 px off screen, so a control could not be reached without dragging the whole page.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "S2",
@@ -41,7 +44,10 @@
    "scenario": "Nineteen headless Chrome instances at once hit a 25-second alarm, so a page that timed out read as 'clean'.",
    "cause": "Too many browsers at once on an 8 GB machine.",
    "fix": "Rerun in small batches so each page completes, and read the errors from the logs rather than the exit status.",
-   "test": ""
+   "test": "",
+   "impact": "Pages that hung would have been reported as clean, so the claim 'no console error on 19 pages' would have rested partly on pages that were never loaded.",
+   "alternatives": [],
+   "open": "The headless check still did not exit cleanly, so its exit status could not be used; the errors were read from its logs."
   }
  ],
  "measurements": [
@@ -52,7 +58,13 @@
    "result": "Zero horizontal overflow on all 19 pages after the fix.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks that no page scrolls sideways at 375 px: zero horizontal overflow on all 19 pages after the fix, so it passes.",
+   "limits": [
+    "Measured in a headless browser through an iframe harness, because headless Chrome's own narrow widths were misleading; not on a real phone.",
+    "Only one phone width was checked; narrower screens and landscape were not.",
+    "Checked by hand at that commit; the later browser tests (make browser-test) took it over."
+   ]
   },
   {
    "name": "console and CSP",
@@ -61,12 +73,24 @@
    "result": "None found on either workspace, also under the stricter CSP after the fonts change.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for no console or CSP error on any of the 19 pages, with projects and on an empty workspace: none was found on either, also under the stricter CSP after the fonts change, so it passes.",
+   "limits": [
+    "The first sweep was not trustworthy (browsers timed out), so this result rests on the rerun in small batches.",
+    "The headless check did not exit cleanly, so errors were read from its logs rather than its exit status.",
+    "A clean console says nothing about whether each page looks like demo v1; that comparison was made by eye."
+   ]
   }
  ],
  "outcome": "Done: no console or policy error on any page, no sideways scroll on a phone, and the look matches demo v1 apart from the agreed additions.",
  "lessons": [
   "A check that times out must not count as a pass; size parallel browser checks to the machine."
+ ],
+ "risks": [
+  "Too many headless browsers at once on a small machine time out, and a page that timed out can read as clean.",
+  "A fix for the phone overflow could change the desktop design or the frozen demo v1.",
+  "An element that cannot shrink (flex 0 0 auto) pushes controls off a narrow screen.",
+  "A Content-Security-Policy that names an outside host or allows inline code lets a page load what it should not."
  ],
  "commits": [
   "02ca606"

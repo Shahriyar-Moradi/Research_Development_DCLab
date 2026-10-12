@@ -31,7 +31,13 @@
    "result": "scikit-learn/iris: licence cc0-1.0, revision main pinned to its commit, one file Iris.csv of 5,107 bytes with its SHA-256 and source URL recorded; 150 rows by 6 columns, cleaned and analysed in about 3 seconds; no credential in the draft. The live service behaved as the fakes did.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for one small public dataset with licence, revision and SHA-256 recorded and no credential in the draft. scikit-learn/iris came in with licence cc0-1.0, revision main pinned to its commit, Iris.csv of 5,107 bytes with its SHA-256 and source URL, 150 rows by 6 columns, and no credential: it passes.",
+   "limits": [
+    "One tiny public dataset with no token; gated data, configs, splits and large files were not tried live.",
+    "The import went through the API route the card calls, not by clicking the card in a browser.",
+    "It shows the live service matched the fakes for this dataset only."
+   ]
   },
   {
    "name": "Kaggle live import",
@@ -40,12 +46,23 @@
    "result": "Not run: KAGGLE_USERNAME and KAGGLE_KEY are not configured and no dataset has been approved.",
    "verdict": "not scored",
    "cost_eur": null,
-   "next": "Run once the owner adds a Kaggle key and approves a dataset."
+   "next": "Run once the owner adds a Kaggle key and approves a dataset.",
+   "against_gate": "Nothing ran: no Kaggle key is configured and no dataset was approved, so there is no number to set against the gate.",
+   "limits": [
+    "The Kaggle connector has only met fakes; its assumptions about the API's field names and about a whole dataset arriving as a zip are unchecked.",
+    "Until a key exists, the Kaggle tab on Home has not been exercised end to end."
+   ]
   }
  ],
  "outcome": "Hugging Face done; Kaggle open. Nothing needed fixing: the live Hugging Face service matched the fakes in tests/test_connectors.py.",
  "lessons": [
   "Before a live check, state the dataset, licence and size and get a yes; then check the recorded provenance, not only that rows arrived."
+ ],
+ "risks": [
+  "A download brings outside content onto the machine; it needs the owner's yes, with the dataset, licence and size stated first.",
+  "The live service may differ from the fakes in field names, file layout or how a revision is pinned.",
+  "Checking only that rows arrived would miss a wrong licence, revision or hash in the record.",
+  "A token or key could end up in the draft's recorded source."
  ],
  "commits": [
   "c291a1b"

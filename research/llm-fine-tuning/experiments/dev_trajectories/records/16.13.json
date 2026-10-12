@@ -39,7 +39,9 @@
    "scenario": "It mocked the very function that holds the private check, so the check never ran and the test passed whatever the code did.",
    "cause": "The test replaced the code under test.",
    "fix": "Let a model appear available and fail if any request is actually sent.",
-   "test": "test_a_two_part_mock_challenge_end_to_end"
+   "test": "test_a_two_part_mock_challenge_end_to_end",
+   "impact": "The test would have stayed green with the private check deleted, so a change that sent confidential rows to a model would have passed every gate, and 'no model request' in the coverage would have rested on nothing.",
+   "open": "The replacement still signalled a request by raising, which F2 then showed callers swallow."
   },
   {
    "id": "F2",
@@ -49,7 +51,12 @@
    "scenario": "The fake client raised AssertionError, but narrate and explain swallow exceptions with a broad except; with private_scope replaced by a no-op the end-to-end test still passed while requests were attempted.",
    "cause": "A failure signalled by raising can be swallowed by the caller.",
    "fix": "Make a model available everywhere and record every client Gateway.client hands out, whoever asks; assert the list is empty.",
-   "test": "test_a_two_part_mock_challenge_end_to_end"
+   "test": "test_a_two_part_mock_challenge_end_to_end",
+   "impact": "With the private scope switched off, narrate and explain would have sent requests about the confidential brief while the test stayed green; on the real challenge, data the brief said must not be disclosed could have reached a provider with nothing to show it.",
+   "alternatives": [
+    "Have the fake request append to a list and assert it stays empty (the reviewer's first option): set aside for recording every client Gateway.client hands out, which also catches a client handed out and never used."
+   ],
+   "open": "The test covers the paths the mock challenge runs; a model caller added later is caught only because every request must obtain its client from Gateway.client."
   },
   {
    "id": "F8",
@@ -59,7 +66,9 @@
    "scenario": "A part with no files still had its requirements met with paths that did not exist; 'Report the model performance on a held-out test set' was classed as tests and met by test_service.py; 'Use the rest of the data' was classed as an API; the report row always cited REPORT.pdf although reportlab may be missing.",
    "cause": "Keyword matching on single words and no check of what each part produced.",
    "fix": "A part's requirements are not met when the part failed, with its error; report wording is matched before tests, and kinds match phrases (unit tests, test suite, REST API); the PDF is cited only when it was written.",
-   "test": "test_parts_points_shared_sections_and_confidentiality"
+   "test": "test_parts_points_shared_sections_and_confidentiality",
+   "impact": "A grader reading COVERAGE.md would have found 'met' beside requirements whose cited files did not exist, and 'report performance on a held-out test set' met by a service test file, so the table overstated the submission exactly where the rubric awards points.",
+   "open": "Kinds are still read from phrases in the requirement's wording, so a phrasing none of them covers can still be classed as the wrong kind."
   },
   {
    "id": "F9",
@@ -69,7 +78,9 @@
    "scenario": "A stage failure, or the service export refusing a text part, re-raised: no COVERAGE.md and no git repository were written, and the other parts' results were lost.",
    "cause": "No error boundary per part.",
    "fix": "Each part runs in its own try; a failure is recorded as that part's error and the coverage says so.",
-   "test": ""
+   "test": "",
+   "impact": "A stage failure in one part, or the service export refusing a text part, would have left no COVERAGE.md and no git repository at all, discarding the other part's finished deliverables with it.",
+   "open": "No test forces one part to fail and checks that the other part's deliverables and the coverage are still written."
   },
   {
    "id": "F10",
@@ -79,7 +90,12 @@
    "scenario": "The solution, plan and settings were written with store.save without graph.check or graph.log, and engine.approve used the default actor 'human', which also satisfied the service's approved-only rule by the tool itself.",
    "cause": "The orchestrator wrote state directly instead of through the governed moves.",
    "fix": "The solution goes through set_solution checked and logged as an agent's move; approval happens only with approve=True from the person running it.",
-   "test": "test_without_approval_no_service_and_the_coverage_says_why"
+   "test": "test_without_approval_no_service_and_the_coverage_says_why",
+   "impact": "Project memory and the audit log would have said a human approved each part's final stage when nobody had looked at it, and that false approval would have unlocked the service export, whose only safeguard is a person's approval; the solution would also have skipped the moves every other path checks.",
+   "alternatives": [
+    "Approve as 'agent' and say so in COVERAGE.md (the reviewer's suggestion): set aside, because a service is built only from a person's approval, so the approval now happens only when the person running challenge mode passes approve=True."
+   ],
+   "open": "approve=True records one approval for every part at once, right after the runs, before the person has read any part's results."
   },
   {
    "id": "F11",
@@ -89,7 +105,12 @@
    "scenario": "Other model callers ignored settings.private, and solve defaulted to tempfile.mkdtemp(), leaving full copies of the confidential files outside the workspace, never cleaned.",
    "cause": "Privacy was enforced at one caller instead of at the gateway, and the temporary store had no cleanup.",
    "fix": "The gateway's private scope refuses every purpose inside it; the engine runs a private project's stages inside it; the temporary store is removed at the end.",
-   "test": "test_inside_the_private_scope_no_purpose_gets_a_model"
+   "test": "test_inside_the_private_scope_no_purpose_gets_a_model",
+   "impact": "On a confidential brief, model callers outside the engine (the intern, Home, project answers, explanations) could still have sent column names and aggregates to a provider, and full copies of the confidential files would have stayed in a temporary folder outside the workspace after the run, beyond any retention rule.",
+   "alternatives": [
+    "Enforce the flag at each caller where a project id reaches the gateway (the reviewer's suggestion): set aside for one scope inside the gateway, so a caller added later cannot forget it."
+   ],
+   "open": "A request that carries no project id is refused only while it runs inside the private scope; outside it, only the project's own private setting protects it."
   },
   {
    "id": "F13",
@@ -99,7 +120,8 @@
    "scenario": "The report printed the plan's 'labels: complete' while the run used partial labels, contradicting its own limits; quick mode trained on at most 3,000 rows without saying so.",
    "cause": "The report read the plan, not what ran.",
    "fix": "The report states quick mode and its row limit; the reports were later replaced by 17.7's report written from the stage records.",
-   "test": ""
+   "test": "",
+   "impact": "A grader would have read 'labels: complete' in the decisions and 'precision is a lower bound' in the limits of the same report, with numbers trained on at most 3,000 rows presented as the full table's; one contradiction like that undermines every other claim in the report."
   }
  ],
  "measurements": [
@@ -110,7 +132,14 @@
    "result": "Solved end to end: 17 of 19 points covered; the pricing line marked not met (it needs 16.9); part 1's post-delivery columns kept out; folds grouped by biker in part 2; no data file or row value in the deliverables; no model client handed out on the private brief.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "The real challenge is run once on the owner's machine (15.11), recording aggregates only."
+   "next": "The real challenge is run once on the owner's machine (15.11), recording aggregates only.",
+   "against_gate": "17 of 19 points are covered and the pricing line, the remainder, is marked not met with its reason (it needs 16.9), so every line is covered or explained; no data file, row value or model client was found on the private brief. Both halves of the gate are met.",
+   "limits": [
+    "One mock brief, written by the same team that wrote the brief reader, on invented replicas; a real brief's wording may not match the phrases the reader knows.",
+    "'Covered' means a deliverable exists for the line, not that a grader would award its points.",
+    "The plan's analysis for each part reads a random sample of rows as its training rows, which can overlap the engine's grouped holdout; nothing here checks the plan's decisions for that.",
+    "The pricing line was met later, once 16.9 was built, so this result describes challenge mode before it."
+   ]
   }
  ],
  "outcome": "Done: challenge mode turns a brief and files into reports, notebooks or the reason, services, COVERAGE.md and a git repository, with confidential data kept from every model and deliverable; thirteen review findings fixed.",
@@ -118,6 +147,13 @@
   "A test that mocks the function containing the check proves nothing; observe the boundary the data would cross instead.",
   "Detect forbidden calls by recording them, not by raising: callers swallow exceptions.",
   "A coverage claim needs the artefact behind it, checked per part."
+ ],
+ "risks": [
+  "Confidential data reaching a model through a caller that ignores the private flag (narration, stage notes, explanations), or copies of the files left outside the workspace.",
+  "A 'no model request' test that cannot fail, because it mocks the check itself or relies on an error a caller swallows.",
+  "A coverage table that marks a requirement met by a file that does not exist, or by the wrong kind of file.",
+  "Challenge mode writing the solution or an approval directly, bypassing the graph validator and recording a human approval nobody gave.",
+  "One part's failure losing the other parts' deliverables."
  ],
  "commits": [
   "4487916",

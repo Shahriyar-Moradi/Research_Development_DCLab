@@ -40,7 +40,10 @@
    "scenario": "Tests set DCLAB_NO_LIVE_MODELS to an empty string; a strict boolean field refused '' and the app would not build.",
    "cause": "pydantic-settings parses an empty string as a value.",
    "fix": "Empty values are read as unset.",
-   "test": "The whole suite passes with the tests' empty variables."
+   "test": "The whole suite passes with the tests' empty variables.",
+   "impact": "Any environment that leaves a variable empty, the tests included, would fail to build the app, stopping make notebook, /mcp and the whole suite over a setting nothing needed at start.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "S2",
@@ -50,7 +53,10 @@
    "scenario": "The page walked app.routes for APIRoute entries; this FastAPI keeps an included router as one _IncludedRouter entry, so the lookup found none (the route-type count was 10 included routers, 4 routes, 2 mounts).",
    "cause": "Included routers are not flattened into app.routes in this FastAPI version.",
    "fix": "One helper, api_routes(app), walks included routers; the Platform page and the contract test use it.",
-   "test": "test_api_contract and the Platform page tests."
+   "test": "test_api_contract and the Platform page tests.",
+   "impact": "After the split the Platform page would have listed no REST routes, telling the owner the API was empty.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F1",
@@ -60,7 +66,10 @@
    "scenario": "GET /api/knowledge on a fresh app returned 500 (it returned [] before); POST /api/connectors/kaggle/search with a search that finds one dataset returned 500. No test called a successful search.",
    "cause": "response_model=Page on routes whose functions return lists.",
    "fix": "Both routes use response_model=list[Doc].",
-   "test": "PayloadTests.test_no_get_route_fails_on_real_ids calls every GET route with a real project, draft, session and record id and fails on any 5xx; PayloadTests.test_a_kaggle_search_returns_its_list."
+   "test": "PayloadTests.test_no_get_route_fails_on_real_ids calls every GET route with a real project, draft, session and record id and fails on any 5xx; PayloadTests.test_a_kaggle_search_returns_its_list.",
+   "impact": "GET /api/knowledge, and every Kaggle search that found something, answered 500, so the Kaggle tab broke for any user whose search succeeded; no test made a successful search to notice.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F2",
@@ -70,7 +79,10 @@
    "scenario": "Each /api/projects item gained records, activity, graph, transitions and memory as null (the list was meant to be light); a started intern session gained trace: null; drafts gained solution: null. The frontend tolerated it, so nothing failed visibly.",
    "cause": "Router.add_api_route used kwargs.setdefault, but FastAPI's api_route always passes response_model_exclude_unset=False explicitly, so the default never took effect (0 of 90 routes).",
    "fix": "The Router sets response_model_exclude_unset=True unconditionally.",
-   "test": "test_a_response_has_the_keys_it_had_and_no_new_nulls."
+   "test": "test_a_response_has_the_keys_it_had_and_no_new_nulls.",
+   "impact": "Responses gained keys set to null that the frontend never received before; each item of the project list, meant to be light, carried five extra fields. The promise 'payloads unchanged' was false while every test passed.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F3",
@@ -80,7 +92,13 @@
    "scenario": "DCLAB_PORT=abc or DCLAB_WORKSPACE_MONTHLY_EUR=5eur made importing the server fail (it builds the app at import), breaking make notebook, /mcp and every test; UPLOAD_MAX_BYTES=5 changed only the project upload route's limit while the draft route and the 413 message kept 200 MB.",
    "cause": "Mirrored fields validated strictly at create_app, and upload_max_bytes had no DCLAB_ alias.",
    "fix": "Port and workspace budget fall back to their defaults on a bad value; the upload limit is a constant on Services, not read from the environment.",
-   "test": "Re-checked with the bad values: the app builds with port 8765 and no cap."
+   "test": "Re-checked with the bad values: the app builds with port 8765 and no cap.",
+   "impact": "A typo in a setting nothing reads at start (DCLAB_PORT=abc) stopped the server from importing, and an unprefixed UPLOAD_MAX_BYTES changed one upload route's limit while the 413 message and the other route kept 200 MB, so users would be refused against a limit the page did not state.",
+   "alternatives": [
+    "Drop the mirrored settings nothing reads: offered by the reviewer; falling back to the default keeps them documented without letting them stop the server.",
+    "Give the upload limit a DCLAB_ name and use it in the draft route too: set aside for a constant on Services, so the environment cannot change one route alone."
+   ],
+   "open": "The draft upload route keeps its own 200 MB constant; both limits are equal today, but nothing ties them together."
   },
   {
    "id": "F4",
@@ -90,7 +108,12 @@
    "scenario": "POST /api/projects/{id}/approvals with a JSON body and no or text/plain content type gave 422 (it was parsed before); DELETE on a memory note received raw bytes, so the reason was dropped and the route answered 200.",
    "cause": "FastAPI parses a body as JSON only when the content type says so; the old routes called request.json() regardless.",
    "fix": "A middleware treats a missing, text/plain or form content type on /api/ writes as JSON (raw uploads ending in /data excepted); the memory route also loads a bytes body.",
-   "test": "test_a_json_body_without_a_json_content_type_is_still_read."
+   "test": "test_a_json_body_without_a_json_content_type_is_still_read.",
+   "impact": "Clients that post JSON without a JSON content type, curl -d among them, got 422 on approvals, and a DELETE of a memory note dropped its reason while answering 200.",
+   "alternatives": [
+    "Document the content-type requirement as a deliberate change: set aside, because the package promised every payload and status code unchanged."
+   ],
+   "open": ""
   }
  ],
  "measurements": [],
@@ -101,5 +124,14 @@
   "Call every GET route with real ids after a large refactor; a sweep finds response-model errors that unit tests miss.",
   "Settings nothing reads at start must not be able to stop the server."
  ],
- "commits": ["a988a52"]
+ "risks": [
+  "Response models that drop or add keys change what the frontend receives while every test still passes.",
+  "Strict validation of settings that nothing reads at start could stop the server from importing.",
+  "FastAPI reads a body as JSON only with a JSON content type, so clients that omit it would break.",
+  "Routes moved into routers may no longer appear where code walks app.routes.",
+  "A response model whose shape does not match what the function returns turns the normal path into a 500."
+ ],
+ "commits": [
+  "a988a52"
+ ]
 }

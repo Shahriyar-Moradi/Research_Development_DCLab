@@ -35,7 +35,9 @@
    "scenario": "After the 20 expansion results landed, tests/test_knowledge_layer.py failed its freshness checks for the index and the corpus.",
    "cause": "Generated files were not rebuilt after new results.",
    "fix": "Rebuild with python -m dclab_rnd.evidence_index build and the v3 builder (make knowledge); rd-check fails while either is stale.",
-   "test": "tests/test_knowledge_layer.py freshness checks."
+   "test": "tests/test_knowledge_layer.py freshness checks.",
+   "impact": "Until the rebuild, search_evidence answered without the 20 expansion experiments (no fraud, multiclass, time-series or text evidence) and SFT v3 would have trained without them, while both files looked current.",
+   "open": "Freshness is checked, not automatic: after new results someone still has to run make knowledge, and rd-check fails until they do."
   }
  ],
  "measurements": [
@@ -45,7 +47,14 @@
    "fixed_before_run": true,
    "result": "11 of 18 found (recall 61%): bank duration; online_shoppers 4 of 9 (PageValues and the three duration columns; missed Administrative, Informational, ProductRelated, BounceRates, ExitRates); both HyperAck final fares; Telco customerID; credit-card fraud's Time missed; bike casual and registered; reviews Rating found, Positive Feedback Count missed. Other flags (review requests, not accusations) included TotalCharges and HyperAck's first_created_at.",
    "verdict": "not scored",
-   "next": "Never treat a clean heuristic scan as proof of safety; the agent must ask for the decision-time contract."
+   "next": "Never treat a clean heuristic scan as proof of safety; the agent must ask for the decision-time contract.",
+   "against_gate": "There is no pass mark: run blind on 7 datasets, the auditor found 11 of the 18 confirmed leaks (recall 61%). It found every leak on bank, HyperAck, Telco and bike, 4 of 9 on online_shoppers and Rating but not Positive Feedback Count on the reviews, and it missed credit-card fraud's Time.",
+   "limits": [
+    "Eighteen known leaks across seven datasets is a small set; recall of 61% could move a lot with a few more cases.",
+    "Only recall was measured; the other flags (TotalCharges, first_created_at) are review requests, and precision was not scored.",
+    "The heuristics were written by people who knew these datasets, so this is a regression test, not a blind estimate on new data.",
+    "The missed leaks look like ordinary numbers; no column heuristic can find them, so the gap is structural rather than a matter of tuning."
+   ]
   }
  ],
  "outcome": "133 cited records at the time (137 later) searchable by dataset and stage, six agent tools, and a regression test for the leakage auditor. The MCP path was not exercised in that environment because the mcp package was missing.",
@@ -56,5 +65,12 @@
  "commits": [
   "d9c4c24",
   "3212bd9"
+ ],
+ "risks": [
+  "Chunking records like documents, so a rule's statement is separated from its reason and its failure signal.",
+  "An index that silently goes stale when new results land.",
+  "Tools that let an agent present a clean heuristic leakage scan as proof that the data is safe.",
+  "Measuring the auditor with the catalog or the precedents switched on, so it finds the leaks it was told about.",
+  "Shipping an MCP path that was never exercised because the mcp package is missing."
  ]
 }

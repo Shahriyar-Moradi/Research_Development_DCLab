@@ -39,7 +39,10 @@
    "scenario": "The test's intern lesson had no project id (a session gets one only after it runs); copying it violated the database's constraint and stopped the run.",
    "cause": "The migration assumed every lesson record was complete.",
    "fix": "An invalid lesson is skipped and reported; the test gives its lesson a project.",
-   "test": "tests/test_storage_migrate.py."
+   "test": "tests/test_storage_migrate.py.",
+   "impact": "Any workspace holding a lesson without a project id, which an intern session's lesson is before the session runs, could not be migrated: the run stopped at the lessons.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F1",
@@ -49,7 +52,10 @@
    "scenario": "Migrate; in the database workspace re-upload projects/<id>/data/t.csv with new bytes; migrate again: the report says ok, the file is back to the source's content and its record holds the old hash, while the project document holds the new one, so the engine refuses the table as changed (or the data is silently swapped). A draft's clean.parquet was overwritten the same way, and the report said 'files: N copied' on the second run.",
    "cause": "copy_files ran for projects and drafts already in the target and put each file unconditionally.",
    "fix": "A key whose record exists and whose file is present is skipped and counted as already there.",
-   "test": "test_zz_a_rerun_after_the_target_was_used_keeps_its_newer_file; test_running_it_twice_duplicates_nothing asserts no file is copied."
+   "test": "test_zz_a_rerun_after_the_target_was_used_keeps_its_newer_file; test_running_it_twice_duplicates_nothing asserts no file is copied.",
+   "impact": "An owner who ran the migration again after using the database had newer tables replaced by the source's old bytes while the report said ok; the engine then refused the table as changed, or modelled swapped data.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F2",
@@ -59,7 +65,10 @@
    "scenario": "Three projects listed newest first from the files came out in reverse id order from the database; the project list, the intern session list and the Home summary's 20 drafts showed the wrong items once there were many.",
    "cause": "The rows got created and updated from the server default now(), and the PostgreSQL lists sort by that column.",
    "fix": "Rows take created and updated from the document's own ISO times.",
-   "test": "The page comparison is now unsorted, with items at different times."
+   "test": "The page comparison is now unsorted, with items at different times.",
+   "impact": "After a migration the project list, the intern sessions and Home's recent drafts came out in migration order, so in a workspace with many items users would see the wrong ones first and miss recent work.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F3",
@@ -69,7 +78,10 @@
    "scenario": "migrate(ws, ws/dbcopy) added 12 paths to the source, including the target's marker and project folders, breaking 'change nothing in the source'.",
    "cause": "Only an identical source and target were refused.",
    "fix": "Refuse when either folder contains the other.",
-   "test": "The test covers the same folder, a folder inside the source and the source's parent."
+   "test": "The test covers the same folder, a folder inside the source and the source's parent.",
+   "impact": "A target folder inside the source wrote its marker and project folders into the source, breaking the promise to change nothing there and mixing the database workspace into the file workspace.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F4",
@@ -79,7 +91,10 @@
    "scenario": "Migrating the same source into a second target: projects were reported as conflicts, then KeyError on the first lesson; routing, verify and the report never ran, and every re-run stopped at the same place.",
    "cause": "Lessons had no owner check, unlike projects.",
    "fix": "Look up the lesson's owner and report it as a conflict, as for projects.",
-   "test": "test_another_workspace_s_ids_are_conflicts_not_a_crash."
+   "test": "test_another_workspace_s_ids_are_conflicts_not_a_crash.",
+   "impact": "Migrating the same source into a second target crashed on the first lesson with no report, and every re-run stopped at the same place, so the operator could neither finish nor see why.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F5",
@@ -89,7 +104,10 @@
    "scenario": "A first run stops after the projects phase; the server is started on the target and records one model request; the re-run skips the model_requests table (it already has a row), copies 0 of N rows and prints 'Verified: every count and every file hash matches.'",
    "cause": "verify() checked projects, drafts, sessions and files only.",
    "fix": "verify() compares every log's source count with the database count and lessons by id.",
-   "test": "test_a_missing_log_is_a_difference_and_a_rerun_copies_it."
+   "test": "test_a_missing_log_is_a_difference_and_a_rerun_copies_it.",
+   "impact": "A half-copied model usage log would have been certified 'Verified', so the spend history and traces in the database would be silently short, and monthly totals read from them would undercount.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F6",
@@ -99,7 +117,10 @@
    "scenario": "With DCLAB_FILES_URL=s3://..., copied files were recorded as local and never uploaded, so another instance without the folder found them missing.",
    "cause": "LocalFiles was hard-coded for the target.",
    "fix": "The target's storage is chosen as open_files chooses it: S3 when DCLAB_FILES_URL names a bucket.",
-   "test": ""
+   "test": "",
+   "impact": "With S3 configured, migrated files stayed on one machine's disk, recorded as local, so another app instance found every migrated table missing.",
+   "alternatives": [],
+   "open": "No test exercises the S3 branch; it was checked by reading the code."
   },
   {
    "id": "F7",
@@ -109,7 +130,12 @@
    "scenario": "An IntegrityError on a duplicate draft event number printed SQLAlchemy's '[parameters: ...]' with conversation text; a server on the target showed fewer jobs with nothing saying why.",
    "cause": "The command had no error handler, and the legacy campaign store was outside the migration without a note.",
    "fix": "Each item runs in attempt() and is reported as kind, id and exception type only; the command prints only the type and exits 1; the docstring and the playbook say the legacy runs are not moved.",
-   "test": "Covered by the conflict and failure tests."
+   "test": "Covered by the conflict and failure tests.",
+   "impact": "A duplicate draft event printed whole draft and session documents, conversation text included, to the terminal and any log that captured it; and the Jobs page on the target silently listed fewer runs.",
+   "alternatives": [
+    "Copy the legacy campaign runs too: set aside, since they live in their own store outside the 9.1 interface; they are named as not moved instead."
+   ],
+   "open": "The legacy research-campaign runs are still not moved."
   },
   {
    "id": "S1",
@@ -119,7 +145,10 @@
    "scenario": "The missing-file check ended in 'or True', so it could never fail.",
    "cause": "A placeholder assertion left in while writing the fixes.",
    "fix": "The test now checks that a file missing from the target is reported as a difference.",
-   "test": "tests/test_storage_migrate.py."
+   "test": "tests/test_storage_migrate.py.",
+   "impact": "A check ending in 'or True' passed whatever the migration did, so a file missing from the target would never have failed the suite.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -128,7 +157,13 @@
    "gate": "A workspace created by make product-e2e --base migrates, with every count and file hash verified, and a second run duplicates nothing (the package's Done when).",
    "result": "3 projects, 4 drafts and 9 files copied and verified; the second run copied nothing and the source folder was unchanged (after F1, the report also says files copied 0).",
    "verdict": "pass",
-   "next": "Two reviewer notes went to the Open list: a corrupt source JSON stops the run before copying and names the error, not the file; one failing log table skips the logs after it for that run (verify reports the missing rows)."
+   "next": "Two reviewer notes went to the Open list: a corrupt source JSON stops the run before copying and names the error, not the file; one failing log table skips the logs after it for that run (verify reports the missing rows).",
+   "against_gate": "The gate asks for a migration with every count and file hash verified and a second run that duplicates nothing. 3 projects, 4 drafts and 9 files were copied and verified, the second run copied nothing (files copied 0 once F1 was fixed), and the source folder was unchanged: it passes.",
+   "limits": [
+    "A small workspace from the end-to-end flows; a workspace with long logs or large tables was not tried.",
+    "The automated test builds a different, smaller workspace, and no test exercises the model output checks, the shadow log or the routing copy.",
+    "A corrupt source JSON file stops the run before copying and names the error, not the file."
+   ]
   }
  ],
  "outcome": "Done after one review round: python -m dclab_rnd.storage migrate SOURCE --to TARGET copies a file workspace into PostgreSQL, verifies counts, logs and hashes, and is repeatable. The same commit marked playbook 11.1-11.3 done, since the agentic plan's A1, A2 and A4 built them.",
@@ -138,5 +173,14 @@
   "A verification that skips logs will print 'verified' over a half-copied log; verify everything that was copied.",
   "Never let a crash print a database driver's parameters; they can hold user text."
  ],
- "commits": ["b1fd28e"]
+ "risks": [
+  "A second run could overwrite data the target has changed since the first.",
+  "Rows stamped by the database's own clock reorder every list sorted by time.",
+  "A target folder inside the source would write into the source the migration promises not to touch.",
+  "A verification that skips some tables prints 'verified' over a half copy.",
+  "A crash could print a database driver's parameters, which hold whole documents with user text."
+ ],
+ "commits": [
+  "b1fd28e"
+ ]
 }

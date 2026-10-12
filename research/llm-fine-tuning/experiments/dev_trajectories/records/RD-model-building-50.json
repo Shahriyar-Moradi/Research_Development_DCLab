@@ -42,7 +42,12 @@
    "scenario": "bank_marketing selected `ratios` (+0.0042 over raw) and german_credit `interactions` (+0.0073); the cached tables store categories as codes in order of first appearance (May=0, Jun=1), and EXP-010's top features were poutcome, log1p_poutcome, month and log1p_month. Over 9 folds the same lifts were +0.0012 [-0.019, +0.021] and +0.0006 [-0.030, +0.031]: fold noise.",
    "cause": "The earlier downloader factorized categoricals, and the feature ladder treated every numeric column as a quantity.",
    "fix": "The results stay immutable; evidence/README.md lists every affected record, codes are now kept out of derived features, and category_codes_v1 measured the alternatives (see RD-category-codes).",
-   "test": "tests/test_category_codes.py; evidence/campaigns/category_codes_v1 CAT-001."
+   "test": "tests/test_category_codes.py; evidence/campaigns/category_codes_v1 CAT-001.",
+   "impact": "bank_marketing and german_credit carried derived recipes into their final models on a lift that more folds showed to be noise, and those recipes did arithmetic on codes. The recorded champions, and the copilot precedents built from them, describe a choice that was not real.",
+   "alternatives": [
+    "Edit or rerun the 50 results in place: set aside because results are immutable; the affected records are listed and the alternatives measured in a new campaign."
+   ],
+   "open": "The recorded results still contain the code-arithmetic recipes; a reader who misses the list in evidence/README.md can cite them as they stand."
   }
  ],
  "measurements": [
@@ -52,7 +57,13 @@
    "fixed_before_run": true,
    "result": "bank_marketing duration: 0.7130 safe vs 0.8972 unsafe (+0.1842); online_shoppers PageValues: 0.7156 vs 0.9124 (+0.1968). The detector canary was caught on all 10 datasets.",
    "verdict": "not scored",
-   "next": "Confirm the decision-time meaning of each flagged column with a domain source; a lift shows severity, not proof."
+   "next": "Confirm the decision-time meaning of each flagged column with a domain source; a lift shows severity, not proof.",
+   "against_gate": "No threshold: the apparent lift is the result. Duration lifts bank_marketing from 0.7130 to 0.8972 (+0.1842), and PageValues lifts online_shoppers from 0.7156 to 0.9124 (+0.1968); the canary was caught on all 10 datasets.",
+   "limits": [
+    "The lift shows how much a column helps, not that it is a leak; the decision-time meaning came from documentation, not from the data owner.",
+    "A canary caught everywhere proves the detector finds an exact copy of the target, not subtler proxies.",
+    "Only the declared columns were measured safe against unsafe; an undeclared leak would not show here."
+   ]
   },
   {
    "name": "feature ladder selection",
@@ -60,7 +71,13 @@
    "fixed_before_run": true,
    "result": "raw on 7 of 10 datasets; ratios on bank_marketing (+0.0042) and wine_quality (+0.0031); interactions on german_credit (+0.0073).",
    "verdict": "not scored",
-   "next": "Rerun close decisions with repeated 5x5 CV and all available rows."
+   "next": "Rerun close decisions with repeated 5x5 CV and all available rows.",
+   "against_gate": "Raw won within the 0.002 tolerance on 7 of 10 datasets; ratios beat it by +0.0042 on bank_marketing and +0.0031 on wine_quality, and interactions by +0.0073 on german_credit, each above the tolerance.",
+   "limits": [
+    "Few folds per dataset make wins of a few thousandths fragile; a later rerun on more folds found the bank_marketing and german_credit lifts to be noise.",
+    "The derived recipes did arithmetic on factorized category codes, so a lift could come from meaningless features.",
+    "One stage model compared the recipes; another model family could rank them differently."
+   ]
   },
   {
    "name": "final holdout, read once per dataset",
@@ -68,7 +85,14 @@
    "fixed_before_run": true,
    "result": "adult 0.9097 [0.8855, 0.9297]; bank_marketing 0.7718 [0.7126, 0.8290]; breast_cancer 0.9960 [0.9858, 1.0000]; credit_default 0.7746 [0.7326, 0.8150]; german_credit 0.7943 [0.7180, 0.8621]; heart_disease 0.9448 [0.8851, 0.9872] with ECE 0.1495; mushroom 1.0000; online_shoppers 0.7394 [0.6997, 0.7828]; spambase 0.9849 [0.9752, 0.9925]; wine_quality 0.8878 [0.8610, 0.9077]. Extra Trees chosen on 7 of 10 datasets.",
    "verdict": "not scored",
-   "next": "Calibration review for heart_disease; thresholds from out-of-fold predictions with a cost matrix; subgroup reviews for credit and health data."
+   "next": "Calibration review for heart_disease; thresholds from out-of-fold predictions with a cost matrix; subgroup reviews for credit and health data.",
+   "against_gate": "Each holdout was read once, as the gate requires. The intervals are narrow on spambase (0.9849 [0.9752, 0.9925]) and wide on german_credit (0.7943 [0.7180, 0.8621]) and heart_disease (0.9448 [0.8851, 0.9872]), whose ECE of 0.1495 also flags poor calibration; Extra Trees was chosen on 7 of 10.",
+   "limits": [
+    "One random holdout per dataset; none is temporal or out-of-domain.",
+    "Small tables give wide intervals: german_credit's runs from 0.7180 to 0.8621.",
+    "Categories were factorized codes, so every model read them as quantities.",
+    "bank_marketing and online_shoppers are scored without their leaky columns; comparing them with earlier benchmark numbers mixes safe and unsafe."
+   ]
   }
  ],
  "outcome": "50 of 50 experiments completed, 0 failed, every holdout read once. The campaign became the answer key for the copilot, the agent tools and the SFT corpus. Its limits are written into the report: 4,000 rows and 3 folds per dataset, factorized categoricals, and no temporal or out-of-domain holdout.",
@@ -79,5 +103,12 @@
  ],
  "commits": [
   "af38dfa"
+ ],
+ "risks": [
+  "Looking at scores before writing each experiment's question and hypothesis, which turns 50 runs into a pile rather than a study.",
+  "Reading a dataset's holdout more than once while choosing recipes or models.",
+  "Rewarding every extra column, so feature dilution never shows up as a negative result.",
+  "Tuning every model family on the same folds and multiplying the selection.",
+  "Trusting a silent leakage detector that was never shown to catch a planted canary."
  ]
 }

@@ -40,7 +40,9 @@
    "scenario": "With a scripted advisor on the replicas: removing courier_rating (a leak given after delivery, warning level) from features.forbidden on delivery was kept and reached the solution; a time split on a nonexistent column replaced the grouped split on fraud and tickets despite the entity findings; also kept were identifiers [] (order_id becomes a feature), task regression on a binary plan, a family 'magic_net' with the dummy dropped, threshold.policy 0.5, a nonsense secondary metric, and labels.coverage 'partial' on the regression replica.",
    "cause": "The advisor path relied only on validate, which checks critical leaks, a stratified or random split against an entity, the primary metric, the join and to_confirm.",
    "fix": "Guards before the validator: additions only for the column lists, the strong entity's grouping kept, the time column must be the F-time column, the task fixed, known families with the dummy kept, coverage in partial or complete and never complete against F-partial-labels, a threshold policy of a known kind.",
-   "test": "test_a_cited_change_is_kept_and_a_change_the_validator_refuses_is_recorded (the reviewer's dangerous changes as refusals)."
+   "test": "test_a_cited_change_is_kept_and_a_change_the_validator_refuses_is_recorded (the reviewer's dangerous changes as refusals).",
+   "impact": "On the delivery replica a model could have put courier_rating, known only after delivery, back among the features, and on fraud and tickets replaced the grouped split by a time split on a column that does not exist. Each change would have reached the solution with the validator reporting nothing, and every score after it would be optimistic.",
+   "open": "The guards are written per plan key; a key added to the plan later has none until someone writes it, and the validator alone then decides what a model may change."
   },
   {
    "id": "R2",
@@ -50,7 +52,8 @@
    "scenario": "On tickets and delivery the forbidden list was cut mid-entry; a model that rewrote the list to add one column would silently drop the columns it never saw.",
    "cause": "_compact(choice, 200) applied to column lists.",
    "fix": "Column lists are sent as their names, never cut mid-entry; other choices stay compact JSON.",
-   "test": ""
+   "test": "",
+   "impact": "On tickets and delivery a model asked to add one forbidden column would have returned the list as it saw it, cut mid-entry, and the plan would have silently readmitted the columns past the cut, leaks among them."
   },
   {
    "id": "R3",
@@ -60,7 +63,9 @@
    "scenario": "Delivery's negative distances and missing-weather indicator, tickets' customer grouping and tiny classes, and fraud's behaviour direction were not checked, so a planner removing them lost nothing; tickets' 'time order respected' accepted a plain time split, which lets a customer sit on both sides.",
    "cause": "GOLD was written from a subset of each replica's traps.",
    "fix": "The checks were added before any run and tickets require time order with customers kept apart. The rules alone then meet 14 of 17 decisions (10 of 13 before).",
-   "test": "test_the_planner_path_and_its_gate."
+   "test": "test_the_planner_path_and_its_gate.",
+   "impact": "A planner that dropped the missing-weather indicator or the customer grouping would have scored the same as one that kept them, and a plain time split on tickets, which lets one customer sit on both sides, would have counted as correct; the gate could have passed a planner that weakens plans.",
+   "open": "The gold is still written from the replicas' documented traps by the people who wrote the rules, so a decision the rules miss and nobody documented stays invisible to the gate."
   },
   {
    "id": "R4",
@@ -70,7 +75,8 @@
    "scenario": "Answer items that were not mappings were skipped silently, items past the 13th were dropped with no record, and an adopted change showed the rule's cites, not what the advisor relied on.",
    "cause": "Only validator refusals were recorded; override copied old.cites.",
    "fix": "Malformed and surplus items are recorded in refused with a reason; override takes the advisor's cites.",
-   "test": ""
+   "test": "",
+   "impact": "The record would have shown a clean run while some of the model's items were thrown away unseen, and an adopted change would have cited the rule's findings instead of the advisor's, so nobody could check what the model's change rested on."
   }
  ],
  "measurements": [
@@ -81,7 +87,14 @@
    "result": "17 decisions: rules 14, planner 15, validator problems 0, nothing refused. It grouped the delivery folds by restaurant (citing the restaurant entity finding) and kept first_response_minutes out on tickets with resolved_by. Still missed: partial labels on fraud, time order with customers kept apart on tickets. gpt-6-luna, 3 requests; the three Step 3 runs cost EUR 0.0035 under the owner's EUR 0.02 cap.",
    "verdict": "pass",
    "cost_eur": 0.0018,
-   "next": "It may be switched on; that is the owner's decision. The two missed decisions are where it could still add value."
+   "next": "It may be switched on; that is the owner's decision. The two missed decisions are where it could still add value.",
+   "against_gate": "The planner matched 15 of 17 acceptance decisions against the rules' 14, so it matches at least as often as the rules alone, and its plans left 0 validator problems with nothing refused: both conditions pass.",
+   "limits": [
+    "One request per replica and a margin of a single decision over the rules; a second run could tie or reverse it.",
+    "The gold list was written by the people who wrote the rules and completed after review: it measures agreement with documented traps, not with an expert's choices on new data.",
+    "Nothing was refused, so the guards added after review were never exercised by the live model.",
+    "Both decisions the planner still missed (partial labels on fraud, time order with customers kept apart on tickets) are missed by the rules too, so this run cannot show whether a model can add value there."
+   ]
   }
  ],
  "outcome": "Done and measured: the planner passed planner_gate_v1 (15 of 17 acceptance decisions against the rules' 14, validator clean, EUR 0.0018). The review's main finding, that a model could undo safety decisions through the validator, was fixed with guards that only let a model add caution. Not wired into Home or the intern.",
@@ -89,6 +102,13 @@
   "A validator written for people's overrides is not enough for a model: guard the direction of change, so a model can add caution but never remove it.",
   "Never send a model a list cut mid-entry when its answer replaces that list.",
   "A gold that omits documented traps rewards a role for removing protections; complete it before the run."
+ ],
+ "risks": [
+  "A model's change that removes a safety decision (a forbidden column, a grouped split, the dummy baseline) passing because the validator was written for people's overrides.",
+  "Evidence clipped to fit the prompt, so a model that rewrites a column list drops the columns it never saw.",
+  "A gold list that omits documented traps, so a planner can remove a protection at no cost on the gate.",
+  "Malformed or surplus answer items dropped without a record, so the measurement cannot say what the model tried.",
+  "An adopted change that keeps the rule's citations, hiding what the model's change rests on."
  ],
  "commits": [
   "4487916",

@@ -42,7 +42,9 @@
    "scenario": "12 opted-in standard-plan projects on the Telco sample: step arguments carry the project id, so two projects with the same decisions have prompts identical except for the id (Jaccard 0.887, under 0.9); 50 of 50 training examples had a validation prompt identical once ids were masked, and the gate dropped only 10. A next_move target containing the id cannot be predicted from a prompt that never shows it.",
    "cause": "Arguments kept the project's own ids.",
    "fix": "Project and run ids are masked in prompts and targets before the gates, and only distinct masked trajectories count; the same simulation now gives 2 distinct trajectories from 1 project, not ready.",
-   "test": "test_identical_runs_count_once_and_ids_are_masked and test_the_gates_fire_on_what_the_standard_plan_leaves."
+   "test": "test_identical_runs_count_once_and_ids_are_masked and test_the_gates_fire_on_what_the_standard_plan_leaves.",
+   "impact": "Twenty-odd identical standard-plan runs would look like a ready corpus, and the tuned model's validation score would measure recall of prompts it had trained on, overstating it before A6.3 spent compute.",
+   "open": "Distinctness is exact; and once ids are masked, the near-duplicate check never fired on the fixture, so the exact-prompt gate carries the realistic case."
   },
   {
    "id": "F2",
@@ -52,7 +54,8 @@
    "scenario": "Home, the heart_disease sample, build the project, opt in: the recipe read suggestion.sample, which only the intern's use_sample sets, so the project was split by hash with an 80% chance of training on a v3 validation dataset.",
    "cause": "One route to recognise a sample.",
    "fix": "project_meta recognises the dataset by sample key, file name stem or column set.",
-   "test": "test_a_project_on_a_held_out_dataset_is_recognised_whatever_built_it."
+   "test": "test_a_project_on_a_held_out_dataset_is_recognised_whatever_built_it.",
+   "impact": "About four in five Home-built projects on a v3 held-out dataset would go to training, so v3's validation would no longer be unseen and its score would overstate the model."
   },
   {
    "id": "F3",
@@ -62,7 +65,8 @@
    "scenario": "The same workspace gave train 50 / val 34 as listed and train 72 / val 12 reversed; adding one project changed the validation set.",
    "cause": "Exact-duplicate removal ran over all projects before the split and kept the first copy.",
    "fix": "Assign by project first, remove duplicates within each split, then drop training prompts found in validation.",
-   "test": "test_the_split_does_not_depend_on_the_order_of_the_records."
+   "test": "test_the_split_does_not_depend_on_the_order_of_the_records.",
+   "impact": "Two builds of the same workspace gave different validation sets (34 against 12 examples), so scores from two builds could not be compared."
   },
   {
    "id": "F4",
@@ -72,7 +76,8 @@
    "scenario": "At 13 and 14 projects the first three by hash rank were held out; a new project with a lower hash pushed a former validation project into training, so a later build trained on an earlier build's validation.",
    "cause": "The held-out set was the first round(n/5) projects by hash rank.",
    "fix": "A per-project rule (its own hash modulo 5), as v3's split does.",
-   "test": "test_a_project_keeps_its_split_as_the_workspace_grows."
+   "test": "test_a_project_keeps_its_split_as_the_workspace_grows.",
+   "impact": "A later build would train on projects an earlier build validated on, contaminating the comparisons between builds that A6.3 needs."
   },
   {
    "id": "F5",
@@ -82,7 +87,8 @@
    "scenario": "The fixture gave every project a unique state, so duplicates removed and near-duplicates were 0; switching the gate off changed nothing; one test re-applied the function under test; the page's count path was never called, and a wiring error would show '0 of 50' behind a broad except.",
    "cause": "A fixture unlike real runs.",
    "fix": "A realistic fixture with identical states and id arguments, assertions that the gates fire, the exact 50 and 10 boundary, the path-and-hash rejection, and an API test of the count and its error path.",
-   "test": "tests/test_corpus_v4.py and tests/test_pages_learn.py."
+   "test": "tests/test_corpus_v4.py and tests/test_pages_learn.py.",
+   "impact": "Every gate could be switched off with the tests still green, and a wiring error would show '0 of 50' on the page as if it were the real count."
   },
   {
    "id": "F6",
@@ -92,7 +98,8 @@
    "scenario": "A workspace project built on a judgment-suite case table would put that case into training, while A6.3 measures the tuned model on those cases.",
    "cause": "'Benchmark contamination' was read as v3's validation only.",
    "fix": "A project whose columns match a judgment-suite case is recognised and left out.",
-   "test": "test_a_project_on_a_judgment_suite_table_is_left_out."
+   "test": "test_a_project_on_a_judgment_suite_table_is_left_out.",
+   "impact": "A workspace project built on a judgment-suite table would put a benchmark case into training, and A6.3 would score the tuned model on cases it had seen."
   },
   {
    "id": "F7",
@@ -102,7 +109,8 @@
    "scenario": "The absolute-path pattern lacked /tmp/, the hash pattern matched only 64 hex characters (v3: 40 to 64), and duplicates were keyed on prompt plus answer, so identical prompts with conflicting targets stayed in one split.",
    "cause": "The gates were rewritten instead of reused.",
    "fix": "v3's patterns and key (the normalised user turn) are used.",
-   "test": ""
+   "test": "",
+   "impact": "Absolute /tmp paths and 40-character hashes would pass v4's gates though v3 refuses them, and identical prompts with conflicting targets would stay in one split."
   },
   {
    "id": "F8",
@@ -112,7 +120,8 @@
    "scenario": "The API returned an error field the page never rendered; the fixture's page said 2 held out while 3 were.",
    "cause": "Error not rendered; the count read only hash-chosen projects.",
    "fix": "The page says the count cannot be read and why; the held-out count includes forced projects.",
-   "test": "The API error-path test."
+   "test": "The API error-path test.",
+   "impact": "When the count could not be read, the page showed '0 of 50' as if nothing existed, hiding the error from the owner."
   },
   {
    "id": "R1",
@@ -122,7 +131,12 @@
    "scenario": "At 10 projects there is about an 11% chance that none hashes to validation; the lowest-hash project is then held out, and once a project that hashes there joins, the fallback goes back to training, contradicting 'never changes split'.",
    "cause": "An unrecorded fallback.",
    "fix": "The fallback is named in the manifest, and the docstring and status row say it can move to training later.",
-   "test": "The stability test checks the named fallback for three ids that do not hash to validation."
+   "test": "The stability test checks the named fallback for three ids that do not hash to validation.",
+   "impact": "At the 10-project threshold about 11% of workspaces have no project hashing to validation; the fallback project would later move into training, so a later build trains on an earlier build's validation without saying so.",
+   "alternatives": [
+    "Refuse to build until at least one project hashes to validation, the reviewer's other option: set aside because it would block a workspace that meets the threshold, at random; the fallback is named in the manifest instead."
+   ],
+   "open": "The fallback project can still move to training later; the manifest says which one it was."
   }
  ],
  "measurements": [
@@ -131,7 +145,14 @@
    "gate": "Nothing is generated until 50 distinct trajectories from at least 10 opted-in projects exist (fixed in the package).",
    "result": "0 of 50 distinct trajectories from 0 of 10 opted-in projects in the owner's workspace; nothing was generated. In the reviewer's simulation, 12 identical standard-plan projects gave 24 recorded but 2 distinct trajectories from 1 project: not ready.",
    "verdict": "fail",
-   "next": "A6.3 (training) waits for the threshold and the owner's approval of compute and cost."
+   "next": "A6.3 (training) waits for the threshold and the owner's approval of compute and cost.",
+   "against_gate": "The gate needs 50 distinct trajectories from at least 10 opted-in projects. The owner's workspace has 0 of 50 from 0 of 10, and the reviewer's simulation of 12 identical standard-plan projects gives 24 recorded but 2 distinct trajectories from 1 project: below both thresholds, so nothing is generated, as the gate requires.",
+   "limits": [
+    "No project in the owner's workspace is opted in yet, so the count is zero by construction: it shows the gate holds, not how real use would count.",
+    "The simulation uses the standard plan only; model-driven runs vary between projects and would count differently.",
+    "Distinctness is exact: two trajectories that differ by one trivial step count as two.",
+    "The threshold is a fixed number from the package, not derived from a measurement of how much data training needs."
+   ]
   }
  ],
  "outcome": "Done: make sft-v4 and the Policy model page count distinct trajectories, hold out whole projects stably, keep v3's held-out datasets and the judgment suite out of training, and generate nothing below the threshold. Open: the threshold is not met, so no v4 file has been generated or trained on; distinctness is exact. Nine review findings fixed.",
@@ -140,6 +161,13 @@
   "Mask per-instance ids before comparing prompts; otherwise near-identical examples pass as different.",
   "A held-out split must be a per-item rule, not a rank, or it moves as the data grows.",
   "Count distinct examples toward a training threshold, or repeated runs fake readiness."
+ ],
+ "risks": [
+  "Per-project ids making identical runs look distinct, so the duplicate gates never fire and repeated runs fake readiness.",
+  "A held-out split by rank that moves projects between splits as the workspace grows.",
+  "Projects on v3's held-out datasets, or on judgment-suite tables, reaching training.",
+  "Gates rewritten instead of reused, ending weaker than v3's.",
+  "Tests on a fixture unlike real runs, so the gates are never exercised."
  ],
  "commits": ["7d6a164"]
 }

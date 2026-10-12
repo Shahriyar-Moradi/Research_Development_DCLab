@@ -35,7 +35,11 @@
    "scenario": "After saving the prediction contract, the console filled with warnings whose stack traces pass through saveContract in project.js, plus a refused Open Sans stylesheet.",
    "cause": "A grammar-checking browser extension that attaches to new text fields and injects its own stylesheet; the app's code was only on the stack.",
    "fix": "No code change: explain the source, confirm the security policy refused the injected stylesheet as designed, and suggest a private window or turning the extension off for the local address.",
-   "test": "A search of dclab_rnd/agentic/static found no Google Fonts or Open Sans reference."
+   "test": "A search of dclab_rnd/agentic/static found no Google Fonts or Open Sans reference.",
+   "impact": "Taken at face value, the console would have led to changes in the contract save code for a defect it did not have, or to a looser content security policy that lets an extension inject resources.",
+   "alternatives": [
+    "Allow the font in the content security policy: set aside because the notebook never loads Open Sans; the extension tried to inject it, and the refusal is the policy working."
+   ]
   }
  ],
  "measurements": [],
@@ -43,6 +47,11 @@
  "lessons": [
   "Before fixing a console error, find which code wrote it; a function on the stack is not always the culprit.",
   "A refusal by the content security policy is often the defence working; check whether the app ever asked for that resource."
+ ],
+ "risks": [
+  "Treating a function that appears on a stack trace as the source of the error.",
+  "Loosening the content security policy to silence a refused stylesheet the app never asked for.",
+  "Changing code with no visible symptom to fix."
  ],
  "commits": []
 }

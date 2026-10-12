@@ -44,7 +44,9 @@
    "scenario": "Renaming Deliverable.points (a float) to score (a string) and Risk.check to how_to_check, then regenerating the schemas, left every test passing with every version still v1.",
    "cause": "The freshness test compared against files the same command regenerates.",
    "fix": "Commit a frozen baseline per schema version under schemas/baseline/ and fail when, under an unchanged version, a field is removed, a type changes, a field becomes required or an enum loses a value.",
-   "test": "test_no_contract_changes_shape_under_the_same_version; test_the_baseline_comparison_sees_a_rename"
+   "test": "test_no_contract_changes_shape_under_the_same_version; test_the_baseline_comparison_sees_a_rename",
+   "impact": "A studio release could rename Deliverable.points or retype Risk.check and still stamp its documents v1. The main product, pinned to v1, would then refuse them as carrying an unknown field or read a field that changed meaning, and no test in either repository would have said the contract broke.",
+   "open": "The baseline sees shape, not meaning: a field that keeps its name and type but changes what it holds (a share that becomes a percentage) still passes under the same version."
   },
   {
    "id": "F2",
@@ -54,7 +56,8 @@
    "scenario": "Solution.forbidden, identifiers, text_columns, metric, positive_label and notes reached no artefact; a consumer rebuilding a Solution got forbidden=[] and identifiers=[], so leaky columns and ids would become features. The test left positive_label out of its comparison.",
    "cause": "The adapter mapped only the fields the brief had a slot for.",
    "fix": "Map every Solution field and compare the whole Solution after the round trip.",
-   "test": "test_a_project_round_trips_through_the_brief_and_the_plan_losing_nothing"
+   "test": "test_a_project_round_trips_through_the_brief_and_the_plan_losing_nothing",
+   "impact": "A project that kept a post-outcome column and the ids out of training came back from the adapter with forbidden=[] and identifiers=[]. Anyone rebuilding the Solution from the brief and plan would train on the leaking column and the ids and get an optimistic score with no warning."
   },
   {
    "id": "F3",
@@ -64,7 +67,12 @@
    "scenario": "A mapping of 5,000 keys, df.head(50).to_dict('records'), a nested list of 125,000 values, a frozenset, bytes of a CSV, a range of a million and a 0-d object array all passed.",
    "cause": "The check blocked a few types and limited only list, tuple and set lengths.",
    "fix": "One shared guard (evidence.check): only plain scalars, numpy scalars, mappings and lists; limits on items, keys, depth, total leaves and string length; tables of records refused; numpy scalars become numbers.",
-   "test": "test_rows_never_reach_an_advisor; test_evidence_is_a_summary_never_rows"
+   "test": "test_rows_never_reach_an_advisor; test_evidence_is_a_summary_never_rows",
+   "impact": "A caller that summarised a column as a mapping of 5,000 values, sent df.head(50) as records or passed the CSV as bytes would have shipped real rows to the injected Advisor, which in the main product is a hosted model behind its gateway. The check whose whole job is 'never rows' let them through.",
+   "alternatives": [
+    "Add frozenset, bytes, range and the other missed types to the refused list: set aside, because a deny-list misses the next type someone sends; the guard now allows only plain scalars, numpy scalars, mappings and lists."
+   ],
+   "open": "The guard bounds shape and size, not meaning: a short list of raw strings within the item and length limits still passes, so a careless caller can still send a handful of real values."
   },
   {
    "id": "F4",
@@ -74,7 +82,11 @@
    "scenario": "Finding(evidence={'v': {str(i): i for i in range(5000)}}) validated; and np.int64, what pandas .sum() returns, was refused.",
    "cause": "The contract had its own weaker check.",
    "fix": "Contracts use the shared guard, converting numpy scalars first.",
-   "test": "test_evidence_is_a_summary_never_rows"
+   "test": "test_evidence_is_a_summary_never_rows",
+   "impact": "Findings are stored and handed to hosts as compact evidence. A Finding holding 5,000 keyed values would have written a column's values into a stored contract, while the np.int64 that an ordinary pandas sum returns was refused, so honest callers would have had to work around the check.",
+   "alternatives": [
+    "Document that hosts must convert numpy scalars before building a Finding: set aside, since every pandas aggregate returns one and each caller would trip on it; the contract converts them first."
+   ]
   },
   {
    "id": "F5",
@@ -84,7 +96,12 @@
    "scenario": "SolutionReport(numbers={'auc': nan}) dumped to null and then failed to read back; in Finding.evidence and Decision.choice NaN silently became None.",
    "cause": "Non-finite floats were allowed.",
    "fix": "Refuse non-finite numbers in every contract and test the JSON round trip of all six.",
-   "test": "test_numbers_that_json_cannot_hold_are_refused; test_every_contract_round_trips_through_json_and_is_read_only_with_its_version"
+   "test": "test_numbers_that_json_cannot_hold_are_refused; test_every_contract_round_trips_through_json_and_is_read_only_with_its_version",
+   "impact": "A report whose AUC could not be computed was written with null and then refused to load, so a stored SolutionReport became unreadable. In Finding.evidence and Decision.choice the NaN quietly turned into None, so a failed computation looked like a value nobody had given.",
+   "alternatives": [
+    "Let the report's numbers be optional (None allowed): set aside for one rule across all six contracts, refusing non-finite numbers so the caller must decide what an undefined metric means."
+   ],
+   "open": "A caller with a genuinely undefined metric now gets a refusal and must choose what to record instead; the contract does not say what that should be."
   },
   {
    "id": "F6",
@@ -94,7 +111,11 @@
    "scenario": "Under pydantic 2.5 and 2.9 all six schemas differed from the published files (the version literal gained an enum); with pydantic>=2.5 declared, the freshness test fails in such an environment.",
    "cause": "The declared floor was below the version that generated the files.",
    "fix": "Declare pydantic>=2.10 and pin it in the R&D requirements.",
-   "test": "test_the_published_schemas_are_the_generated_ones"
+   "test": "test_the_published_schemas_are_the_generated_ones",
+   "impact": "In any environment that resolved pydantic below the version that generated the files (it came in only through pydantic-settings), the freshness test failed, and a host on that version produced schemas different from the published ones it validates against.",
+   "alternatives": [
+    "Normalise the version-dependent keys before comparing: set aside, because the published schema would then not be what such an install generates."
+   ]
   },
   {
    "id": "F7",
@@ -104,7 +125,8 @@
    "scenario": "Appending import sqlite3, urllib.request and importlib.import_module('dclab_rnd') inside a function of advisor.py left the boundary tests passing.",
    "cause": "The AST test allowed the whole standard library.",
    "fix": "Refuse the standard library's database, network, process and dynamic-import modules; a subprocess checks that importing the core loads no third-party module beyond the four.",
-   "test": "test_the_core_imports_only_the_safe_standard_library_its_four_dependencies_and_itself; test_importing_the_core_loads_nothing_outside_its_dependencies"
+   "test": "test_the_core_imports_only_the_safe_standard_library_its_four_dependencies_and_itself; test_importing_the_core_loads_nothing_outside_its_dependencies",
+   "impact": "A later edit could open a SQLite file, call a URL or import the studio dynamically from inside a function, and the main product, which installs the core expecting no I/O and no studio, would inherit that path with every boundary test still green."
   },
   {
    "id": "F8",
@@ -114,7 +136,8 @@
    "scenario": "dclab_core/build/ and the egg-info folder sat untracked and not ignored; the boundary test's rglob read the stale build/lib copies.",
    "cause": "No ignore rule for the new package's build output.",
    "fix": "Delete them and ignore both folders.",
-   "test": "test_build_output_is_ignored"
+   "test": "test_build_output_is_ignored",
+   "impact": "git add dclab_core would have committed the build copy and the egg-info, and the boundary test's rglob read the stale build/lib files, so it could pass or fail on old code instead of the current sources."
   },
   {
    "id": "F9",
@@ -124,7 +147,12 @@
    "scenario": "With extra='forbid', a reader pinned to 0.1.0 rejects a v1 document carrying a new optional field; ProblemBrief.model_validate({}) stamped an unversioned document as v1.",
    "cause": "The docstring promised that additions keep the version, which extra='forbid' contradicts.",
    "fix": "Every shape change moves the version (enforced by the baselines), and Versioned.read requires schema_version.",
-   "test": "test_every_contract_round_trips_through_json_and_is_read_only_with_its_version"
+   "test": "test_every_contract_round_trips_through_json_and_is_read_only_with_its_version",
+   "impact": "The docstring promised that an added optional field keeps v1, but a reader pinned to the first release would reject every such document. An unversioned document was stamped v1 on read, so a host could not tell an old file from a current one.",
+   "alternatives": [
+    "Read with extra='ignore' so older readers skip new fields: set aside, because the contracts are frozen and read only with their version; a reader that silently drops fields it does not know hides the change it should refuse."
+   ],
+   "open": "Every addition, even an optional field, now means a new version the main product must adopt, so the cost of each change moves to the host."
   },
   {
    "id": "F10",
@@ -134,7 +162,8 @@
    "scenario": "A brief saying 'judged on F1' had nowhere to put the metric; the target mixed a column and a definition in one untyped fact; constraints and deliverables had no status or source.",
    "cause": "The brief was designed before the main product's ProblemSpec was read field by field.",
    "fix": "Add primary_metric, split target_column from target_definition, and give constraints and deliverables how they are known, before v1 is frozen.",
-   "test": "test_the_brief_covers_the_main_products_problem_spec"
+   "test": "test_the_brief_covers_the_main_products_problem_spec",
+   "impact": "A brief saying 'judged on F1' had nowhere to keep the metric, and a host could not fill ProblemSpec.target_column from a fact that mixed a column with a definition. Once v1 was pinned, adding these fields would have needed a v2 in both repositories."
   },
   {
    "id": "F11",
@@ -144,7 +173,11 @@
    "scenario": "A non-Python host validating {'task': {'value': 'foo', 'status': 'stated'}} against problem_brief.json accepted it; Python refused it.",
    "cause": "Fact.value was untyped and the stated/inferred/unknown rules lived only in Python validators.",
    "fix": "Typed facts (TaskFact and others) and the same cross-field rules expressed in the published schemas, checked with jsonschema.",
-   "test": "test_the_schema_enforces_what_python_enforces"
+   "test": "test_the_schema_enforces_what_python_enforces",
+   "impact": "A non-Python host validating with the published JSON Schema accepted a brief whose task was 'foo', stated with no quote, which Python refuses; the main product and the studio would then disagree about the same document.",
+   "alternatives": [
+    "Document that the cross-field rules are enforced only in Python: set aside, because the schemas are published precisely so that a host in another language validates the same rules."
+   ]
   },
   {
    "id": "F12",
@@ -154,7 +187,8 @@
    "scenario": "A solution written by the intern's model tool before anyone signed it was exported as stated, source person, with a made-up quote.",
    "cause": "The adapter did not read whether the solution was signed.",
    "fix": "A field is the person's statement only when the solution is signed; otherwise it is inferred with a reason.",
-   "test": "test_an_unsigned_solution_is_an_inference_not_the_persons_words"
+   "test": "test_an_unsigned_solution_is_an_inference_not_the_persons_words",
+   "impact": "A solution the intern's model tool wrote before anyone signed it reached the brief as the person's stated words with an invented quote, so a host would treat a model's guess as the owner's decision and stop asking about it."
   },
   {
    "id": "F13",
@@ -164,7 +198,8 @@
    "scenario": "Review(next_experiments=[Experiment(hypothesis=7)]) validated with no hypotheses at all.",
    "cause": "No cross-field check in Review; adding it after v1 would tighten a frozen contract.",
    "fix": "A Review validator checks each experiment's hypothesis index.",
-   "test": "test_an_experiment_tests_an_existing_hypothesis"
+   "test": "test_an_experiment_tests_an_existing_hypothesis",
+   "impact": "A Review whose next experiment points at hypothesis 7 when there are none validated and could be stored; a host following next_experiments would schedule an experiment with nothing to test, and adding the check after v1 would have tightened a frozen contract."
   }
  ],
  "measurements": [
@@ -175,7 +210,13 @@
    "result": "Built, installed and used from an unrelated folder with numpy 2.5, pandas 3.0, scikit-learn 1.9 and pydantic 2.14.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for a clean Python 3.12 with only the dependencies; the wheel was built, installed and used from an unrelated folder with numpy 2.5, pandas 3.0, scikit-learn 1.9 and pydantic 2.14, which meets it.",
+   "limits": [
+    "One environment with recent releases of the four dependencies; the oldest versions the wheel declares were not installed, so its floors are stated, not exercised.",
+    "Python 3.10 compatibility rests on parsing the code with that syntax, not on running it under that interpreter.",
+    "It shows the wheel imports and works outside this repository; it does not show the main product can map the contracts onto its own planners, which is a later package's work."
+   ]
   }
  ],
  "outcome": "Done: dclab_core with six frozen, versioned contracts and their JSON Schemas, a shared evidence guard, an injected Advisor, a boundary that refuses the studio, databases and the network, and a lossless studio adapter; all 13 review findings fixed with tests before v1 was used.",
@@ -184,6 +225,13 @@
   "An adapter that drops the leakage list turns a governance artefact into a leak.",
   "Allow-list the shapes evidence may take; a deny-list of types always misses one.",
   "Read the consumer's real contract before freezing your own."
+ ],
+ "risks": [
+  "The contracts are frozen at v1 before the main product's ProblemSpec is read field by field, so a field it needs can only arrive later as a new version.",
+  "A test that compares the schemas with files the same command regenerates proves freshness, not compatibility: a breaking rename would pass.",
+  "The evidence check is a deny-list of types, so rows get through to an advisor in a shape nobody listed.",
+  "The studio adapter drops the fields the brief has no slot for, and the forbidden-column list is one of them.",
+  "The core reaches the studio, a database or the network through an import no test refuses, and the main product inherits it when it installs the wheel."
  ],
  "commits": [
   "005d53f"

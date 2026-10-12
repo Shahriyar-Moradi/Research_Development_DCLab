@@ -39,7 +39,12 @@
    "scenario": "On a laptop with OPENAI_API_KEY in .env, the server loaded the key, the intern called the live model, the provider answered with a rate-limit error, the session ended 'failed' and the test went red; CI has no key, so it passed.",
    "cause": "The server loads .env, and the test did not isolate itself from it.",
    "fix": "Clear the key in the test's setUp for its own duration so the intern always runs the standard plan, as in CI.",
-   "test": "tests/test_intern.py: the API test now patches the environment and passes with or without a key on the machine."
+   "test": "tests/test_intern.py: the API test now patches the environment and passes with or without a key on the machine.",
+   "impact": "On any machine with a key in .env, each run of the suite sent a real request to the provider and went red whenever the provider rate-limited it, while CI stayed green. The owner saw make rd-check fail on a sound tree and could not tell a product regression from the provider's state.",
+   "alternatives": [
+    "Remove the key from .env or stop the server from loading it: set aside, because the owner's .env and the product were right; the test's isolation was the defect."
+   ],
+   "open": "Only this test was isolated. Any other test that builds the app still inherits the machine's .env, which is why later sessions run tests with DCLAB_NO_LIVE_MODELS=1."
   }
  ],
  "measurements": [],
@@ -51,5 +56,12 @@
  "commits": [
   "d7937e9",
   "8469de7"
+ ],
+ "risks": [
+  "The two failing tests may have different causes; fixing both in the product could hide that one fails only because another session's work is half finished.",
+  "A test that builds the app reads the developer's .env, so it can reach a paid live model and pass or fail by machine rather than by code.",
+  "Moving page sections into tabs can break the guided tours and the Blueprint 'Show on page' links that point at sections now inside a closed tab.",
+  "A broad git add would sweep the owner's uncommitted recap and data files into the redesign commit.",
+  "Four page groups restructured separately can drift into four slightly different layouts unless each is checked against the same design tokens and screenshots."
  ]
 }

@@ -31,7 +31,10 @@
    "scenario": "A project built from Home holds a suggestion with only what the chat established (no sample suggestion); asking the audit again raised on the missing fields.",
    "cause": "The route assumed a studied sample's full suggestion.",
    "fix": "The proposal route works from what the chat established.",
-   "test": "test_a_project_built_from_an_upload_can_be_audited_again."
+   "test": "test_a_project_built_from_an_upload_can_be_audited_again.",
+   "impact": "Every project built through Home, the main path for new users, raised when the user asked for the column audit again after changing the target. The user was left with an audit for the old target and no way to refresh it from the Solution page.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "S1",
@@ -41,13 +44,23 @@
    "scenario": "On a real project, 'Edit the solution' linked to /classic#project/<id> to change the target, forbidden columns or metric.",
    "cause": "The page was wired before the editor was built.",
    "fix": "The editor opens in the page's drawer and saves through PUT /solution; when the target changes it fetches the task and metric first, and it asks before clearing completed stages.",
-   "test": ""
+   "test": "",
+   "impact": "A user on a real project who needed to change the target, forbidden columns or metric was sent to the old UI, which 8.3 later removed. Without the editor, the solution of a real project could not be changed from any product page.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [],
  "outcome": "Done: the Solution & data page shows the project's solution and edits it through the validator.",
  "lessons": [
   "A project built by a new path (Home) carries less context than one built by the old path; test every route on both."
+ ],
+ "risks": [
+  "An editor that saves the solution by any route other than PUT /solution would change the project without the validator logging set_solution.",
+  "Changing the target clears completed stages; saving without asking would throw away results the user did not mean to lose.",
+  "Projects built from Home carry only what the chat established, so routes written for studied samples may assume fields that are not there.",
+  "Example cost figures in the calculator could be read as the project's own numbers.",
+  "A control the demo lacks (the sign-off button) changes the frozen design and needs the owner's agreement."
  ],
  "commits": [
   "6faef03",

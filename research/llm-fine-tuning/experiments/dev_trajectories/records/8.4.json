@@ -29,13 +29,22 @@
    "scenario": "(a) The row said every model request goes through the gateway and is refused before sending; the research campaign's own client does not go through the gateway's send, and check_external refuses only once a cap is already reached, without saying what is left. (b) The row said to add the price in .env; prices go in models/prices.py or a JSON file named by DCLAB_PRICES_FILE, and .env can only name that file.",
    "cause": "A status row written from memory of several packages instead of from the code.",
    "fix": "The row says 'every model request of the product', that the campaign's client is stopped only once a cap is reached (check_external), and where the price goes.",
-   "test": "Existing tests: a request that could pass the cap is refused before sending; a run cap stops one session; a price is never guessed; clients the gateway does not send for are stopped by a reached cap."
+   "test": "Existing tests: a request that could pass the cap is refused before sending; a run cap stops one session; a price is never guessed; clients the gateway does not send for are stopped by a reached cap.",
+   "impact": "The owner would have believed every model request, the research campaign's included, is refused before it can pass a cap, and would have put the price in .env, where it is never read; money would then stay unmetered while the owner thought it was set up.",
+   "alternatives": [],
+   "open": "The campaign's own client is still stopped only once a cap is already reached, so its last request can pass the cap; and no price is configured, so money is not metered until the owner adds a checked one."
   }
  ],
  "measurements": [],
  "outcome": "Done (built in A1.2, 10.6 and 11.x; recorded 2026-10-07). Open: no price is configured, so until the owner adds the model's checked price the pages say money is not metered; local models cost nothing.",
  "lessons": [
   "A package can be done by earlier work; verify each claim against the code before marking it, and say exactly what is left for the owner."
+ ],
+ "risks": [
+  "A status row written from memory of several packages can claim more than the code does.",
+  "A guessed price would make a euro cap look enforced when it is not.",
+  "A client that does not send through the gateway can skip the check made before sending.",
+  "Counting compute on this machine as spend would contradict the owner's decision that spend means model tokens."
  ],
  "commits": [
   "3cbb256",

@@ -30,7 +30,9 @@
    "scenario": "Staging requires sign-in (the server refuses no sign-in on a host name), and only /api/config and the auth routes are public; the flow scripts sent only the CSRF header, so every flow after /config would get 401. STAGING.md also said 'no model request', but its own step puts the model key into staging, so the flows would send model requests and spend money.",
    "cause": "The scripts were written for the local unsigned server; the runbook described the intent, not the behaviour.",
    "fix": "Both scripts take an API token of a test member in DCLAB_E2E_TOKEN and send it as a bearer header only when given; STAGING.md, the Makefile and the playbook row say that a configured key means model requests and that the check has never run against a signed-in server.",
-   "test": "test_the_flows_send_a_bearer_token_only_when_one_is_given and test_the_make_target_asks_for_an_address_and_the_runbook_states_what_it_cannot_do."
+   "test": "test_the_flows_send_a_bearer_token_only_when_one_is_given and test_the_make_target_asks_for_an_address_and_the_runbook_states_what_it_cannot_do.",
+   "impact": "The owner, following the runbook on a real staging, would have seen every flow after the first fail with 401 and, believing the check sent no model request, would have spent money on model calls with the staging key in place.",
+   "open": "The check has never run against a signed-in server, so its first real run may still need a fix."
   }
  ],
  "measurements": [],
@@ -39,5 +41,11 @@
   "A smoke test written against a local server breaks on the first real difference of the target (sign-in); read the target's guard before claiming the check will run there.",
   "A runbook must state the costs its steps cause, such as model requests when a key is configured."
  ],
- "commits": ["c291a1b"]
+ "commits": ["c291a1b"],
+ "risks": [
+  "A smoke check written against the local unsigned server will fail against a staging that requires sign-in.",
+  "A staging with a model key configured makes real model requests during the flows; the runbook must say so.",
+  "Nothing may be planned or applied without the owner's yes, region, account and domain, so the check cannot be proven in this package.",
+  "A runbook can describe intent rather than behaviour; every claim in it must match what the scripts do."
+ ]
 }

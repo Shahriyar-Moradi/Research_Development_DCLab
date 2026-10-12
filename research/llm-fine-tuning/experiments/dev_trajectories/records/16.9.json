@@ -44,7 +44,8 @@
    "scenario": "On the fraud replica, rides without a biker have a missing group; the entity bootstrap built a dictionary keyed by group values and NaN could not be looked up.",
    "cause": "Missing values used as dictionary keys.",
    "fix": "Entities become integer codes; a row without an entity is its own unit.",
-   "test": "test_partial_labels_make_the_value_a_lower_bound_and_entities_widen_the_interval (groups with NaN)."
+   "test": "test_partial_labels_make_the_value_a_lower_bound_and_entities_widen_the_interval (groups with NaN).",
+   "impact": "The review budget for the fraud replica, part of the package's Done-when, could not be computed. Every project with rides lacking a biker would get an error instead of a budget."
   },
   {
    "id": "T2",
@@ -54,7 +55,8 @@
    "scenario": "A pricing challenge part delivered a decision in the records, but REPORT.md listed 'Choose the fee to offer' as 'not found'.",
    "cause": "The report had no decision line and no rubric rule for prices.",
    "fix": "A decision line in Results, every number traced to final.evidence.decision, and a rubric rule for prices and fees.",
-   "test": "test_a_stated_price_decision_is_delivered_with_its_interval."
+   "test": "test_a_stated_price_decision_is_delivered_with_its_interval.",
+   "impact": "A pricing challenge would deliver the fee decision in its records while the report told the reader the requirement was not found. The reader would conclude DCLab skipped the question it was asked."
   },
   {
    "id": "T3",
@@ -64,7 +66,8 @@
    "scenario": "make core-wheel-check listed reportlab among the direct dependencies, so the clean-install check failed.",
    "cause": "The check read every requirement, including optional extras.",
    "fix": "Requirements behind an extra marker are not direct dependencies.",
-   "test": "make core-wheel-check (passed for 0.3.0)."
+   "test": "make core-wheel-check (passed for 0.3.0).",
+   "impact": "dclab_core 0.3.0 could not pass its clean-install check, so the main product could not adopt the version that brings decisions, and the failure pointed at an optional PDF dependency rather than at anything wrong."
   },
   {
    "id": "R1",
@@ -74,7 +77,8 @@
    "scenario": "Forbidden final_customer_fare plus a price decision with reference_column final_customer_fare: validation passed and the model was fitted on a post-outcome column through log(price/reference).",
    "cause": "Only the price column's role was checked.",
    "fix": "A column the decision reads can never be forbidden (Solution refuses it), and the engine refuses a price or reference that is not an input, and a unit value that is blocked, naming each role.",
-   "test": "test_a_decision_is_checked_when_the_solution_is_written; test_a_reference_set_aside_is_refused_with_its_role."
+   "test": "test_a_decision_is_checked_when_the_solution_is_written; test_a_reference_set_aside_is_refused_with_its_role.",
+   "impact": "A person who forbade final_customer_fare but named it as the reference price would get a price curve fitted on a value known only after the ride. The best fee and its interval would look precise and be unusable at offer time."
   },
   {
    "id": "R2",
@@ -84,7 +88,9 @@
    "scenario": "The varied replica plus a column test_arm = fee / usual_fee: the check said the other columns explain 100% of the price and asked the person to run the very test they ran.",
    "cause": "Every numeric feature was context, the arm included.",
    "fix": "The decision can name test_arm_columns, which are left out of the check and the context; the warning names the columns that explain the price so a person can tell an arm from a formula.",
-   "test": "test_a_logged_test_arm_explains_the_price_and_is_named."
+   "test": "test_a_logged_test_arm_explains_the_price_and_is_named.",
+   "impact": "A team that ran a real randomised fee test and logged its arm would be told its prices came from a formula and asked to run the test it had already run. The one kind of data that can answer a pricing question would be refused.",
+   "open": "The person must name the arm column. An arm logged under a name nobody declares is still read as context, though the warning now names the columns that explain the price."
   },
   {
    "id": "R3",
@@ -94,7 +100,9 @@
    "scenario": "price = tariff[zone] with zone a string that also drives acceptance, and price with no effect: the numeric-only check found R2 -0.07 and drew a best multiple of 1.18 with interval [1.18, 1.18].",
    "cause": "The formula check and the acceptance model read numeric columns only.",
    "fix": "Low-cardinality categories enter the check as codes and the acceptance model one-hot encoded inside its folds.",
-   "test": "test_a_category_that_sets_the_price_is_a_formula."
+   "test": "test_a_category_that_sets_the_price_is_a_formula.",
+   "impact": "Surge pricing by zone or weather, a common real case, would pass as varied: the reviewer's probe drew a best multiple of 1.18 with a zero-width interval, although the price had no effect on acceptance.",
+   "open": "Only low-cardinality categories are coded into the check, so a formula through a many-valued category or free text would still pass as varied."
   },
   {
    "id": "R4",
@@ -104,7 +112,9 @@
    "scenario": "One NaN price or a zero reference raised inside the formula check; a unit value filled only for accepted offers gave learnable True, the best multiple at the lowest edge and 'an expected margin of None per offer'.",
    "cause": "No row-level validity check.",
    "fix": "Rows without a positive finite price, reference or value are left out and counted; context columns that are entirely missing are dropped and the rest imputed inside folds; a value missing on more than 5% of rows is refused with the reason.",
-   "test": "test_selling_with_categories_entities_and_missing_rows; test_a_value_known_only_for_accepted_offers_is_refused."
+   "test": "test_selling_with_categories_entities_and_missing_rows; test_a_value_known_only_for_accepted_offers_is_refused.",
+   "impact": "Data where the unit value is filled only for accepted offers would get a best price at the lowest edge and a claim of an expected margin of None per offer. A single missing price would end the decision with a bare ValueError.",
+   "open": "Rows without a valid price, reference or value are left out and counted. If they are missing for a reason tied to acceptance, the curve describes only the offers that remain."
   },
   {
    "id": "R5",
@@ -114,7 +124,8 @@
    "scenario": "'Predict house prices', 'Predict which transactions are charged back' and 'Use the customer feedback to improve the model' became 'not covered' because the new price rule matched first ('fee' also matched 'feedback').",
    "cause": "The first matching rule wins, and the price rule had no fall-through.",
    "fix": "The price rule answers only when a decision record was read, otherwise the next rules answer; 'fee' is matched as a whole word.",
-   "test": "test_a_price_in_a_requirement_needs_a_decision_but_never_hides_a_models_job."
+   "test": "test_a_price_in_a_requirement_needs_a_decision_but_never_hides_a_models_job.",
+   "impact": "A house-price regression challenge would show its main requirement as not covered, and a requirement about customer feedback would lose its link to the model. The report would look incomplete exactly where DCLab had done the work."
   },
   {
    "id": "R6",
@@ -124,7 +135,8 @@
    "scenario": "The claim said 'Reviewing the riskiest 0.00% of rows maximises expected value at 0.0 per row', and the 'no review pays' note was in neither the claim nor the report.",
    "cause": "The note was computed but not used.",
    "fix": "When no review pays, the claim is a risk that says so, and the report writes the note.",
-   "test": "test_a_review_that_does_not_pay_is_said_plainly."
+   "test": "test_a_review_that_does_not_pay_is_said_plainly.",
+   "impact": "A team whose reviews cost more than they recover would read 'reviewing the riskiest 0.00% maximises expected value' as advice to act, when the honest answer is that no review pays."
   },
   {
    "id": "R7",
@@ -134,7 +146,8 @@
    "scenario": "Couriers who see many offers: folds and the bootstrap resampled rows, so the interval was too narrow, unlike the review budget's entity bootstrap.",
    "cause": "Groups were not passed to the price curve.",
    "fix": "The group column reaches price_curve: grouped stratified folds and an entity bootstrap.",
-   "test": "test_selling_with_categories_entities_and_missing_rows (interval over entities)."
+   "test": "test_selling_with_categories_entities_and_missing_rows (interval over entities).",
+   "impact": "With couriers who each see many offers, the price interval would be too narrow, so the chosen fee would look more certain than the data allows. The review budget already bootstrapped over entities, so the two decisions disagreed about how much the data says."
   },
   {
    "id": "R8",
@@ -144,7 +157,8 @@
    "scenario": "It sat in a class without the skip guard, so the agent environment would error on the import.",
    "cause": "Placed in the wrong test class.",
    "fix": "Moved into the class that skips when dependencies are missing.",
-   "test": ""
+   "test": "",
+   "impact": "In the agent environment, which has no pandas, the new challenge test would error instead of skipping, turning the suite red for a reason unrelated to the code."
   }
  ],
  "measurements": [
@@ -153,20 +167,37 @@
    "gate": "The 90% bootstrap interval of the best multiple holds the replica's true best multiple (Done when, fixed with the package).",
    "result": "True best 1.02; chosen 1.029, interval 1.008 to 1.05; expected margin 9,280 per offer against 8,180 as priced. The reviewer's own selling market held the truth in 7 of 8 seeds.",
    "verdict": "pass",
-   "next": "Keep the curve within the prices seen; a best at the edge asks for a test beyond it."
+   "next": "Keep the curve within the prices seen; a best at the edge asks for a test beyond it.",
+   "against_gate": "The gate asks that the 90% interval hold the true best multiple. The true best is 1.02 and the interval runs from 1.008 to 1.05, so it holds, with the chosen 1.029 inside it. On the reviewer's own selling market the interval held the truth in 7 of 8 seeds.",
+   "limits": [
+    "The replica's acceptance is logistic in the log of the price multiple, the same shape the curve fits, so this is the easiest case for the method.",
+    "The expected margin of 9,280 per offer against 8,180 as priced holds only within the prices tried; nothing outside them was tested.",
+    "The 7 of 8 seeds come from a market the reviewer wrote by hand, not from repeated recorded runs of this replica."
+   ]
   },
   {
    "name": "formula-priced replica",
    "gate": "No curve; the cannot-learn warning with its reasons.",
    "result": "Refused: one distinct price level against the reference, 0% spread.",
    "verdict": "pass",
-   "next": "Run a randomised test of a few price levels before choosing a price from data."
+   "next": "Run a randomised test of a few price levels before choosing a price from data.",
+   "against_gate": "The gate asks for no curve and a warning with its reasons. The replica was refused, with one distinct price level against the reference and 0% spread, so it passes.",
+   "limits": [
+    "The refusal here comes from the no-variation shortcut, not from the formula detector, which this replica never exercises; the detector is tested only in unit tests and the reviewer's probes.",
+    "A market where prices vary a little alongside a formula sits between the two replicas and is not measured."
+   ]
   },
   {
    "name": "fraud review budget from the review cost",
    "gate": "A share chosen from value 60 per case and 1.5 per review, interval over bikers, lower-bound note with partial labels, holdout read after the choice.",
    "result": "A share under 10% of rides, entity interval, partial-label note, cases found on the holdout reported.",
-   "verdict": "pass"
+   "verdict": "pass",
+   "against_gate": "The gate fixes the inputs, 60 per case and 1.5 per review, and asks for an interval over bikers, a lower-bound note and a holdout read after the choice. The result has a share under 10% of rides, an entity interval, the partial-label note and the holdout cases, so each part is met.",
+   "limits": [
+    "The result gives no expected value or interval width, only that the share is under 10%, so the size of the gain cannot be judged from this record.",
+    "The value per case and the cost per review are stated assumptions, not costs measured for a real team.",
+    "With partial labels the value found is a lower bound, and the replica does not say how far below the truth it lies."
+   ]
   }
  ],
  "outcome": "Done: review budgets and prices chosen by expected value with intervals and stated assumptions, refused with reasons when the data cannot support them; challenge mode can now answer a pricing question; dclab_core 0.3.0 passes its clean-wheel check.",
@@ -174,6 +205,13 @@
   "A decision layer must check every column it reads against the prediction moment, not only the obvious one.",
   "A 'were prices varied' check must see categories and must let the person name a test's arm, or it is wrong in both directions.",
   "When the first matching rule wins, a new rule needs a fall-through, or it silently takes over other requirements."
+ ],
+ "risks": [
+  "A column the decision reads, such as the reference price or the unit value, is not checked against the prediction moment, and a post-outcome value enters the acceptance model.",
+  "A price set by a rule of the context looks varied, and a confounded curve is drawn with a confident interval.",
+  "The holdout is used to choose the budget or the price, so the number reported on it is optimistic.",
+  "Missing or zero prices crash the decision, or produce a margin of None that reads like a result.",
+  "A new report rule for price words takes over requirements that only mention a price, such as predicting house prices."
  ],
  "commits": [
   "87896af"

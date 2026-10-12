@@ -39,7 +39,9 @@
    "scenario": "With no model configured, the template was chosen by counting keyword hits in the description, defaulting to churn; a description that matched no keyword got churn rows, and nothing on screen said the rows came from a template rather than from the description.",
    "cause": "The fallback was silent.",
    "fix": "The Synthetic tabs list the built-in templates to pick from, the template is picked from the description and the problem sentence together, and the chat and the wizard say when rows come from a template and do not follow the description; the generator's own outcome column is offered first.",
-   "test": "test_synthetic_templates_are_listed_chosen_and_explained; test_the_note_says_when_rows_do_not_follow_the_description."
+   "test": "test_synthetic_templates_are_listed_chosen_and_explained; test_the_note_says_when_rows_do_not_follow_the_description.",
+   "impact": "Without a model, a user whose description matched no keyword got churn rows and was not told. The whole project, from the questions to the scores, would have been built on a table unrelated to the problem they described.",
+   "open": "Without a model the rows still come from one of five templates; a description none of them fits gets the closest one, now said on screen, not rows that follow the description."
   },
   {
    "id": "S2",
@@ -49,7 +51,8 @@
    "scenario": "A project built from simulated rows showed a 'synthetic' note in the brief, but the downloaded notebook and report presented their scores with no such note.",
    "cause": "The label was carried to the brief only.",
    "fix": "The notebook and the report open with the same note as the brief, because their scores say nothing about real cases.",
-   "test": "tests/test_studio.py export checks."
+   "test": "tests/test_studio.py export checks.",
+   "impact": "Someone handed the downloaded notebook or report without the brief would read scores on invented rows as results on real cases."
   }
  ],
  "measurements": [
@@ -60,7 +63,13 @@
    "result": "Passed without a model; a synthetic regression table split by time with 5 folds completed all five stages.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The flow went from one prompt to a completed run of all five stages, on a synthetic regression table split by time with 5 folds, without a model. The result names the stages and the split; the label, the gate's other half, is not restated in it.",
+   "limits": [
+    "Without a model only a built-in template ran; the model-designed spec, its retry and its fallback were not exercised.",
+    "The scores of that run describe template rows and say nothing about any real case.",
+    "One template and one seed; the rate calibration of the binary templates was not part of this flow."
+   ]
   }
  ],
  "outcome": "Done: simulated data from a model's validated design or a chosen template, seeded, and labelled synthetic from the draft to every export.",
@@ -72,5 +81,13 @@
   "15c4958",
   "7ef1cea",
   "c13bb6f"
+ ],
+ "risks": [
+  "Synthetic rows lose their label somewhere (the project, the notebook, the report), and scores on invented data pass for real results.",
+  "A model-designed spec with unknown fields or impossible distributions crashes generation unless it is validated first.",
+  "Rows or samples reach the model while it designs the table, though the user chose simulation to keep data private.",
+  "A target rate that misses the asked one on a small table (fraud at 0.5%) changes the problem.",
+  "Missingness drawn together with the target secretly carries signal.",
+  "A silent fallback to a template gives rows that do not follow the user's description."
  ]
 }

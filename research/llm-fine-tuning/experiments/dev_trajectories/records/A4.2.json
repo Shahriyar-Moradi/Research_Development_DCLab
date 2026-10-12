@@ -39,7 +39,8 @@
    "scenario": "With --max-requests 3 and a scripted model that calls review_leakage twice, 3 requests were counted and 2 leakage-review requests were sent uncounted, missing from the tokens; run_all makes two stage_notes requests per stage (10 per run) on the standard tier, which can be a priced remote model while the intern's strong tier is local.",
    "cause": "Only the intern's own client was wrapped by the counter; tools built their own clients from installed().",
    "fix": "Counting moved to the transport of the installed gateway; stage notes, explanations and project answers are switched off during the suite.",
-   "test": "A test that a tool's model request is counted."
+   "test": "A test that a tool's model request is counted.",
+   "impact": "With the intern on a local model and the standard tier on a priced remote one, a live run could send ten paid stage-note requests per run_all outside every cap and outside the reported spend, so --cap-eur would not bound the bill."
   },
   {
    "id": "F2",
@@ -49,7 +50,8 @@
    "scenario": "A priced scripted model, --cap-eur 4, 3 cases x 4 repeats: all 12 runs were refused with 0 requests sent, and the file said status completed, 'Requests 12', leaks caught 0.0 [0.0, 0.0].",
    "cause": "The counter incremented before the gateway's check; a session ended by a refusal or an error was scored; 'stopped' was set only when spend reached the cap exactly.",
    "fix": "Count after the gateway accepts a request; a failed or budget-stopped session is not run and stops the suite; refuse to start when one request's estimate exceeds --cap-eur.",
-   "test": "A test where every request is refused: the first run is not scored, status stopped, 0 requests."
+   "test": "A test where every request is refused: the first run is not scored, status stopped, 0 requests.",
+   "impact": "A suite whose every request was refused was stored as a completed run scoring 0 leaks caught: an evidence file reporting a model failure that never happened, ready to become a baseline."
   },
   {
    "id": "F3",
@@ -59,7 +61,8 @@
    "scenario": "--max-requests 10, 3 cases x 2 repeats: every completed run caught the leak, yet leaks caught came out 0.5 [0.0, 1.0], n=2.",
    "cause": "The interrupted run counted as a miss, and repeats with different case sets were averaged.",
    "fix": "The interrupted run is not scored; intervals use complete repeats only (here 1.0, n=1).",
-   "test": "A request-cap test with a partial repeat."
+   "test": "A request-cap test with a partial repeat.",
+   "impact": "A run where every completed case caught the leak reported 0.5 [0.0, 1.0], halving the model's score because the cap cut a run."
   },
   {
    "id": "F4",
@@ -69,7 +72,8 @@
    "scenario": "installed() returned a gateway with no usage, so nothing reached the workspace usage log and the workspace monthly cap was skipped.",
    "cause": "The command did not install the workspace gateway, unlike every other command-line tool.",
    "fix": "for_workspace() is the default gateway and is installed for the run.",
-   "test": ""
+   "test": "",
+   "impact": "Benchmark spending never reached the workspace usage log or its monthly cap, so the Admin page and the monthly limit could not see it."
   },
   {
    "id": "F5",
@@ -79,7 +83,8 @@
    "scenario": "--yes --max-requests 0 ran with a cap of runs x 18 instead of sending nothing; --max-steps 1 printed a bound of runs x 3 while each session allows at least 3 tool calls.",
    "cause": "'args.max_requests or default' treats 0 as unset.",
    "fix": "--max-requests must be at least 1; --max-steps must be between 3 and 80.",
-   "test": "Argument tests."
+   "test": "Argument tests.",
+   "impact": "--max-requests 0, the natural way to say 'send nothing', would send up to the full bound."
   },
   {
    "id": "F6",
@@ -89,7 +94,11 @@
    "scenario": "It assumed 40,000 characters per request; the tool schemas are about 10,800 characters, the policy about 1,600, and each tool result adds up to 6,000, so by the 16th request a prompt is about 108,000 characters: roughly 1.6 times the printed figure.",
    "cause": "A flat per-request estimate for a conversation that grows.",
    "fix": "The bound grows with each request's conversation, a token bound is printed, and a euro cap on an unpriced model is refused.",
-   "test": "A plan test on the printed bounds."
+   "test": "A plan test on the printed bounds.",
+   "impact": "The owner approves a run with --yes after reading an 'at most' euro figure that real runs could exceed by about 1.6 times, before counting side requests.",
+   "alternatives": [
+    "Print the figure as an estimate instead of a bound, the reviewer's other option: set aside because the plan is what the owner approves before --yes; it now grows with each request's conversation and a token bound is printed."
+   ]
   },
   {
    "id": "F7",
@@ -99,7 +108,8 @@
    "scenario": "The row said --max-requests counts every request and that nothing goes to a priced remote model without --cap-eur; no local-model run existed.",
    "cause": "The row was written before the run and before the review.",
    "fix": "The row was rewritten after the fixes, and AEV-002 was run on a local model and stored.",
-   "test": ""
+   "test": "",
+   "impact": "The status row would tell the next session that the caps cover every request and that the package is done, so later work would build on guarantees that did not exist."
   },
   {
    "id": "R1",
@@ -109,7 +119,12 @@
    "scenario": "Every tier a priced scripted model with large usage, the model calling review_leakage four times per run, 2 cases x 2 repeats, --cap-eur 40: the suite completed with 36 requests (16 by the leakage review) and reported 2.4 euros, while the usage log showed 818.4 euros.",
    "cause": "The run's euro limit was set only on the intern's client, and the run's spend was read from the session, which counts only the intern.",
    "fix": "During the suite only the intern talks to the model; the leakage review takes its deterministic path.",
-   "test": "A test like the reviewer's: no leakage-review request is sent during the suite."
+   "test": "A test like the reviewer's: no leakage-review request is sent during the suite.",
+   "impact": "In the reviewer's run the suite reported 2.4 euros while the usage log showed 818.4: a priced standard tier could spend hundreds of times the cap the owner set.",
+   "alternatives": [
+    "Give the gateway a per-run project cap and read each run's euros and tokens back from the usage log by project: set aside as more machinery for the same guarantee; the leakage review takes its deterministic path during the suite instead."
+   ],
+   "open": "The printed request bound covers the intern only; the reviewer judged this safe, since other requests would stop the suite early rather than overspend."
   },
   {
    "id": "T1",
@@ -119,7 +134,8 @@
    "scenario": "A reader between two writes (the page, the Home agent, or a test polling for 'ready') saw a ready asset with no analysis.",
    "cause": "The pipeline saved the asset as ready in one update and the analysis, cleaning log and active asset in the next.",
    "fix": "Both go in one update (separate commit).",
-   "test": "The draft flow tests on PostgreSQL."
+   "test": "The draft flow tests on PostgreSQL.",
+   "impact": "The page, the Home agent or a test could read a draft marked ready with no analysis and act on it; in the gate it failed once on PostgreSQL."
   }
  ],
  "measurements": [
@@ -129,7 +145,14 @@
    "result": "Per-case lines and the interval table were printed and stored. The model answered each case in one reply without calling a tool, so it kept 0 of 2 leaks out per repeat (0.0, interval 0.0 to 0.0, n=2) and made no move; 6 requests, about 16,000 input and 3,500 output tokens, 0 euros.",
    "verdict": "pass",
    "cost_eur": 0.0,
-   "next": "The harness gate passes; the model fails the traps. Run a larger local or remote model with a euro cap; the token bound is generous; a live run does not set the Benchmark leaderboard yet."
+   "next": "The harness gate passes; the model fails the traps. Run a larger local or remote model with a euro cap; the token bound is generous; a live run does not set the Benchmark leaderboard yet.",
+   "against_gate": "The gate asks for per-case results and a table of scores with their spread from a run on a local model: both were printed and stored, so the harness passes. The model's own score, 0 of 2 leaks kept out per repeat (0.0, interval 0.0 to 0.0, n=2), is not what the gate judges.",
+   "limits": [
+    "3 cases x 2 repeats is a smoke run: it shows the harness works on a real model, not how any model scores on the suite.",
+    "The model answered without calling a tool, so the traps were never reached; the result says this model did not use the tools, nothing about judgment.",
+    "An interval of 0.0 to 0.0 over n=2 is two identical outcomes, not a precise estimate.",
+    "Nothing was priced (0 euros), so the euro cap was not exercised by a real run."
+   ]
   }
  ],
  "outcome": "Done: make agent-eval-live prints its plan, needs --yes, holds its request and euro caps over every request of the suite, never scores a cut run, and stores AEV results with intervals over complete repeats. Eight findings and one re-check finding fixed; a draft race found by the gate fixed separately.",
@@ -138,6 +161,13 @@
   "A run refused by a budget must be 'not run', never a scored miss: otherwise the cap writes the result.",
   "An upper bound for a growing conversation must grow with it.",
   "The Done-when of a measurement package is met only by a real run, here a free local one."
+ ],
+ "risks": [
+  "A cap that wraps only the intern's client while tools build their own clients and spend outside it.",
+  "Runs refused by a budget, or failed by a model server that is down, being scored as misses.",
+  "An 'at most' cost printed from a flat estimate for a conversation that grows with every request.",
+  "Averaging repeats that covered different cases into one interval.",
+  "Live traffic missing the workspace usage log and its monthly cap."
  ],
  "commits": ["7ffc4b2", "ead9baa"]
 }

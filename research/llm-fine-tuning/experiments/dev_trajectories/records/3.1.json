@@ -31,7 +31,8 @@
    "scenario": "Two messages written in the same instant (for example the data-ready reply and a pipeline note) would get the same id, so the page would replace one with the other.",
    "cause": "An id derived from time is unique only if writes never coincide.",
    "fix": "Message ids are random tokens.",
-   "test": ""
+   "test": "",
+   "impact": "When the data-ready reply and a pipeline note were written in the same instant, the page would key both by one id and show only one. The user would miss either the question about the outcome or the note about the data, with no error anywhere."
   },
   {
    "id": "T1",
@@ -41,7 +42,8 @@
    "scenario": "Running the Home flow end to end without a model, a PATCH with an empty body or a JSON list raised inside the route and the server answered 500.",
    "cause": "The routes assumed a well-formed object.",
    "fix": "Every draft route validates its body and answers 422 for a bad one; the proposal body became optional.",
-   "test": "Assertions for empty and wrong-shaped bodies added to tests/test_draft_flow.py."
+   "test": "Assertions for empty and wrong-shaped bodies added to tests/test_draft_flow.py.",
+   "impact": "A page or script that sent an empty or list-shaped body got a 500 and a stack trace in the server log instead of a 422 saying what was wrong. The caller could not tell its own mistake from a server fault, and the error would be counted against the server."
   }
  ],
  "measurements": [],
@@ -52,5 +54,12 @@
  "commits": [
   "15c4958",
   "88acb12"
+ ],
+ "risks": [
+  "The pipeline thread and a chat turn update one draft at the same time, and one update is lost without a per-draft lock.",
+  "A crash during a save leaves a half-written draft.json unless saves are atomic.",
+  "A page that reconnects after a network blip misses pipeline steps or chat messages unless the stream replays from Last-Event-ID.",
+  "Malformed request bodies reach route code and come back as 500s instead of 422s.",
+  "Draft jobs still running at shutdown keep writing to a store that is closing."
  ]
 }

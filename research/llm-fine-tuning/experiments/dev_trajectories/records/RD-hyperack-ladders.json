@@ -35,7 +35,9 @@
    "scenario": "With final_customer_fare and final_biker_fare as inputs, tuned LightGBM scored ROC-AUC 0.9793 and recall 0.9114 on the test split; the same model without them scored 0.9450 and 0.7707. Every one of the twelve compared models lost 0.030 to 0.041 ROC-AUC.",
    "cause": "The final fares are set during or after the trip, so they act as near-proxies of acceptance; nothing in the ladder asked when each column is written.",
    "fix": "Drop both final fares from every safe experiment, keep the unsafe suite only as a labelled research ceiling, and write the prediction contract (unit, moment, forbidden columns) at the top of the track.",
-   "test": "safe_leakage_exp/compare_safe_vs_unsafe.py reports the gap for each model on the identical split."
+   "test": "safe_leakage_exp/compare_safe_vs_unsafe.py reports the gap for each model on the identical split.",
+   "impact": "A model built from the first ladder would promise ROC-AUC 0.9793 and recall 0.9114 but could deliver at best the safe model's 0.9450 and 0.7707, because at order creation neither final fare exists. The plans and thresholds set on the promised recall would miss far more accepted orders than expected.",
+   "open": "The prediction moment is still the owner's to confirm; until then the safe feature list rests on the analysis of the two fares alone."
   },
   {
    "id": "F2",
@@ -45,7 +47,9 @@
    "scenario": "All 53 optimized runs were scored on the one 2,222-row test split and the best soft vote (0.9455) was named champion, 0.0005 above the safe LightGBM (0.9450). PIT-006 later measured that picking the best of 30 configurations by holdout score overstates ROC-AUC by +0.0072 on average, so a 0.0005 win cannot be told from selection noise.",
    "cause": "The test split was used both to compare candidates and to report the winner; there was no training-only selection step.",
    "fix": "The later evidence campaigns select every recipe, model and setting on training-fold CV and read the locked holdout once per dataset; PIT-006 measures this bias so the copilot can cite it.",
-   "test": "evidence/campaigns/pitfalls_v1 PIT-006 (holdout reuse for selection)."
+   "test": "evidence/campaigns/pitfalls_v1 PIT-006 (holdout reuse for selection).",
+   "impact": "The named champion, a soft vote at 0.9455, beat the safe LightGBM by 0.0005 on the split that chose it among 53 runs. PIT-006 puts the bias of such a pick near +0.0072, so both the champion's lead and its reported score are likely optimistic.",
+   "open": "The 0.9455 stays as recorded; it needs a fresh, time-ordered split once the owner writes HyperAck's prediction moment."
   }
  ],
  "measurements": [
@@ -55,7 +59,13 @@
    "fixed_before_run": true,
    "result": "Tuned LightGBM 0.9793 unsafe vs 0.9450 safe (recall 0.9114 vs 0.7707); the gap across twelve models ranged 0.030 to 0.041 ROC-AUC and 0.07 to 0.14 recall.",
    "verdict": "not scored",
-   "next": "Never report the unsafe numbers as a result; use them only as the size of the leak."
+   "next": "Never report the unsafe numbers as a result; use them only as the size of the leak.",
+   "against_gate": "No threshold: the gap is the measurement. Tuned LightGBM drops from 0.9793 to 0.9450 without the fares, and recall from 0.9114 to 0.7707; across twelve models the gap is 0.030 to 0.041 ROC-AUC and 0.07 to 0.14 recall.",
+   "limits": [
+    "One locked test split of 2,222 rows: each model's gap is a single draw without an interval.",
+    "The gap belongs to these two columns; it says nothing about other post-outcome columns HyperAck may hold.",
+    "The split is random and stratified on dated orders; the gap was not checked on a time-ordered split."
+   ]
   },
   {
    "name": "optimized safe suite",
@@ -63,7 +73,13 @@
    "fixed_before_run": false,
    "result": "Soft vote of an ExtraTrees seed bag, LightGBM and XGBoost 0.9455; stacking 0.9450 with recall 0.8006; isotonic calibration recall 0.9374 at ROC-AUC 0.9375; tuned ExtraTrees alone 0.9444; tuned logistic regression 0.8823. Row bootstrap bagging lowered LightGBM from 0.9450 to 0.9430; greedy ablation to 18 features lowered the test score to 0.9438.",
    "verdict": "not scored",
-   "next": "Confirm the leader on a fresh, time-ordered split once the owner writes HyperAck's prediction moment."
+   "next": "Confirm the leader on a fresh, time-ordered split once the owner writes HyperAck's prediction moment.",
+   "against_gate": "No threshold was declared. The soft vote's 0.9455 sits next to stacking's 0.9450 and tuned ExtraTrees' 0.9444; isotonic calibration lifts recall to 0.9374 at ROC-AUC 0.9375; row bagging lowered LightGBM from 0.9450 to 0.9430, and ablation to 18 features lowered the test score to 0.9438.",
+   "limits": [
+    "Every run was scored on the same 2,222-row test split that chose among them, so the leader's score includes selection bias.",
+    "The top scores differ in the fourth decimal place, and no run has an interval.",
+    "Calibration's recall gain trades ranking quality (0.9375 against the vote's 0.9455); the operating point is a business choice, not a result."
+   ]
   }
  ],
  "outcome": "83 experiments recorded (15 unsafe, 15 safe, 53 optimized safe). The honest leader is ROC-AUC 0.9455 on one test split; the +0.035 leakage gap from two post-outcome columns became DCLab's first rule and the copilot's main precedent.",
@@ -75,5 +91,12 @@
  "commits": [
   "31d2413",
   "11eafa5"
+ ],
+ "risks": [
+  "Using columns written during or after the trip because nothing asks when each column is written.",
+  "Choosing a champion among many runs scored on the same test split, so the winner's score includes selection bias.",
+  "Engineering more features than the signal supports and diluting it.",
+  "Buying recall with class weights in training at the cost of ranking quality.",
+  "A random split on orders that arrive over time, hiding drift."
  ]
 }

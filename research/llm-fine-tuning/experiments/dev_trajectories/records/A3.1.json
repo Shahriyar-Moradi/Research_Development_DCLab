@@ -36,7 +36,11 @@
    "scenario": "'Predict next month's revenue per store' gave the target 'next month'; 'Forecast next week demand' gave 'next week'; 'Score every lead within 24 hours of signup' gave 'every lead within 24 hours'. With no data the first ran moment, action and data, and 'next month' reached the summary and the built project.",
    "cause": "The second branch of the outcome pattern accepted any text before a window.",
    "fix": "The window branch needs a content word before the window (not 'the', 'every' or a possessive).",
-   "test": "test_the_keyword_rules_claim_only_what_the_sentence_sets_out with these sentences."
+   "test": "test_the_keyword_rules_claim_only_what_the_sentence_sets_out with these sentences.",
+   "impact": "For 'Predict next month's revenue per store' the project would be built with 'next month' as its outcome and the outcome question never asked: the person gets a draft whose target is a time window.",
+   "alternatives": [
+    "Keep only the outcome pattern that starts with whether, which, if, who or how many: set aside because it would stop reading outcomes stated without a question word, which the window branch exists for; the window branch now needs a content word before the window."
+   ]
   },
   {
    "id": "F2",
@@ -46,7 +50,12 @@
    "scenario": "'Predict which customers will cancel before renewal' gave the moment 'before renewal'; the answer 'Customers who cancel before renewal' to the outcome question recorded a moment too; and '...arrives late, 2 days before dispatch' gave 'before dispatch', moving the moment two days later, exactly the leakage case.",
    "cause": "A bare at/before/on pattern claimed the moment, it ran before the offset pattern, and answers to the outcome question were read for a moment.",
    "fix": "The offset pattern is tried first; a bare 'before <event>' claims the moment only when a comma or a scoring verb sets it apart; no moment is read from an answer to the outcome question.",
-   "test": "Keyword-rule tests for each sentence."
+   "test": "Keyword-rule tests for each sentence.",
+   "impact": "The moment decides which columns are allowed. Reading 'before dispatch' out of '2 days before dispatch' moves the moment two days later, so columns known only in those two days would be allowed and every score after it would be optimistic.",
+   "alternatives": [
+    "Record keyword moments as inferred and always ask to confirm, one of the reviewer's options: set aside because the sentences that clearly set the moment apart would still be asked, and the Done-when requires the question count to fall.",
+    "Take the longest match, the reviewer's other option: the offset pattern is tried first instead, so a written offset always wins."
+   ]
   },
   {
    "id": "F3",
@@ -56,7 +65,9 @@
    "scenario": "(a) record(field='prediction_moment', value='after the account is closed', quote='cus') against 'Predict which customers cancel...' was accepted: a 3-character substring passed and the value was never related to the quote. (b) One reply [ask_user(moment), record(moment, value)] ran both calls; the record saw its own question as pending and needed no quote, and the sheet labelled the model's value 'from your answer'.",
    "cause": "The quote check was a substring test, and a question counted as open as soon as it was asked.",
    "fix": "A quote must be whole words of the user's text and the value must share content with it; a question counts as open only if it existed before the user's last message.",
-   "test": "Draft-guard tests for both bypasses."
+   "test": "Draft-guard tests for both bypasses.",
+   "impact": "A model could fill the prediction moment with a value the user never gave, labelled 'from your answer' on the sheet, so the person would approve a moment they never stated and the leakage checks would run against it.",
+   "open": "The re-check found the value-to-quote link still loose: a value only has to share one five-letter stem with the quote; the quote is shown beside the value on the sheet."
   },
   {
    "id": "F4",
@@ -66,7 +77,8 @@
    "scenario": "Sentence '...cancel within 30 days, scored every Monday'; data arrives; the user picks the column 'left'. A PATCH changing 'every' to 'each' put the sentence words back as the target; a PATCH removing the window left the target empty and the summary said 'The outcome is still open' without asking.",
    "cause": "Answering the column question did not update the plan entry, which stayed 'from the sentence', and replan drops entries from the sentence.",
    "fix": "An answered question writes its plan entry as stated, from the answer.",
-   "test": "A test editing the sentence after the column was chosen."
+   "test": "A test editing the sentence after the column was chosen.",
+   "impact": "After a one-word edit the project's target silently went back to sentence words or became empty, and the summary said the outcome was open without asking: the column the person chose was lost."
   },
   {
    "id": "F5",
@@ -76,7 +88,8 @@
    "scenario": "POST a draft; the background start() waits on the model (up to the 90-second timeout) holding the old sentence; a PATCH re-reads the new sentence at once; then start() returns and writes fields from the old sentence over the new reading. A field that became unknown after a summary was not asked until the user wrote again.",
    "cause": "replan was not decorated with the turn lock and did not call next_turn.",
    "fix": "replan runs under the per-draft lock and calls next_turn at its end.",
-   "test": "A test for the edit route."
+   "test": "A test for the edit route.",
+   "impact": "A slow model reply about the first sentence could overwrite the reading of the edited sentence, so the plan showed fields from text the person had already changed."
   },
   {
    "id": "F6",
@@ -86,7 +99,8 @@
    "scenario": "The model could ask_user(field='target') when the target was stated, or ask the action before the moment; only the prompt said not to.",
    "cause": "The draft guard had no rule for ask_user.",
    "fix": "The guard refuses an ask_user that is not the plan's next question (the outcome-column question is allowed).",
-   "test": "Draft-guard tests for an out-of-order question."
+   "test": "Draft-guard tests for an out-of-order question.",
+   "impact": "In model mode the agent could re-ask a field the person had stated, or ask the cost before the moment, so the moment could fall off at the four-question limit."
   },
   {
    "id": "F7",
@@ -96,7 +110,8 @@
    "scenario": "'Predict which customers cancel their subscription'; answer outcome, moment, action and 'Upload a sample' (four questions); then data arrives: the last message is the analysis message, with no column question and no summary.",
    "cause": "ask() returns nothing at the limit and the turn returned anyway.",
    "fix": "When ask() cannot ask, the turn falls through to the summary.",
-   "test": "A test reaching the limit with data."
+   "test": "A test reaching the limit with data.",
+   "impact": "A person who answered four questions and uploaded data saw the conversation stop with no summary and no way forward until they typed again."
   },
   {
    "id": "R1",
@@ -106,7 +121,9 @@
    "scenario": "'Predict whether a purchase is made at checkout' gave the moment 'at checkout'; 'Predict which users run every day' gave 'every day'. Both were recorded as stated and the moment question was never asked.",
    "cause": "'made' and 'run' were in the list of verbs that set a moment apart.",
    "fix": "Drop 'made' and 'run'; the comma form and scored, predicted, computed, checked, evaluated and refreshed cover the intended sentences.",
-   "test": "Both sentences added to the keyword-rule test."
+   "test": "Both sentences added to the keyword-rule test.",
+   "impact": "'Predict whether a purchase is made at checkout' would record 'at checkout' as a stated moment and skip the moment question, the same leakage path F2 closed.",
+   "open": "The moment's free tail can still carry extra words ('..., scored every Monday and the team calls them'); the reviewer judged this not a correctness issue."
   },
   {
    "id": "S1",
@@ -116,7 +133,8 @@
    "scenario": "One of the first tests failed: the sentence gave the outcome in words, a table arrived, and the agent never asked which column holds it.",
    "cause": "The plan treated a stated outcome as complete.",
    "fix": "An outcome known only in words is asked again for its column once a table arrives.",
-   "test": "The upload test now answers the moment and the column question and still builds with the right target."
+   "test": "The upload test now answers the moment and the column question and still builds with the right target.",
+   "impact": "A project built from a sentence such as 'which customers cancel' plus a table would have no target column, so the build could not use the outcome the person stated."
   }
  ],
  "measurements": [],
@@ -125,6 +143,13 @@
   "Keyword rules for the prediction moment must err towards asking: a wrongly 'stated' moment skips the question that prevents leakage.",
   "A guard that checks a model's quote needs whole words and a link between the quote and the value, or a two-letter substring passes.",
   "A model that can ask and answer in one reply can fake a user's answer; a question is open only if it existed before the user's last message."
+ ],
+ "risks": [
+  "Keyword rules marking the prediction moment as stated when it is part of the outcome, which skips the one question that prevents leakage.",
+  "A model's reading entering the plan without a check that its quote is really in the user's words.",
+  "A model asking and answering its own question in one reply, faking the user's answer.",
+  "An edit of the sentence racing a running turn and losing or overwriting answers already given.",
+  "The four-question limit cutting the conversation before a summary."
  ],
  "commits": ["40abfe2"]
 }

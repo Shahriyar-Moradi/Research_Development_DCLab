@@ -39,7 +39,9 @@
    "scenario": "With a model configured, uploading an unusual log sent 20 raw lines (cut to 400 characters each) to the provider to work out the format, while the privacy text on the page said rows never reach a model.",
    "cause": "The privacy text was written for the Home agent's context and not updated when the parse-pattern path was added.",
    "fix": "The data step records that lines were sent and how many, the privacy text states it, and DCLAB_MODEL_READS_SAMPLE_LINES=0 turns it off.",
-   "test": "tests/test_draft_data.py: test_the_pipeline_can_be_told_never_to_send_lines."
+   "test": "tests/test_draft_data.py: test_the_pipeline_can_be_told_never_to_send_lines.",
+   "impact": "A user with a model configured who uploaded an unusual log, trusting the Admin page's promise that rows never reach a model, had up to 20 raw lines sent to the provider. Those lines could hold names, addresses or tokens, and the user had no way to know or to stop it.",
+   "open": "The switch is on by default: with a model configured, lines are still sent unless DCLAB_MODEL_READS_SAMPLE_LINES=0 is set. The user is told afterwards, not asked first."
   },
   {
    "id": "T1",
@@ -49,7 +51,9 @@
    "scenario": "An .xlsx upload failed because openpyxl was not installed in the environment, and it was not in any requirements file.",
    "cause": "An optional reader's library was assumed present.",
    "fix": "When the engine is missing, to_table raises a StructureError telling the user to save the sheet as CSV; openpyxl was later listed in requirements/base.txt and installed with the owner's approval.",
-   "test": "test_excel_without_its_engine_says_what_to_do; test_excel_round_trip runs once openpyxl is installed."
+   "test": "test_excel_without_its_engine_says_what_to_do; test_excel_round_trip runs once openpyxl is installed.",
+   "impact": "In an environment without openpyxl, every .xlsx upload failed. A spreadsheet is among the first files a business user brings, so for many users the first upload would have ended in a failure.",
+   "open": "Excel works only where openpyxl is installed. The requirements file lists it now, but an environment built before that change still answers with the save-as-CSV message."
   }
  ],
  "measurements": [
@@ -60,7 +64,14 @@
    "result": "A 200,000-line access log read in 2.0 s and cleaned in 2.4 s; a 300,000-row CSV read in 0.3 s.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The 200,000-line access log was read in 2.0 s and the 300,000-row CSV in 0.3 s: both in seconds, not minutes, as the gate asks. The 2.4 s figure is cleaning, not reading.",
+   "limits": [
+    "The large log was a small test fixture repeated many times, so it held a handful of distinct line shapes and mostly duplicate rows; a varied real log could read slower.",
+    "The CSV was random numbers, codes and dates in a handful of columns; a wide or text-heavy file was not timed.",
+    "One timing per file on one laptop, with no repeat; Excel, nested JSON and the model-pattern path were not timed.",
+    "The gate gave no number for 'seconds', so it could only catch a gross slowdown."
+   ]
   }
  ],
  "outcome": "Done: every listed format becomes a table with a record of how it was read; the model's pattern is used only when code measures it better. Noted at build time and left open: a very general pattern can still pass on prose, Python's re has no timeout, and multi-line entries such as stack traces are not joined.",
@@ -72,5 +83,12 @@
   "15c4958",
   "07da5f1",
   "ec3ae4d"
+ ],
+ "risks": [
+  "Choosing a reader by the extension misreads files saved under the wrong one (a log named .txt, a TSV named .csv).",
+  "A model's regular expression that matches a quarter of the lines gives a table that looks parsed and is mostly wrong.",
+  "Sending raw lines to a model to work out a format sends data the privacy text promises to keep on the machine.",
+  "A badly written expression can hang on a long line, since Python's re has no timeout.",
+  "Optional readers (Excel, Parquet) fail on a machine where their library is not installed."
  ]
 }

@@ -45,7 +45,8 @@
    "scenario": "A fresh .venv built from requirements/base.txt has no FastAPI, uvicorn or python-dotenv, so starting the notebook server failed on import.",
    "cause": "The web packages had only ever been installed in the agent environment.",
    "fix": "Add the web packages to requirements/base.txt (and mcp and openai, which the intern and the MCP server need).",
-   "test": "make notebook starts in .venv."
+   "test": "make notebook starts in .venv.",
+   "impact": "Anyone following the docs with the ML environment could not start the notebook at all."
   },
   {
    "id": "S2",
@@ -55,7 +56,12 @@
    "scenario": "Chat UI needs MongoDB; the automatic MongoDB download was refused (HTTP 403) and there was no Docker daemon.",
    "cause": "The sandbox blocked the database download.",
    "fix": "Build a MongoDB-compatible server (FerretDB on SQLite) from source through the Go proxy for the verification only; its first build panicked on a missing version file and was rebuilt from a writable copy that contains it. Nothing of it was committed.",
-   "test": "The real Chat UI started and listed the DCLab tools."
+   "test": "The real Chat UI started and listed the DCLab tools.",
+   "impact": "Without a real Chat UI the integration could only be checked against mocks of both ends, which proves little.",
+   "alternatives": [
+    "Run MongoDB through Docker: no Docker daemon was available in the sandbox.",
+    "Verify against mocks only: set aside because a mock of both sides proves little; a MongoDB-compatible server was built from source for the check."
+   ]
   },
   {
    "id": "S3",
@@ -65,7 +71,8 @@
    "scenario": "Playwright opened Chat UI and could not reach the chat because the welcome modal covered it.",
    "cause": "The modal appears on first visit and takes a while to become clickable.",
    "fix": "Wait for the dialog's button with a longer timeout and open the mock model's page directly.",
-   "test": ""
+   "test": "",
+   "impact": "The browser check of Chat UI stalled before reaching the chat, so it said nothing about the integration."
   }
  ],
  "measurements": [
@@ -75,14 +82,27 @@
    "fixed_before_run": true,
    "result": "Plain mode offered all 18 DCLab tools; ML Intern mode offered 32 (DCLab's plus ML Intern's built-ins such as update_plan, research and sandbox_task); a list_samples call round-tripped.",
    "verdict": "pass",
-   "next": "Keep tests/test_mcp.py in the suite; the live Chat UI run is manual."
+   "next": "Keep tests/test_mcp.py in the suite; the live Chat UI run is manual.",
+   "against_gate": "Plain mode offered all 18 DCLab tools and ML Intern mode offered 32 (DCLab's plus its built-ins), and a list_samples call round-tripped over /mcp: both modes and the round trip the gate asks for. It passes.",
+   "limits": [
+    "One manual run; the live Chat UI is not in the test suite, only tests/test_mcp.py is.",
+    "Run with a mock model and a MongoDB stand-in built for the check, not a deployed Chat UI.",
+    "One read-only tool call round-tripped; write tools through Chat UI were not exercised in this run.",
+    "Tools being offered says nothing about whether a model uses them well."
+   ]
   },
   {
    "name": "A whole project through the official MCP Python client",
    "gate": "No gate: a smoke run showing that a full project can be built through /mcp.",
    "fixed_before_run": true,
    "result": "The client built a heart disease project through all five stages: holdout ROC-AUC 0.9491, 95% interval 0.8978 to 0.9868.",
-   "verdict": "not scored"
+   "verdict": "not scored",
+   "against_gate": "There is no threshold: the client built a heart disease project through all five stages, with a holdout ROC-AUC of 0.9491 and a 95% interval of 0.8978 to 0.9868. It shows the path works end to end.",
+   "limits": [
+    "One project on one small public sample; the score belongs to that dataset and the deterministic stages, not to the MCP path.",
+    "One run, not repeated.",
+    "A script called the tools in order through the client; no model chose them."
+   ]
   }
  ],
  "outcome": "Done: DCLab is an MCP server at /mcp; make chat-ui and make chat-ui-intern start Chat UI locally with DCLab attached; verified with the real Chat UI and the official MCP client. make rd-check: 94 tests OK, 7 skipped.",
@@ -90,6 +110,13 @@
   "To bring another product's experience in, expose your tools over its protocol instead of forking it; your rules stay enforced by your code.",
   "Verify an integration against the real other side, even if the sandbox makes it hard; a mock of both ends proves little.",
   "A server that only ran in one environment hides missing dependencies; start it from the environment the docs tell people to use."
+ ],
+ "risks": [
+  "Forking the archived ML Intern and having to maintain it.",
+  "Exempting /mcp from the CSRF token and opening it to requests from other origins.",
+  "The model key leaking into the repository or a UI.",
+  "Dependencies installed in only one environment, so make notebook fails in the one the docs name.",
+  "Verifying only against mocks of both ends."
  ],
  "commits": [
   "8175dea"

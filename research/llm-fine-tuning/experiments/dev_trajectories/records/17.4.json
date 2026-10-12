@@ -39,7 +39,8 @@
    "scenario": "A binary table with 25 columns whose missingness predicts the target raised a validation error (cites at most 20); through propose() the plan came back None with no log.",
    "cause": "One citation per finding with no cap, and a bare except returning None.",
    "fix": "Deduplicate citations and keep the first 20; log the failure's type and the target name through observe.",
-   "test": "test_wide_tables_with_many_findings_still_plan"
+   "test": "test_wide_tables_with_many_findings_still_plan",
+   "impact": "Any binary table with more than 20 columns whose missingness speaks got no plan in the studio, and because propose() swallowed the error, the person saw the old proposal with no reasons and nobody knew a plan was missing."
   },
   {
    "id": "F2",
@@ -49,7 +50,8 @@
    "scenario": "Overriding metric.primary repeatedly grew the alternatives to 9 against a limit of 8; labels.join with 6 refused keys crashed on its third override.",
    "cause": "The cap was applied before the new alternative was added.",
    "fix": "Cap after adding: (new + old)[:8].",
-   "test": "test_many_overrides_and_many_findings_never_overflow_a_decision"
+   "test": "test_many_overrides_and_many_findings_never_overflow_a_decision",
+   "impact": "A person refining the metric a sixth time, or a label join with several refused keys on its third override, hit a crash instead of a recorded change, so overrides failed on exactly the decisions people argue about most."
   },
   {
    "id": "F3",
@@ -59,7 +61,8 @@
    "scenario": "An advisor override of the split to stratified, against an entity that predicts the target, validated with no problem; overriding features.forbidden silenced every critical-leak check. Any 'by' other than the exact string 'person' was recorded as the advisor.",
    "cause": "Checks were skipped for any overridden decision, whatever its source.",
    "fix": "Skip a check only for a person's override; a model's override is still checked; the source is the advisor only when the advisor made it.",
-   "test": "test_a_models_override_is_still_checked_and_a_persons_stands"
+   "test": "test_a_models_override_is_still_checked_and_a_persons_stands",
+   "impact": "A model could switch the split to stratified against an entity that predicts the target, or empty the forbidden list, mark it overridden and pass the validator: entity leakage and post-outcome columns back in the plan with no person having decided it."
   },
   {
    "id": "F4",
@@ -69,7 +72,8 @@
    "scenario": "A split given as the plain string 'stratified' was treated as having no kind and passed; a forbidden list of plain names crashed with AttributeError. These are the shapes a model is likely to send.",
    "cause": "The validator assumed dict choices.",
    "fix": "Read a string split as its kind, accept a plain string as a column name, and report any other shape as a problem.",
-   "test": "test_odd_shapes_are_problems_never_crashes"
+   "test": "test_odd_shapes_are_problems_never_crashes",
+   "impact": "A split sent as the plain string 'stratified' escaped every split check, and a forbidden list of plain names crashed the validator, so the two shapes a model is most likely to send were the ones never checked."
   },
   {
    "id": "F5",
@@ -79,7 +83,8 @@
    "scenario": "A fraud plan joining labels on biker_id validated, though the finding that this key marks 1.5 or more rows per label is critical.",
    "cause": "Only critical leakage findings were checked.",
    "fix": "Refuse a join key named by an inflation finding, and any join when no key was found.",
-   "test": "test_an_inflating_label_key_is_refused"
+   "test": "test_an_inflating_label_key_is_refused",
+   "impact": "A fraud plan joining labels on biker_id would mark every ride of a biker with a known fraud as fraud, inflating positives and teaching the model who the biker is rather than what the ride looks like."
   },
   {
    "id": "F6",
@@ -89,7 +94,9 @@
    "scenario": "The studio calls plan without a brief; on the fraud replica that gave group by account_id (3 values, about 5,400 rows each) instead of biker_id (240 values).",
    "cause": "The first entity finding won.",
    "fix": "Rank entities by out-of-fold power, require at least 10 values, list the others as alternatives.",
-   "test": "test_without_a_brief_the_fraud_plan_groups_by_the_entity_that_tells_the_target"
+   "test": "test_without_a_brief_the_fraud_plan_groups_by_the_entity_that_tells_the_target",
+   "impact": "In the studio, which plans without a brief, the fraud folds were grouped by account_id with 3 values, giving degenerate grouped folds and an unstable score, and the strong biker entity did not even appear as an alternative.",
+   "open": "A named entity with fewer than 10 values is still dropped from the grouping choice, so the minimum overrules the person's own naming."
   },
   {
    "id": "F7",
@@ -99,7 +106,8 @@
    "scenario": "A brief stating the entity 'Courier ID' gave group by account_id: the plan looked for the finding id built from the lower-cased name, while analyse slugs it.",
    "cause": "Two ways of building the same id.",
    "fix": "Match on the finding's column, not on its id.",
-   "test": ""
+   "test": "",
+   "impact": "A person who wrote 'Courier ID' as the entity got folds grouped by another column, and the plan gave no sign that what the person said had been ignored."
   },
   {
    "id": "F8",
@@ -109,7 +117,8 @@
    "scenario": "'Judged on AUC' with 4.7% positives gave average_precision, and the reason never mentioned AUC.",
    "cause": "No aliases between understand's names and the plan's.",
    "fix": "An alias map (auc to roc_auc, pr_auc to average_precision, f1 to macro F1 for multiclass); a named metric still not used is recorded as an alternative with the reason.",
-   "test": "test_a_named_metric_alias_is_understood_and_an_unknown_one_is_recorded"
+   "test": "test_a_named_metric_alias_is_understood_and_an_unknown_one_is_recorded",
+   "impact": "A brief judged on AUC produced a plan on average precision whose reason never mentioned AUC, so the team would optimise a different metric from the one their work is judged on without being told why."
   },
   {
    "id": "F9",
@@ -119,7 +128,8 @@
    "scenario": "With completed_at as the first timestamp and drift, the plan split by time on completed_at and listed it to confirm; Solution() then refused a time column that is also forbidden.",
    "cause": "The time column was chosen without looking at the columns kept out.",
    "fix": "Never use a forbidden or to-confirm column as the time column; the adapter drops the time column from the forbidden list.",
-   "test": "test_the_split_never_orders_by_a_column_it_keeps_out"
+   "test": "test_the_split_never_orders_by_a_column_it_keeps_out",
+   "impact": "With completed_at as the first timestamp and drift, adopting the plan failed inside Solution(), so the governed adoption path broke on an ordinary table, and a plan read by hand would have ordered the split by a column it also kept out."
   },
   {
    "id": "F10",
@@ -129,7 +139,9 @@
    "scenario": "propose() called analyse without training rows, so entity power, prevalence and drift used every row; the no-split warning was neither cited nor listed as a risk.",
    "cause": "No provisional split at proposal time.",
    "fix": "Read the plan on a seeded 80% of rows, and cite the no-split warning in the split decision and the risks when it applies.",
-   "test": "test_a_plan_without_a_training_split_says_so"
+   "test": "test_a_plan_without_a_training_split_says_so",
+   "impact": "Entity power, prevalence and drift in every proposed plan came partly from rows the engine later holds out, so plan choices were tuned on the holdout, and the warning that said so never reached the person.",
+   "open": "The seeded 80% is provisional and need not match the split the engine later makes, so some plan statistics can still touch rows that end up in the holdout."
   },
   {
    "id": "F11",
@@ -139,7 +151,9 @@
    "scenario": "override() was a pure function with no move, check or log entry; solution_fields_from_plan was called only from a test; the intern's propose_solution returned a fixed field list without the plan.",
    "cause": "The governed path was not built.",
    "fix": "The intern sees the plan and adopts it with adopt_plan through set_solution (graph check, log, memory, audit), refused when a model's change ignores a critical finding.",
-   "test": "test_adopting_the_plan_saves_the_solution_and_logs_the_move; test_a_models_change_that_ignores_a_critical_finding_is_refused"
+   "test": "test_adopting_the_plan_saves_the_solution_and_logs_the_move; test_a_models_change_that_ignores_a_critical_finding_is_refused",
+   "impact": "The plan was advice nobody could act on: an override left no move, graph check or log entry, the intern never saw the plan, and the adapter that turns it into a solution was called only by a test.",
+   "open": "There is still no person-facing route to override one decision, and the engine reads the solution, not the plan's secondary metrics, cleaning or directions."
   },
   {
    "id": "T1",
@@ -149,7 +163,8 @@
    "scenario": "test_every_project_write_tool_has_a_refusal_case failed on adopt_plan.",
    "cause": "Every project write tool must show the validator refusing it.",
    "fix": "Add adopt_plan's refusal case to the validator tests; rd-check then passed (914 tests).",
-   "test": "test_every_project_write_tool_has_a_refusal_case"
+   "test": "test_every_project_write_tool_has_a_refusal_case",
+   "impact": "rd-check went red; without the refusal case, a project write tool would have shipped whose refusal by the validator had never been shown."
   }
  ],
  "measurements": [
@@ -160,7 +175,13 @@
    "result": "Fraud: partial labels, the order join with inflating keys refused, folds by biker, average precision with recall at the budget, PU and anomaly families. Tickets: a forward split (a class appears late), macro F1, resolved_by kept out and first_response_minutes to confirm. Delivery: folds by restaurant, MAE with the share within tolerance, the cap, the recomputed delivery time and the rating kept out.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "Fraud, tickets and delivery each reach the acceptance decisions the result lists, and their decisions cite findings, so the gate holds; the citation test exempts an empty list of columns to keep out, which cites nothing.",
+   "limits": [
+    "The plans were read from the full written briefs of the understanding package and, for fraud, with the label file; a later harness with short descriptions found the rules alone missed partial labels on fraud and restaurant grouping on delivery, so these matches depend on what the inputs state.",
+    "Without a brief, the path the studio takes, only the fraud plan is tested; tickets and delivery are not.",
+    "Each replica is read at a single seed."
+   ]
   },
   {
    "name": "the judgment suite after the new tools",
@@ -169,7 +190,12 @@
    "result": "AEV-015, scripted: scores identical to AEV-014.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate allows no movement, and AEV-015's scripted scores are identical to AEV-014's, so the added project tools moved nothing.",
+   "limits": [
+    "No scripted case calls the new tools, so identical scores show they disturb nothing, not that they are used well in a session.",
+    "Scripted policies cannot show how a live model chooses among the longer tool list."
+   ]
   }
  ],
  "outcome": "Done: a plan of cited decisions with alternatives, validated so that only a person may set a finding aside, adopted through the governed set_solution move; 11 review findings fixed with 12 tests. Open: the engine does not yet read the plan's secondary metrics, cleaning or directions; no person-facing route overrides one decision.",
@@ -177,6 +203,13 @@
   "An escape hatch must check who opened it: 'overridden' is not the same as 'overridden by a person'.",
   "Validate the shapes a model is likely to send, not only the ones your code writes.",
   "A silent fallback (except: return None) hides exactly the inputs that need attention; log the type."
+ ],
+ "risks": [
+  "The validator skips its checks for any decision marked overridden, so a model can set a finding aside by calling its own change an override.",
+  "plan() raises on a wide table, and the studio's catch-all fallback hides it, so real projects lose the plan without a word.",
+  "Without a brief, the grouping entity is chosen by column order and lands on one with too few values for grouped folds.",
+  "Plan statistics are computed on every row, the future holdout included, because the studio has no split when it proposes.",
+  "Adoption is built as a new path beside set_solution, bypassing the graph check, the log, memory and the audit."
  ],
  "commits": [
   "fc91c48"

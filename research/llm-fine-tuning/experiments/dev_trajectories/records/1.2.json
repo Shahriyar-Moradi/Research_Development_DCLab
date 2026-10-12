@@ -31,7 +31,8 @@
    "scenario": "A component class that sets its own display (for example a panel or a flex row) kept showing an element the page had hidden with the hidden attribute, outside the artifact viewer that had supplied the override in the demo.",
    "cause": "The demo relied on a rule its viewer added; served on its own the page lacked it.",
    "fix": "A global [hidden]{display:none!important} rule, and data-style rules written with :not([hidden]) so a style never un-hides an element.",
-   "test": ""
+   "test": "",
+   "impact": "On the product's own Home, outside the viewer that had supplied the rule, elements the page hid stayed on screen whenever their class set a display. A user would see panels and controls for a state the page was not in, with nothing in the console to say why."
   },
   {
    "id": "S2",
@@ -41,7 +42,12 @@
    "scenario": "The integrations view gained a style= attribute; build.py refused it, so the other helpers' builds failed for about a minute until that view was fixed.",
    "cause": "New markup written by hand fell back to the habit of inline styles.",
    "fix": "The page was rewritten with data-style; the refusal in the build is what caught it.",
-   "test": "tests/test_web_build.py: test_inline_style_attributes_are_caught."
+   "test": "tests/test_web_build.py: test_inline_style_attributes_are_caught.",
+   "impact": "Had the attribute reached the browser, the CSP would have dropped the style on the Integrations page with no error naming the file. The build refused it instead; the cost was the other helpers' builds failing for about a minute.",
+   "alternatives": [
+    "Rely on review to catch inline styles: set aside, because one forgotten style= attribute breaks a page silently under the CSP, while the build names the file."
+   ],
+   "open": "The build looks for style= attributes in every file but for event-handler attributes only in index.html. An onclick= written into a view's innerHTML, or a style set with setAttribute('style', ...), would pass the build and still be blocked in the browser."
   }
  ],
  "measurements": [],
@@ -52,5 +58,12 @@
  "commits": [
   "b9abbad",
   "15c4958"
+ ],
+ "risks": [
+  "Inline styles hide inside JavaScript strings as well as markup, so a search of the views alone misses some of them.",
+  "Rules generated from data-style lose to component classes unless they keep the priority an inline style had.",
+  "A generated rule can un-hide an element the page hid with the hidden attribute.",
+  "Markup added later through innerHTML carries data-style values no rule exists for, unless new values are watched.",
+  "Without a refusal in the build, a new style= attribute breaks a page silently under the CSP."
  ]
 }

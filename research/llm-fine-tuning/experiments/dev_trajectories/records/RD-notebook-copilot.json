@@ -36,7 +36,9 @@
    "scenario": "The copilot flagged that preprocess_data kept final_customer_fare and final_biker_fare as model inputs, though both are only known after the order outcome; the saved models in that notebook's folder were trained with them.",
    "cause": "The exploratory notebook predates the safe-vs-unsafe analysis and never dropped the fares.",
    "fix": "Drop both columns in preprocess_data with a comment explaining why; the saved models stay wrong until the notebook is rerun.",
-   "test": "Re-reviewing the notebook reports no high-severity finding."
+   "test": "Re-reviewing the notebook reports no high-severity finding.",
+   "impact": "Every model saved from the owner's part1 notebook was trained on columns that do not exist when an order is created; anyone loading those files would get the leaky model's behaviour with no warning.",
+   "open": "The saved models stay wrong until the notebook is rerun, and the lower-severity issues (scaling before the split, a random split on dated rows, an absolute file path) were reported, not fixed."
   },
   {
    "id": "F2",
@@ -46,7 +48,12 @@
    "scenario": "Pull request 1 used pre-reorganization paths: seven tests failed, and three test modules imported code that was never pushed (replay_compare, system_eval, trace_eval).",
    "cause": "The work was written against the old layout on another machine.",
    "fix": "Move the prototype folder under research/agentic-ml-copilot/, read evidence from its new place, map notebook paths recorded before the reorganization through a resolver so a frozen manifest still works, and make tests that need files only on the author's machine skip with a message naming the missing file.",
-   "test": "The suite passes; the skipped tests run as soon as the missing files are committed."
+   "test": "The suite passes; the skipped tests run as soon as the missing files are committed.",
+   "impact": "With seven failing tests and three modules importing missing code, the suite was red for reasons unrelated to any change, so make rd-check could not gate commits and a real failure would have hidden among the false ones.",
+   "alternatives": [
+    "Delete the tests that need missing files: set aside; they skip with a message naming the missing file, so they run as soon as it is committed."
+   ],
+   "open": "The skipped tests still do not run: the trace audit, the replay comparison, the system audit and the frozen notebook case file are not in the repository yet."
   }
  ],
  "measurements": [
@@ -56,7 +63,13 @@
    "fixed_before_run": true,
    "result": "The leaky demo reports accuracy 96.7% and gets three high-severity notes; the careful version of the same analysis gets no notes and an honest ROC-AUC of 0.804.",
    "verdict": "pass",
-   "next": "Measure precision on real notebooks labelled by reviewers (AGT-003), not on demos."
+   "next": "Measure precision on real notebooks labelled by reviewers (AGT-003), not on demos.",
+   "against_gate": "The leaky demo draws three high-severity notes and the careful version none, as the gate requires; the leaky one claims accuracy 96.7% while the careful one reports an honest ROC-AUC of 0.804.",
+   "limits": [
+    "Both demos were written by the people who wrote the detectors, so passing them shows the detectors fire on the patterns they target, not on real notebooks.",
+    "A pair of demos measures neither precision nor recall.",
+    "A static review sees code, not runtime state; a leak that only shows in the data loaded at run time is invisible to it."
+   ]
   }
  ],
  "outcome": "A working copilot with proof links and a companion contract for VS Code; it found and fixed a real leak in the owner's own notebook. Its accuracy on real, unseen notebooks is not yet measured.",
@@ -69,5 +82,12 @@
   "86d1e5c",
   "a7cc225",
   "2eb80ef"
+ ],
+ "risks": [
+  "Executing a notebook to review it, with its side effects and private data paths.",
+  "Attaching fuzzy-matched rules or unmeasured advice as 'proof'.",
+  "Checking each cell alone, so a fit in one cell and a split in a later cell are never connected.",
+  "Merging code from another machine without checking it against the current layout.",
+  "Burying the one leak among many low-severity notes."
  ]
 }

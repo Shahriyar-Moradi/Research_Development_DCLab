@@ -34,7 +34,14 @@
    "fixed_before_run": true,
    "result": "Logistic regression with charge features led: ROC-AUC 0.8499, AP 0.6708, log loss 0.4108; regularized histogram boosting 0.8478, regularized random forest 0.8472, regularized LightGBM 0.8468, plain logistic C=1 0.8448, Extra Trees baseline 0.8246, prior-only floor 0.5000. The top ten sit within 0.010.",
    "verdict": "not scored",
-   "next": "Confirm the leader on a temporal or external split once the snapshot time and outcome window are known."
+   "next": "Confirm the leader on a temporal or external split once the snapshot time and outcome window are known.",
+   "against_gate": "No pass mark: logistic regression with charge features ranks first at 0.8499 (AP 0.6708, log loss 0.4108), ahead of histogram boosting at 0.8478, random forest at 0.8472 and LightGBM at 0.8468; the prior-only floor is 0.5000, and the top ten sit within 0.010.",
+   "limits": [
+    "The same development CV is reused for every candidate; there is no independent test and no event-time split.",
+    "The public data lacks the prediction time and the outcome window, so the contract cannot be checked against the data.",
+    "With the top ten within 0.010, this CV cannot separate them; the ranking is not a model choice.",
+    "The source has no household or account grouping; only exact duplicates are kept together."
+   ]
   },
   {
    "name": "deep tabular models vs simple ones",
@@ -42,7 +49,13 @@
    "fixed_before_run": false,
    "result": "Logistic regression 0.845, FT-Transformer 0.842, XGBoost 0.842, SAINT 0.842, TabTransformer 0.833.",
    "verdict": "not scored",
-   "next": "Do not spend on deep tabular models for this kind of table without a new reason."
+   "next": "Do not spend on deep tabular models for this kind of table without a new reason.",
+   "against_gate": "There is no threshold: logistic regression at 0.845 leads FT-Transformer, XGBoost and SAINT at 0.842 and TabTransformer at 0.833.",
+   "limits": [
+    "One split with no interval; gaps of a few thousandths are noise.",
+    "Telco is small and mostly categorical; the result says nothing about large or high-cardinality tables.",
+    "It used a different protocol from the 15-experiment campaign, so its numbers are not comparable with that campaign's."
+   ]
   }
  ],
  "outcome": "A well-specified linear model matched or beat every boosted and transformer model on Telco churn (0.850 development CV). Independent confirmation is still pending because the public data lacks the prediction time.",
@@ -53,5 +66,12 @@
  "commits": [
   "31d2413",
   "076803b"
+ ],
+ "risks": [
+  "Splitting exact duplicate rows across folds, so a model is scored on rows it has seen.",
+  "Using customerID, an identifier that can only memorise labels.",
+  "Reading a leaderboard of candidates that sit within noise as a model choice.",
+  "Fitting imputation, encoding or derived features on all rows before the folds.",
+  "Spending on deep tabular models before they beat a well-specified logistic regression."
  ]
 }

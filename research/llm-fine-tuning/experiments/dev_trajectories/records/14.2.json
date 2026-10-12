@@ -40,7 +40,12 @@
    "scenario": "The judgment suite on gpt-6-luna stopped after one request with 'the model request failed'; a direct tiny request showed the provider's 400: function tools with reasoning_effort are not supported for this model on chat completions; use the Responses API or set reasoning_effort to 'none'.",
    "cause": "The model refuses function tools on chat completions unless reasoning is off.",
    "fix": "The client learns that from the refusal, retries once with reasoning_effort 'none' and sends it from the start afterwards.",
-   "test": "ToolsWithoutReasoningTests with a scripted client."
+   "test": "ToolsWithoutReasoningTests with a scripted client.",
+   "impact": "No live check could run on the production model at all: every request with tools failed, so the product's agents would have stopped at their first tool call for every user on that model.",
+   "alternatives": [
+    "Move tool calls to the Responses API, as the provider's message suggests: a larger change to the client; turning reasoning off on tool turns kept the chat-completions path the gateway already accounts for."
+   ],
+   "open": "Every score on this model is for the model without reasoning on tool turns, and is not comparable with a run that keeps reasoning on."
   },
   {
    "id": "M2",
@@ -50,7 +55,8 @@
    "scenario": "In .venv-agent the usage log imported SQLAlchemy through the storage module although no database was configured, and that environment has no SQLAlchemy.",
    "cause": "The database switch was read through a module that imports SQLAlchemy.",
    "fix": "A small storage/url.py reads the switch without SQLAlchemy; routing, shadow and usage use it.",
-   "test": "AgentEnvironmentTests: the gateway opens on files with SQLAlchemy blocked."
+   "test": "AgentEnvironmentTests: the gateway opens on files with SQLAlchemy blocked.",
+   "impact": "The five specialist cases could not run in the agent environment, so one of the three live checks the owner paid for would have had no result."
   },
   {
    "id": "S1",
@@ -60,7 +66,8 @@
    "scenario": "Running the live suite printed a plan naming the previous model, as if .env were not read.",
    "cause": "The live suite did not load .env when no gateway was given.",
    "fix": "live.py loads .env when no gateway is given.",
-   "test": ""
+   "test": "",
+   "impact": "The plan shown before spending named the wrong model and no model available, so the owner would have approved a live run on the strength of a plan that did not describe what would run."
   },
   {
    "id": "F1",
@@ -70,7 +77,8 @@
    "scenario": "The gateway recorded one attempt with outcome ok for two HTTP requests; the refusal was never written; request caps undercount by one per model per process; results labelled 'gpt-6-luna' were really 'gpt-6-luna without reasoning on tool turns', which matters for 14.5's comparisons.",
    "cause": "The retry happened inside the client, below the gateway's accounting.",
    "fix": "The refused request counts as an attempt in the usage log, and a live result states its scores are without reasoning on tool turns.",
-   "test": ""
+   "test": "",
+   "impact": "Request caps undercounted by one per model per process and the refusal never reached the record, weakening the rule that every provider failure stays in the result; worse, results labelled with the model's name were really from the model with reasoning off, which would mislead the comparisons of 14.5."
   },
   {
    "id": "F2",
@@ -80,7 +88,8 @@
    "scenario": "The gateway reads DCLAB_MODEL_RETRIES and DCLAB_MODEL_BACKOFF at import, and live.py imported it before loading .env, so values set there were not used.",
    "cause": "Import order.",
    "fix": "Load .env before importing the gateway.",
-   "test": ""
+   "test": "",
+   "impact": "Retry and backoff values the owner set in .env were silently ignored by the live suite, so a live run could retry more or less than the owner had decided."
   },
   {
    "id": "F3",
@@ -90,7 +99,8 @@
    "scenario": "No test that a different 400 is raised once and not retried, that a refused retry surfaces as one error, or that the model is not added to the remembered set on an unrelated error.",
    "cause": "One scripted test.",
    "fix": "A scripted create that raises an unrelated error: one request sent, the error raised, the model not remembered.",
-   "test": "tests/test_models_gateway.py."
+   "test": "tests/test_models_gateway.py.",
+   "impact": "A retry that fired on the wrong error, or failed to raise when the retry itself was refused, would have doubled requests or hidden a failure without any test failing."
   }
  ],
  "measurements": [
@@ -99,13 +109,25 @@
    "gate": "Each path runs on the production model with a cap; every failure stays in the result.",
    "result": "All five paths ran: 21 requests, none failed, about €0.005 (synthetic design, log pattern at parse rate 1.0, the Home chat with a 10-node workflow the check accepted, cited evidence with an honest 'not covered', the intern's five tools).",
    "verdict": "pass",
-   "cost_eur": 0.005
+   "cost_eur": 0.005,
+   "against_gate": "The gate asks each path to run on the production model under a cap and every failure to stay in the result; all five paths ran, 21 requests, none failed, for about €0.005, so there was no failure to keep in this run.",
+   "limits": [
+    "Synthetic design and log data only, never a real project's data.",
+    "One run per path; a path that worked once can still fail on another input.",
+    "It shows each path completes and the code accepts what the model proposed, not that the proposals are good."
+   ]
   },
   {
    "name": "five specialist cases",
    "gate": "Each fixed case passes its hard checks.",
    "result": "All five passed, one request each.",
-   "verdict": "pass"
+   "verdict": "pass",
+   "against_gate": "The gate asks each fixed case to pass its hard checks; all five passed.",
+   "limits": [
+    "One request per case, so a model that is right only some of the time could pass by luck.",
+    "The cases are fixed and known, so they test that the specialists still work, not how they do on new problems.",
+    "Hard checks test the shape and the rules of an answer, not its quality."
+   ]
   },
   {
    "name": "judgment suite live, two repeats (AEV-013)",
@@ -113,7 +135,14 @@
    "result": "Leaks caught 0.96 (95%: 0.47–1.0), false alarms 0.28 (0–0.59), valid moves and citations 1.0; 547 requests, 3.25 M input and 31 k output tokens.",
    "verdict": "not scored",
    "cost_eur": 0.34,
-   "next": "Nearly every intern run ended on its step budget rather than finishing, and input tokens dominate the cost; two repeats are too few for tight intervals."
+   "next": "Nearly every intern run ended on its step budget rather than finishing, and input tokens dominate the cost; two repeats are too few for tight intervals.",
+   "against_gate": "No pass threshold was set for this run, so it is read rather than passed: leaks caught 0.96 with a 95% interval of 0.47–1.0, false alarms 0.28 with an interval of 0–0.59, and valid moves and citations at 1.0.",
+   "limits": [
+    "Two repeats only: the leak interval runs from 0.47 to 1.0, wide enough that the true rate could be about half.",
+    "The suite's traps are seeded and planted, so the numbers say how the model does on known traps, not on a real project.",
+    "Scores are for the model without reasoning on tool turns, after the M1 fix.",
+    "Nearly every intern run ended on its step budget, so the scores describe unfinished runs."
+   ]
   }
  ],
  "outcome": "Done (7f2a256, about €0.35 in all): every live check ran on gpt-6-luna after two fixes found by running them; the failed first run is kept as AEV-012. Open: the intern's runs end on the step budget; input tokens dominate cost; two repeats give wide intervals; scores are for the model without reasoning on tool turns.",
@@ -123,7 +152,12 @@
   "A retry below the accounting layer makes usage and caps lie; count every attempt where the money is counted.",
   "A score must name the configuration it was measured under, here reasoning off on tool turns."
  ],
- "commits": [
-  "7f2a256"
+ "commits": ["7f2a256"],
+ "risks": [
+  "A production model can refuse a request shape (tools with reasoning) that the scripted tests never exercise; only a live run finds it.",
+  "A retry added inside the client sits below the gateway's accounting, so caps and the usage log can undercount it.",
+  "Live runs spend real money; every run needs a cap, a plan shown first, and the failures kept in the record.",
+  "The agent environment differs from the main one (no SQLAlchemy, no pandas), so an import can break one environment only.",
+  "Live results must say exactly what ran (model and its settings), or later comparisons are between different things."
  ]
 }

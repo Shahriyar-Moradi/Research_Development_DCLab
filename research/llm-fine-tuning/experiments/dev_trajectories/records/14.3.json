@@ -41,7 +41,8 @@
    "scenario": "95 cases with 57 sealed, where the package asks for 100 and 60.",
    "cause": "Too few held-out bases.",
    "fix": "Add a late-deliveries generator to the test set: 108 cases, 70 sealed.",
-   "test": "test_size_and_a_split_by_source."
+   "test": "test_size_and_a_split_by_source.",
+   "impact": "With 95 cases and 57 sealed, the benchmark would have missed the size the package itself set, and its intervals would have been wider than planned; publishing it anyway would have meant quietly lowering the bar after building."
   },
   {
    "id": "T2",
@@ -51,7 +52,8 @@
    "scenario": "The agent_eval package exports a function named run that hides the module of the same name, so the benchmark's trial run called the wrong thing.",
    "cause": "A package-level name shadowing a submodule.",
    "fix": "Import the module directly in benchmark.py and in the trial.",
-   "test": "test_two_dev_cases_run_and_are_scored_by_family."
+   "test": "test_two_dev_cases_run_and_are_scored_by_family.",
+   "impact": "The trial run called the package's run function instead of the module, so the first scores could have come from the wrong code path without an obvious error."
   },
   {
    "id": "F1",
@@ -61,7 +63,12 @@
    "scenario": "The audit flags exit_rating and delivery_rating_given only because the name suggests a post-outcome value; on the neutral names (recovery_score, repayment_survey) it flags nothing, so its 1 of 2 (dev) and 1 of 5 (test) measure a lucky name, against the module's own rule that names avoid what the audit matches.",
    "cause": "Two generators gave the planted column a telling name.",
    "fix": "A limitation line in the run and the manifest saying these catches come from the name signal; the names are fixed only in a future version, because the sealed set has been scored.",
-   "test": ""
+   "test": "",
+   "impact": "The audit's catches in the missing-is-outcome family would be read as the audit spotting a missingness pattern, when two telling column names did the work; on neutral names it catches nothing, so the family's score overstates what the audit can do on a real table.",
+   "alternatives": [
+    "Rename the two telling columns now: set aside because the sealed set had already been scored, and changing it after looking would be tuning on the test set."
+   ],
+   "open": "The two telling names stay until a new benchmark version; until then that family's audit score must be read with this limitation."
   },
   {
    "id": "F2",
@@ -71,7 +78,8 @@
    "scenario": "Running the test split with --output pointing at the existing BEN-002 file runs all 210 policy runs and prints the sealed scores, then fails to write with FileExistsError.",
    "cause": "The output was checked for presence, not for existing, and only after the run.",
    "fix": "Refuse an existing output file right after parsing the arguments, before any run.",
-   "test": ""
+   "test": "",
+   "impact": "Someone could run all 210 policy runs on the sealed set, see its scores, and leave no record because the write failed at the end, which is exactly the unrecorded look at the test set the benchmark forbids."
   }
  ],
  "measurements": [
@@ -81,7 +89,14 @@
    "fixed_before_run": true,
    "result": "Audit rules: 28 of 38 leaks kept out (95%: 58–85%), 18 false alarms in 70 (17–37%). Standard plan (no model): 7 of 38 (9–33%), 12 of 70 false alarms. Bad policy: 0 of 38, valid moves 0.75. On dev (BEN-001): audit 17 of 21, standard plan 3 of 21. The reviewer's recomputation matched scipy's Wilson intervals exactly.",
    "verdict": "not scored",
-   "next": "14.5 writes the AND gate before any model runs on the sealed set; the labels are the author's until 14.4."
+   "next": "14.5 writes the AND gate before any model runs on the sealed set; the labels are the author's until 14.4.",
+   "against_gate": "There is no pass mark here: the gate asks that each scripted policy be scored on the 70 sealed cases per family with Wilson intervals and every run recorded. The audit rules kept 28 of 38 leaks out (95%: 58–85%) with 18 false alarms in 70 (17–37%); the standard plan kept 7 of 38 out (9–33%) with 12 of 70 false alarms; the bad policy kept 0 of 38 out with valid moves 0.75. The reviewer's recomputation matched scipy's Wilson intervals exactly.",
+   "limits": [
+    "The labels are the author's until the expert label review; a wrong label moves every policy's score.",
+    "Cases built from one base table are not independent, so intervals that treat each case as a separate trial are narrower than they should be.",
+    "In the missing-is-outcome family the audit's catches come from two telling column names, not from the missingness.",
+    "Once scored, the sealed set is no longer blind for any change made after looking; a fresh test needs a new version."
+   ]
   }
  ],
  "outcome": "Done (76e0d5d for Part 3's plan, 7f2a256 for the benchmark): 108 cases, 38 dev on 3 bases and 70 sealed on 6 bases (two real scikit-learn tables), fingerprints committed and checked, every sealed run recorded. Open: the labels are the author's until 14.4; cases from one base are not independent; the missing-is-outcome catches come from two telling names, kept until a new version.",
@@ -90,8 +105,12 @@
   "Refuse before running, not after: a check that fails after printing sealed scores has already leaked them.",
   "Once a sealed set is scored, a flaw in it is documented and fixed only in a new version; fixing it in place is tuning on the test set."
  ],
- "commits": [
-  "76e0d5d",
-  "7f2a256"
+ "commits": ["76e0d5d", "7f2a256"],
+ "risks": [
+  "Cases written by the same person who wrote the prompts and the audit can carry telling names that measure luck rather than judgment.",
+  "A sealed set is only sealed if every look at it is recorded; a run that prints scores and fails to write leaves an unrecorded look.",
+  "Fingerprints must be the same on every machine and pandas version, or the 'unchanged' check fails falsely on CI.",
+  "Cases that share a base table are not independent, so the intervals can look tighter than the evidence is.",
+  "The size the package asked for (100 cases, 60 sealed) must be met by adding bases, not by lowering the bar."
  ]
 }

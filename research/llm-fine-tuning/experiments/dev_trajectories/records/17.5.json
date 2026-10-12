@@ -34,7 +34,8 @@
    "scenario": "budget was read from an attribute Prepared does not have, so it was always None; costs and partial labels were never passed; every engine run said 'no budget or cost was given', even when the brief stated a review capacity, and the fraud record never said precision is a lower bound.",
    "cause": "The engine hook read the wrong object and ignored the plan's threshold policy.",
    "fix": "Give the prepared data the project's plan and label record; map the review budget to a share of rows and stated costs to costs; partial labels from the solution.",
-   "test": "test_a_binary_project_takes_its_threshold_and_label_coverage_from_the_plan"
+   "test": "test_a_binary_project_takes_its_threshold_and_label_coverage_from_the_plan",
+   "impact": "Every binary engine run chose the F1-best threshold and said no budget was given, even when the brief stated a review capacity; on the fraud replica the record never warned that precision is a lower bound under partial labels, so a team would size its review queue on the wrong threshold and read precision as exact."
   },
   {
    "id": "F2",
@@ -44,7 +45,8 @@
    "scenario": "Prevalence 0.3, costs 1 for a false alarm and 20 for a miss: the code chose to alert on 50% at a cost of 4,638; the optimum alerts on 77% at 2,374. The existing test passed only because its optima lay above the median.",
    "cause": "Candidates were quantiles from 0.5 to 0.999.",
    "fix": "Try every distinct out-of-fold score.",
-   "test": "test_the_threshold_can_alert_on_most_rows_when_misses_are_dear"
+   "test": "test_the_threshold_can_alert_on_most_rows_when_misses_are_dear",
+   "impact": "Where misses cost far more than false alarms, the search alerted on half the rows at nearly double the optimal cost (4,638 against 2,374 in the reviewer's case), so threshold and cost were both wrong exactly where the decision matters most."
   },
   {
    "id": "F3",
@@ -54,7 +56,9 @@
    "scenario": "The binary replica's record was untested; no model changed, so no replica improved by a margin; no target transform was chosen and no merge check written; a bare except could silently drop the whole assessment.",
    "cause": "The package measured but did not act, and the failure path had no test.",
    "fix": "Test the binary record and the failure path (the stage stays as it was); record the improvement margins, the target transform and merging tiny classes as open and move them to 17.6.",
-   "test": "test_an_assessment_that_fails_leaves_the_stage_as_it_was"
+   "test": "test_an_assessment_that_fails_leaves_the_stage_as_it_was",
+   "impact": "The package would have been recorded as done with its improvement clause unmet and its binary record untested, and the bare except could drop the whole assessment from a run without any test noticing.",
+   "open": "Choosing a target transform, merging tiny classes and the improvement margins are left to 17.6, and top-k is still reported whatever the action allows."
   },
   {
    "id": "F4",
@@ -64,7 +68,8 @@
    "scenario": "With a forward split on the ticket replica (a class appears late), XGBoost raised 'Invalid classes inferred', and sklearn or LightGBM returned one column fewer, so argmax gave a position instead of a label and macro F1 was silently wrong.",
    "cause": "The notebook fitted raw labels and mapped scores by position.",
    "fix": "Fit codes of the classes present and map scores back through the fitted classes, as the runner now does.",
-   "test": "test_the_exported_notebook_fits_and_scores_a_fold_without_a_class"
+   "test": "test_the_exported_notebook_fits_and_scores_a_fold_without_a_class",
+   "impact": "A person exporting the ticket project's notebook with a forward split would get a crash under XGBoost, or under sklearn and LightGBM a macro F1 computed on column positions instead of labels: silently wrong and different from the number the studio showed."
   },
   {
    "id": "F5",
@@ -74,7 +79,8 @@
    "scenario": "The cap was found on out-of-fold and holdout targets together; a constant or discrete target counted as capped.",
    "cause": "A copy of the rule, fed the wrong rows.",
    "fix": "One shared rule (analyse.target_cap) on training rows only, never a discrete scale.",
-   "test": "test_macro_recall_counts_every_class_and_a_discrete_target_is_not_capped"
+   "test": "test_macro_recall_counts_every_class_and_a_discrete_target_is_not_capped",
+   "impact": "Whether a cap was reported depended on holdout labels, a constant or discrete target was called capped, and the copied rule could drift from analyse's, so the analysis and the assessment would disagree about the same target."
   },
   {
    "id": "F6",
@@ -84,7 +90,8 @@
    "scenario": "The per-class list was cut to the 30 largest classes before averaging, leaving out the small ones.",
    "cause": "Truncation for the record happened before the computation.",
    "fix": "Average over every class, then truncate the list.",
-   "test": "test_macro_recall_counts_every_class_and_a_discrete_target_is_not_capped"
+   "test": "test_macro_recall_counts_every_class_and_a_discrete_target_is_not_capped",
+   "impact": "On a table with more than 30 classes, macro recall left out the small classes, usually the worst served, so the figure looked better than the model is."
   },
   {
    "id": "S1",
@@ -94,7 +101,8 @@
    "scenario": "On the ticket replica's forward folds an early fold lacked a class and XGBoost raised; the reviewer confirmed the old code crashes on that replica.",
    "cause": "XGBoost requires contiguous class codes.",
    "fix": "fit_and_predict fits on codes of the classes present and maps scores back.",
-   "test": "test_a_fold_without_a_class_still_fits_and_predicts_every_class"
+   "test": "test_a_fold_without_a_class_still_fits_and_predicts_every_class",
+   "impact": "Any multiclass project with a forward split and a class that appears late would crash in the engine at the first fold missing that class; the ticket replica did exactly that."
   }
  ],
  "measurements": [
@@ -105,7 +113,13 @@
    "result": "The 80% interval covered 0.81 of the holdout.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks only that the coverage reported be the one measured on the holdout: the 80% interval covered 0.81 of it, the record carries that measured figure, and it sits close to the nominal level.",
+   "limits": [
+    "A single generated delivery dataset and a single holdout, so the coverage carries sampling noise of a few points.",
+    "The interval adds the same offsets to every prediction, so coverage is an average over orders; on the long, late deliveries it can be much worse than the average shows.",
+    "The engine's test asserts a much looser bound than the measured coverage, so a later loss of coverage could pass the suite."
+   ]
   },
   {
    "name": "improvement by the acceptance margins",
@@ -114,7 +128,12 @@
    "result": "Not reached: 17.5 only measures; no model, target or training step changed.",
    "verdict": "fail",
    "cost_eur": null,
-   "next": "Moved to 17.6 as experiments the review proposes from the measured weaknesses."
+   "next": "Moved to 17.6 as experiments the review proposes from the measured weaknesses.",
+   "against_gate": "The gate needs a measured improvement on each of the two replicas by its margin; nothing was compared, because no model, target or training step changed, so neither margin was tested.",
+   "limits": [
+    "When the reviewer looked, no acceptance test set or checked a margin, so the gate had no number it could be met against.",
+    "The fail records a mismatch between a measuring package and a Done-when that asks for improvement; it says nothing about whether the recorded checks are useful."
+   ]
   }
  ],
  "outcome": "Done in part: each task's final record carries its checks (threshold from the plan, calibration, per-class results, intervals with measured coverage, errors by range and segment), chosen on training rows and read once on the holdout; a real missing-class crash fixed in the engine and the notebook. The improvement margins moved to 17.6.",
@@ -122,6 +141,13 @@
   "A threshold search with a floor at the median silently forbids the right answer when misses are expensive.",
   "Truncate for display after computing, never before.",
   "A Done-when that asks for improvement cannot be met by a package that only measures; say so and move it."
+ ],
+ "risks": [
+  "The engine hook reads the budget or the costs from an object that does not carry them, and the threshold silently falls back to the F1 optimum.",
+  "A threshold, an interval or a cap is chosen on holdout labels instead of out-of-fold predictions, making the recorded figure optimistic.",
+  "A list is truncated for display before the metric over it is averaged.",
+  "A training fold missing a class breaks models that need contiguous class codes, in the engine and in the exported notebook.",
+  "The Done-when asks for improvement by a margin, which a package that only measures cannot deliver."
  ],
  "commits": [
   "c31ddb1"

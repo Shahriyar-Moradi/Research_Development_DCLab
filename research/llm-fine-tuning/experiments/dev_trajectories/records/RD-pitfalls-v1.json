@@ -30,7 +30,9 @@
    "scenario": "On HyperAck (11,107 orders over about four and a half months, 11 leakage-safe features, LightGBM) a random split reported ROC-AUC 0.9332 and training on the first 80% by time and testing on the last 20% gave 0.9371: the random split was 0.0038 lower, not higher.",
    "cause": "The process was stable over that window, so a forward-in-time test scored as well or better.",
    "fix": "The recommendation now says: validate forward in time when future rows will be scored, report that number, and measure the gap rather than assume its direction.",
-   "test": "PIT-005 result file."
+   "test": "PIT-005 result file.",
+   "impact": "Had the copilot kept the assumption, it would have warned HyperAck users with high severity that their random split inflated the score, a claim its own measurement contradicts; a user who checked the proof would stop trusting the rest of it.",
+   "open": "One dataset and one cut-off: a faster-drifting process can still make a random split optimistic, so forward validation stays the recommendation."
   }
  ],
  "measurements": [
@@ -40,7 +42,13 @@
    "fixed_before_run": true,
    "result": "At most +0.0001 ROC-AUC on average (german_credit).",
    "verdict": "not scored",
-   "next": "Low severity for row-wise unsupervised transforms; still use a pipeline."
+   "next": "Low severity for row-wise unsupervised transforms; still use a pipeline.",
+   "against_gate": "No threshold: across 6 datasets and 3 seeds the largest average inflation was +0.0001 ROC-AUC, on german_credit.",
+   "limits": [
+    "Only unsupervised, row-wise transforms; learned or target-aware steps behave very differently.",
+    "Logistic regression only; the cost for other models was not measured.",
+    "An average over seeds hides the spread between splits."
+   ]
   },
   {
    "name": "PIT-002 selection before CV",
@@ -48,7 +56,13 @@
    "fixed_before_run": true,
    "result": "Noise canary: 0.859 with selection before CV against 0.512 inside the folds (chance 0.5); real datasets at most +0.0041.",
    "verdict": "not scored",
-   "next": "High severity for wide data (text, many engineered features)."
+   "next": "High severity for wide data (text, many engineered features).",
+   "against_gate": "No threshold: on the noise canary, selection before CV reports 0.859 against 0.512 inside the folds, where chance is 0.5; on the three real datasets the inflation is at most +0.0041.",
+   "limits": [
+    "Univariate filter selection only; wrapper or model-based selection can inflate more.",
+    "The canary is extreme by design, with far more candidate features than rows; real tables sit between it and the narrow datasets.",
+    "The real datasets were narrow; wide real data (text, many engineered features) was not tested here."
+   ]
   },
   {
    "name": "PIT-003 oversample before split",
@@ -56,7 +70,13 @@
    "fixed_before_run": true,
    "result": "Up to +0.3003 ROC-AUC on average (online_shoppers 0.9019 reported vs 0.6016 honest).",
    "verdict": "not scored",
-   "next": "Resample only inside training data and score on naturally imbalanced rows."
+   "next": "Resample only inside training data and score on naturally imbalanced rows.",
+   "against_gate": "No threshold: the worst of the 4 datasets, online_shoppers, reports 0.9019 against an honest 0.6016, an inflation of +0.3003 on average over 3 seeds.",
+   "limits": [
+    "Random duplication only; SMOTE leaks through near-duplicates instead of exact copies and was not measured.",
+    "A random forest readily memorises duplicated rows; the size of the effect depends on the model.",
+    "The figure is the worst dataset; the others inflated less."
+   ]
   },
   {
    "name": "PIT-004 target encoding before split",
@@ -64,7 +84,13 @@
    "fixed_before_run": true,
    "result": "Encoding Telco customerID (unique per row): 1.0000 vs 0.8160 honest (+0.1840); a low-cardinality HyperAck category: +0.0019.",
    "verdict": "not scored",
-   "next": "Never target-encode identifiers; encode out-of-fold."
+   "next": "Never target-encode identifiers; encode out-of-fold.",
+   "against_gate": "No threshold: encoding customerID before the split gives 1.0000 against an honest 0.8160 (+0.1840), while a low-cardinality HyperAck category inflates by only +0.0019.",
+   "limits": [
+    "One encoding scheme and one smoothing value.",
+    "Out-of-fold encoding reduces but does not remove the risk for rare categories.",
+    "customerID is the extreme case, a unique identifier that memorises every label; real categories fall between it and the low-cardinality case."
+   ]
   },
   {
    "name": "PIT-005 random split on time data",
@@ -72,7 +98,13 @@
    "fixed_before_run": true,
    "result": "Random 0.9332 vs time-ordered 0.9371 (random minus time -0.0038): not optimistic on this window.",
    "verdict": "not scored",
-   "next": "Validate forward in time anyway when future rows will be scored, and report that number."
+   "next": "Validate forward in time anyway when future rows will be scored, and report that number.",
+   "against_gate": "No threshold: the random split gives 0.9332 and the time-ordered split 0.9371, so random minus time is -0.0038; the random split was not optimistic here.",
+   "limits": [
+    "One dataset and one time cut-off; the gap depends on how fast the process drifts.",
+    "The time-ordered score comes from a single split with no interval, so a gap this small may be noise.",
+    "A window of a few months of orders; seasonal change across a year was not covered."
+   ]
   },
   {
    "name": "PIT-006 holdout reuse for selection",
@@ -80,7 +112,13 @@
    "fixed_before_run": true,
    "result": "+0.0072 ROC-AUC optimism on average, +0.0177 on german_credit; on the untouched holdout the pick ranked 7.2 of 30 on average.",
    "verdict": "not scored",
-   "next": "Tune on training CV and read the holdout once; the bias grows with the number of configurations."
+   "next": "Tune on training CV and read the holdout once; the bias grows with the number of configurations.",
+   "against_gate": "No threshold: picking the best of 30 configurations by holdout score overstates ROC-AUC by +0.0072 on average and by +0.0177 on german_credit, and the pick ranks only 7.2 of 30 on the untouched holdout.",
+   "limits": [
+    "Configurations of one model family are highly correlated, which keeps the bias small; many unrelated pipelines would inflate more.",
+    "The bias grows with the number of candidates and shrinks with holdout size; these figures hold for this setup only.",
+    "Tables were capped in size, so the holdouts were small and noisy."
+   ]
   }
  ],
  "outcome": "Six measured precedents the copilot cites as proof: the large ones (oversampling up to +0.30, identifier encoding +0.18, selection on wide noise +0.35) and the small or reversed ones (scaling 0.0001, random vs time -0.0038).",
@@ -90,5 +128,12 @@
  ],
  "commits": [
   "d9c4c24"
+ ],
+ "risks": [
+  "Measuring a mistake only on narrow real tables, where even a fatal mistake looks harmless.",
+  "Writing the wrong and right procedures after seeing results, so the comparison is shaped to the expected answer.",
+  "Leaving out harmless or reversed effects, so the copilot's severity rests on folklore after all.",
+  "Comparing the wrong and right way on different data or seeds, so the difference is not the mistake's cost.",
+  "Reporting one seed's difference as the cost of a mistake."
  ]
 }

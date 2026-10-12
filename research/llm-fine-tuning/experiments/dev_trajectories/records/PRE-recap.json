@@ -40,7 +40,11 @@
    "scenario": "The demo section still listed the old page groups after the redesign; the category-code bug was still listed as open although its fix was committed; the test section said 94 tests pass while the suite then ran more tests and one failed.",
    "cause": "A recap is a snapshot; the repository kept moving.",
    "fix": "Compare the recap with the repository before every update and refresh each number from its source.",
-   "test": "Checked against make rd-check output and git log at the time of the update."
+   "test": "Checked against make rd-check output and git log at the time of the update.",
+   "impact": "A document the owner shares would tell readers a fixed bug was open and quote a test count that no longer held, misleading the people it was written for.",
+   "alternatives": [
+    "Carry the numbers forward from the old recap: set aside because a recap that repeats stale numbers misleads the people it is shared with; every number was read again from the repository."
+   ]
   },
   {
    "id": "S2",
@@ -50,7 +54,8 @@
    "scenario": "After the new sections were added, the 'Open it' note was pushed onto a page of its own by a forced page break.",
    "cause": "A fixed page break written for the earlier length of the document.",
    "fix": "Remove the page break and regenerate the PDF.",
-   "test": "Every page of the PDF checked by eye."
+   "test": "Every page of the PDF checked by eye.",
+   "impact": "A shared PDF with a short note alone on a page looks unfinished."
   }
  ],
  "measurements": [],
@@ -58,6 +63,13 @@
  "lessons": [
   "A status document is only as good as its last check against the source; refresh every number from where it lives.",
   "Fixed page breaks break when content grows; check a regenerated PDF page by page."
+ ],
+ "risks": [
+  "Numbers copied from an older document instead of read from the repository.",
+  "Rewriting a document the owner shares before the owner agrees.",
+  "Touching another session's uncommitted work in the tree.",
+  "Fixed page breaks that break when the content grows.",
+  "Hiding a failing test in a status document."
  ],
  "commits": [
   "9ddc401"

@@ -45,7 +45,8 @@
    "scenario": "One chained shell command recorded the hashes with python -m dclab_core.prompts --record, then wrote tests/test_core_agents.py, then ran the tests. The record step failed ('a package cannot be directly executed'), the test file was never written, and the run printed OK for zero tests.",
    "cause": "The prompts package had no __main__.py, and nothing checked that the earlier steps had succeeded before trusting the final OK.",
    "fix": "Add dclab_core/prompts/__main__.py, record the hashes, write the test file in its own step, and check the number of tests that ran.",
-   "test": "tests/test_core_agents.py: 6 tests, then 7 once the analyst ran through its role."
+   "test": "tests/test_core_agents.py: 6 tests, then 7 once the analyst ran through its role.",
+   "impact": "Trusting that OK would have recorded 18.1 as tested with no test file and no recorded hashes, so the two things the package promises, the fallback guarantee and the prompt pin, would have shipped unchecked."
   },
   {
    "id": "T1",
@@ -55,7 +56,9 @@
    "scenario": "test_importing_the_core_loads_nothing_outside_its_dependencies imports every module of dclab_core, including prompts/__main__.py, which runs on import.",
    "cause": "An entry point is a script, not a library module; importing it executes it.",
    "fix": "The boundary test leaves __main__ modules out of the modules it imports.",
-   "test": "test_core_contracts BoundaryTest passes (26 tests)."
+   "test": "test_core_contracts BoundaryTest passes (26 tests).",
+   "impact": "The boundary test failed on the first entry point added to the core, and every later python -m entry point would have failed it the same way, because importing the module ran its command-line code inside the check.",
+   "open": "Entry-point modules are now checked only by reading their imports, not by importing them."
   },
   {
    "id": "T2",
@@ -65,7 +68,8 @@
    "scenario": "test_the_analysts_prompt_names_the_rules_that_keep_it_safe searched for 'never values', but the prompt file wraps the line between 'never' and 'values'.",
    "cause": "The test compared raw text with a phrase that crosses a wrapped line.",
    "fix": "The test collapses whitespace before searching.",
-   "test": "test_the_analysts_prompt_names_the_rules_that_keep_it_safe."
+   "test": "test_the_analysts_prompt_names_the_rules_that_keep_it_safe.",
+   "impact": "A safety test on the analyst's prompt failed for a line wrap, not for content; rewrapping the prompt to satisfy it would have changed its pinned hash, which by 18.1's own rule calls for measuring the role again, for no change in meaning."
   }
  ],
  "measurements": [],
@@ -73,6 +77,13 @@
  "lessons": [
   "Never trust an OK from a chain whose earlier step may have failed: check how many tests ran.",
   "Before any live call, a model role needs a fallback equal to the old behaviour, a parser that refuses what code cannot check, and a pinned prompt."
+ ],
+ "risks": [
+  "A role's fallback differs from the rules' old behaviour, so understand() changes its answers for everyone running with no model.",
+  "A prompt is edited without the role being measured again, because nothing fails when its words change.",
+  "Rows in a role's evidence fall back quietly instead of raising, hiding a caller's bug that sends data to a model.",
+  "The prompt files are left out of the wheel, so the main product finds no prompt at run time.",
+  "A parser accepts an answer that code cannot check, and a model's free text lands in a field as if it were validated."
  ],
  "commits": [
   "0c58bcf",

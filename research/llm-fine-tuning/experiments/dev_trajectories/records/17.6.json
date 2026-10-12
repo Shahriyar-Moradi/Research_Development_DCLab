@@ -39,7 +39,11 @@
    "scenario": "Forcing a clip round to be kept on the delivery replica gave adopted_params {} and a final stage without the change; the tickets run recorded its class-weights round with change {}. The final stage, the holdout score and the export never saw the change.",
    "cause": "The record serialiser drops keys starting with '_', and the tests only exercised a model__ key.",
    "fix": "Name the changes review__target, review__clip and review__class_weight; test that a kept change reaches the final stage and the record.",
-   "test": "test_a_kept_change_reaches_the_final_stage_and_the_record"
+   "test": "test_a_kept_change_reaches_the_final_stage_and_the_record",
+   "impact": "Any project where a round kept a log target, a clip or class weights would have trained and scored its final model without that change, while the models record said it was kept; the exported notebook would not replay it either. A person would read a holdout score for a model other than the one described.",
+   "alternatives": [
+    "Let the serialiser keep keys that start with '_': set aside because the same _jsonable writes the runner's experiment results and stage records, where dropping private keys is intended."
+   ]
   },
   {
    "id": "F2",
@@ -47,9 +51,11 @@
    "severity": "behaviour",
    "defect": "The entity check fired on pure noise, and the segment check flagged a calibrated model.",
    "scenario": "With 300 entities of 10 rows and no entity effect, the top-decile rule fired in 15 of 20 seeds for binary and 20 of 20 for multiclass; a segment with a higher base rate was flagged even when the model predicted that rate exactly.",
-   "cause": "Descriptive rules without a null.",
+   "cause": "The entity rule flagged the top tenth of entities by error sum without asking what share that tenth holds by chance for groups of that size, and segments were compared on raw error, which rises with the base rate even for a calibrated model.",
    "fix": "Compare entities with shuffled labels; judge segments against calibration (classes) or bias (numbers).",
-   "test": "test_noise_and_honest_differences_raise_no_alarm"
+   "test": "test_noise_and_honest_differences_raise_no_alarm",
+   "impact": "On a binary or multiclass project with an entity column, the review would record 'one entity holds the error' on pure noise in most seeds and propose entity-history features; on the fraud replica, where that hypothesis is the done-when path, the result would prove nothing. A model that predicts a high-base-rate segment exactly would be told the segment needs features of its own.",
+   "open": "The null shuffles the entity labels 50 times and alarms above the 95th percentile, so a small share of alarms on noise is still expected by design."
   },
   {
    "id": "F3",
@@ -59,7 +65,8 @@
    "scenario": "On delivery (MAE 8.29) the required gain should have been 0.083 (1%); 0.01 was used as an absolute value.",
    "cause": "The flag tuning_margin_relative was not read.",
    "fix": "Scale the margin by the base score when it is relative, as the final stage does.",
-   "test": "test_adopt_needs_a_paired_gain_beyond_noise"
+   "test": "test_adopt_needs_a_paired_gain_beyond_noise",
+   "impact": "On regression projects the studio sets a 1% margin, so on a delivery MAE of 8.29 a gain of a hundredth of a minute would have counted as clearing it; on a target measured in thousands, almost any gain above one standard error would be kept."
   },
   {
    "id": "F4",
@@ -69,7 +76,8 @@
    "scenario": "On delivery seed 1 the selected model became histogram boosting while the selected mean stayed at ridge's 8.288, the claim still said ridge leads, and the round claim 'MAE 8.2883 to 8.0746' credited the family switch to the median loss.",
    "cause": "Only the selected model was updated on a switch.",
    "fix": "Update the selected scores, name both families in the claim, and require the change to beat the family's own screen row too.",
-   "test": "test_a_family_switch_keeps_the_record_consistent"
+   "test": "test_a_family_switch_keeps_the_record_consistent",
+   "impact": "The page's 'training-CV MAE of the choice' would show ridge's 8.288 for a histogram-boosting model, and the round claim would credit the family switch to the median loss, so a person judging the loss would be judging the wrong gain."
   },
   {
    "id": "F5",
@@ -79,7 +87,8 @@
    "scenario": "The review got the full training frame, so a forbidden post-outcome status with few levels could become a weakness and a hypothesis advising features from it.",
    "cause": "The frame was passed before blocked columns were removed.",
    "fix": "Drop blocked and forbidden columns, the time column and text columns before the review.",
-   "test": "test_classes_segments_and_entities"
+   "test": "test_classes_segments_and_entities",
+   "impact": "A forbidden post-outcome status with a few levels could be named as the segment where the model fails, and the hypothesis would advise building features from it, in a record the intern reads: advice that, followed, puts a leak back into the model."
   },
   {
    "id": "F6",
@@ -87,9 +96,14 @@
    "severity": "behaviour",
    "defect": "The adoption rule was weak and the final CV mean optimistic.",
    "scenario": "With 3 folds, 'mean above 1 SE' keeps a null change about 21% of the time, about 38% over two rounds; each experiment is chosen and tested on the same errors.",
-   "cause": "A lenient threshold.",
+   "cause": "A change was kept when its mean paired gain exceeded one standard error; with 3 folds that bar is crossed by a change with no effect about 21% of the time.",
    "fix": "Require the one-sided 90% t bound; say in the round claim and the final stage that the kept training-CV score is optimistic.",
-   "test": "test_adopt_needs_a_paired_gain_beyond_noise"
+   "test": "test_adopt_needs_a_paired_gain_beyond_noise",
+   "impact": "Roughly one null change in five per round, and over a third across two rounds, would be kept, moving the final model and reported as a gain measured on the same folds it was chosen on.",
+   "alternatives": [
+    "Use scipy's t distribution for the bound: set aside because dclab_core may import only numpy, pandas, scikit-learn and pydantic, and its boundary test enforces that; a small t-table read conservatively gives the same quantiles."
+   ],
+   "open": "The kept change's training-CV score stays optimistic, because the experiment is chosen and tested on the same out-of-fold errors; the claim says so, and only the holdout score is independent."
   },
   {
    "id": "F7",
@@ -99,7 +113,8 @@
    "scenario": "A kept class-weight change merged with a tuning candidate that already sets class_weight balanced would square the inverse frequencies.",
    "cause": "The final stage merged candidate and kept parameters blindly.",
    "fix": "Drop the candidate's class_weight when class weights are kept.",
-   "test": ""
+   "test": "",
+   "impact": "A project that kept balanced class weights and was tuned with the logistic candidate that already sets them would weight rare classes by the square of their inverse frequency, shifting the threshold and the per-class results without anyone choosing it."
   }
  ],
  "measurements": [
@@ -110,7 +125,13 @@
    "result": "The cap and the lopsided errors are found on seeds 0 to 2 and a median loss gains on average every time. When 17.6 was committed, seed 1's gain cleared the bound and was kept (ridge to histogram boosting with an absolute loss, holdout MAE about 7.7); seeds 0 (gain +0.141, SE 0.207) and 2 stayed within noise and were refused. Since 15.4 changed the features, seed 1 sits on the bound (+0.2958 against 0.296) and is not kept.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "The fraud replica's entity path waited for 15.4."
+   "next": "The fraud replica's entity path waited for 15.4.",
+   "against_gate": "Seed 0 gained +0.141 with a standard error of 0.207, inside one standard error and short of the one-sided 90% t bound, so it was refused; seed 2 also stayed within noise and was refused. Seed 1 cleared the bound when 17.6 was committed and its change was kept, with holdout MAE about 7.7 from the holdout's single use. Since 15.4, seed 1 gains +0.2958 against a bound of 0.296 and is refused too: the rule decided each case as written.",
+   "limits": [
+    "Seeds 0 to 2 of one invented replica: whether a change is kept here hangs on a gain that later sat a hair under the bound.",
+    "The kept change was chosen from the same out-of-fold errors it was tested on, so its training-CV score is optimistic; only the holdout MAE is independent, and it comes from one holdout on one seed.",
+    "The fraud replica's entity path was not exercised, so the done-when's other branch is untested here."
+   ]
   },
   {
    "name": "review rounds on the ticket replica",
@@ -119,7 +140,12 @@
    "result": "Class weights lost on every fold (gains -0.062, -0.011, -0.019) and were refused; the multiclass margin is not reached because the signal is in the ticket text, which multiclass does not model yet.",
    "verdict": "fail",
    "cost_eur": null,
-   "next": "Text for multiclass is a later kind (16.x)."
+   "next": "Text for multiclass is a later kind (16.x).",
+   "against_gate": "Class weights lost on every fold (-0.062, -0.011, -0.019), so no margin or bound could be beaten and the rule refused them, as it should. The package's own target for this replica, an improvement on folds, is not reached: no change was kept.",
+   "limits": [
+    "The ticket signal lives in the text, which the multiclass path does not model, so this tests only whether class weights help, not whether review rounds can help multiclass.",
+    "The fail is the replica's improvement target, not the rule: refusing a change that loses on every fold is the rule working."
+   ]
   }
  ],
  "outcome": "Done: error analysis on training rows, hypotheses that cite measured weaknesses, at most two rounds on the same folds under a t-bound rule, the kept change carried to the final stage and the export, the holdout used once; seven review findings fixed.",
@@ -127,6 +153,13 @@
   "A serialiser that drops private-looking keys can silently erase the result of a whole stage; name state you need to keep plainly.",
   "With three folds, one standard error is not evidence; use the t bound.",
   "A record that changes its selected model must change every number and claim that describes it."
+ ],
+ "risks": [
+  "Choosing and testing a change on the same out-of-fold errors makes the training-CV score optimistic; the holdout must stay untouched until the final stage.",
+  "With only a few folds, a gain of one standard error is noise; the keep rule needs a real bound or null changes get kept.",
+  "A kept change must reach the final stage, the holdout score and the export; if the stored record loses it, the review only looks like it worked.",
+  "Error analysis on the training frame can see forbidden or post-outcome columns and advise building on a leak.",
+  "Descriptive alarms (an entity or a segment 'holding the error') fire on noise unless compared with a null."
  ],
  "commits": [
   "54b8950"

@@ -43,7 +43,8 @@
    "scenario": "On tickets, weights.balanced forced to be adopted on extra_trees gave review.selected_mean 0.4155 against one pass 0.4049, but the harness read selected_metric_mean, still 0.4049, so 'better' was False and the verdict fail.",
    "cause": "The engine updates selected_metric_mean only when a review switches family.",
    "fix": "The harness reads review.selected_mean when present, else selected_metric_mean.",
-   "test": "test_the_critic_gate."
+   "test": "test_the_critic_gate.",
+   "impact": "A critic that really helped (0.4155 against 0.4049 on tickets in the probe) would have been judged no better than one pass, and the gate would have failed a useful role on a number the loop never writes."
   },
   {
    "id": "R2",
@@ -53,7 +54,8 @@
    "scenario": "kept_cite_weaknesses only checked that the cite list was non-empty; the set of measured weaknesses was computed and never used.",
    "cause": "An unused variable in the harness.",
    "fix": "Each kept change's cites must be a subset of the measured weakness ids.",
-   "test": "test_the_critic_gate."
+   "test": "test_the_critic_gate.",
+   "impact": "A kept change citing any id at all, measured weakness or not, would have satisfied 'every kept change cites a measured weakness', so that condition of the gate could not fail."
   },
   {
    "id": "R3",
@@ -63,7 +65,8 @@
    "scenario": "measure_critic compared one pass with the loop including the critic; a pass could come entirely from 17.6's rules and say nothing about the critic.",
    "cause": "The deterministic path the role must beat was not run.",
    "fix": "The harness runs the rules' loop without the critic and the gate requires the critic loop to be at least as good on each replica (gate text marked as revised after review, before any run).",
-   "test": "test_the_critic_gate."
+   "test": "test_the_critic_gate.",
+   "impact": "A pass would have been credited to the critic even when the rules' loop alone produced the gain, and the owner could have switched on a paid role that adds nothing over code."
   },
   {
    "id": "R4",
@@ -73,7 +76,11 @@
    "scenario": "With an RMSE metric, the critic added predictions.clip citing F-weak-residual_skew; the rules exclude clip unless predictions fall out of range or above the cap, yet the engine ran it, using one of the two rounds and possibly pushing out a rule experiment. The critic's free-text statement also went into the stage claim unchecked.",
    "cause": "_critic_parse accepted any measured weakness id for any catalogue experiment.",
    "fix": "A cite must have a topic the experiment addresses and the rules' own guards apply (the metric condition for loss.median, out-of-range for clip); the claim keeps the catalogue's words.",
-   "test": "test_the_engine_runs_the_critics_choice_and_records_it (a log target citing a cap is refused and the rules' choice runs)."
+   "test": "test_the_engine_runs_the_critics_choice_and_records_it (a log target citing a cap is refused and the rules' choice runs).",
+   "impact": "On an RMSE project the critic could spend one of the two review rounds on clipping the rules exclude, possibly pushing out the experiment the rules would have run, and its unchecked sentence would sit in the stage claim as if it had passed critic_gate.",
+   "alternatives": [
+    "Number-check the critic's statement with critic_gate and keep it as the claim (the reviewer's other option): set aside; the claim keeps the catalogue's words and the statement is stored beside it, so a model's free text never becomes a claim."
+   ]
   },
   {
    "id": "R5",
@@ -83,7 +90,8 @@
    "scenario": "critique(..., score=nan) raised EvidenceError; the outer try in _review_rounds then dropped every round, the rules' included.",
    "cause": "consult passes an evidence error to the caller by design.",
    "fix": "A non-finite score is sent as missing, and critique falls back to the rules' order on an evidence error.",
-   "test": "test_the_critic_ranks_checked_hypotheses_and_falls_back_to_the_rules."
+   "test": "test_the_critic_ranks_checked_hypotheses_and_falls_back_to_the_rules.",
+   "impact": "A project with a missing or infinite score would lose its whole review, the rules' rounds too, only because the critic was on, so switching on the model would leave the loop worse than without it."
   },
   {
    "id": "R6",
@@ -93,7 +101,8 @@
    "scenario": "Items that were not mappings and items past the 10th disappeared silently.",
    "cause": "Only validated refusals were recorded.",
    "fix": "They are recorded in refused as malformed or with their reason.",
-   "test": ""
+   "test": "",
+   "impact": "The record would have understated what the critic proposed: items past the 10th and malformed ones vanished, so a reader could not tell a disciplined critic from one answering with noise."
   }
  ],
  "measurements": [
@@ -104,7 +113,13 @@
    "result": "Delivery: the critic chose the median loss (and its own clip proposal was refused as not following from the weaknesses); paired gain +0.184 MAE did not beat the bound 0.548, so not kept; score 8.75 MAE, equal to one pass and to the rules' loop. Tickets: class weights, gain +0.005 against a bound of 0.0136, not kept; macro F1 0.408, equal to both. Holdout used once on both. No harm, no gain. gpt-6-luna, 4 requests.",
    "verdict": "fail",
    "cost_eur": 0.0009,
-   "next": "It stays off. It needs replicas where a review round can help beyond fold noise before it can show value."
+   "next": "It stays off. It needs replicas where a review round can help beyond fold noise before it can show value.",
+   "against_gate": "Delivery: the median loss gained +0.184 MAE, short of the bound 0.548, so it was not kept and the score stayed at 8.75, equal to one pass and to the rules' loop. Tickets: +0.005 against a bound of 0.0136, not kept, and macro F1 0.408 equal to both. 'Never worse' holds on both replicas and the holdout was used once, but 'better than one pass on at least one replica' fails on both, so the gate fails.",
+   "limits": [
+    "On both replicas every candidate gain sat inside fold noise, so no ordering of experiments, the critic's or the rules', could have shown a gain; this run cannot tell a good critic from a useless one.",
+    "With few folds the one-sided bound is wide (0.548 against a mean gain of +0.184 on delivery), so a real but small improvement cannot pass it.",
+    "Two invented replicas only; the fraud replica, the problem this work was built for, was not in the run."
+   ]
   }
  ],
  "outcome": "Measured, gate failed: with the critic, the loop equalled one pass and the rules' loop on both replicas (EUR 0.0009), so the critic stays off by default. The review's six findings, among them a harness that could not see a gain and citations accepted without relevance, were fixed before the run.",
@@ -112,6 +127,13 @@
   "Read the score the loop actually updates; otherwise a real gain reads as none.",
   "A role that ranks experiments must beat the rules' own ranking, not only no ranking.",
   "When every candidate change sits within fold noise, no ranking can show value: the measurement needs a case where improvement is possible."
+ ],
+ "risks": [
+  "The harness reading a score the review rounds never update, so a real gain reads as none.",
+  "A gate without the rules' own loop as an arm, so a pass could come entirely from 17.6's rules and say nothing about the critic.",
+  "The critic citing any measured weakness for any experiment, spending one of the few rounds on an experiment the rules would exclude.",
+  "The critic's free-text statement, numbers included, reaching the stage claims without the critic_gate check.",
+  "A model failure (a non-finite score, a malformed answer) dropping the whole review, the rules' rounds included."
  ],
  "commits": [
   "4487916",

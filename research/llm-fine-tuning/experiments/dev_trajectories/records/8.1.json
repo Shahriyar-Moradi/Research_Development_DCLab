@@ -39,7 +39,10 @@
    "scenario": "On qwen2.5-coder:1.5b the intern's final reply was a list of ```json blocks naming plan_next_stage, use_sample, describe_data and propose_solution; no tool ran (0 steps) and the session said completed.",
    "cause": "The runtime treated any reply without a tool call as the final answer.",
    "fix": "When no tool has run and the reply writes calls as text, the runtime nudges once and then stops with 'tools_as_text'; the intern fails the session with the reason.",
-   "test": "test_tool_calls_written_as_text_are_not_an_answer; test_a_session_whose_model_writes_its_calls_as_text_is_not_completed."
+   "test": "test_tool_calls_written_as_text_are_not_an_answer; test_a_session_whose_model_writes_its_calls_as_text_is_not_completed.",
+   "impact": "With a model that writes its calls as text, an intern session that looked at nothing ended 'completed', its report written without reading the data. A user would take an audit with no steps behind it for a finished one.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R1",
@@ -49,7 +52,10 @@
    "scenario": "With a streaming scripted client: JSON text, then a real ask_user call left the JSON bubble on the page; JSON text twice dropped only the second. The event log replays it after a reconnect.",
    "cause": "The model wrapper kept only the latest bubble id.",
    "fix": "Before each new request, drop the previous live bubble when one is set.",
-   "test": "test_a_reply_streamed_before_a_nudge_is_dropped_from_the_page."
+   "test": "test_a_reply_streamed_before_a_nudge_is_dropped_from_the_page.",
+   "impact": "On Home, the raw JSON the model wrote before the nudge stayed in the conversation, and the event log replayed it after every reconnect, so the user kept seeing a broken message as if it were the agent's reply.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R2",
@@ -59,7 +65,10 @@
    "scenario": "Three live sessions: one wrote calls inside a <tools> tag the pattern did not match; one answered after the nudge 'I'm unable to run tool calls directly...', which counted as an answer; one failed as intended.",
    "cause": "Matching one exact text form of a call.",
    "fix": "Once nudged, any reply without a tool call ends as tools_as_text; the <tools> form is recognised.",
-   "test": ""
+   "test": "",
+   "impact": "Against the very model that exposed the defect, sessions still ended 'completed' with no steps when the call came in another text form or the model answered the nudge in prose; the fix the package claimed did not hold.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R3",
@@ -69,7 +78,12 @@
    "scenario": "The model called list_samples, then twice wrote a report containing a fenced JSON call plus prose; the session failed with 'nothing ran' though steps was 1, and the report was replaced.",
    "cause": "The text check ran regardless of real work.",
    "fix": "The check applies only in a run where no tool has run; the final text is kept; the error wording is accurate.",
-   "test": "A scripted test with a report after real work stays an answer."
+   "test": "A scripted test with a report after real work stays an answer.",
+   "impact": "A session that did real work and then quoted a call in its report was marked failed with 'nothing ran', and its report was replaced, so the user lost a correct result and was told the opposite of what happened.",
+   "alternatives": [
+    "Flag a reply only when little prose remains after removing the matched JSON and fences: set aside for the plainer rule that the check applies only in a run where no tool has run, which cannot misfire after real work."
+   ],
+   "open": ""
   },
   {
    "id": "R4",
@@ -79,7 +93,10 @@
    "scenario": "With --ollama no-such-model:0b the usage line said 5 requests, 5 failed, yet the script printed that the evidence answers were refused by the citation check and the synthetic design was refused; on an account without credit every path would read as a validator refusal and the run would pass.",
    "cause": "The readout inferred refusal from the absence of an accepted proposal.",
    "fix": "Read each purpose's request counts before and after a path; print FAIL and exit 1 when all its requests failed; branch the evidence readout on its mode.",
-   "test": ""
+   "test": "",
+   "impact": "On an account with no credit every path would have printed a validator refusal and the script would have exited 0, so a run in which no model answered would have been recorded as the validators doing their job.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R5",
@@ -89,7 +106,10 @@
    "scenario": "Session steps carry ok and summary, never result, so a refused or blocked step was never listed.",
    "cause": "The script read a field the session does not have.",
    "fix": "List steps whose ok is False.",
-   "test": ""
+   "test": "",
+   "impact": "A step the guard refused or blocked never appeared in the readout, so the report could not show where the validators stopped the model, which is what the package set out to observe.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R6",
@@ -99,7 +119,12 @@
    "scenario": "The task 'Use the bike sample' loaded the bundled public bike table, and the intern purpose sends column profiles with up to three example values; with --configured those rows would go to OpenAI while the docstring said only made-up tables are used.",
    "cause": "The task reused a convenient sample.",
    "fix": "The intern runs on a project built from a made-up table.",
-   "test": ""
+   "test": "",
+   "impact": "With --configured, rows of a public sample table would have gone to OpenAI while the docstring and the package promised made-up data only; anyone trusting that promise would be wrong about what left the machine.",
+   "alternatives": [
+    "Say in the docstring and the row that a public sample is used: set aside, because the package asked for made-up data only."
+   ],
+   "open": ""
   },
   {
    "id": "R7",
@@ -109,7 +134,10 @@
    "scenario": "The server loads .env without overriding the environment, and the script blanked only the tier variables in its own environment; with a strong tier configured in .env, the intern purpose would go to that paid provider, uncapped and without a prompt.",
    "cause": "Precedence between the script's environment and .env was assumed.",
    "fix": "Blank every routable tier's base URL, model, key and local flag, set DCLAB_INTERN_MODEL to the local model, and abort unless /api/models reports every tier local.",
-   "test": ""
+   "test": "",
+   "impact": "A run sold as free and local would have sent the intern's requests, column examples included, to a paid provider named in .env, uncapped and without asking.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R8",
@@ -119,7 +147,10 @@
    "scenario": "The live judgment suite treated every failed session as 'an error is not the model's judgment', marked the run unscored and skipped every later case.",
    "cause": "Writing calls as text is the model's own behaviour, not an infrastructure error.",
    "fix": "Mark the session ended='tools_as_text' and score such a run.",
-   "test": "test_a_model_that_writes_its_calls_as_text_is_scored_not_cut_short."
+   "test": "test_a_model_that_writes_its_calls_as_text_is_scored_not_cut_short.",
+   "impact": "One session that wrote its calls as text stopped make agent-eval-live and skipped every later case, so the weakness the live suite most needs to measure produced no score at all instead of a low one.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "R9",
@@ -129,7 +160,10 @@
    "scenario": "Five live sessions: two failed as intended; three completed with 0 tool calls, replying with 'Write_plan' and a JSON plan, a prose description of steps, and a bare JSON budget object; none named an allowed tool inside a block.",
    "cause": "Text matching cannot catch prose that never mentions a tool.",
    "fix": "Policy.must_act: the intern sets it on a turn where the session has no steps yet, so a first turn that answers without any call gets the nudge and then fails with a reason; session['ended'] is reset at the start of a run.",
-   "test": "test_a_first_turn_answered_in_prose_without_looking_is_not_a_report."
+   "test": "test_a_first_turn_answered_in_prose_without_looking_is_not_a_report.",
+   "impact": "Three of five live sessions still ended 'completed' with no tool call, each with a report made without looking at the data: the defect the package claimed fixed was still there in its prose form.",
+   "alternatives": [],
+   "open": "A first answer that only mentions a tool name inside braces or a code fence can still be taken for a written call and, after the nudge, end as tools_as_text; the reviewer judged this rare."
   },
   {
    "id": "R10",
@@ -139,7 +173,10 @@
    "scenario": "In both full runs the model never called propose_workflow; the readout showed the template workflow, so the check had not seen a model's proposal while the row said every path ran.",
    "cause": "The script never asked for a workflow.",
    "fix": "The script asks the Home agent to draw the solution's steps and reports 'proposed and accepted' only when the workflow's source is the model; the row says this path waits for the OpenAI run.",
-   "test": ""
+   "test": "",
+   "impact": "The row claimed every model path ran while the workflow check had never seen a model's proposal, so the first workflow a model proposes in use would meet a check that has not been tried on one.",
+   "alternatives": [],
+   "open": "The workflow check still waits for the run with OpenAI to see a model's proposal."
   },
   {
    "id": "R11",
@@ -149,7 +186,10 @@
    "scenario": "The draft of the 8.1 status row quoted the key's ending to identify the account, in a committed document.",
    "cause": "Identifying information copied into a committed file.",
    "fix": "The row names no key characters; they were shown to the owner only in chat.",
-   "test": ""
+   "test": "",
+   "impact": "Part of the owner's OpenAI key would have entered the history of main, which refuses force-pushes, so it could not have been taken back out.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [
@@ -160,7 +200,13 @@
    "result": "All 7 requests were refused (insufficient_quota); no tokens used; the fallbacks worked. A run on the local model streamed 34 chunks with none dropped and found the stalled-chat defect.",
    "verdict": "fail",
    "cost_eur": 0.0,
-   "next": "Fix the failure path (07da5f1) and the stall (a8eae10); rerun when credit exists."
+   "next": "Fix the failure path (07da5f1) and the stall (a8eae10); rerun when credit exists.",
+   "against_gate": "The gate asks each path to run once with the configured key. All 7 requests were refused (insufficient_quota) and no tokens were used, so no path ran against the model: the gate fails. The fallbacks worked, and the local run (34 chunks streamed, none dropped) found the stalled-chat defect.",
+   "limits": [
+    "No model answered, so nothing was learned about how the validators handle real proposals.",
+    "The refusals come from an account without credit, not from the code; the same gate has to run again once credit exists.",
+    "The streamed chunks were counted on a small local model, not on the configured provider."
+   ]
   },
   {
    "name": "every path on a local model",
@@ -169,7 +215,14 @@
    "result": "14 requests, about 17,400 tokens in and 2,400 out, no cost: the Home chat streamed, asked and recorded; the synthetic design was refused and a template used, saying so; the parse pattern was unusable and the file read as plain text; the evidence answer to a covered question was wrongly 'not covered' and an uncovered one was dropped by the citation check; one defect found and fixed. The model never proposed a workflow, so that check has not seen a proposal.",
    "verdict": "pass",
    "cost_eur": 0.0,
-   "next": "Run make model-paths ARGS=\"--configured --cap-eur 2\" with OpenAI once the account has credit, mainly to see a model's workflow proposal."
+   "next": "Run make model-paths ARGS=\"--configured --cap-eur 2\" with OpenAI once the account has credit, mainly to see a model's workflow proposal.",
+   "against_gate": "The gate asks that each path has run once on made-up data, that the validators accepted or correctly refused what the model proposed, and that anything broken has a fix and a test. 14 requests ran at no cost; the synthetic design and the parse pattern were refused and fell back, saying so; the one defect found was fixed with tests. The workflow path is the exception: the model never proposed a workflow, so its check has not seen a proposal, and the row says so.",
+   "limits": [
+    "One small local model is a weak adversary for the plumbing, not a guide to how a strong model's proposals fare.",
+    "Each path ran once; the evidence answers were wrong in both directions, which shows the model is weak, not that the citation check handles good answers.",
+    "The workflow check has not seen a model's proposal at all.",
+    "Requests and tokens are from one run; reruns of the same script gave different token counts."
+   ]
   }
  ],
  "outcome": "Done with a local model: every path ran against qwen2.5-coder:1.5b on made-up data; the validators refused the weak model's proposals correctly; the one defect (calls written as text, or a prose first turn, ending 'completed') is fixed with tests. Eight review findings and two re-review findings fixed; final review PASS. The run with OpenAI waits for credit.",
@@ -177,6 +230,13 @@
   "A weak local model is a cheap adversary: it exposes every place the loop trusts the model to call tools.",
   "A test script must tell 'the model's request failed' from 'the validator refused the proposal'; otherwise an empty account passes.",
   "A 'free, local' switch must override every setting that could route to a paid provider, and verify it after starting."
+ ],
+ "risks": [
+  "A weak model may write its tool calls as text; a loop that treats any reply without a call as the answer would report work that never ran.",
+  "A test script could read a failed model request as a validator refusal, so an account without credit would pass every path.",
+  "A 'free, local' run could still reach a paid provider through tier settings left in .env.",
+  "A script meant for made-up data could send a real sample table to the provider.",
+  "A status row that identifies the account could publish part of a key in a committed file."
  ],
  "commits": [
   "c91a57b",

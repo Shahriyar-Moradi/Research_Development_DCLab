@@ -43,7 +43,8 @@
    "scenario": "problem_profile(analyse({'orders.csv': delivery orders}, target='actual_minutes')) without a training index returned the target's min, max and median with the note '(training rows)' and nothing listed as excluded.",
    "cause": "The adapter copied the figures whether or not the findings had a training split.",
    "fix": "When the findings have no training rows (or carry the no-split warning), the three target fields are None with a note, and listed as excluded.",
-   "test": "test_target_statistics_of_every_row_never_cross"
+   "test": "test_target_statistics_of_every_row_never_cross",
+   "impact": "The main product would receive the target's minimum, maximum and median computed on every row, holdout included, under a note saying 'training rows', and could plan on them; holdout information would cross into decisions it believes are training-only (rule 2)."
   },
   {
    "id": "F2",
@@ -53,7 +54,9 @@
    "scenario": "Following the guide, analyse(..., target=None, brief=understand(...)) took the target from the brief and computed the distribution, the cap and leak tests on all rows before the lock.",
    "cause": "analyse falls back to the brief's target column.",
    "fix": "The guide passes no brief before the lock, and a test asserts no target or leakage finding there.",
-   "test": "test_before_the_holdout_lock_the_guides_call_reads_no_target"
+   "test": "test_before_the_holdout_lock_the_guides_call_reads_no_target",
+   "impact": "An engineer of the main product following the guide would compute target statistics, the cap and leak tests on all rows before the holdout is locked, on this repository's own instruction; the leak would live in the other repository, where none of these tests run.",
+   "open": "analyse still takes the target from a brief when target is None, so a host that passes the brief before the lock still reads the target; only the guide's call and its test prevent it. A target_free flag in analyse, which the reviewer called the cleaner fix, was not built."
   },
   {
    "id": "F3",
@@ -61,9 +64,10 @@
    "severity": "behaviour",
    "defect": "The guide's call after the lock omitted the training index.",
    "scenario": "analyse on the locked training rows without train_index added a spurious no-split warning that the plan turns into a risk and a split citation in every run.",
-   "cause": "A missing argument in the guide.",
+   "cause": "The guide's post-lock call left out train_index, so analyse treated the locked training rows as unsplit and added F-no-split.",
    "fix": "Pass train_index=locked_train.index.",
-   "test": ""
+   "test": "",
+   "impact": "Every main-product run following the guide would carry a spurious no-split warning that the plan turns into a risk and a split citation, and once F1's guard applied, the profile's target fields would drop to None as well."
   },
   {
    "id": "F4",
@@ -73,7 +77,8 @@
    "scenario": "The test only searched for the word 'holdout'; copying the holdout precision into the threshold fields would have passed, since in the budget case both precisions were 1.0.",
    "cause": "A test of names, not of values.",
    "fix": "An invariance test: run assess twice with different holdout labels and scores and require identical threshold fields and notes.",
-   "test": "test_the_threshold_record_does_not_move_with_the_holdout"
+   "test": "test_the_threshold_record_does_not_move_with_the_holdout",
+   "impact": "A later edit that copied the holdout precision or recall into the threshold fields would pass the suite, so the guard against holdout figures crossing would be untested at the one place it is needed."
   },
   {
    "id": "F5",
@@ -83,7 +88,8 @@
    "scenario": "experiment_plan took the brief's target column whenever known, including when it was only inferred, though the target is an answer a person must give.",
    "cause": "The status of the fact was not read.",
    "fix": "An inferred target is flagged: 'inferred, not stated; a person confirms it'.",
-   "test": "test_an_inferred_target_is_flagged_for_a_person"
+   "test": "test_an_inferred_target_is_flagged_for_a_person",
+   "impact": "The main product would receive a guessed target column with nothing saying a person must confirm it; the target is an answer only a person can give, and a wrong guess sets the label of the whole experiment."
   },
   {
    "id": "F6",
@@ -93,7 +99,9 @@
    "scenario": "gradient_boosting expanded to xgboost, lightgbm and catboost from the recorded portfolio; on a host without catboost the main product refuses the whole answer as a family not in its portfolio.",
    "cause": "The adapter assumed the host's installed families.",
    "fix": "The guide and the function say the host intersects the list with its own portfolio before submitting; the note explains the same-named sklearn family.",
-   "test": ""
+   "test": "",
+   "impact": "On a main-product host without catboost, its families point would refuse the whole answer as naming a family outside its portfolio, so the core's family proposal would add nothing there.",
+   "open": "The intersection is a step the host must take, written in the guide and the docstring; the adapter still lists families from the recorded portfolio."
   },
   {
    "id": "F7",
@@ -103,7 +111,8 @@
    "scenario": "For a time-and-entity split it returned stratified False, while the main product's planner returns stratified for classification tasks in that case, and the adapter's own validation_plan already did.",
    "cause": "Two functions mirrored the host differently.",
    "fix": "stratified = classification when the strategy is unsupported.",
-   "test": "test_a_split_the_main_product_cannot_hold_is_unsupported_not_forced"
+   "test": "test_a_split_the_main_product_cannot_hold_is_unsupported_not_forced",
+   "impact": "For a time-and-entity split the adapter's holdout plan and its validation plan would disagree on stratification, and the holdout plan would differ from what the main product's own planner answers for classification."
   },
   {
    "id": "F8",
@@ -113,7 +122,11 @@
    "scenario": "The main product refuses constraints or success criteria over 16 KB; the adapter put every brief constraint and criterion in unbounded, so a long brief would be answered with a 422.",
    "cause": "The limit was not recorded.",
    "fix": "Record the limit and leave over-limit fields to a person with a note.",
-   "test": "test_constraints_over_the_main_products_size_limit_are_left_to_a_person"
+   "test": "test_constraints_over_the_main_products_size_limit_are_left_to_a_person",
+   "impact": "A long brief would push the ProblemSpec's constraints or success criteria past the main product's size limit, and the host would answer with a 422, losing the whole spec rather than one field.",
+   "alternatives": [
+    "Clip the fields to fit, the reviewer's other option: a clipped constraint would silently drop part of what the person wrote, while leaving the field to a person with a note keeps it whole."
+   ]
   }
  ],
  "measurements": [
@@ -124,7 +137,12 @@
    "result": "Wheel 0.2.0 built with uv, installed with only its dependency closure (numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1), no unexpected packages, and solved the delivery replica from an unrelated folder in about 80 s; the reviewer re-ran it and it passed.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "Wheel 0.2.0 installed in a clean Python 3.12 with exactly its dependency closure (numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1) and no unexpected packages, which is the gate's 'only its dependencies'; it then solved the delivery replica from an unrelated folder in about 80 s, so it works without the repository on the path. The reviewer's own run passed as well.",
+   "limits": [
+    "One machine's Python 3.12, with the dependency versions the resolver picked that day; other platforms and the pyproject's lower bounds were not tried.",
+    "The wheel test in the suite is opt-in, so make rd-check does not rebuild the wheel; the claim holds only as of the last make core-wheel-check."
+   ]
   },
   {
    "name": "the mapping against the recorded field lists",
@@ -133,7 +151,13 @@
    "result": "Passes; the acceptance proposals map as expected (fraud: group-disjoint by biker, StratifiedGroupKFold, pr_auc; tickets: temporal_future; delivery: GroupKFold by restaurant, mae).",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "On the three replicas every output carries exactly the recorded fields in plain JSON, and each acceptance proposal maps as expected: fraud to a group-disjoint split by biker with StratifiedGroupKFold and pr_auc, tickets to temporal_future, delivery to GroupKFold by restaurant with mae.",
+   "limits": [
+    "The field lists come from one commit of the main product; a change there after that commit is not seen until they are read again.",
+    "Matching the recorded shape is not acceptance by the main product: no payload was sent to it, and its size limit and family portfolio were found only by reading its code.",
+    "The recorded file leaves out a few things the reviewer noted (the lead points, each point's outcome scope), harmless for the current mapping."
+   ]
   }
  ],
  "outcome": "Done: dclab_core 0.2.0 as a wheel with a changelog, its outputs mapped field by field onto the main product's contracts at a recorded commit, and a guide naming each call site; 8 review findings fixed. Wiring is the main repository's own change. Open: before the lock the core reads no target, so its split proposal there is weaker; per-role output schemas; the main product's improve loop is not built yet.",
@@ -141,6 +165,13 @@
   "An integration guide is code: a wrong argument in it (a brief before the lock) leaks as surely as a bug.",
   "Test that holdout figures do not cross by changing the holdout and checking nothing moves, not by searching for a word.",
   "Record the other system's limits (sizes, portfolios) with its field lists, or valid output gets refused there."
+ ],
+ "risks": [
+  "Target statistics computed on every row, or holdout figures, could cross into the main product labelled as training figures.",
+  "The guide is code the main product will follow: a wrong argument in a call (a brief before the lock, a missing train_index) leaks or adds noise there, outside this repository's tests.",
+  "Field lists read at one commit go stale; the mapping must be tested against what was recorded, and the commit named.",
+  "The other system's limits (payload size, installed families, its planners' answers for unsupported splits) can refuse output that looks valid here.",
+  "The wheel could need packages beyond the core's four dependencies, or work only from inside the repository."
  ],
  "commits": [
   "c01eac6"

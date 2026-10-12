@@ -39,7 +39,10 @@
    "scenario": "A workspace folder is moved to another disk and the server started on the new path: the workspace id was derived from the folder's absolute path, so open_stores made a new, empty workspace and projects.get raised KeyError for every old id.",
    "cause": "The folder's path was the workspace's only identity.",
    "fix": "The folder carries its identity in a .dclab_workspace marker (holding the old path, so existing workspaces keep their id); every store opener reads it through workspace_for.",
-   "test": "MovedWorkspaceTests.test_the_data_is_read_after_the_folder_moves_and_a_changed_file_is_refused (meaningful under make test-pg)."
+   "test": "MovedWorkspaceTests.test_the_data_is_read_after_the_folder_moves_and_a_changed_file_is_refused (meaningful under make test-pg).",
+   "impact": "Moving a workspace folder to another disk in PostgreSQL mode made every project vanish from the product: the server opened a new, empty workspace and every old project id raised, though all the rows were still in the database.",
+   "alternatives": [],
+   "open": "A copied workspace folder now shares the original's PostgreSQL rows: a project made in the copy shows in the original with a missing file, and deleting it in one removes it from both."
   },
   {
    "id": "F1",
@@ -49,7 +52,12 @@
    "scenario": "Attach good.csv, then attach -sales.csv: safe_name keeps the leading '-', but the key rule demanded a letter or digit first; attach_data had already deleted every other file in data/, so put raised FileError (a ValueError, not a DataError), the upload returned 500, the project still named good.csv, and every later stage failed with 'missing'. A store folder with a space in its name, a draft asset named -sales, or a storage error in put took the same path.",
    "cause": "The key rule was stricter than the upload's name rule, and attach_data deleted the old files before storing the new one.",
    "fix": "A key part is any name without a separator or NUL (refusing empty, '.', '..' and a leading '/'); attach_data stores the new file first and deletes the old ones only after it succeeds; any storage error becomes a DataError and leaves the project untouched; project and draft deletes forget their records best effort so deletion always works.",
-   "test": "test_a_name_starting_with_a_dash_attaches, test_a_table_the_storage_refuses_leaves_the_old_one_in_place, test_every_name_an_upload_keeps_is_a_key."
+   "test": "test_a_name_starting_with_a_dash_attaches, test_a_table_the_storage_refuses_leaves_the_old_one_in_place, test_every_name_an_upload_keeps_is_a_key.",
+   "impact": "A user who uploaded a file whose name starts with '-' lost the project's current table: the upload returned 500, the project still pointed at the deleted file, and every later stage failed with 'missing' until data was attached again.",
+   "alternatives": [
+    "Make safe_name strip a leading '-': set aside, because a folder name with a space or a storage error took the same path; the key rule now accepts every name safe_name keeps, and the new file is stored before the old one is deleted."
+   ],
+   "open": "When a person re-uploads under the current table's own name, the upload route overwrites that file before attach_data runs, so a failed attach still loses it; this predates 9.3."
   },
   {
    "id": "F2",
@@ -59,7 +67,12 @@
    "scenario": "With DCLAB_FILES_URL=s3://... and no credentials, botocore raises NoCredentialsError (not an OSError) from _record, which ran before the try that marks an asset failed; the exception escaped run(), no 'failed' event was sent and the Home agent was never told.",
    "cause": "_record caught only ValueError and OSError and ran outside the failure handling.",
    "fix": "_record is best effort and catches any Exception.",
-   "test": "test_a_storage_that_fails_never_stops_the_draft_pipeline."
+   "test": "test_a_storage_that_fails_never_stops_the_draft_pipeline.",
+   "impact": "With S3 configured but no credentials, an upload stayed in its first status for ever: no 'failed' event, the Home agent never told, and the user waiting on data that would never be ready.",
+   "alternatives": [
+    "Move the first _record inside the try that marks an asset failed: also offered; making _record best effort, as its docstring already said it was, keeps a recording failure from ever stopping the pipeline."
+   ],
+   "open": ""
   },
   {
    "id": "F3",
@@ -69,7 +82,10 @@
    "scenario": "A project folder moved to another disk and linked back resolves outside the workspace root; relative_to raises ValueError, so load_frame returned 500 instead of 409 and attach_data took the data-loss path of F1.",
    "cause": "key_of resolved both the path and the root, following the link out of the root.",
    "fix": "key_of uses abspath on both sides without resolving links and raises FileError outside the root; data_path builds the storage inside its try.",
-   "test": "test_a_linked_folder_keeps_its_key; test_a_changed_table_is_a_409_not_a_500."
+   "test": "test_a_linked_folder_keeps_its_key; test_a_changed_table_is_a_409_not_a_500.",
+   "impact": "A workspace whose project folder was linked in from another disk got a 500 instead of a 409 when reading data, and attaching a new table there took the data-loss path of F1.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F4",
@@ -79,7 +95,10 @@
    "scenario": "put 'a,b / 1,2', overwrite with 'a,b / 9,9', restore the mtime (cp -p, touch -r, a tar restore, or a coarse filesystem clock): path() returned the changed bytes as verified.",
    "cause": "The SHA-256 cache was keyed by path, size and mtime only.",
    "fix": "The cache key also holds the inode and the change time, which utime cannot set.",
-   "test": "test_a_rewrite_with_its_old_time_is_still_caught."
+   "test": "test_a_rewrite_with_its_old_time_is_still_caught.",
+   "impact": "A table rewritten with the same size and its old modification time (cp -p, a tar restore) passed the hash check, so changed data would reach a model as if it were the recorded table and every later score would describe data no record names.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F5",
@@ -89,7 +108,10 @@
    "scenario": "The server and a standalone MCP server share one records file; two writes at once both used the fixed temp name .dclab_files.tmp, so one os.replace raised FileNotFoundError after the old files were deleted, or the last writer silently dropped a record.",
    "cause": "A process-local lock and a fixed temporary file name.",
    "fix": "Writes go through a unique mkstemp file in the same folder under an fcntl lock on a lock file plus the process lock; reads stay lock-free because os.replace is atomic.",
-   "test": "Covered by the file-storage tests on both backends."
+   "test": "Covered by the file-storage tests on both backends.",
+   "impact": "With the server and a standalone MCP server writing file records at once, one write could fail after the old files were deleted, or a record could silently vanish, leaving a table on disk with nothing to check it against.",
+   "alternatives": [],
+   "open": ""
   },
   {
    "id": "F6",
@@ -99,7 +121,12 @@
    "scenario": "A large or hostile object in the bucket is fully buffered before MAX_BYTES is compared.",
    "cause": "The size check came after read().",
    "fix": "Refuse when ContentLength exceeds MAX_BYTES before reading, and read at most MAX_BYTES plus one byte.",
-   "test": "The S3 size refusal test in tests/test_file_storage.py."
+   "test": "The S3 size refusal test in tests/test_file_storage.py.",
+   "impact": "A large or hostile object in the bucket was read whole into memory before the size check, so one oversized file could exhaust the server's memory for every user.",
+   "alternatives": [
+    "Stream the object into the partial file and stop at the limit: offered by the reviewer; checking the size header and capping the read is the smaller change."
+   ],
+   "open": ""
   },
   {
    "id": "F7",
@@ -109,7 +136,10 @@
    "scenario": "With DCLAB_DATABASE_URL set and the database down, an upload's 400 body read '(psycopg.OperationalError) connection failed: connection to server at host, port ...', and with a wrong password it named the database user.",
    "cause": "The fix for F1 wrapped any storage exception as DataError(f'...{exc}').",
    "fix": "The message is the FileError's own text, or only the exception's type for any other error, as the database health check already does.",
-   "test": "Re-checked by the reviewer; the storage-failure test asserts the message."
+   "test": "Re-checked by the reviewer; the storage-failure test asserts the message.",
+   "impact": "With the database down or a wrong password, an upload's error put the database host, port and user on the page: parts of a connection string, which must never reach a response.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [],
@@ -120,5 +150,14 @@
   "A hash cache keyed by mtime can be fooled; include values a user cannot set back, such as the inode and change time.",
   "Wrapping an exception's text into a user message can leak connection details; name the type instead."
  ],
- "commits": ["9380421"]
+ "risks": [
+  "A workspace whose only identity is its folder path loses its projects in the database when the folder moves.",
+  "Deleting the old table before the new one is stored turns any storage error into data loss.",
+  "Two rules that decide the same name (upload sanitising and storage keys) can disagree and make some uploads fail midway.",
+  "A file that changed on disk after it was recorded goes straight into a model unless every read checks the hash.",
+  "A file record or an error message could carry an S3 credential, a bucket URL or database connection details."
+ ],
+ "commits": [
+  "9380421"
+ ]
 }

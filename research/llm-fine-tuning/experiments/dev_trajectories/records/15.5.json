@@ -34,7 +34,8 @@
    "scenario": "xgboost folds [0.80, 0.82, None] against percentile_rules [0.05, 0.04, None] chose percentile_rules: the None made the paired gain NaN, so 'adopted' was False and the first family in the simplicity order won. Folds without a positive do occur in the Home flow's tests.",
    "cause": "Missing fold metrics entered the paired comparison.",
    "fix": "Pair only folds where both values are finite, and keep the best when fewer than two remain.",
-   "test": "test_the_rare_rule_skips_empty_folds_and_keeps_a_best_that_wins_every_fold"
+   "test": "test_the_rare_rule_skips_empty_folds_and_keeps_a_best_that_wins_every_fold",
+   "impact": "Whenever one fold had no positive, which happens in the Home flow's tests and in rare-event data generally, the screen picked the first simple family regardless of scores, so a project could ship a percentile rule scoring 0.05 over a classifier scoring 0.80, with a record citing the rule as the reason."
   },
   {
    "id": "F4b",
@@ -44,7 +45,9 @@
    "scenario": "In the Home flow on the replica percentile_rules (mean AP 0.335) beat extra_trees (0.603), though extra_trees won all 3 folds (gain +0.27, bound 0.317); on acceptance seed 0 isolation_forest (0.505) beat pu_bagging (0.645).",
    "cause": "With 3 folds the one-sided t bound (t about 1.89 with 2 degrees of freedom) is very wide, so 'within noise' covered large real gaps.",
    "fix": "A simpler family must also be within 10% of the best's mean, and is never preferred when the best wins every fold.",
-   "test": "test_the_rare_rule_skips_empty_folds_and_keeps_a_best_that_wins_every_fold"
+   "test": "test_the_rare_rule_skips_empty_folds_and_keeps_a_best_that_wins_every_fold",
+   "impact": "A team would have been handed a percentile rule with mean AP 0.335 instead of extra trees at 0.603, a model that won every fold, because three folds make the noise bound so wide that almost any gap counts as noise.",
+   "open": "The screen still shows each family's mean and spread over folds, not bootstrap intervals."
   },
   {
    "id": "F7",
@@ -54,7 +57,8 @@
    "scenario": "Adding them to MODEL_FAMILIES['binary_imbalanced'] made every research campaign screen and rank them with the standard rule, and listed them for every binary project.",
    "cause": "The engine-only addition was made in a list shared with the campaigns.",
    "fix": "A separate RARE_FAMILIES tuple the engine adds only when the task is a rare event.",
-   "test": ""
+   "test": "",
+   "impact": "Every research campaign and every binary project would have started screening rules, detectors and PU bagging under the standard rule, changing the harness's results and runtime without a decision to do so."
   },
   {
    "id": "F5a",
@@ -64,7 +68,11 @@
    "scenario": "A project whose rule chose ecod raised KeyError 'ecod' in the notebook export, so the export route returned a 500 and the intern's capture failed.",
    "cause": "MODEL_IMPORTS had no entry for the new families.",
    "fix": "Add the four families' imports and constructors to the export.",
-   "test": ""
+   "test": "",
+   "impact": "Exporting any project whose screen chose one of the new families returned a server error, and the intern's capture failed with it, so the person lost their notebook for exactly the rare-event projects this package serves.",
+   "alternatives": [
+    "Refuse the export with a 409 that says why: set aside because the four families can be written into the notebook directly."
+   ]
   }
  ],
  "measurements": [],
@@ -74,7 +82,12 @@
   "A missing fold score must be removed from a paired comparison, never allowed to turn the comparison into NaN.",
   "Adding a family to a shared list changes every caller of that list."
  ],
- "commits": [
-  "abb5729"
+ "commits": ["abb5729"],
+ "risks": [
+  "A selection rule that compares paired fold scores must handle folds with no positive, or a missing value decides the choice.",
+  "With very few folds a 'within noise' test admits large real gaps; preferring the simpler family needs a practical margin too.",
+  "Unsupervised detectors must be fitted without labels and never after a resampler, or they learn from the labels they claim not to use.",
+  "Families added for one task must not leak into the shared list the research campaigns screen.",
+  "Every family the screen can choose must be exportable to the notebook, or refused there with a reason."
  ]
 }

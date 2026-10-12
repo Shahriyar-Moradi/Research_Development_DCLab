@@ -40,7 +40,12 @@
    "scenario": "Both CSVs carried a pandas index saved as 'Unnamed: 0'. The key search found it unique in both files and joined the label file on it, so labels landed on rows by position; the run reported holdout AP 1.0 and recall at the budget 0.95.",
    "cause": "The candidate-key search accepted any column that was unique in both files.",
    "fix": "A column whose name says it only numbers rows (Unnamed: N, index, level_N, row id) is never a key. A first version also refused integer columns running 0..n-1; it was narrowed to the name, because a real order id can run that way too.",
-   "test": "test_the_key_is_checked_and_the_target_comes_from_the_file"
+   "test": "test_the_key_is_checked_and_the_target_comes_from_the_file",
+   "impact": "Anyone whose two CSVs were saved with pandas' default index, which is very common, would have had labels joined by row position and a report of holdout AP 1.0 with recall 0.95: a perfect-looking fraud model that knows nothing, on which a person could decide to act.",
+   "alternatives": [
+    "Also refuse any integer column running 0..n-1: tried first, then narrowed to the column's name, because a real order id can run that way too and would have been refused."
+   ],
+   "open": "A column that only numbers rows but carries an ordinary name is still accepted as a candidate key if it is unique in both files."
   },
   {
    "id": "F6",
@@ -50,7 +55,8 @@
    "scenario": "attach_labels and build_project wrote activity and audit entries but never called graph.check or graph.log for the attach_labels move; the move existed in graph.MOVES but only a unit test consulted it.",
    "cause": "The move was declared without being wired into the function that performs it.",
    "fix": "attach_labels checks the move first, refuses and logs when it is not allowed, and logs the allowed verdict with its outcome.",
-   "test": "test_attaching_labels_is_a_logged_move_and_the_notebook_joins_them"
+   "test": "test_attaching_labels_is_a_logged_move_and_the_notebook_joins_them",
+   "impact": "Attaching labels changes what the target is, yet it happened outside the workflow graph: a project could gain labels at a stage the graph forbids, and transitions.jsonl, the record the trajectories are built from, had no trace of it."
   },
   {
    "id": "F5b",
@@ -60,7 +66,8 @@
    "scenario": "The notebook set TARGET to the label column but read only the ride table, which has no such column.",
    "cause": "The export knew only projects whose target is a column of the table.",
    "fix": "The notebook now emits a cell that reads the label file and marks rows by the checked key, with the coverage named.",
-   "test": "test_attaching_labels_is_a_logged_move_and_the_notebook_joins_them"
+   "test": "test_attaching_labels_is_a_logged_move_and_the_notebook_joins_them",
+   "impact": "Every notebook exported from a label-file project failed at its first cell, so the reproducible artefact a person takes away was broken for exactly the projects this package enables."
   },
   {
    "id": "F10",
@@ -70,7 +77,8 @@
    "scenario": "Re-attaching the same file with another key or per-entity flag reused the old target when the solution hashed the same, because the cache key held only the label file's SHA-256.",
    "cause": "The cache key covered the file, not how it is joined.",
    "fix": "The cache key hashes the whole label record (and the pack).",
-   "test": ""
+   "test": "",
+   "impact": "Re-attaching the same label file with a different key or per-entity flag would silently reuse the target joined the old way, so the next run trained and scored on the old labels while the records described the new join."
   }
  ],
  "measurements": [
@@ -81,7 +89,13 @@
    "result": "The order join marks 103 rows; the (account, biker) pair would mark 2,021 rows, 19.6 per label, and is refused with those numbers; 5 label rows are not in the table; sender_phone and biker_fare are named as disagreeing and stated as limits.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": ""
+   "next": "",
+   "against_gate": "The gate asks for the order join and for the pair to be refused with its inflation; the order join marks 103 rows, and the pair, which would mark 2,021 rows, 19.6 per label, is refused with those numbers. The 5 label rows not in the table are counted, and the disagreeing columns are named as limits.",
+   "limits": [
+    "The replica plants the pair-join trap on purpose, so this shows the check catches the trap it was built for, not every inflating key.",
+    "The Done-when also asks PostgreSQL to hold the label file; this measurement does not show it, and the store has no test of its own for it.",
+    "Invented data: the real challenge's label file may fail in ways the replica does not plant."
+   ]
   }
  ],
  "outcome": "Done: a project holds a label file joined on a key chosen and checked by code, partial labels reach the solution and the records, the move is validated and logged. Open: no API route to upload a label file to an existing project, and the PostgreSQL store has no test of its own for it.",
@@ -90,7 +104,12 @@
   "A move declared in the graph is not governed until the function that performs it calls the check.",
   "Never treat a column whose meaning differs between two files as the same column."
  ],
- "commits": [
-  "abb5729"
+ "commits": ["abb5729"],
+ "risks": [
+  "A column unique in both files is not necessarily a key: a saved row index joins by position and yields a perfect, fake score.",
+  "A key that marks many table rows per label inflates the positives; it must be refused with its numbers unless the label is per entity.",
+  "When the labels are a sample, an unlabelled row is not a negative; the labels must be declared partial or every metric overstates.",
+  "A new move must run through the graph validator and be logged, not only declared in the list of moves.",
+  "Everything derived from the target (the prepared-data cache, the exported notebook) must know about the label file and how it was joined."
  ]
 }

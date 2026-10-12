@@ -36,7 +36,9 @@
    "scenario": "The old UI's scripts read p.contract from the project; after the store migrated files to the solution key, the old Solution view would have shown nothing.",
    "cause": "The rename covered the new frontend and the backend but the old frontend reads the same API.",
    "fix": "Rename the field in the old UI's scripts too, so /classic keeps working until it is removed.",
-   "test": ""
+   "test": "",
+   "impact": "Anyone still on /classic, at the time the only UI that could start research campaigns, would have opened a project and found an empty Solution view, as if the signed-off contract were gone, though it was stored under its new key.",
+   "open": "The fix kept /classic working only until 8.3 removed it. The hidden /contract aliases were promised for one release and need their own removal."
   }
  ],
  "measurements": [],
@@ -46,5 +48,12 @@
  ],
  "commits": [
   "db85ad2"
+ ],
+ "risks": [
+  "Old project.json files with a contract key open with no solution after the rename unless the store migrates them on read.",
+  "Scripts, Chat UI setups and MCP configs that use /contract routes, the set_contract move, the contract gate or the old policy switch break.",
+  "A blanket search-and-replace rewrites immutable research records, rule DCLAB-R01's 'prediction contract' and the Telco dataset's own Contract column.",
+  "The old UI at /classic reads the same API and silently loses the renamed field.",
+  "SFT examples and other generated files go stale unless they are rebuilt after the rename."
  ]
 }

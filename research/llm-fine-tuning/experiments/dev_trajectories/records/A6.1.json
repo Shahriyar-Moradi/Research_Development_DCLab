@@ -36,7 +36,9 @@
    "scenario": "A model step set_solution(identifiers=[<a Telco customer id>], forbidden=[{'column': 'Contract=Month-to-month'}]) that failed the column check, plus approve_stage(choice='Month-to-month'): the export kept the customer id, the cell-value column and the choice. engine.approve logs the choice before checking it against the stage's options, so the transition record kept it too.",
    "cause": "keep() trusted any string under a field named like a name.",
    "fix": "A per-project vocabulary of names the system itself produces; a name field is kept only when its value is in it, in steps and in moves.",
-   "test": "test_a_value_a_model_put_in_a_name_field_is_not_exported (customer id, a value as a column, a value as a choice and a value in the Home agent's get_profile are dropped; real column names are kept)."
+   "test": "test_a_value_a_model_put_in_a_name_field_is_not_exported (customer id, a value as a column, a value as a choice and a value in the Home agent's get_profile are dropped; real column names are kept).",
+   "impact": "A model that put a customer id in identifiers or a category value in choice would have those cell values written into a training export meant to hold none; once trained on, they cannot be taken back out of a model.",
+   "open": "Nothing checks whether a real column name is itself personal data."
   },
   {
    "id": "F2",
@@ -46,7 +48,9 @@
    "scenario": "A result 'error: ... see PRJ-<a customer code>' exported that code as a cited id; any business table with a code column shaped like PRJ-, LESSON-, DATASET- or LEAK- could leak through error messages or answers.",
    "cause": "_ids() matched the id pattern anywhere in the result.",
    "fix": "Only ids in the vocabulary (evidence records, the project's own claims) are kept.",
-   "test": "The test checks a fake PRJ code is dropped and DCLAB-R04 kept."
+   "test": "The test checks a fake PRJ code is dropped and DCLAB-R04 kept.",
+   "impact": "A business code quoted in an error message would be exported as a cited evidence id, carrying table content into training data under a field meant for record ids.",
+   "open": "A step whose result cites a whole stage's experiment id loses that citation, since only claim ids are in the vocabulary."
   },
   {
    "id": "F3",
@@ -56,7 +60,8 @@
    "scenario": "A step with tool 'finish' had a chosen action that was not in its own allowed set, because the set came from the project scope only while the model-mode intern also has write_plan and finish.",
    "cause": "One scope per agent.",
    "fix": "The intern's allowed set is its project and session tools; the Home agent's is its draft tools.",
-   "test": "The test checks finish is in allowed and its free-text report is dropped."
+   "test": "The test checks finish is in allowed and its free-text report is dropped.",
+   "impact": "Every intern step that called finish or write_plan became a training example whose chosen action is not in its offered set, teaching the policy model to choose outside what it is offered."
   },
   {
    "id": "F4",
@@ -66,7 +71,8 @@
    "scenario": "Run from any folder other than the repository root, the command found nothing on the file stores, and on PostgreSQL it inserted a new empty workspace row; it printed '0 opted-in projects' with no warning.",
    "cause": "The default was Path('agent_runs').",
    "fix": "The default is DCLAB_AGENT_HOME or the repository's agent_runs, the same as the server.",
-   "test": ""
+   "test": "",
+   "impact": "Run from another folder, the export silently found nothing, or on PostgreSQL created a new empty workspace row, and reported '0 opted-in projects' as if no one had opted in."
   },
   {
    "id": "F5",
@@ -76,7 +82,12 @@
    "scenario": "--out .../sft/OUT_V3/x passed the check and wrote into out_v3, because APFS is case-insensitive and resolve() does not normalise case.",
    "cause": "A case-sensitive path comparison.",
    "fix": "Paths are compared casefolded with a separator boundary.",
-   "test": "The out_v3 test includes the case-changed path."
+   "test": "The out_v3 test includes the case-changed path.",
+   "impact": "On the owner's Mac a case-changed path would write trajectory files into out_v3, mixing workspace data into a corpus the repository builds from its own evidence.",
+   "alternatives": [
+    "Compare the nearest existing folder with os.path.samefile, the reviewer's other option: set aside for a casefolded comparison with a separator boundary, which needs no file-system call."
+   ],
+   "open": "On a case-sensitive file system a separate OUT_V3 folder is refused too, which the reviewer judged harmless."
   }
  ],
  "measurements": [
@@ -85,7 +96,12 @@
    "gate": "A4.3's gate: a validator change needs a complete scripted rerun.",
    "result": "Complete; same scores as before.",
    "verdict": "pass",
-   "next": ""
+   "next": "",
+   "against_gate": "The rerun is complete, which is what the gate asks, and the scores are the same as before.",
+   "limits": [
+    "The suite exercises the validator's moves, not the new logging of allowed moves or the export; same scores say the log change broke no scored move.",
+    "The export's privacy is not measured here; it rests on the trajectory tests."
+   ]
   }
  ],
  "outcome": "Done: opted-in projects export move and step records with no table value, no positive label and no prediction moment; arguments only where the schema says they are not free text and only with the project's own names. Open: older transition entries have no allowed set; the allowed set covers stage and capture moves only; a step citing a whole stage's experiment id loses that citation; nothing checks a column name for being personal data. Five review findings fixed.",
@@ -94,6 +110,13 @@
   "Logs that record a call's arguments before validating them carry whatever the model sent.",
   "A training label is wrong if the chosen action is not in the offered set; build the set from the same tools the policy really had.",
   "On a case-insensitive file system, compare protected paths casefolded."
+ ],
+ "risks": [
+  "Model-written arguments carrying cell values into name-typed fields of the export.",
+  "Exporting projects whose owner never opted in.",
+  "Free text (goals, reports, answers) and the positive label reaching training records.",
+  "Training labels whose chosen action is not in the set the agent was offered.",
+  "Writing into out_v3, the committed declarative corpus, by accident."
  ],
  "commits": ["dfad8e5"]
 }

@@ -45,7 +45,11 @@
    "scenario": "make rd-check after the pull: the freshness checks of the evidence index, the SFT corpus and research INDEX.md files failed, because the new commits changed their inputs.",
    "cause": "The generated files had not been rebuilt after the inputs changed.",
    "fix": "Run make knowledge and make research-index; never edit the generated files by hand.",
-   "test": "The freshness checks of make rd-check pass."
+   "test": "The freshness checks of make rd-check pass.",
+   "impact": "Until rebuilt, the evidence index, the SFT corpus and two research indexes described the repository before the pull, and make rd-check blocks every commit.",
+   "alternatives": [
+    "Take the generated files from one side and edit them to match: set aside because generated files are rebuilt by commands, never edited (rule 4)."
+   ]
   },
   {
    "id": "T2",
@@ -55,7 +59,11 @@
    "scenario": "test_sessions_over_http expected a completed session and got 'failed'; printing the session's error showed a rate-limit answer from the real OpenAI API, because the server loaded OPENAI_API_KEY from the developer's .env and the intern ran in model mode.",
    "cause": "The test did not isolate itself from the machine's environment.",
    "fix": "Reported here with the two options; the owner chose to fix the test, which was done in package 0.1 (the test clears the key for its own duration).",
-   "test": "tests/test_intern.py, see package 0.1."
+   "test": "tests/test_intern.py, see package 0.1.",
+   "impact": "A test that depends on the developer's key and quota spends real requests and fails on a rate limit, so an intern failure and a provider's limit look the same.",
+   "alternatives": [
+    "Wait for the rate limit to reset and rerun: offered to the owner, who chose to fix the test so it never reads the key."
+   ]
   }
  ],
  "measurements": [],
@@ -65,6 +73,13 @@
   "When a check fails after a pull, separate stale generated files (rebuild them) from real failures (find the cause first).",
   "Print the failing session's own error before guessing; here it named the cause in one line.",
   "Do not fix an unrelated failure inside a history operation; report it and keep the changes separate."
+ ],
+ "risks": [
+  "Losing the uncommitted work in the tree during the reconcile.",
+  "Conflicts in a file both sides changed (studio/engine.py).",
+  "Generated files left stale after the pulled commits change their inputs.",
+  "Mixing an unrelated test fix into the history operation.",
+  "Committing or pushing while make rd-check fails."
  ],
  "commits": []
 }

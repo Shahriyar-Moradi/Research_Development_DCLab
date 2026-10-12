@@ -31,7 +31,10 @@
    "scenario": "Running the Telco churn draft end to end, cleaning had turned Yes/No columns into booleans; the data stage's drift check asked numpy for quantiles of booleans and failed. CSV uploads with True/False did the same.",
    "cause": "numpy cannot take quantiles of booleans.",
    "fix": "prepare() turns boolean features into 0/1 with missing kept missing; the target stays compared as text, so True is still the positive class.",
-   "test": "test_data_stage_runs_with_boolean_columns."
+   "test": "test_data_stage_runs_with_boolean_columns.",
+   "impact": "Any project whose cleaned table had yes/no or True/False columns, which churn tables such as Telco are full of, failed in the data stage before any model was fitted. The user could not get past the first stage of the Workflow page on the most common kind of upload.",
+   "alternatives": [],
+   "open": "The same boolean blind spot sat in the column auditor; the 7.1 audit found it crashing on yes/no columns and fixed it separately."
   }
  ],
  "measurements": [
@@ -42,12 +45,25 @@
    "result": "All five stages completed on the cleaned Telco data (7,043 rows, run in quick mode on 3,000) and the log showed only allowed moves.",
    "verdict": "pass",
    "cost_eur": null,
-   "next": "A flow check, not a result: quick mode and one holdout."
+   "next": "A flow check, not a result: quick mode and one holdout.",
+   "against_gate": "The gate asks for every stage completed and a log of allowed moves only. All five stages completed on the cleaned Telco data, and the log showed only allowed moves: both parts are met.",
+   "limits": [
+    "Quick mode ran on 3,000 of the 7,043 rows, so the run shows the flow works, not how good the model is.",
+    "One dataset and one run; a table with other column types could still break a stage.",
+    "Read off the page by hand: nothing reruns it after the next change until make product-e2e does."
+   ]
   }
  ],
  "outcome": "Done: real projects run from the Workflow page through the graph; the engine accepts yes/no features.",
  "lessons": [
   "Wiring a page to real data is also a test of the engine: the first real upload found a crash no unit test had."
+ ],
+ "risks": [
+  "Running a stage from the page could bypass the workflow validator if the button calls the engine directly instead of making a move through the graph.",
+  "A real project with a stage not yet run could fall back to the demo's sample numbers and pass them off as its own.",
+  "Seven pages each deciding which project is open could disagree and show records of different projects side by side.",
+  "The first real upload run end to end may hit engine paths no unit test covers, such as the column types cleaning produces.",
+  "Polling while work runs could leave the page stuck on 'running' when a stage fails and its status is never refreshed."
  ],
  "commits": [
   "4e9b0d9",

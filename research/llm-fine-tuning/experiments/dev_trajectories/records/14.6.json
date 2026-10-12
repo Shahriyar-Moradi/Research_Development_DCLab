@@ -33,7 +33,8 @@
    "scenario": "The consent said a participant can ask for their sessions to be deleted, but events.jsonl was append-only and the harness had no delete command.",
    "cause": "The protocol was written ahead of the tool.",
    "fix": "A documented, tested participant delete.",
-   "test": "test_the_assistants_events_exist_only_with_the_assistant_and_a_participant_can_be_deleted."
+   "test": "test_the_assistants_events_exist_only_with_the_assistant_and_a_participant_can_be_deleted.",
+   "impact": "A participant who asked, as the consent text allowed, to have their sessions deleted could not have been honoured: the event log was append-only and no command existed, so the study would have broken its own consent promise to a real person."
   },
   {
    "id": "F7b",
@@ -43,7 +44,8 @@
    "scenario": "A correction, a citation or a severe false alarm recorded in the 'without' condition was then reported per condition, where it is meaningless.",
    "cause": "Events were not checked against the session's condition.",
    "fix": "Those events exist only with the assistant.",
-   "test": "test_the_assistants_events_exist_only_with_the_assistant_and_a_participant_can_be_deleted."
+   "test": "test_the_assistants_events_exist_only_with_the_assistant_and_a_participant_can_be_deleted.",
+   "impact": "Corrections, citations or severe false alarms recorded in the 'without DCLab' condition would appear in the comparison where they mean nothing, skewing the with-and-without analysis the study exists to produce."
   }
  ],
  "measurements": [],
@@ -52,5 +54,12 @@
   "A consent text is a promise the code must keep; build and test the deletion before you offer it.",
   "Design the study log so it cannot hold free text, rather than trusting operators not to type data into it."
  ],
- "commits": ["c291a1b"]
+ "commits": ["c291a1b"],
+ "risks": [
+  "A consent text written before the tool can promise what the harness cannot do (such as deletion).",
+  "The harness must never keep cell values or free text from a participant's work, only timings and coded events.",
+  "Events that exist only with the assistant must be refused in the condition without it, or the comparison is skewed.",
+  "With three to five participants, any difference has wide uncertainty and must be reported as such.",
+  "Nothing can be recorded until the owner approves the protocol and participants are found."
+ ]
 }

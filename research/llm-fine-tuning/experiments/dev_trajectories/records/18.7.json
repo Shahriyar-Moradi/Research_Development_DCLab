@@ -1,0 +1,142 @@
+{
+ "package": "18.7",
+ "title": "The reporter",
+ "date": "2026-10-13",
+ "request": "Let a model write the report's prose for the people who own a decision, but keep a sentence only when it is grounded in the records, and keep the deterministic report when nothing passes.",
+ "spec": "The report's prose (17.7) written by a model from the records and kept sentence by sentence only when cited.py passes it; the deterministic report when nothing passes. Done when the replicas' reports are written with the model on and off, and no kept sentence fails the check.",
+ "plan": [
+  "Keep every line code wrote; let the model add a short summary above each prose section, citing the section's own lines.",
+  "Keep a sentence only through the host's check (cited.py), and never keep model text without one: dclab_core takes the check as an argument.",
+  "Give the role a purpose and a data-limit test; add the advisor path to the studio's report, never for a private project.",
+  "Fix a gate before any run and build a harness that re-checks every kept sentence independently.",
+  "Review before the paid run, fix, then measure once live under the owner's cap."
+ ],
+ "decisions": [
+  {
+   "decision": "The model adds a summary above the lines rather than rewriting them.",
+   "why": "A rewrite could drop a fact; an addition cannot, and nothing passing leaves the report exactly as code wrote it."
+  },
+  {
+   "decision": "dclab_core keeps nothing a model writes unless the host passes a check.",
+   "why": "The core must stay pure (cited.py lives in dclab_rnd) and a host that forgets the check must not get unchecked prose."
+  },
+  {
+   "decision": "Wait for the review before the owner-approved live run.",
+   "why": "Earlier measurements taught that a harness bug found after a paid or sealed run cannot be fixed without repeating it."
+  }
+ ],
+ "change": "REPORTER role, write_prose and the strict sentence rules in dclab_core/report.py; prompt reporter.md; purpose reporter with its data limits; solution_report.build(advisor=...); the roles harness's measure_reporter, reporter_verdict and reporter_gate_v1; tests for the role, the harness, rendering, the private path and the data limits.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A denial that cited.py accepts broke the report's strict readiness rule.",
+   "scenario": "'The model is not yet production-ready and should not go live before a review [L1]' was kept, and the report's own check then said a sentence calls a model production-ready.",
+   "cause": "cited.py excuses a denial; the report's rule (17.7) is strict.",
+   "fix": "A kept sentence must also pass the report's own overclaim rule; the harness re-check uses it too.",
+   "test": "test_true_numbers_beside_the_wrong_subject_or_claim_are_dropped"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Number forms cited.py accepts did not trace under the report's rules.",
+   "scenario": "'Positives are 18.4 percent of the training rows [L3]' was kept; the report's check then said 18.4 is not traced to a record.",
+   "cause": "cited.py reads 'percent' as '%'; the report's tracer does not.",
+   "fix": "Every number must be written exactly as the cited line writes it; the harness runs the report's own check on the written report.",
+   "test": "test_true_numbers_beside_the_wrong_subject_or_claim_are_dropped; HarnessTest"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Model text went into the report unescaped.",
+   "scenario": "A summary with an HTML tag was kept raw in the Markdown, and one with mis-nested backticks and bold made the PDF renderer raise, losing the whole PDF.",
+   "cause": "Record text passes through render(); the summary did not.",
+   "fix": "Every kept sentence is rendered like record text.",
+   "test": "test_kept_prose_is_escaped_and_renders"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "True numbers beside the wrong subject passed every check.",
+   "scenario": "'The final model reached an accuracy of 0.816' cited the baseline's line; 'used once, so its score is unbiased' cited a line that said used 3 times.",
+   "cause": "The checks only asked that a number appear somewhere in the cited lines.",
+   "fix": "Each number must stand beside two of the words that stand before it in its line (metric and subject); quantity and quality words such as once or unbiased must appear in a cited line; the paragraph is labelled as a model's.",
+   "test": "test_true_numbers_beside_the_wrong_subject_or_claim_are_dropped"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "On multiclass projects the reporter saw the target's class names, against a stated limit of zero values.",
+   "scenario": "Per-class results and confused pairs in the report put class markers in the reporter's request; the data-limit test used a binary target only.",
+   "cause": "The limit was declared without a multiclass case.",
+   "fix": "The purpose declares the target's class names and range and allows them, and a multiclass test proves that no input column's value reaches the model.",
+   "test": "test_the_reporter_may_see_a_multiclass_targets_classes_never_an_inputs_values"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Failure paths were untested.",
+   "scenario": "No test showed a private project sending nothing, the gate failing on a bad sentence, or a prose report rendering.",
+   "cause": "Only the passing echo path was tested.",
+   "fix": "Tests for the private path, an injected untraceable sentence failing the gate, and Markdown, HTML and PDF rendering.",
+   "test": "test_a_private_project_sends_no_report_to_a_model; test_a_kept_sentence_the_report_cannot_trace_fails_the_gate"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "dclab_core's list of roles left the reporter out.",
+   "scenario": "A host routing roles by roles() (the main product) would not see the reporter, and the prompt test skipped it.",
+   "cause": "The new role was not added to the list.",
+   "fix": "roles() lists REPORTER.",
+   "test": "test_core_agents"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The first strict-rule version dropped every sentence.",
+   "scenario": "Correct sentences citing [L1][L3] were refused.",
+   "cause": "cited.check returns kept sentences without their citations, which it lists separately, so no cited line was found.",
+   "fix": "Read the cited lines from the check's cites.",
+   "test": "test_sentences_are_kept_only_when_their_numbers_are_in_the_lines_they_cite"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "reporter on three replicas, live (ROL-006)",
+   "gate": "reporter_gate_v1, fixed before the run: on the binary, multiclass and regression replicas, no kept sentence fails an independent re-check, every section's lines stay intact, and a sentence is kept in at least two of the three reports.",
+   "fixed_before_run": true,
+   "result": "28 sentences kept and 6 dropped across the 3 reports (binary 7 and 4, multiclass 9 and 2, regression 12 and 0); 0 failed the re-check; lines intact in all 3.",
+   "verdict": "pass",
+   "cost_eur": 0.0025,
+   "against_gate": "0 sentences failed the re-check, as required; lines stayed intact in all 3 reports; sentences were kept in all 3 reports, where 2 were required.",
+   "limits": [
+    "One run with one model on three replicas; another model or another run could keep different sentences.",
+    "The checks prove the numbers and the claim words, not that a sentence's emphasis is fair: a person should read the summaries.",
+    "Replica reports, not a real project's."
+   ],
+   "next": "Read the kept sentences with the owner before switching the reporter on in the product."
+  }
+ ],
+ "outcome": "Done: model-written summaries above the report's lines, kept only through two layers of checks; measured once live and passed.",
+ "lessons": [
+  "Two checks with different rules disagree at their edges: a kept sentence must pass the stricter one, and the harness must run both.",
+  "A number in the right source can still sit beside the wrong subject: check the words that stand before it.",
+  "Wait for the review before a paid run."
+ ],
+ "risks": [
+  "A model rounds or converts a number and a lenient check keeps it.",
+  "A summary puts a true number beside the wrong subject.",
+  "Model text breaks a renderer or injects markup.",
+  "The reporter sees values of the user's data.",
+  "A private project's report reaches a model."
+ ],
+ "commits": []
+}

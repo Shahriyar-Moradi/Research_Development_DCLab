@@ -35,7 +35,12 @@
    "scenario": "docker build stopped after about four minutes with 'No space left on device' while copying an NVIDIA NCCL wheel pulled in by XGBoost's default build; the second build with the CPU build failed again at install because Docker's 7.8 GB disk had 193 MB left.",
    "cause": "XGBoost's default wheel depends on GPU libraries; Docker's disk was mostly held by other projects' images.",
    "fix": "Use xgboost-cpu in requirements/product.txt; prune only this session's build cache; leave the other images and ask the owner; verify the image on CI.",
-   "test": "CI's containers job builds the image, starts the stack and runs the four flows."
+   "test": "CI's containers job builds the image, starts the stack and runs the four flows.",
+   "impact": "The owner could not build or run the image locally that day, so the package's one done-when check, the flows against a running container, had to move to CI. Pulling in GPU libraries would also have made every image much larger for a product that never uses a GPU.",
+   "alternatives": [
+    "Free the space by pruning all of Docker's images and volumes: set aside because most of the disk belonged to the owner's other projects, so only this session's build cache was removed and the rest was left to the owner."
+   ],
+   "open": "The image has still not been built on the owner's machine, whose Docker disk is full."
   },
   {
    "id": "R1",
@@ -45,7 +50,9 @@
    "scenario": ".dockerignore excluded .env and .env.* only at the root of the build context (Docker anchors these patterns, unlike git); dclab_rnd/agentic/.env holds a real API key, and COPY . /app would have put it in an image layer on make up.",
    "cause": "Docker's ignore patterns are anchored at the context root; the file was written as if it were a .gitignore.",
    "fix": "Exclude **/.env and **/.env.* (keeping !.env.example) and .git. Neither of the day's local builds reached the copy step, and their build cache was deleted, so no image ever held the key.",
-   "test": "The image scan in CI reads the exported /app and finds no secret (found during the 12.2 review)."
+   "test": "The image scan in CI reads the exported /app and finds no secret (found during the 12.2 review).",
+   "impact": "The first make up would have copied a real model API key into an image layer, where anyone who pulled the image or exported its filesystem could read it, and a layer cannot be cleaned afterwards without rebuilding and revoking the key.",
+   "open": "The guard is a pattern list in .dockerignore; a secret in a file with another name would still be copied, which is what the image secrets scan on CI is there to catch."
   }
  ],
  "measurements": [
@@ -54,7 +61,14 @@
    "gate": "make up (docker compose up --build --wait) starts the app, a worker and PostgreSQL, and the four end-to-end flows pass against it; the image holds no secret.",
    "result": "CI run 37547513100: the stack started, the four flows passed against the container with the same results as on a laptop, and the image's 1,871 files held no secret.",
    "verdict": "pass",
-   "next": "Build it on the owner's machine when Docker has space; the image is about 2 GB with LightGBM, XGBoost (CPU) and scikit-learn."
+   "next": "Build it on the owner's machine when Docker has space; the image is about 2 GB with LightGBM, XGBoost (CPU) and scikit-learn.",
+   "against_gate": "The gate asks for make up to start the app, a worker and PostgreSQL and for the four end-to-end flows to pass against it; run 37547513100 started the stack and the four flows passed with the same results as on a laptop. The gate asks that the image hold no secret; the scan of its 1,871 files found none.",
+   "limits": [
+    "One CI run on GitHub's runner; the owner's own machine has never built or run the image.",
+    "The secrets scan matches known key formats and reads the app folder of the exported image; a secret in an unknown format, or outside that folder, would pass it.",
+    "The flows run without a model, so the container's model paths were not exercised.",
+    "Starting cleanly once says nothing about upgrades: a second make up on existing volumes, with a new migration, was not part of the gate."
+   ]
   }
  ],
  "outcome": "Done (482b67b, marked done in f7b9b7b after CI passed): the product runs as an app, a worker and PostgreSQL from one image without privileges or keys. Open: not built on the owner's machine, whose Docker disk is full.",
@@ -63,5 +77,12 @@
   "Install only what the product runs; a research requirement file can pull gigabytes of GPU libraries into a server image.",
   "When the local machine cannot prove a package, prove it on a clean CI runner and say so, rather than deleting someone else's data to make room."
  ],
- "commits": ["482b67b", "f7b9b7b"]
+ "commits": ["482b67b", "f7b9b7b"],
+ "risks": [
+  "Docker's ignore patterns are anchored at the build context's root, unlike git's, so a nested .env with a real key can slip into a layer.",
+  "Heavy ML dependencies can pull GPU libraries the product never uses, making the image too large to build on a small Docker disk.",
+  "The app must listen on all interfaces inside the container yet be published only on 127.0.0.1, or the product is exposed on the network by default.",
+  "The image must run as a non-root user that can still write to the storage volume, and must migrate the database before the server starts.",
+  "A stack that starts is not a working product: done must mean the end-to-end flows pass against the container itself."
+ ]
 }

@@ -39,13 +39,23 @@
    "scenario": "Importing from the Hugging Face tab in the wizard posted an empty body, so the import could not know which dataset, split or config was meant.",
    "cause": "The demo's tab was markup only.",
    "fix": "The tab sends dataset, revision, split and config through the shared DC.connectors code used by Home.",
-   "test": ""
+   "test": "",
+   "impact": "Every import from the wizard's Hugging Face tab reached the server with no dataset, split or config, so a user who chose Hugging Face in the wizard got no data, while the same source worked from Home.",
+   "alternatives": [],
+   "open": ""
   }
  ],
  "measurements": [],
  "outcome": "Done with fakes: search and import code with licence, revision and hash recorded. Assumptions noted at build time: Kaggle's v1 API field names and that a whole-dataset download is a zip. Live runs are 8.2 (Hugging Face done 2026-10-07; Kaggle waits for a key).",
  "lessons": [
   "Test connectors with fakes in the suite, and name plainly that the live service has not been run yet."
+ ],
+ "risks": [
+  "The Kaggle key, sent in a header, could be passed on to Kaggle's storage host when the download redirects.",
+  "A zip entry with '..', an absolute path or a hidden file could write outside the draft's folder.",
+  "A Hugging Face branch that moves after the import would leave the recorded source disagreeing with the file.",
+  "Fakes may not match the live services (Kaggle's field names, a whole dataset arriving as a zip), and passing tests would hide it.",
+  "A large dataset without a size cap could fill the disk."
  ],
  "commits": [
   "96feb56"

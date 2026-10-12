@@ -47,7 +47,8 @@
    "scenario": "Rendering the shell and Home at desktop width: the menu button meant for phones showed, the avatar wrapped to a second line, and the project status column was cut off.",
    "cause": "Phone-only controls were not hidden at desktop width and the table had no room for its last column.",
    "fix": "Hide the menu button on desktop, keep the avatar on one line and give the status column its space.",
-   "test": "Rendered again and checked by screenshot."
+   "test": "Rendered again and checked by screenshot.",
+   "impact": "On desktop the first page the owner would open looked broken, with the projects' status column cut off."
   },
   {
    "id": "S2",
@@ -57,7 +58,8 @@
    "scenario": "The Workflow page drew WF-01 to WF-10 in a narrow column, so the steps and their moves were hard to read.",
    "cause": "The graph sat inside the normal page grid.",
    "fix": "Give the graph the full width of the page.",
-   "test": "Checked by screenshot."
+   "test": "Checked by screenshot.",
+   "impact": "The page meant to show the WF-01 to WF-10 workflow was hard to read."
   },
   {
    "id": "S3",
@@ -67,7 +69,8 @@
    "scenario": "With Blueprint on, its side panel took width from the page: the notebook's columns and the top bar collapsed.",
    "cause": "The blueprint panel was laid out as a side column next to the page.",
    "fix": "Make the blueprint a small floating card that starts collapsed and expands on demand, so the page keeps its full width.",
-   "test": "The interaction check now opens the card first and then checks the labels."
+   "test": "The interaction check now opens the card first and then checks the labels.",
+   "impact": "Turning on the layer meant to explain each feature broke the page it explained, so the owner could not see a feature and its status together."
   },
   {
    "id": "T1",
@@ -77,7 +80,8 @@
    "scenario": "The scripted browser check looked for the blueprint labels straight away and found none.",
    "cause": "Expected: the card now starts collapsed; the check was written for the old open panel.",
    "fix": "Update the check to open the blueprint card first.",
-   "test": "All interaction checks pass with no console errors."
+   "test": "All interaction checks pass with no console errors.",
+   "impact": "The interaction check failed on a correct change; left as it was, it would block the commit or invite weakening the check."
   }
  ],
  "measurements": [
@@ -86,7 +90,13 @@
    "gate": "No gate: numbers measured while building the demo, to show real behaviour instead of samples.",
    "fixed_before_run": true,
    "result": "The leaky demo notebook prints accuracy 0.9689; the fixed version reaches ROC-AUC 0.7577.",
-   "verdict": "not scored"
+   "verdict": "not scored",
+   "against_gate": "There is no gate: the leaky notebook's accuracy of 0.9689 and the fixed version's ROC-AUC of 0.7577 are shown as real behaviour, not judged.",
+   "limits": [
+    "The two numbers use different metrics (accuracy against ROC-AUC), so they cannot be compared to say how much the leak inflated the score.",
+    "One run of each notebook on one dataset.",
+    "On the page these sit among labelled sample data; a reader relies on the labels to tell measured from sample."
+   ]
   }
  ],
  "outcome": "Done: a 19-page clickable demo of the final product with four role views, tours, a blueprint over 151 features and a Must, Later or Cut board, published privately and committed; make rd-check passed (94 tests OK). It used the 133 evidence records and the real registry numbers (579 experiments, 11 datasets). On 5 October the owner asked for a calmer redesign (package 0.1), which was frozen as demo v1 (package 0.2).",
@@ -94,6 +104,13 @@
   "A product demo meant for decisions should say, feature by feature, what is real today; label every sample number as a sample.",
   "Render the first page before writing the others: layout problems found on page one are fixed once, not nineteen times.",
   "An overlay that takes layout width breaks the page it annotates; float it."
+ ],
+ "risks": [
+  "Sample numbers in a demo of an evidence-first product being read as measurements.",
+  "A single generated page drifting from its sources if edited by hand.",
+  "Layout problems repeated across nineteen pages if not found on the first.",
+  "An overlay that takes layout width breaking the page it annotates.",
+  "'DCLab' read as DCLab's main product instead of the R&D project and its product."
  ],
  "commits": [
   "4865ead"

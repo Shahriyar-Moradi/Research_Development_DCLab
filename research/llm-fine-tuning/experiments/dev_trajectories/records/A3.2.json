@@ -35,7 +35,8 @@
    "scenario": "review(project, moment=None, ...) with a scripted reply 'age: Anything at all.' kept age as a model item. The wizard's proposal request sent only the target and task, never the moment textarea, and the review never re-ran when the person edited the moment; each such proposal still paid for a standard-tier request.",
    "cause": "quotes_moment() returned True for an empty moment, and the wizard did not send its moment.",
    "fix": "The model is asked only when a moment is written (quotes_moment is False without one); the wizard sends prediction_moment and the route prefers it.",
-   "test": "A test that a scripted client is not called when the moment is None, and a wizard-route check that an edited moment is used."
+   "test": "A test that a scripted client is not called when the moment is None, and a wizard-route check that an edited moment is used.",
+   "impact": "On an upload where the Home chat set no moment, any model reason passed as quoting the moment, and the wizard paid a standard-tier request on every target change for a review that never saw the moment the person was typing."
   },
   {
    "id": "F2",
@@ -45,7 +46,11 @@
    "scenario": "Moment 'At the monthly snapshot of each customer.' and reason 'Age is recorded at the end of the year.': 'at the' matched, so the item was kept as quoting the moment.",
    "cause": "Any two consecutive words of the moment counted as a quote.",
    "fix": "The matching words must include a content word of four letters or more.",
-   "test": "The reason above is dropped; 'Not known at the monthly snapshot.' is kept."
+   "test": "The reason above is dropped; 'Not known at the monthly snapshot.' is kept.",
+   "impact": "A model reason that shared only 'at the' with the moment was shown to the person as grounded in their moment, making an unsupported claim look checked.",
+   "alternatives": [
+    "Require three consecutive words of the moment, the reviewer's other option: set aside because short moments such as 'At signup' could never be quoted; a content word of four letters or more is required instead."
+   ]
   },
   {
    "id": "F3",
@@ -55,7 +60,9 @@
    "scenario": "'At signup; region and age are known but the outcome is not available' proposed region and age as after the moment, with a reason that read 'The moment says: ...'.",
    "cause": "Clauses were split only on full stops and semicolons, and bare 'is not' and 'are not' triggered the rule.",
    "fix": "Clauses also split on but, while and whereas, and the bare negations no longer trigger the rule; the studied samples give the same result.",
-   "test": "A moment-rule test with that sentence."
+   "test": "A moment-rule test with that sentence.",
+   "impact": "The person would be asked to forbid columns their own moment says are known (region and age), with a reason that misquotes them; ticking it would remove honest inputs and lower the model's score for nothing.",
+   "open": "A clause joined only by commas ('At signup, region and age are known, the outcome is not available') still proposes age and region; it is shown, never applied."
   },
   {
    "id": "F4",
@@ -65,7 +72,8 @@
    "scenario": "may_see said 'the ids and titles of rule records', but the catalogue also sent the titles of leakage_precedent records.",
    "cause": "The description was written before the catalogue grew.",
    "fix": "The description names rule and leakage-precedent records.",
-   "test": ""
+   "test": "",
+   "impact": "The owner decides what may reach a model from the purpose descriptions on the Admin page; this one said rule records only while precedent titles were also sent."
   },
   {
    "id": "R1",
@@ -75,7 +83,8 @@
    "scenario": "On bank_marketing, tick pdays under 'The reviewer also asks', refine the moment and click elsewhere: the sheet redraws from the server's defaults with pdays unticked, and Accept saves the solution without that column forbidden. Clicking Accept while the moment still has focus can also let a late reply overwrite the accepted sheet with the draft view.",
    "cause": "The fix for F1 re-proposed on every moment change and redrew the sheet from the proposal's forbidden list only.",
    "fix": "propose() saves the current choices (ticks with reasons, identifiers, time and group columns, metric) and re-applies them to the columns still listed; a reply that arrives after the solution was saved does not redraw.",
-   "test": "Checked in the real page: a ticked suggestion and an unticked audit flag survive a moment edit."
+   "test": "Checked in the real page: a ticked suggestion and an unticked audit flag survive a moment edit.",
+   "impact": "On bank_marketing a person who ticked pdays and then refined the moment would save a solution without pdays forbidden and without being told: a leakage choice undone by a redraw."
   },
   {
    "id": "T1",
@@ -85,7 +94,8 @@
    "scenario": "A GET on a project while its stages were running read a stage file half written; four further runs passed.",
    "cause": "Stage records were written in place, and project.json went through a temporary file with one fixed name, so two saves at once could rename each other's file away.",
    "fix": "Both are written through a temporary file with its own name in the same folder and an atomic rename (separate commit).",
-   "test": "A test with two writers and a reader fails on the old store both ways and passes now."
+   "test": "A test with two writers and a reader fails on the old store both ways and passes now.",
+   "impact": "Opening a project during a stage run could return 500, and two saves at once could lose an update to project.json."
   },
   {
    "id": "T2",
@@ -95,7 +105,9 @@
    "scenario": "It passed 5 of 5 times alone, under the same load with a state dump, and in make test-pg.",
    "cause": "Load from a browser check running at the same time; no race was found in the route.",
    "fix": "The gate was rerun with nothing else running; no code change.",
-   "test": ""
+   "test": "",
+   "impact": "One failed gate cost a full rerun; nothing in the product was shown to be wrong.",
+   "open": "No cause beyond load was found; if it was a race, a rerun hides it."
   }
  ],
  "measurements": [
@@ -104,7 +116,14 @@
    "gate": "The reviewer's proposals include the R&D's own forbidden columns (for example duration on bank_marketing); proposals beyond the R&D's list are counted and shown, never applied.",
    "result": "14 of 17 found (12 by the audit alone), including duration on bank_marketing; the 3 misses are online_shoppers' 'completed-session counts' (Administrative, Informational, ProductRelated), which name no column. 23 columns proposed beyond the R&D's list: 22 are the audit's own flags, 1 comes from the moment rule (hyperack's first_customer_fare, shown only).",
    "verdict": "fail",
-   "next": "The 3 misses need a reader of what the moment means, not of the column names; the model path is tested with a scripted model only. Recorded as open in the status row."
+   "next": "The 3 misses need a reader of what the moment means, not of the column names; the model path is tested with a scripted model only. Recorded as open in the status row.",
+   "against_gate": "The gate asks for the R&D's own forbidden columns: 14 of 17 are found, including duration on bank_marketing, so 3 are missing and the gate as written is not met. Of the 23 columns proposed beyond the R&D's list, 22 are the audit's own flags and 1 comes from the moment rule; none is applied, as the gate requires.",
+   "limits": [
+    "Only the no-model path is measured; the model path is tested with a scripted model, so nothing here says how a real model's proposals would score.",
+    "The gold is the R&D's own forbidden lists on samples it studied; a column outside those lists counts as an addition, never as a catch or an error.",
+    "12 of the 14 found come from the audit that existed before this package, so the measurement mostly re-measures the audit.",
+    "The 3 misses are named by meaning ('completed-session counts'), not by column name, which no name rule can reach."
+   ]
   }
  ],
  "outcome": "Done with the misses recorded: the reviewer runs in the wizard and for the intern, code decides what counts, nothing it adds is applied, and no cell value reaches a model. The gate passed with 473 tests on files and on PostgreSQL, the campaign tests and the four flows; five review findings fixed, and a store race found by the gates fixed separately.",
@@ -113,6 +132,13 @@
   "A check that passes when its input is empty is not a check; 'quotes the moment' must fail without a moment.",
   "A UI fix that re-fetches defaults can silently undo the person's leakage choices; keep their choices across a redraw.",
   "An intermittent 500 on a read during a run points at a write that is not atomic."
+ ],
+ "risks": [
+  "A model's 'after the moment' reason accepted without really quoting the moment.",
+  "Cell values reaching the model through column summaries or the audit's signals.",
+  "A model's 'available' un-forbidding a column the audit flagged.",
+  "The wizard sending a stale moment, or none, so the review answers a moment the person is no longer writing.",
+  "A re-proposal redrawing the sheet and undoing the person's ticks."
  ],
  "commits": ["4a92337", "6de8bfb"]
 }

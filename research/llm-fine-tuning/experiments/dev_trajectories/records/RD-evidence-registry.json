@@ -35,7 +35,11 @@
    "scenario": "Found during the 2026-10-03 restructure: the workflow ran the checks on a bare runner, where importing the package's dependencies fails before any check runs.",
    "cause": "No requirements file for CI existed.",
    "fix": "Add requirements-ci.txt with only the packages the automation layer needs and install it in the workflow; the restructure was then checked in a clean environment with only those packages.",
-   "test": "The restructure commit's checks (22 unit tests, record validation, knowledge freshness, campaign verification) passed in a clean CI-only environment."
+   "test": "The restructure commit's checks (22 unit tests, record validation, knowledge freshness, campaign verification) passed in a clean CI-only environment.",
+   "impact": "Every run of the workflow failed at import before any check, so stale knowledge or a malformed result would never have been caught by CI, while the workflow's presence suggested it would be.",
+   "alternatives": [
+    "Install the full research environment in CI: set aside for a small CI-only requirements file, because the checks validate and rebuild records and never train a model."
+   ]
   },
   {
    "id": "F2",
@@ -45,7 +49,11 @@
    "scenario": "On a machine without the openai package, python -m dclab_rnd validate stopped at import, though validation needs no model.",
    "cause": "An optional dependency imported eagerly.",
    "fix": "Import the OpenAI client lazily, only in the commands that call a model.",
-   "test": "validate, sync and campaign verify run in the CI environment, which has no openai package."
+   "test": "validate, sync and campaign verify run in the CI environment, which has no openai package.",
+   "impact": "On any machine or runner without openai, validate, sync and campaign verify stopped at import, so the checks that need no model could not run at all; it was one reason the CI job could not pass.",
+   "alternatives": [
+    "Make openai a required dependency: set aside because validation, sync and verification never call a model."
+   ]
   },
   {
    "id": "F3",
@@ -55,7 +63,8 @@
    "scenario": "sync --check failed on the restructure branch because ten registry rows no longer matched their result files.",
    "cause": "Results had been added without rerunning rd-sync.",
    "fix": "Regenerate the registry; rd-check keeps failing while any generated file is stale.",
-   "test": "python -m dclab_rnd sync --check is part of make rd-check."
+   "test": "python -m dclab_rnd sync --check is part of make rd-check.",
+   "impact": "Ten rows of the committed ledger disagreed with their result files, so a reader of the registry, or of a champion board built from it, saw numbers that no result file held."
   }
  ],
  "measurements": [],
@@ -67,5 +76,12 @@
  "commits": [
   "146e2bc",
   "601868e"
+ ],
+ "risks": [
+  "A champion board built from mixed safe and unsafe runs, crowning the leaky HyperAck model.",
+  "A registry that drifts from the result files and silently misleads every later reader.",
+  "One command that launches training for every model on every dataset by accident.",
+  "Provenance without the dirty state or the data hash, so a result cannot be traced to the code and data that made it.",
+  "A CI check that cannot actually run and only looks like protection."
  ]
 }

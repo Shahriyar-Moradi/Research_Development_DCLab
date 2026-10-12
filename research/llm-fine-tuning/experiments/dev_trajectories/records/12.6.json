@@ -44,7 +44,9 @@
    "scenario": "Three workers each run a 30-minute stage and nothing is queued; after 15 minutes the queue-empty alarm fires, ECS stops any task, and its job ends interrupted with nothing retrying it (the comment said the next worker would). On Google Cloud automatic mode scales in on CPU, so an intern turn waiting on a model looks idle.",
    "cause": "Scale-in watched only queued jobs, and nothing protected a busy task.",
    "fix": "Publish active jobs (waiting plus running) and scale in only when that is zero; correct the comment.",
-   "test": "Tests of the published counts."
+   "test": "Tests of the published counts.",
+   "impact": "On AWS, a quiet queue after a burst would have stopped workers in the middle of 30-minute stage runs; those jobs ended interrupted and nothing retried them, so people would find half-run projects waiting for a manual retry. On Google Cloud an intern turn waiting on a model looked idle and could be scaled away.",
+   "open": "The published count lags a claim by up to a minute, which R3 then had to close with task protection."
   },
   {
    "id": "F2",
@@ -54,7 +56,12 @@
    "scenario": "scaling_mode AUTOMATIC scales on instance busyness; the queue metric fed only an alert, so a backlog of low-CPU jobs never added a worker, yet the package was marked done.",
    "cause": "The cloud's own autoscaler does not read a custom queue metric for worker pools.",
    "fix": "A MANUAL worker pool sized by a rule and a scaler with leader election, with the needed IAM on the pool; the README says the Admin API call is tested only against a stand-in.",
-   "test": "Tests of the rule and of one leader at a time."
+   "test": "Tests of the rule and of one leader at a time.",
+   "impact": "On Google Cloud a backlog of low-CPU jobs, such as model calls, would never have added a worker, so the queue grew while the package's status said workers scale with it; the claim in the playbook was false for one of the two clouds.",
+   "alternatives": [
+    "Let the cloud's own autoscaler read the queue metric: the cloud's autoscaler for worker pools does not read a custom metric, so DCLab sizes the pool itself with a rule and a single elected scaler."
+   ],
+   "open": "The worker pool is a BETA feature and the sizing call has been tested only against a stand-in, never a real project."
   },
   {
    "id": "F3",
@@ -64,7 +71,8 @@
    "scenario": "The collector sent dclab_job_failures_total only with its kind and status dimensions (NoDimensionRollup) while the alarm asked for no dimensions: 50 failed jobs and the alarm stays OK.",
    "cause": "A dimension mismatch between the collector and the alarm.",
    "fix": "Use ZeroAndSingleDimensionRollup.",
-   "test": ""
+   "test": "",
+   "impact": "On AWS, a wave of failing jobs would have left the failure alarm green, so the operator would learn of it from users rather than from the monitoring the package set up."
   },
   {
    "id": "F4",
@@ -74,7 +82,8 @@
    "scenario": "docker build on an Apple-silicon Mac makes an arm64 image; the Fargate tasks are X86_64 and Cloud Run runs only amd64, so tasks exit with 'exec format error', and ECR's immutable tags force a rebuild under a new name.",
    "cause": "The build command named no platform.",
    "fix": "docker build --platform linux/amd64 in the README.",
-   "test": ""
+   "test": "",
+   "impact": "The owner, building on an Apple-silicon Mac as the README said, would have pushed an image neither cloud can run; every task would exit at start, and the registry's immutable tags would force a rebuild under a new name before anything worked."
   },
   {
    "id": "F5",
@@ -84,7 +93,8 @@
    "scenario": "An image adds a migration; the worker service replaces its task first and the new worker exits (schema behind); if the circuit breaker rolls back, the old worker then refuses the app's newer schema, and no worker is left.",
    "cause": "Only the app's command ran the upgrade; compose ordered start-up, the clouds did not.",
    "fix": "The worker's command runs storage upgrade first, safe under the advisory lock.",
-   "test": ""
+   "test": "",
+   "impact": "A release with a migration could have left the product with no worker at all: the new worker refused the old schema, and after a rollback the old worker refused the new one, so every queued stage run waited indefinitely."
   },
   {
    "id": "F6",
@@ -94,7 +104,8 @@
    "scenario": "pg_locks lists locks for the whole cluster; other test processes take the same advisory key while migrating their own dclab_test_p<N>, so the holders seen become [2, 1, 1] and the test fails at random. It also never checked the threads' errors or a migration from empty.",
    "cause": "The query was not limited to the current database.",
    "fix": "Filter pg_locks by the current database, collect thread errors, and migrate a scratch database from empty with three instances.",
-   "test": "The migration-lock test in tests/test_deploy.py."
+   "test": "The migration-lock test in tests/test_deploy.py.",
+   "impact": "The test that proves only one instance migrates at a time failed at random in the parallel PostgreSQL run, so a real regression in the migration lock would have been dismissed as the usual flake."
   },
   {
    "id": "F7",
@@ -104,7 +115,8 @@
    "scenario": "The README passed DCLAB_NEW_PASSWORD in a run-task override, which CloudTrail records in clear text and DescribeTasks returns; on Google Cloud an env value on the job sits in its spec and audit logs. The command also lacked the network configuration.",
    "cause": "A secret passed as an environment override.",
    "fix": "An admin task definition and a Cloud Run job read the password from its own secret; the README's command includes the network configuration.",
-   "test": ""
+   "test": "",
+   "impact": "The first owner's password, typed into the README's command, would have been stored in clear text in the cloud's audit trail and returned by the task description to anyone with read access to the account."
   },
   {
    "id": "F8",
@@ -114,7 +126,8 @@
    "scenario": "Every task fails at start until each secret has a value; with the circuit breaker the first deployment is marked failed with nothing to roll back to, and filling the secrets afterwards starts nothing without a forced redeployment.",
    "cause": "One apply for secrets and services.",
    "fix": "The README gives three steps: create the secrets, fill them, then apply everything.",
-   "test": ""
+   "test": "",
+   "impact": "The owner's very first apply on AWS would have failed: every task crashed for lack of secret values, the deployment had nothing to roll back to, and filling the secrets afterwards started nothing without a forced redeploy."
   },
   {
    "id": "F9",
@@ -124,7 +137,8 @@
    "scenario": "The series was labelled by host name, which Cloud Run does not make unique; writes less than 5 seconds apart or out of order are rejected.",
    "cause": "socket.gethostname() as an instance id.",
    "fix": "Read the instance id from the metadata server.",
-   "test": ""
+   "test": "",
+   "impact": "Two Google Cloud workers sharing a host name would write the same metric series, and the cloud rejects writes that close together or out of order, so the queue numbers the scaler reads could be missing or stale."
   },
   {
    "id": "R1",
@@ -134,7 +148,8 @@
    "scenario": "Cloud SQL maintenance or a failover drops every connection; the old leader keeps saying 'leader', another worker takes the lock, and both apply the rule, so the pool grows or shrinks by two at once.",
    "cause": "Leadership was assumed while the connection object existed.",
    "fix": "Each check runs select 1 on the held connection; on failure it closes, forgets it and tries the lock again.",
-   "test": "test_one_leader_at_a_time_and_a_dropped_connection_gives_the_lock_up (terminates the holder's backend; retries briefly because the lock is released a moment later)."
+   "test": "test_one_leader_at_a_time_and_a_dropped_connection_gives_the_lock_up (terminates the holder's backend; retries briefly because the lock is released a moment later).",
+   "impact": "After a routine Cloud SQL maintenance window or a failover, two workers could both believe they lead the scaler, and the worker pool would grow or shrink two steps at a time, overshooting the queue in both directions."
   },
   {
    "id": "R2",
@@ -144,7 +159,8 @@
    "scenario": "A lasting Cloud Monitoring problem (quota, rejected write, missing grant) raised before the scaler ran, so the pool never grew or shrank though the Admin API it needs was fine.",
    "cause": "One try block around publishing and scaling.",
    "fix": "Counting, publishing and scaling in separate try blocks, each logged under its own message.",
-   "test": ""
+   "test": "",
+   "impact": "A lasting problem writing metrics, such as a quota or a removed permission, would also have frozen the worker pool's size, even though the API the scaler actually needs was working."
   },
   {
    "id": "R3",
@@ -154,7 +170,8 @@
    "scenario": "With 3 workers and a minimum of 1, the alarm stays in ALARM and removes a worker every 300 s; a job claimed at minute 19.5 is not yet in the published count, so the minute-20 scale-in can stop the task that claimed it.",
    "cause": "The metric lags the claim by up to a minute.",
    "fix": "A worker running a job holds ECS task scale-in protection, set when it becomes busy, refreshed every 2 hours, cleared when idle.",
-   "test": "test_a_busy_worker_holds_scale_in_protection."
+   "test": "test_a_busy_worker_holds_scale_in_protection.",
+   "impact": "The promise that scaling in never stops a running job was false on AWS: a job claimed in the last minute before a scale-in could have its worker stopped under it and end interrupted."
   },
   {
    "id": "R4",
@@ -164,7 +181,11 @@
    "scenario": "With a maximum of 100%, ECS cannot start a new worker until the protected old one stops; under steady load the old worker keeps claiming and renewing its protection, so the deployment may never finish while old worker code runs against the migrated schema.",
    "cause": "Protection guards a task from deployments as well as scale-in.",
    "fix": "Maximum 200% so new workers start beside the old; an old worker compares its task definition with the service's current one, drains (claims nothing new), finishes its jobs, and then its protection clears.",
-   "test": "test_an_old_worker_drains_when_a_deployment_replaces_it and test_a_draining_worker_finishes_what_it_runs_and_claims_nothing_new."
+   "test": "test_an_old_worker_drains_when_a_deployment_replaces_it and test_a_draining_worker_finishes_what_it_runs_and_claims_nothing_new.",
+   "impact": "Under steady load a worker deployment might never finish, leaving old worker code running against a database already migrated for the new release.",
+   "alternatives": [
+    "Keep the maximum at 100% and document that a worker deployment waits for the queue to drain: set aside because under steady load it may wait for ever while old code meets the new schema."
+   ]
   },
   {
    "id": "R5",
@@ -174,7 +195,11 @@
    "scenario": "A new image's workers fail to start; meanwhile every old worker sees itself superseded and drains; the breaker rolls back, the old tasks are current again but stay drained; in staging (max 2) nothing runs until someone restarts the service. A workspace opened after the drain also got an undrained worker.",
    "cause": "drained was set once and never revisited.",
    "fix": "Once drained and idle the worker process ends, and ECS starts whatever task definition is now current; every workspace's worker is drained on each tick.",
-   "test": "WatchStepTests."
+   "test": "WatchStepTests.",
+   "impact": "A failed release that ECS rolled back could leave every worker drained, so in staging no job would run at all until someone noticed and restarted the service by hand.",
+   "alternatives": [
+    "Keep asking every minute whether the worker is superseded and undrain when it no longer is: set aside for ending a drained, idle worker, which covers a finished deployment and a rollback with one rule and lets ECS start the current task."
+   ]
   },
   {
    "id": "R6",
@@ -184,7 +209,8 @@
    "scenario": "The dispatcher is inside claim() when the watch drains the worker, sees nothing in running, and ends the process; the just-claimed job stops at its first checkpoint as interrupted.",
    "cause": "Busy was read from running, which a claimed job enters only in its own thread.",
    "fix": "has_work() counts a job as soon as it is claimed; the process ends only after two idle ticks in a row while drained.",
-   "test": "WatchStepTests: a job claimed but not yet running keeps the worker busy and protected; one idle tick does not end it; two do."
+   "test": "WatchStepTests: a job claimed but not yet running keeps the worker busy and protected; one idle tick does not end it; two do.",
+   "impact": "A job claimed at the very moment its worker drained would start and then stop at its first checkpoint as interrupted, waiting for a person to retry it, which is the outcome R3 and R4 were built to prevent."
   },
   {
    "id": "S1",
@@ -194,7 +220,8 @@
    "scenario": "An ALB probes /readyz with the target's IP as its Host header, and the server answered 400.",
    "cause": "The host check applied to every path.",
    "fix": "Exempt only GET and HEAD on /healthz and /readyz; every other path keeps the check.",
-   "test": "A test that /api/config and a POST to a probe path are still refused."
+   "test": "A test that /api/config and a POST to a probe path are still refused.",
+   "impact": "On AWS the load balancer's health checks, sent with the target's IP as the host, would have been refused, so every app instance would be marked unhealthy and taken out of service on the first deployment."
   }
  ],
  "measurements": [],
@@ -205,5 +232,12 @@
   "Leadership through a database lock must be re-checked against the live connection; a dropped connection silently makes two leaders.",
   "Secrets passed as environment overrides end up in audit logs; pass a reference to a secret instead."
  ],
- "commits": ["fa4ff04"]
+ "commits": ["fa4ff04"],
+ "risks": [
+  "Scaling workers in by queue length can stop a worker in the middle of a long job unless running work counts and busy tasks are protected.",
+  "A cloud's own autoscaler may not read a custom queue metric at all; 'scales with the queue' must be checked per cloud, not assumed.",
+  "With several instances and workers starting in any order, migrations must run once, under a lock, before any worker checks the schema.",
+  "Secrets passed as environment overrides land in audit logs; a first-owner password or key must come from the secret manager.",
+  "None of it can be planned or applied without the owner, so every claim rests on validation and stand-ins, and the README must say exactly what is untested."
+ ]
 }

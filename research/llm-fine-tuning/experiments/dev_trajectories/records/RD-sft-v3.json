@@ -35,7 +35,8 @@
    "scenario": "A v1 example asked 'What did experiment EXP-023 on the credit_default dataset find during the feature engineering stage?' and answered 'Use the raw feature recipe ... 0.7317 mean training-CV ROC-AUC' without saying what credit_default predicts, what the stage does or what was compared. Training on it teaches a model to recite 'EXP-023 said X'.",
    "cause": "The v1 builder turned claim-memory lines into questions and kept only their ids as context.",
    "fix": "Every v3 example carries the dataset card, the stage card and the run's setup summary, all taken from the records, never invented.",
-   "test": ""
+   "test": "",
+   "impact": "A small model trained on these examples would learn to answer 'what did EXP-023 find' with a number it cannot explain, and would have nothing to say about any project whose experiments it never saw, which is every user's project."
   }
  ],
  "measurements": [
@@ -45,7 +46,14 @@
    "fixed_before_run": true,
    "result": "326 examples at the commit; 330 after later rebuilds (264 train, 66 validation): grounded QA 83, critique 80, explain 70, apply a rule 42, leakage 23, rules 22, workflow 10; 10 contradicted challenges dropped, 147 kept, 0 rejected by the path and hash gate.",
    "verdict": "pass",
-   "next": "SLM-001: score the base model on the held-out datasets; SLM-002: fine-tune with LoRA and compare; SLM-003: compare with a large hosted model given the same records."
+   "next": "SLM-001: score the base model on the held-out datasets; SLM-002: fine-tune with LoRA and compare; SLM-003: compare with a large hosted model given the same records.",
+   "against_gate": "Each condition holds: whole datasets are held out (264 train, 66 validation), 10 contradicted challenges were dropped and 147 kept, and 0 examples were rejected by the path and hash gate.",
+   "limits": [
+    "The gate checks how the corpus was built, not its value: no model was trained on it, so nothing yet shows it teaches reasoning.",
+    "Only a few datasets are held out, so a model's validation score will be noisy.",
+    "The evaluator checks a core per task (the selected option, the cited record id, the required sections); explanations and critiques are scored on form, not on whether the reasoning is right.",
+    "A clean path and hash gate today does not mean it would catch every kind of private detail."
+   ]
   }
  ],
  "outcome": "A training-ready corpus with a trainer and a scorer. No training ran, because there was no GPU; the trainer was only checked to compile.",
@@ -56,5 +64,12 @@
  "commits": [
   "d9c4c24",
   "3212bd9"
+ ],
+ "risks": [
+  "Examples that leave out the evidence their answer depends on, so the model learns to recite.",
+  "A random split that puts near-duplicate examples from one dataset in both training and validation.",
+  "Critic challenges contradicted by the numbers entering the training data.",
+  "Paths, hashes or machine details in the examples.",
+  "An LLM judge in the evaluator adding its own errors to the score."
  ]
 }

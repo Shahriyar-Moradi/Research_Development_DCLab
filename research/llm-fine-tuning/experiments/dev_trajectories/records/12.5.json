@@ -44,7 +44,8 @@
    "scenario": "A draft event written between the dump and the counting made the manifest's rows differ from the restored database's.",
    "cause": "The counts were taken after the dump, outside its snapshot.",
    "fix": "Take the counts and the dump from the same exported snapshot.",
-   "test": "The backup and restore test compares the rows."
+   "test": "The backup and restore test compares the rows.",
+   "impact": "A restore check would have reported a difference after every backup taken while the app was in use, so either backups would look broken when they were fine, or people would learn to ignore the count check that is meant to catch a real loss."
   },
   {
    "id": "F1",
@@ -54,7 +55,9 @@
    "scenario": "Asset A, customers.csv, ready and added 40 days ago; today the user uploads customers.csv again, overwriting the file, and asset B is queued; sweep(drafts, 30) deletes customers.csv, and B's pipeline fails with 'The file customers.csv was not found. Upload it again'. The audit row also records B's hash as A's.",
    "cause": "Retention deleted data_dir/filename, and the upload route writes data_dir/name with no de-duplication.",
    "fix": "Store the raw SHA-256 on the asset; group assets by file name and let the newest decide; delete only when the file still has its hash.",
-   "test": "A test with two uploads of one name."
+   "test": "A test with two uploads of one name.",
+   "impact": "A person who re-uploaded a file under the same name had their new upload deleted by the sweep before it was processed; the pipeline told them to upload it again, and the audit trail recorded the wrong file's hash as deleted. Retention, a privacy feature, would have destroyed fresh data and written a false record of it.",
+   "open": "A file name uploaded twice must now be resolved by which asset is newest; that rule needed a second round (R1) and a third (R2) to be safe."
   },
   {
    "id": "F2",
@@ -64,7 +67,9 @@
    "scenario": "A pipeline job ends interrupted and its asset is set failed; the user clicks Retry on the Compute page, and the asset stays failed until the job is claimed; the hourly sweep runs first and deletes the raw file, and the retried job fails. A failed asset has no cleaned table, so the raw file was its only copy.",
    "cause": "Failed assets were selected, and the update re-checked only raw_deleted, not the status or an active job.",
    "fix": "Only ready assets are ever deleted, checked again inside the draft's update.",
-   "test": "A test of a retried asset's file surviving the sweep."
+   "test": "A test of a retried asset's file surviving the sweep.",
+   "impact": "A person who clicked Retry after a pipeline was interrupted could have the raw file, the only copy of a failed upload, deleted by the hourly sweep before the retry started; the retry then failed and the data was gone from the product.",
+   "open": "Failed uploads are now kept until their draft is deleted, so a workspace that never deletes drafts keeps those raw files indefinitely."
   },
   {
    "id": "F3",
@@ -74,7 +79,8 @@
    "scenario": "The first sweep after turning the rule on in a workspace with many old uploads hashes files of up to 200 MB inside the heartbeat thread; past the stale limit (120 s by default), another worker's recover() marks this worker's running jobs interrupted while they still run.",
    "cause": "The sweep ran in the heartbeat thread.",
    "fix": "The sweep runs on its own thread.",
-   "test": ""
+   "test": "",
+   "impact": "The first sweep after an operator turned retention on, in a workspace with many old uploads, could stop the worker's heartbeat long enough for another worker to mark its running jobs interrupted while they were still running, so stage runs failed for a housekeeping task."
   },
   {
    "id": "F4",
@@ -84,7 +90,8 @@
    "scenario": "The workspace's projects folder is a link to another disk (which file storage explicitly supports): rglob does not descend into it, every project table is missing from files.tar.gz, the manifest counts the same reduced list, restore reports no difference and the restored projects have no tables. A linked file was archived as a link, which extraction refuses after the database has been restored.",
    "cause": "Path.rglob does not follow linked folders, and tar stored links.",
    "fix": "List files with os.walk following links and archive with dereference.",
-   "test": "test_linked_folders_..."
+   "test": "test_linked_folders_...",
+   "impact": "An operator who keeps project files on another disk through a link, which file storage supports, would have backups without any project tables, and the restore would report no difference; the gap would surface only when a real restore came back with empty projects."
   },
   {
    "id": "F5",
@@ -94,7 +101,8 @@
    "scenario": "A project deletion or the sweep removes a file between listing and archiving: FileNotFoundError, a traceback, and a folder with database.dump, a partial files.tar.gz and no manifest.",
    "cause": "No handling for a vanished file and no clean-up on failure.",
    "fix": "A vanished file is skipped and listed in the manifest; a backup that fails half way is removed.",
-   "test": "A test with a file vanishing mid-backup."
+   "test": "A test with a file vanishing mid-backup.",
+   "impact": "A backup taken while someone deleted a project crashed and left a folder that looked like a backup but had no manifest and a partial archive; an operator could later try to restore from it."
   },
   {
    "id": "F6",
@@ -104,7 +112,8 @@
    "scenario": "A URL with sslmode=verify-full and a root certificate made pg_dump connect with libpq's default sslmode=prefer and no certificate check, while carrying the whole database.",
    "cause": "Only the host query parameter was passed on.",
    "fix": "Map sslmode, sslrootcert, sslcert, sslkey and connect_timeout to their PG environment variables.",
-   "test": "A test of the environment built for pg_dump."
+   "test": "A test of the environment built for pg_dump.",
+   "impact": "With a database that requires verified TLS, the backup tool fell back to an unverified connection while carrying the whole database, so a backup could be read or altered in transit by anyone in the path."
   },
   {
    "id": "R1",
@@ -114,7 +123,8 @@
    "scenario": "Upload customers.csv, then again with new bytes; both ready; both 400 days old; sweep returns nothing and the file stays, while the Admin page says raw uploads are deleted after N days.",
    "cause": "Every asset sharing a file name blocked every other one.",
    "fix": "The file belongs to the newest same-name asset whose hash matches; older ones are marked superseded without unlinking; the file goes when that newest asset is due and no same-name asset is queued or processing.",
-   "test": "Two ready same-name uploads, both old, are deleted once; a newer same-name upload is left alone."
+   "test": "Two ready same-name uploads, both old, are deleted once; a newer same-name upload is left alone.",
+   "impact": "After the first fix, any file name a person uploaded twice was kept for ever, while the Admin page told them raw uploads are deleted after N days: the privacy promise was false for the most ordinary usage pattern."
   },
   {
    "id": "R2",
@@ -124,7 +134,9 @@
    "scenario": "An old asset's sweep has hashed customers.csv; the user uploads customers.csv again, and while new_asset hashes it, mark() claims the old asset; files.delete unlinks the new upload first, so the re-check after it saves nothing and the new pipeline fails with 'file not found'.",
    "cause": "LocalFiles.delete unlinked unconditionally before retention's check.",
    "fix": "Retention moves the file aside with os.replace, checks its hash, then unlinks; a new forget_one removes only the record and the bucket copy. A writer that opened the file before the move leaves a mismatching hash, and the file is put back.",
-   "test": "The reviewer's reproduction, new bytes landing between the mark and the delete, now keeps the new upload."
+   "test": "The reviewer's reproduction, new bytes landing between the mark and the delete, now keeps the new upload.",
+   "impact": "A person re-uploading a file under the same name at the moment the sweep retired the old one could lose the new upload on local storage, because the file was unlinked before the hash was checked; the check that was meant to prevent F1 protected nothing there.",
+   "open": "When the hashes do not match and another file already sits at the original path, the moved-aside file is never put back and stays as a hidden .retiring- file; and identical bytes re-uploaded in that instant are deleted too, so the person must upload once more."
   },
   {
    "id": "R3",
@@ -134,7 +146,8 @@
    "scenario": "It did not say that failed uploads are kept until their draft is deleted.",
    "cause": "The page text was written before the rule's exceptions.",
    "fix": "The text says so.",
-   "test": ""
+   "test": "",
+   "impact": "An administrator reading the privacy text would believe every raw upload goes after N days, while failed uploads stay until their draft is deleted; a data-protection answer given from that page would be wrong."
   },
   {
    "id": "R4",
@@ -144,7 +157,8 @@
    "scenario": "It restored into the source database, which is not empty, so the database check refused first and assertIn('not empty') matched that message.",
    "cause": "The assertion matched a substring both refusals share.",
    "fix": "Restore into an empty database and a non-empty folder and assert 'target folder is not empty'.",
-   "test": "tests/test_backup_retention.py."
+   "test": "tests/test_backup_retention.py.",
+   "impact": "The refusal to restore into a non-empty folder was never actually tested, so a change that let a restore overwrite an existing workspace folder would have passed."
   },
   {
    "id": "R5",
@@ -154,7 +168,8 @@
    "scenario": "A draft deleted after it was read makes data_dir raise FileNotFoundError or update raise KeyError, ending the sweep for every remaining draft until the next hour; a process stopped between mark() and the unlink leaves a file marked raw_deleted that later sweeps skip.",
    "cause": "No per-draft error handling; later sweeps ignored marked assets.",
    "fix": "Skip a draft that vanished and continue; a later sweep finishes a marked asset whose file is still there with its hash.",
-   "test": "A test of a sweep stopped between marking and deleting."
+   "test": "A test of a sweep stopped between marking and deleting.",
+   "impact": "One draft deleted at the wrong moment ended the sweep for every other draft until the next hour, and a worker stopped mid-retirement left a file that no later sweep would ever delete, again breaking the retention promise silently."
   },
   {
    "id": "R6",
@@ -164,7 +179,8 @@
    "scenario": "With the output folder on the container's workspace volume, each backup archives its own dump, its half-written archive and every earlier backup, growing with every run.",
    "cause": "The output folder was not excluded from the walk.",
    "fix": "A backup inside the workspace folder is refused; .retiring- files are left out of the archive.",
-   "test": "tests/test_backup_retention.py."
+   "test": "tests/test_backup_retention.py.",
+   "impact": "An operator who put backups on the workspace volume, the obvious place in the container setup, would get backups that contain all earlier backups, growing with every run until the disk filled."
   },
   {
    "id": "S1",
@@ -174,7 +190,8 @@
    "scenario": "Deleting a draft while its Home agent was starting left an unhandled KeyError in a background task, and a write in progress could save the just-deleted draft again.",
    "cause": "The draft's delete did not take the draft's lock.",
    "fix": "A draft's delete waits for a write in progress.",
-   "test": ""
+   "test": "",
+   "impact": "A person who deleted a draft while its Home agent was starting could see the draft reappear, holding the data they had just asked to remove, with an error left in a background task."
   },
   {
    "id": "S2",
@@ -184,7 +201,8 @@
    "scenario": "After the machine moved to PostgreSQL 16, pg_dump from PATH was the 15 client, which cannot dump a 16 server.",
    "cause": "The tool was taken from PATH first.",
    "fix": "Take the newest installed pg_dump (PATH, Homebrew or Debian), read its version from --version (Homebrew's ends with '(Homebrew)'); DCLAB_PG_BIN still overrides.",
-   "test": "The backup tests on PostgreSQL 16."
+   "test": "The backup tests on PostgreSQL 16.",
+   "impact": "After the move to PostgreSQL 16, every backup on this machine failed because the first pg_dump on the path was the older client; an operator would discover it only when a backup was needed."
   },
   {
    "id": "S3",
@@ -194,7 +212,8 @@
    "scenario": "A URL giving host and port in its query (accepted by psycopg and libpq) sent pg_dump to the default port: the backup tests failed with the test database on 5433, and a backup would have dumped the wrong server.",
    "cause": "Only the URL's host and port were read.",
    "fix": "Read the port and socket folder from the query too.",
-   "test": "The backup tests on a database on another port."
+   "test": "The backup tests on a database on another port.",
+   "impact": "A database URL that gives its host and port in the query would have sent pg_dump to the default port, so a backup could dump a different server than the product uses, and look successful."
   }
  ],
  "measurements": [],
@@ -205,5 +224,12 @@
   "A fix for a data-loss finding needs a second review: here the first fix both blocked all deletions and left a race in the storage layer.",
   "Never run long housekeeping inside a heartbeat."
  ],
- "commits": ["cfb1610", "fa8bdc0", "4ba3896"]
+ "commits": ["cfb1610", "fa8bdc0", "4ba3896"],
+ "risks": [
+  "Retention deletes people's raw data: any mistake about which file belongs to which asset deletes the wrong file, with no undo.",
+  "Files and assets can share a name, be retried, or be in flight when the sweep runs; only a file whose hash still matches a finished, newest asset may go.",
+  "A backup that skips files silently (links, vanished files, its own output) looks complete until the day it is restored.",
+  "The dump and the file archive are taken at different moments; counts and files must come from one consistent point, or the check reports false differences.",
+  "Backup tools take the server's address and TLS settings from the URL; any option dropped on the way can dump the wrong server or over an unverified connection."
+ ]
 }

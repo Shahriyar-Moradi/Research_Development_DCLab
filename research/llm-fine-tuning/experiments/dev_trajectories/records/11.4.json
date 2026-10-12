@@ -34,7 +34,9 @@
    "scenario": "Live check with qwen2.5-coder:1.5b on the local machine: the user answers the outcome question; the model replies with friendly prose and no record or ask_user call; the draft's understanding stays empty and the chat waits for ever.",
    "cause": "model_turn assumed the model would drive the conversation through tools and had no path for a turn with no tool call.",
    "fix": "After a turn with no tool call, code records the reply as the answer to the question that is still open (or starts a requested simulation, or asks the next question), as the script would.",
-   "test": "test_a_model_that_only_talks_does_not_stall_the_conversation: a Talker client that always returns text; after four answers the outcome, moment and action are recorded and the last message is the summary."
+   "test": "test_a_model_that_only_talks_does_not_stall_the_conversation: a Talker client that always returns text; after four answers the outcome, moment and action are recorded and the last message is the summary.",
+   "impact": "Anyone running DCLab on a small local model, the free path the owner wants to keep open, met a chat that answered politely and then went nowhere: no outcome, moment or action was recorded, so no solution workflow and no project could follow. The person had no next step and no error to act on.",
+   "open": "Code now records the person's whole reply as the open question's answer, even when the reply was a question back or off topic; only the script's words decide whether it asks for a simulation."
   },
   {
    "id": "T1",
@@ -44,7 +46,8 @@
    "scenario": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them compared the token events with the draft's last message; now the next question follows the model's text, so the last message is the question, not the streamed reply.",
    "cause": "The test assumed the model's text is always the final message of a turn.",
    "fix": "The test looks up the streamed message by its id instead of taking the last message.",
-   "test": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them."
+   "test": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them.",
+   "impact": "Left as it was, the red test would have pushed someone to put the model's text back as the last message, undoing the fix; read correctly, it was the test's assumption that had changed, not the streaming contract."
   }
  ],
  "measurements": [],
@@ -54,5 +57,11 @@
   "Every agent turn needs a deterministic next step when the model does nothing useful.",
   "When a fix inserts a message, re-check tests that assume message order."
  ],
- "commits": ["a8eae10"]
+ "commits": ["a8eae10"],
+ "risks": [
+  "Small models often answer in prose and never call a tool; a conversation driven only by tool calls stalls on them.",
+  "If code takes over after a tool-less turn, it can record a reply that was not an answer to the open question.",
+  "Code and model must not both record the same answer or both ask the next question in one turn.",
+  "Tests that assume the model's text is the last message of a turn break once code speaks after the model."
+ ]
 }

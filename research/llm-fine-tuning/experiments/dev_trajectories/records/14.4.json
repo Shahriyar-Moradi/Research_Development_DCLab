@@ -29,7 +29,9 @@
    "scenario": "Every generator appends the planted column last, so after a base's shared columns the last row was always the added one (for example a refund paid after the outcome, an exit rating, a claim number); the reviewer could also diff cases of one base.",
    "cause": "Columns were listed in table order.",
    "fix": "Shuffle the columns inside each case with a seeded generator keyed by the reference; mention the repeated bases in the protocol.",
-   "test": "test_the_columns_of_a_case_do_not_show_which_one_was_added."
+   "test": "test_the_columns_of_a_case_do_not_show_which_one_was_added.",
+   "impact": "A reviewer could tell which column was planted just by looking at the last row of each case, so their 'independent' labels would agree with the benchmark by construction, and the review meant to validate the labels would have validated nothing.",
+   "open": "Several cases come from the same base table, so a reviewer can still compare cases of one base to spot the added column; the protocol names it, the form cannot prevent it."
   },
   {
    "id": "F2",
@@ -39,7 +41,8 @@
    "scenario": "Both reviewers fill only the clean columns of a missing-is-outcome case and leave the planted score blank; it lands in the confirmed cases, because agreement was built only from rows both reviewers decided.",
    "cause": "A blank was silently ignored rather than counted as undecided.",
    "fix": "A case is confirmed only when every benchmark-labelled column is decided by both reviewers and matches; per-case coverage and undecided labelled columns are reported.",
-   "test": "test_a_case_whose_planted_column_was_left_blank_is_not_confirmed."
+   "test": "test_a_case_whose_planted_column_was_left_blank_is_not_confirmed.",
+   "impact": "A case where both reviewers skipped the planted column would be reported as confirmed by both, so the agreement figures would overstate how much of the benchmark's labels experts had actually checked."
   }
  ],
  "measurements": [],
@@ -48,5 +51,12 @@
   "A blind review form leaks through order and position as easily as through names; shuffle within each case.",
   "A blank is not agreement: confirmation must require the labelled items to be decided."
  ],
- "commits": ["c291a1b"]
+ "commits": ["c291a1b"],
+ "risks": [
+  "Any order or pattern in the form (the planted column last, repeated bases) lets a reviewer see the answer, which defeats a blind review.",
+  "A blank must count as undecided, never as agreement, or coverage is overstated.",
+  "Agreement needs chance correction (Cohen's kappa); raw agreement on mostly clean columns looks high by default.",
+  "A changed sealed label must create a new benchmark version, never an edit of the frozen one.",
+  "The kit cannot be proven until two named reviewers use it; the package stays open on people, not code."
+ ]
 }
