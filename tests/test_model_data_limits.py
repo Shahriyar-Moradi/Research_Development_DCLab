@@ -206,9 +206,17 @@ class DataLimitTests(unittest.TestCase):
                    advisor=GatewayAdvisor(gw))
         self.assertEqual(self.assertWithinLimit("problem_analyst"), set())
 
+    def test_the_data_investigator_sees_column_names_and_shares_never_values(self):
+        from dclab_core.analyse import analyse
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        table = marked_table()
+        gw = gateway({"data_investigator": [{"content": '{"after": [{"column": "note", "why": "a note written later"}]}', "tool_calls": [], "usage": {}}]})
+        analyse({"customers": table}, target="churned", task="binary", moment="At the monthly snapshot.", advisor=GatewayAdvisor(gw))
+        self.assertEqual(self.assertWithinLimit("data_investigator"), set())
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
-                  "leakage_review", "notebook_review", "problem_analyst"}
+                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

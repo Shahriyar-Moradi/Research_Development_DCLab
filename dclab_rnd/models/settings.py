@@ -56,6 +56,9 @@ PURPOSES: dict[str, Purpose] = {
                                               "count, the column audit's flags, and the ids and titles of rule and leakage-precedent records; never rows or cell values"),
     "problem_analyst": Purpose("standard", 60, "the problem's description (the person's own words, up to 20 paragraphs) and the names of their "
                                                "files and columns (dclab_core's problem analyst, package 18.2); never rows or cell values"),
+    "data_investigator": Purpose("standard", 60, "the prediction moment, the target's name and the task, and each column's name, kind, "
+                                                 "missing share and distinct share (dclab_core's data investigator, package 18.3); "
+                                                 "never rows or cell values"),
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
                                      "column from describe_data), stage records and evidence records (with this workspace's accepted lessons: other "
                                      "projects' aggregate results and scope); never whole rows", cell_values=3 * 200),

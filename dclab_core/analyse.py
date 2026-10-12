@@ -25,6 +25,8 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
+from dclab_core.advisor import Advisor
+from dclab_core.agents import Role, run_role
 from dclab_core.contracts import DataFindings, Finding, ProblemBrief, TableSummary, TaskType
 
 POST_MOMENT_NAME = re.compile(r"(^|_)(actual|final|resolved|resolution|result|outcome|closed|refund(ed)?|chargeback|"
@@ -320,12 +322,17 @@ def _distribution(y: pd.Series) -> list[Finding]:
     return out
 
 
-def _entities(df: pd.DataFrame, y: Optional[pd.Series], task: str, brief: Optional[ProblemBrief], target: Optional[str]) -> list[Finding]:
+def _entities(df: pd.DataFrame, y: Optional[pd.Series], task: str, brief: Optional[ProblemBrief], target: Optional[str],
+              proposed: Optional[Mapping[str, str]] = None) -> list[Finding]:
     named = [str(c) for c in (brief.entities.value or [])] if brief is not None and brief.entities.known else []
-    candidates = [c for c in df.columns if c != target and not _decimal(df[c])
-                  and (str(c) in named or (ID_NAME.search(str(c)) and not df[c].is_unique))]
+    proposed = dict(proposed or {})  # the data investigator's entities (18.3): checked like an id-like name, not like the person's word
+    usable = [c for c in df.columns if c != target and not _decimal(df[c])]
+    ruled = [c for c in usable if str(c) in named or (ID_NAME.search(str(c)) and not df[c].is_unique)]
+    ruled = sorted(ruled, key=lambda c: str(c) not in named)[:6]  # the person's entities first, then id-like names
+    extra = [c for c in usable if str(c) in proposed and c not in ruled and not df[c].is_unique][:6]  # own slots: never pushes a rule out
+    candidates = ruled + extra
     out = []
-    for column in candidates[:6]:
+    for column in candidates:
         sizes = df.groupby(column, dropna=True).size()
         if sizes.empty or sizes.max() < 2 or (str(column) not in named and sizes.median() < 2):
             continue  # an id that repeats only through duplicated rows is not an entity
@@ -388,25 +395,48 @@ def _time(df: pd.DataFrame, y: Optional[pd.Series], task: str, brief: Optional[P
                ["split.strategy", "risk.check"], "warning" if drift else "info")]
 
 
-def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str]) -> list[Finding]:
+def _missing_power(x: pd.Series, y: pd.Series, task: str) -> Optional[float]:
+    """How well *whether* a value is missing predicts the target (a value written only when the outcome did not happen)."""
+    rate = float(x.isna().mean())
+    if not 0.02 <= rate <= 0.98:
+        return None
+    return _power(x.isna().astype(int).rename(x.name), y, task, categorical=True)
+
+
+def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str],
+             suspects: Optional[Mapping[str, str]] = None) -> list[Finding]:
+    """Columns written after the outcome. ``suspects``: columns the data investigator reads as written after the
+    prediction moment, with its reason (18.3); they are tested exactly as a telling name is, never trusted."""
     if y is None:
         return []
+    suspects = dict(suspects or {})
     out = []
     times = _time_columns(df)
     for column in df.columns:
         if column == target:
             continue
-        named = bool(POST_MOMENT_NAME.search(str(column))) and not HISTORY_NAME.search(str(column))
+        by_name = bool(POST_MOMENT_NAME.search(str(column))) and not HISTORY_NAME.search(str(column))
+        suspected = str(column) in suspects
+        named = by_name or suspected
         power = None if (ID_NAME.search(str(column)) and df[column].is_unique) else _power(df[column], y, task)
+        absent = _missing_power(df[column], y, task)
         evidence: dict[str, Any] = {"column": str(column)}
         if power is not None:
             evidence["single_column_power"] = _r(power)
+        if absent is not None:
+            evidence["missing_indicator_power"] = _r(absent)
+            power = absent if power is None else max(power, absent)
+        if suspected:
+            evidence["suspected_by"] = "the data investigator" + (" and the name" if by_name else "")
+            evidence["investigator_reason"] = suspects[str(column)][:300]
+        why = ("its name says it is written after the outcome" if by_name else
+               f"the data investigator reads it as written after the moment ({suspects.get(str(column), '')[:120]})")
         if power is not None and power >= POWER_ALARM[task]:
-            severity, says = "critical", "on its own it predicts the target almost perfectly" + ("; its name says it is written after the outcome" if named else "")
+            severity, says = "critical", "on its own it predicts the target almost perfectly" + (f"; {why}" if named else "")
         elif named and power is not None and power >= POWER_NAMED[task]:
-            severity, says = "warning", "its name says it is written after the outcome, and it predicts the target"
+            severity, says = "warning", f"{why}, and it predicts the target"
         elif named:
-            out.append(_f(f"name-{column}", "leakage", f"{column}: the name sounds written after the outcome, but it predicts little.",
+            out.append(_f(f"name-{column}", "leakage", f"{column}: {why}, but it predicts little.",
                           evidence, f"Ask when {column} is written; keep it only if it is known at the prediction moment.",
                           ["risk.check"], "info"))
             continue
@@ -415,6 +445,8 @@ def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Option
         out.append(_f(f"leak-{column}", "leakage", f"{column}: {says}.", evidence,
                       f"Keep {column} out unless it is known at the prediction moment; ask when it is written.",
                       ["features.forbidden"], severity))
+    if task == "regression":
+        out += _sum_identity(df, y)
     if task == "regression" and len(times) >= 2:
         target_values = y.astype(float)
         spread = float(target_values.std()) if target_values.notna().sum() > 1 else 0.0
@@ -431,6 +463,48 @@ def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Option
                                       f"{later} is written when the outcome is known: keep it out.", ["features.forbidden"], "critical"))
                         break
     return out
+
+
+MAX_SUM_COLUMNS = 40
+
+
+SUM_SAMPLE = 50_000
+
+
+def _sum_identity(df: pd.DataFrame, y: pd.Series) -> list[Finding]:
+    """Two numeric columns that add up to the target: its parts, known only once the target is. A column that already
+    equals the target, or one that is mostly zero, makes no pair (a final amount plus a mostly-zero tip is not a sum).
+    Screened on a seeded sample of rows, confirmed on all."""
+    target = y.astype(float)
+    spread = float(target.std()) if target.notna().sum() > 1 else 0.0
+    if spread <= 0:
+        return []
+    numeric = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c]) and not pd.api.types.is_bool_dtype(df[c])
+               and df[c].nunique() > 2][:MAX_SUM_COLUMNS]
+    if len(numeric) < 2:
+        return []
+    values = df[numeric].astype(float).to_numpy()
+    t = target.to_numpy()
+    rows = np.arange(len(t))
+    if len(rows) > SUM_SAMPLE:
+        rows = np.sort(np.random.default_rng(0).choice(rows, SUM_SAMPLE, replace=False))
+    tol = 0.005 * spread
+
+    def close(total: np.ndarray, ys: np.ndarray) -> bool:
+        ok = ~np.isnan(total) & ~np.isnan(ys)
+        return int(ok.sum()) > 30 and float(np.median(np.abs(total[ok] - ys[ok]))) < tol
+
+    usable = [j for j in range(len(numeric))
+              if not close(values[rows, j], t[rows]) and float(np.nanmedian(np.abs(values[rows, j]))) >= tol]
+    out = []
+    for x, i in enumerate(usable):
+        for j in usable[x + 1:]:
+            a, b = numeric[i], numeric[j]
+            if close(values[rows, i] + values[rows, j], t[rows]) and close(values[:, i] + values[:, j], t):
+                out.append(_f(f"leak-sum-{a}-{b}", "leakage", f"{a} and {b} add up to the target.",
+                              {"columns": [str(a), str(b)]}, f"{a} and {b} are the target's parts: keep both out.",
+                              ["features.forbidden"], "critical"))
+    return out[:5]
 
 
 def _missing(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str]) -> list[Finding]:
@@ -596,11 +670,70 @@ def _labels(main: pd.DataFrame, name: str, labels: pd.DataFrame, label_name: str
 # ----------------------------------------------------------------------------------------- entry point
 
 
+# ------------------------------------------------------------------------------------------------ the data investigator
+
+MAX_INVESTIGATED = 150  # three lists of 50 lines: the advisor's evidence limits
+
+
+def _kind(x: pd.Series) -> str:
+    if pd.api.types.is_bool_dtype(x):
+        return "boolean"
+    if pd.api.types.is_datetime64_any_dtype(x) or (TIME_NAME.search(str(x.name or "")) and not pd.api.types.is_numeric_dtype(x)
+                                                   and _as_time(x).notna().mean() > 0.9):
+        return "datetime"
+    if pd.api.types.is_numeric_dtype(x):
+        return "integer" if pd.api.types.is_integer_dtype(x) else "number"
+    return "text" if x.astype(str).str.len().mean() > 40 else "category"
+
+
+def _investigator_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    df = inputs["features"]
+    lines = [f"{str(c)[:200]} | {_kind(df[c])} | missing {float(df[c].isna().mean()):.2f} | "
+             f"distinct {float(df[c].nunique()) / max(len(df), 1):.2f}" for c in list(df.columns)[:MAX_INVESTIGATED]]
+    return {"prediction_moment": str(inputs.get("moment") or "not stated")[:600], "target": str(inputs["target"])[:200],
+            "task": inputs["task"], "rows": int(len(df)), "columns_total": int(df.shape[1]), "columns_shown": len(lines),
+            # one line per column ("name | kind | missing 0.12 | distinct 0.98"), in lists of 50: a summary, never a table
+            "columns": {f"{i + 1}-{i + len(chunk)}": chunk for i, chunk in
+                        ((i, lines[i:i + 50]) for i in range(0, len(lines), 50))}}
+
+
+def _investigator_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict[str, dict[str, str]]:
+    """Keep proposals about columns that exist (never the target), each with a short reason."""
+    columns = {str(c) for c in inputs["features"].columns} - {str(inputs["target"])}
+    out: dict[str, dict[str, str]] = {"after": {}, "entities": {}}
+    for key in ("after", "entities"):
+        items = answer.get(key) or []
+        if not isinstance(items, list):
+            raise ValueError(f"{key} must be a list")
+        for item in items[:50]:
+            if not isinstance(item, Mapping):
+                continue
+            column, why = item.get("column"), item.get("why")
+            if isinstance(column, str) and column in columns and isinstance(why, str) and why.strip():
+                out[key][column] = " ".join(why.split())[:300]
+    return out
+
+
+DATA_INVESTIGATOR = Role(
+    name="data_investigator",
+    description="Reads the column names and kinds against the prediction moment; proposes columns written after it and "
+                "entities. Every proposal is a check analyse runs, never a finding by itself.",
+    evidence=_investigator_evidence, parse=_investigator_parse, fallback=lambda inputs: {"after": {}, "entities": {}})
+
+
+def _investigate(advisor: Advisor, features: pd.DataFrame, train: pd.DataFrame, target: Optional[str], task: str,
+                 moment: Optional[str], findings: list[Finding]) -> dict[str, dict[str, str]]:
+    return run_role(DATA_INVESTIGATOR, advisor, {"features": features, "target": target, "task": task, "moment": moment}).output
+
+
 def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, task: Optional[TaskType] = None,
             brief: Optional[ProblemBrief] = None, train_index: Optional[Sequence[Any]] = None,
-            main: Optional[str] = None, labels: Optional[str] = None) -> DataFindings:
+            main: Optional[str] = None, labels: Optional[str] = None, advisor: Optional[Advisor] = None,
+            moment: Optional[str] = None) -> DataFindings:
     """Analyse the tables for the decisions they imply. ``train_index``: the rows of the main table the host may look
-    at for choices (its training partition); without it, every row is used and the findings say so."""
+    at for choices (its training partition); without it, every row is used and the findings say so. ``advisor``: the
+    data investigator (18.3) may read the column names and kinds, never values, and propose columns written after the
+    ``moment`` (default: the brief's) and entities; every proposal is tested here like a telling name."""
     if not tables:
         return DataFindings()
     main = main or max((n for n in tables if n != labels), key=lambda n: len(tables[n]))
@@ -622,9 +755,12 @@ def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, ta
         findings += _conflicts(train, target)
         findings += _target_findings(y, task, brief)
     features = train.drop(columns=[target]) if target in train.columns else train
-    findings += _entities(train, y, task, brief, target)
+    if moment is None and brief is not None and brief.prediction_moment.known:
+        moment = str(brief.prediction_moment.value)
+    proposals = _investigate(advisor, features, train, target, task, moment, findings) if advisor is not None and y is not None else {}
+    findings += _entities(train, y, task, brief, target, proposals.get("entities"))
     findings += _time(train, y, task, brief, target)
-    findings += _leakage(features, y, task, target)
+    findings += _leakage(features, y, task, target, proposals.get("after"))
     findings += _missing(train, y, task, target)
     findings += _columns(df, target)
     if labels and labels in tables:

@@ -125,8 +125,8 @@ def _split(task: str, brief: Optional[ProblemBrief], findings: DataFindings) -> 
     drifting = time is not None and time.severity == "warning"
     cites = [f.id for f in ([group] if group else []) + ([time] if time else [])]
     column = _entity_column(group) if group else None
-    kept_out = {str(f.evidence.get("column")) for f in _by_topic(findings, "leakage")} | {
-        str(f.evidence.get("later")) for f in _by_topic(findings, "leakage") if f.evidence.get("later")}
+    kept_out = {c for f in _by_topic(findings, "leakage") for c in _leak_columns(f)} | {
+        str(f.evidence.get("column")) for f in _by_topic(findings, "leakage") if f.evidence.get("column")}
     tcol = time.evidence.get("column") if time and time.evidence.get("column") not in kept_out else None
     drifting = drifting and tcol is not None
     no_split = _get(findings, "F-no-split")
@@ -225,13 +225,23 @@ def _baseline(task: str, findings: DataFindings) -> Decision:
               _target_finding(findings))
 
 
+def _leak_columns(f: Finding) -> list[str]:
+    """The columns a leakage finding says to keep out: the later of two times that recompute the target, both parts of
+    a sum that adds up to it, or the one column."""
+    if f.evidence.get("later"):
+        return [str(f.evidence["later"])]
+    columns = f.evidence.get("columns")
+    if isinstance(columns, list) and columns:
+        return [str(c) for c in columns]
+    return [str(f.evidence["column"])] if f.evidence.get("column") else []
+
+
 def _features(findings: DataFindings, brief: Optional[ProblemBrief], task: str) -> list[Decision]:
     out = []
     leaks = [f for f in _by_topic(findings, "leakage") if f.severity in ("warning", "critical")]
     forbidden = []
     for f in leaks:
-        columns = [f.evidence["later"]] if f.evidence.get("later") else [f.evidence.get("column")]
-        for column in columns:  # a recomputed target names two columns; the later one is written after the outcome
+        for column in _leak_columns(f):  # a recomputed target names two columns; the later one is written after the outcome
             if column and column not in [x["column"] for x in forbidden]:
                 forbidden.append({"column": str(column), "reason": f.statement})
     out.append(_d("features.forbidden", forbidden,
@@ -430,9 +440,9 @@ def validate(plan_: SolutionPlan, findings: DataFindings) -> list[str]:
         problems.append(shape)
     for f in findings.findings:
         if f.topic == "leakage" and f.severity == "critical" and not _persons(forbidden):
-            columns = [f.evidence["later"]] if f.evidence.get("later") else [f.evidence.get("column")]
-            if not (set(map(str, columns)) & kept_out):
-                problems.append(f"{f.id} is critical but {', '.join(map(str, columns))} is not in features.forbidden")
+            missing = [c for c in _leak_columns(f) if c not in kept_out]  # every part of a sum, the later of two times
+            if missing:
+                problems.append(f"{f.id} is critical but {', '.join(missing)} is not in features.forbidden")
     join = plan_.decision("labels.join")
     if join is not None and not _persons(join):
         key = join.choice.get("key") if isinstance(join.choice, dict) else join.choice
