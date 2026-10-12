@@ -116,7 +116,39 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "prediction_moment_hint": _moment_hint(task, time_candidates, forbidden),
         "audit_note": audit["note"],
         "all_columns": audit["all_columns"],
+        "plan": _core_plan(X, y, target, task),
     }
+
+
+def provisional_training_rows(index: pd.Index) -> pd.Index:
+    """80 % of the rows, seeded: what the plan may read before the engine locks its holdout (the rest stays unseen)."""
+    import numpy as np
+
+    keep = np.random.default_rng(42).random(len(index)) < 0.8
+    return index[keep]
+
+
+def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str):
+    """dclab_core's findings and plan for this table (package 17.4), read on the provisional training rows only."""
+    from dclab_core.analyse import analyse
+    from dclab_core.plan import plan
+
+    frame = X.assign(**{target: y})
+    findings = analyse({"table": frame}, target=target, task=task, train_index=provisional_training_rows(frame.index))
+    return findings, plan(None, findings)
+
+
+def _core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str) -> list[dict[str, Any]] | None:
+    """The plan, compact (each decision, its choice and why): advice beside the proposal above, which it does not
+    change; adopting it is a set_solution move (the intern's adopt_plan). None, logged, when the core cannot read the
+    table: the proposal stands without it."""
+    try:
+        return [{"decision": d.key, "choice": d.choice, "why": d.reason} for d in core_plan(X, y, target, task)[1].decisions]
+    except Exception as exc:  # noqa: BLE001 - a table the core cannot read leaves the proposal as it was
+        from ..observe import log
+
+        log.warning("core plan unavailable for target %s: %s", target, type(exc).__name__)
+        return None
 
 
 def _moment_hint(task: str, time_candidates: list[str], forbidden: list[dict[str, Any]]) -> str:

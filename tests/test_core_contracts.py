@@ -92,7 +92,7 @@ class BoundaryTest(unittest.TestCase):
     @unittest.skipIf(PYDANTIC_MISSING, PYDANTIC_MISSING)
     def test_importing_the_core_loads_nothing_outside_its_dependencies(self):
         # only what importing the core adds: an environment's .pth files load their own modules at start-up
-        modules = ", ".join(sorted({_module(p) for p in _sources()}))
+        modules = ", ".join(sorted({_module(p) for p in _sources() if p.stem != "__main__"}))  # an entry point runs on import
         code = ("import sys, json; before = set(sys.modules); "
                 f"import {modules}; std = set(sys.stdlib_module_names); "
                 "print(json.dumps(sorted({m.split('.')[0] for m in set(sys.modules) - before} - std)))")

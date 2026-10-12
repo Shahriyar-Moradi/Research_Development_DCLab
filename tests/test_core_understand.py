@@ -227,6 +227,10 @@ class UnderstandTest(unittest.TestCase):
         self.assertIn("action", [q.field for q in brief.open_questions])
         self.assertEqual(self.understand("Estimate the cost of each repair from the machine's history.").constraints, [])
 
+    def test_a_named_metric_is_kept_as_its_name(self):
+        brief = self.understand("Route each ticket to one of 12 teams; it will be judged on macro-F1.")
+        self.assertEqual((brief.primary_metric.value, brief.primary_metric.quote), ("macro_f1", "judged on macro-F1"))
+
     def test_the_task_comes_from_the_goal_sentence_first(self):
         self.assertEqual(self.understand("Predict which customers will churn next month. We do not know how much history matters.").task.value, "binary")
         self.assertEqual(self.understand("Detect fraudulent rides; one of 3 analysts reviews each flagged ride.").task.value, "binary")

@@ -140,6 +140,13 @@ def register(registry: Registry) -> None:
         "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.", "write", "create_project")
     add("use_sample", {**pid, "key": {**S, "description": "A key from list_samples."}}, ["project_id", "key"],
         "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.", "write", "attach_data")
+    add("adopt_plan", {**pid, "target": S, "prediction_moment": {**S, "description": "When the prediction is made and what is known then."},
+                       "overrides": {"type": "array", "items": {"type": "object", "properties": {"key": S, "choice": {}, "reason": S},
+                                                                "required": ["key", "choice", "reason"]},
+                                     "description": "Decisions of the plan to change, each with its reason; a change that ignores a finding is refused."}},
+        ["project_id", "target", "prediction_moment"],
+        "Save dclab_core's plan for this table as the solution: the split, the metric, the columns kept out and why. Same move as set_solution.",
+        "write", "set_solution")
     add("understand_problem", pid, ["project_id"], "Read the project's goal and its table's column names into a problem brief: task, unit, "
         "target, label source and coverage, prediction moment, entities, time column, constraints, deliverables, each stated (with the "
         "person's words), inferred (with a reason) or unknown, and the open questions ranked by how much they change the plan. Changes nothing.")
@@ -243,8 +250,36 @@ class Toolbox:
         frame = studio_data.load_table(studio_data.data_path(self.projects, project))  # checked against the recorded SHA-256
         proposal = studio_solution.propose(frame, project["data"]["profile"], target, task)
         self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
-        return {k: proposal[k] for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
-                                         "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint")}
+        return {k: proposal.get(k) for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
+                                             "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint",
+                                             "plan")}
+
+    def adopt_plan(self, project_id: str, target: str, prediction_moment: str, overrides: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        """dclab_core's plan for this table (package 17.4), with the agent's overrides (each still checked), saved as the
+        project's solution through the same move as set_solution (graph check, log, memory, audit)."""
+        from dclab_core.plan import override, validate
+
+        from ..core_adapter import solution_fields_from_plan
+
+        project = self.projects.get(project_id)
+        if not project.get("data"):
+            return {"error": "The project has no data yet."}
+        frame = studio_data.load_table(studio_data.data_path(self.projects, project))
+        if target not in frame.columns:
+            return {"error": f"Target {target!r} is not in the data."}
+        task = studio_data.detect_task(frame, target)["task"]
+        findings, plan_ = studio_solution.core_plan(frame.drop(columns=[target]), frame[target], target, task)
+        for item in overrides or []:
+            plan_ = override(plan_, str(item.get("key")), item.get("choice"), str(item.get("reason") or "")[:4000] or
+                             "changed by the agent", by="advisor")
+        problems = validate(plan_, findings)
+        if problems:
+            return {"error": "The plan was not adopted: " + "; ".join(problems[:5]), "problems": problems}
+        saved = self.set_solution(project_id, **solution_fields_from_plan(plan_, target, prediction_moment))
+        if saved.get("saved"):
+            self.projects.update(project_id, plan=plan_.model_dump(mode="json"))
+            self.projects.log(project_id, "plan_adopted", {"overrides": [str(o.get("key")) for o in overrides or []], "by": "intern"})
+        return saved
 
     def understand_problem(self, project_id: str) -> dict[str, Any]:
         """The problem as dclab_core reads it (package 17.2): the project's goal and its table's column names (never

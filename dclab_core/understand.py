@@ -28,7 +28,8 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any, Optional
 
-from dclab_core.advisor import Advisor, consult
+from dclab_core.advisor import Advisor
+from dclab_core.agents import Role, run_role
 from dclab_core.contracts import (MAX_TEXT, Constraint, CoverageFact, Deliverable, Fact, LabelSourceFact, NamesFact,
                                   ProblemBrief, Question, TaskFact, TextFact)
 
@@ -471,41 +472,53 @@ def _questions(fields: dict[str, Fact], constraints: list[Constraint]) -> list[Q
 ADVISABLE = ("goal", "action", "unit", "task", "target_column", "prediction_moment", "horizon", "primary_metric")
 
 
+def _analyst_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    description, text, files = inputs["description"], inputs["text"], inputs["files"]
+    paragraphs = [_clip(_norm(p), 2000) for p in re.split(r"\n\s*\n", description) if p.strip()][:20]
+    return {"description_paragraphs": paragraphs or [_clip(text, 2000)],
+            "files": {_clip(n, 100): [_clip(str(c), 200) for c in cols][:50] for n, cols in list(files.items())[:10]},
+            "fields_to_propose": list(inputs["unknown"])}
+
+
+def _analyst_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> dict[str, Fact]:
+    """Keep a proposal only for an unknown field, with the person's whole words that support a valid value."""
+    text, columns = inputs["text"], set(_columns(inputs["files"]))
+    kept = {}
+    for field in inputs["unknown"]:
+        item = answer.get(field)
+        if not isinstance(item, Mapping):
+            continue
+        value, quote = item.get("value"), item.get("quote")
+        if not isinstance(value, str) or not value.strip() or len(value) > MAX_TEXT:
+            continue
+        if not quoted(quote, text):
+            continue  # not the person's whole words: dropped
+        if field == "task":
+            if value not in ("binary", "multiclass", "regression"):
+                continue
+        elif field == "target_column":
+            if value not in columns:
+                continue  # a target must be a column the files have
+        elif not supports(quote, value):
+            continue  # the quote must say what the value says
+        fact = FACT_TYPES[field](value=value, status="inferred", source="advisor",
+                                 reason=f'proposed by the advisor from "{_clip(_norm(quote), 200)}"')
+        kept[field] = Fact(**fact.model_dump())
+    return kept
+
+
+PROBLEM_ANALYST = Role(
+    name="problem_analyst",
+    description="Reads the description for the brief fields the rules left unknown; every value with the person's words.",
+    evidence=_analyst_evidence, parse=_analyst_parse, fallback=lambda inputs: {}, merge=lambda base, new: {**base, **new})
+
+
 def _advice(advisor: Optional[Advisor], description: str, text: str, files: Files, fields: dict[str, Fact]) -> dict[str, Fact]:
     unknown = [f for f in ADVISABLE if not fields[f].known]
     if not advisor or not unknown or not text:
         return {}
-    paragraphs = [_clip(_norm(p), 2000) for p in re.split(r"\n\s*\n", description) if p.strip()][:20]
-    evidence = {"description_paragraphs": paragraphs or [_clip(text, 2000)],
-                "files": {_clip(n, 100): [_clip(str(c), 200) for c in cols][:50] for n, cols in list(files.items())[:10]},
-                "fields_to_propose": unknown}
-    columns = set(_columns(files))
-
-    def parse(answer: Mapping[str, Any]) -> dict[str, Fact]:
-        kept = {}
-        for field in unknown:
-            item = answer.get(field)
-            if not isinstance(item, Mapping):
-                continue
-            value, quote = item.get("value"), item.get("quote")
-            if not isinstance(value, str) or not value.strip() or len(value) > MAX_TEXT:
-                continue
-            if not quoted(quote, text):
-                continue  # not the person's whole words: dropped
-            if field == "task":
-                if value not in ("binary", "multiclass", "regression"):
-                    continue
-            elif field == "target_column":
-                if value not in columns:
-                    continue  # a target must be a column the files have
-            elif not supports(quote, value):
-                continue  # the quote must say what the value says
-            fact = FACT_TYPES[field](value=value, status="inferred", source="advisor",
-                                     reason=f'proposed by the advisor from "{_clip(_norm(quote), 200)}"')
-            kept[field] = Fact(**fact.model_dump())
-        return kept
-
-    return consult(advisor, "understand_problem", evidence, parse=parse) or {}
+    inputs = {"description": description, "text": text, "files": files, "unknown": unknown}
+    return run_role(PROBLEM_ANALYST, advisor, inputs).output
 
 
 # ------------------------------------------------------------------------------------------------ entry point
@@ -521,7 +534,7 @@ def understand(description: str, files: Optional[Files] = None, advisor: Optiona
     task = _task(sentences)
     target_column, target_definition, label_source = _target(sentences, files, task, labels)
     unit = _unit(sentences, files, main)
-    metric = _first_in(sentences, METRIC)
+    metric_match = next((m for m in (METRIC.search(x) for x in sentences) if m), None)
     horizon = _first_in(sentences, HORIZON)
     fields: dict[str, Fact] = {
         "goal": _goal(sentences),
@@ -536,7 +549,8 @@ def understand(description: str, files: Optional[Files] = None, advisor: Optiona
         "horizon": _stated(horizon, horizon) if horizon else Fact.unknown(),
         "entities": _entities(text, files, unit),
         "time_column": _time_column(text, files, main),
-        "primary_metric": _stated(metric, metric) if metric else Fact.unknown(),
+        "primary_metric": (_stated(re.sub(r"[\s-]+", "_", metric_match.group(4).lower()), metric_match.group(0))
+                           if metric_match else Fact.unknown()),
     }
     fields.update(_advice(advisor, description or "", text, files, fields))
     constraints = _constraints(sentences)

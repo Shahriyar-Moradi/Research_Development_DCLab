@@ -53,6 +53,7 @@ REFUSALS = {
     "set_settings": (lambda s: ready(s, running="data"), {"max_rows": 500}),  # a stage is running
     "propose_solution": (bare, {"target": "y"}),  # no data
     "set_solution": (bare, {"target": "y", "task": "binary", "prediction_moment": "Before the call is placed."}),  # no data
+    "adopt_plan": (bare, {"target": "y", "prediction_moment": "Before the call is placed."}),  # no data: the same move as set_solution
     "run_stage": (bare, {"stage": "data"}),  # no solution
     "run_all": (bare, {}),  # no solution
     "approve_stage": (lambda s: ready(s, "data"), {"stage": "models"}),  # models has not run

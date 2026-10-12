@@ -95,3 +95,36 @@ def project_fields(brief: ProblemBrief, plan: SolutionPlan) -> dict[str, Any]:
         decision = plan.decision(key)
         solution[field] = decision.choice if decision is not None else defaults[field]
     return {"goal": brief.goal.value or "", "solution": solution}
+
+
+STUDIO_METRICS = {"binary": ("roc_auc", "average_precision"), "multiclass": ("macro_f1",), "regression": ("mae",)}
+
+
+def solution_fields_from_plan(plan: SolutionPlan, target: str, prediction_moment: str) -> dict[str, Any]:
+    """The studio solution a dclab_core plan proposes (package 17.4): the split's columns, the metric (the nearest the
+    studio's engine scores, with the plan's own named in the notes), the columns kept out and the identifiers."""
+    def choice(key: str, default: Any = None) -> Any:
+        decision = plan.decision(key)
+        return decision.choice if decision is not None else default
+
+    split = choice("split.strategy", {}) or {}
+    metric = choice("metric.primary")
+    allowed = STUDIO_METRICS.get(plan.task, ())
+    notes = []
+    if metric and metric not in allowed:
+        notes.append(f"The plan's primary metric is {metric}; the studio scores {allowed[0] if allowed else 'its default'} for now.")
+        metric = allowed[0] if allowed else None
+    if isinstance(split, str):
+        split = {"kind": split}
+    time_column = split.get("time_column")
+    forbidden = ([{"column": f["column"] if isinstance(f, dict) else str(f), "reason": (f.get("reason", "") if isinstance(f, dict) else
+                   "Kept out by the plan.")[:600] or "Kept out by the plan."} for f in choice("features.forbidden", []) or []]
+                 + [{"column": f["column"], "reason": ("Kept out until a person confirms when it is written: " + f["question"])[:600]}
+                    for f in choice("features.to_confirm", []) or []])
+    forbidden = [f for f in forbidden if f["column"] != time_column]  # the column that orders the split is not a feature anyway
+    return {
+        "target": target, "task": plan.task, "prediction_moment": prediction_moment,
+        "group_column": split.get("group_column"), "time_column": time_column,
+        "forbidden": forbidden,
+        "identifiers": list(choice("features.identifiers", []) or []), "metric": metric, "notes": " ".join(notes),
+    }
