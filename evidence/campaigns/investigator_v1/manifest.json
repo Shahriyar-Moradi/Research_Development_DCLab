@@ -2,5 +2,6 @@
   "campaign_id": "investigator_v1",
   "objective": "The data investigator (package 18.3): benchmark v2's seeded tables with planted traps (its dev split and two replicas for building, its sealed test split for one run) read by dclab_core.analyse's rules alone, by the rules with the data investigator (column names and kinds, never values; every proposal tested as a telling name is), and by a plain prompted model; scored on planted traps found and clean columns accused. Gate investigator_gate_v1, fixed before the runs: on the sealed split, more traps found and no more false alarms.",
   "rule": "Scores say how these readers handle these seeded tables' column names, not any other table, and nothing about production readiness.",
-  "command": "python -m dclab_rnd.agent_eval.investigator --split dev|sealed [--yes --cap-eur N]"
+  "command": "python -m dclab_rnd.agent_eval.investigator --split dev|sealed [--yes --cap-eur N]",
+  "note": "After INV-002, the rules' strong-column rule (dclab_core.analyse._easy_task) was designed from its wine false alarms and built on dev cases added for it; a later rules-alone number on the sealed split is therefore not blind. Benchmark v3 (15.9) will be the next blind set."
 }

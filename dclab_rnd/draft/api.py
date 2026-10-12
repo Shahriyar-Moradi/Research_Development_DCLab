@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any, Callable
@@ -40,6 +41,7 @@ from ..agentic.api_models import OCTET, AnyObject, Doc, Draft, DraftCreate, Page
 
 from .. import connectors
 from . import pack as packs
+from . import plan as plans
 from . import pipeline
 from .chat import HomeAgent
 from .store import DraftStore
@@ -547,6 +549,48 @@ def _suggestion(policy: dict[str, Any] | None) -> dict[str, Any] | None:
     return {k: policy.get(k) for k in ("target", "task", "positive_label", "forbidden", "identifiers", "time_column", "prediction_moment") if k in policy}
 
 
+def _coverage(answer: Any) -> str:
+    """"complete" only when the answer says every case is labelled and nothing says otherwise; partial by default (a
+    wrong "complete" would present a precision floor as exact)."""
+    text = str(answer or "").lower()
+    if re.search(r"\b(not|n't|never|some|sample|partial|only|few|haven't|didn't)\b|n't\b", text):
+        return "partial"
+    return "complete" if re.search(r"\b(every|all) (the )?(cases?|frauds?|rows?)\b.*\b(labell?ed|known|found)\b|\bcomplete\b", text) else "partial"
+
+
+def _entity_column(answer: Any, columns: list[str]) -> str | None:
+    """The column an answer names as the entity: the column itself, or the one whose name shares a word with it
+    ("the biker" finds biker_id); none for "No single entity"."""
+    text = str(answer or "").strip()
+    if not text or re.search(r"\bno (single )?entity\b", text, re.I):
+        return None
+    if text in columns:
+        return text
+    words = {w[:5] for w in re.findall(r"[a-z]{4,}", text.lower())}
+    named = [c for c in columns if {w[:5] for w in re.findall(r"[a-z]{4,}", c.lower())} & words]
+    return sorted(named, key=lambda c: (not re.search(r"(_id|_ref|_no)$", c.lower()), len(c)))[0] if named else None
+
+
+def _budget_share(answer: Any, projects, project: dict[str, Any]) -> float | None:
+    """The review budget as a share of rows: "0.5%", or "50 a day" over the days the table spans (its time column)."""
+    if not answer or not project.get("data"):
+        return None
+    from dclab_core.assess import capacity_share
+
+    from ..studio import data as studio_data
+
+    import pandas as pd  # lazily: the draft store and the chat run without pandas
+
+    span = None
+    times = (project["data"].get("profile") or {}).get("time_candidates") or []
+    if times:
+        frame = studio_data.load_table(studio_data.data_path(projects, project))
+        stamps = pd.to_datetime(frame[times[0]], errors="coerce").dropna()
+        span = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else None
+    share = capacity_share(str(answer), int(project["data"]["rows"]), span)
+    return round(share, 6) if share else None
+
+
 def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
     """Create the project from the draft: its name and goal, the cleaned table, and what the chat established."""
     from ..studio import data as studio_data
@@ -564,10 +608,24 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         shutil.copyfile(source, projects.data_dir(pid) / filename)
         studio_data.attach_data(projects, pid, filename, source={"kind": "draft", "draft_id": draft_id, "asset": asset["id"],
                                                                  "asset_kind": asset.get("kind"), "synthetic": bool(asset.get("synthetic"))})
+    labels = plans.label_asset(draft) if asset is not None else None
+    if labels is not None:  # 15.6: the draft's label file comes with the table, its key checked again by attach_labels
+        coverage = _coverage(u.get("labels"))
+        shutil.copyfile(drafts.data_dir(draft_id) / labels["clean_file"], projects.data_dir(pid) / "labels.parquet")
+        try:
+            studio_data.attach_labels(projects, pid, "labels.parquet", target="is_case", labels=coverage)
+        except studio_data.DataError as exc:
+            projects.log(pid, "labels_refused", {"reason": str(exc)[:300]})
     project = projects.get(pid)
     if asset is not None and project.get("data"):
         project["data"]["synthetic"] = bool(asset.get("synthetic"))
-        suggestion = dict(asset.get("suggestion") or {})
+        suggestion = {**dict(asset.get("suggestion") or {}), **dict(project.get("suggestion") or {})}
+        entity = _entity_column(u.get("entity"), project["data"]["columns"])
+        if entity:
+            suggestion["group_column"] = entity
+        budget = _budget_share(u.get("budget"), projects, project)
+        if budget:
+            suggestion["alert_budget"] = budget
         target = u.get("target")
         if target and target in project["data"]["columns"]:
             suggestion["target"] = target
@@ -578,6 +636,7 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         st = draft["settings"] = {**draft["settings"], "split": split_of(draft)}  # the copy kept with the project says what runs
         project["settings"] = {**project.get("settings", {}), "quick": st["quick"], "max_rows": st["max_rows"], "folds": st.get("folds", 3)}
         project["budget"] = st["budget"]
+    project["pack"] = (draft.get("pack") or {}).get("key")  # the engine reads the pack's defaults from here (15.6)
     project["draft"] = {"id": draft_id, "problem": draft["problem"], "pack": draft.get("pack"), "understanding": u, "settings": draft.get("settings"),
                         "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
                         "synthetic": bool(asset and asset.get("synthetic"))}

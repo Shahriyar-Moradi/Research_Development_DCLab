@@ -15,8 +15,11 @@ A planted trap is *found* when its leak column gets a leakage finding of warning
 entity, an entity finding of warning; a *false alarm* is a clean column (the case's innocent columns and honest inputs)
 given a leakage finding of warning or worse, or an entity finding of warning (it would regroup the folds).
 
-What this does not measure: the package text names "benchmark v3", which does not exist yet (15.9): this is v2. The two
-replicas are in the dev split only, so the gated sealed run is v2's test split alone. The plain arm is the model alone,
+What this does not measure: the package text names "benchmark v3", which does not exist yet (15.9): this is v2. The
+replicas and the real and synthetic tables added for the rules (a real table with many honest strong columns, with and
+without a planted leak, and two planted leaks) are in the dev split only, so the gated sealed run is v2's test split
+alone. Since the sealed run (INV-002) showed the rules' false alarms on the real wine table, and the strong-column rule
+was designed after it, any later rules-alone number on the sealed split is not blind. The plain arm is the model alone,
 its proposals untested and without the rules; it shows what the checks add, and is not gated. The gate (``GATE``, fixed before any run) asks, on the sealed split: more
 traps found with the investigator than with the rules alone, and no more false alarms.
 """
@@ -29,6 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+import numpy as np
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
@@ -76,7 +80,31 @@ def _replicas() -> list[Item]:
     def tickets() -> pd.DataFrame:
         return ticket_routing.generate(seed=0, n=3000).tickets
 
+    def cancer() -> pd.DataFrame:
+        from sklearn.datasets import load_breast_cancer  # real, ships with scikit-learn: many honest strong columns
+
+        frame = load_breast_cancer(as_frame=True).frame
+        frame.columns = [c.replace(" ", "_") for c in frame.columns]
+        return frame
+
+    def cancer_with_leak() -> pd.DataFrame:  # a planted leak beside many honest strong columns
+        frame = cancer()
+        noise = np.random.default_rng(7).normal(0, 0.6, len(frame))
+        return frame.assign(q_z7=np.round(frame["target"] * 2.0 + noise, 4))
+
+    def two_leaks() -> pd.DataFrame:  # two planted leaks, each the label plus its own noise
+        rng = np.random.default_rng(8)
+        y = (rng.random(1500) < 0.3).astype(int)
+        return pd.DataFrame({"tenure": rng.gamma(3, 6, 1500), "visits": rng.poisson(4, 1500), "z_a1": y + rng.normal(0, 0.25, 1500),
+                             "z_b2": 2 * y + rng.normal(0, 0.7, 1500), "target": y})
+
+    honest = tuple(c for c in cancer().columns if c != "target")
+    moment = "When the biopsy measurements are recorded, before the diagnosis."
     return [
+        Item("REAL-breast_cancer", cancer, "target", "binary", moment, clean=honest),
+        Item("REAL-breast_cancer-leak", cancer_with_leak, "target", "binary", moment, ("q_z7",), clean=honest),
+        Item("SYN-two_leaks", two_leaks, "target", "binary", "At the monthly snapshot of each account.", ("z_a1", "z_b2"),
+             clean=("tenure", "visits")),
         Item("REP-delivery_time", deliveries, "actual_minutes", "regression", "When the customer places the order.",
              ("delivered_at", "courier_rating"), clean=("distance_km", "items", "weather")),
         Item("REP-ticket_routing", tickets, "assigned_team", "multiclass", "When the ticket is created, from its subject, body and plan.",
@@ -101,7 +129,8 @@ def load(split: str) -> list[Item]:
 
 
 def _flags(findings: list[Any]) -> tuple[set[str], set[str]]:
-    """Columns given a leakage finding of warning or worse, and columns given an entity finding of warning."""
+    """Columns given a leakage finding of warning or worse, and columns given an entity finding of warning. A question
+    to confirm (an info finding) is neither: a planted leak that only gets a question counts as missed."""
     leaks, entities = set(), set()
     for f in findings:
         if f.severity not in ("warning", "critical"):

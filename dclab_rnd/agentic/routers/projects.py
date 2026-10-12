@@ -333,8 +333,12 @@ async def export_notebook(project_id: str, s: Services = Depends(services)):
     p = s.project(project_id)
     if not p.get("solution"):
         raise HTTPException(409, "Nothing to export yet")
+    try:
+        nb = studio_export.notebook(p, s.projects.records(project_id))
+    except studio_export.ExportUnsupported as exc:
+        raise HTTPException(409, str(exc)) from None
     studio_graph.capture(s.projects, project_id, "human")
-    text = studio_export.dumps_notebook(studio_export.notebook(p, s.projects.records(project_id)))
+    text = studio_export.dumps_notebook(nb)
     return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})
 
 

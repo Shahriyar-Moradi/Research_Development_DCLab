@@ -1,0 +1,6 @@
+{
+  "campaign_id": "brief_checker_v1",
+  "objective": "The brief checker (package 18.2's follow-up): on the 24 written briefs of the analyst measurement, dclab_core's rules read some fields wrongly and the analyst cannot correct them; the checker turns a different reading the description supports into an open question with both options, never a changed field. Scored on the rules' wrong fields questioned (caught) and right fields questioned (noise). Gate brief_checker_gate_v1, fixed before the run; the sealed briefs are not blind for this role.",
+  "rule": "Scores say how the checker reads these 24 descriptions; they are not a claim about any other text or about production readiness.",
+  "command": "python -m dclab_rnd.agent_eval.analyst --role checker [--yes --cap-eur N]"
+}

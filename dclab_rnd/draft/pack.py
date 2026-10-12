@@ -63,6 +63,19 @@ OPENING: dict[str, str] = {
 }
 
 
+RARE_SHARE = 0.01  # positives under 1 % of rows: a rare event, whatever the words
+
+
+# The engine defaults a pack sets (15.6): one place the engine reads, so a pack changes what runs, not only its labels.
+ENGINE_DEFAULTS: dict[str, dict[str, Any]] = {
+    "imbalanced": {"metric": "average_precision", "rare_event": True},
+}
+
+
+def engine_defaults(key: str | None) -> dict[str, Any]:
+    return dict(ENGINE_DEFAULTS.get(key or "", {}))
+
+
 def opening_question(key: str | None) -> str:
     return OPENING.get(key or "", OPENING["tabular"])
 
@@ -123,7 +136,12 @@ def detect(problem: str, analysis: dict[str, Any] | None = None, chosen: str | N
         from_text = "timeseries"
         signals.append(f'the problem mentions "{re.search(HORIZON, text).group(0).strip()}"')
     data_key = None
+    rare = None
     if analysis:
+        marked = analysis.get("labels") or {}
+        if marked.get("rows") and marked.get("rows_marked") is not None and marked["rows_marked"] / marked["rows"] < RARE_SHARE:
+            rare = marked["rows_marked"] / marked["rows"]
+            signals.append(f"the label file marks {marked['rows_marked']} of {marked['rows']} rows ({rare:.2%}): rare positives")
         profile = analysis.get("profile") or {}
         kinds = (analysis.get("summary") or {}).get("kinds") or {}
         text_cols = profile.get("text_candidates") or []
@@ -133,7 +151,9 @@ def detect(problem: str, analysis: dict[str, Any] | None = None, chosen: str | N
             data_key = data_key or "text"
         if time_cols and kinds.get("datetime"):
             signals.append(f"a time column ({time_cols[0]})")
-    if from_text:
+    if rare is not None and from_text != "imbalanced":  # rare labels outweigh a word that points elsewhere ("review" is not text)
+        key, source = "imbalanced", "data"
+    elif from_text:
         key, source = from_text, "problem"
     elif data_key:
         key, source = data_key, "data"

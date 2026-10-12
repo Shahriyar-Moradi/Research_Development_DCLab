@@ -59,6 +59,8 @@ def split_for(solution: Any) -> str:
     is the latest period (DCLAB-R02); otherwise a declared group column keeps each group on one side; otherwise
     a stratified random split. ``solution`` is a Solution or its dict."""
     get = solution.get if isinstance(solution, dict) else lambda key: getattr(solution, key, None)
+    if get("time_column") and get("group_column"):
+        return "time_group"  # 15.3: forward in time and no entity on both sides, never one silently dropped
     return "time" if get("time_column") else "group" if get("group_column") else "stratified"
 _BUNDLES: dict[tuple[str, str, str], Any] = {}
 
@@ -77,6 +79,7 @@ class Prepared:
         self.class_labels, self.recipes, self.sampling = class_labels, recipes, sampling
         self.code_rule = code_rule  # how bundle.spec.categorical_columns was decided
         self.plan: dict[str, Any] | None = None  # the project's adopted dclab_core plan (17.4), set on every prepare
+        self.label_info: dict[str, Any] | None = None  # the project's label file (15.2), set on every prepare
 
     @property
     def task(self) -> str:
@@ -109,12 +112,17 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         raise ValueError("The project needs data and a solution first")
     solution = Solution(**project["solution"])
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
-    key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared))
+    key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared)
+           + str(project.get("pack")) + _hash(project.get("labels")))  # the pack and the label file (its key too) change what runs
     if key in _BUNDLES:
-        _BUNDLES[key].plan = project.get("plan")
+        _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
         return _BUNDLES[key]
     path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
     frame = load_table(path)
+    if project.get("labels") and project["labels"].get("target") == solution.target:  # 15.2: the target from the label file
+        from . import labels as label_file
+
+        frame = label_file.apply(store, project, frame)
     solution.check_columns(list(frame.columns))
     # Yes/no columns arrive as booleans (cleaned uploads, CSVs with True/False); numpy cannot take quantiles or
     # differences of booleans, so features become 0/1 with missing kept missing. The target is compared as text.
@@ -178,7 +186,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     sampling["rows_used"] = int(len(X))
 
     positive_rate = float(y.mean()) if solution.task == "binary" else None
-    metric = solution.resolved_metric(positive_rate)
+    from ..draft.pack import engine_defaults
+
+    pack = engine_defaults(project.get("pack") or ((project.get("draft") or {}).get("pack") or {}).get("key"))  # 15.6: one place
+    metric = solution.metric or (pack.get("metric") if solution.task == "binary" else None) or solution.resolved_metric(positive_rate)
     split = split_for(solution)
     regression = solution.task == "regression"
     spec = ds.DatasetSpec(
@@ -190,7 +201,9 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         text_columns=text_columns, time_column=time_column, group_column=solution.group_column,
         positive_rate=positive_rate,
         settings={"precision_target": 0.9, "fe_tolerance": 0.01 if regression else 0.002, "fe_tolerance_relative": regression,
-                  "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression},
+                  "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression,
+                  **({"rare_event": True} if pack.get("rare_event") and solution.task == "binary" else {}),
+                  **({"alert_budget": solution.alert_budget} if solution.alert_budget and solution.task == "binary" else {})},
     )
     bundle = ds.prepare_bundle(spec, X, y, data_paths=[path], source_rows=source_rows, sampling=sampling,
                                class_labels=class_labels, cv_folds=cv_folds(project))
@@ -202,7 +215,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     code_rule = "declared in the R&D dataset catalog for this sample" if declared is not None else HEURISTIC_RULE
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
-    prepared.plan = project.get("plan")
+    prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
@@ -213,6 +226,21 @@ def _hash(value: Any) -> str:
     import json
 
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
+def _behaviour_config(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], numeric: list[str]) -> dict[str, Any] | None:
+    """The entity behaviour recipe's settings (15.4): the group column as the entity, the time column (or another
+    date column) for days and order, coordinate pairs for places, the mode from the prediction moment."""
+    from dclab_core.behaviour import coordinate_pairs, mode_for
+
+    entities = [spec.group_column] if spec.group_column and spec.group_column in X else []
+    usable = [c for c, role in roles.items() if role in ("feature", "group", "time", "identifier")]
+    if not entities and len(coordinate_pairs(usable)) < 1:
+        return None
+    time = spec.time_column or next((c for c, role in roles.items() if role == "identifier" and column_kind(X[c]) == "datetime"), None)
+    return {"entities": entities, "time_column": time, "mode": mode_for(spec.decision_time_contract), "numeric": numeric[:8],
+            "allowed": [c for c, role in roles.items() if role == "feature"],
+            "grouped": [spec.group_column] if spec.group_column and spec.split_strategy in ("group", "time_group") else []}
 
 
 def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, str], datetime_time: bool) -> dict[str, dict[str, Any]]:
@@ -236,6 +264,12 @@ def _register_recipes(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
         if 2 <= len(numeric) <= 8:
             pairs = len(numeric) * (len(numeric) - 1) // 2
             recipes["poly2"] = {"description": f"raw + all {pairs} pairwise products of the numeric inputs{left_out}", "derive": ("poly2",)}
+        behaviour = _behaviour_config(spec, X, roles, numeric)
+        if behaviour is not None:  # 15.4: an entity (or places) to learn behaviour from
+            recipes["entity_behaviour"] = {"description": f"raw + behaviour of each {', '.join(behaviour['entities']) or 'place'}: counts per entity, "
+                                                          "day, place and route, the row against its entity, shrunk rates from the fit rows; "
+                                                          f"mode `{behaviour['mode']}` ({'the rows scored together are known, never their labels' if behaviour['mode'] == 'audit' else 'only earlier rows'})",
+                                           "derive": (), "behaviour": behaviour}
         if spec.task_type != "timeseries_regression" and len(features) >= 10:
             k = max(5, int(round(0.6 * len(features))))
             recipes["selected_mi"] = {"description": f"top-{k} inputs by fit-fold mutual information", "derive": (), "select_k": k}
@@ -480,20 +514,69 @@ def stage_features(p: Prepared, eid: str) -> tuple[dict, list, str]:
     return evidence, claims, summary
 
 
+# simplest first: a rule, then detectors, then linear, bagged and boosted models (15.5's tie-break)
+SIMPLICITY = ("percentile_rules", "ecod", "isolation_forest", "logistic_regression", "pu_bagging", "extra_trees",
+              "hist_gradient_boosting", "lightgbm", "xgboost")
+
+
+PRACTICAL = 0.9  # a simpler family is preferred only within 10% of the best's mean, and never when the best wins every fold
+
+
+def _rare_event(p: Prepared) -> bool:
+    return p.bundle.task_type == "binary_imbalanced" and ((p.bundle.spec.positive_rate or 1) < 0.05 or p.solution.labels == "partial"
+                                                          or bool(p.bundle.spec.settings.get("rare_event")))
+
+
+def _rare_choice(ranked: list[dict[str, Any]], metric: str, higher: bool) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The best mean; then the simplest family whose paired fold gap to the best stays within the one-sided 90% t bound
+    (dclab_core.review.adopt: the best does not beat it beyond noise)."""
+    from dclab_core.review import adopt
+
+    best = max(ranked, key=lambda r: rn._mean(r, metric) if higher else -rn._mean(r, metric))
+    best_mean = rn._mean(best, metric)
+    for row in sorted(ranked, key=lambda r: SIMPLICITY.index(r["model"]) if r["model"] in SIMPLICITY else len(SIMPLICITY)):
+        if row is best:
+            return best, {"best": best["model"], "chosen": best["model"], "why": "no simpler family is within noise of the best"}
+        pairs = [(a[metric], b[metric]) for a, b in zip(row["fold_metrics"], best["fold_metrics"])
+                 if a.get(metric) is not None and b.get(metric) is not None and np.isfinite(a[metric]) and np.isfinite(b[metric])]
+        if len(pairs) < 2:
+            continue  # folds without a positive cannot compare: the best stays unless a simpler family is shown close
+        mean = rn._mean(row, metric)
+        close = mean >= PRACTICAL * best_mean if higher else mean <= best_mean / PRACTICAL
+        wins_all = all((b > a) if higher else (b < a) for a, b in pairs)
+        gap = adopt([a for a, _ in pairs], [b for _, b in pairs], higher)
+        if close and not wins_all and not gap["adopted"]:
+            return row, {"best": best["model"], "chosen": row["model"], "paired_gap": gap,
+                         "why": f"{row['model']} is simpler and the best ({best['model']}) does not beat it beyond noise: {gap['why']}"}
+    return best, {"best": best["model"], "chosen": best["model"]}
+
+
 def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
     bundle, spec = p.bundle, p.bundle.spec
     metric, higher = spec.primary_metric, spec.higher_is_better
-    rows = [rn.cross_validate(bundle, recipe, family, config_id=family) for family in rn.model_families(bundle.task_type)]
+    rare = _rare_event(p)
+    # 15.5: the rule for a rare event is fixed before the screen runs, and written into the record
+    rare_rule = ("Rare event: rules, anomaly detectors and PU bagging are screened with the classifiers on the same folds; take the "
+                 f"best mean training-CV {_label(metric)}, then the simplest family ({' < '.join(SIMPLICITY)}) within {1 - PRACTICAL:.0%} of "
+                 "the best's mean whose paired fold gap to the best stays within the one-sided 90% t bound (folds without a positive left "
+                 "out), never one the best beats on every fold.") if rare else None
+    families = rn.model_families(bundle.task_type) + (list(rn.RARE_FAMILIES) if rare else [])
+    rows = [rn.cross_validate(bundle, recipe, family, config_id=family) for family in families]
     for row in rows:
         row["adjusted_score"] = rn.adjusted_score(rn._mean(row, metric), rn._std(row, metric), higher)
     ranked = rn.rank_rows(rows, metric, higher)
+    choice = None
+    if rare:
+        chosen_row, choice = _rare_choice(ranked, metric, higher)
+        ranked = [chosen_row] + [r for r in ranked if r is not chosen_row]
     selected, runner_up = ranked[0], (ranked[1] if len(ranked) > 1 else ranked[0])
     sign = "-" if higher else "+"
     evidence = {"feature_recipe": recipe, "model_results": rows,
                 "ranking": [{"model": r["model"], "mean": rn._mean(r, metric), "std": rn._std(r, metric), "adjusted_score": r["adjusted_score"],
                              "elapsed_seconds": r["elapsed_seconds"], "feature_count_mean": r["feature_count_mean"]} for r in ranked],
                 "selected_model": selected["model"],
-                "selection_rule": f"Rank by mean training-CV {_label(metric)} {sign} 0.25×fold std ({'higher' if higher else 'lower'} is better), then runtime; identical folds ({bundle.cv_description}); default parameters.",
+                "selection_rule": rare_rule or f"Rank by mean training-CV {_label(metric)} {sign} 0.25×fold std ({'higher' if higher else 'lower'} is better), then runtime; identical folds ({bundle.cv_description}); default parameters.",
+                **({"rare_event_choice": choice} if choice else {}),
                 "selected_metric_mean": rn._mean(selected, metric), "selected_metric_std": rn._std(selected, metric), "cv_protocol": bundle.cv_description}
     table = "; ".join(f"{r['model']} {rn._ms(r, metric)} ({r['elapsed_seconds']:.1f}s)" for r in ranked)
     spread = abs(rn._mean(selected, metric) - rn._mean(runner_up, metric))
@@ -646,6 +729,9 @@ def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: p
             stamps = pd.to_datetime(bundle.X_train[time_column], errors="coerce").dropna()
             span_days = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else None
         inputs = threshold_inputs(p.plan, len(bundle.y_train), span_days)  # the plan's threshold policy and label coverage
+        inputs["partial_labels"] = inputs["partial_labels"] or p.solution.labels == "partial"  # the solution says so (15.2)
+        if inputs["budget"] is None and p.solution.alert_budget:
+            inputs["budget"] = p.solution.alert_budget  # the solution's review budget (15.3)
         out = assess(kind, oof_y, selected["_oof_pred"], labels if labels is not None else y_test.to_numpy(), predictions,
                      budget=inputs["budget"], costs=inputs["costs"], partial_labels=inputs["partial_labels"], classes=classes,
                      tiny_classes=tiny, segments=segments, cap=cap)
@@ -679,13 +765,18 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     final = rn.fit_and_predict(bundle, recipe, family, selected["model_params"] or None, bundle.X_train, bundle.y_train, bundle.X_test)
     final_seconds = time.perf_counter() - started
     predictions, y_test = final["predictions"], bundle.y_test
-    holdout = rn.compute_metrics(task, y_test, predictions, n_classes=n_classes, detail=True, precision_target=float(spec.settings.get("precision_target", 0.9)))
+    holdout = rn.compute_metrics(task, y_test, predictions, n_classes=n_classes, detail=True, precision_target=float(spec.settings.get("precision_target", 0.9)),
+                                 alert_budget=spec.settings.get("alert_budget"))
     holdout["fit_seconds"] = float(final_seconds)
     if task == "multiclass" and p.class_labels:
         for item in holdout.get("worst_3_classes", []):
             item["source_label"] = p.class_labels[item["class_index"]]
-    metric_fn = rn.primary_metric_fn(task, metric, n_classes)
-    ci = rn.bootstrap_ci(y_test.to_numpy(), predictions, metric_fn, groups=bundle.groups("test") if spec.split_strategy == "group" else None)
+    metric_fn = rn.budget_metric_fn(spec.settings["alert_budget"]) if metric == "recall_at_budget" else rn.primary_metric_fn(task, metric, n_classes)
+    clustered = spec.split_strategy in ("group", "time_group")
+    ci = rn.bootstrap_ci(y_test.to_numpy(), predictions, metric_fn, groups=bundle.groups("test") if clustered else None)
+    if spec.settings.get("alert_budget") and metric != "recall_at_budget":  # 15.3: recall at the budget, with its interval too
+        holdout["recall_at_budget_ci"] = rn.bootstrap_ci(y_test.to_numpy(), predictions, rn.budget_metric_fn(spec.settings["alert_budget"]),
+                                                         groups=bundle.groups("test") if clustered else None)
     baselines = _baselines(p, predictions)
     importance = rn._importance(final["model"], final["names"])
     top_features = [{"feature": k, "normalized_importance": v} for k, v in sorted(importance.items(), key=lambda kv: -kv[1])[:20]]
@@ -718,6 +809,19 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
             if mask.any():
                 bins.append({"lower": float(lower), "upper": float(lower + 0.2), "count": int(mask.sum()), "predicted": float(predictions[mask].mean()), "observed": float(y_arr[mask].mean())})
         evidence["calibration_bins"] = bins
+    limits = []
+    if p.solution.labels == "partial":
+        evidence["precision_note"] = ("The labels are partial (" + (p.solution.label_provenance or "a sample of known cases") + "): an alert "
+                                      "without a label may be a case nobody found, so every precision here is a lower bound.")
+    info = p.label_info or {}
+    if info.get("disagreeing_columns"):
+        limits.append("Columns with the same name hold different values in the label file and the table ("
+                      + ", ".join(f"{c} {share:.0%} equal" for c, share in list(info["disagreeing_columns"].items())[:6])
+                      + "): their meaning in the label file is unknown, so they were never taken from it.")
+    if info.get("not_found"):
+        limits.append(f"{info['not_found']} label rows are not in the table: they could not be scored, and say the table may miss cases.")
+    if limits:
+        evidence["limits"] = limits
     assessment = _task_assessment(p, task, selected, y_test, predictions)
     if assessment is not None:
         evidence["task_assessment"] = assessment  # 17.5: thresholds and intervals chosen out of fold, read on the holdout
@@ -860,6 +964,8 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
             "elapsed_seconds": float(elapsed), "task": p.task, "task_type": p.bundle.task_type, "primary_metric": p.metric,
             "decision_time_rule": p.solution.prediction_moment, "holdout_policy": p.bundle.spec.holdout_policy(),
             "setup_summary": summary, "evidence": evidence, "claims": claims, "decision": decision,
+            "labels": {"coverage": p.solution.labels, "provenance": p.solution.label_provenance,
+                       "file": (project.get("labels") or {}).get("filename")},
             "provenance": {"data_sha256": project["data"]["sha256"], "filename": project["data"]["filename"], "sampling": p.sampling,
                            "cv": p.bundle.cv_description, "holdout": p.bundle.holdout_description, "random_state": ds.RANDOM_STATE},
         }

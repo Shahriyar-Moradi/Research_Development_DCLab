@@ -329,6 +329,7 @@ def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | 
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
                        "sha256": stored["sha256"], "profile": profile_table(frame)}
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
+    project["labels"] = None  # its file was removed with the old table, and it was keyed on that table
     if project.get("memory"):
         from . import memory
         memory.data_replaced(project, filename)  # A5.2: what the notes settled was about the old table
@@ -340,6 +341,74 @@ def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | 
     audit.record_for(store, "data_import", actor, project=project, move="attach_data", status="allowed",
                      source=source or {"kind": "upload"}, filename=filename, sha256=stored["sha256"], rows=project["data"]["rows"],
                      columns=len(project["data"]["columns"]))
+    return store.get(project_id)
+
+
+def attach_labels(store, project_id: str, filename: str, target: str = "is_case", key: list[str] | None = None,
+                  per_entity: bool = False, labels: str = "partial", actor: str = "human") -> dict[str, Any]:
+    """Register ``data/<filename>`` (already written) as the project's label file (package 15.2). The join key is chosen
+    and checked by code (``studio.labels.review``); an inflating key is refused with its numbers. The target column
+    ``target`` is 1 where the table's key is in the file. A sample of known cases gives partial labels unless the person
+    says the file holds every case (``labels="complete"``). The solution is cleared: the labels define the target."""
+    from . import labels as label_review
+    from ..storage.files import FileError, files_for
+
+    from . import graph
+
+    project = store.get(project_id)
+    verdict = graph.check(project, "attach_labels", actor, filename=filename)  # the move is validated and logged (15.2)
+    if not verdict.allowed:
+        graph.log(store, project_id, verdict, project)
+        raise DataError(verdict.message)
+    path = store.data_dir(project_id) / filename
+    try:
+        table, frame = load_table(data_path(store, project)), load_table(path)
+    except DataError:
+        raise
+    except Exception as exc:  # noqa: BLE001 — pandas raises many types; the file is simply not a table
+        path.unlink(missing_ok=True)
+        raise DataError(f"Could not read the label file as a table: {type(exc).__name__}") from None
+    if target in table.columns:
+        raise DataError(f"The table already has a column {target!r}: name the label another way")
+    try:
+        review = label_review.review(table, frame, key=key, per_entity=per_entity)
+    except ValueError as exc:
+        raise DataError(str(exc)) from None
+    if not review["key"]:
+        refused = [c for c in review["candidates"] if c["verdict"] == "refused"][:3]
+        raise DataError("No key joins the labels to the table at about one row per label"
+                        + ("; refused: " + "; ".join(f"{'+'.join(c['key'])} {c['reason']}" for c in refused) if refused else ""))
+    try:
+        files = files_for(store)
+        stored = files.put(files.key_of(path), path)
+    except Exception as exc:  # noqa: BLE001 — as attach_data: a storage error's own words, any other only its type
+        path.unlink(missing_ok=True)
+        raise DataError(str(exc) if isinstance(exc, FileError) else f"The label file could not be stored ({type(exc).__name__})") from None
+    found = review["label_rows_found"]
+    provenance = (f"{filename}: {found} of {review['label_rows']} label rows found in the table, joined on {'+'.join(review['key'])} "
+                  f"({review['rows_marked']} rows marked)" + ("; a sample of known cases" if labels == "partial" else ""))
+    project = store.get(project_id)
+    project["labels"] = {"filename": filename, "sha256": stored["sha256"], "target": target, "key": review["key"],
+                         "rows": review["label_rows"], "found": found, "not_found": review["not_found"], "rows_marked": review["rows_marked"],
+                         "coverage": labels, "per_entity": per_entity, "disagreeing_columns": review["disagreeing_columns"],
+                         "candidates": review["candidates"][:12]}
+    project["solution"], project["proposal"] = None, None
+    from dclab_core.analyse import ROW_NUMBER_NAME
+
+    profile = {c["name"]: c for c in (project["data"].get("profile") or {}).get("columns", [])}
+    identifiers = [c for c in table.columns if ROW_NUMBER_NAME.match(str(c)) or (profile.get(c, {}).get("id_like") and c not in review["key"])]
+    identifiers += [c for c in review["key"] if c not in identifiers]  # the join key names a case: it identifies, never describes
+    project["suggestion"] = {"target": target, "task": "binary", "positive_label": "1", "labels": labels, "label_provenance": provenance,
+                             "identifiers": [str(c) for c in identifiers][:50]}
+    store.save(project)
+    store.clear_stages(project_id)
+    graph.log(store, project_id, verdict, store.get(project_id), outcome="done: labels attached")
+    store.log(project_id, "labels_attached", {"filename": filename, "key": review["key"], "rows_marked": review["rows_marked"],
+                                               "not_found": review["not_found"], "coverage": labels})
+    from .. import audit
+
+    audit.record_for(store, "data_import", actor, project=project, move="attach_labels", status="allowed", source={"kind": "labels"},
+                     filename=filename, sha256=stored["sha256"], rows=review["label_rows"], columns=int(frame.shape[1]))
     return store.get(project_id)
 
 

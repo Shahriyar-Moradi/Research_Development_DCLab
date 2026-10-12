@@ -338,6 +338,13 @@ def _entities(df: pd.DataFrame, y: Optional[pd.Series], task: str, brief: Option
             continue  # an id that repeats only through duplicated rows is not an entity
         evidence: dict[str, Any] = {"column": str(column), "entities": int(sizes.size),
                                     "rows_per_entity_median": _r(sizes.median(), 1), "rows_per_entity_max": int(sizes.max())}
+        times = _time_columns(df)
+        if times:  # how many of the latest fifth of rows belong to an entity already seen: a time-and-entity split's cost
+            order = np.argsort(_as_time(df[times[0]]).to_numpy(), kind="stable")
+            keys = df[column].astype(str).to_numpy()[order]
+            cut = int(round(0.8 * len(keys)))
+            if 0 < cut < len(keys):
+                evidence["later_rows_seen_before"] = _r(float(np.isin(keys[cut:], keys[:cut]).mean()))
         tells = False
         if y is not None and task in ("binary", "multiclass", "regression"):
             power = _power(df[column], y, task, categorical=True)  # the entity alone, learned on other rows
@@ -412,13 +419,17 @@ def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Option
     suspects = dict(suspects or {})
     out = []
     times = _time_columns(df)
+    easy, powers = _easy_task(df, y, task, target, suspects)
     for column in df.columns:
         if column == target:
+            continue
+        if str(column) in easy:  # one of several strong, unrelated, continuous columns: a question, not an accusation
+            out.append(easy[str(column)])
             continue
         by_name = bool(POST_MOMENT_NAME.search(str(column))) and not HISTORY_NAME.search(str(column))
         suspected = str(column) in suspects
         named = by_name or suspected
-        power = None if (ID_NAME.search(str(column)) and df[column].is_unique) else _power(df[column], y, task)
+        power = powers.get(str(column))  # computed once, in _easy_task
         absent = _missing_power(df[column], y, task)
         evidence: dict[str, Any] = {"column": str(column)}
         if power is not None:
@@ -463,6 +474,97 @@ def _leakage(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Option
                                       f"{later} is written when the outcome is known: keep it out.", ["features.forbidden"], "critical"))
                         break
     return out
+
+
+COPY_LEVELS = 10      # a column with this few values that predicts the target almost perfectly is a coded copy
+NEAR_PERFECT = {"binary": 0.99, "multiclass": 0.95, "regression": 0.99}  # beyond this a column stays a leak, whatever else
+SHARED = 0.3          # |within-class Spearman| with another column: the column measures something real beyond the label
+SAMPLE = 5000
+
+
+def _beyond_label(x: pd.Series, others: pd.DataFrame, y: pd.Series, task: str) -> float:
+    """How much of a column's variation, once the target is taken out, it shares with another column: the largest
+    |Spearman| within each class (weighted), or between rank residuals after the target (regression). An honest
+    measurement shares real variation with its neighbours (a tumour's radius and perimeter, even among benign ones); a
+    leak is the label plus independent noise, so within a class it shares nothing."""
+    frame = pd.concat([x.rename("__x"), others], axis=1)
+    frame["__y"] = y.to_numpy()
+    frame = frame.dropna(subset=["__x", "__y"])
+    if len(frame) > SAMPLE:
+        frame = frame.sample(SAMPLE, random_state=0)
+    if len(frame) < 30 or others.shape[1] == 0:
+        return 0.0
+    if task == "regression":
+        ry = frame["__y"].rank()
+        resid = {}
+        for c in ["__x", *others.columns]:
+            r = frame[c].rank()
+            ok = r.notna()
+            slope = np.polyfit(ry[ok], r[ok], 1) if ok.sum() > 2 else (0.0, 0.0)
+            resid[c] = r - (slope[0] * ry + slope[1])
+        res = pd.DataFrame(resid)
+        rho = res.drop(columns="__x").corrwith(res["__x"], method="spearman").abs()
+        return float(rho.max()) if rho.notna().any() else 0.0
+    best = 0.0
+    for c in others.columns:
+        total, weight = 0.0, 0
+        for _, part in frame.groupby("__y"):
+            if len(part) >= 20 and part["__x"].nunique() > 2 and part[c].nunique() > 2:
+                r = part["__x"].corr(part[c], method="spearman")
+                if pd.notna(r):
+                    total, weight = total + abs(float(r)) * len(part), weight + len(part)
+        if weight:
+            best = max(best, total / weight)
+    return best
+
+
+def _easy_task(df: pd.DataFrame, y: pd.Series, task: str, target: Optional[str],
+               suspects: Mapping[str, str]) -> tuple[dict[str, Finding], dict[str, Optional[float]]]:
+    """Strong columns on a task that is simply easy. A leak is the label plus noise: it stands out alone, or beside
+    other leaks, and within a class it shares nothing with any other column. When two or more continuous columns each
+    predict the target almost (not perfectly) and each shares real variation with other columns within the classes,
+    and nothing in their names or the investigator's reading says they are written late, each is a question for the
+    person (kept out until confirmed: features.to_confirm), not an accusation. A near-perfect column, a coded copy (few
+    values), a telling name, or a strong column with no such structure stays a leak. Returns the questions and every
+    column's single-column power (for _leakage, which would compute them again)."""
+    numeric = [c for c in df.columns if c != target and pd.api.types.is_numeric_dtype(df[c]) and not pd.api.types.is_bool_dtype(df[c])]
+    powers: dict[str, Optional[float]] = {}
+    candidates = []
+    for column in df.columns:
+        if column == target:
+            continue
+        name = str(column)
+        x = df[column]
+        powers[name] = None if (ID_NAME.search(name) and x.is_unique) else _power(x, y, task)
+        if str(column) in suspects or (POST_MOMENT_NAME.search(name) and not HISTORY_NAME.search(name)) or ID_NAME.search(name):
+            continue
+        if column not in numeric or x.nunique() <= COPY_LEVELS:
+            continue
+        power = powers[name]
+        if power is not None and POWER_ALARM[task] <= power < NEAR_PERFECT[task]:
+            candidates.append((column, power))
+    if len(candidates) < 2:
+        return {}, powers
+    # the structure must be shared with a column that is not itself strong: a leak's noisy copy shares the leak's noise
+    weak = [c for c in numeric if (powers.get(str(c)) or 0.0) < POWER_ALARM[task]]
+    strong = []
+    for column, power in candidates:
+        shared = _beyond_label(df[column], df[[c for c in weak if c != column]], y, task)
+        if shared >= SHARED:
+            strong.append((column, power, shared))
+    if len(strong) < 2:
+        return {}, powers
+    out = {}
+    for column, power, shared in strong:
+        out[str(column)] = _f(f"confirm-{column}", "leakage",
+                              f"{column} predicts the target almost perfectly on its own (power {power:.3f}), and so do "
+                              f"{len(strong) - 1} other column(s); each also moves with other columns within the classes "
+                              f"(|Spearman| {shared:.2f}), as real measurements do and leaks do not: the task may simply be easy.",
+                              {"column": str(column), "single_column_power": _r(power), "basis": "strong, with real structure beyond the label",
+                               "shared_within_class": _r(shared), "strong_columns": [str(c) for c, _, _ in strong][:20]},
+                              f"Confirm that {column} is known at the prediction moment; it stays out of the model until a person says so.",
+                              ["features.to_confirm"], "info")
+    return out, powers
 
 
 MAX_SUM_COLUMNS = 40
@@ -571,10 +673,20 @@ def _columns(df: pd.DataFrame, target: Optional[str]) -> list[Finding]:
 KEYLIKE_NAME = re.compile(r"(^id$|_id$|_ref$|^id_|_key$|_uuid$|phone|email|_number$|_code$)", re.I)
 
 
+ROW_NUMBER_NAME = re.compile(r"^(unnamed: ?\d+|index|level_\d+|row|row_?(id|no|num|number))$", re.I)
+
+
+def _row_number(s: pd.Series) -> bool:
+    """A column that only numbers the rows of its file: a pandas index saved with the CSV ("Unnamed: 0", "index").
+    Two files' row numbers say nothing about each other. (By name only: an order id may well run 0, 1, 2 ...)"""
+    return bool(ROW_NUMBER_NAME.match(str(s.name or "")))
+
+
 def _key_candidates(main: pd.DataFrame, labels: pd.DataFrame) -> list[tuple[str, ...]]:
     """Columns that could identify a case: an id-like name, or nearly distinct within the label file; and pairs of
     id-like columns (a coarse pair such as (customer, courier) is the classic way to inflate labels)."""
-    shared = [c for c in labels.columns if c in main.columns and labels[c].notna().any()]
+    shared = [c for c in labels.columns if c in main.columns and labels[c].notna().any()
+              and not _row_number(main[c]) and not _row_number(labels[c])]  # a saved index is a row number, never a key
     single = [c for c in shared if not _decimal(labels[c]) and (KEYLIKE_NAME.search(str(c)) or labels[c].nunique() >= 0.8 * labels[c].notna().sum())]
     idlike = [c for c in single if ID_NAME.search(str(c))]
     pairs = [(a, b) for i, a in enumerate(idlike) for b in idlike[i + 1:]]

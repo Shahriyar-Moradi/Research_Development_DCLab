@@ -113,6 +113,9 @@ def _labels(findings: DataFindings) -> list[Decision]:
     return out
 
 
+RECURRING = 0.9  # when this share of the latest rows belongs to entities seen earlier, a time-and-group split cannot test
+
+
 def _split(task: str, brief: Optional[ProblemBrief], findings: DataFindings) -> Decision:
     named = {str(c) for c in (brief.entities.value or [])} if brief is not None and brief.entities.known else set()
     usable = [f for f in _by_topic(findings, "entities") if f.severity in ("warning", "critical")
@@ -132,7 +135,14 @@ def _split(task: str, brief: Optional[ProblemBrief], findings: DataFindings) -> 
     no_split = _get(findings, "F-no-split")
     if no_split:
         cites.append(no_split.id)
-    if group and drifting:
+    overlap = float(group.evidence.get("later_rows_seen_before", 0.0)) if group else 0.0
+    if group and drifting and overlap >= RECURRING:
+        choice = {"kind": "group", "group_column": column}
+        reason = (f"Rows repeat for {column} and the target moves over time, but {overlap:.0%} of the latest rows belong to a {column} "
+                  f"seen earlier: keeping both apart would leave almost nothing to test. Each {column} stays on one side; the "
+                  "drift is a stated risk.")
+        alternatives = [("time_and_group", f"{overlap:.0%} of later rows would be removed"), ("time", f"lets a {column} sit on both sides")]
+    elif group and drifting:
         choice = {"kind": "time_and_group", "time_column": tcol, "group_column": column}
         reason = (f"Rows repeat for {column} and the target moves over time: train on earlier rows, test on later ones, "
                   f"with no {column} on both sides.")
@@ -247,14 +257,18 @@ def _features(findings: DataFindings, brief: Optional[ProblemBrief], task: str) 
     out.append(_d("features.forbidden", forbidden,
                   ("These columns look written after the prediction moment (name, single-column power or recomputing the target): "
                    "keep them out unless a person confirms they are known at the moment.") if forbidden else
-                  "No column looks written after the moment by name, power or recomputation; the moment still decides.",
+                  ("No column is accused of being written after the moment, but strong columns are held back until a person "
+                   "confirms them (features.to_confirm)." if any(f.severity == "info" and "features.to_confirm" in f.affects
+                                                                  for f in _by_topic(findings, "leakage") if f.id.startswith("F-confirm-"))
+                   else "No column looks written after the moment by name, power or recomputation; the moment still decides."),
                   [f.id for f in leaks]))
     confirm = [{"column": str(f.evidence.get("column")), "question": f.implication} for f in _by_topic(findings, "leakage")
                if f.severity == "info" and f.evidence.get("column") not in [x["column"] for x in forbidden]]
     if confirm:
         out.append(_d("features.to_confirm", confirm,
-                      "These names sound written after the outcome but the columns predict little: keep them out until a person "
-                      "says when they are written (a wrong guess either way costs more than the question).",
+                      "Keep these out until a person says when they are written: names that sound written after the outcome but "
+                      "predict little, or strong columns on a task with several unrelated strong signals (it may simply be easy); "
+                      "a wrong guess either way costs more than the question.",
                       [f.id for f in _by_topic(findings, "leakage") if f.severity == "info"]))
     keys = _get(findings, "F-keys")
     identifiers = list(keys.evidence.get("unique_columns", [])) if keys else []
@@ -443,6 +457,15 @@ def validate(plan_: SolutionPlan, findings: DataFindings) -> list[str]:
             missing = [c for c in _leak_columns(f) if c not in kept_out]  # every part of a sum, the later of two times
             if missing:
                 problems.append(f"{f.id} is critical but {', '.join(missing)} is not in features.forbidden")
+    confirm = plan_.decision("features.to_confirm")
+    held, _ = _columns_of(confirm.choice) if confirm is not None else (set(), None)
+    if not (_persons(forbidden) or (confirm is not None and _persons(confirm))):
+        for f in findings.findings:  # a column held for a person's confirmation stays held until a person decides
+            if f.topic == "leakage" and "features.to_confirm" in f.affects and f.evidence.get("column"):
+                column = str(f.evidence["column"])
+                if column not in kept_out and column not in held:
+                    problems.append(f"{f.id}: {column} waits for a person's confirmation but is in neither features.forbidden "
+                                    "nor features.to_confirm")
     join = plan_.decision("labels.join")
     if join is not None and not _persons(join):
         key = join.choice.get("key") if isinstance(join.choice, dict) else join.choice

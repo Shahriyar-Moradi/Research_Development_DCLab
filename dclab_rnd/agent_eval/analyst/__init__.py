@@ -215,21 +215,22 @@ def verdict(result: Mapping[str, Any], split: str) -> dict[str, Any]:
 # ------------------------------------------------------------------------------------------------ plan and run
 
 
-def plan(gateway: Any, cases: list[dict[str, Any]], max_tokens: int) -> dict[str, Any]:
-    """What a live run would send, before anything is sent: the model, the requests and an upper bound in euros."""
+def plan(gateway: Any, cases: list[dict[str, Any]], max_tokens: int, purpose: str = "problem_analyst") -> dict[str, Any]:
+    """What a live run would send, before anything is sent: the model, the requests and an upper bound in euros. The
+    analyst sends two requests a case (itself and the plain model); the brief checker one, with the rules' reading."""
     from dclab_core import prompts
     from dclab_rnd.models import prices, settings
 
-    tier = gateway.route("problem_analyst")[0] if hasattr(gateway, "route") else settings.purpose("problem_analyst").tier
+    tier = gateway.route(purpose)[0] if hasattr(gateway, "route") else settings.purpose(purpose).tier
     public = settings.public(tier)
-    chars = len(prompts.text("problem_analyst")) + max(len(json.dumps(c)) for c in cases) + 400
-    requests = 2 * len(cases)  # the analyst (at most one request a case) and the plain model
+    chars = len(prompts.text(purpose)) + max(len(json.dumps(c)) for c in cases) + 400 + (8 * 600 if purpose == "brief_checker" else 0)
+    requests = (2 if purpose == "problem_analyst" else 1) * len(cases)
     try:
         each = prices.estimate(public.get("model"), bool(public.get("local")), chars, max_tokens)
     except ValueError:
         each = None
-    return {"purpose": "problem_analyst", "tier": tier, "model": public.get("model"), "local": bool(public.get("local")),
-            "available": gateway.available("problem_analyst"), "cases": len(cases), "max_requests": requests,
+    return {"purpose": purpose, "tier": tier, "model": public.get("model"), "local": bool(public.get("local")),
+            "available": gateway.available(purpose), "cases": len(cases), "max_requests": requests,
             "max_eur": round(each * requests, 3) if each is not None else None}
 
 
@@ -241,3 +242,55 @@ def sealed_runs() -> list[Path]:
 def next_id() -> str:
     numbers = [int(m.group(1)) for p in RESULTS.glob("ANA-*.json") if (m := re.match(r"ANA-(\d+)_", p.name))]
     return f"ANA-{max(numbers, default=0) + 1:03d}"
+
+
+# ------------------------------------------------------------------------------------------------ the brief checker
+
+CHECKER_RESULTS = ROOT / "evidence" / "campaigns" / "brief_checker_v1" / "results"
+CHECKER_GATE = {
+    "version": "brief_checker_gate_v1",  # fixed on 2026-10-12, before any live run
+    "caught": "questions on at least half of the fields the rules read wrongly (dev and sealed briefs together)",
+    "noise": "questions on at most 10% of the fields the rules read rightly",
+    "note": "the sealed briefs are not blind for this role: the rules' errors on them were seen in ANA-004",
+}
+FIELD_OF_QUESTION = {"target": "target_column"}
+
+
+def measure_checker(cases: list[dict[str, Any]], advisor: Any) -> dict[str, Any]:
+    """For each brief, the questions the checker raises on the fields the rules read: on a wrong field (caught, and
+    whether its proposed reading is right) or on a right one (noise)."""
+    from dclab_core.understand import understand
+
+    counting = Counting(advisor)
+    rows = []
+    for case in cases:
+        rules = read_rules(case)
+        brief = understand(case["description"], case["files"], checker=counting)
+        asked = {FIELD_OF_QUESTION.get(q.field, q.field): q for q in brief.open_questions if len(q.options) == 2}
+        row = {"case": case["id"], "caught": [], "missed": [], "noise": [], "proposal_right": []}
+        for field in FIELDS:
+            if rules[field] is None:
+                continue
+            wrong = score(rules[field], case["gold"].get(field), field) == "wrong"
+            if wrong and field in asked:
+                row["caught"].append(field)
+                if score(asked[field].options[1], case["gold"].get(field), field) == "right":
+                    row["proposal_right"].append(field)
+            elif wrong:
+                row["missed"].append(field)
+            elif field in asked:
+                row["noise"].append(field)
+        row["right_fields"] = sum(1 for f in FIELDS if rules[f] is not None) - len(row["caught"]) - len(row["missed"])
+        rows.append(row)
+    summary = {"wrong_fields": sum(len(r["caught"]) + len(r["missed"]) for r in rows), "caught": sum(len(r["caught"]) for r in rows),
+               "proposal_right": sum(len(r["proposal_right"]) for r in rows), "right_fields": sum(r["right_fields"] for r in rows),
+               "noise": sum(len(r["noise"]) for r in rows)}
+    return {"rows": rows, "summary": summary, "requests": counting.requests, "failures": counting.failures}
+
+
+def checker_verdict(result: Mapping[str, Any]) -> dict[str, Any]:
+    if result.get("failures"):
+        return {"gate": CHECKER_GATE["version"], "status": "not scored", "why": f"{len(result['failures'])} request(s) failed"}
+    s = result["summary"]
+    checks = {"caught": s["caught"] >= 0.5 * s["wrong_fields"], "noise": s["noise"] <= 0.1 * s["right_fields"]}
+    return {"gate": CHECKER_GATE["version"], "status": "pass" if all(checks.values()) else "fail", "checks": checks}

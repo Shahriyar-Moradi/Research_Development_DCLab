@@ -521,11 +521,74 @@ def _advice(advisor: Optional[Advisor], description: str, text: str, files: File
     return run_role(PROBLEM_ANALYST, advisor, inputs).output
 
 
+# ------------------------------------------------------------------------------------------------ the brief checker
+
+
+def _checker_evidence(inputs: Mapping[str, Any]) -> dict[str, Any]:
+    base = _analyst_evidence({**inputs, "unknown": []})
+    base.pop("fields_to_propose", None)
+    base["rules_read"] = {field: {"value": _clip(str(fact.value), 300),
+                                  "basis": _clip(_norm(fact.quote or fact.reason or ""), 300)}
+                          for field, fact in inputs["known"].items()}
+    return base
+
+
+def _checker_parse(answer: Mapping[str, Any], inputs: Mapping[str, Any]) -> list[Question]:
+    """A disagreement is kept only for a field the rules read, with a different value the person's own words support;
+    it becomes an open question with both readings as options, and the rules' value stays until the person answers."""
+    items = answer.get("disagree") or []
+    if not isinstance(items, list):
+        raise ValueError("disagree must be a list")
+    text, columns, known = inputs["text"], set(_columns(inputs["files"])), inputs["known"]
+    out, asked = [], set()
+    for item in items[:10]:
+        if not isinstance(item, Mapping):
+            continue
+        field, value, quote = item.get("field"), item.get("value"), item.get("quote")
+        if field in asked:
+            continue  # one question per field: the first valid reading
+        if field not in known or not isinstance(value, str) or not value.strip() or len(value) > MAX_TEXT:
+            continue
+        ruled = str(known[field].value)
+        if _norm(value).lower() == _norm(ruled).lower() or not quoted(quote, text):
+            continue
+        if field == "task" and value not in ("binary", "multiclass", "regression"):
+            continue
+        if field == "target_column" and value not in columns:
+            continue
+        if field not in ("task", "target_column") and not supports(quote, value):
+            continue
+        asked.add(field)
+        name = {"target_column": "target"}.get(field, field)
+        impact = QUESTIONS.get(name, (2, ""))[0]
+        out.append(Question(field=name, impact=impact, options=[_clip(ruled, 200), _clip(value, 200)],
+                            text=_clip(f'The rules read {field} as "{_clip(ruled, 120)}", but the description may say "{_clip(value, 120)}" '
+                                       f'("{_clip(_norm(quote), 200)}"). Which is right?', 1000)))
+    return out
+
+
+BRIEF_CHECKER = Role(
+    name="brief_checker",
+    description="Reads the description against what the rules read; a different reading the person's words support becomes "
+                "an open question with both options. It never changes a field.",
+    evidence=_checker_evidence, parse=_checker_parse, fallback=lambda inputs: [])
+
+
+def _disagreements(advisor: Optional[Advisor], description: str, text: str, files: Files, fields: dict[str, Fact]) -> list[Question]:
+    known = {f: fields[f] for f in ADVISABLE if fields[f].known and fields[f].source != "advisor"}
+    if not advisor or not known or not text:
+        return []
+    return run_role(BRIEF_CHECKER, advisor, {"description": description, "text": text, "files": files, "known": known}).output
+
+
 # ------------------------------------------------------------------------------------------------ entry point
 
 
-def understand(description: str, files: Optional[Files] = None, advisor: Optional[Advisor] = None) -> ProblemBrief:
-    """Read a problem's description (and its files' column names) into a :class:`ProblemBrief`."""
+def understand(description: str, files: Optional[Files] = None, advisor: Optional[Advisor] = None,
+               checker: Optional[Advisor] = None) -> ProblemBrief:
+    """Read a problem's description (and its files' column names) into a :class:`ProblemBrief`. ``advisor``: the problem
+    analyst, for fields the rules left unknown; ``checker``: the brief checker, whose disagreements with the rules become
+    open questions (never a changed field)."""
     files = {str(k): [str(c) for c in v] for k, v in (files or {}).items()}
     sentences = _sentences(description)
     text = " ".join(sentences)
@@ -552,10 +615,11 @@ def understand(description: str, files: Optional[Files] = None, advisor: Optiona
         "primary_metric": (_stated(re.sub(r"[\s-]+", "_", metric_match.group(4).lower()), metric_match.group(0))
                            if metric_match else Fact.unknown()),
     }
+    disputes = _disagreements(checker, description or "", text, files, fields)  # before the analyst: only the rules' reading
     fields.update(_advice(advisor, description or "", text, files, fields))
     constraints = _constraints(sentences)
     digest = hashlib.sha256(json.dumps({"text": text, "files": files}, sort_keys=True).encode()).hexdigest()
     return ProblemBrief(source_digest=digest, constraints=constraints, deliverables=_deliverables(sentences),
                         success_criteria=[f.model_dump() for f in _success(sentences)],
-                        open_questions=_questions(fields, constraints),
+                        open_questions=sorted(disputes + _questions(fields, constraints), key=lambda q: q.impact)[:20],
                         **{name: fact.model_dump() for name, fact in fields.items()})

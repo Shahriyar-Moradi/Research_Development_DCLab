@@ -22,6 +22,18 @@ from typing import Any
 from dclab_rnd import prompts
 
 FIELDS = ("target", "prediction_moment", "action", "data_plan")  # in the order they are asked
+# 15.6: a pack's own questions, in the place of the generic ones (Home still asks at most MAX_QUESTIONS)
+PACK_FIELDS = {"imbalanced": ("target", "prediction_moment", "entity", "labels", "budget", "data_plan")}
+ALL_FIELDS = tuple(dict.fromkeys([*FIELDS, *(f for fields in PACK_FIELDS.values() for f in fields)]))
+
+
+def fields_for(draft: dict[str, Any]) -> tuple[str, ...]:
+    """The fields Home works through for this draft's pack, in the order they are asked."""
+    return PACK_FIELDS.get(((draft or {}).get("pack") or {}).get("key") or "", FIELDS)
+
+
+def label_asset(draft: dict[str, Any]) -> dict[str, Any] | None:
+    return next((a for a in (draft or {}).get("assets") or [] if a.get("kind") == "labels" and a.get("status") == "ready"), None)
 STATUSES = ("stated", "inferred", "unknown")
 SOURCES = ("problem", "answer", "model", "data")
 QUOTE_CHARS = 300
@@ -30,6 +42,9 @@ WHY = {
     "prediction_moment": "Anything written after this moment must stay out of the model; it is the main source of leakage.",
     "action": "The cost of errors sets the metric and the operating point.",
     "data_plan": "A sample (even 1,000 rows) lets DCLab check the columns against the prediction moment.",
+    "entity": "Who could commit it (a biker, a customer, a card) decides the folds: the model is tested on ones it never saw.",
+    "labels": "If the labels are a sample of the cases found, an unlabelled row is unknown, not innocent, and precision is a floor.",
+    "budget": "How many alerts the team can review sets the operating point and the metric that matters: recall at that budget.",
 }
 
 _UNIT = r"(?:hours?|days?|weeks?|months?|quarters?|years?)"
@@ -90,7 +105,7 @@ def extract(text: str) -> dict[str, str]:
 
 
 def empty() -> dict[str, Any]:
-    return {f: {"status": "unknown", "source": None, "quote": None} for f in FIELDS} | {"next": None, "why": None}
+    return {f: {"status": "unknown", "source": None, "quote": None} for f in ALL_FIELDS} | {"next": None, "why": None}
 
 
 def entry(status: str, source: str, quote: str | None) -> dict[str, Any]:
@@ -100,20 +115,23 @@ def entry(status: str, source: str, quote: str | None) -> dict[str, Any]:
 def refresh(draft: dict[str, Any]) -> dict[str, Any]:
     """The plan for the draft as it is now: a known field keeps its entry, one the user answered is stated, and the
     next field to ask is the first unknown one that was not asked yet (the data only when none is on its way)."""
-    plan = {**empty(), **{k: v for k, v in (draft.get("plan") or {}).items() if k in FIELDS}}
+    fields = fields_for(draft)
+    plan = {**empty(), **{k: v for k, v in (draft.get("plan") or {}).items() if k in ALL_FIELDS}}
     u = draft.get("understanding") or {}
     answered = {q["field"]: q["answered"] for q in draft.get("questions") or [] if q.get("answered") and not q.get("superseded")}
     has_data = any(a.get("status") in ("ready", "queued", "structuring", "cleaning", "analysing") for a in draft.get("assets") or [])
-    for field in FIELDS:
+    for field in fields:
         if not u.get(field):
             if field == "data_plan" and has_data:
+                plan[field] = entry("stated", "data", None)
+            elif field == "target" and label_asset(draft):  # a label file says what the cases are (15.6)
                 plan[field] = entry("stated", "data", None)
             else:
                 plan[field] = {"status": "unknown", "source": None, "quote": None}
         elif plan[field]["status"] == "unknown":
             plan[field] = entry("stated", "answer", answered.get(field) or u[field])
     asked = {q["field"] for q in draft.get("questions") or [] if not q.get("superseded")}
-    plan["next"] = next((f for f in FIELDS if plan[f]["status"] == "unknown" and f not in asked), None)
+    plan["next"] = next((f for f in fields if plan[f]["status"] == "unknown" and f not in asked), None)
     plan["why"] = WHY.get(plan["next"]) if plan["next"] else None
     return plan
 

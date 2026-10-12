@@ -150,6 +150,9 @@ def register(registry: Registry) -> None:
     add("understand_problem", pid, ["project_id"], "Read the project's goal and its table's column names into a problem brief: task, unit, "
         "target, label source and coverage, prediction moment, entities, time column, constraints, deliverables, each stated (with the "
         "person's words), inferred (with a reason) or unknown, and the open questions ranked by how much they change the plan. Changes nothing.")
+    add("review_labels", pid, ["project_id"], "Report the project's label file (package 15.2): the key it is joined on, every candidate "
+        "key with the rows one label would mark and why an inflating key was refused, label rows not found in the table, columns "
+        "with the same name that disagree between the files, and whether the labels are complete or partial. Changes nothing.")
     add("describe_data", pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the solution suggestion if any.")
     add("propose_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
         "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.",
@@ -281,6 +284,14 @@ class Toolbox:
             self.projects.log(project_id, "plan_adopted", {"overrides": [str(o.get("key")) for o in overrides or []], "by": "intern"})
         return saved
 
+    def review_labels(self, project_id: str) -> dict[str, Any]:
+        project = self.projects.get(project_id)
+        info = project.get("labels")
+        if not info:
+            return {"labels": None, "note": "No label file: the target is a column of the table."}
+        keep = ("filename", "target", "key", "rows", "found", "not_found", "rows_marked", "coverage", "per_entity", "disagreeing_columns", "candidates")
+        return {k: info.get(k) for k in keep}
+
     def understand_problem(self, project_id: str) -> dict[str, Any]:
         """The problem as dclab_core reads it (package 17.2): the project's goal and its table's column names (never
         values) -> a ProblemBrief, every field stated with its quote, inferred with its reason, or open with a question."""
@@ -392,8 +403,12 @@ class Toolbox:
         if not studio_graph.check(project, "capture", "agent").allowed:
             studio_graph.capture(self.projects, project_id, "agent")  # logs the blocked move and raises
         records = self.projects.records(project_id)
+        try:
+            nb = studio_export.notebook(project, records)
+        except studio_export.ExportUnsupported as exc:
+            return {"error": str(exc)}
         folder = self.projects.export_dir(project_id)
-        (folder / "notebook.ipynb").write_text(studio_export.dumps_notebook(studio_export.notebook(project, records)), encoding="utf-8")
+        (folder / "notebook.ipynb").write_text(studio_export.dumps_notebook(nb), encoding="utf-8")
         (folder / "report.md").write_text(studio_export.report(project, records), encoding="utf-8")
         studio_graph.capture(self.projects, project_id, "agent")
         from ..storage.files import files_for

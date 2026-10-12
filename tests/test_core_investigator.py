@@ -135,6 +135,65 @@ class InvestigatorTest(unittest.TestCase):
                     if f.topic == "entities"}
         self.assertEqual(entities["customer_id"], "warning")
 
+    def test_several_strong_honest_columns_are_questions_and_a_lone_one_a_leak(self):
+        from sklearn.datasets import load_breast_cancer
+
+        from dclab_core.analyse import analyse
+        from dclab_core.plan import plan, validate
+
+        cancer = load_breast_cancer(as_frame=True).frame
+        cancer.columns = [c.replace(" ", "_") for c in cancer.columns]
+        findings = analyse({"t": cancer}, target="target", task="binary")
+        self.assertEqual(self.leaks(findings), {})  # real measurements, many of them strong: nothing is accused
+        questions = [f for f in findings.findings if f.id.startswith("F-confirm-")]
+        self.assertGreaterEqual(len(questions), 2)
+        solution = plan(None, findings)
+        confirm = {d["column"] for d in solution.decision("features.to_confirm").choice}
+        self.assertTrue({f.evidence["column"] for f in questions} <= confirm)  # kept out until a person confirms
+        self.assertEqual(solution.decision("features.forbidden").choice, [])
+        self.assertEqual(validate(solution, findings), [])
+
+        rng = np.random.default_rng(6)
+        y = rng.integers(0, 2, 1200)
+        lone = pd.DataFrame({"a": rng.normal(size=1200), "b": rng.normal(size=1200), "z_rk4": 2.0 * y + rng.normal(0, 0.6, 1200), "target": y})
+        self.assertEqual(self.leaks(analyse({"t": lone}, target="target", task="binary"))["z_rk4"].severity, "critical")
+        pair = lone.assign(code=np.where(rng.random(1200) < 0.05, 1 - y, y))  # a coded copy is never a question
+        self.assertEqual(self.leaks(analyse({"t": pair}, target="target", task="binary"))["code"].severity, "critical")
+
+    def test_leaks_beside_other_strong_columns_stay_leaks(self):
+        """The label plus noise shares nothing with any column within a class: two leaks, a leak and its noisy copy, a
+        leak beside honest strong columns, two noisy copies of a number all stay critical."""
+        from sklearn.datasets import load_breast_cancer
+
+        from dclab_core.analyse import analyse
+        from dclab_core.plan import override, plan, validate
+
+        rng = np.random.default_rng(9)
+        n = 2000
+        y = rng.integers(0, 2, n)
+        base = pd.DataFrame({"a": rng.normal(size=n), "b": rng.normal(size=n), "target": y})
+        z = y + rng.normal(0, 0.4, n)
+        tables = {"two leaks": base.assign(z1=y + rng.normal(0, 0.3, n), z2=3 * y + rng.normal(0, 1.1, n)),
+                  "a leak and its copy": base.assign(z1=z, z2=z + rng.normal(0, 0.15, n))}
+        for name, table in tables.items():
+            with self.subTest(table=name):
+                severities = {c: f.severity for c, f in self.leaks(analyse({"t": table}, target="target", task="binary")).items()}
+                self.assertEqual(severities, {"z1": "critical", "z2": "critical"})
+        cancer = load_breast_cancer(as_frame=True).frame
+        cancer.columns = [c.replace(" ", "_") for c in cancer.columns]
+        leaky = cancer.assign(q_z7=cancer["target"] * 1.5 + np.random.default_rng(1).normal(0, 0.6, len(cancer)))
+        self.assertEqual(self.leaks(analyse({"t": leaky}, target="target", task="binary"))["q_z7"].severity, "critical")
+        level = rng.normal(50, 10, n)
+        copies = pd.DataFrame({"a": rng.normal(size=n), "z1": level + rng.normal(0, 2.8, n), "z2": level + rng.normal(0, 2.8, n), "target": level})
+        self.assertEqual({f.severity for f in self.leaks(analyse({"t": copies}, target="target", task="regression")).values()}, {"critical"})
+        # a model may not drop a held column; a person may
+        findings = analyse({"t": cancer}, target="target", task="binary")
+        solution = plan(None, findings)
+        self.assertIn("held back", solution.decision("features.forbidden").reason)
+        dropped = override(solution, "features.to_confirm", [], "the advisor thinks they are fine", by="advisor")
+        self.assertTrue(any("waits for a person" in p for p in validate(dropped, findings)))
+        self.assertEqual(validate(override(solution, "features.to_confirm", [], "confirmed at the clinic", by="person"), findings), [])
+
     def test_an_answer_that_is_not_lists_falls_back(self):
         from dclab_core.agents import ScriptedAdvisor, run_role
         from dclab_core.analyse import DATA_INVESTIGATOR
@@ -159,7 +218,7 @@ class InvestigatorMeasureTest(unittest.TestCase):
         from dclab_rnd.agent_eval import benchmark, investigator
 
         items = investigator.load("dev")
-        self.assertEqual(len(items), len(benchmark.split("dev")) + 2)
+        self.assertEqual(len(items), len(benchmark.split("dev")) + 5)  # two replicas, the real table with and without a leak, two leaks
         self.assertTrue(all(i.clean for i in items))
         with mock.patch.object(benchmark, "sealed_fingerprints", return_value={}), self.assertRaises(ValueError):
             investigator.load("sealed")

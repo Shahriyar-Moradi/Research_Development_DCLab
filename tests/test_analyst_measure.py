@@ -3,6 +3,7 @@
 No model is called: advisors here are scripted. The live run needs the owner's yes and a euro cap.
 """
 
+import contextlib
 import json
 import sys
 import tempfile
@@ -172,6 +173,93 @@ class AnalystCliTest(unittest.TestCase):
         self.assertEqual(record["requests"], 1)  # stopped at the first failure
         with mock.patch.object(analyst, "RESULTS", folder):
             self.assertEqual(analyst.sealed_runs(), [])
+
+
+@unittest.skipIf(PYDANTIC_MISSING, PYDANTIC_MISSING)
+class BriefCheckerTest(unittest.TestCase):
+    def test_a_disagreement_is_a_question_and_never_a_changed_field(self):
+        from dclab_core.agents import ScriptedAdvisor
+        from dclab_core.understand import understand
+        from dclab_rnd.agent_eval.analyst import load
+
+        [case] = [c for c in load("dev") if c["id"] == "d11"]
+        rules = understand(case["description"], case["files"])
+        self.assertEqual(rules.task.value, "binary")  # the rules' misreading
+        checker = ScriptedAdvisor({"brief_checker": {"disagree": [
+            {"field": "task", "value": "multiclass", "quote": "simple, standard, complex or fraud-review"},
+            {"field": "task", "value": "regression", "quote": "words nobody wrote here"},          # not the person's words
+            {"field": "goal", "value": rules.goal.value, "quote": "Claims adjusters spend"}]}})    # the same reading
+        brief = understand(case["description"], case["files"], checker=checker)
+        self.assertEqual(brief.task.value, "binary")  # unchanged: the person decides
+        [question] = [q for q in brief.open_questions if q.field == "task" and q.options]
+        self.assertEqual(question.options, ["binary", "multiclass"])
+        from dclab_core.understand import QUESTIONS
+
+        self.assertEqual(question.impact, QUESTIONS["task"][0])
+        [(purpose, evidence)] = checker.requests
+        self.assertEqual(evidence["rules_read"]["task"]["value"], "binary")
+
+    def test_one_question_per_field_and_bad_answers_are_dropped(self):
+        from dclab_core.agents import ScriptedAdvisor, run_role
+        from dclab_core.understand import BRIEF_CHECKER, understand
+        from dclab_rnd.agent_eval.analyst import load
+
+        [case] = [c for c in load("dev") if c["id"] == "d11"]
+        twice = ScriptedAdvisor({"brief_checker": {"disagree": [
+            {"field": "task", "value": "multiclass", "quote": "simple, standard, complex or fraud-review"},
+            {"field": "task", "value": "regression", "quote": "simple, standard, complex or fraud-review"}]}})
+        brief = understand(case["description"], case["files"], checker=twice)
+        self.assertEqual([q.options for q in brief.open_questions if q.field == "task" and q.options], [["binary", "multiclass"]])
+        rules = understand(case["description"], case["files"])
+        inputs = {"description": case["description"], "text": " ".join(case["description"].split()), "files": case["files"],
+                  "known": {"task": rules.task}}
+        self.assertEqual(run_role(BRIEF_CHECKER, ScriptedAdvisor({"brief_checker": {"disagree": "task"}}), inputs).reason, "invalid")
+        ghost = ScriptedAdvisor({"brief_checker": {"disagree": [{"field": "task", "value": "multiclass", "quote": "four kinds of claim"}]}})
+        self.assertEqual(run_role(BRIEF_CHECKER, ghost, inputs).output, [])  # not the person's words: dropped
+
+    def test_the_checker_cli_refuses_runs_once_and_stores_a_failure_unscored(self):
+        from dclab_rnd.agent_eval import analyst
+        from dclab_rnd.agent_eval.analyst import __main__ as cli
+
+        tmp = Path(tempfile.mkdtemp())
+        priced = {"available": True, "local": False, "max_eur": 0.02}
+        patches = lambda plan: (mock.patch("dotenv.load_dotenv"), mock.patch("dclab_rnd.models.gateway.for_workspace"),  # noqa: E731
+                                mock.patch.object(cli, "plan", return_value=plan), mock.patch.object(analyst, "CHECKER_RESULTS", tmp))
+        for plan, extra in ((priced, []), (priced, ["--cap-eur", "0"]), (priced, ["--cap-eur", "0.01"]), ({**priced, "max_eur": None}, ["--cap-eur", "1"])):
+            with self.subTest(plan=plan, extra=extra), contextlib.ExitStack() as stack:
+                for p in patches(plan):
+                    stack.enter_context(p)
+                self.assertEqual(cli.main(["--role", "checker", "--yes", *extra]), 2)
+        self.assertEqual(list(tmp.iterdir()), [])
+        with contextlib.ExitStack() as stack:
+            for p in patches(priced):
+                stack.enter_context(p)
+            stack.enter_context(mock.patch("dclab_rnd.core_advisor.GatewayAdvisor.ask", side_effect=RuntimeError("cut at the token limit")))
+            stack.enter_context(mock.patch("dclab_rnd.core_advisor.GatewayAdvisor.spent_eur", return_value=0.001))
+            self.assertEqual(cli.main(["--role", "checker", "--yes", "--cap-eur", "1"]), 0)
+            [stored] = list(tmp.iterdir())
+            self.assertTrue(stored.name.endswith("_all_unscored.json"))
+            self.assertEqual(cli.main(["--role", "checker", "--yes", "--cap-eur", "1"]), 0)  # an unscored run does not use it up
+            (tmp / "CHK-009_all.json").write_text("{}")
+            self.assertEqual(cli.main(["--role", "checker", "--yes", "--cap-eur", "1"]), 2)  # a scored one does
+
+    def test_the_measurement_counts_caught_and_noise(self):
+        from dclab_rnd.agent_eval.analyst import checker_verdict, load, measure_checker
+
+        cases = [c for c in load("dev") if c["id"] in ("d11", "d01")]
+
+        class Checker:
+            def ask(self, purpose, evidence):
+                text = " ".join(evidence["description_paragraphs"])
+                if text.startswith("Claims"):
+                    return {"disagree": [{"field": "task", "value": "multiclass", "quote": "simple, standard, complex or fraud-review"}]}
+                return {"disagree": [{"field": "unit", "value": "month", "quote": "first day of each month"}]}
+
+        result = measure_checker(cases, Checker())
+        self.assertEqual(result["summary"]["caught"], 1)
+        self.assertEqual(result["summary"]["proposal_right"], 1)
+        self.assertEqual(result["summary"]["noise"], 1)  # d01's unit (subscriber) was read rightly: questioning it is noise
+        self.assertIn(checker_verdict(result)["status"], ("pass", "fail"))
 
 
 class GatewayAdvisorTest(unittest.TestCase):

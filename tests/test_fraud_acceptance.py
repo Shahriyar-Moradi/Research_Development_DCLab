@@ -154,7 +154,6 @@ class AcceptanceTest(unittest.TestCase):
     def setUpClass(cls):
         cls.replica = replica(0)
 
-    @unittest.expectedFailure  # 15.2
     def test_labels_are_joined_on_the_order_and_the_pair_join_is_refused(self):
         from dclab_rnd.studio import labels
 
@@ -168,13 +167,11 @@ class AcceptanceTest(unittest.TestCase):
         self.assertIn("sender_phone", review["disagreeing_columns"])
         self.assertIn("biker_fare", review["disagreeing_columns"])
 
-    @unittest.expectedFailure  # 15.2
     def test_labels_from_a_sample_are_declared_partial(self):
         solution = Solution(target="is_fraud", task="binary", positive_label="yes", prediction_moment=MOMENT,
                             group_column="biker_id", labels="partial")
         self.assertEqual(solution.labels, "partial")
 
-    @unittest.expectedFailure  # 15.3
     def test_metrics_at_an_alert_budget(self):
         from dclab_rnd.expansion import runner
 
@@ -185,14 +182,12 @@ class AcceptanceTest(unittest.TestCase):
         self.assertEqual(metrics["precision_at_budget"], 1.0)
         Solution(target="is_fraud", task="binary", positive_label="yes", prediction_moment=MOMENT, alert_budget=0.005)
 
-    @unittest.expectedFailure  # 15.5
     def test_the_screen_holds_rules_anomaly_and_pu_families(self):
         from dclab_rnd.expansion import runner
 
-        families = set(runner.model_families("binary_imbalanced"))
+        families = set(runner.model_families("binary_imbalanced")) | set(runner.RARE_FAMILIES)  # the engine adds these for a rare event
         self.assertTrue({"percentile_rules", "isolation_forest", "ecod", "pu_bagging"} <= families)
 
-    @unittest.expectedFailure  # 15.6
     def test_the_pack_is_found_from_a_sparse_label_file_without_the_word_fraud(self):
         from dclab_rnd.draft import pack
 
@@ -205,7 +200,6 @@ class AcceptanceTest(unittest.TestCase):
     def test_a_finished_project_exports_a_scoring_service(self):
         from dclab_rnd.studio import service  # noqa: F401  (the export module)
 
-    @unittest.expectedFailure  # 15.2-15.5 together (15.6 later makes Home ask for the entity and the budget)
     def test_end_to_end_the_engine_reaches_the_hand_solutions_decisions(self):
         store = ProjectStore(Path(tempfile.mkdtemp()))
         project = store.create("Rides", "delivery", "Find fraudulent activity of bikers and customers")

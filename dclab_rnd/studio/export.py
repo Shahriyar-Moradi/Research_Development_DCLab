@@ -23,7 +23,18 @@ MODEL_IMPORTS = {
     "hist_gradient_boosting": ("from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor", "{cls}(random_state=42)"),
     "lightgbm": ("import lightgbm as lgb", "lgb.{cls}(n_estimators=300, learning_rate=0.05, num_leaves=31, random_state=42, n_jobs=4, verbose=-1)"),
     "xgboost": ("import xgboost as xgb", "xgb.{cls}(n_estimators=300, learning_rate=0.1, max_depth=6, tree_method='hist', n_jobs=4, random_state=42, verbosity=0)"),
+    # 15.5's rare-event families come from DCLab's own package (dclab_rnd must be importable where the notebook runs)
+    "percentile_rules": ("from dclab_rnd.expansion.detectors import PercentileRules", "PercentileRules()"),
+    "ecod": ("from dclab_rnd.expansion.detectors import ECOD", "ECOD()"),
+    "isolation_forest": ("from dclab_rnd.expansion.detectors import IsolationForestDetector", "IsolationForestDetector()"),
+    "pu_bagging": ("from dclab_rnd.expansion.detectors import PUBagging", "PUBagging()"),
 }
+NOT_EXPORTED = {"entity_behaviour": "the entity behaviour recipe (package 15.4) is not written into notebooks yet: export the "
+                                    "project after choosing another recipe, or use the stage records"}
+
+
+class ExportUnsupported(ValueError):
+    """The project chose something the notebook cannot reproduce yet; the reason says what."""
 CLASS_NAMES = {
     "extra_trees": ("ExtraTreesClassifier", "ExtraTreesRegressor"),
     "hist_gradient_boosting": ("HistGradientBoostingClassifier", "HistGradientBoostingRegressor"),
@@ -89,6 +100,8 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     models = records.get("models", {}).get("decision", {})
     final = records.get("final", {}).get("evidence", {})
     recipe = features.get("chosen") or features.get("selected") or "raw"
+    if recipe in NOT_EXPORTED:
+        raise ExportUnsupported(f"This notebook cannot be exported yet: {NOT_EXPORTED[recipe]}.")
     family = models.get("chosen") or models.get("selected") or ("ridge" if regression else "logistic_regression")
     every = final.get("selected_model_params") or {}
     params = {k.replace("model__", ""): v for k, v in every.items() if not k.startswith("review__")}
@@ -102,7 +115,13 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     import_line, ctor = MODEL_IMPORTS[family]
     cls = CLASS_NAMES.get(family, ("", ""))[1 if regression else 0]
     ctor = ctor.format(cls=cls)
-    metric_import, metric_expr = METRIC_CODE[metric]
+    if metric == "recall_at_budget":  # 15.3: the share of cases found in the riskiest budget share of rows
+        budget = float(solution.get("alert_budget") or 0.01)
+        metric_import = "average_precision_score"
+        metric_expr = (f"y_true.to_numpy()[np.argsort(-np.asarray(scores), kind='stable')[:max(1, int(np.ceil({budget!r} * len(y_true))))]].sum()"
+                       " / max(int(y_true.sum()), 1)")
+    else:
+        metric_import, metric_expr = METRIC_CODE[metric]
 
     cells = [
         _cell("markdown", f"# {project['name']}\n\n"
@@ -119,7 +138,8 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
               f"from sklearn.metrics import {metric_import}\n{import_line}\n\nRANDOM_STATE = 42"),
         _cell("markdown", "## 1. Load the data and apply the solution\n\nColumns unknown at the prediction moment and identifiers are removed before anything else happens."),
         _cell("code", f"frame = {_read_code(data.get('filename', 'data.csv'))}  # the project's data file\n"
-              f"TARGET = {solution.get('target')!r}\nDROP = {drop!r}\n"
+              + _labels_code(project, solution)
+              + f"TARGET = {solution.get('target')!r}\nDROP = {drop!r}\n"
               + _target_code(task, solution)
               + f"X = frame.drop(columns=[TARGET] + [c for c in DROP if c in frame])\nprint(X.shape, y.value_counts(normalize=True).round(3).to_dict() if y.nunique() < 20 else y.describe())"),
         _cell("markdown", "## 2. Lock the holdout before looking at the target\n\n" + _split_text(time_column, group_column, regression)),
@@ -142,6 +162,18 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     return {"cells": cells, "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
                                         "language_info": {"name": "python"}, "dclab": {"project": project["id"], "generated_from": "DCLab notebook"}},
             "nbformat": 4, "nbformat_minor": 5}
+
+
+def _labels_code(project: dict[str, Any], solution: dict[str, Any]) -> str:
+    """15.2: the target from the label file, joined on the key the project checked (a row is a case when its key is there)."""
+    info = project.get("labels") or {}
+    if not info or info.get("target") != solution.get("target"):
+        return ""
+    key = list(info["key"])
+    return (f"labels = {_read_code(info['filename'])}  # the label file, joined on {'+'.join(key)} ({info.get('coverage', 'partial')} labels)\n"
+            f"KEY = {key!r}\n"
+            "marked = frame[KEY].astype(str).merge(labels[KEY].dropna().astype(str).drop_duplicates(), on=KEY, how='left', indicator=True)\n"
+            f"frame[{info['target']!r}] = (marked['_merge'] == 'both').astype(int).to_numpy()\n")
 
 
 def _target_code(task: str, solution: dict[str, Any]) -> str:

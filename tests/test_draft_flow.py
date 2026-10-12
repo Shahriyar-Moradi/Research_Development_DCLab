@@ -586,7 +586,7 @@ class BooleanFeatureTests(unittest.TestCase):
         from dclab_rnd.studio import ProjectStore, data, engine
 
         self.assertEqual([engine.cv_folds({"settings": s}) for s in ({}, {"folds": 5}, {"folds": 99}, {"folds": 1}, {"folds": "x"})], [3, 5, 10, 2, 3])
-        self.assertEqual([engine.split_for(s) for s in ({}, {"group_column": "g"}, {"time_column": "t", "group_column": "g"})], ["stratified", "group", "time"])
+        self.assertEqual([engine.split_for(s) for s in ({}, {"group_column": "g"}, {"time_column": "t", "group_column": "g"})], ["stratified", "group", "time_group"])  # 15.3: neither dropped
         rng = np.random.default_rng(5)
         n = 400
         frame = pd.DataFrame({"tenure": rng.integers(1, 72, n), "charges": rng.normal(60, 20, n).round(2), "plan": rng.choice(["a", "b", "c"], n)})

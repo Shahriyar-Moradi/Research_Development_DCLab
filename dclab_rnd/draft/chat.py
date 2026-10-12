@@ -38,7 +38,7 @@ MODEL_SECONDS = 5 * 60
 TOKEN_CHUNK = 48  # characters per streamed ``token`` event
 PROFILE_PAGE = 40  # columns the model sees at a time, in its state and from get_profile
 PROFILE_FIELDS = ("name", "kind", "missing_rate", "unique")  # what the model may know about a column: no values
-FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan")
+FIELDS = ("target", "prediction_moment", "action", "costs", "data_plan", "entity", "labels", "budget")  # the last three: a pack's (15.6)
 BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|start the project|ready to build)\b", re.I)
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
 
@@ -275,6 +275,13 @@ class HomeAgent:
         label = "synthetic " if asset.get("synthetic") else ""
         text = (f"Your {label}data is ready: {s.get('rows', 0):,} rows and {s.get('columns', 0)} columns"
                 + (f", after {steps} cleaning step{'s' if steps != 1 else ''}" if steps else "") + ". Here is a first look.")
+        marked = analysis.get("labels") or {}
+        if asset.get("kind") == "labels" and marked:  # 15.6: the second file is the table's labels
+            text = (f"{asset.get('name', 'This file')} is a label file for your table: joined on {'+'.join(marked['key'])}, its "
+                    f"{marked['label_rows']} rows mark {marked['rows_marked']} of {marked['rows']} rows ({marked['rows_marked'] / max(marked['rows'], 1):.2%})"
+                    + (f"; {marked['not_found']} are not in the table" if marked.get("not_found") else "")
+                    + (f"; refused keys: {', '.join('+'.join(r['key']) for r in marked.get('refused', [])[:2])}" if marked.get("refused") else "")
+                    + ". The marked rows are the cases the model learns from.")
         self.say(draft_id, text, kind="analysis", asset=asset.get("id"))
         if (draft.get("pack") or {}).get("source") != "user":
             det = packs.detect(draft["problem"], analysis)
@@ -284,7 +291,11 @@ class HomeAgent:
         draft = self.store.get(draft_id)
         pending = self.pending(draft)
         candidates = ((draft.get("analysis") or {}).get("profile") or {}).get("target_candidates") or []
-        if pending and pending["field"] == "target" and not pending.get("options") and candidates:
+        if pending and pending["field"] == "target" and plans.label_asset(draft) is not None:
+            # 15.6: the label file says what the cases are; the outcome question is withdrawn, not answered for the user
+            self.store.update(draft_id, lambda d: [q.update(answered="(the label file defines the cases)", superseded=True) for q in d["questions"] if q["id"] == pending["id"]])
+            pending = None
+        elif pending and pending["field"] == "target" and not pending.get("options") and candidates:
             # The outcome was asked before the data arrived; ask again with the columns to choose from.
             self.store.update(draft_id, lambda d: [q.update(answered="(asked again with the columns)", superseded=True) for q in d["questions"] if q["id"] == pending["id"]])
             pending = None
@@ -320,7 +331,7 @@ class HomeAgent:
     def take_answer(self, draft_id: str, q: dict[str, Any], value: str) -> None:
         """The user's message answers the open question: record it, redraw the workflow, ask the next thing."""
         draft = self.store.get(draft_id)
-        if q["field"] in plans.FIELDS:
+        if q["field"] in plans.ALL_FIELDS:
             self.note(draft_id, q["field"], value, "stated", "answer", value)
         else:
             self.record(draft_id, q["field"], value)
@@ -387,8 +398,11 @@ class HomeAgent:
         asked = {q["field"] for q in draft["questions"] if not q.get("superseded")}
         u = draft.get("understanding") or {}
         column_asked = any(q["field"] == "target" and q.get("options") and not q.get("superseded") for q in draft["questions"])
-        for field in plans.FIELDS:
-            if field == "target" and plan[field]["status"] != "unknown" and candidates and columns and u.get("target") not in columns and not column_asked:
+        has_labels = plans.label_asset(draft) is not None  # the label file defines the target: no outcome column to ask for
+        profile_columns = ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or []
+        for field in plans.fields_for(draft):
+            if field == "target" and plan[field]["status"] != "unknown" and candidates and columns and u.get("target") not in columns \
+                    and not column_asked and not has_labels:
                 # the outcome is known in words, but the table needs its column: "cancel next month" is which one?
                 return ("target", f"You want to predict “{u['target']}”. Which column records that outcome?",
                         candidates[:OPTION_COUNT] + ["Something else"], "The model learns from the column, so it must be the outcome you described.")
@@ -408,6 +422,16 @@ class HomeAgent:
                 return ("action", "What happens with each prediction, and what does a wrong one cost, roughly?",
                         ["We contact or act on the top cases", "We block or review cases", "We plan capacity or stock", "It informs a person only"],
                         plans.WHY["action"])
+            if field == "entity":
+                entities = [c["name"] for c in profile_columns if c.get("name_id_like") and not c.get("id_like")][:3]
+                return ("entity", "Who could commit it: which person or thing do the cases belong to (a biker, a customer, a card)?",
+                        entities + ["No single entity"], plans.WHY["entity"])
+            if field == "labels":
+                return ("labels", "Are the labelled cases every case there is, or a sample of the ones you found?",
+                        ["A sample of the cases we found", "Every case is labelled"], plans.WHY["labels"])
+            if field == "budget":
+                return ("budget", "How many alerts can the team review, for example a day?",
+                        ["About 50 a day", "About 200 a day", "About 1% of rows", "No fixed budget"], plans.WHY["budget"])
             if field == "data_plan":
                 return ("data_plan", "Can you share a sample of the data, connect a source, or should I simulate data from this conversation?",
                         ["Upload a sample", "Connect a source", "Simulate data", "No data yet, plan only"], plans.WHY["data_plan"])
@@ -445,7 +469,7 @@ class HomeAgent:
         cols = [{k: c.get(k) for k in PROFILE_FIELDS} for c in (a.get("columns") or [])[:PROFILE_PAGE]]
         return json.dumps({
             "problem": draft["problem"], "pack": draft.get("pack"), "understanding": draft.get("understanding") or {},
-            "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.FIELDS}, "next": (draft.get("plan") or {}).get("next")},
+            "plan": {**{f: ((draft.get("plan") or {}).get(f) or {}).get("status", "unknown") for f in plans.fields_for(draft)}, "next": (draft.get("plan") or {}).get("next")},
             "questions_asked": [{k: q.get(k) for k in ("field", "text", "answered")} for q in draft["questions"]],
             "questions_left": MAX_QUESTIONS - len(draft["questions"]),
             "data": {"summary": a.get("summary"), "columns": cols, "highlights": [h.get("title") for h in (a.get("highlights") or [])][:8],
@@ -552,9 +576,10 @@ def title_for(draft: dict[str, Any], key: str) -> str:
 
 
 def understood(draft: dict[str, Any]) -> str:
-    """The draft's state for a trace row: which of the fields are known (x) or open (-), in FIELDS order."""
+    """The draft's state for a trace row: which of the first five fields are known (x) or open (-), in FIELDS order
+    (five, as the stored trajectories have them; a pack's own fields are in the draft's plan)."""
     u = draft.get("understanding") or {}
-    return "".join("x" if u.get(f) else "-" for f in FIELDS)
+    return "".join("x" if u.get(f) else "-" for f in FIELDS[:5])
 
 
 class _Model:
@@ -591,12 +616,12 @@ def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
     field, value = str(args.get("field", "notes")), str(args.get("value", ""))
     pending = agent.answerable(agent.store.get(draft_id))
     if pending and pending["field"] == field:  # the user's message answers the open question
-        if field in plans.FIELDS:
+        if field in plans.ALL_FIELDS:
             agent.note(draft_id, field, value, "stated", "answer", value)
         else:
             agent.record(draft_id, field, value)
         agent.store.update(draft_id, lambda d: [q.update(answered=value) for q in d["questions"] if q["id"] == pending["id"]])
-    elif field in plans.FIELDS and args.get("quote"):  # the user said it elsewhere; the guard checked the quote
+    elif field in plans.ALL_FIELDS and args.get("quote"):  # the user said it elsewhere; the guard checked the quote
         agent.note(draft_id, field, value, args.get("status") or "stated", "model", str(args["quote"]))
     else:
         agent.record(draft_id, field, value)

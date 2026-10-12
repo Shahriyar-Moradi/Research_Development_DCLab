@@ -18,7 +18,8 @@ from .data import detect_task
 
 TASKS = ("binary", "multiclass", "regression")
 METRICS = {
-    "binary": [("roc_auc", "ROC-AUC (ranking quality, balanced classes)"), ("average_precision", "Average precision (rare positives)")],
+    "binary": [("roc_auc", "ROC-AUC (ranking quality, balanced classes)"), ("average_precision", "Average precision (rare positives)"),
+               ("recall_at_budget", "Recall at the review budget (the share of cases found when the team reviews its budget)")],
     "multiclass": [("macro_f1", "Macro-F1 (every class counts equally)")],
     "regression": [("mae", "Mean absolute error")],
 }
@@ -43,6 +44,12 @@ class Solution(BaseModel):
     text_columns: list[str] = Field(default_factory=list, max_length=10)
     metric: str | None = None
     notes: str = Field(default="", max_length=4000)
+    # package 15.2: labels from a sample (or a person who says some cases were never found) are partial: an unlabelled
+    # row is unknown, not a negative, and every precision is a lower bound
+    labels: Literal["complete", "partial"] = "complete"
+    label_provenance: str = Field(default="", max_length=600)
+    # package 15.3: the share of rows the team can review (asked in words: "about 70 a day" over the rows of a day)
+    alert_budget: float | None = Field(default=None, gt=0, lt=1)
 
     @model_validator(mode="after")
     def coherent(self):
@@ -56,6 +63,8 @@ class Solution(BaseModel):
             raise ValueError(f"Metric {self.metric!r} does not fit a {self.task} task")
         if len(names) != len(self.forbidden):
             raise ValueError("A column is listed twice under forbidden")
+        if self.metric == "recall_at_budget" and not self.alert_budget:
+            raise ValueError("Recall at the review budget needs the budget: say how many rows the team can review")
         return self
 
     def check_columns(self, columns: list[str]) -> None:

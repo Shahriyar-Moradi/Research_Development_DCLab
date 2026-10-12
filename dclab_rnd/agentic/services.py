@@ -265,7 +265,10 @@ class Services:
         p = self.project(project_id)
         if not p.get("solution"):
             raise HTTPException(409, "Nothing to review yet: save the solution first")
-        text = studio_export.dumps_notebook(studio_export.notebook(p, self.projects.records(project_id)))
+        try:
+            text = studio_export.dumps_notebook(studio_export.notebook(p, self.projects.records(project_id)))
+        except studio_export.ExportUnsupported as exc:
+            raise HTTPException(409, str(exc)) from None
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "notebook.ipynb"
             path.write_text(text, encoding="utf-8")

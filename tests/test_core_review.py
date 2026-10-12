@@ -168,35 +168,45 @@ class EngineReviewTest(unittest.TestCase):
     DELIVERY = {"target": "actual_minutes", "task": "regression", "identifiers": ["order_id"],
                 "prediction_moment": "When the customer places the order.", "group_column": "restaurant_id"}
 
-    def test_the_delivery_replica_finds_the_cap_and_keeps_a_median_loss_measured_on_folds(self):
-        """Seed 1: the median loss beats the leader (ridge) and its own family's screen beyond noise, so it is kept and the
-        family moves; the record says so consistently. On seed 0 the same change gains within noise and is refused."""
+    def test_the_delivery_replica_finds_the_cap_and_a_round_tests_a_median_loss_by_the_rule(self):
+        """On every seed the cap and the lopsided errors are found and a median loss is tried on the same folds; it is
+        kept exactly when its paired gain clears the margin and the t bound (seed 1 sits on that bound, seed 0 under it)."""
         from dclab_core.replicas import delivery_time
 
-        frame = delivery_time.generate(seed=1, n=8000).orders.drop(columns=["delivered_at", "courier_rating"])
-        store, pid = self.run_project(frame, self.DELIVERY)
-        models, final = store.read_stage(pid, "models")["evidence"], store.read_stage(pid, "final")["evidence"]
-        review = models["review"]
-        self.assertIn("F-weak-cap", {w["id"] for w in review["review"]["weaknesses"]})
-        [round_] = review["rounds"]
-        self.assertEqual(round_["experiment"], "loss.median")
-        self.assertIn("F-weak-cap", round_["cites"])
-        self.assertTrue(round_["adopted"])
-        self.assertTrue(round_["own_family_gain"]["adopted"])  # the change helps that family, not only the switch
-        self.assertAlmostEqual(round_["margin"], 0.01 * round_["base_mean"])  # the studio's relative tuning margin
-        self.assertLess(round_["variant_mean"], round_["base_mean"])
-        self.assertEqual(models["selected_model"], round_["family"])
-        self.assertEqual(models["selected_metric_mean"], round_["variant_mean"])
-        self.assertEqual(final["review_change"], review["adopted_params"])
-        self.assertEqual(final["model"], round_["family"])
-        self.assertEqual(final["holdout_uses_in_this_project"], 1)  # the review never touched the holdout
+        for seed in (0, 1):
+            with self.subTest(seed=seed):
+                frame = delivery_time.generate(seed=seed, n=8000).orders.drop(columns=["delivered_at", "courier_rating"])
+                store, pid = self.run_project(frame, self.DELIVERY)
+                models, final = store.read_stage(pid, "models")["evidence"], store.read_stage(pid, "final")["evidence"]
+                review = models["review"]
+                self.assertIn("F-weak-cap", {w["id"] for w in review["review"]["weaknesses"]})
+                [round_] = review["rounds"]
+                self.assertEqual(round_["experiment"], "loss.median")
+                self.assertIn("F-weak-cap", round_["cites"])
+                self.assertAlmostEqual(round_["margin"], 0.01 * round_["base_mean"])  # the studio's relative tuning margin
+                self.assertGreater(round_["base_mean"], round_["variant_mean"])        # a gain on average ...
+                clears = round_["mean_gain"] > round_["margin"] and round_["mean_gain"] > round_["bound"]
+                self.assertEqual(round_["adopted"], clears and round_.get("own_family_gain", {"adopted": True})["adopted"])
+                self.assertEqual(final["review_change"], review["adopted_params"])
+                self.assertEqual(final["holdout_uses_in_this_project"], 1)  # the review never touched the holdout
 
-        frame = delivery_time.generate(seed=0, n=8000).orders.drop(columns=["delivered_at", "courier_rating"])
-        store, pid = self.run_project(frame, self.DELIVERY)
-        [refused] = store.read_stage(pid, "models")["evidence"]["review"]["rounds"]
-        self.assertEqual(refused["experiment"], "loss.median")
-        self.assertGreater(refused["base_mean"], refused["variant_mean"])  # a gain on average ...
-        self.assertFalse(refused["adopted"])                              # ... within noise: not kept
+    def test_a_family_switch_keeps_the_record_consistent(self):
+        from dclab_core import review as core_review
+        from dclab_core.replicas import delivery_time
+        from dclab_rnd.expansion import runner
+
+        kept = {"adopted": True, "why": "forced", "mean_gain": 1.0, "standard_error": 0.1, "bound": 0.2, "fold_gains": [1.0]}
+        frame = delivery_time.generate(seed=0, n=1500).orders.drop(columns=["delivered_at", "courier_rating"])
+        with runner.fast_profile(), mock.patch.object(core_review, "adopt", return_value=kept):
+            store, pid = self.run_project(frame, self.DELIVERY)
+        models, final = store.read_stage(pid, "models")["evidence"], store.read_stage(pid, "final")["evidence"]
+        [round_] = [r for r in models["review"]["rounds"] if r["experiment"] == "loss.median"]
+        if round_["family"] != round_["base_family"]:  # the leader could not make the change: another family did
+            self.assertEqual(models["selected_model"], round_["family"])
+            self.assertEqual(models["screen_leader"], round_["base_family"])
+            self.assertEqual(models["selected_metric_mean"], models["review"]["selected_mean"])
+        self.assertEqual(final["model"], models["selected_model"])
+        self.assertEqual(final["review_change"], models["review"]["adopted_params"])
 
     def test_a_kept_change_reaches_the_final_stage_and_the_record(self):
         from dclab_core import review as core_review

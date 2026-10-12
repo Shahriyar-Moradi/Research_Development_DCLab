@@ -1,0 +1,271 @@
+{
+ "id": "CHK-001",
+ "experiment_id": "CHK-001",
+ "campaign_id": "brief_checker_v1",
+ "kind": "brief_checker_measured",
+ "split": "all",
+ "at": "2026-10-12T14:22:09+00:00",
+ "completed_at": "2026-10-12T14:22:09+00:00",
+ "status": "completed",
+ "gate": {
+  "version": "brief_checker_gate_v1",
+  "caught": "questions on at least half of the fields the rules read wrongly (dev and sealed briefs together)",
+  "noise": "questions on at most 10% of the fields the rules read rightly",
+  "note": "the sealed briefs are not blind for this role: the rules' errors on them were seen in ANA-004"
+ },
+ "plan": {
+  "purpose": "brief_checker",
+  "tier": "standard",
+  "model": "gpt-6-luna",
+  "local": false,
+  "available": true,
+  "cases": 24,
+  "max_requests": 24,
+  "max_eur": 0.024
+ },
+ "spent_eur": 0.0022,
+ "rows": [
+  {
+   "case": "d01",
+   "caught": [],
+   "missed": [],
+   "noise": [
+    "unit"
+   ],
+   "proposal_right": [],
+   "right_fields": 3
+  },
+  {
+   "case": "d02",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 3
+  },
+  {
+   "case": "d03",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 1
+  },
+  {
+   "case": "d04",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 4
+  },
+  {
+   "case": "d05",
+   "caught": [
+    "unit"
+   ],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [
+    "unit"
+   ],
+   "right_fields": 2
+  },
+  {
+   "case": "d06",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 0
+  },
+  {
+   "case": "d07",
+   "caught": [],
+   "missed": [],
+   "noise": [
+    "unit"
+   ],
+   "proposal_right": [],
+   "right_fields": 2
+  },
+  {
+   "case": "d08",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 2
+  },
+  {
+   "case": "d09",
+   "caught": [],
+   "missed": [],
+   "noise": [
+    "unit"
+   ],
+   "proposal_right": [],
+   "right_fields": 2
+  },
+  {
+   "case": "d10",
+   "caught": [
+    "unit"
+   ],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [
+    "unit"
+   ],
+   "right_fields": 1
+  },
+  {
+   "case": "d11",
+   "caught": [
+    "task"
+   ],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [
+    "task"
+   ],
+   "right_fields": 1
+  },
+  {
+   "case": "d12",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 3
+  },
+  {
+   "case": "s01",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 2
+  },
+  {
+   "case": "s02",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 1
+  },
+  {
+   "case": "s03",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 1
+  },
+  {
+   "case": "s04",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 3
+  },
+  {
+   "case": "s05",
+   "caught": [
+    "unit"
+   ],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [
+    "unit"
+   ],
+   "right_fields": 1
+  },
+  {
+   "case": "s06",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 2
+  },
+  {
+   "case": "s07",
+   "caught": [],
+   "missed": [
+    "goal"
+   ],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 0
+  },
+  {
+   "case": "s08",
+   "caught": [],
+   "missed": [],
+   "noise": [
+    "unit"
+   ],
+   "proposal_right": [],
+   "right_fields": 1
+  },
+  {
+   "case": "s09",
+   "caught": [
+    "unit"
+   ],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [
+    "unit"
+   ],
+   "right_fields": 1
+  },
+  {
+   "case": "s10",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 1
+  },
+  {
+   "case": "s11",
+   "caught": [],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 1
+  },
+  {
+   "case": "s12",
+   "caught": [
+    "horizon"
+   ],
+   "missed": [],
+   "noise": [],
+   "proposal_right": [],
+   "right_fields": 1
+  }
+ ],
+ "summary": {
+  "wrong_fields": 7,
+  "caught": 6,
+  "proposal_right": 5,
+  "right_fields": 39,
+  "noise": 4
+ },
+ "requests": 23,
+ "failures": [],
+ "verdict": {
+  "gate": "brief_checker_gate_v1",
+  "status": "fail",
+  "checks": {
+   "caught": true,
+   "noise": false
+  }
+ },
+ "rule": "Questions on 24 written briefs; the sealed half is not blind for this role. Not a claim about other text."
+}

@@ -65,6 +65,36 @@ def _record(store: DraftStore, path) -> None:
         pass
 
 
+LABEL_SHARE = 0.5  # a table at most half the size of another, that joins it by a key, is its label file (15.6)
+
+
+def _label_role(store: DraftStore, draft_id: str, asset_id: str, frame) -> tuple[str | None, dict[str, Any] | None, dict[str, Any] | None]:
+    """Whether the new table is the label file of the table already here ("labels"), or the table whose label file
+    arrived first ("main_after_labels"): the smaller of the two, if a key joins them at about one row per label."""
+    import pandas as pd
+
+    from ..studio import labels as label_review
+
+    draft = store.get(draft_id)
+    main = next((a for a in reversed(draft["assets"]) if a["id"] != asset_id and a.get("status") == "ready"
+                 and a.get("kind") != "labels" and a.get("clean_file")), None)
+    if main is None:
+        return None, None, None
+    other = pd.read_parquet(store.data_dir(draft_id) / main["clean_file"])
+    small, big = (frame, other) if len(frame) <= len(other) else (other, frame)
+    if len(small) > LABEL_SHARE * len(big):
+        return None, None, None
+    if not (set(map(str, small.columns)) - set(map(str, big.columns))):
+        return None, None, None  # every column is the table's own: a sample of the same table, not a file of known cases
+    review = label_review.review(big, small)
+    if not review["key"]:
+        return None, None, None
+    summary = {"key": review["key"], "rows_marked": review["rows_marked"], "rows": int(len(big)), "label_rows": review["label_rows"],
+               "not_found": review["not_found"], "disagreeing_columns": review["disagreeing_columns"],
+               "refused": [{"key": c["key"], "reason": c["reason"]} for c in review["candidates"] if c["verdict"] == "refused"][:4]}
+    return ("labels" if small is frame else "main_after_labels"), summary, main
+
+
 def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None) -> dict[str, Any]:
     """Process one asset. Returns the final asset record (status "ready" or "failed")."""
     from ..jobs import checkpoint  # a stop asked for on the Compute page takes effect between the steps (package 10.3)
@@ -91,12 +121,38 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
                                           "text": f"{len(log)} cleaning step{'s' if len(log) != 1 else ''} applied" if log else "No cleaning needed",
                                           "log": log})
         checkpoint()
+        role, labels_summary, other = _label_role(store, draft_id, asset_id, frame)
+        if role == "labels":  # 15.6: a label file next to the table, kept apart; the table stays the one analysed
+            out = store.data_dir(draft_id) / "labels_clean.parquet"
+            _to_parquet(frame, out)
+            _record(store, out)
+            final: dict[str, Any] = {}
+
+            def put_labels(d):
+                for a in d["assets"]:
+                    if a["id"] == asset_id:
+                        a.update(status="ready", kind="labels", rows=int(len(frame)), columns=int(frame.shape[1]),
+                                 clean_file="labels_clean.parquet", label_review=labels_summary)
+                        final.update(a)
+                d.setdefault("analysis", {})["labels"] = labels_summary
+            store.update(draft_id, put_labels)
+            store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "ready", "text": "Ready: a label file for your table",
+                                              "rows": int(len(frame)), "columns": int(frame.shape[1])})
+            if agent is not None:
+                agent.data_ready(draft_id, final)
+            return final
+        if role == "main_after_labels":  # the label file came first: it moves aside, this table is the one analysed
+            (store.data_dir(draft_id) / other["clean_file"]).replace(store.data_dir(draft_id) / "labels_clean.parquet")
+            _record(store, store.data_dir(draft_id) / "labels_clean.parquet")  # the moved file, in file storage too
+            set_asset(store, draft_id, other["id"], kind="labels", clean_file="labels_clean.parquet", label_review=labels_summary)
         set_asset(store, draft_id, asset_id, status="analysing")
         target = (draft.get("understanding") or {}).get("target")
         report = analyze.analyze(frame, target=target if target in frame.columns else None)
         from .chat import rank_targets  # names only: the columns the problem sentence mentions are offered first
 
         report["profile"]["target_candidates"] = rank_targets(report["profile"], draft.get("problem") or "")
+        if labels_summary is not None:
+            report["labels"] = labels_summary
         checkpoint()
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)

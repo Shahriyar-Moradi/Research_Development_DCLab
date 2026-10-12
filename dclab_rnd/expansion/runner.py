@@ -226,7 +226,21 @@ def recall_at_precision(y_true: Any, scores: Any, target: float) -> dict[str, An
     }
 
 
-def binary_metrics(y_true: Any, scores: Any, *, precision_target: float = 0.9) -> dict[str, Any]:
+def budget_metrics(y_true: Any, scores: Any, budget: float) -> dict[str, Any]:
+    """What the team finds when it reviews the riskiest ``budget`` share of rows (package 15.3): at least one row, ties
+    at the cut broken by order. ``ap_lift``: average precision over the positive rate (1 = reviewing at random)."""
+    y = np.asarray(y_true, dtype=int)
+    s = np.asarray(scores, dtype=float)
+    k = max(1, int(np.ceil(budget * len(y))))
+    top = np.argsort(-s, kind="stable")[:k]
+    positives = int(y.sum())
+    found = int(y[top].sum())
+    return {"alert_budget": float(budget), "alerts_at_budget": k,
+            "recall_at_budget": float(found / positives) if positives else None,
+            "precision_at_budget": float(found / k)}
+
+
+def binary_metrics(y_true: Any, scores: Any, *, precision_target: float = 0.9, alert_budget: float | None = None) -> dict[str, Any]:
     y = np.asarray(y_true, dtype=int)
     p = np.clip(np.asarray(scores, dtype=float), 1e-7, 1 - 1e-7)
     labels = (p >= 0.5).astype(int)
@@ -249,6 +263,8 @@ def binary_metrics(y_true: Any, scores: Any, *, precision_target: float = 0.9) -
         "log_loss": float(log_loss(y, p, labels=[0, 1])),
         "positive_rate": positive_rate,
         "threshold": 0.5,
+        "ap_lift": float(average_precision_score(y, p) / positive_rate) if both and positive_rate else None,
+        **(budget_metrics(y, scores, alert_budget) if alert_budget else {}),
     }
 
 
@@ -296,9 +312,10 @@ def compute_metrics(
     n_classes: int | None = None,
     detail: bool = False,
     precision_target: float = 0.9,
+    alert_budget: float | None = None,
 ) -> dict[str, Any]:
     if task_type in {"binary_imbalanced", "text_tabular_binary"}:
-        return binary_metrics(y_true, predictions, precision_target=precision_target)
+        return binary_metrics(y_true, predictions, precision_target=precision_target, alert_budget=alert_budget)
     if task_type == "multiclass":
         return multiclass_metrics(y_true, predictions, int(n_classes or 0), detail=detail)
     if task_type == "timeseries_regression":
@@ -319,7 +336,16 @@ def primary_metric_fn(task_type: str, metric: str, n_classes: int | None = None)
         )
     if metric == "mae":
         return lambda y, p: float(mean_absolute_error(y, p))
+    if metric == "recall_at_budget":
+        raise ValueError("recall_at_budget needs the budget: use budget_metric_fn")
     raise ValueError(metric)
+
+
+def budget_metric_fn(budget: float) -> Callable[[Any, Any], float]:
+    def recall(y: Any, p: Any) -> float:
+        value = budget_metrics(y, p, budget)["recall_at_budget"]
+        return float("nan") if value is None else float(value)  # a draw without a positive says nothing (dropped)
+    return recall
 
 
 def _aggregate(values: Iterable[Any]) -> dict[str, float] | None:
@@ -352,7 +378,9 @@ def bootstrap_ci(
     n = len(y)
     rng = np.random.default_rng(seed)
     if groups is not None:
-        groups = np.asarray(groups)
+        raw = pd.Series(np.asarray(groups, dtype=object))
+        # a row without a group (a cancelled ride has no biker) is its own cluster: NaN never equals itself
+        groups = np.where(raw.isna(), "__row_" + pd.Series(np.arange(len(raw))).astype(str), raw.astype(str)).astype(str)
         unique = np.unique(groups)
         positions = {g: np.flatnonzero(groups == g) for g in unique}
         method = f"cluster bootstrap over {len(unique)} groups"
@@ -486,6 +514,11 @@ MODEL_FAMILIES = {
 }
 
 
+# 15.5: rules, detectors and PU bagging, added by the studio's engine for a rare event only (the research campaigns'
+# screens are unchanged)
+RARE_FAMILIES = ("percentile_rules", "ecod", "isolation_forest", "pu_bagging")
+
+
 def model_families(task_type: str) -> list[str]:
     available = []
     for family in MODEL_FAMILIES[task_type]:
@@ -599,7 +632,14 @@ def make_model(
         )
         model = xgb.XGBRegressor(**common) if regression else xgb.XGBClassifier(**common)
     else:
-        raise ValueError(f"unknown model family: {family}")
+        from .detectors import ECOD, IsolationForestDetector, PercentileRules, PUBagging
+
+        rare = {"percentile_rules": PercentileRules, "ecod": ECOD, "isolation_forest": IsolationForestDetector, "pu_bagging": PUBagging}
+        if family not in rare or regression:
+            raise ValueError(f"unknown model family: {family}")
+        model = rare[family]()
+        if family != "percentile_rules" and family != "ecod" and _PROFILE["fast"]:
+            model.set_params(**({"n_estimators": 20} if family == "isolation_forest" else {"n_estimators": 3, "trees": 10}))
     steps.append(("model", model))
     pipeline = Pipeline(steps)
     if params:
@@ -910,6 +950,7 @@ class FrameRecipe:
         derive: tuple[str, ...] = (),
         keep: tuple[str, ...] | None = None,
         select_k: int | None = None,
+        behaviour: dict[str, Any] | None = None,
     ) -> None:
         self.bundle = bundle
         self.name = name
@@ -917,6 +958,7 @@ class FrameRecipe:
         self.derive = derive
         self.keep = keep
         self.select_k = select_k
+        self.behaviour = behaviour  # 15.4: {"entities", "time_column", "mode", "numeric"} for dclab_core.behaviour
 
     def base_columns(self, frame: pd.DataFrame) -> list[str]:
         spec = self.bundle.spec
@@ -932,11 +974,17 @@ class FrameRecipe:
     def _matrix(self, frame: pd.DataFrame) -> pd.DataFrame:
         base = self.encoder.transform(frame[self.columns])
         extra = [_derive(self.bundle, name, frame) for name in self.derive]
+        if self.behaviour is not None:  # computed from this frame (and the fit rows' labels): never from another fold
+            extra.append(self.entity_model.transform(frame).set_axis(frame.index))
         return pd.concat([base, *extra], axis=1) if extra else base
 
     def fit(self, frame: pd.DataFrame, y: pd.Series) -> "FrameRecipe":
         self.columns = self.base_columns(frame)
         self.encoder = _Encoder().fit(frame[self.columns], categorical=encoded_codes(self.bundle.spec))
+        if self.behaviour is not None:
+            from dclab_core.behaviour import EntityBehaviour
+
+            self.entity_model = EntityBehaviour(**self.behaviour).fit(frame, y)
         matrix = self._matrix(frame)
         self.names = list(matrix.columns)
         if self.select_k and self.select_k < len(self.names):
@@ -1099,6 +1147,7 @@ def make_recipe(bundle: TaskBundle, name: str, include_blocked: Iterable[str] = 
         derive=tuple(config.get("derive", ())),
         keep=config.get("keep"),
         select_k=config.get("select_k"),
+        behaviour=config.get("behaviour"),
     )
 
 
@@ -1151,12 +1200,15 @@ def fit_and_predict(
     eval_matrix, _ = recipe.transform(X_eval)
     fraction = bundle.spec.settings.get("fit_negative_fraction")
     y_values = y_fit.to_numpy()
-    rows = _fit_rows(y_values, fraction, seed)
+    from .detectors import DETECTORS
+
+    detector = family in DETECTORS
+    rows = np.arange(len(y_values)) if detector else _fit_rows(y_values, fraction, seed)  # a detector never sees resampled rows
     model = make_model(family, task, params, sparse_input=recipe.sparse)
     started = time.perf_counter()
     y_rows = y_values[rows]
     fit_kwargs: dict[str, Any] = {}
-    if weighting == "balanced" and task != "timeseries_regression":
+    if weighting == "balanced" and task != "timeseries_regression" and not detector:
         labels, counts = np.unique(y_rows, return_counts=True)
         share = dict(zip(labels, len(y_rows) / (len(labels) * counts)))
         fit_kwargs["model__sample_weight"] = np.array([share[v] for v in y_rows])
@@ -1178,7 +1230,7 @@ def fit_and_predict(
         predictions = np.expm1(predictions)
     if clip == "fit_range" and task == "timeseries_regression":
         predictions = np.clip(predictions, float(np.min(y_values)), float(np.max(y_values)))
-    if fraction:
+    if fraction and not detector:
         predictions = prior_correct(predictions, fraction)
     return {
         "predictions": predictions,
@@ -1222,7 +1274,8 @@ def cross_validate(
             bundle, recipe_name, family, params, X_fit, y_fit, X_valid,
             include_blocked=include_blocked, seed=RANDOM_STATE + fold,
         )
-        metrics = compute_metrics(task, y_valid, out["predictions"], n_classes=n_classes, precision_target=precision_target)
+        metrics = compute_metrics(task, y_valid, out["predictions"], n_classes=n_classes, precision_target=precision_target,
+                                  alert_budget=bundle.spec.settings.get("alert_budget"))
         metrics.update(
             fold=fold,
             fit_rows=out["fit_rows"],
@@ -2133,7 +2186,7 @@ def _stage_optimization_reliability(bundle: TaskBundle, eid: str, results_dir: P
         y_test.to_numpy(),
         predictions,
         metric_fn,
-        groups=bundle.groups("test") if spec.split_strategy == "group" else None,
+        groups=bundle.groups("test") if spec.split_strategy in ("group", "time_group") else None,
         block_length=int(_settings(bundle, "block_length", 0)) or None,
     )
     baselines = _baselines(bundle, recipe, predictions, metric_fn)

@@ -39,6 +39,7 @@ TASK_TYPES = (
 )
 HIGHER_IS_BETTER = {
     "average_precision": True,
+    "recall_at_budget": True,
     "roc_auc": True,
     "macro_f1": True,
     "mae": False,
@@ -83,6 +84,12 @@ class DatasetSpec:
                 f"Locked holdout = last {HOLDOUT_FRACTION:.0%} of rows in `{self.time_column}` order; "
                 f"recipe/model/parameter choices use only expanding-window {CV_FOLDS}-fold time-ordered CV "
                 "on the earlier rows. The holdout is consumed once, in optimization_reliability."
+            )
+        if self.split_strategy == "time_group":
+            return (
+                f"Locked holdout = last {HOLDOUT_FRACTION:.0%} of rows in `{self.time_column}` order, without the rows of any "
+                f"`{self.group_column}` seen earlier; selection uses expanding-window time-ordered CV whose validation folds "
+                f"drop the {self.group_column} values their fit rows saw. The holdout is consumed once, in optimization_reliability."
             )
         if self.split_strategy == "group":
             return (
@@ -357,6 +364,35 @@ def prepare_bundle(
         cv_splits = [(a, b) for a, b in splitter.split(train_idx)]
         cv_description = f"expanding-window TimeSeriesSplit({cv_folds}) on time-ordered training rows"
         holdout_description = f"last {n_test} of {n} rows by `{spec.time_column}`"
+    elif spec.split_strategy == "time_group":
+        order = np.argsort(_time_key(X[spec.time_column]), kind="stable")
+        X = X.iloc[order].reset_index(drop=True)
+        y = y.iloc[order].reset_index(drop=True)
+        groups = X[spec.group_column].astype(str).to_numpy()
+        n_test = int(round(HOLDOUT_FRACTION * n))
+        train_idx = np.arange(n - n_test)
+        later = np.arange(n - n_test, n)
+        test_idx = later[~np.isin(groups[later], groups[train_idx])]  # an entity seen in training never scores the holdout
+        removed = {"holdout": int(len(later) - len(test_idx))}
+        if len(test_idx) < max(30, 0.1 * len(later)):
+            raise ValueError(f"With both `{spec.time_column}` and `{spec.group_column}` declared, {removed['holdout']} of the last "
+                             f"{len(later)} rows belong to a {spec.group_column} seen earlier, leaving {len(test_idx)} to test on: "
+                             "almost every entity appears in both periods. Declare only one of the two (time for a forward check, "
+                             "the entity for unseen entities).")
+        cv_splits = []
+        for a, b in TimeSeriesSplit(n_splits=cv_folds).split(train_idx):
+            keep = b[~np.isin(groups[b], groups[a])]
+            removed[f"fold_{len(cv_splits) + 1}"] = int(len(b) - len(keep))
+            if len(keep) >= 10:
+                cv_splits.append((a, keep))
+        if len(cv_splits) < 2:
+            raise ValueError(f"Time-ordered folds that keep `{spec.group_column}` apart leave fewer than two usable folds: declare "
+                             "only one of the two.")
+        cv_description = (f"expanding-window time-ordered folds ({len(cv_splits)}) by `{spec.time_column}`, each validation fold "
+                          f"without the `{spec.group_column}` values its fit rows saw (rows removed: "
+                          + ", ".join(f"{k} {v}" for k, v in removed.items() if k != "holdout") + ")")
+        holdout_description = (f"last {len(later)} of {n} rows by `{spec.time_column}`, less {removed['holdout']} rows of "
+                               f"`{spec.group_column}` values seen in training: {len(test_idx)} rows")
     elif spec.split_strategy == "group":
         groups = X[spec.group_column].to_numpy()
         # Regression targets cannot be stratified: fall back to plain group folds.
