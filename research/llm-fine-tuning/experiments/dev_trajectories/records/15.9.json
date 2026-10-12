@@ -1,0 +1,151 @@
+{
+ "package": "15.9",
+ "title": "Benchmark v3: rare-event cases",
+ "date": "2026-10-13",
+ "request": "A fresh blind test set with rare-event cases, so claims about fraud and other rare events are measured on data no rule was tuned on; v2 and its results must stay as they are.",
+ "spec": "New rare-event bases and traps (label inflation by key, partial labels, entity clustering, oversampling before a detector), dev cases first, as benchmark_v3 with new fingerprints and its own campaign. Done when v3 is frozen, the scripted policies are scored on dev and once on the sealed set, and no prompt or rule changed after a sealed-set run.",
+ "plan": [
+  "Build v3 as a new module beside v2, reusing its bases and traps on new seeds, adding rare bases (one dev, three sealed) and four rare traps.",
+  "Give the case a 'labels' expectation the scorer checks, without moving earlier fingerprints.",
+  "Run dev, read the failures, improve the product on dev only (the standard plan's moment, partial-label wording).",
+  "Have a reviewer check the harness before the freeze, because a bug found after the one sealed run cannot be fixed without spending the set.",
+  "Fix, reseed, freeze and commit the fingerprints; run the sealed set once from the clean commit, recorded; record the result."
+ ],
+ "decisions": [
+  {
+   "decision": "v3 is a new module; v2 is not edited.",
+   "why": "Adding a trap changes the sealed set; editing v2 would rewrite history its results depend on."
+  },
+  {
+   "decision": "The real scikit-learn tables are left out of v3.",
+   "why": "Reseeding cannot change a real table, so five sealed v3 cases would have been byte-identical to v2's already-scored ones."
+  },
+  {
+   "decision": "Reseed every table after a reviewer looked at the audit's answers on six sealed tables of the draft.",
+   "why": "Those exact tables are then not in the frozen set; the disclosure stays in the manifest."
+  },
+  {
+   "decision": "A sealed run needs the fingerprints committed and the generators, cases and scorer unchanged, and writes a started record first.",
+   "why": "Every look at the sealed set must be on record, from code that can be named."
+  }
+ ],
+ "change": "benchmark_v3.py (rare bases and traps, a control, reseeding salt, per-base partial-label wording, per-base false alarms, provenance in the report, a guarded sealed run), Case.labels and strict_group, the scorer's labels check, dclab_core.understand.label_coverage, the standard plan keeping the stated moment and reading partial labels, set_solution's labels field, make benchmark-v3, the campaign folder and tests.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The first dev run crashed in the summary.",
+   "scenario": "by_trap looked a case's trap up in the judgment suite and in v2 only; a v3 case id raised StopIteration.",
+   "cause": "The lookup knew two case lists.",
+   "fix": "It also looks in v3.",
+   "test": "The dev runs BEN3-002 onward."
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The standard plan ignored the prediction moment the person wrote.",
+   "scenario": "The task said 'The prediction is made: when the payment is authorised ... most rows were never checked', and the plan saved a generic 'Predict at the moment the row is recorded' instead.",
+   "cause": "The plan built its own moment from the proposal's hint.",
+   "fix": "The plan keeps the moment stated in the task, up to a paragraph break.",
+   "test": "test_the_standard_plan_keeps_the_moment_the_person_wrote."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Partial labels were scored on the tool, not the policy.",
+   "scenario": "set_solution inferred partial labels from any moment, so the 'bad' policy was credited on dev, and the sealed sentence was the dev sentence word for word.",
+   "cause": "The inference sat in the shared tool.",
+   "fix": "Only the standard plan reads the person's words (binary tasks); each sealed base words its sentence differently.",
+   "test": "BEN3-004: the bad policy no longer scores."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The audit 'caught' clustered rare cases for an unrelated reason.",
+   "scenario": "A random 250-level column with no link to the target got single-column AUC 0.96 on the rare payments base and was forbidden: on a rare target any many-valued column separates the few positives.",
+   "cause": "The rule accepted a kept-out entity as caught, and no control had a harmless many-valued column.",
+   "fix": "Rare clusters count only when the entity is declared as the group; a control with an unrelated many-valued entity measures the false alarm.",
+   "test": "test_the_rare_traps_are_planted; the control in BEN3-004 and BEN3-005."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The sealed record could not show what code it ran on and dropped the new expectation.",
+   "scenario": "prompt_hashes was None, no commit was recorded, and the cases block left out labels.",
+   "cause": "v2's report shape.",
+   "fix": "The report records the commit, a clean-tree flag and the prompt fingerprints, and the cases carry labels and strict_group.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The sealed-run guard was weaker than 'frozen as committed'.",
+   "scenario": "Writing the fingerprints and running without committing passed; a crash mid-run left a look with no record.",
+   "cause": "The guard compared the file with the current fingerprints only, and the record was written at the end.",
+   "fix": "The fingerprints file must be committed and the generators, cases and scorer unchanged; a started record is written before the run.",
+   "test": "test_a_sealed_run_without_a_record_or_a_frozen_set_is_refused."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The partial-label rule and the stated moment had false positives.",
+   "scenario": "'the older rows were never checked for typos' after the moment made labels partial; 'readings never checked by hand' matched.",
+   "cause": "The moment ran to 600 characters and the rule read any sentence.",
+   "fix": "The moment ends at a paragraph break; the rule reads only sentences about labels, cases or flags, and covers wordings like 'never found by anyone'.",
+   "test": "test_the_moment_says_partial_and_the_tool_says_so (negative sentences)."
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Real tables could not be reseeded, so v3's sealed set reused v2's.",
+   "scenario": "Five sealed v3 cases were byte-identical to v2 sealed cases already scored.",
+   "cause": "Reseeding does not change a real table.",
+   "fix": "The real tables are left out of v3, and false alarms are reported per base.",
+   "test": "test_the_rare_traps_are_planted."
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Some 'rare' cases were not rare events.",
+   "scenario": "time_random_split and strong_honest_driver overwrite the target to 30-40% positives on rare bases.",
+   "cause": "All v2 traps were planted on rare bases.",
+   "fix": "Those two are not planted on rare bases.",
+   "test": "test_the_rare_traps_are_planted."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "benchmark v3 dev (BEN3-004)",
+   "gate": "Score the scripted policies on dev; no threshold (a measurement, not a gate).",
+   "result": "audit 22/30 traps caught, 6/54 false alarms; standard 5/30, 0/54; bad 0/30.",
+   "verdict": "not scored",
+   "next": "Freeze and run the sealed set once."
+  },
+  {
+   "name": "benchmark v3 sealed (BEN3-005)",
+   "gate": "Run once from the frozen commit, recorded; never tune on it (the Done when).",
+   "result": "audit 36/55 (95% 0.52-0.77) caught, 15/100 false alarms; standard 9/55, 3/100; bad 0/55. Rare traps: key flag caught by the audit 3/3; oversampled positives flagged by the engine 3/3; partial labels read by the standard plan 1/3; the clustered entity declared by none 0/3; the many-valued control raised a false alarm in the audit 3/3.",
+   "verdict": "pass",
+   "next": "Declaring a rare event's entity and reading partial labels beyond word rules are work for the agents of 18.8, judged on a benchmark_v4."
+  }
+ ],
+ "outcome": "Done: v3 frozen and scored once; it shows where DCLab is weak on rare events (entities not declared, partial labels read only from familiar words, a false alarm on many-valued columns).",
+ "lessons": [
+  "Review the harness before freezing a sealed set: after the one run, a harness bug cannot be fixed without spending the set.",
+  "An inference placed in a shared tool credits every policy, the bad one included: put judgment in the policy you measure.",
+  "On a rare target every many-valued column looks like a leak: a control with a harmless one is what reveals the false alarm.",
+  "Rules built on dev wording generalise poorly: one of three new wordings was read."
+ ],
+ "commits": [
+  "1338d19"
+ ]
+}
