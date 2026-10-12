@@ -37,8 +37,8 @@ COVERED_BY = {  # a requirement's kind -> where the deliverables meet it (a path
     "source_control": "the git repository of the deliverables (.git)",
 }
 NOT_BUILT = {
-    "decision": "decisions on top of a model (prices, offers, budgets) are package 16.9, not built yet: the report gives the "
-                "model's numbers, not the decision",
+    "decision": "no decision was stated for this part: give the action's value and cost (a review budget) or the price column "
+                "(a price), and DCLab chooses it by expected value (16.9)",
     "other": "DCLab did not recognise what this line asks for: a person should check it",
 }
 
@@ -191,7 +191,7 @@ def _part(part: dict[str, Any], spec: dict[str, Any], store: Any, out: Path, rea
     fields = solution_fields_from_plan(plan, target, moment)
     suggestion = project.get("suggestion") or {}
     merged = {**fields, **{k: v for k, v in suggestion.items() if k in ("labels", "label_provenance", "positive_label")},
-              **{k: spec[k] for k in ("group_column", "time_column", "alert_budget") if spec.get(k)}}
+              **{k: spec[k] for k in ("group_column", "time_column", "alert_budget", "decision") if spec.get(k)}}
     project["solution"] = Solution(**merged).model_dump()
     verdict = graph.check(project, "set_solution", "agent", target=target)  # the same move, checked and logged
     graph.log(store, pid, verdict, project, outcome="done: solution from the challenge's plan" if verdict.allowed else None)
@@ -244,7 +244,10 @@ def _part(part: dict[str, Any], spec: dict[str, Any], store: Any, out: Path, rea
         except service.ServiceRefused as exc:
             (folder / "SERVICE.md").write_text(f"# Service not exported\n\n{exc}\n", encoding="utf-8")
     final = records["final"]["evidence"]
-    return {"project": pid, "task": project["solution"]["task"], "recipe": final["feature_recipe"], "model": final["model"],
+    decision = final.get("decision")
+    return {"decision": None if decision is None else {"action": decision.get("decision"), "made": bool(decision.get("learnable", True)
+                                                       and not decision.get("warning")), "warning": decision.get("warning")},
+            "project": pid, "task": project["solution"]["task"], "recipe": final["feature_recipe"], "model": final["model"],
             "holdout": final["holdout_metrics"].get(records["final"]["primary_metric"]), "notebook": notebook, "pdf": pdf,
             "approved": approved, "service": service_out, "service_key": key if service_out else None}
 
@@ -262,6 +265,14 @@ def _deliver(reading: dict[str, Any], done: dict[str, dict[str, Any]], out: Path
                 coverage.append({**r, "met": False, "why": f"no service for {', '.join(unapproved)}: run challenge mode with approve=True "
                                                             "(a service is built only from an approved final stage), or see SERVICE.md"})
                 continue
+        if r["kind"] == "decision" and parts and any(done[p].get("decision") for p in parts):
+            made = [p for p in parts if (done[p].get("decision") or {}).get("made")]
+            refused = [p for p in parts if done[p].get("decision") and not done[p]["decision"]["made"]]
+            if made and not refused:
+                coverage.append({**r, "met": True, "where": "; ".join(f"{p}/REPORT.md (the decision, its interval and its assumption)" for p in made)})
+            else:
+                coverage.append({**r, "met": False, "why": "; ".join(f"{p}: {done[p]['decision']['warning']}" for p in refused)})
+            continue
         if r["kind"] in COVERED_BY and parts:
             if r["kind"] == "source_control":
                 where = COVERED_BY["source_control"]  # one repository for every part

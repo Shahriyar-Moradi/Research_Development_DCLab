@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.3.0 (2026-10-13)
+
+Packages 16.2 and 16.9. The six contracts are unchanged: all still at v1.
+
+- `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
+  a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
+  once on the holdout. `price_curve` models acceptance by price inside folds and gives the expected margin at each
+  price multiple of a reference, selling or paying, with the best multiple and a bootstrap interval.
+  `price_variation` refuses to draw a curve when prices were not varied: too few levels, too little spread, or prices
+  set by a formula of the other columns. Every result states its assumption (16.9).
+- `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
+  offered to couriers, varied or set by a formula, with the true best multiple) (16.9).
+- `report`: the decision, when a run made one, in "Results, with their intervals", every number traced to
+  `final.evidence.decision`; a requirement asking for a price or a fee maps to it.
+
 ## 0.2.0 (2026-10-12)
 
 Everything after the first release, built in packages 17.2 to 17.8 and 18.1 to 18.3 of

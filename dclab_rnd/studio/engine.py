@@ -707,6 +707,85 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
         return None
 
 
+def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any] | None:
+    """The decision on top of the model (package 16.9), when the solution states one: a review budget from the value
+    of a case and the cost of a review, chosen on the selected model's out-of-fold scores and read once on the
+    holdout; or a price from a model of acceptance by price, fitted and chosen on the training rows only (the
+    holdout's labels are not read). None when no decision is stated; a refusal with its reason when one cannot be made."""
+    decision = p.solution.decision
+    if decision is None:
+        return None
+    from dclab_core import decide
+
+    bundle = p.bundle
+    try:
+        if decision.action == "review":
+            index = selected["_oof_index"]
+            oof_y = bundle.y_train.to_numpy()[index]
+            group = p.solution.group_column
+            groups = bundle.X_train[group].to_numpy()[index] if group and group in bundle.X_train else None
+            rows_per_day = None
+            time_column = p.solution.time_column
+            if time_column and time_column in bundle.X_train.columns:
+                stamps = pd.to_datetime(bundle.X_train[time_column], errors="coerce").dropna()
+                days = (stamps.max() - stamps.min()).total_seconds() / 86400 if len(stamps) > 1 else 0
+                rows_per_day = len(bundle.X_train) / days if days >= 1 else None
+            return decide.review_budget(oof_y, selected["_oof_pred"], value_per_case=decision.value_per_case,
+                                        cost_per_review=decision.cost_per_review, groups=groups, partial=p.solution.labels == "partial",
+                                        rows_per_day=rows_per_day, y_test=y_test.to_numpy(), score_test=predictions)
+        price = decision.price_column
+        inputs = [c for c in (price, decision.reference_column) if c]
+        refused = [c for c in inputs if p.roles.get(c) != "feature"]
+        if decision.unit_value_column and p.roles.get(decision.unit_value_column) == "blocked":
+            refused.append(decision.unit_value_column)
+        if refused:  # the acceptance model reads only what is known when the offer is made
+            return {"decision": "price", "learnable": False,
+                    "warning": "The decision reads " + ", ".join(f"`{c}` (its role: {p.roles.get(c)})" for c in refused)
+                               + ": a price, its reference and the value of an offer must be known when the offer is made, so none "
+                                 "may be forbidden or set aside"}
+        X, y = bundle.X_train, bundle.y_train.to_numpy()
+        reference = X[decision.reference_column].to_numpy(dtype=float) if decision.reference_column else None
+        skip = {price, decision.reference_column, decision.unit_value_column, *decision.test_arm_columns}
+        context = X[[c for c, role in p.roles.items() if role == "feature" and c not in skip and c in X]]
+        group = p.solution.group_column
+        groups = X[group].to_numpy() if group and group in X else None
+        unit_value = None
+        if decision.side == "pay":
+            unit_value = (X[decision.unit_value_column].to_numpy(dtype=float) if decision.unit_value_column
+                          else decision.unit_value_factor * reference)
+        out = decide.price_curve(X[price].to_numpy(dtype=float), y, reference=reference, context=context,
+                                 unit_cost=decision.unit_cost, unit_value=unit_value, groups=groups)
+        out["holdout"] = "not read: the price is chosen on the training rows, and the holdout keeps no counterfactual prices"
+        return out
+    except Exception as exc:  # noqa: BLE001 - a decision the data does not allow leaves the stage standing, said plainly
+        from ..observe import log
+
+        log.warning("decision unavailable: %s", type(exc).__name__)
+        return {"decision": decision.action, "learnable": False, "warning": f"The decision could not be computed ({type(exc).__name__})"}
+
+
+def _decision_claim(eid: str, d: dict[str, Any]) -> dict[str, Any]:
+    """The decision in one sentence, every number from evidence.decision (16.9)."""
+    paths = ["evidence.decision"]
+    if not d.get("learnable", True) or d.get("warning"):
+        return _claim(f"{eid}-D1", "risk", str(d.get("warning") or "No decision could be made from this data."), paths)
+    if d.get("decision") == "review_budget":
+        if d.get("note"):  # no review pays: said first, never dressed as a recommendation
+            return _claim(f"{eid}-D1", "risk", d["note"], paths, [d["assumption"]])
+        lo, hi = d["expected_value_per_row_interval"]
+        text = (f"Reviewing the riskiest {d['share']:.2%} of rows maximises expected value at {d['expected_value_per_row']} per row "
+                f"(90% interval {lo} to {hi}), for {d['value_per_case']:g} per case found and {d['cost_per_review']:g} per review; "
+                f"chosen on out-of-fold scores.")
+        if d.get("holdout"):
+            text += f" On the holdout it found {d['holdout']['cases_found']} cases in {d['holdout']['reviews']} reviews."
+        return _claim(f"{eid}-D1", "decision", text, paths, [d["assumption"]] + ([d["partial_note"]] if d.get("partial_note") else []))
+    lo, hi = d["best_multiple_interval"]
+    text = (f"The best price is {d['best_multiple']} times the reference (90% interval {lo} to {hi}), with an expected margin of "
+            f"{d['expected_margin_per_offer']} per offer against {d['margin_per_offer_as_priced']} as priced; acceptance at it "
+            f"{d['acceptance_at_best']:.0%}; chosen on out-of-fold acceptance predictions of the training rows.")
+    return _claim(f"{eid}-D1", "decision", text, paths, [d["assumption"]] + ([d["note"]] if d.get("note") else []))
+
+
 def _task_assessment(p: Prepared, task: str, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any] | None:
     """dclab_core's checks for this task (package 17.5): the alert threshold, calibration, per-class results and
     confusions, or intervals and error by range and segment; chosen on the training rows' out-of-fold predictions and
@@ -835,6 +914,9 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     assessment = _task_assessment(p, task, selected, y_test, predictions)
     if assessment is not None:
         evidence["task_assessment"] = assessment  # 17.5: thresholds and intervals chosen out of fold, read on the holdout
+    chosen_action = _decision(p, selected, y_test, predictions)
+    if chosen_action is not None:
+        evidence["decision"] = chosen_action  # 16.9: the action on top of the model, by expected value
     label = _label(metric)
     claims = [
         _claim(f"{eid}-C1", "fact", f"{family}/{selected['config_id']} on the `{recipe}` recipe scored {label} {rn._f(holdout_value)} on the once-consumed holdout "
@@ -848,6 +930,8 @@ def stage_final(p: Prepared, eid: str, recipe: str, family: str, reviewed: dict[
     ]
     base_text = "; ".join(f"{k}: " + ", ".join(f"{m} {rn._f(v)}" for m, v in b.items() if isinstance(v, (int, float))) for k, b in baselines.items())
     claims.append(_claim(f"{eid}-C3", "fact", f"Trivial baselines on the same holdout: {base_text}.", ["evidence.baselines"]))
+    if chosen_action is not None:
+        claims.append(_decision_claim(eid, chosen_action))
     summary = (f"Tried {len(candidates)} explicit {family} parameter candidates on {bundle.cv_description} (tuning {'accepted' if decision['accepted'] else 'rejected'}), "
                f"fitted {selected['config_id']} on all {len(bundle.y_train)} training rows and scored the sealed holdout once: {label} {rn._f(holdout_value)} "
                f"({rn._f(ci['low'])}–{rn._f(ci['high'])}).")

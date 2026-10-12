@@ -115,6 +115,26 @@ class ChallengeTest(unittest.TestCase):
             self.assertNotIn(value.encode(), blob)
 
 
+    def test_a_stated_price_decision_is_delivered_with_its_interval(self):
+        from dclab_core.replicas import ride_pricing as rp
+
+        work = Path(tempfile.mkdtemp())
+        rp.generate(0, n=3000).offers.to_csv(work / "offers.csv", index=False)
+        brief = ("Part 1: Courier fees\nEach row of offers.csv is a fee offered to a courier, accepted or not.\n"
+                 "- Predict whether a courier accepts an offer (3 pts.)\n- Choose the fee to offer, with numbers (2 pts.)\n")
+        files = {"part1": {"table": work / "offers.csv", "target": "accepted", "moment": "When the fee is offered, before the courier answers.",
+                           "decision": {"action": "price", "price_column": "fee", "reference_column": "usual_fee", "side": "pay",
+                                        "unit_value_factor": 1.6}}}
+        with runner.fast_profile():
+            result = solve(brief, files, work / "out", store_root=work / "store")
+        fee = next(c for c in result["coverage"] if c["kind"] == "decision")
+        self.assertTrue(fee["met"], fee)
+        self.assertTrue(result["parts"]["part1"]["decision"]["made"])
+        report = (work / "out" / "part1" / "REPORT.md").read_text()
+        self.assertIn("times the reference", report)  # the decision's claim, with its interval, is in the report
+        self.assertIn("| Choose the fee to offer, with numbers | 2.000 | Results, with their intervals | covered |", report)
+        self.assertIn("| Predict whether a courier accepts an offer | 3.000 | Results, with their intervals | covered |", report)
+
     def test_without_approval_no_service_and_the_coverage_says_why(self):
         work = Path(tempfile.mkdtemp())
         orders = delivery_time.generate(seed=1, n=1500).orders

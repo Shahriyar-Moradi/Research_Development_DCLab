@@ -9,4 +9,4 @@ Every output is a frozen, versioned contract (``dclab_core.contracts``) with a p
 a validated answer or nothing out, and the deterministic path always works.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

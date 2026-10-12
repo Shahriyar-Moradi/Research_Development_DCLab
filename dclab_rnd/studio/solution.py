@@ -26,6 +26,44 @@ class Forbidden(BaseModel):
     reason: str = Field(default="", max_length=600)
 
 
+class Decision(BaseModel):
+    """The action taken on top of the model (package 16.9), with what it is worth and what it costs.
+
+    ``review``: the team reviews the riskiest rows; finding a case is worth ``value_per_case``, a review costs
+    ``cost_per_review``. ``price``: an offer at ``price_column`` is accepted or not (the target); selling, an accepted
+    offer earns the price less ``unit_cost``; paying (a fee to a courier or a supplier), it earns ``unit_value_column``
+    (or ``unit_value_factor`` times the reference price) less the price."""
+
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["review", "price"]
+    value_per_case: float | None = Field(default=None, gt=0)
+    cost_per_review: float | None = Field(default=None, gt=0)
+    price_column: str | None = None
+    reference_column: str | None = None
+    side: Literal["sell", "pay"] = "sell"
+    unit_cost: float = Field(default=0.0, ge=0)
+    unit_value_column: str | None = None
+    unit_value_factor: float | None = Field(default=None, gt=0)
+    # the columns that record a price test's arm: they explain the price because the test set it, so they are left out
+    # of the check that prices were varied and of the acceptance model's context
+    test_arm_columns: list[str] = Field(default_factory=list, max_length=10)
+    notes: str = Field(default="", max_length=1000)
+
+    @model_validator(mode="after")
+    def complete(self):
+        if self.action == "review" and (self.value_per_case is None or self.cost_per_review is None):
+            raise ValueError("A review decision needs what finding a case is worth and what a review costs")
+        if self.action == "price":
+            if not self.price_column:
+                raise ValueError("A price decision needs the column that holds the price offered")
+            if self.side == "pay" and not (self.unit_value_column or (self.unit_value_factor and self.reference_column)):
+                raise ValueError("Paying a price needs what an accepted offer is worth: a column, or a factor of the reference price")
+        return self
+
+    def columns(self) -> list[str]:
+        return [c for c in (self.price_column, self.reference_column, self.unit_value_column, *self.test_arm_columns) if c]
+
+
 class Solution(BaseModel):
     model_config = ConfigDict(extra="forbid")
     target: str
@@ -49,6 +87,8 @@ class Solution(BaseModel):
     # from the task, the project's Domain pack and the text columns (kinds.resolve)
     kind: str | None = Field(default=None, max_length=60)
     kind_fields: dict[str, Any] = Field(default_factory=dict)
+    # package 16.9: the decision on top of the model (a review budget or a price), chosen by expected value
+    decision: Decision | None = None
 
     @model_validator(mode="after")
     def coherent(self):
@@ -68,6 +108,14 @@ class Solution(BaseModel):
             raise ValueError(f"Metric {self.metric!r} does not fit a {self.task} task")
         if len(names) != len(self.forbidden):
             raise ValueError("A column is listed twice under forbidden")
+        if self.decision is not None and self.task != "binary":
+            raise ValueError("A review or price decision reads a yes/no outcome (a case, an accepted offer): the task must be binary")
+        if self.decision is not None and self.target in self.decision.columns():
+            raise ValueError("The decision's price or value column cannot be the target")
+        if self.decision is not None and names & set(self.decision.columns()):
+            raise ValueError("A column the decision reads cannot be forbidden: "
+                             + ", ".join(sorted(names & set(self.decision.columns())))
+                             + " (a price, its reference and the value of an offer are known when the offer is made)")
         if self.metric == "recall_at_budget" and not self.alert_budget:
             raise ValueError("Recall at the review budget needs the budget: say how many rows the team can review")
         return self
@@ -82,7 +130,8 @@ class Solution(BaseModel):
     def check_columns(self, columns: list[str]) -> None:
         known = set(columns)
         for name in [self.target, *(f.column for f in self.forbidden), *self.identifiers, *self.text_columns,
-                     *( [self.time_column] if self.time_column else []), *([self.group_column] if self.group_column else [])]:
+                     *( [self.time_column] if self.time_column else []), *([self.group_column] if self.group_column else []),
+                     *(self.decision.columns() if self.decision else [])]:
             if name not in known:
                 raise ValueError(f"Column {name!r} is not in the data")
 

@@ -206,6 +206,15 @@ class UnitTest(TraceMixin, unittest.TestCase):
         self.assertIn("named by the rubric, not checked against a record", rows[3])
         self.assertIn("2 pages", markdown)
 
+    def test_a_price_in_a_requirement_needs_a_decision_but_never_hides_a_models_job(self):
+        from dclab_core.report import _where
+
+        model = {"final.evidence.holdout_metrics.roc_auc"}
+        for text in ("Predict house prices", "Predict which transactions are charged back", "Use the customer feedback to improve the model"):
+            self.assertNotIn("not covered", _where(text, model)[1], text)  # 16.9's review: the model's rules still answer these
+        self.assertEqual(_where("Choose the fee to offer", model)[1], "open: nothing in the records matches it")
+        self.assertEqual(_where("Choose the fee to offer", model | {"final.evidence.decision.best_multiple"})[1], "covered")
+
     def final_record(self, **evidence):
         base = {"holdout_metrics": {"roc_auc": 0.81}, "holdout_split": "last 20 of 100 rows",
                 "holdout_primary_metric_ci": {"low": 0.74, "high": 0.87, "draws": 40, "method": "iid row bootstrap"}}

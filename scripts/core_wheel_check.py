@@ -72,7 +72,8 @@ print(json.dumps({
     "plan_problems": problems, "split": out["HoldoutPlan"]["fields"]["strategy"],
     "group": out["HoldoutPlan"]["fields"]["group_column"], "metric": out["MetricPlan"]["fields"]["primary_metric"],
     "families": out["ExperimentPlan"]["fields"]["families"], "commit_read": out["ProblemSpec"]["main_product"]["commit"],
-    "direct": sorted(norm(re.match(r"[A-Za-z0-9_.\-]+", r).group(0)) for r in metadata.requires("dclab-core")),
+    # an optional extra (pdf: reportlab) is not installed by default and is not a direct dependency
+    "direct": sorted(norm(re.match(r"[A-Za-z0-9_.\-]+", r).group(0)) for r in metadata.requires("dclab-core") if "extra ==" not in r),
     "unexpected_distributions": sorted({d.split("==")[0] for d in dists} - closure - {"dclab-core"}),
 }))
 '''

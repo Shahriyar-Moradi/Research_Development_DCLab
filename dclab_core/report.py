@@ -765,6 +765,7 @@ def _results(w: _Writer, notes: list[str]) -> None:
             w.line(f"At the review budget of {budget} of rows ({alerts} alerts on the holdout), recall is {recall}{interval}"
                    f" and precision {precision}." if budget and alerts and recall and precision else None)
         _assessment(w, kind, _m(evidence.get("task_assessment")))
+        _decision(w, _m(evidence.get("decision")))
     models = _m(ctx.get("models"))
     m_evidence = _m(models.get("evidence"))
     ranking = _seq(m_evidence.get("ranking"))
@@ -786,6 +787,34 @@ def _results(w: _Writer, notes: list[str]) -> None:
         w.line(f"- Review round {w.n(f'{p}.round', 'int') or ''}: {w.q(f'{p}.experiment', 80, code=True)} on {w.q(f'{p}.family', 80, code=True)}, "
                + (f"{base} → {variant} on the same folds, " if base and variant else "")
                + f"{'kept' if r.get('adopted') is True else 'not kept'}" + (f" ({why})." if why else "."))
+
+
+def _decision(w: _Writer, decision: Mapping[str, Any]) -> None:
+    """The decision on top of the model (a review budget or a price), when the run made one (package 16.9)."""
+    if not decision:
+        return
+    d = "final.evidence.decision"
+    if decision.get("learnable") is False or decision.get("warning"):
+        w.line(f"No decision was drawn: {w.q(f'{d}.warning', 600)}" if w.has(f"{d}.warning") else None)
+        return
+    if decision.get("decision") == "review_budget":
+        if w.has(f"{d}.note"):  # no review pays at the stated value and cost
+            w.line(f"The decision: {w.q(f'{d}.note', 400)}")
+            return
+        share, value = w.n(f"{d}.share", "pct"), w.n(f"{d}.expected_value_per_row")
+        lo, hi = w.n(f"{d}.expected_value_per_row_interval.0"), w.n(f"{d}.expected_value_per_row_interval.1")
+        case, cost = w.n(f"{d}.value_per_case"), w.n(f"{d}.cost_per_review")
+        w.line(f"The decision: review the riskiest {share} of rows, worth {value} per row" + (f" (interval {lo} to {hi})" if lo and hi else "")
+               + f", for {case} per case found and {cost} per review, chosen on the {w.q(f'{d}.chosen_on', 120)}." if share and value else None)
+        found, reviews = w.n(f"{d}.holdout.cases_found", "int"), w.n(f"{d}.holdout.reviews", "int")
+        w.line(f"At that share the holdout gave {found} cases in {reviews} reviews." if found and reviews else None)
+        return
+    best, lo, hi = w.n(f"{d}.best_multiple"), w.n(f"{d}.best_multiple_interval.0"), w.n(f"{d}.best_multiple_interval.1")
+    margin, now = w.n(f"{d}.expected_margin_per_offer"), w.n(f"{d}.margin_per_offer_as_priced")
+    w.line(f"The decision: price at {best} times the reference" + (f" (interval {lo} to {hi})" if lo and hi else "")
+           + (f", an expected margin of {margin} per offer against {now} as priced" if margin and now else "")
+           + f", chosen on the {w.q(f'{d}.chosen_on', 120)}." if best else None)
+    w.line(f"- {w.q(f'{d}.note', 400)}" if w.has(f"{d}.note") else None)
 
 
 def _assessment(w: _Writer, kind: str, assessment: Mapping[str, Any]) -> None:
@@ -944,6 +973,7 @@ OUTSIDE = (
 )
 # a requirement's words -> the section that answers it, and the record paths a kept line must have read for it to count
 RUBRIC_RULES = (
+    (("pric", "fees", "charg"), "Results, with their intervals", ("final.evidence.decision",)),  # 16.9: a price asked for; see DECISION_RULE
     (("leak",), "Decisions and reasons", ("leakage.",)),
     (("threshold", "budget", "alert", "cost"), "Results, with their intervals",
      ("final.evidence.holdout_metrics.alert_budget", "final.evidence.holdout_metrics.recall_at_budget", "final.evidence.task_assessment.threshold")),
@@ -967,6 +997,11 @@ def _where(text: str, used: set[str]) -> tuple[str, str]:
             return "outside this report", f"not covered here: it asks for {what}, which a report does not produce"
     words = re.findall(r"[a-z]+", lowered)
     for stems, section, prefixes in RUBRIC_RULES:
+        if "fees" in stems:  # the decision rule: a price or a fee asked for, answered only by a decision record
+            asked = any(w.startswith(("pric", "charg")) for w in words) or any(w in ("fee", "fees") for w in words)
+            if asked and any(path.startswith("final.evidence.decision") for path in used):
+                return section, "covered"
+            continue  # "predict house prices" is a model's job: the next rules answer it
         if any(word.startswith(stem) for stem in stems for word in words):
             if any(path.startswith(prefix) for path in used for prefix in prefixes):
                 return section, "covered"
