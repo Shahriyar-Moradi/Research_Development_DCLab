@@ -329,7 +329,8 @@ class Toolbox:
             return {"error": "The project has no data yet."}
         fields = {k: v for k, v in fields.items() if v not in (None, "", [])}
         solution = studio_solution.Solution(**fields)
-        solution.check_columns(project["data"]["columns"])
+        label_target = (project.get("labels") or {}).get("target")  # 15.2: a label file's target is a column of the joined table
+        solution.check_columns(list(project["data"]["columns"]) + ([label_target] if label_target else []))
         verdict = studio_graph.check(project, "set_solution", "agent", target=solution.target)
         studio_graph.log(self.projects, project_id, verdict, project)
         if not verdict.allowed:

@@ -264,9 +264,26 @@ def llm_available() -> bool:
 _POLICY = prompts.text("stage_critique")  # dclab_rnd/prompts/stage_critique.md (A4.3: prompts are versioned files)
 
 
+_NOTES_OFF = __import__("contextvars").ContextVar("dclab_stage_notes_off", default=False)
+
+
+class notes_off:
+    """Inside this scope the stage notes ask no model (the rules' notes stand): a team run (18.8) keeps every model
+    request inside its own capped advisor, and its reporter is the prose role."""
+
+    def __enter__(self) -> "notes_off":
+        self.token = _NOTES_OFF.set(True)
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        _NOTES_OFF.reset(self.token)
+
+
 def _chat(prompt: str, purpose: str, project_id: str | None = None) -> str | None:
     from ..models import installed
 
+    if _NOTES_OFF.get():
+        return None
     client = installed().client(purpose, project_id=project_id)
     if client is None:
         return None
@@ -283,6 +300,8 @@ def explain_stage(record: dict[str, Any], project_id: str | None = None) -> dict
     from ..models import installed
     from . import explain
 
+    if _NOTES_OFF.get():
+        return explain.explain(record, None)
     return explain.explain(record, installed().client("stage_notes", project_id=project_id))
 
 

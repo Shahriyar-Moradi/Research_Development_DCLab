@@ -23,6 +23,7 @@ class GatewayAdvisor:
             gateway = installed()
         self.gateway, self.project_id, self.draft_id, self.max_tokens, self.cap_eur = gateway, project_id, draft_id, max_tokens, cap_eur
         self._clients: dict[str, Any] = {}
+        self.calls: dict[str, int] = {}  # requests sent, per purpose
 
     def _client(self, purpose: str) -> Any:
         if purpose not in self._clients:
@@ -41,6 +42,9 @@ class GatewayAdvisor:
         client = self._client(purpose)
         if client is None:
             return None  # no model serves this purpose here: the role keeps to its rules
+        if self.cap_eur is not None:  # one cap for every purpose together, re-read before each request
+            client.run_limit_eur = float(getattr(client, "spent_eur", 0.0) or 0.0) + max(0.0, self.cap_eur - self.spent_eur())
+        self.calls[purpose] = self.calls.get(purpose, 0) + 1
         messages = [{"role": "system", "content": prompts.text(purpose)},
                     {"role": "user", "content": json.dumps(evidence, ensure_ascii=False)}]
         reply = client.complete(messages, None, max_tokens=self.max_tokens)

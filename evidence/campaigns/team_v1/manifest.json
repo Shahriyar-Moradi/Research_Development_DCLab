@@ -1,0 +1,7 @@
+{
+  "campaign_id": "team_v1",
+  "objective": "The multi-agent workflow (package 18.8): the fraud, churn and delivery replicas run end to end by dclab_core's roles together on the workflow graph (analyst and checker, investigator, planner, engineer, critic, reporter), with a scripted person who answers what is asked and signs the gates; judged by team_gate_v1, fixed before the first run.",
+  "rule": "Scores are evidence about these roles on these replicas, not about any model's readiness for production. Every run is capped in euros and recorded here.",
+  "command": "python -m dclab_rnd.agent_eval.team --yes --cap-eur 0.05",
+  "known_limits": ["Three invented replicas, one model, one run each.", "The person is scripted: a real person may answer differently or not at all."]
+}

@@ -600,8 +600,34 @@ def stage_models(p: Prepared, eid: str, recipe: str) -> tuple[dict, list, str]:
 REVIEW_ROUNDS = 2
 
 
+import contextvars
+
+_ADVISOR: contextvars.ContextVar[Any] = contextvars.ContextVar("dclab_team_advisor", default=None)
+
+
+class advisor_scope:
+    """Inside this scope (this context only: another thread or job is not affected) the critic uses ``advisor``, the
+    team's (18.8) with its euro cap, whatever the project's critic setting; None changes nothing."""
+
+    def __init__(self, advisor: Any):
+        self.advisor, self.token = advisor, None
+
+    def __enter__(self) -> "advisor_scope":
+        self.token = _ADVISOR.set(self.advisor) if self.advisor is not None else None
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        if self.token is not None:
+            _ADVISOR.reset(self.token)
+
+
 def _critic_advisor(project: dict[str, Any]) -> Any:
-    """The critic (18.6) ranks the review's experiments only when the project turns it on (off until it is measured)."""
+    """The critic (18.6) ranks the review's experiments only when the project turns it on (off until it is measured),
+    or inside a team run's scope; never for a private project."""
+    if (project.get("settings") or {}).get("private"):
+        return None  # private data: no model sees even its summaries
+    if _ADVISOR.get() is not None:
+        return _ADVISOR.get()
     if not (project.get("settings") or {}).get("critic"):
         return None
     from ..core_advisor import GatewayAdvisor

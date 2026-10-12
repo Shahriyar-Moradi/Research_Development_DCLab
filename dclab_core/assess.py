@@ -196,7 +196,7 @@ def assess(task: str, y_oof: Sequence[Any], p_oof: Any, y_test: Sequence[Any], p
 # ------------------------------------------------------------------------------------------------ from the plan
 
 PERIOD_DAYS = {"day": 1.0, "week": 7.0, "month": 30.44}
-PERCENT = re.compile(r"(\d+(?:\.\d+)?)\s*%")
+PERCENT = re.compile(r"(\d*\.?\d+)\s*%")
 PER_PERIOD = re.compile(r"(\d[\d,]*)\b[^%]*?\b(?:a|per|each|every)\s+(day|week|month)\b", re.I)
 COST_OF = re.compile(r"(false (?:alarm|positive)s?|miss(?:es|ed)?|false negatives?)\D{0,40}?(\d[\d,]*(?:\.\d+)?)", re.I)
 

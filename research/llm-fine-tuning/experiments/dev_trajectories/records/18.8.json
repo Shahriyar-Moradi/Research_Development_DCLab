@@ -1,0 +1,214 @@
+{
+ "package": "18.8",
+ "title": "The multi-agent workflow",
+ "date": "2026-10-13",
+ "request": "Put the measured roles to work together on the workflow graph: each passed what the earlier steps produced, under the graph validator, with a person approving the gates, within a budget, and the person asked only what the roles could not settle.",
+ "spec": "The roles placed on the workflow graph's nodes (WF-01 to WF-10), passed the artefacts of the earlier nodes, under the graph validator, with a person's approval at the gates, budgets per project, and the conversation as the front that asks the person what only they can say. Done when the fraud replica and a churn and a regression replica run end to end with all roles on, every move validated and traced, within a set budget, and the person asked only what the roles could not settle.",
+ "plan": [
+  "Write one team runner that calls each role at its step with the artefacts of the steps before: brief, findings, plan, programs, stage records, report.",
+  "Require both gates and let only the person sign them; every other write a validated move.",
+  "Share one capped advisor among the roles and the critic; switch the stage notes' model off inside a run.",
+  "Fix a gate before the run: completion, validated moves, the person asked only the open fields, the holdout once, the cap, every role asked, and each kind's acceptance decisions still reached.",
+  "Review, fix, dry-run with a scripted advisor, then run live once under the owner's cap."
+ ],
+ "decisions": [
+  {
+   "decision": "The roles must not leave the solution worse than the rules: each replica must still reach its kind's acceptance decisions.",
+   "why": "A team that answers more but decides worse is not progress; the kinds' acceptance (16.2) is the measure of deciding well."
+  },
+  {
+   "decision": "The feature programs are proposed before the person signs the solution, and shown to them.",
+   "why": "They change what the features stage computes; a signature that does not cover them is not a signature."
+  },
+  {
+   "decision": "The critic is the run's only (a context-scoped advisor), never left switched on.",
+   "why": "It failed its own gate (18.6); a setting left on would bring an uncapped critic to later runs."
+  }
+ ],
+ "change": "dclab_rnd/studio/team.py (Person, run, the steps WF-01 to WF-10), engine.advisor_scope as a context variable, agent.notes_off, the capped GatewayAdvisor re-reading its cap before each request and counting calls, intern set_solution accepting a label file's target, dclab_core plan choosing a time split for rows ordered in time, provisional rows taken from the earliest 80% when time orders them, the harness dclab_rnd/agent_eval/team.py with team_gate_v1, tests/test_team.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The intern's set_solution refused a solution whose target comes from a label file.",
+   "scenario": "On the fraud replica, set_solution raised 'Column is_fraud is not in the data': the data file has no is_fraud; the label file defines it.",
+   "cause": "The column check read the data file's columns only.",
+   "fix": "The label file's target counts as a column of the joined table.",
+   "test": "test_three_replicas_end_to_end_every_role_asked_every_move_validated (rare_event)",
+   "impact": "No project with a label file could get a solution through the intern or the team."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The plan chose a random split for rows that arrive over time.",
+   "scenario": "On the churn replica, signups over two years with a rising cancel rate: the plan's split was stratified because no drift was measured, so the holdout mixed early and late signups.",
+   "cause": "The time split was chosen only when drift was measured; a sample this size can miss it.",
+   "fix": "Rows ordered in time get a time split (DCLAB-R02), drift measured or not; a random split only when no time orders them.",
+   "test": "the binary kind's acceptance through the team; test_core_plan",
+   "impact": "Scores on such tables were optimistic about the future the model meets."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The live run would have sent up to 30 uncapped, uncounted model requests.",
+   "scenario": "Every stage's notes went through the installed gateway's stage_notes purpose, outside the team's cap and spend.",
+   "cause": "Only the critic and the roles used the team's advisor.",
+   "fix": "Stage notes ask no model inside a team run (notes_off); the reporter is the team's prose.",
+   "test": "test_three_replicas_end_to_end_every_role_asked_every_move_validated",
+   "impact": "The euro cap would not have bounded the run."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate could pass with a single role answering.",
+   "scenario": "A scripted run where only the reporter answered got pass 'with every role on'.",
+   "cause": "The verdict only asked that some role answered.",
+   "fix": "Every role must be asked on every replica (counted per purpose), every needs_approval move must be followed by its approval, and the kind's baselines check is added back.",
+   "test": "the harness's verdict"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The person was asked what was already settled, and their answers were thrown away.",
+   "scenario": "The analyst's open question used field 'target' and the essential 'target_column', so the target was asked twice; answers never reached the brief, so the plan said the moment was 'assumed, not stated'.",
+   "cause": "Field names differed and answers went only into a log.",
+   "fix": "Aliases map the fields, settled fields are skipped, and every answer is written into the brief the later roles read.",
+   "test": "test_only_what_is_open_is_asked_and_the_answers_are_used"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Project writes bypassed the graph validator, and the critic stayed on.",
+   "scenario": "Pack, programs, policy and settings were saved directly; settings.critic stayed true, so a later models run built an uncapped critic that had failed its gate.",
+   "cause": "Writes were made as plain saves.",
+   "fix": "Each write is a validated, logged set_settings move; programs come before the signature; the critic is scoped to the run.",
+   "test": "test_three_replicas_end_to_end_every_role_asked_every_move_validated (critic not left on)"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The advisor scope was a process-wide global.",
+   "scenario": "A worker thread running another project's models stage during a team run would have used the team's advisor and cap.",
+   "cause": "A module global, documented as not thread-shared.",
+   "fix": "A context variable, per context.",
+   "test": "test_a_private_project_asks_no_role_anything_even_with_the_critic_on"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The euro cap was not a hard bound across purposes and replicas.",
+   "scenario": "Each purpose's client got its limit once, at creation; a client from replica 1 kept its full limit through replicas 2 and 3.",
+   "cause": "The limit was set when the client was made.",
+   "fix": "The advisor re-reads the shared cap before every request.",
+   "test": "test_the_cap_is_read_again_before_every_request"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failing stage aborted the run and lost the record.",
+   "scenario": "A GraphBlocked or a stage error escaped team.run, and measure() stored nothing after paid requests.",
+   "cause": "No catch per stage or per replica.",
+   "fix": "team.run returns a stopped status with where and why; measure() stores a failed replica's row.",
+   "test": "test_a_declined_gate_stops_the_run_there"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The trace under-reported what roles added and dropped what they refused.",
+   "scenario": "An entity the investigator proposed showed as 'rules'; the planner said 'advisor' when it kept nothing; refusals were not stored.",
+   "cause": "Sources were guessed from whether an advisor existed.",
+   "fix": "The investigator's contribution is the findings it added over a rules-only analysis; each step stores kept, refused and the reason.",
+   "test": "test_three_replicas_end_to_end_every_role_asked_every_move_validated (sources)"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A scripted approval was recorded as the owner's.",
+   "scenario": "approve_gate always wrote by='owner' even when the approval came from a lambda in the harness.",
+   "cause": "No 'who' on the person.",
+   "fix": "Person.who is recorded with each approval; the harness says 'scripted person'.",
+   "test": ""
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Assertions were vacuous and new paths untested.",
+   "scenario": "An assertion ended in 'or q[\"field\"]'; nothing showed the critic used the team's advisor, a holdout decline, or the cap.",
+   "cause": "Tests written for the happy path.",
+   "fix": "Tests for the critic's requests, the asked fields, the holdout decline, a private project with the critic on, and the cap.",
+   "test": ""
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The review budget was misread or lost.",
+   "scenario": "'0.5' became half the rows; '.5%' became 5%; '70 a day' was dropped.",
+   "cause": "A loose percent pattern and no span of days.",
+   "fix": "The percent pattern reads .5%; a bare number is a share only below 0.05; a count a day uses the rows' span; one re-ask.",
+   "test": "test_loose_words_name_the_target_and_a_bare_half_is_not_a_budget"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The person's target was matched only by exact name.",
+   "scenario": "'the churned column' stopped the run at WF-01.",
+   "cause": "An exact comparison.",
+   "fix": "Case-insensitive, or the one column named in the words; one re-ask with the options.",
+   "test": "test_loose_words_name_the_target_and_a_bare_half_is_not_a_budget"
+  },
+  {
+   "id": "R13",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The plan's analysis read rows the time-based holdout would hold.",
+   "scenario": "On the churn replica, a seeded random 80% of rows informed the forbidden and grouping decisions, although the holdout is the latest signups.",
+   "cause": "Provisional rows were random.",
+   "fix": "With a time column, the provisional rows are the earliest 80%.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "team on three replicas, live (TEAM-001)",
+   "gate": "team_gate_v1, fixed before the run: each run completes; every move allowed or waiting for an approval that then comes; the person asked at most the two essentials, the budget and three open questions; every role asked on every replica; the holdout read once; the spend under the cap; each replica still reaches its kind's acceptance decisions.",
+   "fixed_before_run": true,
+   "result": "All 3 completed with every role asked, moves validated, gates signed, the holdout read once, EUR 0.0084 under the EUR 0.5 cap. Fraud and delivery reached every acceptance decision; on churn the planner chose average precision where the binary kind expects ROC-AUC.",
+   "verdict": "fail",
+   "cost_eur": 0.0084,
+   "against_gate": "Completion, validated moves, questions, every role asked, the holdout and the cap all hold on all 3 replicas; the acceptance decisions hold on fraud and delivery but not on churn, where the metric is not ROC-AUC, so the gate fails.",
+   "limits": [
+    "One run with one model; the planner's metric choice may differ on another run.",
+    "Replicas and a scripted person, not a real project or a real conversation."
+   ],
+   "next": "Keep the roles off by default; let 18.9 decide each role on its own gate, and look at when the planner may change the primary metric."
+  }
+ ],
+ "outcome": "Built and measured: the roles work together under the validator, the gates and one budget; the live run failed its gate on one decision (the planner's metric on churn), and two product gaps found on the way were fixed.",
+ "lessons": [
+  "A team run is where single-role measurements meet: a role that passed alone can still change a decision the whole must keep.",
+  "Count every request a run makes, not only the ones you meant: stage notes were outside the cap.",
+  "Fix the dry-run's failures in the product, not in the gate: the time-split rule was a real gap."
+ ],
+ "risks": [
+  "Requests outside the budget.",
+  "A role's answer silently overriding a person's or the rules' decision.",
+  "Gates signed by code.",
+  "The trace claiming a model's contribution that never happened.",
+  "A failure mid-run losing what was spent."
+ ],
+ "commits": []
+}

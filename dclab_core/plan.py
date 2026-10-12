@@ -160,10 +160,15 @@ def _split(task: str, brief: Optional[ProblemBrief], findings: DataFindings) -> 
         choice = {"kind": "time", "time_column": tcol}
         reason = "The target moves over time: validate on rows later than the training rows."
         alternatives = [("stratified", "a random split would hide what the model cannot know yet")]
+    elif tcol:  # DCLAB-R02: rows that arrive over time are tested on later rows, drift measured or not
+        choice = {"kind": "time", "time_column": tcol}
+        reason = (f"Rows arrive over time ({tcol}): train on earlier rows and test on later ones, so the score is for the period the "
+                  "model will meet. No drift was measured, but a test this size can miss it, and a random split would hide it.")
+        alternatives = [("stratified" if task in ("binary", "multiclass") else "random", "mixes later rows into training")]
     else:
         choice = {"kind": "stratified" if task in ("binary", "multiclass") else "random"}
-        reason = "No entity repeats strongly and no drift was seen: a " + choice["kind"] + " split is fair."
-        alternatives = [("time", "no drift was seen")] if tcol else []
+        reason = "No entity repeats strongly and no time orders the rows: a " + choice["kind"] + " split is fair."
+        alternatives = []
     choice["holdout"] = "locked first, used once, after the choice"
     for f in others[:3]:
         n = int(f.evidence.get("entities", 0))
