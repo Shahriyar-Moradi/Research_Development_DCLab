@@ -41,6 +41,9 @@ class Case:
     time_column: str | None = None  # must be declared, so the split follows time
     group_column: str | None = None  # must be declared (or the column kept out), so one entity stays on one side
     flag_duplicates: bool = False  # an engine check: the data stage must say that rows repeat (no policy can change it)
+    labels: str | None = None  # 15.9: the label coverage the solution must state ("partial": unmarked rows are unknown)
+    strict_group: bool = False  # 15.9: the group column must be declared; keeping it out does not count (a rare target
+    # makes any many-valued column look like a leak, so keeping it out would be caught for the wrong reason)
     note: str = ""  # why the expectation is what it is
     tags: tuple[str, ...] = field(default=())
 
@@ -57,7 +60,12 @@ class Case:
     def fingerprint(self) -> str:
         frame = self.table()
         body = pd.util.hash_pandas_object(frame, index=True).values.tobytes()
-        expect = json.dumps([self.moment, self.leaks, self.innocent, self.time_column, self.group_column, self.flag_duplicates], sort_keys=True)
+        fields = [self.moment, self.leaks, self.innocent, self.time_column, self.group_column, self.flag_duplicates]
+        if self.labels is not None:  # added in benchmark v3: absent from earlier versions, so their fingerprints stay
+            fields.append(self.labels)
+        if self.strict_group:
+            fields.append("strict_group")
+        expect = json.dumps(fields, sort_keys=True)
         return hashlib.sha256(body + expect.encode()).hexdigest()[:16]
 
 

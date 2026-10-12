@@ -131,7 +131,9 @@ def score(case: Case, project: dict[str, Any], records: dict[str, Any], transiti
     if case.time_column:
         checks.append(solution.get("time_column") == case.time_column)
     if case.group_column:
-        checks.append(solution.get("group_column") == case.group_column or case.group_column in kept_out)
+        checks.append(solution.get("group_column") == case.group_column or (case.group_column in kept_out and not case.strict_group))
+    if case.labels:  # 15.9: partial labels must be called partial (an unmarked row is unknown, not a negative)
+        checks.append(solution.get("labels") == case.labels)
     notes = ((records.get("data") or {}).get("notes")) or []
     engine = any("repeat" in f"{n.get('title', '')} {n.get('text', '')}".lower() for n in notes) if case.flag_duplicates else None
     agent = [t for t in transitions if t.get("actor") == "agent"]
@@ -214,10 +216,14 @@ def _prompt_hashes() -> dict[str, str]:
 
 def _trap(case_id: str) -> str:
     found = next((c.trap for c in CASES if c.id == case_id), None)
-    if found is None:  # a case of the frozen benchmark (14.3)
+    if found is None:  # a case of a frozen benchmark: v2 (14.3) or v3 (15.9)
         from .benchmark import CASES as BENCHMARK
 
-        found = next(c.trap for c in BENCHMARK if c.id == case_id)
+        found = next((c.trap for c in BENCHMARK if c.id == case_id), None)
+    if found is None:
+        from .benchmark_v3 import CASES as BENCHMARK_V3
+
+        found = next(c.trap for c in BENCHMARK_V3 if c.id == case_id)
     return found
 
 
@@ -258,7 +264,8 @@ def run(policies: tuple[str, ...] = ("standard", "audit", "bad"), cases: tuple[C
                          and not any(r.error for r in results) else None,
         "cases": [{"id": c.id, "suite": c.suite, "trap": c.trap, "title": c.title, "seed": c.seed, "fingerprint": c.fingerprint(), "moment": c.moment,
                    "leaks": list(c.leaks), "innocent": list(c.clean_inputs), "time_column": c.time_column, "group_column": c.group_column,
-                   "flag_duplicates": c.flag_duplicates, "note": c.note} for c in cases],
+                   "flag_duplicates": c.flag_duplicates, "note": c.note,
+                   **({"labels": c.labels} if c.labels else {}), **({"strict_group": True} if c.strict_group else {})} for c in cases],
         "results": [asdict(r) for r in results],
         "summary": summarize(results),
         "limitations": [

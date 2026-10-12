@@ -37,6 +37,17 @@ SAMPLE_HINTS = [
 ]
 
 
+STATED_MOMENT = re.compile(r"(?:the prediction is made|predictions? (?:are|is) made|prediction moment)\s*[:\-]\s*(.{12,600}?)(?:\n\s*\n|$)", re.I | re.S)
+
+
+def _stated_moment(task: str) -> str | None:
+    """The prediction moment the person wrote in the task ("The prediction is made: when …"), word for word (15.9: the
+    standard plan used to replace it with a generic one, so what the person said about the moment never reached the
+    solution)."""
+    found = STATED_MOMENT.search(task or "")
+    return found.group(1).strip() if found else None
+
+
 class Intern:
     def __init__(self, sessions: SessionStore, toolbox: Toolbox, client: Any | None = None, traces: Any = None):
         self.sessions, self.toolbox, self.client, self.traces = sessions, toolbox, client, traces
@@ -274,11 +285,19 @@ class Intern:
             roles = {suggestion.get("time_column"), suggestion.get("group_column"), *proposal.get("identifiers", []), *suggestion.get("identifiers", [])}
             known = {c: f for c, f in known.items() if c not in roles}
             solution = {"project_id": pid, "target": target, "task": proposal["task"],
-                        "prediction_moment": suggestion.get("prediction_moment") or ("Predict at the moment the row is recorded; " + proposal["prediction_moment_hint"]),
+                        "prediction_moment": suggestion.get("prediction_moment") or _stated_moment(session["task"])
+                        or ("Predict at the moment the row is recorded; " + proposal["prediction_moment_hint"]),
                         "forbidden": list(known.values()), "identifiers": sorted(set(proposal.get("identifiers", [])) | set(suggestion.get("identifiers", []))),
                         "time_column": suggestion.get("time_column") or None, "group_column": suggestion.get("group_column") or None,
                         "text_columns": suggestion.get("text_columns") or [], "positive_label": suggestion.get("positive_label") or proposal.get("positive_label"),
                         "metric": suggestion.get("metric") or None}
+            if proposal["task"] == "binary" and not suggestion.get("labels"):  # 15.9: the person's words on the labels, binary only
+                from dclab_core.understand import label_coverage
+
+                coverage = label_coverage(session["task"])
+                if coverage:
+                    solution["labels"] = coverage[0]
+                    solution["label_provenance"] = f"the task says: \"{coverage[1]}\""
             saved = self._step(session, "set_solution", {k: v for k, v in solution.items() if v not in (None, [], "")}, started)
             if "error" in saved:
                 session["status"] = "failed"

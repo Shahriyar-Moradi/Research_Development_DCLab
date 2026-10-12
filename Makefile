@@ -1,4 +1,4 @@
-.PHONY: benchmark embeddings staging-check model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all core-schemas core-wheel-check
+.PHONY: benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all core-schemas core-wheel-check
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -241,6 +241,11 @@ kinds-check:  ## every problem kind's acceptance on its replica (16.2): writes d
 agent-eval:  ## the scripted judgment suite (A4.1): planted traps, the standard plan and two reference policies; writes a new AEV result
 	@n=$$(ls evidence/campaigns/agent_eval_v1/results/AEV-*.json 2>/dev/null | wc -l | tr -d ' '); \
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval --output evidence/campaigns/agent_eval_v1/results/AEV-$$(printf '%03d' $$((n + 1)))_judgment_v1_scripted.json
+
+benchmark-v3:  ## benchmark v3 (15.9): v2 reseeded plus rare-event bases and traps; SPLIT=dev (default) or SPLIT=test (sealed: always recorded as a new BEN3 result)
+	@n=$$(ls evidence/campaigns/benchmark_v3/results/BEN3-*.json 2>/dev/null | wc -l | tr -d ' '); \
+	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.agent_eval.benchmark_v3 --split $(or $(SPLIT),dev) \
+	  --output evidence/campaigns/benchmark_v3/results/BEN3-$$(printf '%03d' $$((n + 1)))_$(or $(SPLIT),dev)_scripted.json
 
 benchmark:  ## the frozen benchmark (14.3): scripted policies on SPLIT=dev (default) or SPLIT=test (the sealed set; always recorded as a new BEN result)
 	@n=$$(ls evidence/campaigns/benchmark_v2/results/BEN-*.json 2>/dev/null | wc -l | tr -d ' '); \

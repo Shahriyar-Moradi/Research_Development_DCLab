@@ -165,7 +165,9 @@ def register(registry: Registry) -> None:
         "prediction_moment": {**S, "description": "When the prediction is made and what is known then (at least one sentence)."},
         "forbidden": {"type": "array", "items": {"type": "object", "properties": {"column": S, "reason": S}, "required": ["column"]}},
         "identifiers": {"type": "array", "items": S}, "time_column": S, "group_column": S, "text_columns": {"type": "array", "items": S},
-        "positive_label": S, "metric": {**S, "enum": ["roc_auc", "average_precision", "macro_f1", "mae"]}},
+        "positive_label": S, "metric": {**S, "enum": ["roc_auc", "average_precision", "macro_f1", "mae"]},
+        "labels": {**S, "enum": ["complete", "partial"], "description": "partial: only the cases someone found are marked, so an unmarked row is unknown"},
+        "label_provenance": {**S, "description": "Where the labels come from, in the person's words."}},
         ["project_id", "target", "task", "prediction_moment"], "Save the solution. Saving clears any previous stage results.",
         "write", "set_solution", aliases=tuple(k for k, v in LEGACY_TOOLS.items() if v == "set_solution"))
     add("set_settings", {**pid, "quick": {"type": "boolean", "description": "True: 3,000 rows for a fast pass. False: up to max_rows."},

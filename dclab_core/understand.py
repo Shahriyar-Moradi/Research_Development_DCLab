@@ -328,6 +328,28 @@ def _target(sentences: Sequence[str], files: Files, task: Fact,
     return Fact.unknown(), Fact.unknown(), Fact.unknown()
 
 
+UNMARKED_UNKNOWN = re.compile(
+    r"\b(never (?:been )?(?:checked|reviewed|labell?ed|investigated|found|caught|detected|reported)|nobody (?:found|checked|reviewed)|"
+    r"(?:un(?:marked|labell?ed|flagged|reported|confirmed|checked)) [a-z ]{0,30}?(?:may|might|could) (?:still |also )?be|"
+    r"only (?:the )?(?:cases|frauds?|ones|positives|abuses?) (?:that )?(?:someone|we|the team|the review team|investigators?|reviewers?|analysts?) "
+    r"(?:found|confirmed|caught|reviewed)|labels? (?:are|is) (?:partial|incomplete|a sample))", re.I)
+# a sentence about the labels: what is marked, flagged, confirmed, found or a case (not "readings never checked by hand")
+ABOUT_LABELS = re.compile(r"\b(labels?|labell?ed|marked|unmarked|flag(?:ged|s)?|unflagged|cases?|confirmed|frauds?|positives?|abuses?|"
+                          r"found by|caught)\b", re.I)
+
+
+def label_coverage(text: str) -> Optional[tuple[str, str]]:
+    """("partial", the words) when a sentence about the labels says that unmarked rows are unknown rather than negative
+    ("most rows were never checked, so an unmarked row may be a case", "unflagged claims may still be fraud"); None
+    otherwise. Only sentences that speak of labels, cases or flags are read: "readings never checked by hand" says
+    nothing about labels. Words, never a guess from the data."""
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", text or ""):
+        m = UNMARKED_UNKNOWN.search(sentence)
+        if m and ABOUT_LABELS.search(sentence):
+            return "partial", m.group(0)
+    return None
+
+
 def _coverage(label_source: Fact) -> Fact:
     if label_source.value == "file" and label_source.quote:
         m = PARTIAL_WORDS.search(label_source.quote)

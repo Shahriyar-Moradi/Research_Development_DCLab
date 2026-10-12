@@ -1,0 +1,13 @@
+{
+  "campaign_id": "benchmark_v3",
+  "objective": "The frozen benchmark, version 3 (package 15.9): v2's generated bases and traps on new seeds (its two real scikit-learn tables left out, as reseeding cannot change them), plus four rare-event bases (payments in the dev set; returns, warranty and promotions sealed), four rare-event traps (a flag spread over a key from the labels, partial labels, rare cases clustered on a few entities, positives oversampled before saving) and a control (a many-valued entity column with no link to the outcome). 154 cases: a dev set of 54 and a sealed test set of 100.",
+  "rule": "Scores are evidence about these policies on these cases, not about any model's readiness for production. The sealed test set is never used to change a prompt, a rule or a policy; it is run once per change of version, and every run is recorded here. v2 and its results stay as they are.",
+  "command": "make benchmark-v3 SPLIT=dev | make benchmark-v3 SPLIT=test",
+  "known_limits": [
+    "v2's generated test bases were scored before (BEN-002 to BEN-005); v3 reseeds them, but only the rare bases are new to every rule.",
+    "Partial labels count as caught when the solution says the labels are partial; nothing else about the unlabelled rows is checked.",
+    "The sealed partial-label sentences were written by the same author as the rule that reads such sentences (dclab_core.understand.label_coverage), after that rule was written; they were not run against it, but they are not independent of it.",
+    "Before the freeze, a reviewer ran the column audit (propose_solution only, unrecorded) on six sealed tables of the earlier draft (returns, warranty and promotions: label_by_key and rare_entity_cluster). Every table was then reseeded (SALT in benchmark_v3.py), so none of those tables is in the frozen set; the generators are the same.",
+    "BEN3-001 to BEN3-003 ran on the earlier draft's dev tables (before the reseed and the review's fixes); BEN3-004 is the first dev run of the frozen version."
+  ]
+}
