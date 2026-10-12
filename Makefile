@@ -14,7 +14,7 @@ RUN_TESTS = $(PYTHON) tests/run_parallel.py $(if $(JOBS),--jobs $(JOBS),)
 # rd-check's record, freshness and build checks: independent of each other, so they run at the same time
 RD_GATES = "-m dclab_rnd validate" "-m dclab_rnd sync --check" "-m dclab_rnd campaign verify" "-m dclab_rnd.evidence_index check" \
 	"research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py --check" "-m dclab_rnd.research_map --check" \
-	"docs/product-demo/build.py --check" "-m dclab_rnd.agentic.web.build --check"
+	"docs/product-demo/build.py --check" "-m dclab_rnd.agentic.web.build --check" "-m dclab_rnd.agent_eval.judged --check"
 
 help:  ## list the available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
@@ -234,6 +234,9 @@ dev-archive:  ## copy this project's Claude Code session transcripts into dev_tr
 
 sft-dev:  ## the development-trajectory SFT examples (how DCLab is built and fixed) from dev_trajectories/records -> research/llm-fine-tuning/experiments/sft/out_dev/
 	$(PYTHON) -m dclab_rnd.devlog
+
+roles-judged:  ## the agentic layer judged (18.9): every role and the team from the result its gate was judged on -> dclab_rnd/roles_judged.json (which roles are on by default)
+	$(PYTHON) -m dclab_rnd.agent_eval.judged
 
 kinds-check:  ## every problem kind's acceptance on its replica (16.2): writes dclab_rnd/kinds/capability.json, which the capability matrix reads (no model is called)
 	$(TEST_TMP) DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.kinds $(ARGS)

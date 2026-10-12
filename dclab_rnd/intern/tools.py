@@ -273,7 +273,27 @@ class Toolbox:
         if target not in frame.columns:
             return {"error": f"Target {target!r} is not in the data."}
         task = studio_data.detect_task(frame, target)["task"]
-        findings, plan_ = studio_solution.core_plan(frame.drop(columns=[target]), frame[target], target, task)
+        from .. import roles
+
+        from dclab_core.understand import label_coverage, understand
+
+        time_column = next(iter((project["data"].get("profile") or {}).get("time_candidates") or []), None)
+        cap = roles.CALL_CAP_EUR  # each role call has its own small cap; its spend is logged on the project
+        advisors = {r: roles.advisor(r, project=project, cap_eur=cap) for r in ("problem_analyst", "data_investigator", "solution_planner")}
+        description = f"{project.get('goal') or ''} The prediction is made: {prediction_moment}"
+        brief = understand(description, {project["data"]["filename"]: [str(c) for c in frame.columns]}, advisor=advisors["problem_analyst"])
+        brief = brief.model_copy(update={"target_column": type(brief.target_column)(value=target, status="stated", quote=target, source="person"),
+                                         "prediction_moment": type(brief.prediction_moment)(value=prediction_moment, status="stated",
+                                                                                            quote=prediction_moment[:600], source="person")})
+        coverage = label_coverage(description)
+        if coverage and not brief.label_coverage.known:
+            brief = brief.model_copy(update={"label_coverage": type(brief.label_coverage)(value="partial", status="stated", quote=coverage[1], source="person")})
+        findings, plan_ = studio_solution.core_plan(frame.drop(columns=[target]), frame[target], target, task, time_column,
+                                                    investigator=advisors["data_investigator"], planner=advisors["solution_planner"],
+                                                    moment=prediction_moment, brief=brief)
+        spent = round(sum(float(a.spent_eur()) for a in advisors.values() if a is not None and hasattr(a, "spent_eur")), 6)
+        if spent:
+            self.projects.log(project_id, "roles_spent", {"call": "adopt_plan", "eur": spent})
         for item in overrides or []:
             plan_ = override(plan_, str(item.get("key")), item.get("choice"), str(item.get("reason") or "")[:4000] or
                              "changed by the agent", by="advisor")
@@ -284,7 +304,37 @@ class Toolbox:
         if saved.get("saved"):
             self.projects.update(project_id, plan=plan_.model_dump(mode="json"))
             self.projects.log(project_id, "plan_adopted", {"overrides": [str(o.get("key")) for o in overrides or []], "by": "intern"})
+            programs = self._engineer(project_id, frame, target, prediction_moment)
+            if programs:
+                saved["feature_programs"] = [p.get("name") for p in programs]
         return saved
+
+    def _engineer(self, project_id: str, frame: Any, target: str, moment: str) -> list[dict[str, Any]]:
+        """The feature engineer's programs for the solution just adopted (18.9: only when its gate passed and a model
+        serves it), saved as a validated move; the ladder keeps them only for a measured gain."""
+        from .. import roles
+
+        project = self.projects.get(project_id)
+        advisor = roles.advisor("feature_engineer", project=project, cap_eur=roles.CALL_CAP_EUR)
+        if advisor is None:
+            return []
+        from dclab_core.features import Language, engineer
+
+        solution = studio_solution.Solution(**project["solution"])
+        prepared = studio_engine.prepare(self.projects, project)
+        entities = [c for c, r in prepared.roles.items() if r == "group"]
+        language = Language([c for c, r in prepared.roles.items() if r == "feature"], target=target,
+                            time_column=solution.time_column, entities=entities)
+        # the engine's own training rows (its bundle, reordered and sampled as the stages see them): the holdout is never read
+        out = engineer(advisor, prepared.bundle.X_train, language, moment=moment, task=solution.task, entities=entities)
+        if not out["programs"]:
+            return []
+        verdict = studio_graph.check(project, "set_settings", "agent", what="the feature engineer's programs")
+        studio_graph.log(self.projects, project_id, verdict, project, outcome="done: programs proposed" if verdict.allowed else None)
+        if not verdict.allowed:
+            return []
+        self.projects.update(project_id, feature_programs=out["programs"])
+        return out["programs"]
 
     def review_labels(self, project_id: str) -> dict[str, Any]:
         project = self.projects.get(project_id)
@@ -302,7 +352,10 @@ class Toolbox:
         project = self.projects.get(project_id)
         data = project.get("data") or {}
         files = {data["filename"]: list(data.get("columns") or [])} if data.get("filename") else None
-        brief = understand(project.get("goal") or "", files)
+        from .. import roles
+
+        brief = understand(project.get("goal") or "", files,
+                           advisor=roles.advisor("problem_analyst", project=project, cap_eur=roles.CALL_CAP_EUR))  # 18.9
         return {"brief": brief.model_dump(mode="json"),
                 "open_questions": [q.text for q in brief.open_questions]}
 

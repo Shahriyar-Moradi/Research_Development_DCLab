@@ -185,7 +185,12 @@ class HomeAgent:
 
         draft = self.store.get(draft_id)
         columns = [c.get("name") for c in ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or [] if c.get("name")]
-        brief = understand(draft.get("problem") or "", {"table": columns} if columns else None)
+        from .. import roles
+
+        # 18.9: the problem analyst fills only the fields the rules left open, when its gate passed and a model serves it
+        # only when this agent runs with a model: replan and the pipeline call it with none, and must stay free
+        advisor = roles.advisor("problem_analyst", draft_id=draft_id, cap_eur=roles.CALL_CAP_EUR) if self.client is not None else None
+        brief = understand(draft.get("problem") or "", {"table": columns} if columns else None, advisor=advisor)
         self.store.update(draft_id, lambda d: d.update(brief=brief.model_dump(mode="json")))
         texts = plans.user_text(draft)
         found: dict[str, str] = {}

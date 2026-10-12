@@ -210,16 +210,23 @@ def provisional_training_rows(index: pd.Index, times: Any = None) -> pd.Index:
     return index[keep]
 
 
-def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None):
+def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None,
+              investigator: Any = None, planner: Any = None, moment: str | None = None, brief: Any = None):
     """dclab_core's findings and plan for this table (package 17.4), read on the provisional training rows only (the
-    earliest ones when the table has a time column)."""
+    earliest ones when the table has a time column). ``investigator`` and ``planner``: the roles' advisors (18.9), when
+    they are on; each proposal is checked by code, and the rules stand when they abstain."""
     from dclab_core.analyse import analyse
     from dclab_core.plan import plan
 
     frame = X.assign(**{target: y})
     times = frame[time_column] if time_column and time_column in frame.columns else None
-    findings = analyse({"table": frame}, target=target, task=task, train_index=provisional_training_rows(frame.index, times))
-    return findings, plan(None, findings)
+    findings = analyse({"table": frame}, target=target, task=task, brief=brief, train_index=provisional_training_rows(frame.index, times),
+                       advisor=investigator, moment=moment)
+    if planner is not None:
+        from dclab_core.plan import plan_with
+
+        return findings, plan_with(planner, brief, findings)["plan"]
+    return findings, plan(brief, findings)
 
 
 def _core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None) -> list[dict[str, Any]] | None:

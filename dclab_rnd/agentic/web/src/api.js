@@ -283,6 +283,7 @@
     exportNotebook: ["GET", "/projects/{project_id}/export/notebook", ["project_id"], []],
     exportReport: ["GET", "/projects/{project_id}/export/report", ["project_id"], []],
     exportSft: ["GET", "/projects/{project_id}/export/sft", ["project_id"], []],
+    exportSolutionReport: ["GET", "/projects/{project_id}/export/solution-report", ["project_id"], []],
     projectGraph: ["GET", "/projects/{project_id}/graph", ["project_id"], []],
     checkMove: ["POST", "/projects/{project_id}/graph/check", ["project_id"], []],
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
@@ -296,6 +297,7 @@
     runStage: ["POST", "/projects/{project_id}/stages/{stage}/run", ["project_id", "stage"], ["wait", "reuse_reason"]],
     research: ["GET", "/research", [], []],
     researchFile: ["GET", "/research/file", [], ["path"]],
+    agentRoles: ["GET", "/roles", [], []],
     runs: ["GET", "/runs", [], []],
     start: ["POST", "/runs", [], []],
     detail: ["GET", "/runs/{run_id}", ["run_id"], []],
@@ -774,6 +776,13 @@
   client.exportSft = (...args) => call('exportSft', args);
   client.path.exportSft = (...args) => build('exportSft', args).path;
   client.href.exportSft = (...args) => '/api' + build('exportSft', args).path;
+  /** GET /api/projects/{project_id}/export/solution-report: Export Solution Report
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.exportSolutionReport = (...args) => call('exportSolutionReport', args);
+  client.path.exportSolutionReport = (...args) => build('exportSolutionReport', args).path;
+  client.href.exportSolutionReport = (...args) => '/api' + build('exportSolutionReport', args).path;
   /** GET /api/projects/{project_id}/graph: Project Graph
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]
@@ -857,6 +866,12 @@
   client.researchFile = (...args) => call('researchFile', args);
   client.path.researchFile = (...args) => build('researchFile', args).path;
   client.href.researchFile = (...args) => '/api' + build('researchFile', args).path;
+  /** GET /api/roles: Agent Roles
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.agentRoles = (...args) => call('agentRoles', args);
+  client.path.agentRoles = (...args) => build('agentRoles', args).path;
+  client.href.agentRoles = (...args) => '/api' + build('agentRoles', args).path;
   /** GET /api/runs: Runs
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Array<Run>>} */

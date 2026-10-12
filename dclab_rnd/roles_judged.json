@@ -1,0 +1,335 @@
+{
+ "generated_by": "make roles-judged",
+ "package": "18.9",
+ "rule": "a role is on by default only where the result its gate was judged on passed, and the analyst, the investigator and the planner only when the whole layer's comparison on the sealed benchmark passed too; the others stay available and off; the team is reported, and is switched by the roles it holds",
+ "roles": [
+  {
+   "role": "problem_analyst",
+   "result": "analyst_v1/results/ANA-004_sealed.json",
+   "experiment_id": "ANA-004",
+   "gate": "analyst_gate_v1",
+   "verdict": "pass",
+   "on": false,
+   "waits_for": "the whole layer's gate (layer_gate_v1)",
+   "comparison": {
+    "rules": {
+     "right": {
+      "hits": 15,
+      "of": 96,
+      "rate": 0.156,
+      "ci95": [
+       0.097,
+       0.242
+      ]
+     },
+     "wrong": {
+      "hits": 4,
+      "of": 96,
+      "rate": 0.042,
+      "ci95": [
+       0.016,
+       0.102
+      ]
+     }
+    },
+    "analyst": {
+     "right": {
+      "hits": 72,
+      "of": 96,
+      "rate": 0.75,
+      "ci95": [
+       0.655,
+       0.826
+      ]
+     },
+     "wrong": {
+      "hits": 4,
+      "of": 96,
+      "rate": 0.042,
+      "ci95": [
+       0.016,
+       0.102
+      ]
+     }
+    },
+    "plain": {
+     "right": {
+      "hits": 71,
+      "of": 96,
+      "rate": 0.74,
+      "ci95": [
+       0.644,
+       0.817
+      ]
+     },
+     "wrong": {
+      "hits": 1,
+      "of": 96,
+      "rate": 0.01,
+      "ci95": [
+       0.002,
+       0.057
+      ]
+     }
+    }
+   },
+   "spent_eur": 0.0074,
+   "solved": 72,
+   "eur_per_solved": 0.0001,
+   "unsafe": [
+    "4 fields read wrong"
+   ]
+  },
+  {
+   "role": "brief_checker",
+   "result": "brief_checker_v1/results/CHK-001_all.json",
+   "experiment_id": "CHK-001",
+   "gate": "brief_checker_gate_v1",
+   "verdict": "fail",
+   "on": false,
+   "comparison": {
+    "caught": {
+     "hits": 6,
+     "of": 7,
+     "rate": 0.857,
+     "ci95": [
+      0.487,
+      0.974
+     ]
+    },
+    "noise": {
+     "hits": 4,
+     "of": 39,
+     "rate": 0.103,
+     "ci95": [
+      0.041,
+      0.236
+     ]
+    }
+   },
+   "spent_eur": 0.0022,
+   "solved": 6,
+   "eur_per_solved": 0.00037,
+   "unsafe": [
+    "4 right fields questioned"
+   ]
+  },
+  {
+   "role": "data_investigator",
+   "result": "investigator_v1/results/INV-002_sealed.json",
+   "experiment_id": "INV-002",
+   "gate": "investigator_gate_v1",
+   "verdict": "pass",
+   "on": false,
+   "waits_for": "the whole layer's gate (layer_gate_v1)",
+   "comparison": {
+    "rules": {
+     "found": {
+      "hits": 33,
+      "of": 35,
+      "rate": 0.943,
+      "ci95": [
+       0.814,
+       0.984
+      ]
+     },
+     "false_alarms": 26
+    },
+    "investigator": {
+     "found": {
+      "hits": 35,
+      "of": 35,
+      "rate": 1.0,
+      "ci95": [
+       0.901,
+       1.0
+      ]
+     },
+     "false_alarms": 26
+    },
+    "plain": {
+     "found": {
+      "hits": 21,
+      "of": 35,
+      "rate": 0.6,
+      "ci95": [
+       0.436,
+       0.744
+      ]
+     },
+     "false_alarms": 13
+    }
+   },
+   "spent_eur": 0.0155,
+   "solved": 35,
+   "eur_per_solved": 0.00044,
+   "unsafe": [
+    "26 clean columns accused"
+   ]
+  },
+  {
+   "role": "solution_planner",
+   "result": "roles_v1/results/ROL-001_planner.json",
+   "experiment_id": "ROL-001",
+   "gate": "planner_gate_v1",
+   "verdict": "pass",
+   "on": false,
+   "waits_for": "the whole layer's gate (layer_gate_v1)",
+   "comparison": {
+    "rules": {
+     "hits": 14,
+     "of": 17,
+     "rate": 0.824,
+     "ci95": [
+      0.59,
+      0.938
+     ]
+    },
+    "planner": {
+     "hits": 15,
+     "of": 17,
+     "rate": 0.882,
+     "ci95": [
+      0.657,
+      0.967
+     ]
+    }
+   },
+   "spent_eur": 0.0018,
+   "solved": 15,
+   "eur_per_solved": 0.00012,
+   "unsafe": [
+    "0 plans the validator refused"
+   ]
+  },
+  {
+   "role": "feature_engineer",
+   "result": "roles_v1/results/ROL-005_engineer_v2.json",
+   "experiment_id": "ROL-005",
+   "gate": "engineer_gate_v2",
+   "verdict": "pass",
+   "on": true,
+   "comparison": {
+    "seeds": [
+     {
+      "seed": 1,
+      "gain_over_raw": 0.5511993848356753,
+      "against_behaviour": 0.10452339201263161
+     },
+     {
+      "seed": 2,
+      "gain_over_raw": 0.6400379926438912,
+      "against_behaviour": 0.09018665414617677
+     }
+    ]
+   },
+   "spent_eur": 0.0011,
+   "solved": 2,
+   "eur_per_solved": 0.00055,
+   "unsafe": [
+    "0 programs refused by the language's checks"
+   ]
+  },
+  {
+   "role": "critic",
+   "result": "roles_v1/results/ROL-003_critic.json",
+   "experiment_id": "ROL-003",
+   "gate": "critic_gate_v1",
+   "verdict": "fail",
+   "on": false,
+   "comparison": {
+    "replicas": [
+     {
+      "replica": "delivery",
+      "one_pass": 8.751663329283396,
+      "rules_loop": 8.751663329283396,
+      "with_critic": 8.751663329283396
+     },
+     {
+      "replica": "tickets",
+      "one_pass": 0.4080757139263469,
+      "rules_loop": 0.4080757139263469,
+      "with_critic": 0.4080757139263469
+     }
+    ]
+   },
+   "spent_eur": 0.0009,
+   "solved": 0,
+   "eur_per_solved": null,
+   "unsafe": []
+  },
+  {
+   "role": "reporter",
+   "result": "roles_v1/results/ROL-006_reporter.json",
+   "experiment_id": "ROL-006",
+   "gate": "reporter_gate_v1",
+   "verdict": "pass",
+   "on": true,
+   "comparison": {
+    "kept": 28,
+    "dropped": 6,
+    "failed_recheck": 0
+   },
+   "spent_eur": 0.0025,
+   "solved": 3,
+   "eur_per_solved": 0.00083,
+   "unsafe": [
+    "0 kept sentences failing the re-check"
+   ]
+  },
+  {
+   "role": "team",
+   "result": "team_v1/results/TEAM-001_three_replicas.json",
+   "experiment_id": "TEAM-001",
+   "gate": "team_gate_v1",
+   "verdict": "fail",
+   "on": false,
+   "comparison": {
+    "replicas": [
+     {
+      "kind": "rare_event",
+      "status": "completed",
+      "acceptance_ok": true,
+      "roles_answered": [
+       "data_investigator",
+       "feature_engineer",
+       "problem_analyst",
+       "reporter"
+      ]
+     },
+     {
+      "kind": "binary",
+      "status": "completed",
+      "acceptance_ok": false,
+      "roles_answered": [
+       "feature_engineer",
+       "problem_analyst",
+       "reporter",
+       "solution_planner"
+      ]
+     },
+     {
+      "kind": "regression",
+      "status": "completed",
+      "acceptance_ok": true,
+      "roles_answered": [
+       "critic",
+       "feature_engineer",
+       "reporter"
+      ]
+     }
+    ]
+   },
+   "spent_eur": 0.0084,
+   "solved": 2,
+   "eur_per_solved": 0.0042,
+   "unsafe": []
+  },
+  {
+   "role": "layer",
+   "result": "team_v1/results/LAYER-001_judged.json",
+   "verdict": "not measured",
+   "on": false
+  }
+ ]
+}

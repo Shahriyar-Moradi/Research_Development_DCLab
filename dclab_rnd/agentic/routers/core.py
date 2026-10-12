@@ -175,6 +175,18 @@ async def problem_kinds():
                     "read by the per-kind agents and evidence of package 16.14, not yet by the engine"}
 
 
+@router.get("/api/roles", response_model=Page)
+async def agent_roles():
+    """Each of dclab_core's roles: on by default only where its gate passed (18.9), or as DCLAB_ROLES says; and the
+    judged table behind it (the result, the comparison, the euros)."""
+    import json as _json
+
+    from ... import roles
+
+    judged = _json.loads(roles.JUDGED.read_text(encoding="utf-8")) if roles.JUDGED.exists() else {"roles": []}
+    return {"roles": roles.status(), "judged": judged.get("roles", []), "rule": judged.get("rule")}
+
+
 @router.get("/api/samples", response_model=list[Doc])
 async def samples():
     return studio_data.sample_catalog()

@@ -127,4 +127,6 @@ def solution_fields_from_plan(plan: SolutionPlan, target: str, prediction_moment
         "group_column": split.get("group_column"), "time_column": time_column,
         "forbidden": forbidden,
         "identifiers": list(choice("features.identifiers", []) or []), "metric": metric, "notes": " ".join(notes),
+        **({"labels": "partial", "label_provenance": "the plan reads the labels as partial: an unmarked row is unknown"}
+           if choice("labels.coverage") == "partial" else {}),
     }
