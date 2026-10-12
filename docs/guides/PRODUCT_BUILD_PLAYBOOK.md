@@ -130,7 +130,7 @@ How to work:
 | 8.3 | Remove the old UI at `/classic` | Done (2026-10-07) | The owner decided: drop the old UI; research campaigns stay on the command line (`python -m dclab_rnd.agentic run|resume`). An inventory of what only the old UI did: starting, pausing and resuming campaigns (now the command line; Ctrl+C pauses a run, and Compute shows a stopped run's resume command), the Knowledge view of campaign lessons (`/api/knowledge` stays for API users), and four things now built in the product with its existing components: deleting a project (Workflow page) and an intern session (Sessions tab), each with a confirm dialog; a link to the field guide `/guide` (Evidence); and each research trial's files (Compute's job detail). Removed: the `/classic` route, its 16 files in `agentic/static/{index.html,css,js}`, its entry among the public page shells, Compute's "Open in the classic UI" link and the stale Playwright script that drove the old page; the docs and texts that pointed to it now name the command line. The `/api/runs` routes stay (the Jobs page's export link, the command line's runs and API users read them); tests check that `/classic` and its files answer 404 and that the research map is on the Lab page |
 | 8.4 | Meter the euro budget | Done (built in A1.2, 10.6 and 11.x; recorded 2026-10-07) | The owner decided: model spend at a price list; compute on this machine is not billed. Every model request of the product (Home agent, intern, evidence, parsing, synthetic, explanations) goes through the gateway, which records its tokens with the project (`models/usage.py`), turns them into euros with the one price table (`models/prices.py`, or a file named by `DCLAB_PRICES_FILE`), shows the month's total on Compute and Admin, and refuses before sending a request that would pass the project's wizard budget, an intern session's cap, the workspace's `DCLAB_WORKSPACE_MONTHLY_EUR` or a person's monthly limit, saying which and what is left (the legacy research campaign's own client is stopped only once a cap is reached: `check_external`). Open: no price is configured (none is ever guessed), so until the owner adds the model's checked price to `models/prices.py` or to a JSON file named by `DCLAB_PRICES_FILE` the pages say money is not metered and euro caps cannot stop remote requests; local models cost nothing |
 
-Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file.
+Part 2 (packages 9–13, the software foundation) is done; its table is in Part 2. Part 3 (packages 14.x, proving it works: a frozen benchmark, live model checks, a user study, staging) starts at the end of this file. Part 4 (packages 15.x, rare events with partial labels: what a fraud challenge taught, built so DCLab solves such problems itself) follows it.
 
 ---
 
@@ -1181,3 +1181,266 @@ and store the result as evidence. Never tune a prompt or a rule on the sealed se
 2. **14.5** with the scripted policies, then **14.4** (the reviewers).
 3. **14.2** when there is credit, then **14.5** with the live models.
 4. **14.6**, then **14.7**; **14.8** last.
+
+# Part 4 — Rare events with partial labels (fraud and abuse)
+
+**Why this Part.** On 2026-10-07 the owner gave a hiring challenge as a probe of what DCLab can do: detect fraud by
+bikers and customers in a city's delivery rides, with a small sample of known fraudulent rides in a second file. A
+complete hand solution was built outside this repository (`../Snap_fruad/`, with its own git history). Its lessons,
+in the order they mattered:
+
+1. **The labels are the hardest part.** The sample joins to the ride table on the order, not on (customer_id,
+   biker): the table has two customer ids, so the coarse join turned 94 known frauds into 3,416. The rest of the
+   table is *unlabelled*, not clean (a positive-unlabelled problem), and 8 sample rows are not in the table at all.
+   One column means different things in the two files (the receiver's phone in the sample, the sender's in the table).
+2. **Rows cluster on entities.** 94 frauds sit on 53 bikers; a random split lets a model recognise the biker. Every
+   honest number came from folds grouped by biker and a cluster bootstrap over bikers.
+3. **The signal is behaviour, not columns.** A fake ride ends where it starts (median 26 m against 323 m) and the same
+   biker returns to the same drop-off square. Entity and place counts, repeat shares and shrunk rates separated
+   frauds (single-feature AUC up to 0.90); raw columns did not (0.76 at best).
+4. **Compare families, choose by a rule written first.** Rules, seven anomaly detectors, seven classifiers (with PU
+   bagging), hybrids and a blend on identical folds and resamples. Average precision 0.081–0.095 for the top group
+   (about 115–135 times chance), ECOD 0.050 with no label at all; PU bagging chosen as tied with the top and built
+   for partial labels. Recall in the top 0.5 % of rides is the number an analyst plans with.
+5. **Say what the data cannot show.** A train-on-past check fell to AP 0.010, because the later frauds are of a kind
+   the table cannot see (no receiver phone). Precision is a lower bound.
+6. **Ship it.** A scoring API (Flask + Gunicorn) in Docker, the same features in training and serving, tests on
+   synthetic rides.
+
+**What DCLab has and lacks today** (read from the code on 2026-10-12): it has average precision as the default
+metric below 10 % positives, grouped CV (`StratifiedGroupKFold`), a cluster bootstrap, majority and chance baselines,
+static detection of oversampling and preprocessing before the split, and an "Imbalanced and fraud" pack. It lacks:
+a second file of labels (a project has one table), any notion of partial labels (unlabelled rows count as negatives),
+a check of the join key, entity behaviour features (all derivations are row-wise), anomaly detectors and PU learning
+(none in the code), alert-budget metrics, a split that is both time-ordered and grouped (time wins and entities leak),
+a pack that changes what the engine does (the imbalanced pack only relabels workflow steps), copilot checks for the
+mistakes above, measured evidence for them, benchmark cases of this kind, and an export to a scoring service.
+
+**Goal of the Part.** Given a ride table and a sample file of known frauds, DCLab reaches the hand solution's
+decisions on its own: the right join, partial labels declared, folds grouped by the entity, behaviour features
+fitted inside folds, rules, anomaly and supervised families compared on an alert budget, a model chosen by a rule
+with intervals, the limits said, and a scoring service exported.
+
+**The challenge's data is confidential** ("must not be disclosed or distributed"): it never enters this repository,
+a campaign, a prompt, the SFT corpus or a benchmark. Everything here is built and tested on a synthetic replica
+(15.1). The real data is used once, on the owner's machine, for 15.11, and only aggregate numbers are recorded.
+
+| # | Package | Status |
+|---|---|---|
+| 15.1 | A synthetic replica of the challenge and its acceptance test | Not started |
+| 15.2 | A label file: join, key check, partial labels | Not started |
+| 15.3 | Alert-budget metrics and a time-and-group split | Not started |
+| 15.4 | Entity behaviour features, fitted inside folds | Not started |
+| 15.5 | Rules, anomaly detectors and PU learning in the model screen | Not started |
+| 15.6 | The fraud pack reaches the engine; Home asks the right questions | Not started |
+| 15.7 | Copilot checks and measured pitfalls for these mistakes | Not started |
+| 15.8 | Evidence: the FRD track's comparison of families | Not started |
+| 15.9 | Benchmark v3: rare-event cases (dev first, a new sealed version) | Not started |
+| 15.10 | Export a finished project as a scoring service | Not started |
+| 15.11 | Acceptance on the real challenge, on the owner's machine | Waiting: 15.1–15.10 |
+
+## 15. Rare events with partial labels
+
+### 15.1 A synthetic replica of the challenge and its acceptance test
+
+- **Delivers:** a seeded generator `delivery_fraud` in `draft/synthetic.py` that writes two files: a ride table
+  (terminals of orders, bikers, two customer accounts, sender phones, coordinates, fares, cancelled rides without a
+  biker) and a sample of known frauds (a minority of the planted ones, joined by order id, with the receiver's phone
+  under the name the table uses for the sender's, and a few rows whose orders are not in the table). Planted
+  behaviour: fake rides that end within metres of the pick-up at a repeated drop-off, self-dealing phones, frauds
+  concentrated on a few bikers, and a kind of fraud that the table cannot show. Plus
+  `tests/test_fraud_acceptance.py`: the decisions DCLab must reach on the replica (join on the order; the pair join
+  refused with the inflation it causes; labels declared partial; folds grouped by biker; behaviour features chosen
+  over raw columns; average precision and recall at the budget above the chance and majority baselines; a model chosen
+  by the selection rule with intervals; the limit about the unseen kind of fraud stated). The test is marked
+  expected-to-fail and each later package turns one part of it green.
+- **Done when:** the generator is deterministic per seed and validated (the planted signal is recoverable by the hand
+  solution's method, recorded as numbers in the test), and the acceptance test runs and fails for the known reasons.
+
+```text
+Package 15.1. Read Part 4's lessons. Add a seeded delivery_fraud generator to draft/synthetic.py that writes a ride
+table and a separate sample of known frauds with the traps listed in 15.1 (coarse key that inflates labels, partial
+labels, rows missing from the table, a column whose meaning differs between the files, entity clustering, a fraud
+kind the table cannot show). No confidential data: invent everything. Write tests/test_fraud_acceptance.py with the
+decisions a careful data scientist reaches on it, marked xfail per part, and a test that the planted signal is
+recoverable. Do not change the engine in this package.
+```
+
+### 15.2 A label file: join, key check, partial labels
+
+- **Delivers:** a project can hold a table and a label file (`attach_labels`; the draft's second asset is kept by
+  `build_project`). The join key is chosen and checked by code: for each candidate key, how many table rows one label
+  row would mark; a key that marks more than one row per label (or more rows than the sample has) is refused with the
+  inflation as the reason, unless the person states that the label is per entity. Label rows not found in the table
+  are counted and kept apart. Columns with the same name are compared and flagged when their values do not match
+  (the phone case). `Solution` gains `labels: complete | partial` (default complete; partial when labels come from a
+  sample or the person says so) and the label provenance; `prepare()` no longer treats a missing label as a negative
+  without that declaration. A new graph move `attach_labels` and an intern tool `review_labels` (read) that reports
+  the key check.
+- **Done when:** the replica's labels are joined on the order, the pair join is refused with "94 → 3,416"-style
+  numbers, partial labels reach the solution and the stage record, the moves are logged, and the PostgreSQL store
+  holds the label file too (`make check-all`).
+
+```text
+Package 15.2. Let a project hold a label file next to its table. Implement the join-key check in code (rows marked
+per label row, labels not found, same-named columns that disagree), refuse an inflating key with the numbers, and
+add Solution.labels = complete|partial with provenance. Add the attach_labels move to studio/graph.py and a read tool
+review_labels to the project scope. Keep the draft's second asset in build_project. File and PostgreSQL stores both.
+Turn the label parts of tests/test_fraud_acceptance.py green.
+```
+
+### 15.3 Alert-budget metrics and a time-and-group split
+
+- **Delivers:** `recall_at_budget`, `precision_at_budget` and AP lift in `binary_metrics`; `Solution.alert_budget`
+  (a share of rows an analyst can review, asked in words like "about 70 a day"); the budget metric selectable as the
+  primary metric. A split that is time-ordered *and* keeps entities apart (forward folds where an entity seen in a
+  training fold is removed from the later test fold, with the number removed reported), used when both a time and a
+  group column are declared, instead of silently dropping the group. With partial labels, every precision is reported
+  as a lower bound.
+- **Done when:** the metrics have tests against hand-computed values, the split never puts an entity on both sides
+  (tested), and the replica's final stage reports recall at the budget with a cluster-bootstrap interval.
+
+```text
+Package 15.3. Add recall/precision at an alert budget and AP lift to the engine's binary metrics, a Solution field
+alert_budget, and the budget metric as a primary-metric choice. Add a split for time plus group (no entity on both
+sides; report what was removed) and use it when both columns are declared. Mark precision as a lower bound when the
+labels are partial. Tests with hand-computed values and an entity-overlap test.
+```
+
+### 15.4 Entity behaviour features, fitted inside folds
+
+- **Delivers:** a recipe `entity_behaviour` in `expansion/runner.py`: for the declared entity columns (the group
+  column and others named in the solution) and for place cells derived from coordinates, counts per entity, per
+  entity and day, per entity and place, per place and route; repeat counts and shares; rates shrunk towards the
+  training mean. The count tables are fitted on the training fold only. Two modes follow the prediction moment: an
+  *audit window* (all rides of the window are known when scoring, labels never) and *at the event* (only earlier
+  rows); the moment decides which, and the choice is written in the stage record. The feature ladder compares it with
+  the row-wise recipes as usual.
+- **Done when:** a test shows no test-fold row changes a training-fold feature, the at-the-event mode uses no later
+  row (tested), and on the replica the ladder picks the behaviour recipe for a measured reason.
+
+```text
+Package 15.4. Add an entity_behaviour recipe to the feature ladder: count tables per entity, entity-day,
+entity-place, place and route (place = a grid cell from coordinates when present), repeat shares and shrunk rates,
+fitted on training folds only. Two modes chosen from the prediction moment: audit window or past rows only; record
+the mode. Tests for fold isolation and for no future rows in the at-the-event mode.
+```
+
+### 15.5 Rules, anomaly detectors and PU learning in the model screen
+
+- **Delivers:** for binary rare-event tasks, three more families in `MODEL_FAMILIES`: a percentile rule score
+  (thresholds from the unlabelled training rows), unsupervised detectors (Isolation Forest and ECOD by default; LOF
+  and others available) fitted on the training fold without labels and without any resampling, and PU bagging when
+  the labels are partial. Detectors are ranked on the same folds and metrics as classifiers. The selection rule for
+  this task is written in the stage record before the screen runs: the best bootstrap mean on the primary metric,
+  and a simpler family when the paired interval includes zero.
+- **Done when:** the screen on the replica lists all families with intervals, a resampling step can never precede a
+  detector (tested), and the choice cites the rule.
+
+```text
+Package 15.5. Add rule, anomaly (IsolationForest, ECOD; LOF optional) and PU-bagging families to the model screen
+for binary rare-event tasks. Detectors never see labels or resampled rows. Write the selection rule (best bootstrap
+mean; a simpler family wins when the paired interval includes zero) into the record before the screen. Tests on the
+replica and a test that no resampler precedes a detector.
+```
+
+### 15.6 The fraud pack reaches the engine; Home asks the right questions
+
+- **Delivers:** the imbalanced pack sets engine defaults (primary metric, alert budget, the anomaly and PU families,
+  the behaviour recipe, the time-and-group split) through one place the engine reads, not only workflow labels. Home
+  asks, in the pack's words, what is scored (a ride, a transaction), who could commit the fraud (the entity), whether
+  the labels are complete or a sample, whether they come in a separate file, and how many alerts a day the team can
+  review. Data signals pick the pack when the positive rate is below 1 % (promised in `detect`, not built).
+- **Done when:** a draft of the replica, started with "find fraudulent rides of bikers", reaches a solution with the
+  entity, partial labels, the label file and the budget, using no more than the allowed questions, and the built
+  project runs with the pack's defaults (scripted model and the no-model fallback both tested).
+
+```text
+Package 15.6. Make the imbalanced pack change engine defaults through one function the engine reads. Extend the Home
+agent's questions for this pack: scored unit, entity, label coverage, label file, review budget; keep MAX_QUESTIONS.
+Pick the pack from data when positives are under 1 %. Tests with a scripted model and with the fallback.
+```
+
+### 15.7 Copilot checks and measured pitfalls for these mistakes
+
+- **Delivers:** new copilot detectors: a label made by `isin`/`merge` on a key that is not unique in the table and then
+  assigned to a target; ROC-AUC or F1 computed on hard predictions at a rare prevalence; SMOTE followed by CV on the
+  resampled set, or SMOTE in a CV loop without an imbalanced-learn pipeline; an anomaly detector fitted on
+  resampled data; a random split when an id-like column repeats across rows (with the column read from the
+  notebook). Each cites a rule and a measured pitfall: PIT-007 label inflation by a coarse key, PIT-008 random split
+  on entity-clustered rows, PIT-009 anomaly detection on oversampled data, PIT-010 threshold metrics at rare
+  prevalence, run on the replica and a public table.
+- **Done when:** the two original challenge notebooks' *patterns* (rewritten on the replica, never the real data)
+  raise each finding, a corrected notebook raises none of medium or high severity, and the PIT records are in the
+  evidence index after `make knowledge`.
+
+```text
+Package 15.7. Add the copilot detectors listed in 15.7 to copilot/analyzer.py, each with a rule and a precedent
+query. Measure PIT-007..PIT-010 in pitfalls.py on the replica and a public table (wrong way vs right way). Add an
+example leaky notebook and a clean one on the replica; tests that the leaky one raises each finding and the clean one
+raises none of medium or high severity. make knowledge.
+```
+
+### 15.8 Evidence: the FRD track's comparison of families
+
+- **Delivers:** the `anomaly-and-fraud-detection` track scaffolded (`make new-track`) and FRD-002 run as a campaign:
+  rules, anomaly detectors, classifiers, PU bagging and hybrids on the replica (several seeds and label shares) and on
+  the public card-fraud table, with grouped or time splits, cluster-bootstrap intervals and paired tests. FRD-003: the
+  alert budget against the expected cost per 1,000 events. Claims are written with their limits and become evidence
+  records the agents can cite.
+- **Done when:** the campaign files are immutable results with provenance, `make rd-sync knowledge research-index` is
+  clean, and an agent asked "which method for rare fraud with few labels?" cites FRD records.
+
+```text
+Package 15.8. Scaffold the anomaly-and-fraud-detection track and run FRD-002 (families compared on the replica over
+seeds and label shares, and on the public card-fraud table) and FRD-003 (budget vs cost) as an evidence campaign,
+with intervals, paired tests and limits. Register the records, rebuild the knowledge, and test that a search for the
+question cites them.
+```
+
+### 15.9 Benchmark v3: rare-event cases
+
+- **Delivers:** new rare-event bases and traps for the frozen benchmark (label inflation by key, partial labels,
+  entity clustering, oversampling before an anomaly detector), dev cases first. Because adding a trap changes the
+  sealed set, this is **benchmark_v3** with new fingerprints and its own campaign; v2 and its results stay as they are.
+- **Done when:** v3 is frozen, the scripted policies are scored on dev and once on the sealed set, and no prompt or rule
+  was changed after a sealed-set run.
+
+```text
+Package 15.9. Add rare-event bases and the traps in 15.9 to agent_eval/benchmark.py as benchmark_v3 (new VERSION,
+new sealed fingerprints, new campaign folder; v2 untouched). Build on dev; score the scripted policies on dev, then
+once on the sealed set, recorded. Never tune on the sealed set.
+```
+
+### 15.10 Export a finished project as a scoring service
+
+- **Delivers:** next to the notebook export, a service export: a small package with the fitted feature builder and
+  model, a Flask app served by Gunicorn (health, model, predict for one, many or a CSV), a Dockerfile without data, and
+  tests generated from the project's synthetic rows. With the behaviour recipe, the service adds a batch's counts to
+  the stored ones without counting a known row twice, so training and serving compute the same features.
+- **Done when:** the export of the replica project builds, its own tests pass, the Docker image runs in the end-to-end
+  flows, and the export refuses a project whose final stage is not approved.
+
+```text
+Package 15.10. Add a service export for finished projects: model and feature builder, Flask + Gunicorn app,
+Dockerfile with no data, generated tests. Same features in training and serving (test it). Refuse unapproved
+projects. Add the flow to make product-e2e.
+```
+
+### 15.11 Acceptance on the real challenge, on the owner's machine
+
+- **Needs:** 15.1–15.10, and the owner running it locally with the challenge's files.
+- **Delivers:** DCLab run on the real files from a draft, with the owner answering Home's questions; its decisions and
+  numbers compared with the hand solution in `../Snap_fruad/` (join, entity, split, features, chosen family, average
+  precision and recall at the budget with intervals). Only aggregate numbers are recorded; no row, id or file of the
+  challenge enters the repository.
+- **Done when:** each decision matches or the difference is explained, and the result is recorded as evidence about
+  this case only, never as a general claim.
+
+## Suggested order for Part 4
+
+1. **15.1** first: the replica and the acceptance test define "done" for everything else.
+2. **15.2** and **15.3** (labels, metrics, split): without them every later number is wrong.
+3. **15.4** and **15.5** (features and families), then **15.6** (the pack and Home).
+4. **15.7** and **15.8** (checks and evidence) can run beside 3.
+5. **15.9**, then **15.10**; **15.11** last, with the owner.
