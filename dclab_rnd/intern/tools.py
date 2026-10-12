@@ -140,6 +140,9 @@ def register(registry: Registry) -> None:
         "Create a new notebook project. Returns its project_id. New projects run in quick mode (3,000 rows) unless set_settings changes it.", "write", "create_project")
     add("use_sample", {**pid, "key": {**S, "description": "A key from list_samples."}}, ["project_id", "key"],
         "Load a sample dataset into the project. Returns the data profile and the solution suggestion the R&D wrote for it.", "write", "attach_data")
+    add("understand_problem", pid, ["project_id"], "Read the project's goal and its table's column names into a problem brief: task, unit, "
+        "target, label source and coverage, prediction moment, entities, time column, constraints, deliverables, each stated (with the "
+        "person's words), inferred (with a reason) or unknown, and the open questions ranked by how much they change the plan. Changes nothing.")
     add("describe_data", pid, ["project_id"], "Describe the project's table: rows, columns (kind, missing, unique, examples), candidate targets, time/identifier/text columns, and the solution suggestion if any.")
     add("propose_solution", {**pid, "target": S, "task": {**S, "enum": ["binary", "multiclass", "regression"]}}, ["project_id", "target"],
         "Audit the columns for a chosen target and propose a solution: task, forbidden columns with reasons and proof, identifiers, time/group/text candidates, metric.",
@@ -218,7 +221,20 @@ class Toolbox:
                 "target_candidates": profile["target_candidates"], "time_candidates": profile["time_candidates"],
                 "id_candidates": profile["id_candidates"], "text_candidates": profile["text_candidates"],
                 "suggestion": project.get("suggestion"), "solution": project.get("solution"),
-                "memory": studio_memory.summary(project)}  # A5.2: what earlier sessions and people decided
+                "memory": studio_memory.summary(project),  # A5.2: what earlier sessions and people decided
+                "brief": self._compact_brief(project)}  # 17.2: the problem as understood, before anything is run
+
+    @staticmethod
+    def _compact_brief(project: dict[str, Any]) -> dict[str, Any]:
+        """The known fields of the project's problem brief (value and how it is known) and its open questions: a few
+        lines, so the intern starts from the problem without paying for the whole brief on every call."""
+        from dclab_core.understand import understand
+
+        data = project.get("data") or {}
+        brief = understand(project.get("goal") or "", {data["filename"]: list(data.get("columns") or [])} if data.get("filename") else None)
+        known = {name: {"value": fact.value, "how": fact.status}
+                 for name, fact in brief if hasattr(fact, "status") and getattr(fact, "known", False)}
+        return {"known": known, "open_questions": [q.text for q in brief.open_questions][:4]}
 
     def propose_solution(self, project_id: str, target: str, task: str | None = None) -> dict[str, Any]:
         project = self.projects.get(project_id)
@@ -229,6 +245,18 @@ class Toolbox:
         self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
         return {k: proposal[k] for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
                                          "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint")}
+
+    def understand_problem(self, project_id: str) -> dict[str, Any]:
+        """The problem as dclab_core reads it (package 17.2): the project's goal and its table's column names (never
+        values) -> a ProblemBrief, every field stated with its quote, inferred with its reason, or open with a question."""
+        from dclab_core.understand import understand
+
+        project = self.projects.get(project_id)
+        data = project.get("data") or {}
+        files = {data["filename"]: list(data.get("columns") or [])} if data.get("filename") else None
+        brief = understand(project.get("goal") or "", files)
+        return {"brief": brief.model_dump(mode="json"),
+                "open_questions": [q.text for q in brief.open_questions]}
 
     def review_leakage(self, project_id: str, target: str, prediction_moment: str | None = None) -> dict[str, Any]:
         """The leakage reviewer (A3.2): which columns are written after the prediction moment, each with a reason and a

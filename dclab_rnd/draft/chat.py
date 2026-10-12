@@ -169,7 +169,30 @@ class HomeAgent:
             if field not in filled and not u.get(field):
                 self.note(draft_id, field, quote, "stated", "problem", quote)
                 filled.append(field)
+        for field, quote in self.read_brief(draft_id).items():  # package 17.2: dclab_core reads what the rules left open
+            if field not in filled and not u.get(field):
+                self.note(draft_id, field, quote, "stated", "problem", quote)
+                filled.append(field)
         return filled
+
+    def read_brief(self, draft_id: str) -> dict[str, str]:
+        """The problem as dclab_core understands it (the library the main product adopts), kept on the draft as
+        ``draft["brief"]``. Returns only what Home may take from it, in the user's own words (``plans.quoted``): a target
+        the sentence binds to a column, and the action. The prediction moment stays with Home's own rules (``extract``),
+        which are the ones tested for leakage; a cost or a review capacity is not taken as the action."""
+        from dclab_core.understand import understand
+
+        draft = self.store.get(draft_id)
+        columns = [c.get("name") for c in ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or [] if c.get("name")]
+        brief = understand(draft.get("problem") or "", {"table": columns} if columns else None)
+        self.store.update(draft_id, lambda d: d.update(brief=brief.model_dump(mode="json")))
+        texts = plans.user_text(draft)
+        found: dict[str, str] = {}
+        if brief.target_column.status == "stated" and plans.quoted(brief.target_column.quote, texts):
+            found["target"] = brief.target_column.quote
+        if brief.action.status == "stated" and plans.quoted(brief.action.quote, texts):
+            found["action"] = brief.action.quote
+        return found
 
     @turn
     def replan(self, draft_id: str) -> None:
@@ -244,6 +267,7 @@ class HomeAgent:
     @turn
     def data_ready(self, draft_id: str, asset: dict[str, Any]) -> None:
         """The table is analysed: describe it briefly, update the pack from data signals and the workflow, ask about the outcome."""
+        self.read_brief(draft_id)  # the brief again, now with the table's column names (entities, time, a bound target)
         draft = self.store.get(draft_id)
         analysis = draft.get("analysis") or {}
         s = analysis.get("summary") or {}
