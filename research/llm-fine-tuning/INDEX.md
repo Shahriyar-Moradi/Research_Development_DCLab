@@ -14,6 +14,7 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 | Experiment | Result files | Notebooks | Scripts | Entry point |
 |---|---:|---:|---:|---|
+| [dev_trajectories](experiments/dev_trajectories) | 0 | 0 | 0 | [README.md](experiments/dev_trajectories/README.md) |
 | [sft](experiments/sft) | 0 | 0 | 4 | [README.md](experiments/sft/README.md) |
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):

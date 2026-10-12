@@ -1,0 +1,52 @@
+{
+ "package": "14.4",
+ "title": "Expert review of the benchmark's labels (kit built)",
+ "date": "2026-10-07",
+ "request": "Two reviewers should label a sample of benchmark cases (dev and test) without seeing the expected decisions, and the agreement between them and with the benchmark should be measured; labels corrected on dev, and the sealed set frozen after review (a new version if a test label changes, never an edit). The reviewers are not yet named, so build the kit that does not need them.",
+ "spec": "A blank form per reviewer for a stratified sample; agreement and Cohen's kappa between the reviewers and with the benchmark; disagreements recorded; a changed sealed label makes a new benchmark version.",
+ "plan": [
+  "Write dclab_rnd/agent_eval/review.py: export writes a blank form per reviewer for a stratified sample of dev and test cases (one row per column: name, kind, missing share, distinct count, three values; the reviewer fills keep_out, usable, time or group) under anonymous references, with a key only the owner keeps.",
+  "agreement reads the two returned forms and reports agreement and Cohen's kappa between the reviewers and with the benchmark, every disagreement with all three views, and the cases both confirm.",
+  "Write tests; review with the other kits; fix the two findings on the form and the agreement; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Cases appear under anonymous references in an order unrelated to the benchmark's, with the key kept by the owner.",
+   "why": "A case's name or position would tell the reviewer which trap was planted."
+  },
+  {
+   "decision": "A form or a key is never overwritten.",
+   "why": "A reviewer's returned answers are evidence; regenerating the form could silently change the sample."
+  }
+ ],
+ "change": "New dclab_rnd/agent_eval/review.py (export and agreement) and tests/test_label_review.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The form's column order showed which column was planted.",
+   "scenario": "Every generator appends the planted column last, so after a base's shared columns the last row was always the added one (for example a refund paid after the outcome, an exit rating, a claim number); the reviewer could also diff cases of one base.",
+   "cause": "Columns were listed in table order.",
+   "fix": "Shuffle the columns inside each case with a seeded generator keyed by the reference; mention the repeated bases in the protocol.",
+   "test": "test_the_columns_of_a_case_do_not_show_which_one_was_added."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A case could be 'confirmed by both' with its planted column never reviewed.",
+   "scenario": "Both reviewers fill only the clean columns of a missing-is-outcome case and leave the planted score blank; it lands in the confirmed cases, because agreement was built only from rows both reviewers decided.",
+   "cause": "A blank was silently ignored rather than counted as undecided.",
+   "fix": "A case is confirmed only when every benchmark-labelled column is decided by both reviewers and matches; per-case coverage and undecided labelled columns are reported.",
+   "test": "test_a_case_whose_planted_column_was_left_blank_is_not_confirmed."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Kit built (c291a1b), open on two reviewers: export and agreement are tested, including chance-corrected kappa and refusal of a wrong word; no review has run.",
+ "lessons": [
+  "A blind review form leaks through order and position as easily as through names; shuffle within each case.",
+  "A blank is not agreement: confirmation must require the labelled items to be decided."
+ ],
+ "commits": ["c291a1b"]
+}

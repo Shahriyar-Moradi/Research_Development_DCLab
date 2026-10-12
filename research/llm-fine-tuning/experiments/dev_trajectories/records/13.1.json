@@ -1,0 +1,95 @@
+{
+ "package": "13.1",
+ "title": "A typed API client and consistent loading and error states",
+ "date": "2026-10-07",
+ "request": "The pages wrote 98 request paths by hand, so a renamed route or a missing parameter only showed up as a 404 in someone's browser, and each page said 'could not load' in its own way. Generate one API client from the server's OpenAPI schema into the frontend's api.js and make every view use it; give every view the same loading, empty and failed states with existing components; a signed-out answer sends the user to sign-in; change no layout, colour or wording that already exists.",
+ "spec": "src/api.js generated from the OpenAPI schema, one function per route; every view uses it instead of path strings; loading, empty (what to do next) and failed (what happened, try again) states from existing components; signed-out goes to sign-in; no change to existing layout, colour or wording.",
+ "plan": [
+  "Measure how views call the API today (98 calls) and check that the server's route function names are unique enough to name the client's functions.",
+  "Write the generator (dclab_rnd/agentic/web/client.py): read the schema from the app, recover each function name from FastAPI's operationId (included routers do not show as plain routes), emit JSDoc-typed functions with path parameters encoded and required and unknown query parameters refused at run time.",
+  "Rewrite the 98 call sites with a codemod that matches each path against the routes and prints what it cannot convert; convert the two left (the audit page's built-up filters and Compute's action links) by hand; add DC.client.path and href for the event streams and downloads.",
+  "Make make web regenerate api.js and the build's --check fail when it is stale.",
+  "Build DC.states from the existing empty component and warning callout; track each page's load to show Loading… when slow and the failure with Try again.",
+  "Write tests; check all 19 pages in a real browser on a throwaway workspace on files (never the development database), then with one read made to fail.",
+  "Run make check-all and the reviewer; fix the three findings, re-check in the browser, re-review; commit the separate CI test fix on its own, then 13.1."
+ ],
+ "decisions": [
+  {
+   "decision": "Name each client function after the route's Python function.",
+   "why": "The names were unique and read well (DC.client.getProject(id)), and they stay stable when a path changes."
+  },
+  {
+   "decision": "Rewrite the call sites with a codemod that refuses what it cannot match.",
+   "why": "98 hand edits invite silent mistakes in method, parameter order or encoding; a codemod checked against the route table converts the plain cases exactly and lists the rest."
+  },
+  {
+   "decision": "Generating the client builds a server on a scratch folder on files, and importing the server no longer builds its app (made on first use).",
+   "why": "The build runs in rd-check on every machine; it must work with the database stopped and must never open the owner's workspace or database."
+  },
+  {
+   "decision": "A page's failure is credited only to the page that started the request.",
+   "why": "Polls and slow reads from a page just left would otherwise put another page's error on the current one."
+  }
+ ],
+ "change": "New dclab_rnd/agentic/web/client.py (generator) and src/api.js (generated DC.client); build.py writes api.js and --check fails when stale; core.js splits api() into api and request with a quiet option and failure recording, adds DC.states and page-level loading tracking with enterView in the router; every views/*.html rewritten from DC.api('/path') to DC.client.<name>(...); tests/test_web_client.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Generating the client started the real server with the real environment.",
+   "scenario": "_app() imported the server before patching the environment; importing server.py loads .env and builds a module-level app, so make web, build --check (part of rd-check) and the client test built a full server on the owner's workspace folder against whatever database .env named, inserting a workspace row and running the audit backfill. With an unreachable database URL, or DCLAB_ALLOWED_HOSTS set without sign-in, build --check crashed with 'DCLab cannot start'.",
+   "cause": "The import ran outside the patch, and the server module built its app at import time.",
+   "fix": "The server's app is built on first use through a module __getattr__ (uvicorn's import string still resolves it); _app() imports inside the patch, empties the database, auth, hosts, files and metrics settings, drops DCLAB_*_FILE and points the workspace at a scratch folder.",
+   "test": "test_generating_the_client_opens_no_workspace_and_no_database: in a subprocess, importing the server does not build the app and the workspace folder is never created."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Home and Intern had no loading or failed state, though every page was said to have them.",
+   "scenario": "/api/workspace returns 500: Home keeps the static sample stats with no warning, no Loading… and no Try again, because its enter did not return its loads and loadWorkspace swallowed the error; Intern's enter did not return sync(), so a failed list left the sample silently.",
+   "cause": "Page tracking only sees a page whose enter returns a promise.",
+   "fix": "Home's enter returns Promise.all of its loads; Intern's enter returns this.sync(); the failed read is recorded before the page's own catch.",
+   "test": "Checked in the browser with a failing workspace read."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failure could be shown on the wrong page, and an old banner stayed up while a page reloaded.",
+   "scenario": "Open Lab while its summary is slow, then click Home (which did not track): Home's failing workspace read later shows on Lab as 'Part of this page could not be loaded'. Brief's poll keeps running after leaving Brief, so its error landed on Solution.",
+   "cause": "A failure was credited to whichever watch was current when it arrived, and track() never hid the box when it started.",
+   "fix": "api() takes the watch when the request starts and only if it belongs to the current view; enterView clears the watch when enter returns no promise; track() hides the box first.",
+   "test": "Checked in the browser: a slow page left, then a failing read elsewhere."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "After the fix, Home still showed no banner in the browser.",
+   "scenario": "With the workspace read failing, the page loaded without a warning.",
+   "cause": "enterView called enter before it started tracking, so reads that start at once found no watch.",
+   "fix": "Start the page's watch (loading.begin) before calling enter, after the view is set.",
+   "test": "Browser check: the warning appears, Try again clears it, and no banner shows on a healthy server."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "latent",
+   "defect": "The generated client referred to DC as a bare global.",
+   "scenario": "The generated code relied on DC being a global in the browser rather than reading window.DC.",
+   "cause": "Generator template.",
+   "fix": "The generator writes window.DC explicitly.",
+   "test": "The node test of the client's paths and argument checks."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done (962f885): make web generates DC.client from the routes; every page calls it (98 calls; a test fails on a path string or an unknown route); every page shows Loading…, and a failed read shows the existing warning with the reason and Try again; checked on all 19 pages with no console error. Open: the sign-in form and /api/config bootstrap before the client exists; empty states keep their existing wording; pages that fall back to their sample still do, under the warning; a poll of another page can still count against a page while it loads.",
+ "lessons": [
+  "A build step that imports the application can open real resources; make the app lazy and generate from a sandbox.",
+  "A test that checks strings exist is not proof of a state; a browser check with a failing read found that the tracking started too late.",
+  "Credit an asynchronous failure to the context that started the request, not to whatever is current when it arrives."
+ ],
+ "commits": ["962f885"]
+}

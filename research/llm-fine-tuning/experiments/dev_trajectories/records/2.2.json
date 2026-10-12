@@ -1,0 +1,28 @@
+{
+ "package": "2.2",
+ "title": "Rename the agent tools, keep the old names working",
+ "date": "2026-10-05",
+ "request": "The intern's and the MCP server's tools follow the rename: propose_solution and set_solution, while existing Chat UI and MCP setups that call the old names keep working.",
+ "spec": "propose_solution and set_solution for the intern and the MCP server; propose_contract and set_contract still accepted. Done when the intern and MCP tests pass, including a call by an old name.",
+ "plan": [
+  "Rename the tools in dclab_rnd/intern/tools.py and dclab_rnd/mcp_server.py.",
+  "Map the old names through a LEGACY_TOOLS table in Toolbox.call.",
+  "Update the intern's standard plan and the tests; add a test calling the old names."
+ ],
+ "decisions": [
+  {
+   "decision": "Old tool names are mapped, not listed as separate tools.",
+   "why": "Listing both would show a model two tools for one action; mapping keeps old configs working while the model sees only the new names."
+  }
+ ],
+ "change": "propose_solution and set_solution in the toolbox and the MCP server; Toolbox.call maps propose_contract and set_contract; the standard plan and tests updated.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Done: the tools carry the new names and an old call still reaches them (test_old_tool_names_reach_the_new_tools).",
+ "lessons": [
+  "Rename an external interface with an alias table and a test that calls the old name."
+ ],
+ "commits": [
+  "db85ad2"
+ ]
+}

@@ -1,0 +1,209 @@
+{
+ "package": "12.6",
+ "title": "Cloud deployment (as code, not applied)",
+ "date": "2026-10-07",
+ "request": "Deploy the same image to a cloud: managed PostgreSQL with backups and point-in-time recovery, object storage for tables and artifacts, two or more app instances behind a load balancer with TLS, workers that scale with the job queue, secrets in the cloud's secret manager, logs and metrics in its monitoring; written as infrastructure code with a staging and a production environment. Ask the owner which provider and region before writing anything, and never apply a change to a cloud account without the owner's explicit yes. The owner chose both AWS and Google Cloud and left the region for later.",
+ "spec": "OpenTofu/Terraform for the chosen clouds, each with staging and production: managed PostgreSQL with PITR, object storage, 2+ app instances behind TLS, queue-scaled workers, a secret manager, cloud logs and metrics. Nothing planned or applied without the owner's yes.",
+ "plan": [
+  "Ask the owner for the provider and region; the answer was both AWS and Google Cloud, region decided later (a variable without a default).",
+  "Change the app for many instances first: the migration on start under a PostgreSQL advisory lock, a queue-length metric published by each worker, and /healthz and /readyz exempt from the host check for GET and HEAD only (a load balancer probes by IP).",
+  "Install OpenTofu and write deploy/aws (network, data, ECS app and workers, OpenTelemetry sidecar, autoscaling, alarms) and deploy/gcp (Cloud Run app and worker pool, Cloud SQL, bucket mounted as the workspace, Secret Manager, a declared custom metric for the queue alert), each a module with staging and production.",
+  "Keep provider downloads out of git and share one plugin cache (764 MB per copy on a nearly full disk).",
+  "Write tests/test_deploy.py (settings documented, no secret in the code, production keeps its protections, the migration lock) and make deploy-check (fmt and validate for the four environments).",
+  "Run make check-all and the reviewer; six review rounds, each finding fixed and tested; commit with nothing planned or applied."
+ ],
+ "decisions": [
+  {
+   "decision": "Region is a variable with no default, and no tooling ever runs plan or apply.",
+   "why": "The owner had not chosen a region, and the package forbids touching a cloud account without the owner's explicit yes."
+  },
+  {
+   "decision": "On Google Cloud the worker pool is sized by the app itself: one worker holding an advisory lock applies the queue rule through the Cloud Run Admin API.",
+   "why": "Cloud Run's automatic mode scales on CPU, so a backlog of model-bound jobs (low CPU) would never add a worker; the package requires scaling with the queue."
+  },
+  {
+   "decision": "On AWS a busy worker holds ECS scale-in protection, and a deployment starts new workers beside the old, which drain and then exit.",
+   "why": "Stopping a worker mid-job leaves the job interrupted until a person retries it; protection also blocks deployments, so old workers must stop claiming and end on their own."
+  },
+  {
+   "decision": "Workers run the migration before starting, as the app does, under the same advisory lock.",
+   "why": "A worker that starts before the app has migrated refuses to run, and after a rollback the old workers would refuse a newer schema, leaving none."
+  },
+  {
+   "decision": "The first owner is made by a one-off task whose password comes from a secret.",
+   "why": "A password in a run-task override is recorded in clear text by CloudTrail and returned by DescribeTasks."
+  }
+ ],
+ "change": "New deploy/aws and deploy/gcp modules with staging and production, deploy/README.md (the owner's steps), tests/test_deploy.py and make deploy-check. In the app: dclab_rnd/jobs/queue_metric.py (queue and active-job publishing to CloudWatch or Cloud Monitoring, the GCP pool scaler with leader election, ECS task protection), worker.py publishes each minute and watches for its task being superseded, a Metrics gauge in observe.py, the migration under pg_advisory_lock in storage/db.py, a host-check bypass for the two probe routes, DCLAB_RESEARCH_DB to keep the research SQLite file off a shared folder.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Scale-in stopped workers that were running jobs.",
+   "scenario": "Three workers each run a 30-minute stage and nothing is queued; after 15 minutes the queue-empty alarm fires, ECS stops any task, and its job ends interrupted with nothing retrying it (the comment said the next worker would). On Google Cloud automatic mode scales in on CPU, so an intern turn waiting on a model looks idle.",
+   "cause": "Scale-in watched only queued jobs, and nothing protected a busy task.",
+   "fix": "Publish active jobs (waiting plus running) and scale in only when that is zero; correct the comment.",
+   "test": "Tests of the published counts."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "On Google Cloud the workers did not scale with the job queue.",
+   "scenario": "scaling_mode AUTOMATIC scales on instance busyness; the queue metric fed only an alert, so a backlog of low-CPU jobs never added a worker, yet the package was marked done.",
+   "cause": "The cloud's own autoscaler does not read a custom queue metric for worker pools.",
+   "fix": "A MANUAL worker pool sized by a rule and a scaler with leader election, with the needed IAM on the pool; the README says the Admin API call is tested only against a stand-in.",
+   "test": "Tests of the rule and of one leader at a time."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The AWS job-failures alarm could never fire.",
+   "scenario": "The collector sent dclab_job_failures_total only with its kind and status dimensions (NoDimensionRollup) while the alarm asked for no dimensions: 50 failed jobs and the alarm stays OK.",
+   "cause": "A dimension mismatch between the collector and the alarm.",
+   "fix": "Use ZeroAndSingleDimensionRollup.",
+   "test": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An image built as the README said would not run on either cloud.",
+   "scenario": "docker build on an Apple-silicon Mac makes an arm64 image; the Fargate tasks are X86_64 and Cloud Run runs only amd64, so tasks exit with 'exec format error', and ECR's immutable tags force a rebuild under a new name.",
+   "cause": "The build command named no platform.",
+   "fix": "docker build --platform linux/amd64 in the README.",
+   "test": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A worker could start before the schema was migrated, and a rollback could leave no workers.",
+   "scenario": "An image adds a migration; the worker service replaces its task first and the new worker exits (schema behind); if the circuit breaker rolls back, the old worker then refuses the app's newer schema, and no worker is left.",
+   "cause": "Only the app's command ran the upgrade; compose ordered start-up, the clouds did not.",
+   "fix": "The worker's command runs storage upgrade first, safe under the advisory lock.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The migration-lock test was flaky in the parallel PostgreSQL run.",
+   "scenario": "pg_locks lists locks for the whole cluster; other test processes take the same advisory key while migrating their own dclab_test_p<N>, so the holders seen become [2, 1, 1] and the test fails at random. It also never checked the threads' errors or a migration from empty.",
+   "cause": "The query was not limited to the current database.",
+   "fix": "Filter pg_locks by the current database, collect thread errors, and migrate a scratch database from empty with three instances.",
+   "test": "The migration-lock test in tests/test_deploy.py."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The first owner's password would end up in logs.",
+   "scenario": "The README passed DCLAB_NEW_PASSWORD in a run-task override, which CloudTrail records in clear text and DescribeTasks returns; on Google Cloud an env value on the job sits in its spec and audit logs. The command also lacked the network configuration.",
+   "cause": "A secret passed as an environment override.",
+   "fix": "An admin task definition and a Cloud Run job read the password from its own secret; the README's command includes the network configuration.",
+   "test": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "On AWS the empty secrets were created in the same apply as the services.",
+   "scenario": "Every task fails at start until each secret has a value; with the circuit breaker the first deployment is marked failed with nothing to roll back to, and filling the secrets afterwards starts nothing without a forced redeployment.",
+   "cause": "One apply for secrets and services.",
+   "fix": "The README gives three steps: create the secrets, fill them, then apply everything.",
+   "test": ""
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Several Google Cloud workers could write the same queue-metric series.",
+   "scenario": "The series was labelled by host name, which Cloud Run does not make unique; writes less than 5 seconds apart or out of order are rejected.",
+   "cause": "socket.gethostname() as an instance id.",
+   "fix": "Read the instance id from the metadata server.",
+   "test": ""
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The scaler's leader connection was never checked again.",
+   "scenario": "Cloud SQL maintenance or a failover drops every connection; the old leader keeps saying 'leader', another worker takes the lock, and both apply the rule, so the pool grows or shrinks by two at once.",
+   "cause": "Leadership was assumed while the connection object existed.",
+   "fix": "Each check runs select 1 on the held connection; on failure it closes, forgets it and tries the lock again.",
+   "test": "test_one_leader_at_a_time_and_a_dropped_connection_gives_the_lock_up (terminates the holder's backend; retries briefly because the lock is released a moment later)."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failed metric write also skipped scaling.",
+   "scenario": "A lasting Cloud Monitoring problem (quota, rejected write, missing grant) raised before the scaler ran, so the pool never grew or shrank though the Admin API it needs was fine.",
+   "cause": "One try block around publishing and scaling.",
+   "fix": "Counting, publishing and scaling in separate try blocks, each logged under its own message.",
+   "test": ""
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Scaling in never stops a running job' was not true on AWS.",
+   "scenario": "With 3 workers and a minimum of 1, the alarm stays in ALARM and removes a worker every 300 s; a job claimed at minute 19.5 is not yet in the published count, so the minute-20 scale-in can stop the task that claimed it.",
+   "cause": "The metric lags the claim by up to a minute.",
+   "fix": "A worker running a job holds ECS task scale-in protection, set when it becomes busy, refreshed every 2 hours, cleared when idle.",
+   "test": "test_a_busy_worker_holds_scale_in_protection."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Task protection also held back worker deployments.",
+   "scenario": "With a maximum of 100%, ECS cannot start a new worker until the protected old one stops; under steady load the old worker keeps claiming and renewing its protection, so the deployment may never finish while old worker code runs against the migrated schema.",
+   "cause": "Protection guards a task from deployments as well as scale-in.",
+   "fix": "Maximum 200% so new workers start beside the old; an old worker compares its task definition with the service's current one, drains (claims nothing new), finishes its jobs, and then its protection clears.",
+   "test": "test_an_old_worker_drains_when_a_deployment_replaces_it and test_a_draining_worker_finishes_what_it_runs_and_claims_nothing_new."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A drained worker never undrained or exited, so a rolled-back deployment could leave no worker taking jobs.",
+   "scenario": "A new image's workers fail to start; meanwhile every old worker sees itself superseded and drains; the breaker rolls back, the old tasks are current again but stay drained; in staging (max 2) nothing runs until someone restarts the service. A workspace opened after the drain also got an undrained worker.",
+   "cause": "drained was set once and never revisited.",
+   "fix": "Once drained and idle the worker process ends, and ECS starts whatever task definition is now current; every workspace's worker is drained on each tick.",
+   "test": "WatchStepTests."
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A job claimed at the moment of the drain could be interrupted.",
+   "scenario": "The dispatcher is inside claim() when the watch drains the worker, sees nothing in running, and ends the process; the just-claimed job stops at its first checkpoint as interrupted.",
+   "cause": "Busy was read from running, which a claimed job enters only in its own thread.",
+   "fix": "has_work() counts a job as soon as it is claimed; the process ends only after two idle ticks in a row while drained.",
+   "test": "WatchStepTests: a job claimed but not yet running keeps the worker busy and protected; one idle tick does not end it; two do."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A load balancer's health check would be refused by the host check.",
+   "scenario": "An ALB probes /readyz with the target's IP as its Host header, and the server answered 400.",
+   "cause": "The host check applied to every path.",
+   "fix": "Exempt only GET and HEAD on /healthz and /readyz; every other path keeps the check.",
+   "test": "A test that /api/config and a POST to a probe path are still refused."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done as code, not applied (fa4ff04): OpenTofu for AWS and Google Cloud, staging and production, validated in all four environments; the app ready for many instances (queue-scaled workers that never stop a running job on AWS, drain on deployment and recover from a rollback, migrations one at a time, probes through the host check). Six review rounds, fifteen findings fixed. Open: nothing planned against a real account; the Google worker pool is BETA and the sizing call tested only against a stand-in; on Google Cloud a deployment interrupts running jobs; CI does not run deploy-check (the owner asked to leave CI); TLS certificates and DNS are the owner's.",
+ "lessons": [
+  "Infrastructure code that validates can still fail in the scenarios that matter: scale-in, deployment, rollback and failover each need to be walked through step by step.",
+  "Every fix to a distributed lifecycle creates a new edge (protection blocks deployments, draining needs an exit, the exit needs to see in-flight claims); review until a round finds nothing.",
+  "Leadership through a database lock must be re-checked against the live connection; a dropped connection silently makes two leaders.",
+  "Secrets passed as environment overrides end up in audit logs; pass a reference to a secret instead."
+ ],
+ "commits": ["fa4ff04"]
+}

@@ -1,0 +1,44 @@
+{
+ "package": "1.3",
+ "title": "Serve the product at /, the old UI at /classic",
+ "date": "2026-10-05",
+ "request": "The new frontend replaces the current web UI on the existing server; the old UI stays reachable until the new one covers what it does.",
+ "spec": "/ returns the built app, /classic returns the earlier UI, and the CSP allows only this app. Done when the serve tests pass.",
+ "plan": [
+  "Serve static/app/index.html at / in dclab_rnd/agentic/server.py.",
+  "Move the earlier UI to /classic, keeping its files in static/.",
+  "Keep the CSP strict (default-src, script-src, style-src, font-src 'self'; frame-ancestors 'none').",
+  "Point the existing test that loaded the old UI at /classic and add a test that / serves the product and the CSP names no other host."
+ ],
+ "decisions": [
+  {
+   "decision": "The old UI moved to /classic instead of being removed.",
+   "why": "It could still start research campaigns, which the new UI could not; removing it first would have removed a feature (done later in 8.3 after the owner decided)."
+  },
+  {
+   "decision": "At first the CSP admitted Google Fonts and nothing else outside.",
+   "why": "The design used Inter and JetBrains Mono from Google; self-hosting needed the owner's approval to download font files (done in 1.5)."
+  }
+ ],
+ "change": "server.py serves the built app at / and the earlier UI at /classic; the CSP stays strict; tests updated.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "An existing research-map test checked the old UI at /, which now serves the product.",
+   "scenario": "test_page_loads_split_assets requested / and looked for the old map view's markup and its scripts; after the change / returned the product and the test failed.",
+   "cause": "The route moved; the test still named the old path.",
+   "fix": "The test reads /classic, where the old UI now lives.",
+   "test": "tests/test_research_map.py reads /classic; tests/test_web_build.py checks / and the CSP."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: / serves the product, /classic the earlier UI, under a strict CSP. /classic was removed later in 8.3.",
+ "lessons": [
+  "Keep an old UI behind a new path until an inventory shows the new one covers it."
+ ],
+ "commits": [
+  "b9abbad"
+ ]
+}

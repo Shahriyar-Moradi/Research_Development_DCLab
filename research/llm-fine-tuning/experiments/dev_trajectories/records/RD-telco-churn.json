@@ -1,0 +1,57 @@
+{
+ "package": "RD-telco-churn",
+ "title": "Telco churn: a fixed 15-experiment campaign and deep tabular models",
+ "date": "2026-09-18",
+ "request": "For a subscription business, find which modeling choices give a reliable churn-risk ranking, and whether deep tabular models beat simple ones on this kind of data.",
+ "spec": "A fixed 15-experiment development campaign on the public Telco churn table with duplicate-grouped 2x3-fold CV, every preprocessing step fitted inside folds; a comparison of TabTransformer, FT-Transformer and SAINT against trees and logistic regression. Primary metrics ROC-AUC and average precision.",
+ "plan": [
+  "Write the contract: one customer at the snapshot date, target Churn, customerID forbidden; note that the real prediction time and outcome window are not in the public data.",
+  "Fix the 15 experiments before running them: a prior-only floor, three logistic regressions, forests, boosting, and charge features for logistic regression and LightGBM.",
+  "Run them with exact duplicate input rows kept in one fold, imputation, encoding and derived features fitted per fold, and out-of-fold predictions, calibration, missing-input stress tests, data and code hashes saved.",
+  "Benchmark the deep tabular models against the same baselines.",
+  "Write CHURN_BENCHMARK.md as development evidence only."
+ ],
+ "decisions": [
+  {
+   "decision": "Keep exact duplicate input rows in the same fold.",
+   "why": "A duplicate split across folds lets a model be scored on a row it has seen; the source has no household or account grouping to use instead."
+  },
+  {
+   "decision": "Label the leaderboard as development evidence.",
+   "why": "The same CV is reused across all candidates and there is no independent test or event-time split."
+  },
+  {
+   "decision": "Exclude customerID before modeling.",
+   "why": "It is an identifier; target-encoding it later inflated ROC-AUC from 0.82 to 1.00 in PIT-004."
+  }
+ ],
+ "change": "dclab_rnd.churn_suite (run, status) writing results under research/churn-prediction/experiments/churn_exp/results with CHURN_BENCHMARK.md; tabular transformer scripts and a SAINT implementation under tabular_transformers/; first baselines and a teaching notebook under logistic_regression/.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "15-experiment churn campaign",
+   "gate": "Rank fixed candidates by duplicate-grouped 2x3-fold development CV ROC-AUC, with AP and log loss beside it.",
+   "fixed_before_run": true,
+   "result": "Logistic regression with charge features led: ROC-AUC 0.8499, AP 0.6708, log loss 0.4108; regularized histogram boosting 0.8478, regularized random forest 0.8472, regularized LightGBM 0.8468, plain logistic C=1 0.8448, Extra Trees baseline 0.8246, prior-only floor 0.5000. The top ten sit within 0.010.",
+   "verdict": "not scored",
+   "next": "Confirm the leader on a temporal or external split once the snapshot time and outcome window are known."
+  },
+  {
+   "name": "deep tabular models vs simple ones",
+   "gate": "Same split and preprocessing for every model; compare ROC-AUC.",
+   "fixed_before_run": false,
+   "result": "Logistic regression 0.845, FT-Transformer 0.842, XGBoost 0.842, SAINT 0.842, TabTransformer 0.833.",
+   "verdict": "not scored",
+   "next": "Do not spend on deep tabular models for this kind of table without a new reason."
+  }
+ ],
+ "outcome": "A well-specified linear model matched or beat every boosted and transformer model on Telco churn (0.850 development CV). Independent confirmation is still pending because the public data lacks the prediction time.",
+ "lessons": [
+  "On a small, clean, mostly categorical table, a logistic regression with sensible features is the bar the complex models must clear, and here none cleared it.",
+  "Differences of 0.002 to 0.005 between the top candidates are inside development-CV noise; the ranking is not a model choice."
+ ],
+ "commits": [
+  "31d2413",
+  "076803b"
+ ]
+}

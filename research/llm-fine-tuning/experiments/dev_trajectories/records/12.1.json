@@ -1,0 +1,67 @@
+{
+ "package": "12.1",
+ "title": "Containers",
+ "date": "2026-10-07",
+ "request": "Package the product as containers: a multi-stage Dockerfile with a non-root user, the built frontend copied in and no key baked in, and a docker-compose.yml with the app, a worker and PostgreSQL with named volumes, published on 127.0.0.1 by default; add make up, make down and make logs. Done when make up starts a product that passes the end-to-end flows run against it.",
+ "spec": "Dockerfile (multi-stage, non-root user, built frontend, no key), docker-compose.yml (app, worker, PostgreSQL with a named volume, a volume for file storage; the app listens on 0.0.0.0 inside the container, published on 127.0.0.1), make up/down/logs. Done when make up starts a product that passes make product-e2e --base.",
+ "plan": [
+  "Write a multi-stage Dockerfile (wheels built in the first stage, installed in a slim second stage under a user without privileges), docker-compose.yml with app, worker and PostgreSQL, .dockerignore, and requirements/product.txt holding only what the server, the worker and the five stages use.",
+  "Build the image locally with Docker Desktop.",
+  "When the local build ran out of Docker disk, switch XGBoost to its CPU build, clear only this session's build cache, list (never delete) the other projects' images, and ask the owner.",
+  "Prove the package on CI instead: a containers job on main runs docker compose up --build --wait, the four end-to-end flows against the running app (product_e2e.py --base) and a secrets scan of the image's files.",
+  "Mark the package done only after the CI run passed both jobs."
+ ],
+ "decisions": [
+  {
+   "decision": "The image installs a product-only requirements file: no PyTorch or TabPFN, and the CPU build of XGBoost.",
+   "why": "The research requirements pull gigabytes of GPU libraries the product never uses; the first build failed writing an NVIDIA wheel."
+  },
+  {
+   "decision": "Prove the containers on GitHub's runners rather than on the owner's machine.",
+   "why": "Docker's virtual disk on the owner's Mac was 7.8 GB, 5.1 GB of it other projects' images; deleting someone else's images needs their yes, and CI has the space and starts from a clean machine."
+  },
+  {
+   "decision": "Publish the app on 127.0.0.1 only and never publish the database or metrics ports.",
+   "why": "A local product must not be reachable from the network by default; the database's default password is harmless only because its port is closed."
+  }
+ ],
+ "change": "New Dockerfile (wheel stage, slim runtime stage, non-root dclab user, built static app, storage upgrade before uvicorn), docker-compose.yml (app, worker, PostgreSQL 16 with named volumes, 127.0.0.1 binding), .dockerignore, requirements/product.txt, and make up, down and logs.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The first local image build failed for lack of space.",
+   "scenario": "docker build stopped after about four minutes with 'No space left on device' while copying an NVIDIA NCCL wheel pulled in by XGBoost's default build; the second build with the CPU build failed again at install because Docker's 7.8 GB disk had 193 MB left.",
+   "cause": "XGBoost's default wheel depends on GPU libraries; Docker's disk was mostly held by other projects' images.",
+   "fix": "Use xgboost-cpu in requirements/product.txt; prune only this session's build cache; leave the other images and ask the owner; verify the image on CI.",
+   "test": "CI's containers job builds the image, starts the stack and runs the four flows."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A real model key in a nested .env file would have been copied into the image.",
+   "scenario": ".dockerignore excluded .env and .env.* only at the root of the build context (Docker anchors these patterns, unlike git); dclab_rnd/agentic/.env holds a real API key, and COPY . /app would have put it in an image layer on make up.",
+   "cause": "Docker's ignore patterns are anchored at the context root; the file was written as if it were a .gitignore.",
+   "fix": "Exclude **/.env and **/.env.* (keeping !.env.example) and .git. Neither of the day's local builds reached the copy step, and their build cache was deleted, so no image ever held the key.",
+   "test": "The image scan in CI reads the exported /app and finds no secret (found during the 12.2 review)."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "containers on CI",
+   "gate": "make up (docker compose up --build --wait) starts the app, a worker and PostgreSQL, and the four end-to-end flows pass against it; the image holds no secret.",
+   "result": "CI run 37547513100: the stack started, the four flows passed against the container with the same results as on a laptop, and the image's 1,871 files held no secret.",
+   "verdict": "pass",
+   "next": "Build it on the owner's machine when Docker has space; the image is about 2 GB with LightGBM, XGBoost (CPU) and scikit-learn."
+  }
+ ],
+ "outcome": "Done (482b67b, marked done in f7b9b7b after CI passed): the product runs as an app, a worker and PostgreSQL from one image without privileges or keys. Open: not built on the owner's machine, whose Docker disk is full.",
+ "lessons": [
+  ".dockerignore is not .gitignore: an unanchored-looking pattern only matches at the root, so secrets in subfolders need **/ patterns.",
+  "Install only what the product runs; a research requirement file can pull gigabytes of GPU libraries into a server image.",
+  "When the local machine cannot prove a package, prove it on a clean CI runner and say so, rather than deleting someone else's data to make room."
+ ],
+ "commits": ["482b67b", "f7b9b7b"]
+}

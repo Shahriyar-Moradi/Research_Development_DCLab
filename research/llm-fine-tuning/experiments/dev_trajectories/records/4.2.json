@@ -1,0 +1,31 @@
+{
+ "package": "4.2",
+ "title": "The Data step",
+ "date": "2026-10-05",
+ "request": "After Home, the wizard takes the draft through Goal, Data, Solution draft, Split and budget, and Review and start; the Data step shows the preprocessing and a small analysis, Domain pack is no longer a step, and Split and budget and Review stay as they look in the demo, now real. This package wires the Data step: the draft's data with its status, the cleaning log, the small analysis, and the same ways to bring data as Home.",
+ "spec": "The draft's data sources with their status, the cleaning log, the small analysis, the 'Bring the data' card to add or replace data, and the real profile in the 'Data profile' tab. Done when data brought on Home appears ready here and data brought here runs the same pipeline with visible progress.",
+ "plan": [
+  "List the draft's assets with rows, columns, how the file was read, and a 'synthetic' pill where it applies.",
+  "Show the cleaning log and the summary of the analysis.",
+  "Offer the same 'Bring the data' tabs as Home (ids prefixed wz-), running the same pipeline and refreshing from the event stream.",
+  "Fill the 'Data profile' tab with the real profile; keep 'Next' disabled until a table is ready."
+ ],
+ "decisions": [
+  {
+   "decision": "The Data step reuses Home's pipeline and events instead of its own upload path.",
+   "why": "One pipeline means the same cleaning and analysis wherever the data arrives."
+  },
+  {
+   "decision": "'Next' stays disabled until a table is ready.",
+   "why": "The solution draft needs the column audit, which needs the cleaned table."
+  }
+ ],
+ "change": "The wizard's Data step wired to the draft's assets, cleaning log, analysis and profile, with the shared 'Bring the data' tabs.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Done: data brought on Home shows as ready in the wizard; data brought in the wizard runs the same pipeline with visible progress.",
+ "lessons": [],
+ "commits": [
+  "15c4958"
+ ]
+}

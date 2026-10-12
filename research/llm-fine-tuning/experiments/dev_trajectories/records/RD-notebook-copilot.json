@@ -1,0 +1,73 @@
+{
+ "package": "RD-notebook-copilot",
+ "title": "The notebook copilot: evidence-backed review notes beside every cell",
+ "date": "2026-10-03",
+ "request": "An intelligent assistant that corrects data scientists where they work: a comment or suggestion beside every notebook cell, each with tested evidence ('show the proof'), like finding on Stack Overflow that someone already hit and solved the problem.",
+ "spec": "dclab_rnd/copilot/: a static, order-aware review of a notebook (never executes code) whose findings each carry a concrete fix, the DCLab rules they violate and a measured precedent from the campaigns; Markdown, annotated-notebook and HTML views; leaky and clean demo notebooks. Beside it, the local notebook companion (dclab_rnd/notebook_assist.py) with cell-level advice in an output contract a VS Code extension can read.",
+ "plan": [
+  "Parse each cell's code and walk the notebook in order, carrying what was split, fitted and selected across cells.",
+  "Detect the measured pitfalls (fit or selection before the split or CV, oversampling, target encoding, blocked columns, random splits on dated data, holdout reuse, missing seeds).",
+  "Attach curated rule ids and a precedent retrieved from the evidence index with type and dataset filters.",
+  "Render the review three ways and build a leaky and a clean demo notebook.",
+  "Run it on the owner's part1 HyperAck notebook.",
+  "Merge the owner's local notebook-assistant work into the reorganized layout."
+ ],
+ "decisions": [
+  {
+   "decision": "Review statically; never execute the notebook.",
+   "why": "Reviewing must be safe on any notebook, including ones with side effects or private data paths."
+  },
+  {
+   "decision": "Attach curated rule ids, not fuzzy matches, and a measured precedent as proof.",
+   "why": "A data scientist should be able to check the claim against a number DCLab measured."
+  },
+  {
+   "decision": "Leave the owner's lower-severity notebook issues for the owner.",
+   "why": "Only the leak was asked to be fixed; scaling before the split, a random split on dated rows and an absolute file path were reported, not changed."
+  }
+ ],
+ "change": "dclab_rnd/copilot/ (analyzer, fixes, render, CLI), demo notebooks, docs/guides/NOTEBOOK_COPILOT.md; then the companion (notebook_assist.py, notebook_assist_eval.py, notebook_eval.py) from pull request 1, fitted into the new layout; and the leak fix in the part1 HyperAck notebook.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The owner's part1 HyperAck notebook trained on the two post-outcome final fares.",
+   "scenario": "The copilot flagged that preprocess_data kept final_customer_fare and final_biker_fare as model inputs, though both are only known after the order outcome; the saved models in that notebook's folder were trained with them.",
+   "cause": "The exploratory notebook predates the safe-vs-unsafe analysis and never dropped the fares.",
+   "fix": "Drop both columns in preprocess_data with a comment explaining why; the saved models stay wrong until the notebook is rerun.",
+   "test": "Re-reviewing the notebook reports no high-severity finding."
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The merged notebook-assistant work broke the suite.",
+   "scenario": "Pull request 1 used pre-reorganization paths: seven tests failed, and three test modules imported code that was never pushed (replay_compare, system_eval, trace_eval).",
+   "cause": "The work was written against the old layout on another machine.",
+   "fix": "Move the prototype folder under research/agentic-ml-copilot/, read evidence from its new place, map notebook paths recorded before the reorganization through a resolver so a frozen manifest still works, and make tests that need files only on the author's machine skip with a message naming the missing file.",
+   "test": "The suite passes; the skipped tests run as soon as the missing files are committed."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "demo notebooks",
+   "gate": "The leaky demo must draw high-severity notes and the careful version none.",
+   "fixed_before_run": true,
+   "result": "The leaky demo reports accuracy 96.7% and gets three high-severity notes; the careful version of the same analysis gets no notes and an honest ROC-AUC of 0.804.",
+   "verdict": "pass",
+   "next": "Measure precision on real notebooks labelled by reviewers (AGT-003), not on demos."
+  }
+ ],
+ "outcome": "A working copilot with proof links and a companion contract for VS Code; it found and fixed a real leak in the owner's own notebook. Its accuracy on real, unseen notebooks is not yet measured.",
+ "lessons": [
+  "Point a new reviewer at your own work first; the copilot's first real finding was in the owner's notebook.",
+  "Code merged from another machine must be checked against the current layout before it lands."
+ ],
+ "commits": [
+  "d9c4c24",
+  "86d1e5c",
+  "a7cc225",
+  "2eb80ef"
+ ]
+}

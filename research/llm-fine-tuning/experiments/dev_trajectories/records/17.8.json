@@ -1,0 +1,148 @@
+{
+ "package": "17.8",
+ "title": "The adoption kit for the main product",
+ "date": "2026-10-12",
+ "request": "Give the main product a way to adopt dclab_core: its outputs mapped field by field onto the main product's contracts, a versioned wheel with a changelog, and a guide naming each call site, without copying or importing the main product.",
+ "spec": "dclab_core as a versioned wheel with a changelog; dclab_core.adapters.main_product mapping each output onto ProblemSpec content, ProblemProfile, MetricPlan, HoldoutPlan, ValidationPlan, ExperimentPlan per decision point and Objective, from recorded field lists; docs/guides/CORE_INTEGRATION.md with the call sites, the Advisor over its gateway, what never crosses, and the tests it should add. Done when the wheel installs in a clean Python 3.12 with only its dependencies, the mapping tests pass against the field lists recorded with the commit read, and the guide names every call site.",
+ "plan": [
+  "Built in an isolated worktree by a sub-agent, fast-forwarded to main first.",
+  "Read the main product with gh, read only, at commit 7fa23b9, and record the field lists, the decision-point registry with caps and the vocabularies in main_product_fields.json with the files read.",
+  "Write pure mapping functions that return plain JSON with exactly the recorded fields; a field the core cannot fill is None with a note.",
+  "Move the library to 0.2.0 with a changelog; write a wheel check that builds with uv, installs in a clean Python 3.12 and solves a replica from an unrelated folder.",
+  "Write the guide; run the dclab-reviewer (it re-read the main product at the same commit); fix the 8 findings; rd-check (1,021 tests)."
+ ],
+ "decisions": [
+  {
+   "decision": "Field lists are recorded from one commit of the main product; its code is never copied or imported.",
+   "why": "The owner's rule; and a test can then check the mapping against what was actually read."
+  },
+  {
+   "decision": "A field the core cannot fill is None with a note, never a guess.",
+   "why": "Examples: no test size, folds or seed (the host's defaults); recall at a budget or top-k have no main-product metric; a time-and-entity split is 'unsupported', as the main product's own planners answer."
+  },
+  {
+   "decision": "Every plan decision goes through a governed decision point with its cap, or says why none takes it.",
+   "why": "The main product adopts proposals through its own governance, never a second pipeline."
+  },
+  {
+   "decision": "Only out-of-fold training figures cross; target statistics on every row and holdout figures never do.",
+   "why": "The main product computes statistics on the training partition only and scores the holdout once."
+  },
+  {
+   "decision": "The guide splits analysis in two: target-free at load-profile, the target after the holdout lock on the locked training rows.",
+   "why": "The text said 'the load-profile stage after the holdout lock', but in the main product load-profile runs before the lock."
+  }
+ ],
+ "change": "dclab_core/adapters/main_product.py and main_product_fields.json, dclab_core/CHANGELOG.md and version 0.2.0, scripts/core_wheel_check.py and make core-wheel-check, docs/guides/CORE_INTEGRATION.md; tests/test_core_adapters.py and tests/test_core_wheel.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "All-row target statistics crossed through problem_profile, labelled as training-row figures.",
+   "scenario": "problem_profile(analyse({'orders.csv': delivery orders}, target='actual_minutes')) without a training index returned the target's min, max and median with the note '(training rows)' and nothing listed as excluded.",
+   "cause": "The adapter copied the figures whether or not the findings had a training split.",
+   "fix": "When the findings have no training rows (or carry the no-split warning), the three target fields are None with a note, and listed as excluded.",
+   "test": "test_target_statistics_of_every_row_never_cross"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The guide's 'target-free' analysis before the holdout lock was not target-free.",
+   "scenario": "Following the guide, analyse(..., target=None, brief=understand(...)) took the target from the brief and computed the distribution, the cap and leak tests on all rows before the lock.",
+   "cause": "analyse falls back to the brief's target column.",
+   "fix": "The guide passes no brief before the lock, and a test asserts no target or leakage finding there.",
+   "test": "test_before_the_holdout_lock_the_guides_call_reads_no_target"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The guide's call after the lock omitted the training index.",
+   "scenario": "analyse on the locked training rows without train_index added a spurious no-split warning that the plan turns into a risk and a split citation in every run.",
+   "cause": "A missing argument in the guide.",
+   "fix": "Pass train_index=locked_train.index.",
+   "test": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The holdout test could not catch a holdout figure crossing.",
+   "scenario": "The test only searched for the word 'holdout'; copying the holdout precision into the threshold fields would have passed, since in the budget case both precisions were 1.0.",
+   "cause": "A test of names, not of values.",
+   "fix": "An invariance test: run assess twice with different holdout labels and scores and require identical threshold fields and notes.",
+   "test": "test_the_threshold_record_does_not_move_with_the_holdout"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An inferred target crossed without a note.",
+   "scenario": "experiment_plan took the brief's target column whenever known, including when it was only inferred, though the target is an answer a person must give.",
+   "cause": "The status of the fact was not read.",
+   "fix": "An inferred target is flagged: 'inferred, not stated; a person confirms it'.",
+   "test": "test_an_inferred_target_is_flagged_for_a_person"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Proposed families could get the host's whole families answer refused.",
+   "scenario": "gradient_boosting expanded to xgboost, lightgbm and catboost from the recorded portfolio; on a host without catboost the main product refuses the whole answer as a family not in its portfolio.",
+   "cause": "The adapter assumed the host's installed families.",
+   "fix": "The guide and the function say the host intersects the list with its own portfolio before submitting; the note explains the same-named sklearn family.",
+   "test": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "holdout_plan gave the wrong 'stratified' for an unsupported split.",
+   "scenario": "For a time-and-entity split it returned stratified False, while the main product's planner returns stratified for classification tasks in that case, and the adapter's own validation_plan already did.",
+   "cause": "Two functions mirrored the host differently.",
+   "fix": "stratified = classification when the strategy is unsupported.",
+   "test": "test_a_split_the_main_product_cannot_hold_is_unsupported_not_forced"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The ProblemSpec's JSON size limit was not checked.",
+   "scenario": "The main product refuses constraints or success criteria over 16 KB; the adapter put every brief constraint and criterion in unbounded, so a long brief would be answered with a 422.",
+   "cause": "The limit was not recorded.",
+   "fix": "Record the limit and leave over-limit fields to a person with a note.",
+   "test": "test_constraints_over_the_main_products_size_limit_are_left_to_a_person"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the wheel in a clean Python 3.12",
+   "gate": "The wheel builds and installs in a clean Python 3.12 with only its dependencies (Done-when of 17.8).",
+   "fixed_before_run": true,
+   "result": "Wheel 0.2.0 built with uv, installed with only its dependency closure (numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1), no unexpected packages, and solved the delivery replica from an unrelated folder in about 80 s; the reviewer re-ran it and it passed.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "the mapping against the recorded field lists",
+   "gate": "Every output has exactly the recorded fields in plain JSON, every gap explained, on the three replicas.",
+   "fixed_before_run": true,
+   "result": "Passes; the acceptance proposals map as expected (fraud: group-disjoint by biker, StratifiedGroupKFold, pr_auc; tickets: temporal_future; delivery: GroupKFold by restaurant, mae).",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: dclab_core 0.2.0 as a wheel with a changelog, its outputs mapped field by field onto the main product's contracts at a recorded commit, and a guide naming each call site; 8 review findings fixed. Wiring is the main repository's own change. Open: before the lock the core reads no target, so its split proposal there is weaker; per-role output schemas; the main product's improve loop is not built yet.",
+ "lessons": [
+  "An integration guide is code: a wrong argument in it (a brief before the lock) leaks as surely as a bug.",
+  "Test that holdout figures do not cross by changing the holdout and checking nothing moves, not by searching for a word.",
+  "Record the other system's limits (sizes, portfolios) with its field lists, or valid output gets refused there."
+ ],
+ "commits": [
+  "c01eac6"
+ ]
+}

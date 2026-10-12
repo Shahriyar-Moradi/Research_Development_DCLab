@@ -1,0 +1,218 @@
+{
+ "package": "18.3",
+ "title": "The data investigator, measured",
+ "date": "2026-10-12",
+ "request": "Build the data investigator, a model role that reads the column names and kinds against the prediction moment (never values) and proposes columns written after the outcome and entities whose rows repeat, and measure it against the rules alone on planted traps before it is used.",
+ "spec": "A role that reads DataFindings and the column names and kinds, never values, and proposes when each column is written relative to the moment, suspected leaks, entities and meanings; each proposal becomes a check that analyse or the leakage audit runs. Measured on the replicas and the benchmark: planted traps found and clean columns falsely accused, with and without the role. Done when it finds more planted traps than the rules alone without raising false alarms above the gate.",
+ "plan": [
+  "Read the Role API of 18.1 and the analyse checks it would advise (_leakage, _entities).",
+  "Write DATA_INVESTIGATOR in dclab_core/analyse.py: evidence is the column names, kinds, missing and distinct shares, the moment, the target name and the row count; the answer proposes suspects and entities.",
+  "Make each proposal a test that code runs exactly as a telling name is tested, in its own slots, so it can add suspicion and never clear a finding.",
+  "On benchmark v2's dev split, see which traps the rules miss and add two general rule checks: a value missing exactly with the outcome (missing-indicator power) and two columns that add up to the target (both kept out by the plan).",
+  "Build the harness: dev split plus two replicas for building, the sealed test split for one run; three readers (rules, rules with the investigator, a plain model on names alone); traps found and clean columns accused; investigator_gate_v1 fixed before any run.",
+  "Add the data_investigator purpose and its data-limit test; run the reviewer; fix its findings; rd-check; commit; ask the owner for a cap.",
+  "Run dev, then the sealed split once (owner's cap EUR 0.30); record; commit.",
+  "Follow-up (Step 1): the sealed run's false alarms all came from strong honest columns on a real table; change the rules so such columns become questions, review it, and record that the sealed split is no longer blind for the rules."
+ ],
+ "decisions": [
+  {
+   "decision": "The investigator sees names, kinds and shares, never a value.",
+   "why": "Column names and timing carry most of the leakage meaning; values would need a data-limit exception, and the purpose's test proves none is sent."
+  },
+  {
+   "decision": "A proposal never becomes a finding by itself: it is tested by code the way a telling name is, in its own slots.",
+   "why": "A model can add suspicion but must never clear a rule's finding or push one out; code decides on measured power."
+  },
+  {
+   "decision": "investigator_gate_v1: on the sealed split, more planted traps found than the rules alone, and no more clean columns accused.",
+   "why": "Finding more traps is worth nothing if it costs false alarms that make a person ignore the warnings."
+  },
+  {
+   "decision": "Improve the rules first on dev, then measure the investigator on top of them.",
+   "why": "The role is judged on what the rules cannot do; a weak baseline would flatter it."
+  },
+  {
+   "decision": "Evidence is one compact summary line per column, not a list of records.",
+   "why": "The evidence guard reads a list of same-shaped records as a table and refuses it; a line per column is honest summary data and passes the guard."
+  },
+  {
+   "decision": "After the sealed run, the strong-column rule was designed from the wine false alarms, and this is recorded in the campaign manifest.",
+   "why": "Any later rules-alone number on that sealed split is no longer blind; benchmark v3 will be the next blind set."
+  }
+ ],
+ "change": "DATA_INVESTIGATOR in dclab_core/analyse.py (evidence, parser, proposals tested in their own slots); two new rule checks in analyse (missing-indicator power, sum identity) and plan.py keeping both parts of a sum out; the data_investigator purpose and its data-limit test; dclab_rnd/agent_eval/investigator/ (items from benchmark v2's dev split and two replicas, the sealed split's fingerprint check, three readers, scoring of traps found and clean columns accused, investigator_gate_v1, a CLI that stores _unscored runs); tests/test_core_investigator.py. Follow-up: _easy_task and _beyond_label in analyse (several strong honest columns become features.to_confirm questions), validate protecting to_confirm columns, new dev cases.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A sum-identity finding never reached the plan and made the rules' own plan invalid.",
+   "scenario": "On a table where morning + afternoon = target, core_plan gave features.forbidden [] and validate reported 'F-leak-sum-morning-afternoon is critical but None is not in features.forbidden'. The intern's adopt_plan then refused every regression project with such a pair, while the harness counted the trap as found.",
+   "cause": "The finding's evidence held 'columns': [a, b], and plan.py read only 'column' or 'later'.",
+   "fix": "One helper in plan.py reads every shape of leak evidence (a column, the later of two times, every part of a sum), used for kept_out, features.forbidden and validate.",
+   "test": "test_the_plan_keeps_both_parts_of_a_sum_out_and_a_mostly_zero_column_is_no_part."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "An investigator answer could remove a rule's entity warning.",
+   "scenario": "Columns c0..c5 with 5 values each, then customer_id sharing the label: the rules alone warned on customer_id; after the investigator proposed c0..c5 as entities, six info findings appeared and the customer_id warning was gone, because proposals joined the same candidate list, cut to 6.",
+   "cause": "Proposed and rule candidates shared one sorted, truncated list.",
+   "fix": "Proposals get their own slots after the rules' candidates, so they can never push a rule out.",
+   "test": "test_proposed_entities_never_push_out_a_rule."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The sum identity accused a clean column.",
+   "scenario": "final_amount equal to the target plus discount, 70% zeros: the median test said they add up to the target, giving a critical F-leak-sum on the clean discount column. Real tables (a final fare beside a mostly-zero tip) would hit it.",
+   "cause": "The identity used a median of residuals, which a mostly-zero column satisfies whenever its partner already equals the target.",
+   "fix": "A pair is skipped when either column alone matches the target or either part is mostly zero.",
+   "test": "test_the_plan_keeps_both_parts_of_a_sum_out_and_a_mostly_zero_column_is_no_part."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate's false-alarm count missed entity false alarms.",
+   "scenario": "A scripted investigator naming every column an entity gave 12 clean dev columns an entity warning (on_promotion, months_active, prior_claims); the gate counted none, though plan._split would group folds by months_active and validate would refuse a stratified split.",
+   "cause": "score counted only leakage flags on clean columns.",
+   "fix": "Entity warnings on clean columns count as false alarms in score and summarize; the gate had not run yet, so it could still change.",
+   "test": "test_scoring_and_the_gate."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Wide tables were cut without saying so.",
+   "scenario": "A 221-column table sent 150 column lines and no total, so the model could not know columns were missing.",
+   "cause": "The evidence clipped to 150 columns silently.",
+   "fix": "The evidence carries columns_total and columns_shown, the prompt says so, and the prompt was re-pinned.",
+   "test": ""
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The sum identity was slow on large tables.",
+   "scenario": "780 column pairs converted to float inside the loop: 17.7 s at 1M rows by 40 columns, 8.3 s of analyse's 20.7 s at 500k rows, on every regression table in core_plan.",
+   "cause": "Per-pair conversion over all rows.",
+   "fix": "The numeric columns are converted to float once, pairs are screened on a seeded sample of rows and confirmed on all rows.",
+   "test": ""
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The delivery differed from the package text without saying so.",
+   "scenario": "The playbook asks for the replicas and benchmark v3; the harness used benchmark v2 with the two replicas in dev only, and per-column meanings, 'when written' and a leakage-audit hook were not built.",
+   "cause": "Benchmark v3 (15.9) did not exist yet.",
+   "fix": "The package status says what was not built (meanings, 'when written' beyond the leak suspicion, the audit hook, benchmark v3).",
+   "test": ""
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The evidence guard refused the investigator's evidence.",
+   "scenario": "The first evidence was a list of per-column records of the same shape; the guard read it as a table and raised.",
+   "cause": "The guard's table check is on purpose: a list of uniform records looks like rows.",
+   "fix": "Evidence is one compact summary string per column, after checking the guard's limits.",
+   "test": "The data-limit test for data_investigator passes with marker values."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "latent",
+   "defect": "An operator-precedence slip in _kind, the helper that labels a column's kind.",
+   "scenario": "Caught on reading the new code before any run.",
+   "cause": "A mixed and/or expression without parentheses.",
+   "fix": "Parenthesised before running anything.",
+   "test": ""
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Follow-up rule: two real leaks in one table became questions instead of leaks.",
+   "scenario": "Two planted leaks (y plus noise, 3y plus noise) each had power about 0.9999 but a Spearman of only about 0.75 with each other, so both counted as 'unrelated strong columns' and became info questions; a leak beside an honest driver of power 0.97, and a leak with its own noisy copy, did the same. The plan forbade nothing and told the person 'the task may simply be easy'.",
+   "cause": "'Unrelated' was decided on the overall correlation, which two leaks of one label share through the label itself.",
+   "fix": "A near-perfect column (0.99 binary and regression, 0.95 multiclass) stays a leak; 'shares real variation' is measured within each class (on rank residuals for regression): honest measurements correlate within a class, a leak is the label plus independent noise.",
+   "test": "test_leaks_beside_other_strong_columns_stay_leaks; test_several_strong_honest_columns_are_questions_and_a_lone_one_a_leak."
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Follow-up rule: validate did not protect columns held for confirmation, so a model could release them.",
+   "scenario": "The intern's adopt_plan with an advisor override features.to_confirm = [] passed validate and set the solution with nothing forbidden; before the rule these columns were critical and the change was refused.",
+   "cause": "validate checked only critical leakage findings.",
+   "fix": "Every leakage finding that affects features.to_confirm must stay in forbidden or to_confirm unless a person decided.",
+   "test": ""
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Follow-up rule: the plan's reason text was wrong when columns were held for confirmation.",
+   "scenario": "With an empty forbidden list it said 'No column looks written after the moment by name, power or recomputation' while to_confirm held columns of power about 0.9999.",
+   "cause": "The reason ignored the to_confirm decision.",
+   "fix": "The reason says strong columns are held back until a person confirms them.",
+   "test": ""
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Follow-up rule: the rule's cost was not measurable on dev, and planted leaks turned into questions were not counted as misses.",
+   "scenario": "No dev case put a planted leak beside a strong honest column; the scorer ignored info findings, so a leak demoted to a question was invisible.",
+   "cause": "The dev split held only the case that shows the rule's benefit.",
+   "fix": "Dev cases added (the real breast-cancer table with a planted leak, a table with two planted leaks); rules alone on dev: 23 of 26 traps, no clean column accused; the manifest records that the sealed split is not blind for the rules.",
+   "test": "test_core_investigator item counts and test_leaks_beside_other_strong_columns_stay_leaks."
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Follow-up rule: column power was computed twice.",
+   "scenario": "On 200k rows by 80 columns, _leakage went from 8.1 s to 13.7 s (binary) and 8.3 s to 18.5 s (multiclass).",
+   "cause": "_easy_task and _leakage each computed _power for the same columns.",
+   "fix": "_easy_task returns the powers and _leakage reuses them.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "INV-001, data investigator on benchmark v2's dev split and two replicas",
+   "gate": "investigator_gate_v1, read on the sealed split only: planted traps found with the investigator > found with the rules alone, and clean columns accused with the investigator <= accused with the rules alone.",
+   "fixed_before_run": true,
+   "result": "40 cases, 23 traps: rules 20 found, 0 false alarms; with the investigator 22 found, 0 false alarms; plain model on names alone 17 found, 0 false alarms. gpt-6-luna, 80 requests.",
+   "verdict": "not scored",
+   "cost_eur": 0.0078,
+   "next": "Run the sealed split once."
+  },
+  {
+   "name": "INV-002, data investigator on the sealed split (one run)",
+   "gate": "investigator_gate_v1: planted traps found with the investigator > found with the rules alone, and clean columns accused with the investigator <= accused with the rules alone.",
+   "fixed_before_run": true,
+   "result": "70 cases, 35 traps: rules 33 found, 26 clean columns accused; with the investigator 35 found, 26 accused (no new false alarm); plain model 21 found, 13 accused. The two it added: an entity named patient_no and a post-outcome progression_followup_score. All 26 false alarms are the rules' own, on the real wine table, where alcohol, flavanoids and proline separate the cultivars almost perfectly. EUR 0.0233 with the dev run, under the owner's EUR 0.30 cap.",
+   "verdict": "pass",
+   "cost_eur": 0.0155,
+   "next": "Fix the rules' weakness on strong honest columns (done as the Step 1 follow-up, which makes later rules numbers on this split not blind). Switching the investigator on is the owner's decision."
+  }
+ ],
+ "outcome": "Done: the investigator passed its gate on the one sealed run (35 of 35 traps against the rules' 33, no new false alarm; EUR 0.0155). The review's seven findings, two of them leakage (a sum leak never reaching the plan, a proposal able to remove a rule's entity warning), were fixed before the run. The rules gained missing-indicator and sum checks, and in the follow-up strong honest columns became questions while leaks, even several together, stay critical (that review's findings fixed too). Not built: per-column meanings, a leakage-audit hook, benchmark v3. Not switched on in the product.",
+ "lessons": [
+  "A model proposal should only ever add a test, in its own slots; then a bad answer costs a check, never a lost warning.",
+  "Count every kind of false alarm the product acts on (entities too), or the gate passes on the kind you forgot.",
+  "A rule designed after looking at a sealed result makes that split no longer blind for the rules; write it down where the evidence lives.",
+  "'Two strong columns that do not correlate' does not mean honest: two leaks of one label are both the label plus noise; test within each class."
+ ],
+ "commits": [
+  "6f01db4",
+  "3558eb1",
+  "abb5729"
+ ]
+}

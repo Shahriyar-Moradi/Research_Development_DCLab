@@ -1,0 +1,56 @@
+{
+ "package": "14.6",
+ "title": "A user study: with and without DCLab (protocol and harness built)",
+ "date": "2026-10-07",
+ "request": "Measure whether DCLab helps a data scientist: a protocol (the tasks from 14.1, consent, what is recorded), a harness that times each task and records corrections without keeping cell values, and an analysis of tasks completed, time, correction time, citation correctness and severe false alarms, with and without the assistant. Participants and the owner's approval are not yet there, so build what does not need them.",
+ "spec": "A protocol approved by the owner, a tested harness, and the first sessions recorded; 3–5 data scientists; tasks from 14.1.",
+ "plan": [
+  "Write docs/USER_STUDY_PROTOCOL.md: a crossover design with the order alternated, what is recorded, the consent text, and the analysis fixed before any session.",
+  "Write dclab_rnd/agent_eval/study.py with start, correction, citation, severe-false-alarm, finish and analyze: every event an enumerated value or a number, no free-text field, and a descriptive analysis with Wilson intervals and no significance test.",
+  "Write tests; review with the other kits; fix the consent finding (participant delete) and the condition check; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "No free-text field anywhere in the harness; the code refuses one.",
+   "why": "Free text is where names, cell values and confidential data leak into a study log."
+  },
+  {
+   "decision": "A descriptive analysis with Wilson intervals and no significance test.",
+   "why": "With 3–5 participants a test would be underpowered and invite over-reading; intervals show the uncertainty honestly."
+  },
+  {
+   "decision": "The analysis is fixed in the protocol before the first session.",
+   "why": "Choosing the analysis after seeing the data is the same error as choosing a gate after the numbers."
+  }
+ ],
+ "change": "New docs/USER_STUDY_PROTOCOL.md, dclab_rnd/agent_eval/study.py (the event commands and analyze), evaluation/study/, tests/test_user_study.py.",
+ "findings": [
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The consent text promised a deletion the harness could not do.",
+   "scenario": "The consent said a participant can ask for their sessions to be deleted, but events.jsonl was append-only and the harness had no delete command.",
+   "cause": "The protocol was written ahead of the tool.",
+   "fix": "A documented, tested participant delete.",
+   "test": "test_the_assistants_events_exist_only_with_the_assistant_and_a_participant_can_be_deleted."
+  },
+  {
+   "id": "F7b",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Assistant-only events were accepted in the condition without the assistant.",
+   "scenario": "A correction, a citation or a severe false alarm recorded in the 'without' condition was then reported per condition, where it is meaningless.",
+   "cause": "Events were not checked against the session's condition.",
+   "fix": "Those events exist only with the assistant.",
+   "test": "test_the_assistants_events_exist_only_with_the_assistant_and_a_participant_can_be_deleted."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Protocol, harness and analysis built (c291a1b), open on the owner's approval and 3–5 participants; no session recorded yet.",
+ "lessons": [
+  "A consent text is a promise the code must keep; build and test the deletion before you offer it.",
+  "Design the study log so it cannot hold free text, rather than trusting operators not to type data into it."
+ ],
+ "commits": ["c291a1b"]
+}

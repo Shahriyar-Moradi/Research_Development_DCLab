@@ -1,0 +1,165 @@
+{
+ "package": "15.10",
+ "title": "Export a finished project as a scoring service",
+ "date": "2026-10-12",
+ "request": "The challenge's rubric asked for an API with Flask and Gunicorn, Docker and tests. Next to the notebook export, export a finished project as a scoring service that computes the same features as training and holds no data.",
+ "spec": "A package with the fitted feature builder and model, a Flask app served by Gunicorn (health, model, predict one, many or a CSV), a Dockerfile without data, tests from made-up rows; with the behaviour recipe, a batch's counts added to stored ones. Done when the replica's export builds, its own tests pass, the image runs in the end-to-end flows, and an unapproved project is refused.",
+ "plan": [
+  "Write studio/service.py: refuse a project whose final stage is not approved; refit through runner.fit_and_predict, which now returns the fitted recipe.",
+  "Strip the pickle of data: replace the bundle by its spec, drop per-row rates, hash category levels, feature names, entity values and places.",
+  "Vendor the code the scorer needs and write app.py, scorer.py, requirements, a Dockerfile copying no data and tests on made-up rows.",
+  "Test that the exported scorer, run in a Python that cannot import the repository, gives the engine's predictions, and that no row value is in the export.",
+  "Run the export's own tests once in a clean Python 3.12 environment.",
+  "Fix the review's findings; mark the package done in part."
+ ],
+ "decisions": [
+  {
+   "decision": "The service computes behaviour features within each request; a single row is told it has no history.",
+   "why": "The engine measured the model with features computed within each fold; storing training-period history in the service would make served features differ from the evaluated ones. The stateful service is recorded as open."
+  },
+  {
+   "decision": "The hashing key is never in the exported folder; the service reads it at serve time (DCLAB_SERVICE_KEY).",
+   "why": "A salt pickled next to the hashes lets anyone enumerate phone numbers or grid cells and recover them."
+  },
+  {
+   "decision": "The export refuses a refit that does not reproduce the approved holdout score.",
+   "why": "The served model must be the approved one; a refit that scores differently is a different model."
+  },
+  {
+   "decision": "The service gives an alert only at a stated budget.",
+   "why": "The plan says the threshold is chosen with the person; without a budget the service returns scores."
+  }
+ ],
+ "change": "studio/service.py and service_template/ (scorer, Flask app), model.pkl without data, model.json with the training column types, review changes and the threshold, vendored code, Dockerfile and generated tests; dclab_core.behaviour hiding keys with a serve-time key; ECOD keeping a quantile grid; tests/test_service_export.py; the 15.10 acceptance test unmarked.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "Replica phone values were in the export.",
+   "scenario": "The first export test searched the exported files for row values and found a phone value of the replica inside the model files: category levels and entity keys were stored as they were.",
+   "cause": "The fitted encoders and count tables keep their keys.",
+   "fix": "Hash category levels, feature names, entity values and place keys; the scorer applies the same hash to its input.",
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Private values could be recovered from model.pkl, which also went into the deliverables' git repository.",
+   "scenario": "The salt was pickled next to the hashes: the top levels of the phone columns and about one drop-off cell per training ride, with label-derived rates, could be enumerated (about a billion phone candidates, a few million grid cells). If ECOD was the final family it stored every training value of every feature column.",
+   "cause": "The key travelled with the data it protects, and ECOD kept its sorted training columns.",
+   "fix": "The key is supplied at serve time and never written to the folder (it was found once more on the behaviour object and cleared before pickling); ECOD keeps a quantile grid instead of the training values.",
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The suite failed with an unexpected success.",
+   "scenario": "The 15.10 acceptance test, marked expectedFailure, only imported the service module; once the module existed, make test and rd-check failed.",
+   "cause": "The marker was left after the package that passes it was built.",
+   "fix": "Remove the marker and make the test real: export the approved replica project and check the refusal.",
+   "test": "test_a_finished_project_exports_a_scoring_service"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Training and serving computed different behaviour features.",
+   "scenario": "Scoring one row at a time against the engine's holdout scores: part 1 (event mode) differed by up to 0.25 in score and 4 of 60 alerts flipped; part 2 by up to 0.046. The parity test passed the whole holdout as one request, which hid it.",
+   "cause": "The service keeps no state, so each request's counts come only from its own rows.",
+   "fix": "Kept within-request semantics deliberately (see the decision), a single row gets a note that it has no history, and the package is marked done in part with the stateful service open.",
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A kept review change was lost in the service.",
+   "scenario": "A regression project whose review kept a log target was fitted on log1p(y), but the scorer returned the raw predictions with no expm1 and no clip, serving log-scale numbers.",
+   "cause": "The scorer did not know the review's changes.",
+   "fix": "Write the review operations and the target range into model.json and apply them in the scorer.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Hashing changed the rate of a missing key.",
+   "scenario": "On rows with no drop-off, place_destination_rate was 0.0189 in the engine and 0.0068 in the service: fit turned NaN into the key 'nan', serving kept NaN, so the row got the prior.",
+   "cause": "Fit and serve normalised missing keys differently.",
+   "fix": "Hash the keys as text exactly as fit does.",
+   "test": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Column types depended on the batch.",
+   "scenario": "If one row of a JSON or CSV batch lacked an integer column, pandas made the column float and '3' became '3.0': row 0's account_id one-hot sum was 1.0 in a complete batch and 0.0 otherwise.",
+   "cause": "The scorer inferred types from each request.",
+   "fix": "Store the training column types in model.json and cast before encoding and hashing.",
+   "test": ""
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The export was a refit that nothing checked against the approved record.",
+   "scenario": "Two identical runs of the mock challenge recorded part-2 holdout AP 0.254 and 0.504 (2 positives in the holdout); a refit of the approved configuration after run 1 gave 0.504, not the recorded 0.254. The test compared one refit with another.",
+   "cause": "The export trusted the refit.",
+   "fix": "Refuse the export unless the refit reproduces the recorded holdout metric, and test against the record.",
+   "test": "test_the_service_scores_as_the_engine_did_and_holds_no_data"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The service gave an alert at a threshold the person never chose.",
+   "scenario": "It emitted 'alert' at the task assessment's threshold, while the plan says the threshold is chosen with the person.",
+   "cause": "The threshold was taken whatever its source.",
+   "fix": "An alert only at a stated budget; otherwise scores.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "service parity with the engine",
+   "gate": "The service's predictions equal the engine's on the replica's holdout, in a Python that cannot import the repository, with no row value in the export.",
+   "fixed_before_run": true,
+   "result": "Equal within 1e-6 on the fraud replica's holdout scored as one batch; no order id or phone value of the table in the export; the key absent; the refit reproduces the approved holdout AP.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "the export's own tests",
+   "gate": "The generated tests pass in a clean environment (Done-when of 15.10).",
+   "fixed_before_run": true,
+   "result": "3 passed in a clean Python 3.12 environment, run once by hand; no repository test runs them.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "the Docker image in the end-to-end flows",
+   "gate": "The image runs in make product-e2e (Done-when of 15.10).",
+   "fixed_before_run": true,
+   "result": "Not run: Docker was not running on this machine, and product-e2e has no service flow yet.",
+   "verdict": "not scored",
+   "cost_eur": null,
+   "next": "Build the image and add the flow when Docker is available."
+  }
+ ],
+ "outcome": "Done in part: a Flask and Gunicorn service with a Dockerfile and tests, no data or key inside, predictions equal to the engine's, refused for unapproved projects or a refit that does not reproduce the approved score. Open: the stateful service (a batch's counts added to stored ones), the Docker image, and the product-e2e flow.",
+ "lessons": [
+  "Hashing is not anonymisation when the key travels with the hashes and the space of values is small.",
+  "A parity test that scores the whole holdout at once hides features that depend on the batch; also score single rows.",
+  "Pin training column types in a served model; JSON batches change them silently."
+ ],
+ "commits": [
+  "4487916",
+  "1566b7c"
+ ]
+}

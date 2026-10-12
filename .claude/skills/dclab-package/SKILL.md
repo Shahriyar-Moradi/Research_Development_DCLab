@@ -15,7 +15,11 @@ Package: $ARGUMENTS
    output; fix the cause of any failure, never weaken a test.
 6. **Review**: run the `dclab-reviewer` subagent on the diff with the package id. Fix correctness findings,
    re-run `make check-all`. Ignore style-only findings.
-7. **Record**: mark the package done in its plan's status table, with what was left open.
+7. **Record**: mark the package done in its plan's status table, with what was left open. Write its development
+   trajectory for the owner's SFT (`research/llm-fine-tuning/experiments/dev_trajectories/records/<package>.json`, schema
+   `Trajectory` in `dclab_rnd/devlog.py`): the request, the plan, decisions with why, every finding (reviewer, test,
+   measurement, owner) with its scenario, cause, fix and test, measurements against their gates, lessons; then `make sft-dev`.
+   Names, decisions and aggregate numbers only: never a row of anyone's data, a key or an absolute path.
 8. **Commit** with a message that says why. Do not push unless the owner said so in this session.
 
 ## Gotchas

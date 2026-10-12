@@ -1,0 +1,53 @@
+{
+ "package": "8.2",
+ "title": "Run Kaggle and Hugging Face against the live services",
+ "date": "2026-10-07",
+ "request": "With the owner's approval for each download, import one small public dataset from Hugging Face and one from Kaggle through the 'Bring the data' card; say the dataset, its licence and size before downloading; check the recorded source, licence, revision and SHA-256 and that no credential appears in the draft; fix what the live services do differently from the fakes.",
+ "spec": "Done when one small public dataset from each service is imported through the page with its licence and SHA-256 recorded.",
+ "plan": [
+  "Look up a small public Hugging Face dataset and its licence and size without downloading.",
+  "Ask the owner to approve the one download (scikit-learn/iris, CC0-1.0, one CSV of a few KB, no token).",
+  "Import it through the draft route the card calls on a temporary server.",
+  "Check the asset's source URL, licence, revision, file hash, the pipeline result, and that no credential is in the draft.",
+  "Leave Kaggle open until a key and an approved dataset exist."
+ ],
+ "decisions": [
+  {
+   "decision": "Each download waits for the owner's explicit yes.",
+   "why": "A download fetches outside content onto the machine."
+  },
+  {
+   "decision": "The import went through the API route the card calls, not by clicking the card.",
+   "why": "It exercises the same server path; the row says so."
+  }
+ ],
+ "change": "No code change: a live import through POST /api/drafts/{id}/data/hf.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "Hugging Face live import",
+   "gate": "One small public dataset imported with licence, revision and SHA-256 recorded and no credential in the draft.",
+   "fixed_before_run": true,
+   "result": "scikit-learn/iris: licence cc0-1.0, revision main pinned to its commit, one file Iris.csv of 5,107 bytes with its SHA-256 and source URL recorded; 150 rows by 6 columns, cleaned and analysed in about 3 seconds; no credential in the draft. The live service behaved as the fakes did.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "Kaggle live import",
+   "gate": "One small public dataset imported with licence and SHA-256 recorded.",
+   "fixed_before_run": true,
+   "result": "Not run: KAGGLE_USERNAME and KAGGLE_KEY are not configured and no dataset has been approved.",
+   "verdict": "not scored",
+   "cost_eur": null,
+   "next": "Run once the owner adds a Kaggle key and approves a dataset."
+  }
+ ],
+ "outcome": "Hugging Face done; Kaggle open. Nothing needed fixing: the live Hugging Face service matched the fakes in tests/test_connectors.py.",
+ "lessons": [
+  "Before a live check, state the dataset, licence and size and get a yes; then check the recorded provenance, not only that rows arrived."
+ ],
+ "commits": [
+  "c291a1b"
+ ]
+}

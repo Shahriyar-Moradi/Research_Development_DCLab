@@ -1,0 +1,73 @@
+{
+ "package": "A2.2",
+ "title": "The validator in front of every agent write",
+ "date": "2026-10-06",
+ "request": "Make the workflow validator impossible to skip: every write tool declares the move it makes, the runtime asks studio.graph.check as the agent before the handler runs, and a refusal is logged and returned to the model with the reason and the rules. The Home agent's draft writes get their own checks.",
+ "spec": "Each write tool declares its move (run_stage, set_solution, approve_gate, approve_stage, capture); a refusal is logged by graph.log and returned as the tool result with the reason and cited rules; a test enumerates the registry and fails if a write tool has no move; Home writes (record, set_pack, propose_workflow, simulate_data) get workflow validation, a pack list and one simulation at a time. Done when a test calls every write tool with a move the validator refuses and gets the reason and a logged transition, and no write tool bypasses the check.",
+ "plan": [
+  "Read the validator (studio/graph.py) and list which project writes it checks; four (create_project, attach_data, set_settings, propose_solution) were never checked or logged.",
+  "Write the test first, as a new file while A2.1 was under review: refuse every project write tool and fail when a new write tool has no refusal case.",
+  "Make registration refuse a write tool without a move, and send every write through its scope's guard: the project guard asks graph.check as the agent; the draft guard checks the pack list and the user's choice, workflow.validate and one preparation at a time.",
+  "Add graph checks for the four uncovered writes (for example the agent may not replace the data under a solution the owner signed).",
+  "Run check-all and the review; fix the two findings; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The guard lives in the registry's call path, not in each handler.",
+   "why": "A handler that checks the graph itself can be written without the check; a registry that refuses to run a write without a guard cannot be bypassed by a new tool."
+  },
+  {
+   "decision": "A refused Home workflow keeps the current workflow instead of falling back to the template.",
+   "why": "Falling back silently replaced work the person had already seen with a generic template."
+  },
+  {
+   "decision": "The create_project transition logs the name but not the user's goal.",
+   "why": "The goal is the user's free text and the transition log is the future training source (A6.1); the reviewer noted it would carry up to 300 characters of the task."
+  },
+  {
+   "decision": "create_project's refusal is returned but not logged.",
+   "why": "Before a project exists there is no log to write to; the exception is written in the status row rather than hidden."
+  }
+ ],
+ "change": "Registry refuses a write tool without a declared move and runs writes only through their scope's guard; the project guard calls studio.graph.check as the agent, logs a refusal as a transition and returns the reason, the failed checks and the rules; studio/graph.py gained checks for create_project, attach_data, set_settings and propose_solution; the draft guard checks set_pack, propose_workflow and simulate; tests/test_agents_validator.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A refused run_all now returned a flat result, and the intern's standard plan crashed on it.",
+   "scenario": "A project with data and a saved but unsigned solution, policy require_solution_signoff on, handed to the intern with no model: run_all returns {'error': ..., 'status': 'needs_approval'} at the top level; the report loops over the result expecting stage records and raises 'string indices must be integers'; the session ends failed instead of completing with a report naming the refusal. The same happens while a stage is running.",
+   "cause": "The guard returned its refusal directly, where before the engine's refusal came back keyed by stage.",
+   "fix": "In the run_all refusal branch, keep the old shape: the refusal keyed by the stage.",
+   "test": "The run_all case in tests/test_agents_validator.py reads result[stage]."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Home agent now refused model calls that left out a 'required' argument the handlers had always defaulted.",
+   "scenario": "request_data with no text, set_pack with a key but no why, ask_user with a question but no field, and record without field all worked before and now came back as 'Missing required argument'.",
+   "cause": "The registry's names-level check still enforced the schemas' required lists, which were stricter than the handlers.",
+   "fix": "The Home handlers keep defaulting what small models leave out (the defaults are filled before the registry check); A2.4 later made those keys optional in the schemas.",
+   "test": "Draft flow tests with the short calls."
+  },
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "An A2.1 test assumed only project tools have moves.",
+   "scenario": "With draft writes declaring moves, the test checked them against the project move list and failed.",
+   "cause": "The test was written when only one scope had writes.",
+   "fix": "Each move is checked against its own scope's list.",
+   "test": "test_agents_runtime registry tests."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: a write tool cannot be registered without its move and a write in a scope without a guard never runs; project writes pass studio.graph.check as the agent; the four uncovered project writes are now checked and logged. The gate passed with 430 tests on files and on PostgreSQL and the four flows; two review findings fixed.",
+ "lessons": [
+  "Moving a check to a new place can change the shape of a refusal; callers that parse the old shape break.",
+  "When a guard becomes mandatory, list the writes the old code never checked: here four, one of which let the agent replace data under a signed solution.",
+  "Do not log users' free text in a log that will become training data."
+ ],
+ "commits": ["b66021c"]
+}

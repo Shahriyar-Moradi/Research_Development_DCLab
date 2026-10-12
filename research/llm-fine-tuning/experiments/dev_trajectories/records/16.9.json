@@ -1,0 +1,179 @@
+{
+ "package": "16.9",
+ "title": "Decisions on top of a model: thresholds, prices, budgets",
+ "date": "2026-10-13",
+ "request": "A model ranks or predicts, but a team acts: choose the review budget or the price that is worth most, from what the action is worth and what it costs, so that challenge mode can answer a pricing question with numbers.",
+ "spec": "A decision layer for any kind that predicts: from the stated value and cost of an action, the threshold, review budget or price that maximises expected value on out-of-fold predictions, with an interval and a stated assumption about how the outcome responds; prices from a model of acceptance by price, with a warning when prices did not vary. Done when the fraud replica gets a budget from the review cost, a pricing replica gets a price curve with an interval, and a fixed-price replica gets the cannot-learn warning.",
+ "plan": [
+  "Write the pure core in dclab_core/decide.py: review_budget on out-of-fold scores with a bootstrap over rows or entities, and price_curve with price_variation.",
+  "Write a pricing replica with a known true best price: fees offered to couriers, varied at random, or set by a formula of distance and hour.",
+  "Check the core on both versions before wiring anything: the varied market's interval should hold the true best, the formula market should be refused.",
+  "Give the solution a typed decision (review or price) and compute it in the final stage, with a claim whose numbers all come from evidence.decision.",
+  "Render it in the traced report and let challenge mode deliver a stated decision; bump dclab_core to 0.3.0 and check the wheel in a clean Python.",
+  "Review, fix, rd-check, record."
+ ],
+ "decisions": [
+  {
+   "decision": "The review budget is chosen on out-of-fold scores of the training rows and read once on the holdout.",
+   "why": "Choosing on the holdout would make its score optimistic; the holdout is for the honest number after the choice."
+  },
+  {
+   "decision": "The price is chosen on the training rows only; the holdout is not read for it.",
+   "why": "The holdout holds no counterfactual prices, so it cannot check a price that was never offered; reading it would add nothing but a temptation."
+  },
+  {
+   "decision": "Acceptance is modelled as logistic in the log of the price against its reference, plus the context, inside folds.",
+   "why": "A monotone, simple response that extrapolates nowhere: the curve is read only within the 5th to 95th percentile of the multiples seen, and a best price at the edge is flagged."
+  },
+  {
+   "decision": "Refuse to draw a curve when prices were not varied, and say why.",
+   "why": "A price set by a formula of the context cannot be told apart from the context's own effect; a confident curve there would be a confounded guess."
+  },
+  {
+   "decision": "Both selling and paying are supported.",
+   "why": "The challenge shape is a fee paid to a courier (acceptance rises with the price, the margin is value minus price), the classic shape is a price charged to a customer."
+  }
+ ],
+ "change": "dclab_core/decide.py (review_budget, price_variation, price_curve), replica ride_pricing, dclab_core 0.3.0 with a changelog; Solution.decision (review or price, with value, cost, price, reference, side, unit value, test arm columns), engine._decision and claim D1 in the final stage, the report's decision line and a rubric rule for prices and fees, challenge mode passing a stated decision and covering the pricing requirement; tests for the core, the engine, challenge mode and the report.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The fraud review budget crashed with a KeyError.",
+   "scenario": "On the fraud replica, rides without a biker have a missing group; the entity bootstrap built a dictionary keyed by group values and NaN could not be looked up.",
+   "cause": "Missing values used as dictionary keys.",
+   "fix": "Entities become integer codes; a row without an entity is its own unit.",
+   "test": "test_partial_labels_make_the_value_a_lower_bound_and_entities_widen_the_interval (groups with NaN)."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The traced report did not show the decision, and the deliverables map could not find it.",
+   "scenario": "A pricing challenge part delivered a decision in the records, but REPORT.md listed 'Choose the fee to offer' as 'not found'.",
+   "cause": "The report had no decision line and no rubric rule for prices.",
+   "fix": "A decision line in Results, every number traced to final.evidence.decision, and a rubric rule for prices and fees.",
+   "test": "test_a_stated_price_decision_is_delivered_with_its_interval."
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The dclab_core wheel check failed after the report gained a PDF extra.",
+   "scenario": "make core-wheel-check listed reportlab among the direct dependencies, so the clean-install check failed.",
+   "cause": "The check read every requirement, including optional extras.",
+   "fix": "Requirements behind an extra marker are not direct dependencies.",
+   "test": "make core-wheel-check (passed for 0.3.0)."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A forbidden column could become an input of the acceptance model.",
+   "scenario": "Forbidden final_customer_fare plus a price decision with reference_column final_customer_fare: validation passed and the model was fitted on a post-outcome column through log(price/reference).",
+   "cause": "Only the price column's role was checked.",
+   "fix": "A column the decision reads can never be forbidden (Solution refuses it), and the engine refuses a price or reference that is not an input, and a unit value that is blocked, naming each role.",
+   "test": "test_a_decision_is_checked_when_the_solution_is_written; test_a_reference_set_aside_is_refused_with_its_role."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A real randomised price test was refused as a formula when its arm was logged.",
+   "scenario": "The varied replica plus a column test_arm = fee / usual_fee: the check said the other columns explain 100% of the price and asked the person to run the very test they ran.",
+   "cause": "Every numeric feature was context, the arm included.",
+   "fix": "The decision can name test_arm_columns, which are left out of the check and the context; the warning names the columns that explain the price so a person can tell an arm from a formula.",
+   "test": "test_a_logged_test_arm_explains_the_price_and_is_named."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A price set by a categorical formula passed as varied, and a confounded curve was drawn.",
+   "scenario": "price = tariff[zone] with zone a string that also drives acceptance, and price with no effect: the numeric-only check found R2 -0.07 and drew a best multiple of 1.18 with interval [1.18, 1.18].",
+   "cause": "The formula check and the acceptance model read numeric columns only.",
+   "fix": "Low-cardinality categories enter the check as codes and the acceptance model one-hot encoded inside its folds.",
+   "test": "test_a_category_that_sets_the_price_is_a_formula."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Missing or zero values crashed the decision, or gave a margin of None.",
+   "scenario": "One NaN price or a zero reference raised inside the formula check; a unit value filled only for accepted offers gave learnable True, the best multiple at the lowest edge and 'an expected margin of None per offer'.",
+   "cause": "No row-level validity check.",
+   "fix": "Rows without a positive finite price, reference or value are left out and counted; context columns that are entirely missing are dropped and the rest imputed inside folds; a value missing on more than 5% of rows is refused with the reason.",
+   "test": "test_selling_with_categories_entities_and_missing_rows; test_a_value_known_only_for_accepted_offers_is_refused."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A price word in a requirement hid a model's job in the deliverables map.",
+   "scenario": "'Predict house prices', 'Predict which transactions are charged back' and 'Use the customer feedback to improve the model' became 'not covered' because the new price rule matched first ('fee' also matched 'feedback').",
+   "cause": "The first matching rule wins, and the price rule had no fall-through.",
+   "fix": "The price rule answers only when a decision record was read, otherwise the next rules answer; 'fee' is matched as a whole word.",
+   "test": "test_a_price_in_a_requirement_needs_a_decision_but_never_hides_a_models_job."
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A review budget that pays nothing read as a recommendation.",
+   "scenario": "The claim said 'Reviewing the riskiest 0.00% of rows maximises expected value at 0.0 per row', and the 'no review pays' note was in neither the claim nor the report.",
+   "cause": "The note was computed but not used.",
+   "fix": "When no review pays, the claim is a risk that says so, and the report writes the note.",
+   "test": "test_a_review_that_does_not_pay_is_said_plainly."
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The price interval ignored entities.",
+   "scenario": "Couriers who see many offers: folds and the bootstrap resampled rows, so the interval was too narrow, unlike the review budget's entity bootstrap.",
+   "cause": "Groups were not passed to the price curve.",
+   "fix": "The group column reaches price_curve: grouped stratified folds and an entity bootstrap.",
+   "test": "test_selling_with_categories_entities_and_missing_rows (interval over entities)."
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The new end-to-end challenge test would error where pandas is missing.",
+   "scenario": "It sat in a class without the skip guard, so the agent environment would error on the import.",
+   "cause": "Placed in the wrong test class.",
+   "fix": "Moved into the class that skips when dependencies are missing.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "price curve on the varied pricing replica",
+   "gate": "The 90% bootstrap interval of the best multiple holds the replica's true best multiple (Done when, fixed with the package).",
+   "result": "True best 1.02; chosen 1.029, interval 1.008 to 1.05; expected margin 9,280 per offer against 8,180 as priced. The reviewer's own selling market held the truth in 7 of 8 seeds.",
+   "verdict": "pass",
+   "next": "Keep the curve within the prices seen; a best at the edge asks for a test beyond it."
+  },
+  {
+   "name": "formula-priced replica",
+   "gate": "No curve; the cannot-learn warning with its reasons.",
+   "result": "Refused: one distinct price level against the reference, 0% spread.",
+   "verdict": "pass",
+   "next": "Run a randomised test of a few price levels before choosing a price from data."
+  },
+  {
+   "name": "fraud review budget from the review cost",
+   "gate": "A share chosen from value 60 per case and 1.5 per review, interval over bikers, lower-bound note with partial labels, holdout read after the choice.",
+   "result": "A share under 10% of rides, entity interval, partial-label note, cases found on the holdout reported.",
+   "verdict": "pass"
+  }
+ ],
+ "outcome": "Done: review budgets and prices chosen by expected value with intervals and stated assumptions, refused with reasons when the data cannot support them; challenge mode can now answer a pricing question; dclab_core 0.3.0 passes its clean-wheel check.",
+ "lessons": [
+  "A decision layer must check every column it reads against the prediction moment, not only the obvious one.",
+  "A 'were prices varied' check must see categories and must let the person name a test's arm, or it is wrong in both directions.",
+  "When the first matching rule wins, a new rule needs a fall-through, or it silently takes over other requirements."
+ ],
+ "commits": []
+}

@@ -1,0 +1,56 @@
+{
+ "package": "7.1",
+ "title": "End-to-end flows",
+ "date": "2026-10-05",
+ "request": "Check the product against the plan with real runs, without a model: the Telco CSV uploaded, no data, synthetic data, and a log file; fix each defect in the product, not the script, with a unit test that would have caught it.",
+ "spec": "scripts/product_e2e.py and make product-e2e: upload, no data, synthetic, log file, all without a model. Done when make product-e2e ends with 'all flows passed'.",
+ "plan": [
+  "Run the four flows by hand on a temporary server: the Telco CSV, no data, a synthetic table, a web-server log.",
+  "Drive the same flows in the browser: Home, the chat, the wizard's five steps with untouched defaults, the Workflow page.",
+  "For every failure, find the cause in the product and add a unit test.",
+  "Turn the throwaway scripts into scripts/product_e2e.py and make product-e2e so the check is repeatable.",
+  "Report each defect found."
+ ],
+ "decisions": [
+  {
+   "decision": "The flows run without a model.",
+   "why": "They test the plumbing and the defaults every user meets; model paths are checked separately (8.1)."
+  },
+  {
+   "decision": "The scores the script prints are not results.",
+   "why": "Quick mode and one holdout show that the flow runs, nothing about model quality."
+  }
+ ],
+ "change": "scripts/product_e2e.py and make product-e2e (about 90 s) running the four flows on a temporary server; the audit's fixes landed in the wizard, the agent and synthetic data.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The end-to-end runs that found most defects lived in throwaway scripts.",
+   "scenario": "Each audit of the product was a one-off script in a scratch folder; after a change nobody could rerun the same four flows.",
+   "cause": "Exploratory checks were never promoted to a command.",
+   "fix": "scripts/product_e2e.py (make product-e2e) runs the four flows on a temporary server and ends with 'all flows passed' or the failing step.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the four flows",
+   "gate": "make product-e2e ends with 'all flows passed'.",
+   "fixed_before_run": true,
+   "result": "All four flows passed (upload, no data, synthetic split by time, log file) in about 90 s; rd-check passed with 316 tests.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "Rerun after every change to Home, the wizard or the engine."
+  }
+ ],
+ "outcome": "Done: the four flows are one repeatable command. The audit before it found and fixed: folds not reaching the engine, a split control disconnected from the solution, a unique timestamp refused by its own defaults, guidance saved as the prediction moment, a stale Task box, 'Audit again' crashing for uploads, the auditor crashing on yes/no columns, a chat race, and a silent synthetic template.",
+ "lessons": [
+  "Promote every manual end-to-end check that found a bug into a command; the next change will need it."
+ ],
+ "commits": [
+  "19b13c0",
+  "7ef1cea"
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "package": "3.2",
+ "title": "Turn any file into a table",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package reads whatever the user brings, structured or not, into a table.",
+ "spec": "draft/structure.py: CSV with any delimiter, Excel, Parquet, JSON, nested JSON, JSON lines, web-server and key=value logs, plain text; a model may propose a parse pattern that code checks before using. Done when tests/test_draft_data.py passes (a fixture per format, a good and a bad model pattern, the no-model path).",
+ "plan": [
+  "Detect the format from the content, not the extension.",
+  "Write built-in readers: delimited text, Excel, Parquet, JSON (the largest list of objects), JSON lines, combined access logs, key=value logs, timestamp-level-message logs and plain text.",
+  "Only when no built-in reader fits, ask a model once for a regular expression; apply it to a sample, measure the parse rate and refuse a poor one.",
+  "Raise StructureError with a message the user can act on for unusable or oversized files.",
+  "Write seven small fixtures and a test per format."
+ ],
+ "decisions": [
+  {
+   "decision": "Three log patterns compete and one is used only if it reads at least half of the first 200 lines; otherwise a .log file becomes one row per line and a .txt file one row per paragraph.",
+   "why": "A wrong parser that reads a quarter of the lines is worse than an honest one-row-per-line table."
+  },
+  {
+   "decision": "A model's pattern must match whole lines, capture at least two non-empty named fields, read at least 80% of the sample and beat the built-ins; a field's type is applied only if 95% of its values convert.",
+   "why": "Code decides and a model advises: the pattern is a proposal measured on the data before it is used."
+  },
+  {
+   "decision": "The model sees at most 20 lines of 400 characters, and lines over 2,000 characters are skipped when applying its pattern.",
+   "why": "It limits what leaves the machine and the cost of a badly written expression."
+  },
+  {
+   "decision": "Lists of plain values in JSON records are joined with '|'; lists of objects become an item count; objects deeper than four levels stay JSON text.",
+   "why": "A record table must stay one row per record without inventing columns."
+  }
+ ],
+ "change": "dclab_rnd/draft/structure.py: to_table(path, client=None) returning a DataFrame and a record of how the file was read (format, parser, parse rate, notes), the built-in readers, the checked model pattern and StructureError; fixtures under tests/fixtures/draft and tests in tests/test_draft_data.py.",
+ "findings": [
+  {
+   "id": "P1",
+   "source": "measurement",
+   "severity": "privacy",
+   "defect": "The Admin page said a model never sees rows, but a file no built-in reader can parse sends up to 20 of its lines to the model.",
+   "scenario": "With a model configured, uploading an unusual log sent 20 raw lines (cut to 400 characters each) to the provider to work out the format, while the privacy text on the page said rows never reach a model.",
+   "cause": "The privacy text was written for the Home agent's context and not updated when the parse-pattern path was added.",
+   "fix": "The data step records that lines were sent and how many, the privacy text states it, and DCLAB_MODEL_READS_SAMPLE_LINES=0 turns it off.",
+   "test": "tests/test_draft_data.py: test_the_pipeline_can_be_told_never_to_send_lines."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Excel uploads could not be read on this machine.",
+   "scenario": "An .xlsx upload failed because openpyxl was not installed in the environment, and it was not in any requirements file.",
+   "cause": "An optional reader's library was assumed present.",
+   "fix": "When the engine is missing, to_table raises a StructureError telling the user to save the sheet as CSV; openpyxl was later listed in requirements/base.txt and installed with the owner's approval.",
+   "test": "test_excel_without_its_engine_says_what_to_do; test_excel_round_trip runs once openpyxl is installed."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "reading speed",
+   "gate": "A large file must be read in seconds on a laptop, not minutes.",
+   "fixed_before_run": true,
+   "result": "A 200,000-line access log read in 2.0 s and cleaned in 2.4 s; a 300,000-row CSV read in 0.3 s.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: every listed format becomes a table with a record of how it was read; the model's pattern is used only when code measures it better. Noted at build time and left open: a very general pattern can still pass on prose, Python's re has no timeout, and multi-line entries such as stack traces are not joined.",
+ "lessons": [
+  "Whenever a path can send raw content to a model, say so where the user reads the privacy promise, and give a switch to turn it off.",
+  "Measure a model's proposal on the data before using it, and keep the built-in result when the proposal is not better."
+ ],
+ "commits": [
+  "15c4958",
+  "07da5f1",
+  "ec3ae4d"
+ ]
+}

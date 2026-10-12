@@ -1,0 +1,71 @@
+{
+ "package": "RD-evidence-registry",
+ "title": "The R&D control plane: one registry of every result, with provenance and freshness checks",
+ "date": "2026-09-18",
+ "request": "Make every experiment result reproducible and auditable: record where it came from, collect all results into one registry, keep known leakage off the champion boards, and refuse stale generated knowledge.",
+ "spec": "dclab_rnd as a command-line control plane (python -m dclab_rnd): result normalization into knowledge/experiment_registry.csv, a knowledge base, a data-quality report and a next-experiments backlog; provenance (git commit and dirty state, Python and package versions, seed, SHA-256 of source data) in every new result; make rd-sync and make rd-check; a CI workflow that refuses stale artifacts.",
+ "plan": [
+  "Write provenance.py and record.py so the shared runners stamp every new result with schema_version and provenance.",
+  "Write registry.py to normalize all historical result JSON into one ledger, flag malformed and duplicate results and benchmark regressions, and keep known leakage off the deployment leaderboards.",
+  "Generate KNOWLEDGE_BASE.md, NEXT_EXPERIMENTS.md and DATA_QUALITY.md from the registry.",
+  "Add make rd-sync, rd-check, rd-status, rd-smoke and a controlled cycle command for one runner.",
+  "Add a GitHub workflow with a daily evidence-health check."
+ ],
+ "decisions": [
+  {
+   "decision": "Full training stays explicit through one cycle command per runner.",
+   "why": "It prevents an accidental all-model, all-dataset compute run."
+  },
+  {
+   "decision": "Exclude known leakage from the deployment leaderboards in the registry itself.",
+   "why": "A champion table built from mixed safe and unsafe runs would show the leaky 0.9793 as the best HyperAck model."
+  },
+  {
+   "decision": "Generated knowledge is checked for freshness, not trusted.",
+   "why": "A registry that drifts from the result files silently misleads every later reader."
+  }
+ ],
+ "change": "New dclab_rnd package (cli, registry, provenance, record, analysis, report, cycle), generated knowledge files, Makefile targets and .github/workflows/rd-knowledge.yml.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The CI workflow installed no dependencies, so it could never pass.",
+   "scenario": "Found during the 2026-10-03 restructure: the workflow ran the checks on a bare runner, where importing the package's dependencies fails before any check runs.",
+   "cause": "No requirements file for CI existed.",
+   "fix": "Add requirements-ci.txt with only the packages the automation layer needs and install it in the workflow; the restructure was then checked in a clean environment with only those packages.",
+   "test": "The restructure commit's checks (22 unit tests, record validation, knowledge freshness, campaign verification) passed in a clean CI-only environment."
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The CLI imported the OpenAI client at module level, so validate and sync failed without it.",
+   "scenario": "On a machine without the openai package, python -m dclab_rnd validate stopped at import, though validation needs no model.",
+   "cause": "An optional dependency imported eagerly.",
+   "fix": "Import the OpenAI client lazily, only in the commands that call a model.",
+   "test": "validate, sync and campaign verify run in the CI environment, which has no openai package."
+  },
+  {
+   "id": "F3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The committed experiment registry was stale on 10 rows.",
+   "scenario": "sync --check failed on the restructure branch because ten registry rows no longer matched their result files.",
+   "cause": "Results had been added without rerunning rd-sync.",
+   "fix": "Regenerate the registry; rd-check keeps failing while any generated file is stale.",
+   "test": "python -m dclab_rnd sync --check is part of make rd-check."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every historical result (579 records) sits in one ledger with provenance for new runs; the champion boards exclude known leakage; stale knowledge fails the check. This is the plumbing every later campaign, the evidence index and the SFT builders read.",
+ "lessons": [
+  "A check that cannot run (a CI job with nothing installed) is worse than none, because it looks like protection.",
+  "Optional dependencies must be imported where they are used, or the light commands inherit the heavy ones' failures."
+ ],
+ "commits": [
+  "146e2bc",
+  "601868e"
+ ]
+}

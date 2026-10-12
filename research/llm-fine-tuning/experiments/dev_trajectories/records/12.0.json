@@ -1,0 +1,104 @@
+{
+ "package": "12.0",
+ "title": "Run everything locally with one command",
+ "date": "2026-10-06",
+ "request": "Development happens on the developer's machine without containers. One command should check that a local PostgreSQL answers, create and migrate the development database, start the API with reload and one worker, and rebuild the frontend when its sources change; add commands for a clean database and for the test database, and document it in the README in about ten lines.",
+ "spec": "make dev: check PostgreSQL is reachable (and say how to start it), create dclab_dev and run the migrations when needed, serve the API with reload and one worker, and rebuild the frontend when a file under dclab_rnd/agentic/web/src changes. make db-reset for a clean database, make test-db for the test database. README section of about ten lines.",
+ "plan": [
+  "Read the package text, the Makefile's existing targets and the README; check what is installed for watching files (watchfiles is installed but not in the requirements).",
+  "Write scripts/dev.py with three commands (serve, db-reset, test-db): a reachability check with a start hint, ensure_database (create if missing, drop first on reset, then upgrade), a polling frontend watcher, and uvicorn with reload and one worker.",
+  "Add make dev, make db-reset (needs CONFIRM=yes) and make test-db; add the README section.",
+  "Write tests/test_dev_script.py; smoke-test serve by hand on a scratch database (created, migrated, served /api/config, frontend rebuilt on a touched source), then drop it.",
+  "Run make check-all and the reviewer at the same time; fix the five findings, then the remaining host finding, until the reviewer passes.",
+  "Record the status row with its open limits and commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The frontend watcher polls file modification times with the standard library.",
+   "why": "watchfiles is installed but not a declared requirement; polling 36 source files once a second costs nothing and adds no dependency."
+  },
+  {
+   "decision": "A reset or a create touches only a database named dclab_<letters, digits, _> on this machine; --remote is the explicit override.",
+   "why": "A reset drops a database with force; a URL left in a shell or in .env could point at a shared server, so the name alone is not a safe guard."
+  },
+  {
+   "decision": "The authoritative host check asks the server itself (inet_server_addr) before anything is created or dropped, beside the early URL checks.",
+   "why": "libpq takes the host from many places (the URL, its host and hostaddr query, PGHOST, PGHOSTADDR, a service file); only the server's own address covers all of them in one place."
+  },
+  {
+   "decision": "make dev reads .env the way the server does.",
+   "why": "Otherwise the script and the server it starts can silently use different databases."
+  }
+ ],
+ "change": "New scripts/dev.py (serve, db-reset, test-db; check_name, server_reachable, ensure_database, changed_since, watch_frontend, serve running uvicorn with --reload --reload-dir dclab_rnd --workers 1). Makefile targets dev, db-reset (passes --yes only with CONFIRM=yes) and test-db. A README section 'Develop locally'. tests/test_dev_script.py with the happy path and a name check.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The frontend watcher thread can die silently, and the frontend is then never rebuilt again.",
+   "scenario": "An editor writes and deletes a temporary file next to a source (a vim swap or probe file, a JetBrains safe-write file). changed_since calls is_file() then stat(); the file vanishes in between, stat raises FileNotFoundError outside the try that covers only build(), the thread ends, and make dev keeps serving a stale frontend with one traceback in the terminal.",
+   "cause": "Only the build call was inside the try; the scan was not.",
+   "fix": "changed_since skips a file whose stat raises OSError; watch_frontend wraps the first scan and every scan and build in a try, and on a failed first scan starts from the current time.",
+   "test": "test_the_watcher_survives_a_failing_build_and_a_vanishing_file."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The safety guard checked only the database's name, not its host.",
+   "scenario": "A developer has DCLAB_DATABASE_URL pointing at a dclab_dev database on a staging server exported in the shell and runs make db-reset CONFIRM=yes: the script runs drop database with force on the remote server and ends every session there; make dev would also migrate any remote dclab_* database.",
+   "cause": "check_name looked at the name in the URL and nothing else.",
+   "fix": "Refuse any host other than this machine before connecting unless --remote is given; require the full match dclab_[A-Za-z0-9_]+ so a quoted or injected name is refused before any connection.",
+   "test": "Tests that another name or host is refused before connecting (the reachability check patched to fail if called) and that db-reset --yes on a remote URL returns 2."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "make dev ignored .env, so it and the server could use different databases.",
+   "scenario": ".env names a database on another host and the shell does not export it: dev.py falls back to the default local dclab_dev, creates and migrates it and hands it to uvicorn; because the server loads .env without overriding, it uses the local one too. On Linux, where the user's own role often does not exist, make dev fails with 'server did not answer' although .env holds a working URL.",
+   "cause": "The server reads .env at import; the script never did.",
+   "fix": "main() calls load_dotenv on the repository's .env without overriding, before anything else; tests that call main() restore the environment.",
+   "test": "The tests calling main() run under a patched environment so no key from the owner's .env leaks into other tests."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The README promised more than the code did.",
+   "scenario": "The README said 'set DCLAB_DATABASE_URL to use another database; only databases named dclab_* are ever created or dropped', but with a URL to an existing database named myapp make dev exits with 'refusing to create or drop the database myapp'.",
+   "cause": "The name check runs before the existence check.",
+   "fix": "The README now says the database must be named dclab_* and live on this machine, with --remote to override.",
+   "test": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Only the happy path was tested; no failure path was.",
+   "scenario": "No test for an unreachable server, for db-reset on a non-dclab URL, for a failing build keeping the watcher alive, or for the uvicorn command and environment that serve builds; the suite would fail without the change only because the module would be missing.",
+   "cause": "Tests written for the smoke-tested path only.",
+   "fix": "Added tests: an unreachable server on a closed port gives the start hint and creates nothing; refusals happen before any connection; serve builds uvicorn with --reload, --workers 1, the port and the environment (Popen patched); the watcher survives failures.",
+   "test": "tests/test_dev_script.py grew from 4 to 10 tests."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new host guard did not look at the host the driver actually uses.",
+   "scenario": "A URL with localhost in its netloc and ?host=staging.example.com in its query: SQLAlchemy's psycopg dialect connects to staging, the guard saw localhost and passed, and db-reset would drop the staging database. Likewise ?hostaddr=, ?service= and, with no host in the URL, PGHOST, PGHOSTADDR or PGSERVICE from the shell were never checked.",
+   "cause": "The guard read parsed.host first and fell back to the query only when the netloc had no host.",
+   "fix": "check_name reads the query's host and hostaddr (comma lists split) alongside the URL's host, reads PGHOST and PGHOSTADDR when the URL names no host, and refuses a service key or PGSERVICE; check_server runs select inet_server_addr() on the admin connection before the existence check, the drop or the create, and requires a socket (NULL) or a loopback address.",
+   "test": "Tests cover every URL and environment-variable source and both sides of check_server with a fake connection."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done (cc87c29): make dev, make db-reset CONFIRM=yes and make test-db, checked by hand on a scratch database; six review findings fixed over three rounds, the last round a pass. Open: a tunnel forwarding a local port to another server passes the host checks (only the dclab_* name and CONFIRM=yes stand there); the API's reload watches dclab_rnd only, so a change in general_pipeline needs a restart.",
+ "lessons": [
+  "A guard on a destructive command must check what the driver will actually connect to; the URL is only one of several places a host can come from, and the server's own address is the one place that covers them all.",
+  "A background thread that loops forever must catch failures around every step it repeats, not only the one expected to fail.",
+  "A development script must read configuration the same way the server it starts does, or the two silently diverge."
+ ],
+ "commits": ["cc87c29"]
+}

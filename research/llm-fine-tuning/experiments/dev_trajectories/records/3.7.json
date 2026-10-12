@@ -1,0 +1,131 @@
+{
+ "package": "3.7",
+ "title": "The Home agent",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package is the chat: a few questions to understand the real problem, not only 'build a model', with a model when one is configured and a script when not.",
+ "spec": "draft/chat.py: at most four questions, a summary with 'Let's build the solution', a model loop with tools when a model is configured, a scripted fallback otherwise, replies streamed as they are written, one turn at a time per draft. Done when the agent tests pass and make product-e2e passes no-data.",
+ "plan": [
+  "Write HomeAgent: ask about the outcome, the prediction moment, what happens with each prediction and what an error costs; with no data, whether the user can share a sample, connect a source or wants simulated data.",
+  "When data becomes ready, describe it and ask for the outcome column again with columns to choose from.",
+  "With a model: a short loop with ask_user, record, set_pack, propose_workflow, request_data, simulate_data, get_profile and get_analysis; the model sees column summaries and findings, never rows.",
+  "Add ChatClient.stream() and send replies as token events; the final chat event replaces the live bubble.",
+  "Without a model, or after a model error, ask the same questions from a deterministic script.",
+  "Run every flow end to end and fix what the conversation got wrong."
+ ],
+ "decisions": [
+  {
+   "decision": "At most four questions, one at a time.",
+   "why": "The owner asked for a few questions that find the real problem, not a form."
+  },
+  {
+   "decision": "The opening (pack, restating the sentence, the template workflow, the first question) comes from code, not the model.",
+   "why": "The first screen must be fast and correct with or without a model."
+  },
+  {
+   "decision": "Replies stream in 48-character chunks as events in the draft's replayable log; the final message carries the same id and replaces the live bubble; streamed text is inserted as text, never HTML.",
+   "why": "The page shows the reply as it is written, survives a reconnect, and cannot be made to run markup."
+  },
+  {
+   "decision": "A model reply that only talks still moves the conversation: code records it as the answer to the open question and asks the next thing.",
+   "why": "Small models often never call a tool; without this the chat stalls with nothing recorded."
+  }
+ ],
+ "change": "dclab_rnd/draft/chat.py (HomeAgent with the scripted and the model paths, tools, streaming, per-draft turn lock) and ChatClient.stream() in dclab_rnd/intern/llm.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The agent offered the wrong columns as the outcome and left out the one the problem names.",
+   "scenario": "With the sentence 'predict which subscribers will cancel next month' and a file with a cancelled column, the agent offered plan, monthly_fee and paperless, because candidates were ordered by data shape only.",
+   "cause": "Ranking ignored the user's own words.",
+   "fix": "Candidates are ranked with the columns the problem sentence names first, then the source's own outcome column; only names and the sentence are compared, so nothing is learned from values before the split.",
+   "test": "test_columns_the_problem_sentence_names_are_offered_first; test_a_source_that_knows_its_outcome_column_is_offered_first."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A message typed while the data-ready turn ran could land in the notes instead of answering the question.",
+   "scenario": "The user answered just as the data became ready; the data-ready turn withdrew the open question in another thread, and the answer was stored as a note.",
+   "cause": "Two agent turns for the same draft ran concurrently in different threads.",
+   "fix": "Agent turns for one draft run one at a time.",
+   "test": "test_a_message_waits_for_the_data_ready_turn_to_finish."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The plan's get_profile and get_analysis tools did not exist; the model saw only the first 40 columns.",
+   "scenario": "On a wide table the model could not look at columns beyond the 40 in its state, although the plan lists tools to page through the profile and the analysis.",
+   "cause": "A first version put summaries in the state instead of building the tools.",
+   "fix": "Both tools exist and return aggregates and findings only, and the privacy text says what the agent may read.",
+   "test": "test_the_model_reads_column_summaries_and_findings_but_never_values."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "With a model configured, every reply appeared at once after a wait.",
+   "scenario": "The Home page listened for token events but nothing sent them, so a long model reply showed nothing until it was complete.",
+   "cause": "The streaming half on the server was missing.",
+   "fix": "ChatClient.stream() hands the text to a callback and the agent sends 48-character chunks; a step that ends in tool calls, or fails, drops its bubble because that text is never said.",
+   "test": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them; test_a_streamed_step_that_ends_in_tool_calls_or_fails_drops_its_bubble."
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A small local model answered in prose, called no tool, and the chat stopped moving.",
+   "scenario": "Against qwen2.5-coder:1.5b in Ollama the model never called record or ask_user; nothing was recorded and no next question came.",
+   "cause": "The loop relied on the model to call tools.",
+   "fix": "When a model turn uses no tool, code records the reply as the open question's answer and asks the next thing, as the script would.",
+   "test": "test_a_model_that_only_talks_does_not_stall_the_conversation."
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "When the model account had no credit, the chat said only 'RateLimitError' on every turn and posted its summary twice.",
+   "scenario": "A live check found every request refused for an empty balance; the note read like 'wait a moment', each turn waited on a doomed request, and when a reply started a simulation the summary appeared twice and read 'Predict A customer counts as lost...'.",
+   "cause": "Error handling showed the exception type and retried every turn; the summary path ran twice.",
+   "fix": "The client maps the HTTP status and the provider's short error code to a reason safe to show (never the provider's message, which can repeat a key), pauses requests for ten minutes after a refusal that will not go away, says it once per draft, and posts the summary once with the answers quoted under labels.",
+   "test": "test_a_refusal_gets_a_safe_reason_and_no_credit_pauses_further_requests; test_the_summary_is_said_once_and_quotes_the_answers."
+  },
+  {
+   "id": "O1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "The first question was about customers leaving, whatever the problem.",
+   "scenario": "The owner described a fraud detection problem and the first question was 'What exactly should the model predict, and for whom? For example: will this customer leave in the next 30 days?'.",
+   "cause": "One fixed opening string with a churn example.",
+   "fix": "Each of the nine packs has its own opening question with an example of its own kind (a rare event and when its label is known for fraud, the quantity and horizon for a forecast, and so on).",
+   "test": "test_every_pack_has_its_own_opening_question; test_the_first_question_fits_the_pack_the_problem_was_read_as."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "no-data flow",
+   "gate": "make product-e2e passes the no-data flow: the chat asks its questions, builds the workflow and asks for a sample.",
+   "fixed_before_run": true,
+   "result": "Passed without a model.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the Home agent asks at most four questions with or without a model, streams its replies, never sees rows, and keeps the conversation moving when a model misbehaves or is unavailable.",
+ "lessons": [
+  "Run the conversation with a weak local model early: it shows every place the loop trusts the model to behave.",
+  "An example inside a question frames the user's answer; make it fit the problem."
+ ],
+ "commits": [
+  "15c4958",
+  "d9cf587",
+  "7ef1cea",
+  "2899447",
+  "07da5f1",
+  "a8eae10",
+  "ddc34ee"
+ ]
+}

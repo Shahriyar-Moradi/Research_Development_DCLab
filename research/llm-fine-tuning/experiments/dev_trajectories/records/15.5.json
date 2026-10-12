@@ -1,0 +1,80 @@
+{
+ "package": "15.5",
+ "title": "Rules, anomaly detectors and PU learning in the model screen",
+ "date": "2026-10-12",
+ "request": "Compare the families the hand solution compared: percentile rules, anomaly detectors and positive-unlabelled learning next to the classifiers, on the same folds, and choose by a rule written before the screen.",
+ "spec": "For binary rare-event tasks: a percentile rule score, unsupervised detectors (Isolation Forest, ECOD) fitted without labels and without resampling, and PU bagging; ranked on the same folds and metrics; the selection rule written in the record before the screen. Done when the screen lists every family, no resampler can precede a detector, and the choice cites the rule.",
+ "plan": [
+  "Write expansion/detectors.py: PercentileRules, ECOD, an Isolation Forest detector and PUBagging, each with the classifier interface the runner uses.",
+  "Add them to the screen for a rare event only, and write the selection rule into the models record before the screen runs.",
+  "Test that detectors never see labels or resampled rows, and that the rule prefers a simpler family only within noise.",
+  "Fix the rule and the scope after the Step 2 review."
+ ],
+ "decisions": [
+  {
+   "decision": "Detectors are fitted on every fit row, never on labels and never after resampling.",
+   "why": "An anomaly detector learns what normal looks like; labels or duplicated rare rows would turn it into a weak classifier."
+  },
+  {
+   "decision": "The rare families are a separate RARE_FAMILIES tuple that the engine adds only for a rare event.",
+   "why": "Adding them to the general binary-imbalanced list changed every research campaign's screen and ranking."
+  },
+  {
+   "decision": "The rule: the best mean, then the simplest family within 10% of it whose paired gap stays within the one-sided t bound, never one the best beats on every fold, folds without a positive left out.",
+   "why": "With three folds the t bound alone is so wide that a much weaker simple family wins; a practical margin and a never-beaten-everywhere check keep 'simpler' honest."
+  }
+ ],
+ "change": "expansion/detectors.py (percentile rules, ECOD, Isolation Forest, PU bagging), runner.RARE_FAMILIES added by the engine for a rare event, the rare-event selection rule in the models record, the families' imports in the notebook export; tests in tests/test_core_behaviour.py and tests/test_labels.py.",
+ "findings": [
+  {
+   "id": "F4a",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "When any fold had no positive, the rule always chose the first simple family.",
+   "scenario": "xgboost folds [0.80, 0.82, None] against percentile_rules [0.05, 0.04, None] chose percentile_rules: the None made the paired gain NaN, so 'adopted' was False and the first family in the simplicity order won. Folds without a positive do occur in the Home flow's tests.",
+   "cause": "Missing fold metrics entered the paired comparison.",
+   "fix": "Pair only folds where both values are finite, and keep the best when fewer than two remain.",
+   "test": "test_the_rare_rule_skips_empty_folds_and_keeps_a_best_that_wins_every_fold"
+  },
+  {
+   "id": "F4b",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The rule picked clearly weaker simple families.",
+   "scenario": "In the Home flow on the replica percentile_rules (mean AP 0.335) beat extra_trees (0.603), though extra_trees won all 3 folds (gain +0.27, bound 0.317); on acceptance seed 0 isolation_forest (0.505) beat pu_bagging (0.645).",
+   "cause": "With 3 folds the one-sided t bound (t about 1.89 with 2 degrees of freedom) is very wide, so 'within noise' covered large real gaps.",
+   "fix": "A simpler family must also be within 10% of the best's mean, and is never preferred when the best wins every fold.",
+   "test": "test_the_rare_rule_skips_empty_folds_and_keeps_a_best_that_wins_every_fold"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The new families changed the research harness.",
+   "scenario": "Adding them to MODEL_FAMILIES['binary_imbalanced'] made every research campaign screen and rank them with the standard rule, and listed them for every binary project.",
+   "cause": "The engine-only addition was made in a list shared with the campaigns.",
+   "fix": "A separate RARE_FAMILIES tuple the engine adds only when the task is a rare event.",
+   "test": ""
+  },
+  {
+   "id": "F5a",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Exporting a rare-event project crashed.",
+   "scenario": "A project whose rule chose ecod raised KeyError 'ecod' in the notebook export, so the export route returned a 500 and the intern's capture failed.",
+   "cause": "MODEL_IMPORTS had no entry for the new families.",
+   "fix": "Add the four families' imports and constructors to the export.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: rules, ECOD, Isolation Forest and PU bagging screened for rare events only, detectors never on labels or resampled rows, chosen by a rule written before the screen. Open: the screen shows mean and spread, not bootstrap intervals; PU bagging is screened for complete labels too.",
+ "lessons": [
+  "A preference for simplicity needs a practical margin, not only a significance bound, when there are only a few folds.",
+  "A missing fold score must be removed from a paired comparison, never allowed to turn the comparison into NaN.",
+  "Adding a family to a shared list changes every caller of that list."
+ ],
+ "commits": [
+  "abb5729"
+ ]
+}

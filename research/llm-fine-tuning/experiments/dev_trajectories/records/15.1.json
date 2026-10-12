@@ -1,0 +1,150 @@
+{
+ "package": "15.1",
+ "title": "A synthetic replica of the fraud challenge and its acceptance test",
+ "date": "2026-10-12",
+ "request": "The owner had a confidential delivery-fraud hiring challenge solved by hand outside the repository, then said it was a probe: DCLab itself must be able to solve problems like it. Start Part 4 with a replica of the challenge, invented end to end so the real files never enter the repository, and an acceptance test of the decisions DCLab must reach on it. Do not change the engine in this package.",
+ "spec": "A seeded generator writing two files: a ride table (orders, bikers, customer accounts, phones, coordinates, fares, cancelled rides without a biker) and a sample of known frauds (a minority of the planted ones, joined by order id, with the receiver's phone under the name the table uses for the sender's, and a few rows not in the table). Planted: fake trips that end metres from the pick-up at a repeated spot, self-dealing, frauds concentrated on a few bikers, a fraud kind the table cannot show. Plus tests/test_fraud_acceptance.py with the decisions a careful data scientist reaches, marked expected-to-fail per part. Done when the generator is deterministic per seed, the planted signal is recoverable by the hand method (numbers in the test), and the acceptance test runs and fails for the known reasons.",
+ "plan": [
+  "Read Part 4's lessons from the hand solution (labels joined on the wrong key, rows clustered on bikers, behaviour over raw columns, families compared under a rule, limits stated) and turn each into a trap to plant.",
+  "Write the generator as its own module (dclab_rnd/replicas/delivery_fraud.py): one seeded random generator, a facts dict computed from the data, and save() writing only the two files and a marker that they are synthetic.",
+  "Check the planted signal with the hand method: behaviour features with folds grouped by biker, against raw columns and against a random split that lets the model see the biker id.",
+  "Run the engine as it was on the replica, with the labels joined by hand, to record the baseline every later package must beat.",
+  "Write the acceptance tests, each marked expectedFailure with the package that must pass it, and run each without its marker to check it fails for its own reason.",
+  "Run make check-all and the dclab-reviewer; fix the six findings; re-measure the numbers on the new generator and record them in the playbook row."
+ ],
+ "decisions": [
+  {
+   "decision": "The replica is its own module, not a template in draft/synthetic.py.",
+   "why": "The spec generator draws one table from a linear predictor; it cannot express two files, a join key that inflates labels, or behaviour across rows."
+  },
+  {
+   "decision": "Three customer accounts, not the two the text names.",
+   "why": "A third small account keeps the (account, biker) join from being a plain two-way split, so the inflation it causes is realistic."
+  },
+  {
+   "decision": "Each acceptance test is marked expectedFailure and names the package that must make it pass.",
+   "why": "Every later package turns one part green, and an unexpected success fails the suite, so the package that makes a test pass must also remove its marker."
+  },
+  {
+   "decision": "The end-to-end test asks for the decisions and a point AP above 0.35 and above 20 times chance, with the interval computed over bikers, not for the interval's lower end to clear chance.",
+   "why": "A holdout grouped by biker holds only a handful of fraud bikers (4 to 11 in a simulation), and a good model's lower bound fell below chance on some holdouts; a test that can fail with a correct engine proves nothing."
+  },
+  {
+   "decision": "All vocabulary and formats in the replica are invented.",
+   "why": "The challenge's data must not be disclosed or distributed; even label strings, category names, account ids or a phone format copied from it would leak it."
+  }
+ ],
+ "change": "New dclab_rnd/replicas/delivery_fraud.py: generate(seed) returns a ride table, a known-fraud sample file and a facts dict (known fraud rows, rows the (account, biker) join would mark, sample rows not in the table, fare disagreement); save() writes the two CSVs and a marker file, never the truth columns. New tests/test_fraud_acceptance.py: ReplicaTest (determinism, traps, the signal recoverable by the hand method, nothing true saved) and AcceptanceTest (label join, partial labels, budget metrics, rare families, pack detection, service export, end to end), each acceptance test an expected failure naming its package. Playbook: Part 5 added and the 15.1 row filled; CLAUDE.md maps the replica folder.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The end-to-end assertion that the holdout interval's lower end exceeds 5 times chance may never pass, even with a correct engine.",
+   "scenario": "The first generator planted 16 fraud bikers, 6 of them self-dealers whose frauds leave no trace in the table. A 20% holdout grouped by biker gets about 4 fraud bikers. Simulating the hand method on seed 0 over 5 grouped holdouts gave point AP 0.50 to 0.73 every time, but a 2.5% bound of 0.001 to 0.003 on 3 of the 5, against 5 times chance of about 0.04.",
+   "cause": "Too few fraud bikers, and a check on the interval's lower end, which swings with which bikers land in the holdout.",
+   "fix": "Spread the frauds over more bikers (30 fake-trip and 12 self-dealing bikers; 37 to 40 bikers carry known frauds, closer to the real case's 94 frauds on 53 bikers), and assert the point AP above 0.35 and above 20 times chance with the interval computed by a cluster bootstrap over bikers.",
+   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The end-to-end test was marked as needing 15.2 to 15.5, but it also needed 15.6.",
+   "scenario": "The test expected the suggestion to name biker_id as the group column and expected recall at the budget, but only 15.6 (Home's entity and budget questions) supplies an entity or a budget; the test would have stayed red after 15.5.",
+   "cause": "The test relied on what Home would ask, not on what the engine packages deliver.",
+   "fix": "The test states the entity and the budget in the Solution itself, and the marker says 15.6 later makes Home ask for them.",
+   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The acceptance test left out decisions the package lists.",
+   "scenario": "Nothing checked that the folds actually used the biker groups, that the model was chosen by a stated rule, that recall at the budget beats the budget, or that a limit is stated; only the presence of keys was checked.",
+   "cause": "The first draft asserted the presence of fields rather than the decisions.",
+   "fix": "Assert the features record names biker_id in its CV protocol, the models record carries a rule, recall at the budget exceeds the budget, precision is called a lower bound, and the disagreeing column sender_phone is a stated limit.",
+   "test": "test_end_to_end_the_engine_reaches_the_hand_solutions_decisions"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Order ids did not rise with time, though the code comment said they did.",
+   "scenario": "On seeds 0 to 5 the correlation between order_id and the ride date was between -0.013 and 0.013; a time-ordered split (15.3) or any check that treats the id as a time proxy, as in the real files, would be misled.",
+   "cause": "Ids were assigned to the shuffled frame before it was sorted by day.",
+   "fix": "Sort the orders by day (a stable sort) before assigning ids; the correlation is now 0.99.",
+   "test": "test_the_traps_are_planted"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The test file used every CPU core and regenerated the replica four times.",
+   "scenario": "The random forest ran with n_jobs=-1 while the parallel runner starts one process per test file on an 8-core, 8 GB machine, so 8 processes each spawned 8 threads; generate() took 3 to 7 s and ran four times.",
+   "cause": "Defaults copied from an interactive script.",
+   "fix": "n_jobs=1, and the replica generated once and shared by the test classes.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The playbook row claimed numbers the code no longer reproduced.",
+   "scenario": "The row said hand-method AP 0.45 to 0.54 and 100 frauds on 16 bikers; the reviewer measured 0.611 on seed 0 and 15 bikers carrying frauds. The row also hid that the replica has 3 accounts, not the 2 the text names.",
+   "cause": "The numbers came from an earlier version of the generator.",
+   "fix": "Re-measure every number on the final generator (seeds 0 to 3: 89 to 103 known fraud rows on 37 to 40 bikers; the pair join marks 18 to 24 times as many rows) and record the deviations from the text in the row.",
+   "test": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Some of the replica's vocabulary might have echoed the confidential files.",
+   "scenario": "The reviewer could not compare with the challenge folder (access was refused, rightly) and listed the fraud reason strings, category names, account ids and the phone format as possibly copied.",
+   "cause": "The first generator borrowed the shape of the real files too closely.",
+   "fix": "Replace every label string, category name, account id and the phone format with clearly invented ones; the replica keeps only the structure of the traps.",
+   "test": "test_save_writes_the_two_files_marked_synthetic_and_never_the_truth"
+  },
+  {
+   "id": "O1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "The full gate was run again and again while work was still moving.",
+   "scenario": "After the 15.1 review fixes, make check-all (7 minutes or more on this machine) was started again while the plan for Parts 5 and 6 was still being written; the owner asked why check-all or rd-check runs every time.",
+   "cause": "The gate was treated as a step after every change rather than before a commit.",
+   "fix": "Run the affected test files while building, and the full rd-check once before a commit that touches shared code.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted signal recoverable by the hand method",
+   "gate": "The planted signal must be recoverable by the hand solution's method (Done-when of 15.1): behaviour features with folds grouped by biker far above chance and above raw columns, and a random split with the biker id must flatter raw columns.",
+   "fixed_before_run": true,
+   "result": "Seeds 0 to 2: behaviour features with folds grouped by biker reach AP 0.47 to 0.54; raw columns 0.05 to 0.12; raw columns plus the biker id on a random split 0.27 to 0.31 (the leak). Chance is about 0.006. Known fraud rows 0.54 to 0.63% of scorable rides; 5 sample rows not in the table; about 90% of the sample's fares disagree with the table.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "Use the replica as the yardstick of every Part 4 package."
+  },
+  {
+   "name": "the engine as it was, on the replica",
+   "gate": "No gate: a baseline for the end-to-end acceptance test (AP above 0.35).",
+   "fixed_before_run": true,
+   "result": "Labels joined by hand, seed 0: holdout AP 0.277 (95% cluster bootstrap over bikers 0.086 to 0.501; chance 0.006), recipe selected_mi, extra trees.",
+   "verdict": "not scored",
+   "cost_eur": null,
+   "next": "15.2 to 15.6 must lift the same test above 0.35 with the right decisions."
+  }
+ ],
+ "outcome": "Done: a seeded, fully invented two-file replica with every trap planted, four replica tests passing, and seven acceptance tests as expected failures, each failing for its own reason; the reviewer's six findings and the confidentiality concern were fixed before the commit.",
+ "lessons": [
+  "A replica should be validated by the method that solved the real case: if the hand method cannot recover the signal, the acceptance test means nothing.",
+  "An acceptance test must be able to pass with a correct system; simulate its noise before choosing the threshold.",
+  "Check that every expected failure fails for its intended reason, not for a bug in the test.",
+  "When data is confidential, invent even the vocabulary and formats, not only the values."
+ ],
+ "commits": [
+  "2876699"
+ ]
+}

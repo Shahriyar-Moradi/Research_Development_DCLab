@@ -1,0 +1,201 @@
+{
+ "package": "12.2",
+ "title": "Configuration and secrets",
+ "date": "2026-10-06",
+ "request": "Document every setting in .env.example with a safe default. Keys and connection strings come from the environment or Docker secrets, never from a committed file or an image layer. Fail at start with a clear message when a required setting is missing or the database cannot be reached. Add the allowed host names as a setting for the host check. Scan the repository and the image for committed secrets and report what was found.",
+ "spec": "Every setting documented with a safe default and a test that fails when one is added without it; secrets from the environment or NAME_FILE files; the server and the worker refuse to start with a reason; DCLAB_ALLOWED_HOSTS for a proxy's names; a scan of the tracked files, the history and the image that never prints a value.",
+ "plan": [
+  "List every setting the code and scripts read that .env.example does not document, see what each does, and write them in with safe defaults.",
+  "Read secrets from NAME_FILE files, add the allowed-hosts setting, and a problems() check the server and the worker run at start.",
+  "Write scripts/scan_secrets.py for the tracked files and, because a secret committed once and deleted later stays in git, for every commit in the history; verify the history scan really read the history (its first result was suspiciously clean).",
+  "Write tests/test_config.py, including a test that every setting read in the code is documented.",
+  "Run make check-all and the reviewer; fix all thirteen findings; re-check; fix the last note; gate again and commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Secret files are read by a small dependency-free module loaded when the package is imported, leniently there and strictly in Settings.load.",
+   "why": "The storage and accounts commands, the MCP server and the model command-line tools never call Settings.load; only an import-time load reaches every entry point, and the strict load lets the server refuse to start on an unreadable file."
+  },
+  {
+   "decision": "Only an allowed list of names can be set from a file: the product's own keys, DCLAB_DB_<NAME> and DCLAB_TIER_<TIER>_API_KEY.",
+   "why": "AWS defines its own _FILE variables (shared credentials, config, web identity token) with a different meaning; a prefix rule broke start-up and copied whole credential files into stray variables."
+  },
+  {
+   "decision": "The scanner reports where, the kind and a short hash of the value, never the value; the allow-list matches by path, kind and value hash.",
+   "why": "A scan log is itself a place a secret can leak, and an allow-list by path and kind alone would hide any later real secret of the same kind in the same file."
+  },
+  {
+   "decision": "An unknown DCLAB_AUTH value, and allowed host names with sign-in off, refuse to start.",
+   "why": "A typo such as 'passwd' fell back to no sign-in; with a proxy's host names allowed, that would leave a server open to the network."
+  }
+ ],
+ "change": "Every setting documented in .env.example; dclab_rnd/secret_files.py reads NAME_FILE secrets; settings.py gains allowed_hosts and hosts() and problems() (start-up checks on the database, the schema head, sign-in settings and numbers); the server and the worker refuse to start with a reason; lenient number parsing in the database pool and the gateway; scripts/scan_secrets.py and make scan-secrets over the tracked files and the history; tests/test_config.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A real key in a nested .env file would have been copied into the image.",
+   "scenario": "dclab_rnd/agentic/.env (git-ignored) holds a non-empty model key and a TabPFN token; .dockerignore's .env and .env.* match only at the root of the build context, and the Dockerfile's COPY . /app would have put the file in an image layer on make up.",
+   "cause": "Docker anchors ignore patterns at the context root, unlike git.",
+   "fix": "Exclude **/.env and **/.env.* (keeping !.env.example) and .git. Both of the day's builds had failed before the copy step, and their cache was deleted, so no image held the key and it did not need rotating.",
+   "test": "The image scan in CI reads the exported /app."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "NAME_FILE secrets were ignored outside Settings.load.",
+   "scenario": "With only DCLAB_DATABASE_URL_FILE set (the example in .env.example), python -m dclab_rnd.storage status printed 'DCLAB_DATABASE_URL is not set' and exited 2; the Dockerfile's 'storage upgrade && uvicorn' would never start the server, and accounts add said accounts need PostgreSQL.",
+   "cause": "The file secrets were loaded only inside Settings.load, which the command-line tools never call.",
+   "fix": "Move the loading into dclab_rnd/secret_files.py, imported by the package itself, so every entry point sees the secrets.",
+   "test": "A test where a _FILE secret reaches an entry point."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The AWS_ prefix for secret files was too broad.",
+   "scenario": "AWS_SHARED_CREDENTIALS_FILE pointing at a missing file made Settings.load raise, so the server, the worker and the limits all failed, although boto3 accepts a missing file; a readable one copied the whole credentials file into a stray variable every subprocess inherits.",
+   "cause": "Any NAME_FILE under a prefix was treated as a secret of the product.",
+   "fix": "An allowed list of target names; AWS's own _FILE variables are left alone.",
+   "test": "The test sets the AWS variables and HOME_FILE and checks they are untouched."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Settings appeared as database connections on Home.",
+   "scenario": "With DCLAB_DB_POOL_SIZE=10 (newly documented) and DCLAB_DB_WAREHOUSE_FILE set, connections() returned pool_size and warehouse_file as two connections.",
+   "cause": "Every DCLAB_DB_* variable was listed as a connection.",
+   "fix": "connections() skips names ending in _FILE, POOL_SIZE, MAX_OVERFLOW and PASSWORD.",
+   "test": "A test of the connections list."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The numeric check covered only four settings.",
+   "scenario": "DCLAB_PORT=abc silently became 8765, DCLAB_WORKER_THREADS=abc became 4, and DCLAB_WORKSPACE_MONTHLY_EUR=20€ was read as no limit by the limits but made the gateway raise ValueError on every model request.",
+   "cause": "The list of numeric settings was written by hand and incomplete.",
+   "fix": "The check covers ports, threads, the stale seconds, the MCP port, both budgets and every DCLAB_LIMIT_*.",
+   "test": "test_the_server_refuses_to_start_and_says_why."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An unknown DCLAB_AUTH value failed open.",
+   "scenario": "DCLAB_AUTH=passwd (or sso, or true) became none with no message, so every request was treated as the local owner; with DCLAB_ALLOWED_HOSTS now letting a proxy through, the server would be open.",
+   "cause": "The parser mapped unknown values to the default.",
+   "fix": "problems() reads the raw value and refuses an unknown mode, and refuses allowed host names with sign-in off.",
+   "test": "The auth-typo test and the PostgreSQL host check with sign-in on."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The scanner's placeholder filter skipped whole lines.",
+   "scenario": "A made-up key on a notebook line that also holds a URL containing 'example', or a YAML key followed by '# put your own here', was reported clean: any line containing 'example', 'your ' or 'xxx' hid a real key.",
+   "cause": "The placeholder words were matched against the line, not the match.",
+   "fix": "Placeholders are checked against the matched text only.",
+   "test": "Scanner tests with a key beside a placeholder word."
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The history allow-list keyed on path and kind only.",
+   "scenario": "A real database URL with a password added later to tests/test_connectors.py would be hidden, because a made-up one of the same kind in that file was allowed.",
+   "cause": "The allow-list entry did not identify the value.",
+   "fix": "Entries are path, kind and a short hash of the value, used in both modes.",
+   "test": "test_no_secret_is_committed."
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The 'every setting is documented' test had blind spots.",
+   "scenario": "Its pattern could not match KAGGLE_CONFIG_DIR, had no AWS_ prefix, did not scan scripts/ (three DCLAB_CHAT_UI and notebook settings undocumented) or docker-compose.yml (DCLAB_DB_PASSWORD), and exempted the whole DCLAB_DB_ family.",
+   "cause": "A narrow regex and a narrow list of folders.",
+   "fix": "[A-Z0-9_]+ for every prefix, AWS_ and HF_ added, scripts/ and the Docker files scanned (tracked files only), and only names ending in '_' exempt.",
+   "test": "test_every_setting_the_code_reads_is_documented."
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The scan crashed on a tracked file deleted from the working tree.",
+   "scenario": "A tracked file removed without git rm made path.stat() raise FileNotFoundError, so the secrets test errored during ordinary uncommitted work.",
+   "cause": "The scan assumed every tracked path exists.",
+   "fix": "Skip a path that is not a file.",
+   "test": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Allowed host names were not normalised.",
+   "scenario": "DCLAB_ALLOWED_HOSTS=dclab.example.com:8443, https://dclab.example.com or DCLab.example.com never matched (Starlette strips the port and compares case-sensitively), so every request got 400; 'dclab.*' tripped an assert inside create_app.",
+   "cause": "The value was passed to the host check as written.",
+   "fix": "hosts() lowercases and strips the scheme and port; problems() rejects bad wildcards; '*' alone is dropped and reported.",
+   "test": "The host clean-up test."
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A sentence on the platform page became false.",
+   "scenario": "The page said the server answers only on 127.0.0.1 and localhost, which is wrong once DCLAB_ALLOWED_HOSTS is set.",
+   "cause": "Hard-coded text.",
+   "fix": "The sentence is built from the real setting.",
+   "test": ""
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Several refusals were untested.",
+   "scenario": "Nothing tested the 'schema behind the code' refusal, the worker's refusal (it should return 2 and print 'cannot start'), or a _FILE secret reaching an entry point.",
+   "cause": "Tests written for the server's refusals only.",
+   "fix": "Tests for each; the PostgreSQL-backed ones ran in the re-check without being skipped.",
+   "test": "tests/test_config.py (41 tests across three files in the re-check)."
+  },
+  {
+   "id": "N1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A NAME_FILE written in .env was missed by the accounts tool.",
+   "scenario": "The import-time load runs before load_dotenv; the server and worker still pick it up through Settings.load, but accounts add calls the database URL right after load_dotenv and misses it.",
+   "cause": "Load order.",
+   "fix": "The accounts and storage tools load secret files again after reading .env.",
+   "test": "Their tests pass."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A start-up check named a setting that does not exist.",
+   "scenario": "The documentation test flagged DCLAB_PRICES, which the new check referred to; only DCLAB_PRICES_FILE is a setting.",
+   "cause": "A wrong name written in the new code.",
+   "fix": "The check uses the real name.",
+   "test": "test_every_setting_the_code_reads_is_documented."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "secrets scan",
+   "gate": "No secret in the tracked files or in any line added in the history, apart from allow-listed made-up test values.",
+   "result": "1,875 tracked files and every line added in the history's 117 commits hold no secret apart from two made-up test values, allow-listed by their hash.",
+   "verdict": "pass",
+   "next": "The image's own scan runs in CI; the scan is patterns, not entropy, so base64-encoded keys are not found."
+  }
+ ],
+ "outcome": "Done (5c9d074): every setting documented with a safe default and tested; secrets from the environment or files; the server and the worker refuse to start with a reason, never echoing a URL; a secrets scan of files and history. Thirteen review findings and one note fixed. Open: the image scan runs only in CI; base64-encoded keys are not detected.",
+ "lessons": [
+  "A setting that falls back to a default on an unknown value must refuse instead when the default is the less safe choice, as with sign-in.",
+  "Secrets read in one entry point are missing in the others; load them where every entry point passes, the package import.",
+  "A scanner's exclusions must apply to the match, never to the whole line or file, or they become hiding places."
+ ],
+ "commits": ["5c9d074"]
+}

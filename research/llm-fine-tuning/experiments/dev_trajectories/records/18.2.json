@@ -1,0 +1,244 @@
+{
+ "package": "18.2",
+ "title": "The problem analyst, measured",
+ "date": "2026-10-12",
+ "request": "Measure the problem analyst (a model that reads a person's description and column names and proposes the brief fields the rules left open) against the rules alone before anyone relies on it, with the gate written before the run and the sealed set run once, under a euro cap the owner sets.",
+ "spec": "The analyst's prompt and wiring into understand; 24 written briefs of every kind (dev 12, sealed 12) with the expected fields; a measurement of right and wrong fields with the rules alone, with the analyst, and with a plain prompted model. Done when, with the analyst, more fields are right and none is wrong that the rules left unknown, measured on the sealed set once, with its cost.",
+ "plan": [
+  "Declare the problem_analyst purpose (it sees the description and file and column names, never values) and add its data-limit test, which sends a real request through a capture gateway.",
+  "Write dclab_rnd/core_advisor.py: the gateway Advisor, one capped client per purpose, the pinned prompt as the system message and the evidence as JSON.",
+  "Write 24 briefs of every kind with their expected fields, dev 12 and sealed 12, the sealed file fingerprinted; include traps (no target column, no moment, a brief that has chosen no target, near-empty briefs).",
+  "Build the harness with three readers (rules alone, rules with the analyst, a plain prompted model), score eight fields as right, wrong, missed or abstained, and fix analyst_gate_v1 in code before any run.",
+  "Ask the owner for a yes and a cap (granted: EUR 0.10). Run dev first while the reviewer reads the harness; hold the sealed run until the review's fixes are in.",
+  "Fix the nine review findings; tune the scorer and the prompt's definition of the horizon on dev only; re-run dev twice; then run the sealed set once.",
+  "Record the result in the playbook and the campaign folder, run rd-check, commit.",
+  "Follow-up for the errors the analyst cannot touch: the brief checker, with its own gate fixed before its one run."
+ ],
+ "decisions": [
+  {
+   "decision": "The analyst is offered only the fields the rules left unknown, and a value is kept only when whole quoted words of the description support it.",
+   "why": "A wrong moment or target is a leak; the rules give up rather than guess, so a model should only fill what they left open, with the person's own words as evidence."
+  },
+  {
+   "decision": "analyst_gate_v1 has three checks on the sealed set: more fields right than the rules alone, no wrong field among those the rules left unknown, and no field the rules read changed.",
+   "why": "Part 7: a role is on only when it beats the deterministic path with no more unsafe moves."
+  },
+  {
+   "decision": "A plain prompted model is a third reader, scored the same way.",
+   "why": "It shows what the quote check and the rules add over taking a model's answer as it comes."
+  },
+  {
+   "decision": "Dev runs first; the sealed set waits for the review's harness fixes.",
+   "why": "The sealed set runs once; a harness bug found after it would waste it."
+  },
+  {
+   "decision": "A run with any failed request is stored as _unscored, prints no scores and does not use up the sealed set.",
+   "why": "One timeout or a cap reached mid-run must not make the package's Done when impossible to meet."
+  },
+  {
+   "decision": "One sealed gold was made stricter before its run: in s06, 'before the next review' is the end of the outcome window, not the prediction moment.",
+   "why": "The reviewer showed the gold would accept that wrong value in the analyst's favour; fixing it before the run keeps the run honest, and the change is recorded."
+  },
+  {
+   "decision": "Follow-up: the brief checker turns a reading that disagrees with a rule-read field into an open question with both options, and never changes the field.",
+   "why": "All four remaining analyst errors were the rules' own values, which the analyst is never offered; a silent model override would be an unsafe move."
+  },
+  {
+   "decision": "The brief checker was left off and not tuned after it failed by 0.3 points.",
+   "why": "Its gate was fixed before the run; a stricter unit rule or prompt needs a new measurement on new briefs."
+  }
+ ],
+ "change": "The problem_analyst purpose and its data-limit test; dclab_rnd/core_advisor.py (GatewayAdvisor); dclab_rnd/agent_eval/analyst/ (briefs_dev.json, briefs_sealed.json with its fingerprint, the scorer, three readers, analyst_gate_v1, a CLI that prints the plan and refuses to send without --yes and a cap); the campaign folder evidence/campaigns/analyst_v1; tests/test_analyst_measure.py. Follow-up: BRIEF_CHECKER in dclab_core/understand.py with its purpose and prompt, the --role checker CLI and brief_checker_gate_v1.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A reply cut short by the token limit counted as the model declining to answer, so a broken run would be scored and use up the sealed set.",
+   "scenario": "gpt-6-luna reasons by default and the 700-token limit includes the reasoning. A fake client returning empty content with finish_reason 'length' on 3 dev briefs gave 6 requests, no failure recorded, and verdict fail. On the sealed set this writes a real fail and the set can never run again. Prose without JSON, or two JSON objects in one reply, did the same.",
+   "cause": "GatewayAdvisor.ask ignored finish_reason and read a reply without a JSON object as an abstention.",
+   "fix": "A reply cut at the token limit or holding no JSON object raises, so it is a failed request and the run is not scored; the reply limit was raised to 1,500 tokens.",
+   "test": "test_it_sends_the_pinned_prompt_caps_the_run_and_reads_one_json_object; test_a_failed_request_is_never_scored_and_the_rules_alone_are_not_a_verdict."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Correct prediction moments were scored wrong, so a correct analyst would fail the gate.",
+   "scenario": "Scripted dev answers 'as soon as it is submitted, before any response or resolution' (d03) and 'when the cart page loads, before checkout' (d09) were scored wrong and counted as new errors; the same wording would hit six sealed briefs.",
+   "cause": "Any 'none' word anywhere in the value made it wrong, even inside a clause saying what is not yet known, which the prompt itself invites.",
+   "fix": "For the moment field only, the scorer removes clauses starting with before, until, not, prior to or without before checking the forbidden words. The scorer changed, not the sealed briefs, so the fingerprint stayed.",
+   "test": "test_scoring_rewards_abstaining_and_punishes_a_moment_inside_the_outcome; test_a_correct_analyst_passes_the_gate."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Any failed request used up the sealed set for good.",
+   "scenario": "One transient 429 or a workspace cap reached mid-run still wrote ANA-NNN_sealed.json with every value and score; sealed_runs() then refused any further sealed run, and results may not be deleted. With --cap-eur 0 every request was refused and the set was used up the same way.",
+   "cause": "Every run was stored as scored, whatever its failures.",
+   "fix": "A run with failures stores only the failures, the request count and the cost as ANA-NNN_sealed_unscored.json, which sealed_runs() ignores; a cap of 0 or less is refused for a priced model.",
+   "test": "test_a_run_cut_short_is_stored_unscored_and_the_sealed_set_stays_unrun; test_it_refuses_before_sending."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Some expected answers were too lenient and accepted wrong values.",
+   "scenario": "Sealed s06's moment gold accepted 'before the next review', the end of the outcome window, in the analyst's favour. On dev, 'on the first day of each month' passed as a horizon, 'weekly, on Mondays' too, and short words had to match exactly, so 'sees' failed 'see'.",
+   "cause": "Golds listed accepted words without the wrong readings that contain them; short words had no plural form.",
+   "fix": "s06 gained 'next review' as a forbidden phrase before its run; short words also match their plural.",
+   "test": "test_scoring_rewards_abstaining_and_punishes_a_moment_inside_the_outcome checks both cases."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The plain model was penalised for formatting.",
+   "scenario": "A plain answer 'Binary' or a target in backticks counted as wrong, while the analyst arm dropped invalid values as missed, so the plain arm's wrong count mixed formatting with judgement.",
+   "cause": "Task and target were compared as exact strings.",
+   "fix": "Every arm's values are compared case-folded with quotes and backticks stripped.",
+   "test": ""
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The CLI's refusals and a real cap refusal had no test, and one assertion stopped testing anything once the rules improved.",
+   "scenario": "No test covered refusing with no model, an unpriced model, no --cap-eur, or an estimate above the cap; the new_wrong assertion sat under an if.",
+   "cause": "Only the success path was tested.",
+   "fix": "Tests for each refusal and for a run cut short; the assertion made unconditional.",
+   "test": "test_it_refuses_before_sending; test_the_sealed_set_runs_once_and_nothing_is_sent_without_yes."
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Calling the CLI's main() from a test loaded .env into the test process.",
+   "scenario": "test_analyst_measure called main(), which loaded the owner's real key and model into os.environ for the rest of a serial test run, where any later test could send a paid request.",
+   "cause": "main() loads .env unconditionally, and the test did not stop it.",
+   "fix": "Every test that calls the CLI patches dotenv.load_dotenv.",
+   "test": "The CLI tests in tests/test_analyst_measure.py run with load_dotenv patched."
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The plain arm skipped the evidence check.",
+   "scenario": "It called advisor.ask directly, so the no-rows check that guards every role was never run on its evidence.",
+   "cause": "The plain arm bypassed consult.",
+   "fix": "The plain arm goes through consult with a parser that accepts any answer.",
+   "test": ""
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The rules' sealed scores were printed before the sealed run.",
+   "scenario": "Plan mode on the sealed split printed the rules-alone numbers, which invites tuning the rules on the sealed set.",
+   "cause": "The plan printout did not distinguish the splits.",
+   "fix": "Rules-alone scores are printed for the dev split only; the sealed scores are read only in its one run.",
+   "test": ""
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The first dev run counted scorer faults as analyst errors.",
+   "scenario": "ANA-001 (dev): 3 new wrong fields. 'At checkout, before delivery' was a correct moment scored wrong, and 'decisions' failed to match the expected 'decide'; only the horizon 'from checkout to the door' was a real error.",
+   "cause": "The scorer's moment rule and word matching (R2, R4).",
+   "fix": "Scorer fixes on dev; ANA-002 then showed one new wrong field, the same horizon, from the analyst and the plain model alike.",
+   "test": ""
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The analyst read a trip ('from checkout to the door') as the horizon.",
+   "scenario": "In ANA-002 both the analyst and the plain model gave d04's horizon as 'From checkout to the door', the quantity predicted rather than how far ahead the prediction looks.",
+   "cause": "The prompt defined the horizon only as 'how far ahead the prediction looks'.",
+   "fix": "The prompt says a horizon is a time window, not the quantity predicted; the clause rule of R2 was scoped to the moment field; the prompt was re-pinned. ANA-003 (dev) then had no new wrong field.",
+   "test": ""
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "rd-check failed after the runs because the new result files lacked the campaign record keys the lab page reads.",
+   "scenario": "test_pages_lab raised KeyError 'experiment_id' on evidence/campaigns/analyst_v1/results.",
+   "cause": "The harness wrote its own record shape without experiment_id, status and completed_at.",
+   "fix": "The harness writes those keys; the four stored results gained the three bookkeeping keys, with no value or score changed (said in the commit).",
+   "test": "test_pages_lab test_campaigns_come_from_the_campaign_folders."
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The brief checker's CLI priced and routed itself as the problem analyst.",
+   "scenario": "Tier, model, local flag and price came from route('problem_analyst') and the analyst's prompt length; if the analyst were routed to a local tier while the checker served a priced one, the cap refusal was skipped and the checker ran with no cap. The estimate also left out the rules' readings it is sent.",
+   "cause": "plan() had no purpose argument.",
+   "fix": "plan() takes the purpose and uses it for the route, the prompt and the price, and counts the rules' readings. The bound rose from EUR 0.021 to EUR 0.024, above the owner's EUR 0.021 cap, so the run was not sent; the owner raised the cap to EUR 0.025 rather than the token limit being cut (a cut reply would waste the single run).",
+   "test": "test_the_checker_cli_refuses_runs_once_and_stores_a_failure_unscored."
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The checker could raise two disputes on one field, and the measurement kept whichever came last.",
+   "scenario": "A model returning task as multiclass and as regression gave the person two questions with two options each; proposal_right depended on the answer's order.",
+   "cause": "The parser kept every valid disagreement.",
+   "fix": "One question per field: the first valid reading.",
+   "test": "test_one_question_per_field_and_bad_answers_are_dropped."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "ANA-001, problem analyst on dev (before the review fixes)",
+   "gate": "analyst_gate_v1, read on the sealed set only: more fields right with the analyst than the rules alone; no wrong field among those the rules left unknown; no rule-read field changed.",
+   "fixed_before_run": true,
+   "result": "Of 96 fields: rules 25 right, 2 wrong; analyst 62 right, 5 wrong, 3 new wrong; plain model 47 right, 2 wrong. Two of the three new errors were scorer faults. gpt-6-luna.",
+   "verdict": "not scored",
+   "cost_eur": 0.0069,
+   "next": "Fix the review findings and the scorer on dev before the sealed run."
+  },
+  {
+   "name": "ANA-002 and ANA-003, problem analyst on dev (after the fixes)",
+   "gate": "analyst_gate_v1 as above, read on the sealed set only; dev runs are for building.",
+   "fixed_before_run": true,
+   "result": "ANA-002: analyst 68 right, 4 wrong, 1 new wrong (a horizon); plain 70 right, 2 wrong. After the horizon definition was clarified, ANA-003: analyst 67 right, 3 wrong, 0 new wrong; plain 70 right, 0 wrong; rules 24 right, 3 wrong.",
+   "verdict": "not scored",
+   "cost_eur": 0.0152,
+   "next": "Run the sealed set once."
+  },
+  {
+   "name": "ANA-004, problem analyst on the sealed set (one run)",
+   "gate": "analyst_gate_v1: fields right with the analyst > fields right with the rules alone; fields wrong with the analyst that the rules had left unknown == 0; fields the rules knew that the analyst changed == 0.",
+   "fixed_before_run": true,
+   "result": "Of 96 fields: rules alone 15 right, 4 wrong; with the analyst 72 right, 4 wrong, none new (its 4 errors are the rules' own); plain prompted model 71 right, 1 wrong. All four runs cost EUR 0.0295 under the owner's EUR 0.10 cap. Limits: 12 sealed briefs written by the builder, one model, one run; goal and action golds accept any on-topic phrase.",
+   "verdict": "pass",
+   "cost_eur": 0.0074,
+   "next": "Switching it on in Home and the intern is the owner's decision. Its remaining errors are the rules' values it is never offered: raise a disagreement as an open question, never a silent override."
+  },
+  {
+   "name": "CHK-001, brief checker on all 24 briefs (one run)",
+   "gate": "brief_checker_gate_v1: questions on at least half of the fields the rules read wrongly, and on at most 10% of the fields they read rightly (dev and sealed briefs together; the sealed half is not blind for this role).",
+   "fixed_before_run": true,
+   "result": "It questioned 6 of the 7 fields the rules read wrongly (5 of its readings right) and 4 of the 39 they read rightly, 10.3%, all on the unit ('subscriber' against 'subscriber-month'). gpt-6-luna, EUR 0.0022 under the EUR 0.025 cap.",
+   "verdict": "fail",
+   "cost_eur": 0.0022,
+   "next": "It stays off. A stricter unit rule or prompt needs a new measurement on new briefs."
+  }
+ ],
+ "outcome": "Done: the analyst passed analyst_gate_v1 on its one sealed run (rules 15 right, with the analyst 72, no new error; EUR 0.0074, EUR 0.0295 for all four runs). Nine review findings, among them a reply cut at the token limit read as 'nothing to say' and a failed run using up the sealed set, were fixed before the sealed run. It is not switched on in Home or the intern; that is the owner's decision. The follow-up brief checker caught 6 of the rules' 7 errors but failed its noise limit (10.3% against 10%) and stays off. rd-check: 938 tests at the analyst's commit.",
+ "lessons": [
+  "Fix the harness before a sealed run: run the repeatable dev split first and let the review land before the single run.",
+  "A reply cut at the token limit is a failure, never an abstention; a reasoning model spends its limit thinking.",
+  "A failed run must not consume a set that can only run once.",
+  "When a role fails its gate by a hair, record the fail; tuning on the same briefs would make the next number meaningless.",
+  "A tool that loads .env must never be called from a test without patching it: the real key then leaks into every later test."
+ ],
+ "commits": [
+  "69fd9df",
+  "abb5729"
+ ]
+}

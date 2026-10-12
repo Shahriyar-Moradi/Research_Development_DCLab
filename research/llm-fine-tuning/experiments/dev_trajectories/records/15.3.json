@@ -1,0 +1,60 @@
+{
+ "package": "15.3",
+ "title": "Alert-budget metrics and a time-and-group split",
+ "date": "2026-10-12",
+ "request": "Report what an analyst plans with: recall and precision within the alerts the team can review, and a split that keeps both time order and entities apart instead of silently dropping the group.",
+ "spec": "recall_at_budget, precision_at_budget and AP lift in the binary metrics; Solution.alert_budget; the budget metric selectable as primary; a time-and-group split (forward folds, an entity seen in training removed from the later test fold, the number removed reported); precision a lower bound with partial labels. Done when the metrics match hand-computed values, the split never puts an entity on both sides, and the replica's final stage reports recall at the budget with a cluster-bootstrap interval.",
+ "plan": [
+  "Read how the engine builds its splits and metrics today.",
+  "Add runner.budget_metrics and pass the budget through compute_metrics and the bootstrap.",
+  "Add split strategy time_group in expansion/datasets.py: forward folds with seen entities removed and the removal reported, refused with a reason when almost every entity recurs.",
+  "Add the metric's code to the exported notebook, then remove the 15.3 marker from the acceptance test.",
+  "Test the metrics against hand-computed values and the split for entity overlap; fix the Step 2 review's findings."
+ ],
+ "decisions": [
+  {
+   "decision": "The time-and-group split refuses with a reason rather than drop either constraint.",
+   "why": "Dropping the group lets entities leak; dropping time hides drift. When almost every entity recurs, no honest forward test exists, and saying so is better than a quiet compromise."
+  },
+  {
+   "decision": "The plan proposes the time-and-group split only when the overlap allows it; otherwise it groups by the entity and states the drift.",
+   "why": "A plan that asks for a split the engine must refuse produces a project that cannot run."
+  },
+  {
+   "decision": "The budget is a share of rows the team can review.",
+   "why": "An analyst plans with 'about 70 a day', which becomes a share of the scored rows."
+  }
+ ],
+ "change": "runner.budget_metrics (recall, precision and alerts at the budget, AP lift), Solution.alert_budget, recall_at_budget as a primary metric, its cluster-bootstrap interval in the final stage, split time_group in datasets.py, the plan's RECURRING check before proposing it, the metric in the exported notebook; tests in tests/test_labels.py.",
+ "findings": [
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The recall-at-budget interval was biased low.",
+   "scenario": "In a cluster bootstrap over a few fraud bikers, many resamples hold no positive; budget_metric_fn returned 0.0 for them, pulling the interval's low end to 0.",
+   "cause": "A resample without a positive was scored as a total miss instead of as saying nothing.",
+   "fix": "Return NaN for such a draw; bootstrap_ci already drops non-finite values.",
+   "test": ""
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An adopted plan could ask for a split the engine then refuses, so every stage failed.",
+   "scenario": "dclab_core.plan proposed time_and_group from drift plus repeated entities without checking their overlap; with recurring customers fewer than about 10% of later rows remain once seen entities are removed, the new split refuses, and the project cannot run.",
+   "cause": "The plan and the split applied different conditions.",
+   "fix": "The plan reads the share of later rows that belong to entities seen earlier; at 90% or more it groups by the entity, states the drift, and lists the time-and-group split as an alternative with the share it would remove.",
+   "test": "test_the_plan_does_not_ask_for_a_split_that_cannot_test"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: budget metrics checked by hand, a time-and-entity split that never puts an entity on both sides and refuses when it cannot test, recall at the budget with a cluster-bootstrap interval in the replica's final stage.",
+ "lessons": [
+  "A resample with no positive carries no information about recall: drop it, never score it 0.",
+  "A planner and an executor must share the condition that decides whether a choice can run."
+ ],
+ "commits": [
+  "abb5729"
+ ]
+}

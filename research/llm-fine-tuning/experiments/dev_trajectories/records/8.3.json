@@ -1,0 +1,87 @@
+{
+ "package": "8.3",
+ "title": "Remove the old UI at /classic",
+ "date": "2026-10-07",
+ "request": "List what /classic can do that the product cannot; build each item in the product with existing components or confirm with the owner that it is dropped; then remove the /classic route and the old files, keep static/app, and update the tests and CLAUDE.md. The owner decided to drop the old UI and keep research campaigns on the command line.",
+ "spec": "An inventory of what only the old UI did; each item built or confirmed dropped; the route and its files removed; tests and docs updated.",
+ "plan": [
+  "Have an explorer inventory the old UI: its 16 files, what serves and links to them, the API routes only it used, and the docs that mention it.",
+  "Remove the route, the 16 files, its public page-shell entry, Compute's 'Open in the classic UI' link and the stale Playwright script that drove the old page.",
+  "Update the tests to check /classic and its files answer 404 and that the research map is on the Lab page.",
+  "Run the gate and the reviewer; build the lost features it found; fix the docs; re-review; fix the last display bug."
+ ],
+ "decisions": [
+  {
+   "decision": "Research campaigns stay on the command line (python -m dclab_rnd.agentic run|resume).",
+   "why": "The owner decided; the only real gap was starting, pausing and resuming campaigns."
+  },
+  {
+   "decision": "The /api/runs and /api/knowledge routes stay.",
+   "why": "The command line, the Jobs page's export link and API users read them."
+  }
+ ],
+ "change": "Removed /classic, its 16 files under agentic/static/{index.html,css,js}, its page-shell entry, Compute's link to it and a stale Playwright script; built in the product: delete a project (Workflow page) and an intern session (Sessions tab) behind confirm dialogs, a link to the field guide /guide on Evidence, each research trial's files and the resume command on Compute's job detail.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Features only the old UI had were lost without the owner agreeing, and the row said everything had an equivalent.",
+   "scenario": "In the product there was no control to delete a project or an intern session, no link to the field guide /guide, and no download of a research run's per-trial files; package 12.5 promises project deletion with an audit entry, and Admin offers 'until the project is deleted'.",
+   "cause": "The inventory looked for the big gap (campaigns) and missed small actions.",
+   "fix": "A Delete button on the Workflow page for a real project that is not running, 'Delete the open session' on the Sessions tab, an Evidence link to /guide, and each trial's result, recipe and out-of-fold predictions on Compute's job detail; the Knowledge view is listed as moved to the API.",
+   "test": "tests/test_pages_ops.py checks a trial file is listed and downloads; the buttons and the link were checked in a browser."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A research job on Compute could not be acted on, and the page did not say how.",
+   "scenario": "A paused, interrupted or failed research row showed only a trajectory download; neither the page nor the row said that runs resume from the command line or that Ctrl+C pauses one.",
+   "cause": "The control moved to the command line without a pointer.",
+   "fix": "The job detail gives 'python -m dclab_rnd.agentic resume <run_id>' for a paused, interrupted or failed run, and otherwise says how runs start and that Ctrl+C pauses one.",
+   "test": "tests/test_pages_ops.py checks the note names the command."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Docs still described the old UI.",
+   "scenario": "README listed the Knowledge and Agent campaigns pages and links like #map/... and #run/... that the product sends to Home; it pointed to a deleted intern view; the Makefile's agent-serve help and a research README said the web UI starts campaigns.",
+   "cause": "Docs outside the package's file list.",
+   "fix": "The README describes the Lab, Evidence and Compute pages and the current intern view; agent-serve's help and the research README say campaigns use the command line.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The project delete dialog escaped the name twice.",
+   "scenario": "A project named \"Bob's churn\" showed as 'Delete “Bob&#39;s churn”?', and 'Q&A' as 'Q&amp;A', because the title was escaped before a dialog that already sets it as text.",
+   "cause": "Escaping for HTML a value that is inserted as text.",
+   "fix": "Pass the plain name; both delete dialogs got a red confirm button.",
+   "test": ""
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The 8.3 commit was folded into the 8.4 commit.",
+   "scenario": "A failed git add stopped the 8.3 commit; the 8.4 commit that followed took every staged change, so 8.3's work landed under 8.4's message. main refuses force-pushes, so it could not be rewritten.",
+   "cause": "Committing without checking that the previous commit succeeded.",
+   "fix": "An empty follow-up commit records what the 8.4 commit also contains for 8.3.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: /classic and its files are gone, the four features only it offered are in the product, Compute says how to resume a research run, and tests check the old route and files answer 404. Reviewed: four findings, then one, all fixed.",
+ "lessons": [
+  "An inventory before a removal must list small actions (delete, links, downloads), not only the headline feature.",
+  "Escape for the sink: text set with textContent must not be HTML-escaped first.",
+  "After a failed commit step, check git status before the next commit."
+ ],
+ "commits": [
+  "3cbb256",
+  "65a28e3"
+ ]
+}

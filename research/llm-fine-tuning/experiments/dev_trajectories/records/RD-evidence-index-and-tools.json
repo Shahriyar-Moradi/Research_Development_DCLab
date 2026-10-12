@@ -1,0 +1,60 @@
+{
+ "package": "RD-evidence-index-and-tools",
+ "title": "The evidence index, the agent tools and the blind leakage-auditor replay",
+ "date": "2026-10-03",
+ "request": "Make all the R&D data usable in practice now, without fine-tuning: say how evidence should be shaped for retrieval, build it, and give an agent tools to use it. Then check that the agent's leakage tool would find the leaks the R&D already confirmed without being told.",
+ "spec": "dclab_rnd/evidence_index.py: every rule, workflow block, dataset, experiment, leakage precedent, pitfall and finding as one self-contained cited record (evidence/knowledge/rag/records.jsonl), searched filter-first then ranked; a freshness check in CI. dclab_rnd/tools.py: search_evidence, get_record, plan_next_stage, review_notebook, review_code and audit_columns for function calling or MCP. A blind replay of the column auditor with no catalog and no precedents (agent_verification_v1).",
+ "plan": [
+  "Shape records, not chunks: a rule keeps its statement, why and failure signal together; an experiment card always says what the dataset predicts and what the stage does.",
+  "Search with exact metadata filters first (type, dataset, stage, task type, category), then rank the survivors with a small BM25.",
+  "Expose the index and the deterministic checks as tools with JSON schemas.",
+  "Run the column auditor blind on every dataset with a confirmed leak and compare its flags with the known leaks.",
+  "Rebuild the index when the expansion campaign lands and rerun the replay on its datasets."
+ ],
+ "decisions": [
+  {
+   "decision": "Filter first, rank second; never chunk records like a PDF.",
+   "why": "A question almost always names its dataset or stage, so an exact filter is free and precise; chunking would separate a rule's statement from its reason."
+  },
+  {
+   "decision": "Keep the index in the standard library and deterministic.",
+   "why": "CI can then verify that the committed records are current, and BM25 can be swapped for embeddings later without changing the record contract."
+  },
+  {
+   "decision": "Use the blind replay as the auditor's regression test.",
+   "why": "Any change to its heuristics must not lower recall on leaks the R&D already confirmed."
+  }
+ ],
+ "change": "dclab_rnd/evidence_index.py (build, check, search), dclab_rnd/tools.py with six tools and a verify-auditor command, evidence/knowledge/rag/records.jsonl, evidence/campaigns/agent_verification_v1/VERIFICATION_REPORT.md, tests/test_knowledge_layer.py and docs/guides/AGENT_KNOWLEDGE_ARCHITECTURE.md.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The evidence index and the SFT corpus went stale when the expansion results were added.",
+   "scenario": "After the 20 expansion results landed, tests/test_knowledge_layer.py failed its freshness checks for the index and the corpus.",
+   "cause": "Generated files were not rebuilt after new results.",
+   "fix": "Rebuild with python -m dclab_rnd.evidence_index build and the v3 builder (make knowledge); rd-check fails while either is stale.",
+   "test": "tests/test_knowledge_layer.py freshness checks."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "blind leakage-auditor replay",
+   "gate": "Run the auditor with blind=True (no catalog, no precedents) on 7 datasets with 18 confirmed leakage columns; count the leaks it flags.",
+   "fixed_before_run": true,
+   "result": "11 of 18 found (recall 61%): bank duration; online_shoppers 4 of 9 (PageValues and the three duration columns; missed Administrative, Informational, ProductRelated, BounceRates, ExitRates); both HyperAck final fares; Telco customerID; credit-card fraud's Time missed; bike casual and registered; reviews Rating found, Positive Feedback Count missed. Other flags (review requests, not accusations) included TotalCharges and HyperAck's first_created_at.",
+   "verdict": "not scored",
+   "next": "Never treat a clean heuristic scan as proof of safety; the agent must ask for the decision-time contract."
+  }
+ ],
+ "outcome": "133 cited records at the time (137 later) searchable by dataset and stage, six agent tools, and a regression test for the leakage auditor. The MCP path was not exercised in that environment because the mcp package was missing.",
+ "lessons": [
+  "A missed leak is one whose numbers look ordinary; only the moment a value is written can catch it.",
+  "Shape knowledge for its reader: a record that cannot be understood alone is useless to retrieval and to training alike."
+ ],
+ "commits": [
+  "d9c4c24",
+  "3212bd9"
+ ]
+}

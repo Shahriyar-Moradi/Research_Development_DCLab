@@ -1,0 +1,57 @@
+{
+ "package": "3.5",
+ "title": "The background pipeline and the upload and sample routes",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package runs structuring, cleaning and analysis in the background while the user stays on Home, and reports each step live.",
+ "spec": "draft/pipeline.py (structure, clean, analyse as a background job that writes events) and the routes PUT /api/drafts/{id}/data?filename= and POST /api/drafts/{id}/data/sample. Done when the sample-then-build flow test passes and make product-e2e passes upload and log-file.",
+ "plan": [
+  "Write new_asset to register a data source and run() to move it through structuring, cleaning and analysing to ready or failed.",
+  "Emit a 'pipeline' event at each step and an 'analysis' event at the end, then tell the Home agent the data is ready.",
+  "Save the cleaned table as Parquet in the draft.",
+  "Add the upload route (raw body, sanitised file name, size limit) and the studied-sample route; both return at once and run the pipeline in a thread.",
+  "Report failures to the user in plain words without crashing the job."
+ ],
+ "decisions": [
+  {
+   "decision": "The routes return immediately and the work runs with asyncio.to_thread.",
+   "why": "The user stays on Home and keeps chatting while the file is processed."
+  },
+  {
+   "decision": "The cleaned table is stored as Parquet.",
+   "why": "It keeps the types cleaning established (dates, integers, booleans); a CSV would lose them on the way to the project."
+  }
+ ],
+ "change": "dclab_rnd/draft/pipeline.py and the upload and studied-sample routes; each step is an event on the draft's stream.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A reader could see a data source marked ready with no analysis yet.",
+   "scenario": "The pipeline saved the asset as 'ready' in one update and the analysis, cleaning log and active asset in the next; a reader in between (the page, the Home agent, a test polling for ready) saw ready data with nothing to show. The PostgreSQL run of the draft-flow test failed on exactly that once.",
+   "cause": "One logical change was written as two writes.",
+   "fix": "Both go in one update.",
+   "test": "tests/test_draft_flow.py full-flow test, stable on files and on PostgreSQL."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "end-to-end flows",
+   "gate": "make product-e2e passes the upload flow (the Telco CSV) and the log-file flow on a temporary server without a model.",
+   "fixed_before_run": true,
+   "result": "Both flows passed; a web-server log was parsed at 100% and got a descriptive analysis.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: data is prepared in the background with every step streamed to Home.",
+ "lessons": [
+  "A status flag and the data it promises must be written together; a reader will land between two writes sooner or later."
+ ],
+ "commits": [
+  "15c4958",
+  "88acb12",
+  "ead9baa"
+ ]
+}

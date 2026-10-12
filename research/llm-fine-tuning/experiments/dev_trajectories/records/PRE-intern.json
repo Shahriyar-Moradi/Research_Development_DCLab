@@ -1,0 +1,75 @@
+{
+ "package": "PRE-intern",
+ "title": "The DCLab intern: a chat mode with tools and a budget over the notebook",
+ "date": "2026-10-04",
+ "request": "Build something like Hugging Face's ML Intern directly inside the R&D project, locally and one click away; fill the gaps (Kaggle and Hugging Face data, multiclass, time-series, imbalanced-fraud and text + tabular cases) and make finished work usable as SFT data.",
+ "spec": "dclab_rnd/intern/: a toolbox with JSON schemas over the notebook and the evidence, an OpenAI-compatible client (OpenAI, the Hugging Face router, Ollama), a loop with a budget of tool calls and minutes, a standard plan when no model is configured, and stored sessions; routes under /api/intern; an Intern page and 'Hand to the intern' on every project. The expansion datasets join the sample picker; finished projects export as SFT examples. Done when tests/test_intern.py runs with a scripted model and no key.",
+ "plan": [
+  "List the tools the intern may call: five evidence tools (search_evidence, get_record, get_rules, plan_next_stage, review_code) and thirteen project tools (list_samples, create_project, use_sample, describe_data, propose_contract, set_contract, set_settings, run_stage, run_all, approve_stage, get_results, ask_project, export_notebook).",
+  "Move the data attach and sample logic from the server into studio.data, so the intern and the API share one path.",
+  "Write the loop: in model mode the model writes a plan, calls tools and finishes with a report; with no model, the same tools run in the fixed DCLab order (sample, contract, five stages, report).",
+  "Enforce the budget on every step and record the minutes used per session.",
+  "Add the four expansion datasets (imbalanced card fraud, 26-class letters, daily bike demand, clothing reviews with text) to the sample picker with the contracts the campaign wrote for them.",
+  "Export a finished project as SFT examples (one per stage plus one for the contract) and add a Training examples button.",
+  "Build the Intern page (composer, budget, plan, tool-call transcript, report, follow-ups) and test the loop with a scripted model."
+ ],
+ "decisions": [
+  {
+   "decision": "Every tool is one the R&D verified, deterministic and bounded; the intern cannot run arbitrary code, reach the network or touch files outside the project home.",
+   "why": "The difference from ML Intern is being right, not only automatic: the model never owns a split, a metric or a selection rule."
+  },
+  {
+   "decision": "A standard plan runs when no model is configured, and its transcript looks the same as a model's.",
+   "why": "The product must work offline and in tests, and a person sees the same kind of session either way."
+  },
+  {
+   "decision": "The system prompt states five rules the intern never breaks: contract before any score, stages in order with the holdout consumed once, numbers with uncertainty and cited evidence, no production-readiness claims, stay inside the budget.",
+   "why": "These are the repository's rules; the model must follow them through tool calls, and the deterministic code enforces what the prompt cannot."
+  },
+  {
+   "decision": "The client speaks the OpenAI-compatible API, so OpenAI, the Hugging Face router and a local Ollama all work.",
+   "why": "The owner wants it local and one click away; one protocol covers paid and free models."
+  },
+  {
+   "decision": "Finished projects export as RAFT-style SFT examples.",
+   "why": "The notebook then also becomes the data factory for the owner's future model."
+  },
+  {
+   "decision": "Tests use a scripted model, never a key.",
+   "why": "A test must be repeatable and free; a live model makes it depend on the network and on rate limits."
+  }
+ ],
+ "change": "New dclab_rnd/intern/ (tools.py with 18 tools, llm.py, loop.py with the budget and the standard plan, sessions.py with a default budget of 24 tool calls and 20 minutes); dclab_rnd/studio/sft.py and /api/projects/{id}/export/sft; studio.data gained attach_data, use_sample and the expansion samples; routes /api/intern and /api/intern/sessions; an Intern page and 'Hand to the intern'; tests/test_intern.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The minutes a session used were added up wrongly across turns.",
+   "scenario": "A session ran, then received a follow-up turn; the minutes recorded did not match the time actually spent, so the minutes budget was checked against a wrong number.",
+   "cause": "The turn's elapsed time was added to the running total without a fixed baseline for where the turn started.",
+   "fix": "Keep a minutes_before baseline when a turn starts and set minutes to that baseline plus the turn's elapsed time.",
+   "test": "Not covered by a dedicated test: test_budget_is_enforced checks the tool-call budget only."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The intern tests took about 35 seconds, too slow for the suite run before every commit.",
+   "scenario": "The standard-plan test and the API test each built a whole project on larger samples.",
+   "cause": "The tests used samples bigger than the behaviour under test needs.",
+   "fix": "Run the standard-plan test on the small heart disease sample and the API test on the bike sample; the file now takes about 11 seconds.",
+   "test": "tests/test_intern.py"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: a person can hand a task in plain language to the intern, which plans, calls the verified tools under a budget and reports; it works with no model through the standard plan. Later found: the API test read the developer's .env key and called a live model (fixed in package 0.1).",
+ "lessons": [
+  "An agent's edge is the tools it is allowed to call: give it only verified, bounded tools and keep splits, metrics and selection in code.",
+  "A deterministic fallback plan with the same transcript shape keeps the product usable offline and the tests free.",
+  "A test of an agent must own its environment; a key present on the machine silently turns a scripted test into a live one."
+ ],
+ "commits": [
+  "21cd670"
+ ]
+}

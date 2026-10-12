@@ -1,0 +1,84 @@
+{
+ "package": "14.5",
+ "title": "Baselines on the benchmark, with the gate written first",
+ "date": "2026-10-07",
+ "request": "Write the thresholds of the AND gate before any run, then run the standard plan, the audit reference, a prompted base model and the current agent on the sealed set with identical tools and budgets, and give a result per policy and family with intervals, every failure kept, and the gate's verdict as evidence about these policies on these cases, never as a production claim. The owner said to do everything that does not need other people.",
+ "spec": "Gate thresholds written before any run (for example no unsafe move; leaks kept out on at least 90% of leak cases with the lower 95% bound above 80%; false alarms on at most 10% of controls); the four policies on the sealed set; results per policy and family with intervals; the verdict stated as evidence, never as a production claim.",
+ "plan": [
+  "Write gate_v1 (dclab_rnd/agent_eval/gate.py) from the package text and docs/SYSTEM_EVALUATION.md, with tests that every criterion can fail alone and that missing numbers fail; commit it (48acdb4) before any new run on the sealed set.",
+  "Write baselines.py: a prompted base model that sees only each column's name, kind, missing share and distinct count plus the prediction moment, and sets its solution through the validator; register its prompt (base_audit.md) and store its fingerprint.",
+  "Run the base model on the sealed 70 cases with a cap (BEN-003), then the current agent, the intern on gpt-6-luna with its tools and 16 steps (BEN-004).",
+  "Build the gate report over all policies (BEN-005) after the reviewer's findings were fixed.",
+  "Run make check-all and commit with the kits and A5.1."
+ ],
+ "decisions": [
+  {
+   "decision": "The gate is committed before the base-model and agent runs, and a threshold moves only as a new gate version.",
+   "why": "A gate chosen after the numbers are seen can be fitted to them."
+  },
+  {
+   "decision": "The scripted policies' sealed numbers (BEN-002), recorded earlier, are judged by the gate too, with the order stated.",
+   "why": "Their numbers were known when the gate was written; the thresholds come from the package text, not from them, and a test and the report say so."
+  },
+  {
+   "decision": "The gate also fails a policy when any trap family of four or more leak cases is below 50%.",
+   "why": "An aggregate rate can hide a family the policy never catches."
+  },
+  {
+   "decision": "The base model sees names and summaries only, never values, audit flags, target candidates or labels.",
+   "why": "It is a baseline for judgment from the schema; anything more would leak the answer or test a different policy."
+  }
+ ],
+ "change": "New dclab_rnd/agent_eval/gate.py (gate_v1 thresholds and verdict), baselines.py (the prompted base-model policy, caps checked before each request, failures kept, build_report over all policies), prompts/base_audit.md, live.py --split, tests/test_gate.py and tests/test_baselines.py, results BEN-003, BEN-004 and BEN-005.",
+ "findings": [
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The report did not check its inputs, so a dev or partial result could be judged as the sealed test gate.",
+   "scenario": "Passing a dev base-model file (split dev, 38 cases) produced a 'sealed test' verdict, because each policy's expected total was the file's own case count and the report wrote split test and sealed true regardless; a dev agent file crashed with a bare KeyError.",
+   "cause": "The expected total was circular and the split was never compared with the benchmark.",
+   "fix": "Require every input's split to be test and its case ids and fingerprints to equal the sealed set; the expected total is the sealed set's size (times repeats for the agent).",
+   "test": "test_a_result_that_is_not_the_whole_sealed_set_is_refused_not_judged."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "False alarms were counted over all cases with a clean column, not over controls as the package text says.",
+   "scenario": "On the 32 pure control cases the base model has 3 false alarms against 6 of 70 as gated, and the audit 13 of 32 against 18 of 70; a policy could pass as implemented and fail the literal text.",
+   "cause": "The gate used the benchmark's existing false-alarm count.",
+   "fix": "The gate keeps its definition (stated in the 14.5 text and the limitations), and the report gives both rates: over the 70 cases and over the 32 pure controls.",
+   "test": ""
+  },
+  {
+   "id": "N1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The base model's prompt names the benchmark's trap families almost one for one.",
+   "scenario": "The prompt mentions a copy of the target in another unit, a sum or difference, a value that exists only when the outcome happened and a harmless name that sounds like an outcome, so it is a hinted baseline, not a plain prompted model; the playbook asks for identical tools and budgets, but the base model has no tools and the agent has 16 steps.",
+   "cause": "The prompt was written with the families in mind.",
+   "fix": "Stated in the result's limitations and the playbook row as a hinted baseline; the differences in tools and steps are disclosed.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "gate_v1 on the sealed 70 cases (BEN-005)",
+   "gate": "Leaks kept out on at least 90% of leak cases with the 95% lower bound at least 80%; false alarms at most 10%; valid moves 1.0; every cited record real; every case scored; no trap family of four or more leak cases below 50%. All must hold.",
+   "fixed_before_run": true,
+   "result": "No policy passes. Leaks kept out of 38 / false alarms of 70 (of the 32 pure controls): standard plan 7 (9–33%) / 12 (7); audit rules 28 (58–85%) / 18 (13); bad policy 0 / 0 with valid moves 0.75; prompted base model 33 (73–94%) / 6 (3); the agent 35 (79–97%) / 26 (21), valid moves and citations 1.0. The agent forbids clean columns on 37% of cases (for example a real wine feature), and 53 of its 70 runs ended on the step budget.",
+   "verdict": "fail",
+   "cost_eur": 0.59,
+   "next": "The agent's over-forbidding of clean columns is the next engineering target; the base model is closest on false alarms and short on leaks. Labels are the author's until 14.4; one repeat per case."
+  }
+ ],
+ "outcome": "Done (48acdb4 for the gate, c291a1b for the runs and the report): no policy passes gate_v1 on the sealed set; the agent keeps the most leaks out and fails on false alarms. The verdict is evidence about these policies on these cases, not a production claim.",
+ "lessons": [
+  "Commit the gate before the run, and let the report refuse any input that is not exactly the sealed set.",
+  "A gate's denominator is part of the gate: state it and report the literal reading beside it.",
+  "A baseline prompt that names the trap families is a hinted baseline; say so, or it flatters the comparison.",
+  "An agent that catches the most leaks by forbidding clean columns has not passed; false alarms are part of safety for a data scientist."
+ ],
+ "commits": ["48acdb4", "c291a1b"]
+}

@@ -1,0 +1,100 @@
+{
+ "package": "A2.3",
+ "title": "A trace of every agent step, and replay",
+ "date": "2026-10-06",
+ "request": "Store a trace for every agent run: one row per step with what the agent saw, the tool and arguments, the verdict, a result summary, tokens and time; show it on the Intern page; and let any finished run be replayed with a scripted model to check it gives the same moves. Never store cell values.",
+ "spec": "An agent_step table through an Alembic migration (run id, step number, state summary, tool, arguments, verdict, result summary, tokens, seconds); the runtime writes a row per step; replay(run_id) feeds the stored replies back through the runtime with a scripted gateway and checks the same moves result; the trace on the Intern page beside the step list. Done when any finished run can be replayed from its trace with a scripted model and gives the same moves.",
+ "plan": [
+  "Read the storage models, migrations and the intern's step list.",
+  "Write the trace store (agents/traces.py) as a new module while A2.2's gate ran, so nothing under test changed; then give run() reply numbers and an optional tracer, both backwards compatible.",
+  "Write replay(): the stored replies go through run() again, with the tools answering from the trace, so no model and no project are touched; continue across a run's stops (a question, then a follow-up).",
+  "Add the agent_step table (migration 0005) or agent_steps.jsonl; have the intern's own loop write rows until A2.4 moves it onto run().",
+  "Return the trace with the session and show each step's trace line on the Intern page; check the API with curl when the built-in browser refused the local page.",
+  "Run check-all and the review; fix six findings with tests; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Replay answers tool calls from the trace instead of running the tools.",
+   "why": "Replay checks the agent's decisions, not the tools; running tools would need the original project and could change it."
+  },
+  {
+   "decision": "A run whose arguments were cut is refused by replay rather than reported as diverging.",
+   "why": "A cut argument can never match the original call; reporting it as a different move would be a false regression."
+  },
+  {
+   "decision": "Result summaries drop the keys that carry table cells (column examples, previews) before the 360-character cut.",
+   "why": "The trace is the training source for A6; truncation alone kept the first values of the table."
+  }
+ ],
+ "change": "dclab_rnd/agents/traces.py (Tracer, FileTraces, PgTraces, replay); run() stamps each step with its reply number and calls the tracer; migration 0005 adds agent_step; the intern loop writes rows; the server returns the trace with the session and deletes it with the session; the Intern page shows verdict, graph state, model reply and tokens per step; tests/test_agents_traces.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Cell values were stored in the trace.",
+   "scenario": "The standard plan on 'Predict telco churn': trace rows for use_sample and describe_data stored the first customer ids of the table under columns[].examples, in agent_step.result and in agent_steps.jsonl.",
+   "cause": "The result summary was the first 360 characters of the raw result as JSON.",
+   "fix": "summary() removes the value-bearing keys (examples, preview and similar) before dumping.",
+   "test": "A test that runs the data tools and finds none of the table's values in any trace row."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The state recorded was after the move, not what the agent saw.",
+   "scenario": "In the standard plan the create_project row showed a state with a project, though the intern saw none; the use_sample row showed data attached, though the agent saw none. A6.1 needs the state before the move.",
+   "cause": "The tracer read the graph state when it wrote the row, after the tool ran.",
+   "fix": "A snapshot is taken before the call and used for the row.",
+   "test": "A trace test comparing each row's state with the state before its move."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Trace step numbers drifted from the session's step numbers, and the page matched on them.",
+   "scenario": "A session with 8 steps from before the package gets a follow-up: the session's step is 9 but the trace row is 1, so its trace line appears on step 1. Also, a reply [write_plan, get_graph] where get_graph raises reloads the session without the unsaved write_plan, while its trace row stays.",
+   "cause": "Resuming numbered from the largest stored trace step, not from the session.",
+   "fix": "The session's own step number is passed to the tracer.",
+   "test": "A follow-up test where trace and session numbers match."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Replay failed on any call made under a legacy alias.",
+   "scenario": "The model calls set_contract (an old name of set_solution): recorded ok, replayed error, same=False.",
+   "cause": "The row stored the name as called; the replay stub compared it with the canonical name.",
+   "fix": "Replay resolves both names through the registry before comparing.",
+   "test": "A replay test with an aliased call."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Replay failed on any call whose arguments had been cut.",
+   "scenario": "A set_solution call with a long prediction moment and several forbidden columns with reasons: arguments over 1,200 characters were stored as {'_truncated': ...}, which the schema check refused on replay.",
+   "cause": "A low cut for arguments that are names and sentences.",
+   "fix": "Arguments are kept up to 8,000 characters; a run with a cut argument is refused by replay with 'arguments were cut'.",
+   "test": "A replay test with a cut argument."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The file trace store was fragile, and a trace failure broke the session routes.",
+   "scenario": "A torn last line left by a crash made delete() raise JSONDecodeError, so DELETE /api/intern/sessions/{id} returned 500 after the session was deleted and left its rows; the next appended row merged into the torn line and was lost; steps() read without the lock while delete() rewrote the file in place; a bad file broke GET of the session.",
+   "cause": "No handling of bad lines, unlocked reads and in-place rewrites.",
+   "fix": "delete() skips bad lines and writes a temporary file that replaces the old one; reads take the lock; a record starts a new line when the file does not end with one; the server wraps trace reads and deletes.",
+   "test": "test_a_broken_store_never_stops_the_run and file-store tests with a torn line."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: a row per step in agent_step or agent_steps.jsonl, state taken before the move, no table values in results, replay through run() continuing across stops, and a trace line per step on the Intern page. Open: the tokens of a reply that makes no step are in the session's usage but not the trace; intern traces become replayable when the intern runs on run() (A2.4). The gate passed with 449 tests and the four flows; six review findings fixed.",
+ "lessons": [
+  "A 'summary' made by truncating raw output still carries the first values; remove the value-bearing keys before cutting.",
+  "Record the state an agent saw before its move, or the trace cannot teach what to do in that state.",
+  "An append-only file needs a plan for a torn last line before anything rewrites it."
+ ],
+ "commits": ["4d61745"]
+}

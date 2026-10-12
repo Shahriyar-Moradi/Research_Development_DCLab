@@ -1,0 +1,50 @@
+{
+ "package": "2.1",
+ "title": "Rename contract to solution in the backend",
+ "date": "2026-10-05",
+ "request": "Users should meet a 'solution' they draft and refine, not a 'contract'. The owner chose to rename it in the UI and in the backend, without breaking anything written before.",
+ "spec": "studio/solution.py with the Solution model; the project key solution; routes /solution* with /contract* kept as hidden aliases; the gate solution and the policy require_solution_signoff, with old names mapped. Done when the rename, studio and graph tests pass and an old project.json with a contract key opens and is rewritten.",
+ "plan": [
+  "Ask the owner how far the rename should go (only the draft step, the whole UI, or UI and backend); the owner chose UI and backend.",
+  "Move studio/contract.py to studio/solution.py and keep contract.py as a thin re-export.",
+  "Migrate old project.json files on read in ProjectStore (contract to solution, old gate and policy names).",
+  "In the graph, name WF-01 'Solution draft', the gate 'solution', the policy require_solution_signoff, and map the old move, gate and policy names.",
+  "Add /solution and /solution/proposal routes, keep /contract as aliases hidden from the schema; update engine, export, SFT and tests; add a migration test.",
+  "Protect research wording that is part of immutable records."
+ ],
+ "decisions": [
+  {
+   "decision": "Old names keep working for one release: hidden route aliases, LEGACY_MOVES, LEGACY_GATES, LEGACY_POLICY, a migrating store.",
+   "why": "Existing projects, scripts and Chat UI setups must not break because a word changed."
+  },
+  {
+   "decision": "Research records keep their wording: rule DCLAB-R01 'prediction contract', campaign results, the SFT corpus, evidence.",
+   "why": "Those are immutable or generated records; renaming them would rewrite history."
+  },
+  {
+   "decision": "'Contract' as a column name in the Telco data and as a research field in tests stays.",
+   "why": "It is the dataset's own column, not the product's object."
+  }
+ ],
+ "change": "studio/solution.py (Solution, propose) with studio/contract.py as a shim; the project field solution with migration on read; graph WF-01 'Solution draft', gate solution, policy require_solution_signoff with legacy maps; /solution routes with hidden /contract aliases; engine, export, SFT and tests updated; tests/test_solution_rename.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The earlier UI at /classic would have broken after the backend rename.",
+   "scenario": "The old UI's scripts read p.contract from the project; after the store migrated files to the solution key, the old Solution view would have shown nothing.",
+   "cause": "The rename covered the new frontend and the backend but the old frontend reads the same API.",
+   "fix": "Rename the field in the old UI's scripts too, so /classic keeps working until it is removed.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the backend speaks of the solution everywhere; old project files, routes, moves, gates and policies still work; make rd-check passed (137 tests).",
+ "lessons": [
+  "A rename that touches stored data needs a migration on read and aliases for every external name, tested with an old file."
+ ],
+ "commits": [
+  "db85ad2"
+ ]
+}

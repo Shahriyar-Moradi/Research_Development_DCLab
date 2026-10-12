@@ -1,0 +1,56 @@
+{
+ "package": "6.2",
+ "title": "Databases and cloud storage",
+ "date": "2026-10-05",
+ "request": "Every data source on Home and in the wizard must work for real (the owner chose unstructured files, Kaggle and Hugging Face, databases and cloud, and synthetic data), including when credentials must stay on the server side; each source becomes a file in the draft and goes through the same structure, clean and analyse pipeline as an upload. This package reads a table or query from a database the server defines, and one object from S3 or Google Cloud Storage.",
+ "spec": "Read-only table or query import through a connection the server defines (DCLAB_DB_<NAME>); one object from s3:// or gs://. Done when the database and cloud tests pass and the draft JSON holds the connection's name, never its URL.",
+ "plan": [
+  "Write connectors/db.py: connections named DCLAB_DB_<NAME> holding a SQLAlchemy URL; allow a table pick or one read-only SELECT, row-capped.",
+  "Check the query under two SQL dialects and wrap it with a row limit; refuse anything that writes.",
+  "Write connectors/cloud.py reading one CSV or Parquet object from s3:// (boto3) or gs:// (google-cloud-storage, or gcsfs), size-capped.",
+  "Make the URL and any credential unreachable from drafts, events, logs and error messages; test that.",
+  "Import a table from a database connection through the Home dialog in the browser."
+ ],
+ "decisions": [
+  {
+   "decision": "The page only ever names a connection; the URL lives in the server's environment.",
+   "why": "A connection string often holds a password."
+  },
+  {
+   "decision": "The query is parsed twice, with standard/PostgreSQL rules and with MySQL rules, and both must pass as one read statement.",
+   "why": "A string or comment could otherwise hide a second statement from one database's parser."
+  },
+  {
+   "decision": "More words are blocked than asked (INTO, ATTACH, DETACH, PRAGMA, VACUUM, LOCK, RENAME, UPSERT, REVOKE, EXECUTE); the user's query sits on its own lines in the wrapper and its :words are escaped.",
+   "why": "A trailing comment must not swallow the wrapper, and bound parameters must not be injected."
+  },
+  {
+   "decision": "The docstring says the check cannot see what a function does; a read-only database user is the real guarantee.",
+   "why": "Say the limits of a guard instead of overselling it."
+  },
+  {
+   "decision": "S3 tries once anonymously when no credentials are found.",
+   "why": "Public buckets should work without setup, and the asset says it was anonymous."
+  }
+ ],
+ "change": "dclab_rnd/connectors/db.py and cloud.py with routes POST /api/drafts/{id}/data/database and /data/cloud; a short form opens from the warehouse and S3/GCS cards.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "browser import from a database",
+   "gate": "A table imported through the Home dialog becomes a ready asset and the connection string appears nowhere in what the browser receives.",
+   "fixed_before_run": true,
+   "result": "300 rows were read, cleaned and ready; the connection string appeared in no response, event or draft.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: read-only database and cloud imports with names only on the page; tests check that URLs never leak.",
+ "lessons": [
+  "Parse untrusted SQL with more than one dialect when the target database is not fixed; and still require a read-only user."
+ ],
+ "commits": [
+  "96feb56"
+ ]
+}

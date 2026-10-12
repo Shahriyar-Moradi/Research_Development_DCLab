@@ -1,0 +1,218 @@
+{
+ "package": "10.2",
+ "title": "Accounts, workspaces and roles",
+ "date": "2026-10-07",
+ "request": "A team of about 1,000 needs to know who acts and to keep each team's work apart. Add sign-in, sessions, workspaces with members and the four roles, enforced on every route; a gate approval records who approved; the company's identity provider (OIDC) is the main sign-in path, with groups mapped to roles.",
+ "spec": "Password sign-in hashed with argon2, a server-side session in an HttpOnly SameSite=Lax cookie, the CSRF token kept on writes; every project, draft and session belongs to a workspace; roles enforced in one dependency; OIDC with groups mapped to roles; sessions in the database; one test per write route that the wrong role and the wrong workspace are refused. Done when a viewer cannot run a stage or approve a gate, a user never sees another workspace, and a test covers every write route.",
+ "plan": [
+  "Map the auth scope (an explore agent) and ask the owner the choices the plan left open: when sign-in is required, which role names, who approves a stage's choice, which new screens may be added to the frozen demo.",
+  "Part A: roles, the accounts store (users, members, sessions, API tokens; only hashes of tokens stored), migration 0012, a request context naming the workspace's Services, a pool of Services per workspace, the guard added by the shared Router to every route from its method and path, password sign-in and the accounts routes, and python -m dclab_rnd.accounts add for the first owner.",
+  "Test every write route as a member whose role may not and as a member of another workspace using this one's ids; gate, review, fix, commit part A.",
+  "Part B: OIDC discovery, authorization code with PKCE, a signed ten-minute state cookie, the ID token checked against the provider's keys, groups mapped to roles per workspace; tested against a fake provider.",
+  "Part C: the sign-in page, the workspace switcher and avatar, Members and API tokens tabs on Admin, the roles table marked enforced, /mcp acting in the token's workspace; checked in the browser with a local test account.",
+  "Review B and C, fix, gate, commit; then fix the CI failure of the second-workspace test."
+ ],
+ "decisions": [
+  {
+   "decision": "Sign-in only when configured: with DCLAB_AUTH unset the app stays today's single owner on this machine; password or OIDC turns accounts on and needs PostgreSQL.",
+   "why": "The owner's choice: local development and every existing test keep working unchanged, while a team deployment turns accounts on."
+  },
+  {
+   "decision": "Show the Admin page's role names (Owner, ML engineer, Reviewer, Business viewer) and store the plan's values (owner, data_scientist, reviewer, viewer).",
+   "why": "The owner chose the names the product already shows; 'Intern' stays the agent, not a person's role."
+  },
+  {
+   "decision": "A stage's choice may be approved by ML engineers, reviewers and owners; gates only by reviewers and owners; gate switches, the training opt-in and members only by owners.",
+   "why": "The owner's choice: the person running a project confirms its stage choices, while sign-offs that guard the holdout need a reviewer."
+  },
+  {
+   "decision": "The role check is added by the shared Router from each route's method and path, not written per route.",
+   "why": "A new route cannot be left out by forgetting a decorator; the test of every write route proves the table."
+  },
+  {
+   "decision": "An existing account is linked to an OIDC identity by email only when the provider verified that email and the account has no other subject.",
+   "why": "An email a person can type at the provider is not proof of who they are; linking on it allowed an account takeover (finding B1)."
+  }
+ ],
+ "change": "New dclab_rnd/accounts/ (roles, principal, argon2 passwords, store, guard, api, oidc, __main__), dclab_rnd/context.py, agentic/pool.py and current.py, migrations 0012 (sessions, API tokens) and 0013 (unique OIDC subject). The shared Router adds the permission check to every route; the middleware identifies the person from the session cookie or a Bearer API token and checks the request token on writes; one Services per workspace with its own stores, gateway, lessons, jobs, audit and worker, chosen per request; code holding one workspace's stores reaches the request's through stand-ins; gate approvals and the audit name the person. Part C: sign-in page, switcher and avatar, Members and API tokens tabs, roles marked enforced, a project's team from members, /mcp in the token's workspace. Tests: test_accounts, test_oidc.",
+ "findings": [
+  {
+   "id": "A1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With DCLAB_AUTH=password, signed-in users got 401 on every page outside /api/.",
+   "scenario": "Owner signed in, GET /, /guide, /classic and /favicon.ico all returned 401: the product shell could not load in a browser, signed in or not.",
+   "cause": "The middleware identified the caller only for /api/ and /mcp paths, while the Router gave the page shells a read check.",
+   "fix": "Identify the caller on every path except /static/, and make the four page shells public (they hold no data; every API call they make is checked).",
+   "test": "test_pages_load_and_the_schema_is_not_served."
+  },
+  {
+   "id": "A2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The Home agent of every workspace except the server's own was bound to the server's own workspace.",
+   "scenario": "As owner of a second workspace, POST /api/drafts returned 201 but the agent never spoke (the error was swallowed in the background task), and POST /api/drafts/{id}/pack raised KeyError, a 500; model use would have been charged to the first workspace's budget and routing.",
+   "cause": "draft/api.py read services.draft_work once when the routes were registered, capturing the default workspace's stores and gateway.",
+   "fix": "work_now() reads services.draft_work on every call; nothing is kept from registration.",
+   "test": "test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there (the agent speaks, the pack is 200, an upload's pipeline reaches ready)."
+  },
+  {
+   "id": "A3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Jobs of other workspaces never ran under an external worker and were not recovered after a restart.",
+   "scenario": "Under make dev (DCLAB_WORKER=external) with password sign-in, a member of a second workspace runs a stage: the job stays queued for ever, because the worker process opened only its own folder's workspace and claims filter by workspace.",
+   "cause": "Workers were started per workspace only when a job was queued in that process.",
+   "fix": "Pool.start_all opens every workspace and starts its worker; the server's lifespan and python -m dclab_rnd.worker call it, the worker again every 60 s.",
+   "test": "Covered by the second-workspace test."
+  },
+  {
+   "id": "A4",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "tests/test_accounts.py failed when run a second time on the same database.",
+   "scenario": "The parallel runner reuses slot databases; a second run saved the lesson with the fixed id 'lw1abc', which belonged to the previous run's workspace, so setUpClass raised KeyError.",
+   "cause": "setUpClass never emptied the test database.",
+   "fix": "setUpClass empties the database before building the app.",
+   "test": "test_accounts passes twice in a row on the same database."
+  },
+  {
+   "id": "A5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "FastAPI's own schema and docs routes skipped the guard.",
+   "scenario": "With accounts on, an anonymous GET /openapi.json returned 200 with the whole API schema.",
+   "cause": "Those routes are not built by the shared Router.",
+   "fix": "With accounts on, the app is built without openapi_url, docs_url and redoc_url.",
+   "test": "test_pages_load_and_the_schema_is_not_served checks the 404."
+  },
+  {
+   "id": "A6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The fix for A3 let one database blip stop the worker process, and one broken workspace stop the server from starting.",
+   "scenario": "PostgreSQL is away for a moment when the worker's once-a-minute start_all lists the workspaces: the error leaves main() and the process exits, so jobs in every workspace stay queued; a workspace whose folder names another workspace aborts the server's lifespan and leaves the later workspaces without a worker.",
+   "cause": "start_all had no exception handling, unlike the worker's own loops.",
+   "fix": "start_all wraps the listing and each workspace's opening in its own try, reports the workspace id and the error type, and carries on; a failed workspace is retried on the next call. The Router also collects every method's permission and requires each one.",
+   "test": "PoolTests.test_a_database_away_or_a_broken_workspace_stops_nothing; PoolTests.test_a_route_with_several_methods_needs_what_each_needs."
+  },
+  {
+   "id": "B1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "OIDC sign-in linked accounts on any email claim: an account takeover.",
+   "scenario": "A password owner owns the server's workspace and a second, unmapped workspace. An identity-provider user with another subject, group 'everyone' and an unverified email claim equal to the owner's email signs in: /api/auth/me shows the owner, switching into the second workspace returns 200 with role owner, and the group sync demotes the real owner to viewer, leaving the workspace with no owner.",
+   "cause": "sign_in linked on the email claim without checking email_verified and overwrote a subject already linked.",
+   "fix": "Find by subject first; link by email only when the provider verified it and the account has no other subject; otherwise refuse ('linked to another sign-in'); a new user gets the claimed email only when verified, else a placeholder; a partial unique index on the subject (migration 0013).",
+   "test": "test_an_email_links_an_account_only_when_the_provider_verified_it."
+  },
+  {
+   "id": "B2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A role mapping naming a workspace that does not exist made every sign-in a 500 with partial writes.",
+   "scenario": "DCLAB_OIDC_ROLES='ml-team=data_scientist,ml-team=wnope:viewer': each sign-in by a member of ml-team raised a foreign-key violation after the user was created, with some memberships changed and others not.",
+   "cause": "Mapped workspaces were never checked, and each membership change was its own transaction in arbitrary order.",
+   "fix": "Unknown mapped workspaces are refused with a 503 before the redirect; membership changes run in one transaction, in sorted order, ending sessions and tokens of a workspace the person left.",
+   "test": "test_a_mapping_that_names_no_workspace_is_refused_before_anyone_is_sent_away."
+  },
+  {
+   "id": "B3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Provider failures and odd inputs became 500s instead of the refusal page.",
+   "scenario": "The key endpoint returning 503 raised HTTPStatusError out of the callback; an email claim 'not-an-email' raised AccountError; a non-ASCII state made compare_digest raise TypeError.",
+   "cause": "The routes caught only OidcError.",
+   "fix": "Provider steps wrap network, value, key, type and attribute errors into OidcError; sign_in wraps account and integrity errors; state, nonce and MAC are compared as bytes; a malformed JWK or token is refused too.",
+   "test": "test_oidc covers a key endpoint returning 503 and a non-ASCII state."
+  },
+  {
+   "id": "B4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An issuer ending in '/' refused every sign-in.",
+   "scenario": "Providers such as Auth0 publish an issuer with a trailing slash and put it in iss; the token was verified against the stripped value, giving 403 InvalidIssuerError.",
+   "cause": "config() stripped the slash and passed that value to the token check.",
+   "fix": "Discovery compares stripped forms, but iss is checked against the provider's published issuer exactly.",
+   "test": "The test issuer now ends in '/'."
+  },
+  {
+   "id": "B5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Sign-ins and the role changes made by the group sync were not audited.",
+   "scenario": "A sign-in that adds, changes or removes a membership wrote nothing, while the same change on the Members routes wrote role_change.",
+   "cause": "The sync path had no audit call.",
+   "fix": "Every sign-in (password and OIDC) and each membership change from groups are written to that workspace's audit.",
+   "test": "test_leaving_a_group_takes_the_role_away_and_sign_ins_are_audited."
+  },
+  {
+   "id": "B6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The client secret was sent in HTTP Basic without form-encoding.",
+   "scenario": "A secret containing '%', '+' or ':' fails on providers that decode it as RFC 6749 requires.",
+   "cause": "auth=(client_id, client_secret) passed raw values.",
+   "fix": "Both values are form-encoded; azp is required to equal the client when aud lists several audiences; DCLAB_OIDC_REDIRECT is required behind HTTPS.",
+   "test": ""
+  },
+  {
+   "id": "C1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A new API token stayed in the page after its dialog closed.",
+   "scenario": "Create a token and click 'Copy and close': the secret stays as hidden text in the modal body until another dialog replaces it.",
+   "cause": "modal.close() only removed the open class.",
+   "fix": "modal.close() clears the modal body.",
+   "test": "Re-checked in the source and the rebuilt static app; no other dialog reads its inputs after closing."
+  },
+  {
+   "id": "C2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The token name was escaped twice in the dialog title.",
+   "scenario": "A token named 'R&D laptop' showed as 'R&amp;D laptop: copy it now'.",
+   "cause": "The title was escaped and then set as text.",
+   "fix": "Pass the name unescaped, since the title is set with textContent.",
+   "test": ""
+  },
+  {
+   "id": "C3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The sign-in page showed any text passed in the address as an error.",
+   "scenario": "A link with ?signin_error=Your password expired, send it to ... puts an attacker's message on DCLab's own sign-in page.",
+   "cause": "showSignIn read signin_error from the URL, though nothing in the server sets it.",
+   "fix": "The sign-in page shows only the app's own note.",
+   "test": ""
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "On CI the second-workspace test never saw the Home agent's first message.",
+   "scenario": "The test passed in a second locally but failed on GitHub's runner with six test files at once; raising the wait from 30 s to 120 s did not help.",
+   "cause": "The signed-in test clients were never entered, so each request ran on an event loop that closed with the response; the Home agent started as a task on that loop and on a busy runner was cancelled before it began. Under uvicorn the loop outlives the request, so the product was fine.",
+   "fix": "The draft is created through the client entered in setUpClass, with the second owner's session.",
+   "test": "test_the_home_agent_and_the_jobs_of_a_second_workspace_run_there passes on CI."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "agent judgment suite after the validator change",
+   "gate": "A change to studio/graph.py needs a fresh make agent-eval whose scores match the previous result (the prompt gate's rule).",
+   "result": "AEV-010 scores the same as AEV-009.",
+   "verdict": "pass",
+   "next": ""
+  }
+ ],
+ "outcome": "Done in three parts: accounts, sessions, API tokens and the four roles checked on every route (A); sign-in through the company's identity provider with groups mapped to roles (B); the sign-in page, switcher, Members and API tokens tabs, and /mcp in the token's workspace (C). Without DCLAB_AUTH nothing changes. Left open: an owner can add an existing user without that user's consent; a group change reaches DCLab at the next sign-in; a sign-in that removes a workspace's last owner is allowed.",
+ "lessons": [
+  "A test that only checks refusals cannot see that allowed users are refused too; test the allowed path on every kind of route.",
+  "Never capture per-request services at registration time; in a multi-workspace server that binds everyone to the first workspace.",
+  "Linking identities by an unverified email is an account takeover; trust only the provider's subject and a verified email.",
+  "When a test fails only on a busy CI runner, longer waits are not a fix until the cause is known; here the event loop was closing under the task.",
+  "A fix that adds a periodic call must keep the loop's existing tolerance of a database that is briefly away."
+ ],
+ "commits": ["21e10cc", "035f887", "905e8d0", "532c51f"]
+}

@@ -1,0 +1,56 @@
+{
+ "package": "3.1",
+ "title": "The draft: store, event log, routes, live stream",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package is the pre-project object everything on Home hangs on: the draft.",
+ "spec": "dclab_rnd/draft/store.py (one folder per draft: draft.json, events.jsonl, data/), create/read/update/delete routes, and GET /api/drafts/{id}/events as a resumable server-sent event stream. Writes need the CSRF token; a missing or malformed body is a 422, never a 500. Done when the store tests and the upload-and-events-stream test pass.",
+ "plan": [
+  "Write DraftStore under DCLAB_DRAFT_HOME with atomic saves, update(fn) under a per-draft lock, and an append-only event log with sequence numbers.",
+  "Hold in a draft: the problem, the pack, messages, questions, assets, the cleaning log, the analysis, the workflow, what the chat understood, and the status.",
+  "Add POST/GET/PATCH/DELETE /api/drafts and the events route that replays from Last-Event-ID.",
+  "Mount the routes into the server, with draft jobs cancelled cleanly at shutdown.",
+  "Drive the Home flow end to end without a model and fix what the routes did wrong."
+ ],
+ "decisions": [
+  {
+   "decision": "A draft is its own object, separate from a project.",
+   "why": "Home must hold a conversation, data being prepared and a workflow before anyone has decided what to build; a project only exists once the solution is accepted."
+  },
+  {
+   "decision": "Every change is also an event with a sequence number, and the stream replays from Last-Event-ID.",
+   "why": "The page can reconnect after a network blip or a reload and catch up exactly, without missing a step of the pipeline or a chat message."
+  }
+ ],
+ "change": "dclab_rnd/draft/store.py (DraftStore, atomic saves, locked update, event log) and dclab_rnd/draft/api.py (draft CRUD routes and the resumable event stream), mounted in the server.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Message ids built from the timestamp could collide.",
+   "scenario": "Two messages written in the same instant (for example the data-ready reply and a pipeline note) would get the same id, so the page would replace one with the other.",
+   "cause": "An id derived from time is unique only if writes never coincide.",
+   "fix": "Message ids are random tokens.",
+   "test": ""
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Draft routes answered 500 when a request body was missing or was not a JSON object.",
+   "scenario": "Running the Home flow end to end without a model, a PATCH with an empty body or a JSON list raised inside the route and the server answered 500.",
+   "cause": "The routes assumed a well-formed object.",
+   "fix": "Every draft route validates its body and answers 422 for a bad one; the proposal body became optional.",
+   "test": "Assertions for empty and wrong-shaped bodies added to tests/test_draft_flow.py."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: drafts are stored with an event log and a resumable stream; bad bodies are 422.",
+ "lessons": [
+  "A caller's mistake is a 4xx with a reason, never a 500; test the empty and the wrong-shaped body."
+ ],
+ "commits": [
+  "15c4958",
+  "88acb12"
+ ]
+}

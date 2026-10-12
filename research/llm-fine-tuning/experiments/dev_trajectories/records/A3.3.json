@@ -1,0 +1,143 @@
+{
+ "package": "A3.3",
+ "title": "Stage explanations with every sentence cited and every number checked",
+ "date": "2026-10-06",
+ "request": "Reuse the Evidence library's answer check (keep only sentences that cite a given record and whose numbers appear in it) for short model-written explanations of each stage record: at most 120 words, every sentence citing a claim or record id, the rest dropped. Show it on the Notebook and Reliability pages and in the brief, labelled as written by a model from the stage record, beside the unchanged deterministic notes. Never let it say production-ready.",
+ "spec": "The notebook, reliability and brief pages can show a short model-written explanation of each result, with every sentence cited and every number checked against the stage record. Done when a sentence with a number that is not in the cited record is removed and the page labels the text 'written by a model from these records'.",
+ "plan": [
+  "Look at what real stage records contain (claims and the evidence they point at) so the explanation has real material to cite.",
+  "Write dclab_rnd/cited.py, one shared check for model prose from records, and move the Evidence library onto it (per cited record instead of pooling all retrieved records' numbers).",
+  "Write studio/explain.py: the sources a model may cite come straight from the stage record (claim ids, deterministic notes, the rule records the notes cite, rules first, six at most); kept sentences are stored as record.explanation with a label and the count removed.",
+  "Show it, labelled, on the Notebook stage cards, the Reliability page and the brief; check the three pages on a scratch project.",
+  "Run check-all and the review; fix six findings; re-check; fix four more; keep A3.4's partial work set aside so A3.3 is gated and committed alone."
+ ],
+ "decisions": [
+  {
+   "decision": "One check for every piece of model prose built from records, shared with the Evidence library.",
+   "why": "Two checks drift apart; a model's prose is where an invented or rounded number hides, wherever it is shown."
+  },
+  {
+   "decision": "A rounded, converted or computed number removes the sentence.",
+   "why": "The check can only verify numbers that appear as written in a cited source; anything else fails closed."
+  },
+  {
+   "decision": "Overriding a stage's choice on approve removes the explanation.",
+   "why": "The explanation described the rule's pick; keeping it beside a different decision would be wrong text labelled as from the record."
+  },
+  {
+   "decision": "Accept that a number is checked against the sources a sentence cites, not against what it describes, and write that limit in the status row.",
+   "why": "Matching numbers to subjects needs understanding the sentence; the honest move is to state the gap, not to claim more than the check proves."
+  }
+ ],
+ "change": "dclab_rnd/cited.py (sentence splitting, number reading with units, signs and number words, citation check, overclaim filter with a narrow denial window); studio/explain.py writes record.explanation through the stage_notes purpose inside the stage move; engine.approve drops it on an override; pages/evidence.py checks per cited record; the critique note and project answer lose overclaiming sentences; DC.explanation on the Notebook, Reliability and brief pages.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A negation anywhere in the sentence let 'production-ready' through.",
+   "scenario": "Kept: 'There is no sign of leakage, so the model is production-ready [C1].', 'It is not only accurate but production ready [C3].', 'No one doubts the model is production-ready [C1].' A bullet list '- No leakage was found\\n- The model is production-ready' was one sentence and kept.",
+   "cause": "overclaims() returned false if a negation matched anywhere in the sentence.",
+   "fix": "A denial counts only right before the phrase (a few words at most), 'not only' excluded, with citations stripped before matching.",
+   "test": "test_a_denial_must_sit_right_before_the_phrase."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The overclaim pattern missed trivial variants of the phrase.",
+   "scenario": "Kept: 'production  ready' (two spaces), a non-breaking space or a non-breaking hyphen between the words, 'production-\\nready', 'deployment-ready', 'fit for production', 'ready to ship', 'ready to be deployed', 'can go to production'.",
+   "cause": "A literal pattern on raw text.",
+   "fix": "Unicode is normalised and whitespace collapsed before matching; the pattern covers production or deployment ready, readiness, grade, quality, fit for production, ready to ship or be deployed, go live or to production.",
+   "test": "Overclaim tests over every variant."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A number without a leading zero, or glued to letters, was not read, so an invented number survived.",
+   "scenario": "'The model scored .99 on the holdout [C1]' while the claim says 0.9248: kept. 'AUC0.99' and '~.99' gave no numbers. The text cleaner also turned the kept text into 'scored.99'.",
+   "cause": "The number pattern's lookbehind excluded word characters and required a digit before the point.",
+   "fix": "Numbers such as .99 and AUC0.99 are read; the cleaner removes only spaces before a final stop or comma.",
+   "test": "Tests for .99 and AUC0.99."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The sentence splitter did not split before a lowercase word or at a line break, so an uncited sentence rode on the next one's citation.",
+   "scenario": "'The model is safe, fair and ready to ship. extra_trees scored 0.9248 on the holdout [A].' was kept whole, cited to A; bullets merged, so a number in one bullet passed on another bullet's source.",
+   "cause": "The split required a capital letter or bracket after the stop.",
+   "fix": "Split at a stop followed by whitespace and at line breaks; fragments fail closed.",
+   "test": "Splitter tests with lowercase model names and bullets."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Numbers were compared as digits only.",
+   "scenario": "Against a source saying '61 rows': '61k rows', '61%' and '61 million rows' were kept; 'doubled', 'ninety-nine percent' and a fraction sign passed as having no number; '0.0034 up' was kept against '-0.0034'.",
+   "cause": "Units, scale words, number words and signs were dropped before comparing.",
+   "fix": "Numbers keep their unit and their sign when the sentence writes one; number words are read as digits or must be words of a cited source; the gap that numbers are checked against cited sources, not subjects, is written in the status row.",
+   "test": "Number tests for each case."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A stale explanation survived approve with another choice.",
+   "scenario": "The features stage selects recipe X and the explanation says so; the person approves with choice Y; the Notebook card and the brief still say X beside the changed decision.",
+   "cause": "approve rewrote the decision and kept record['explanation'].",
+   "fix": "When the approved choice overrides the rule's selection, the explanation is removed.",
+   "test": "An approve test: kept on the rule's option, removed on another."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The overclaim filter rewrote text even when it removed nothing (a regression).",
+   "scenario": "A critique 'Risks:\\n- Leakage is possible\\n- Small sample\\n- Check the time split' came back as one flattened line with count 0.",
+   "cause": "The filter split at every line break, stripped bullets and re-joined with spaces.",
+   "fix": "The original text is returned when nothing is removed; otherwise line breaks are kept.",
+   "test": "A test on a bullet list with no stops."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A stop with no space after it still merged an uncited sentence.",
+   "scenario": "'The model is safe and fair.It scored 0.9248 [A].' was kept whole, uncited claim included.",
+   "cause": "The split required whitespace after the stop.",
+   "fix": "A stop glued to a capital also ends a sentence (and, after A3.4's review, not when it is the dot of a code name such as pd.DataFrame).",
+   "test": "Splitter tests for glued stops."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two denial idioms still let 'production-ready' through.",
+   "scenario": "'It is not just production-ready.' and 'It is without doubt production-ready.' were kept.",
+   "cause": "Only 'not only' was excluded, and 'without' counted as a denial.",
+   "fix": "'not just', 'not merely' and 'not simply' are excluded, and 'without doubt' or 'without question' is not a denial.",
+   "test": "Both sentences added to test_a_denial_must_sit_right_before_the_phrase."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The stricter check dropped natural disclaimers and ordinary sentences.",
+   "scenario": "'This does not mean the model is ready for production.' and 'Benchmark evidence should not be treated as production-ready.' were dropped (the denial window was two words), so the final stage's caveat was the sentence most likely lost; 'ten folds' was dropped against '10 folds'; 'claim C1' in prose was dropped as a number.",
+   "cause": "A two-word denial window, number words not mapped to digits, and short ids read as numbers.",
+   "fix": "The denial window is four words; count words are read as digits with their unit; a name with digits is hidden only when a cited source writes it.",
+   "test": "Disclaimer and count-word tests."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: each stage run with a model configured stores at most 120 checked words beside the unchanged notes, labelled, on three pages; the shared check is stricter and the Evidence library checks per cited record. Open: a number is checked against the sources a sentence cites, not what it describes; one more request per stage; the critique and project answer are filtered for overclaims but not citation-checked. The gate passed with 488 tests; ten review findings over two rounds fixed.",
+ "lessons": [
+  "A filter for a forbidden claim needs Unicode normalisation, whitespace collapse and a denial that sits right before the phrase; 'a negation somewhere' is a bypass.",
+  "Every tightening of a text check has a cost in lost good sentences; measure both directions on real text (here the 137-record index) before and after.",
+  "A filter that finds nothing to remove must return its input unchanged."
+ ],
+ "commits": ["927510a"]
+}

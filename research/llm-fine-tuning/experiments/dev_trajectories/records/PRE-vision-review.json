@@ -1,0 +1,51 @@
+{
+ "package": "PRE-vision-review",
+ "title": "Reading the owner's vision against the repository, and choosing what to build first",
+ "date": "2026-10-04",
+ "request": "Read my earlier conversations about this R&D project in full (a 17-page question list and a 40-page transcript) and understand everything I want to build. The closest product is Hugging Face's ML Intern, for most kinds of machine-learning projects. Do not change code; review it carefully.",
+ "spec": "A review in English and Persian: the vision restated in the owner's terms, each idea mapped to what the repository already has and what is missing, and a prioritized order toward an MVP, ending with one proposal for what to build next. No code changes.",
+ "plan": [
+  "Read every page of both documents before answering.",
+  "Restate the product in one sentence and in six layers: the evidence engine, the workflow engine (WF-01 to WF-10), the agent surfaces, a focused small model, cost efficiency, domain packs.",
+  "Map each layer to the repository with a status: built, partial, missing, or waiting on the owner.",
+  "Name the two biggest gaps against ML Intern.",
+  "Propose an order for the MVP, with the reason the first step comes first.",
+  "Give the same review in Persian and ask which step to start."
+ ],
+ "decisions": [
+  {
+   "decision": "Frame DCLab's edge over ML Intern as being right, not only automatic: contract before any score, leakage caught, holdout once, every suggestion linked to evidence.",
+   "why": "That is what the R&D measured and what a general agent does not offer; it also decides what to build first."
+  },
+  {
+   "decision": "Report the workflow graph as only partial although the five stages already run in order.",
+   "why": "The stages only enforced 'run the previous stage first'; there were no explicit allowed moves, no stop, ask or go-back moves, and moves were not logged as training data."
+  },
+  {
+   "decision": "Name two biggest gaps: no real code execution, and no measured proof that the agent judges well.",
+   "why": "Covering most kinds of ML needs sandboxed code and GPU jobs; and without a benchmark 'DCLab is right' is a claim, not evidence."
+  },
+  {
+   "decision": "Recommend the workflow graph and its validator as step 1, then a judgment benchmark, sandboxed execution, a first non-tabular pack, the policy model, and later research (macro-tokens, the cost ladder, speculative decoding).",
+   "why": "The graph is small and deterministic, everything after it depends on it, and its logged moves are the trajectory data the small model needs."
+  },
+  {
+   "decision": "Keep macro-tokens (a whole step as one token) as a separate research question.",
+   "why": "It is unmeasured; the policy model can be built and measured without it."
+  },
+  {
+   "decision": "Ask the owner for about ten minutes on the prediction-moment worksheet for HyperAck and churn, in parallel.",
+   "why": "Only the owner knows the prediction moment, and it decides which HyperAck champion counts as safe."
+  }
+ ],
+ "change": "No code changed: a written review with a status table (evidence engine built; notebook with five stages built, tabular only; intern built; Chat UI over MCP built and tested; SFT data ready but no training run; workflow graph partial; judgment benchmark only the 6 of 7 pilot; code execution and GPU jobs missing; domain packs beyond tabular missing; cost ladder partial; VS Code companion partial; owner worksheet waiting).",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Delivered. The owner then asked for a clickable demo of the final product (PRE-product-demo) and the graph and its validator were built next (PRE-workflow-graph), as the review recommended.",
+ "lessons": [
+  "Before planning, map every idea to what exists with an honest status; a stage order that runs is not yet a controlled graph.",
+  "Choose the first step by dependency: build the small deterministic piece that every later piece needs and that produces the data they learn from.",
+  "Separate measured capability from claims: list a benchmark as a gap until it exists."
+ ],
+ "commits": []
+}

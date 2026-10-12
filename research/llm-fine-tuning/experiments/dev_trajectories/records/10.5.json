@@ -1,0 +1,101 @@
+{
+ "package": "10.5",
+ "title": "Live events and locks across several app instances",
+ "date": "2026-10-07",
+ "request": "With several app instances behind a load balancer, the chat and pipeline streams, the per-draft agent turn lock and the model pause must work when requests land on different instances.",
+ "spec": "Events as rows with a sequence per draft, the stream woken by LISTEN/NOTIFY and replayed from Last-Event-ID; the per-draft turn lock an advisory lock; the model pause a row with an expiry; tested with two app processes and one worker on one database. Done when a page connected to one instance shows events produced through the other, and two messages to one draft never interleave.",
+ "plan": [
+  "Map what 9.2 already provides on PostgreSQL (numbered event rows, the advisory turn lock, row-locked writes) and what still assumes one process (the stream's poll, the busy check, the model pause in module memory).",
+  "Check that reply runs inside the turn lock and that the installed psycopg supports waiting for notifications with a timeout.",
+  "Send pg_notify in the transaction that writes each draft event; one listener thread per server process wakes the streams waiting on that draft; keep the 2-second poll as the fallback.",
+  "Make 'the agent is still answering' (409) ask the shared turn lock as well as this instance's queued turn.",
+  "Move the model pause to a model_pause row with an expiry (migration 0011), keyed by endpoint, model and a hash of the API key.",
+  "Test with two server processes and one worker process on one database; gate and reviewer; fix; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A notice only wakes a stream; the stream still reads the rows and replays from Last-Event-ID.",
+   "why": "A missed notice then only delays a stream to its poll, never loses an event."
+  },
+  {
+   "decision": "The pause key includes a hash of the API key.",
+   "why": "A new key must not stay paused by the old key's refusal, and the key itself must never be stored."
+  },
+  {
+   "decision": "A turn's user message and its answer are written under the turn lock.",
+   "why": "That, not the 409 check, is what guarantees two messages never interleave across instances."
+  }
+ ],
+ "change": "New dclab_rnd/storage/notify.py (emit and a Listener with subscribe and unsubscribe), dclab_rnd/models/pause.py (a shared pause row with a local fallback), migration 0011; draft events send pg_notify; the stream route waits on the listener; the busy check asks the advisory lock before this instance's own queued turn. tests/test_multi_instance.py starts two server processes and a worker.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two messages sent at once to the same instance were both accepted.",
+   "scenario": "Two concurrent POST /api/drafts/{id}/messages after the start turn returned [202, 202] (the second got 409 before); the second task overwrote jobs[key], and the first turn's cleanup then removed the second's entry, so shutdown no longer cancelled it.",
+   "cause": "The new 'await asyncio.to_thread(answering, ...)' sat between the in-memory jobs check and background(), breaking a check-then-act that used to run in one go on the event loop.",
+   "fix": "Await the shared-lock probe first, then do the jobs check and background() with no await between them.",
+   "test": "BusyTests.test_two_messages_at_once_to_one_instance_one_is_refused asserts [202, 409]."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A notice could be missed between reading the events and starting to wait.",
+   "scenario": "The stream reads no events, an event commits after the SELECT's snapshot and before the stream registers its waiter; the wake finds no waiter and the stream sleeps up to 2 s, worse than the old 0.4 s poll, likely during token bursts and for a turn's last event.",
+   "cause": "The waiter was registered after the read.",
+   "fix": "The stream subscribes once before its loop, clears its event before each read and waits on it after; it unsubscribes in finally.",
+   "test": "Covered by the multi-instance stream test."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The listener needed psycopg 3.2 while the requirements allowed 3.1, and failed silently.",
+   "scenario": "On psycopg 3.1, conn.notifies(timeout=...) raises TypeError right after connecting; the bare except swallowed it and reconnected every 2 s for ever, so LISTEN never worked and nothing was logged.",
+   "cause": "A version floor below the API used, and an exception swallowed without a word.",
+   "fix": "Require psycopg 3.2 or later; the listener prints the exception type once, and again after a reconnect.",
+   "test": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A stream's limit no longer bounded how long it stayed open.",
+   "scenario": "A ?wait=1 stream while events keep arriving (a long pipeline, token streaming) stayed open until the events stopped, where it closed after about 1 s before.",
+   "cause": "Waiting time was counted only on the waiting path, never on the path that read new events.",
+   "fix": "Elapsed time is measured from a start clock; keep-alives use a separate quiet clock.",
+   "test": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The local pause was ignored when the database read succeeded.",
+   "scenario": "The upsert of a pause fails on a connection blip; the next get() reads the database successfully, finds no row, and a request is sent again to a key the provider refused.",
+   "cause": "get() returned only the database row when the read worked.",
+   "fix": "get() returns the later of the local and the shared pause and drops an expired local entry.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No test showed the new cross-instance 409.",
+   "scenario": "If answering() always returned False every test would still pass: the helper retried on 409 without asserting one, and the lock alone keeps messages from interleaving.",
+   "cause": "The tests covered the guarantee, not the check.",
+   "fix": "Add a test that holds the turn lock elsewhere and expects 409.",
+   "test": "BusyTests.test_a_turn_held_elsewhere_refuses_a_message."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done after one review round: draft events notify every instance, the busy check and turn lock are shared, the model pause is a shared row; a test with two server processes and one worker shows a stream on one instance receiving what the other and the worker produce, and concurrent messages answered one after the other. Left open: a message arriving just as another instance takes the lock waits rather than being refused; the listener needs a direct connection (behind a pooler in transaction mode streams fall back to the poll).",
+ "lessons": [
+  "Adding an await inside a check-then-act on the event loop turns it into a race.",
+  "Subscribe before you read, or a notice between the read and the wait is lost.",
+  "An exception swallowed in a reconnect loop hides a permanent failure; log its type at least once.",
+  "Test the check you added, not only the guarantee another mechanism already provides."
+ ],
+ "commits": ["3446c02"]
+}

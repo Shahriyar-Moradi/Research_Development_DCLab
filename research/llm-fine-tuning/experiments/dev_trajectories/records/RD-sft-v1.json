@@ -1,0 +1,43 @@
+{
+ "package": "RD-sft-v1",
+ "title": "SFT corpus v1: rules, workflow blocks, campaign claims and studio traces as chat examples",
+ "date": "2026-09-19",
+ "request": "Extract cleaner and simpler data from the R&D outputs for fine-tuning a small language model on data science and ML engineering, and write an outside-reader review of the project with a roadmap for that model.",
+ "spec": "build_sft_dataset.py turning the 22 rules, the 10 workflow blocks and the campaign's claim memory into chat-format question and answer pairs with provenance noise (git hashes, machine details) stripped, deduplicated and split into train and validation; the Research Studio's clean export adds planning, proposal, critique and lesson traces; DCLab_RD_Review_and_Roadmap.md as the plain-language review.",
+ "plan": [
+  "Convert rules, workflow blocks and claims into chat examples; strip hashes and machine details; deduplicate; split.",
+  "Export the Studio's agent outputs as clean cards and SFT chat lines without dumping raw trial results or out-of-fold predictions into text.",
+  "Merge both corpora into one train and validation split.",
+  "Write the review and roadmap for a small model."
+ ],
+ "decisions": [
+  {
+   "decision": "Keep raw trial results and out-of-fold predictions out of the SFT text.",
+   "why": "They are analysis artefacts, not reasoning to imitate, and they are large."
+  },
+  {
+   "decision": "Use both corpora: what DCLab found and how the agent plans and critiques.",
+   "why": "One teaches the knowledge, the other the workflow behaviour."
+  }
+ ],
+ "change": "cluad_initial_reports/ (later research/llm-fine-tuning/experiments/sft/) with build_sft_dataset.py, samples and the roadmap; dclab_rnd/agentic/clean_export.py; sft_out/ with a manifest.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "corpus v1 build",
+   "gate": "Deduplicated chat examples with a held-out validation share; no quality gate beyond stripping hashes and machine details.",
+   "fixed_before_run": false,
+   "result": "First build 104 examples; final v1 141 examples (127 train, 14 validation): 50 from campaign claims, 22 rules, 22 rule diagnostics, 10 workflow blocks and 37 from Studio traces.",
+   "verdict": "not scored",
+   "next": "Fix examples that cite an experiment id without saying what was done (done in v3)."
+  }
+ ],
+ "outcome": "A first corpus and a roadmap for a small model. The owner later found that its claim examples teach recitation of experiment ids rather than reasoning; v3 replaced them (see RD-sft-v3).",
+ "lessons": [
+  "An SFT example must carry the context its answer depends on; a model cannot reason from an id it has never seen explained."
+ ],
+ "commits": [
+  "e2cdf66",
+  "59830c2"
+ ]
+}

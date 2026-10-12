@@ -1,0 +1,97 @@
+{
+ "package": "18.4",
+ "title": "The solution planner, measured",
+ "date": "2026-10-12",
+ "request": "Let a model propose the solution plan's decisions (framing, split, metric, columns kept out, families, threshold) from the brief and the data findings, each citing what it rests on, with code refusing anything unsafe; measure it against the decisions the replicas require before it is used.",
+ "spec": "A role that proposes the SolutionPlan's decisions from the brief and the findings, each citing them; the plan validator (17.4) refuses invalid ones; measured against the replicas' acceptance decisions. Done when its plans pass the validator and match the acceptance decisions at least as often as the rule-based planner, with every refusal recorded.",
+ "plan": [
+  "Write SOLUTION_PLANNER and plan_with in dclab_core/plan.py: evidence is the brief, the findings and the rules' decisions; the answer is a list of changes, each with a key, a choice, a reason and the findings it cites.",
+  "Pass every proposed change through override(by='advisor') and the 17.4 validator; record each refusal with its reason.",
+  "Add the solution_planner purpose, its prompt and its data-limit test.",
+  "Build the harness in dclab_rnd/agent_eval/roles with a GOLD list per replica taken from the replicas' documented traps (fraud, tickets, delivery) and planner_gate_v1 fixed before any run.",
+  "Run the reviewer on Step 3; fix its findings, including new guards before the validator and a fuller GOLD list, before any live run.",
+  "Ask the owner for a cap (granted EUR 0.02 for the three Step 3 roles); run once; record."
+ ],
+ "decisions": [
+  {
+   "decision": "Code guards run before the validator on the advisor path: column lists (forbidden, to confirm, identifiers) may only grow; a strong entity's grouping stays; the time column must be the data's time column; the task cannot change; families must be known names and keep the dummy; label coverage cannot become complete against a partial-labels finding; a threshold policy must have a known kind.",
+   "why": "The reviewer showed the validator alone let a model undo safety decisions; a model may add caution, never remove it."
+  },
+  {
+   "decision": "Column lists reach the model as names, not as clipped JSON.",
+   "why": "A choice cut at 200 characters lost columns mid-entry, so a model rewriting the list would silently drop the rest."
+  },
+  {
+   "decision": "planner_gate_v1: acceptance decisions matched with the planner >= with the rules alone, and every plan the planner leaves passes the validator.",
+   "why": "It is the package's Done when, written as code before any run."
+  },
+  {
+   "decision": "The GOLD list was extended after the review and before any run (tickets require time order with customers kept apart, not time alone; delivery's cleaning and missing-weather indicator; fraud's behaviour direction).",
+   "why": "A gold that misses documented traps lets a planner remove protections at no cost on the gate; fixing it before the run keeps the gate honest."
+  }
+ ],
+ "change": "Step 3 of the plan built 18.4, 18.5 and 18.6 together and one reviewer read them together. For 18.4: SOLUTION_PLANNER and plan_with in dclab_core/plan.py (evidence, parser, guards before the validator, refusals recorded with reasons, override accepting the advisor's cites); prompt solution_planner.md pinned; the solution_planner purpose and data-limit test; measure_planner and GOLD in dclab_rnd/agent_eval/roles; tests in tests/test_core_roles.py and tests/test_roles_measure.py.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The validator let the planner undo safety decisions.",
+   "scenario": "With a scripted advisor on the replicas: removing courier_rating (a leak given after delivery, warning level) from features.forbidden on delivery was kept and reached the solution; a time split on a nonexistent column replaced the grouped split on fraud and tickets despite the entity findings; also kept were identifiers [] (order_id becomes a feature), task regression on a binary plan, a family 'magic_net' with the dummy dropped, threshold.policy 0.5, a nonsense secondary metric, and labels.coverage 'partial' on the regression replica.",
+   "cause": "The advisor path relied only on validate, which checks critical leaks, a stratified or random split against an entity, the primary metric, the join and to_confirm.",
+   "fix": "Guards before the validator: additions only for the column lists, the strong entity's grouping kept, the time column must be the F-time column, the task fixed, known families with the dummy kept, coverage in partial or complete and never complete against F-partial-labels, a threshold policy of a known kind.",
+   "test": "test_a_cited_change_is_kept_and_a_change_the_validator_refuses_is_recorded (the reviewer's dangerous changes as refusals)."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The planner's evidence cut each rule choice to 200 characters of JSON.",
+   "scenario": "On tickets and delivery the forbidden list was cut mid-entry; a model that rewrote the list to add one column would silently drop the columns it never saw.",
+   "cause": "_compact(choice, 200) applied to column lists.",
+   "fix": "Column lists are sent as their names, never cut mid-entry; other choices stay compact JSON.",
+   "test": ""
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The planner's GOLD checks missed documented traps.",
+   "scenario": "Delivery's negative distances and missing-weather indicator, tickets' customer grouping and tiny classes, and fraud's behaviour direction were not checked, so a planner removing them lost nothing; tickets' 'time order respected' accepted a plain time split, which lets a customer sit on both sides.",
+   "cause": "GOLD was written from a subset of each replica's traps.",
+   "fix": "The checks were added before any run and tickets require time order with customers kept apart. The rules alone then meet 14 of 17 decisions (10 of 13 before).",
+   "test": "test_the_planner_path_and_its_gate."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Some refusals were not recorded, and an advisor's override kept the old citations.",
+   "scenario": "Answer items that were not mappings were skipped silently, items past the 13th were dropped with no record, and an adopted change showed the rule's cites, not what the advisor relied on.",
+   "cause": "Only validator refusals were recorded; override copied old.cites.",
+   "fix": "Malformed and surplus items are recorded in refused with a reason; override takes the advisor's cites.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "ROL-001, solution planner on the three replicas",
+   "gate": "planner_gate_v1: acceptance decisions matched with the planner >= with the rules alone, and every plan the planner leaves passes the validator.",
+   "fixed_before_run": true,
+   "result": "17 decisions: rules 14, planner 15, validator problems 0, nothing refused. It grouped the delivery folds by restaurant (citing the restaurant entity finding) and kept first_response_minutes out on tickets with resolved_by. Still missed: partial labels on fraud, time order with customers kept apart on tickets. gpt-6-luna, 3 requests; the three Step 3 runs cost EUR 0.0035 under the owner's EUR 0.02 cap.",
+   "verdict": "pass",
+   "cost_eur": 0.0018,
+   "next": "It may be switched on; that is the owner's decision. The two missed decisions are where it could still add value."
+  }
+ ],
+ "outcome": "Done and measured: the planner passed planner_gate_v1 (15 of 17 acceptance decisions against the rules' 14, validator clean, EUR 0.0018). The review's main finding, that a model could undo safety decisions through the validator, was fixed with guards that only let a model add caution. Not wired into Home or the intern.",
+ "lessons": [
+  "A validator written for people's overrides is not enough for a model: guard the direction of change, so a model can add caution but never remove it.",
+  "Never send a model a list cut mid-entry when its answer replaces that list.",
+  "A gold that omits documented traps rewards a role for removing protections; complete it before the run."
+ ],
+ "commits": [
+  "4487916",
+  "af9936d"
+ ]
+}

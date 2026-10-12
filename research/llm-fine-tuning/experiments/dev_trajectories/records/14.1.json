@@ -1,0 +1,43 @@
+{
+ "package": "14.1",
+ "title": "The owner's inputs: contracts, reviewers, tasks, model access (prepared)",
+ "date": "2026-10-07",
+ "request": "Turn the owner's answers into files: the prediction contracts for HyperAck and churn as solution files checked by studio.solution, the reviewers' names, two or three real tasks with a success criterion and a time budget, and the provider check. Nothing is guessed: an unanswered question stays visibly open. The owner said to do everything that does not depend on other people, so the part that needs the owner was prepared, not filled in.",
+ "spec": "evaluation/contracts/*.json (target, prediction moment, forbidden columns with reasons, time and group columns, metric) each loading as a valid Solution; reviewers, tasks and the provider check recorded; every unanswered question left open.",
+ "plan": [
+  "Write evaluation/OWNER_ANSWERS.md with one block per question, listing the data's own column names so the answers can use them.",
+  "Write dclab_rnd/agent_eval/owner_inputs.py: status lists what is open and checks each contract loads as a Solution that names only columns its data has.",
+  "Record the provider check from 14.2's live runs and mark it for the owner to confirm; leave the contracts unwritten.",
+  "Review with the other Part 3 kits; fix the findings; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The contracts are not written by the assistant.",
+   "why": "The prediction moment decides which columns leak; it is the owner's knowledge of the business, and a guessed contract would make every later score look valid while resting on a guess."
+  },
+  {
+   "decision": "An answer the assistant recorded is listed as unconfirmed.",
+   "why": "The provider check came from the live runs, not from the owner; status must not count it as the owner's answer."
+  }
+ ],
+ "change": "New evaluation/OWNER_ANSWERS.md (one block per question with the files' columns), dclab_rnd/agent_eval/owner_inputs.py (status and the contract check), tests/test_owner_inputs.py.",
+ "findings": [
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A contract counted as ready without being valid.",
+   "scenario": "Ready for HyperAck was true when no HyperAck question was open and any hyperack*.json file existed, even if the check marked that file invalid; the text 'can be re-run under its contract' implied a re-run nothing performs. The provider check, pre-filled by the author, counted as answered.",
+   "cause": "Readiness checked presence, not validity.",
+   "fix": "Readiness requires a valid contract and is worded 'contract loads'; an answer the assistant recorded is listed as unconfirmed.",
+   "test": "test_a_contract_must_be_a_valid_solution_that_fits_its_data and test_the_sheet_ships_with_the_owner_questions_open_except_the_provider_check."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Prepared (c291a1b), open on the owner's answers: 10 of 11 questions open; the provider check recorded from 14.2 and marked for the owner to confirm; the two contracts not written.",
+ "lessons": [
+  "When a decision belongs to the owner, build the form and the check, and leave the answer open; never fill it in to make a package look done.",
+  "Readiness means valid, not present."
+ ],
+ "commits": ["c291a1b"]
+}

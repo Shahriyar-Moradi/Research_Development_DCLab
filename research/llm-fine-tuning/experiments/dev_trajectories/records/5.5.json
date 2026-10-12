@@ -1,0 +1,54 @@
+{
+ "package": "5.5",
+ "title": "Evidence library",
+ "date": "2026-10-05",
+ "request": "Every project page keeps the demo's look but shows the open project's own records; a page with no result yet says so and offers to run what is missing, and nothing is filled with sample numbers. This package makes the Evidence library read the live index and answer questions from it.",
+ "spec": "The live evidence index for every chip, drawer and search; an Ask tab answered from the index. Done when tests/test_pages_evidence.py passes and the page shows as many records as evidence/knowledge/rag/records.jsonl has lines.",
+ "plan": [
+  "Add dclab_rnd/agentic/pages/evidence.py: GET /api/evidence returns the index as the page needs it.",
+  "Add POST /api/evidence/ask: search the index; with a model keep only answer sentences that cite a retrieved record and whose numbers appear in it; without a model return the closest records and say when matches are too weak.",
+  "Load the live records in core.js after the first paint so chips, drawers and search use them.",
+  "Remove the 'From projects' lessons that were invented."
+ ],
+ "decisions": [
+  {
+   "decision": "A model's answer is filtered sentence by sentence: cited and numbers present in the cited record.",
+   "why": "The model must not add a figure the evidence does not hold (rule 5)."
+  },
+  {
+   "decision": "The live records load after the first paint.",
+   "why": "The page appears at once from the bundled snapshot and then switches to the index as it is on disk."
+  }
+ ],
+ "change": "pages/evidence.py with the library and ask routes; core.js loads the live index after first paint; the 'From projects' panel no longer shows invented lessons.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The library showed a stale snapshot and replayed written answers.",
+   "scenario": "The page bundled 133 records at build time while the index the server and the intern use had 137; the Ask tab replayed four pre-written answers whatever was asked.",
+   "cause": "The demo's data was bundled, not fetched.",
+   "fix": "Serve the index from disk and answer from it.",
+   "test": "test_library_is_the_index_in_the_page_shape; test_library_follows_the_file."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "record count",
+   "gate": "The page shows as many records as records.jsonl has lines.",
+   "fixed_before_run": true,
+   "result": "137 of 137.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the Evidence library is the live index, and its answers keep only cited, number-checked sentences.",
+ "lessons": [
+  "Whatever a demo bundles goes stale; serve it from the source the product itself uses."
+ ],
+ "commits": [
+  "8997529"
+ ]
+}

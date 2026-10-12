@@ -1,0 +1,104 @@
+{
+ "package": "A4.3",
+ "title": "Prompts as code: versioned files pinned to a complete suite run",
+ "date": "2026-10-06",
+ "request": "Treat prompts as code with tests. Keep each policy's system prompt and tool schemas in versioned files; record a hash of each next to the latest scripted-suite result; make rd-check fail when a prompt or schema changed and the suite has not been re-run for that hash; when a live baseline exists, print the change in score per case after a run. No prompt text is edited by a model.",
+ "spec": "A change to a policy prompt, a tool schema or a validator rule must pass the scripted suite; the live results of the last release are the baseline to compare. Done when a test fails when a prompt file changes without its recorded hash being updated by the suite run.",
+ "plan": [
+  "Find every prompt DCLab sends to a model: ten, as string constants in their modules (intern, home_agent, home_plan, synthetic_schema, parse_pattern, stage_critique, stage_explain, leakage_review, notebook_fixes, evidence_answer).",
+  "Move each into dclab_rnd/prompts/<name>.md, read with prompts.text(name); a number a prompt states becomes a placeholder filled from the module's constant; compare every prompt byte for byte before and after.",
+  "Write prompts.fingerprints() over the prompt files and each tool scope's schemas; store it with every scripted run (AEV-003); write tests/test_prompt_gate.py; make live runs compare with a baseline.",
+  "Run check-all and the review; fix four findings; rerun the suite (a failed run turned out to be the disk filling again); commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The move must change no prompt: each module's text is compared byte for byte before and after.",
+   "why": "A refactor of prompts that changes a word changes behaviour with no test noticing, the very risk the package removes."
+  },
+  {
+   "decision": "Only a complete scripted run (every policy on every case, no errors) stores the hashes.",
+   "why": "Otherwise a partial run, or one where every case errors, satisfies the gate while the suite has not passed."
+  },
+  {
+   "decision": "The campaign tool's schema is hashed by its name, description and fields, not by pydantic's generated JSON schema.",
+   "why": "The generated schema depends on the installed pydantic version, so the gate would flip between machines with no repository change."
+  },
+  {
+   "decision": "The gate asks for a rerun, not for the scores to hold.",
+   "why": "A score drop after a prompt change is for a person to judge; the gate's job is to make sure the change was measured."
+  },
+  {
+   "decision": "A test keeps code from writing the prompt files.",
+   "why": "People edit prompts; no tool or model may."
+  }
+ ],
+ "change": "dclab_rnd/prompts/ with ten .md files and text(name) with placeholders checked for being filled; fingerprints() over the prompts, the project, draft, session and campaign tool schemas, and the workflow validator's rules (studio/graph.py); scripted runs store prompt_hashes only when complete; tests/test_prompt_gate.py names what changed and asks for make agent-eval; a live run compares with the last completed live result of the same model on the same cases, after its own result is written.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gate accepted a partial or failing scripted run.",
+   "scenario": "Rename a required argument of a project tool so the standard policy errors on every case, then run the suite with --policy bad, or a full run whose results all have errors: the gate passed either way, because it checked only that some scripted file had the new hashes.",
+   "cause": "prompt_hashes were stored on every run, including policy subsets, and the runner always returned 0.",
+   "fix": "Hashes are stored only by a complete run (all three policies, every case, no errors), and the gate test fails when the latest scripted run is not complete.",
+   "test": "tests/test_prompt_gate.py."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The live baseline could be a run on different cases, so printed score changes meant nothing.",
+   "scenario": "The qwen baseline AEV-002 covers 2 cases x 2 repeats; the next full 20-case run would print 'leaks_caught 0.0 -> x' as if comparable; any smoke run would become the next baseline; a redefined case would be compared with its old table. Also, a baseline file without a summary raised KeyError before the paid result was written, losing it.",
+   "cause": "baseline() took the latest file for the model and ignored its case set, fingerprints and status; the comparison ran before writing.",
+   "fix": "The baseline is the last completed live result of the same model on the same cases with the same fingerprints; the comparison runs after the result is safely written; a smoke run is never a baseline.",
+   "test": "Baseline tests with mismatched case sets."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Validator rule changes were not part of the gate.",
+   "scenario": "Change a check in studio/graph.py, for example a gate rule: make rd-check stayed green without a suite rerun, though the package lists validator rules.",
+   "cause": "The fingerprint covered prompt files and tool schemas only.",
+   "fix": "The validator's rules are part of the fingerprint.",
+   "test": "The gate test; A5.2 and A6.1 later triggered it and reran the suite."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The campaign tool's hash depended on the installed pydantic version.",
+   "scenario": "A fresh environment or CI resolving another pydantic would produce a different JSON schema, failing the gate with no repository change.",
+   "cause": "The schema was generated by model_json_schema(), and pydantic was pinned only in the agent lock file.",
+   "fix": "The campaign schema is hashed by its name, description and fields.",
+   "test": ""
+  },
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The suite run failed with a directory error, so the gate failed for lack of a new result.",
+   "scenario": "Only 1.3 GB was free again; the rerun passed.",
+   "cause": "A full disk: direct test runs outside make do not get the per-command temporary folder cleanup, and scratch files had grown.",
+   "fix": "The space was found and freed and the suite rerun; no code change, since the failure was the machine, not the suite.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "AEV-003, scripted suite rerun after moving the prompts",
+   "gate": "The move changes no prompt (byte-identical), so the complete scripted run must give the same scorecard as AEV-001.",
+   "result": "Same scores: standard 1 of 13 leaks, 1 false alarm in 20; audit 10 of 13, 3 in 20; bad 0 of 13, 20 of 20 unsafe moves refused. The reviewer also confirmed all ten prompts byte-identical and that one added trailing newline fails the gate.",
+   "verdict": "pass",
+   "next": "For a prompt change the scripted rerun records it rather than tests it (no model is called); the live suite tests it."
+  }
+ ],
+ "outcome": "Done: ten prompts are versioned files; their hashes, each tool scope's schemas and the validator's rules are pinned to a complete scripted run, and the test gate fails when any of them changed since. Open: the campaign's NOOA prompts, the research critics and the SFT corpus prompt stay in their modules. Four review findings fixed.",
+ "lessons": [
+  "A regression gate must check that the run it trusts was complete and clean, not just that a file with the right hash exists.",
+  "Compare scores only between runs on the same cases with the same fingerprints; a smoke run is not a baseline.",
+  "Hash what you wrote, not what a library generates from it, or the gate depends on library versions."
+ ],
+ "commits": ["45dbd96"]
+}

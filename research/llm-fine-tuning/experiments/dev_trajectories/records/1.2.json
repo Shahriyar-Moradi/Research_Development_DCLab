@@ -1,0 +1,56 @@
+{
+ "package": "1.2",
+ "title": "No inline styles or scripts (strict CSP)",
+ "date": "2026-10-05",
+ "request": "Serve the demo's UI under the server's strict Content-Security-Policy without changing how any page looks.",
+ "spec": "Per-element styles written as data-style and applied by core.js through one constructed stylesheet; the build fails on any inline script, style block, on... handler or style attribute. Done when the build tests pass, including the one that catches an inline style, and every page renders as demo v1.",
+ "plan": [
+  "Find every inline style attribute in the views and in strings built by JavaScript (102 of them).",
+  "Rewrite each as data-style and teach core.js to turn each distinct value into one rule of a constructed stylesheet, watching for new values with a MutationObserver.",
+  "Add a global [hidden]{display:none!important} rule.",
+  "Make build.py refuse inline scripts, style blocks, event-handler attributes and style attributes, and test that.",
+  "Compare every page with demo v1 at 1440 px."
+ ],
+ "decisions": [
+  {
+   "decision": "data-style plus a constructed stylesheet ([data-style=\"...\"]:not([hidden]){...}) instead of utility classes or setting el.style from script.",
+   "why": "CSSOM rules are not blocked by the CSP, the page looks the same, and pages that re-render with innerHTML stay CSP-clean without extra code."
+  },
+  {
+   "decision": "The build refuses inline code rather than relying on a review.",
+   "why": "One forgotten style= attribute breaks a page silently under the CSP; a build error catches it at once."
+  }
+ ],
+ "change": "102 inline style attributes became data-style; core.js builds one constructed stylesheet from the distinct values and observes new ones; build.py rejects inline script, style blocks, on... handlers and style attributes; a global hidden rule was added.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Elements with the hidden attribute could still be shown in the product.",
+   "scenario": "A component class that sets its own display (for example a panel or a flex row) kept showing an element the page had hidden with the hidden attribute, outside the artifact viewer that had supplied the override in the demo.",
+   "cause": "The demo relied on a rule its viewer added; served on its own the page lacked it.",
+   "fix": "A global [hidden]{display:none!important} rule, and data-style rules written with :not([hidden]) so a style never un-hides an element.",
+   "test": ""
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "During the parallel wiring of the pages, one group's page carried an inline style= attribute and broke every other group's build.",
+   "scenario": "The integrations view gained a style= attribute; build.py refused it, so the other helpers' builds failed for about a minute until that view was fixed.",
+   "cause": "New markup written by hand fell back to the habit of inline styles.",
+   "fix": "The page was rewritten with data-style; the refusal in the build is what caught it.",
+   "test": "tests/test_web_build.py: test_inline_style_attributes_are_caught."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: no inline code anywhere in the product frontend; the build refuses it; pages render as demo v1.",
+ "lessons": [
+  "Enforce a CSP rule in the build, not only in the browser: the build names the file, the browser only blanks the page."
+ ],
+ "commits": [
+  "b9abbad",
+  "15c4958"
+ ]
+}

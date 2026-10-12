@@ -1,0 +1,83 @@
+{
+ "package": "RD-model-building-50",
+ "title": "The evidence-first campaign: 50 experiments, 10 datasets x 5 stages",
+ "date": "2026-09-18",
+ "request": "Run about 50 experiments on real public data that teach the workflow of building a model, not a leaderboard: understanding the data, finding leaks, feature engineering, choosing the algorithm and optimizing, with an LLM helping as a critic. Collect the claims so people and a future model can learn from them.",
+ "spec": "Exactly 50 experiments: 10 UCI datasets x 5 stages (data understanding, leakage audit, feature engineering ablation, algorithm screen, optimization with calibration and one final holdout). Every selection on training-only CV; the locked holdout read once per dataset. Each result JSON holds evidence, claims, limitations and provenance; a manifest, a report, claim-level agent memory and an LLM review queue are generated.",
+ "plan": [
+  "Write the manifest first: for each experiment its question, hypothesis, dataset and source.",
+  "Lock a holdout per dataset before any analysis; cap each table at 4,000 rows for the first pass with 3-fold stratified CV.",
+  "Stage 1: profile training rows only (missingness, duplicates, positive rate, random-split PSI as a smoke check).",
+  "Stage 2: declare decision-time exclusions (bank duration, shoppers PageValues), run heuristic proxy checks and a synthetic canary, and measure safe vs unsafe CV.",
+  "Stage 3: compare the feature ladder (raw, logs, ratios, interactions, full, selected) with folds-fitted features; pick the smallest matrix within 0.002 ROC-AUC of the best.",
+  "Stage 4: screen five families on identical folds, ranked by mean minus 0.25 x fold std.",
+  "Stage 5: try three explicit candidates for the chosen family, accept only a declared CV margin, fit once on all training rows and score the holdout once with a bootstrap interval, Brier and ECE.",
+  "Generate the report, the claims memory and 50 bounded critic tasks."
+ ],
+ "decisions": [
+  {
+   "decision": "The LLM is a critic and hypothesis generator only.",
+   "why": "Deterministic code owns metrics, splits, provenance and evidence; a human owns ambiguous decision-time semantics and promotion."
+  },
+  {
+   "decision": "Prefer the smallest feature matrix within 0.002 of the best CV score.",
+   "why": "It makes feature dilution a first-class negative result instead of rewarding every extra column."
+  },
+  {
+   "decision": "Rank model families by mean minus 0.25 x fold std, then tune only the chosen family.",
+   "why": "Stability matters as much as the mean; tuning every family multiplies selection on the same folds."
+  },
+  {
+   "decision": "Treat leakage heuristics as review requests and include a synthetic canary.",
+   "why": "A heuristic flag is not proof of a leak, and a detector must show it can catch an exact-target canary before its silence means anything."
+  }
+ ],
+ "change": "dclab_rnd/science.py (stages) and dclab_rnd/campaign.py (orchestration, resumable run, status, verify), 50 result files under evidence/campaigns/model_building_50_v1/results/, manifest.json, CAMPAIGN_REPORT.md, AGENT_CONTEXT.md, MODEL_BUILDING_WORKFLOW.md, agent_memory.jsonl and llm_review_queue.jsonl.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Two derived feature recipes were selected through arithmetic on factorized category codes.",
+   "scenario": "bank_marketing selected `ratios` (+0.0042 over raw) and german_credit `interactions` (+0.0073); the cached tables store categories as codes in order of first appearance (May=0, Jun=1), and EXP-010's top features were poutcome, log1p_poutcome, month and log1p_month. Over 9 folds the same lifts were +0.0012 [-0.019, +0.021] and +0.0006 [-0.030, +0.031]: fold noise.",
+   "cause": "The earlier downloader factorized categoricals, and the feature ladder treated every numeric column as a quantity.",
+   "fix": "The results stay immutable; evidence/README.md lists every affected record, codes are now kept out of derived features, and category_codes_v1 measured the alternatives (see RD-category-codes).",
+   "test": "tests/test_category_codes.py; evidence/campaigns/category_codes_v1 CAT-001."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "leakage audit, safe vs unsafe training CV",
+   "gate": "Declared decision-time exclusions are removed; the apparent lift is unsafe minus safe CV ROC-AUC, measured on training folds only.",
+   "fixed_before_run": true,
+   "result": "bank_marketing duration: 0.7130 safe vs 0.8972 unsafe (+0.1842); online_shoppers PageValues: 0.7156 vs 0.9124 (+0.1968). The detector canary was caught on all 10 datasets.",
+   "verdict": "not scored",
+   "next": "Confirm the decision-time meaning of each flagged column with a domain source; a lift shows severity, not proof."
+  },
+  {
+   "name": "feature ladder selection",
+   "gate": "Smallest matrix within 0.002 mean CV ROC-AUC of the best stage.",
+   "fixed_before_run": true,
+   "result": "raw on 7 of 10 datasets; ratios on bank_marketing (+0.0042) and wine_quality (+0.0031); interactions on german_credit (+0.0073).",
+   "verdict": "not scored",
+   "next": "Rerun close decisions with repeated 5x5 CV and all available rows."
+  },
+  {
+   "name": "final holdout, read once per dataset",
+   "gate": "Model and settings locked on training CV; a tuned candidate accepted only above the declared margin; holdout scored once with a bootstrap 95% interval.",
+   "fixed_before_run": true,
+   "result": "adult 0.9097 [0.8855, 0.9297]; bank_marketing 0.7718 [0.7126, 0.8290]; breast_cancer 0.9960 [0.9858, 1.0000]; credit_default 0.7746 [0.7326, 0.8150]; german_credit 0.7943 [0.7180, 0.8621]; heart_disease 0.9448 [0.8851, 0.9872] with ECE 0.1495; mushroom 1.0000; online_shoppers 0.7394 [0.6997, 0.7828]; spambase 0.9849 [0.9752, 0.9925]; wine_quality 0.8878 [0.8610, 0.9077]. Extra Trees chosen on 7 of 10 datasets.",
+   "verdict": "not scored",
+   "next": "Calibration review for heart_disease; thresholds from out-of-fold predictions with a cost matrix; subgroup reviews for credit and health data."
+  }
+ ],
+ "outcome": "50 of 50 experiments completed, 0 failed, every holdout read once. The campaign became the answer key for the copilot, the agent tools and the SFT corpus. Its limits are written into the report: 4,000 rows and 3 folds per dataset, factorized categoricals, and no temporal or out-of-domain holdout.",
+ "lessons": [
+  "Write the question and hypothesis of every experiment before running it; the manifest is what makes 50 runs a study rather than a pile.",
+  "There was no universal best algorithm and raw features were enough on most datasets; both are defaults to challenge, not laws.",
+  "Three folds are too few to choose between recipes 0.004 apart; a later 9-fold rerun showed those wins were noise."
+ ],
+ "commits": [
+  "af38dfa"
+ ]
+}

@@ -1,0 +1,96 @@
+{
+ "package": "15.2",
+ "title": "A label file: join, key check, partial labels",
+ "date": "2026-10-12",
+ "request": "Let a project hold a table and a separate file of known cases, as the fraud challenge had. Choose and check the join key in code, refuse a key that inflates the labels with its numbers, declare the labels partial when they come from a sample, and turn the label parts of the fraud acceptance test green.",
+ "spec": "attach_labels (a graph move) and a read tool review_labels; for each candidate key, how many table rows one label row marks; an inflating key refused with its numbers unless the label is per entity; label rows missing from the table counted; same-named columns compared and flagged; Solution.labels complete|partial with provenance; prepare() no longer treats a missing label as a negative without that declaration. Done when the replica joins on the order, the pair join is refused with its numbers, partial labels reach the solution and the records, the moves are logged, and PostgreSQL holds the label file too.",
+ "plan": [
+  "Read the acceptance tests first: they define done.",
+  "Reuse 17.3's label-join analysis in dclab_core (best key, pairs of id-like keys, rows marked per label, ids compared as text, disagreeing columns) instead of writing a second one.",
+  "Add studio/labels.py (review, mark, apply), data.attach_labels, the attach_labels move, Solution.labels and label_provenance, and the target joined in engine.prepare.",
+  "Make attach_data forget the label record when the table is replaced, since it clears the data folder.",
+  "Check that the whole project document (one JSONB column) keeps the new key on PostgreSQL.",
+  "Add the intern's read tool review_labels and the notebook's join cell; run the replica end to end; fix what the Step 2 review found."
+ ],
+ "decisions": [
+  {
+   "decision": "The key check lives in dclab_core (analyse.label_join) and the studio calls it.",
+   "why": "The main product must be able to run the same check; one implementation, two hosts."
+  },
+  {
+   "decision": "A column that only numbers the rows of its file is never a join key, judged by its name only.",
+   "why": "A saved CSV index joined two files row by row and produced a fake AP of 1.0; a numeric rule (0..n-1 in order) was dropped because a real order id may also run 0, 1, 2."
+  },
+  {
+   "decision": "Same-named columns that disagree are never taken from the label file and are stated as limits.",
+   "why": "In the replica sender_phone holds the receiver's phone in the sample; its meaning there is unknown, so using it would be guessing."
+  },
+  {
+   "decision": "Labels from a sample are partial by default, and precision is reported as a lower bound.",
+   "why": "Unlabelled rows are unknown, not clean; calling them negatives makes precision look exact when it is a floor."
+  }
+ ],
+ "change": "studio/labels.py (review of candidate keys, rows marked, missing label rows, disagreeing columns; mark and apply), data.attach_labels checked and logged as the attach_labels move, attach_data clearing labels, Solution.labels and label_provenance, the target joined in engine.prepare with coverage and limits in the stage records, intern tool review_labels, the notebook's label-join cell, dclab_core.analyse refusing row-number columns as keys; tests/test_labels.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "A saved index column was chosen as the join key and gave a fake holdout AP of 1.0.",
+   "scenario": "Both CSVs carried a pandas index saved as 'Unnamed: 0'. The key search found it unique in both files and joined the label file on it, so labels landed on rows by position; the run reported holdout AP 1.0 and recall at the budget 0.95.",
+   "cause": "The candidate-key search accepted any column that was unique in both files.",
+   "fix": "A column whose name says it only numbers rows (Unnamed: N, index, level_N, row id) is never a key. A first version also refused integer columns running 0..n-1; it was narrowed to the name, because a real order id can run that way too.",
+   "test": "test_the_key_is_checked_and_the_target_comes_from_the_file"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Attaching a label file bypassed the graph validator, and no transition was logged.",
+   "scenario": "attach_labels and build_project wrote activity and audit entries but never called graph.check or graph.log for the attach_labels move; the move existed in graph.MOVES but only a unit test consulted it.",
+   "cause": "The move was declared without being wired into the function that performs it.",
+   "fix": "attach_labels checks the move first, refuses and logs when it is not allowed, and logs the allowed verdict with its outcome.",
+   "test": "test_attaching_labels_is_a_logged_move_and_the_notebook_joins_them"
+  },
+  {
+   "id": "F5b",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A label-file project exported a notebook that failed at its first cell.",
+   "scenario": "The notebook set TARGET to the label column but read only the ride table, which has no such column.",
+   "cause": "The export knew only projects whose target is a column of the table.",
+   "fix": "The notebook now emits a cell that reads the label file and marks rows by the checked key, with the coverage named.",
+   "test": "test_attaching_labels_is_a_logged_move_and_the_notebook_joins_them"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The engine's prepared-data cache could go stale when a label file was re-attached.",
+   "scenario": "Re-attaching the same file with another key or per-entity flag reused the old target when the solution hashed the same, because the cache key held only the label file's SHA-256.",
+   "cause": "The cache key covered the file, not how it is joined.",
+   "fix": "The cache key hashes the whole label record (and the pack).",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "label join on the replica",
+   "gate": "The replica's labels are joined on the order; the (account, biker) pair is refused with its inflation (Done-when of 15.2).",
+   "fixed_before_run": true,
+   "result": "The order join marks 103 rows; the (account, biker) pair would mark 2,021 rows, 19.6 per label, and is refused with those numbers; 5 label rows are not in the table; sender_phone and biker_fare are named as disagreeing and stated as limits.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: a project holds a label file joined on a key chosen and checked by code, partial labels reach the solution and the records, the move is validated and logged. Open: no API route to upload a label file to an existing project, and the PostgreSQL store has no test of its own for it.",
+ "lessons": [
+  "A perfect score is a bug report: AP 1.0 on a rare-event problem meant the labels were joined on row numbers.",
+  "A move declared in the graph is not governed until the function that performs it calls the check.",
+  "Never treat a column whose meaning differs between two files as the same column."
+ ],
+ "commits": [
+  "abb5729"
+ ]
+}

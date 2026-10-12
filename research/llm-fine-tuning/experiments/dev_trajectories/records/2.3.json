@@ -1,0 +1,34 @@
+{
+ "package": "2.3",
+ "title": "Rename in the UI wording",
+ "date": "2026-10-05",
+ "request": "Reword the product frontend so 'contract' becomes 'solution' wherever it names the product's object: 'Draft the solution', 'Solution draft', 'Solution & data', the WF-01 node 'Solution'.",
+ "spec": "The new wording across the 19 views, features.js and data.js. Done when a search for 'contract' in web/src finds only research wording and internal CSS class names.",
+ "plan": [
+  "Reword about 200 occurrences across the views, features.js and data.js.",
+  "Keep quotes from research records, such as 'Decision-time contract' in dataset records, as written.",
+  "Review the visible labels and a sample of reworded sentences for awkward phrasing.",
+  "Rebuild with make web and check every page for leftover wording.",
+  "Search scripts and docs outside the package for old tool or route names."
+ ],
+ "decisions": [
+  {
+   "decision": "Internal CSS class names such as .contract-sheet stay.",
+   "why": "They are invisible to users; renaming them with the CSS adds risk for no visible gain."
+  },
+  {
+   "decision": "The exact text 'Decision-time contract:' in research records is protected.",
+   "why": "The Evidence page's parser looks for that string inside the real records; rewording it would break the parser."
+  }
+ ],
+ "change": "The product frontend says solution wherever it names the product's object; research quotes and internal class names are unchanged; static/app rebuilt.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Done: the UI speaks of the solution. A later search found 'contract' only in the synthetic-data placeholder ('contract type', a telecom column in the example) and in research wording, both correct as they are.",
+ "lessons": [
+  "After a wording rename, search again whenever new screens are added, and read each hit in context: a dataset's own column named 'contract' is not the product's object."
+ ],
+ "commits": [
+  "db85ad2"
+ ]
+}

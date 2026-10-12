@@ -1,0 +1,156 @@
+{
+ "package": "RD-category-codes",
+ "title": "Category codes treated as quantities: the fix, and what each encoding is really worth (DCLAB-R11)",
+ "date": "2026-10-05",
+ "request": "The feature recipes took logs and ratios of factorized category codes. Keep the codes out of derived features, then treat them as categories inside training folds, and measure on identical training folds, never the holdout, whether a proper encoding recovers the lift that arithmetic on codes appeared to give.",
+ "spec": "dclab_rnd/categoricals.py resolves which numeric columns are codes (the catalog's declarations win; a heuristic of whole numbers with at most 20 distinct values applies only without one). FeatureEngineer, the expansion recipes, the DCLab notebook and its exported notebook keep codes out of derived features; the notebook one-hot encodes them with fit-fold levels; a new campaign category_codes_v1 measures legacy, numbers, one-hot and native LightGBM categorical splits with fold-paired, Nadeau-Bengio corrected 95% intervals; existing results untouched.",
+ "plan": [
+  "Read the categorical declarations already kept per dataset in the agentic catalog and resolve code columns from them, with the heuristic as fallback.",
+  "Keep codes out of every derived feature in FeatureEngineer, the expansion recipes and the notebook; fix them once per project on training rows and record them.",
+  "Re-check informally on identical training folds that the old behaviour reproduces EXP-008 and EXP-028, and see what removing code arithmetic costs.",
+  "One-hot encode codes in the notebook's encoder with levels learned on each fit fold (top 40, unseen levels all zero) and route them to the one-hot branch in the exported notebook.",
+  "Write category_codes_v1: CAT-001 (playbook ladder, 3x3 repeated folds whose first repeat is the campaign's own), CAT-002 (the notebook's recipes and folds).",
+  "Add CAT-003 and CAT-004 for native LightGBM categorical splits on the same folds, with one sensitivity variant declared before any native result.",
+  "List the affected old records in evidence/README.md; regenerate the index, SFT and research indexes; run rd-check."
+ ],
+ "decisions": [
+  {
+   "decision": "Declarations win over the heuristic.",
+   "why": "The heuristic misses codes with more levels (native-country, day_of_week) and would misread letter recognition's integer shape statistics as codes."
+  },
+  {
+   "decision": "FeatureEngineer keeps codes as numbers by default and gains an opt-in one_hot_codes flag, not a new ladder stage.",
+   "why": "Encoding is orthogonal to the derivation rungs; changing raw would change every model_building_50_v1 rerun (CAT-001 shows the current code reproduces them exactly); and the ladder's LightGBM gains nothing measurable from it."
+  },
+  {
+   "decision": "Records made before the change export with codes as numbers.",
+   "why": "The exported notebook must reproduce exactly what the engine evaluated then."
+  },
+  {
+   "decision": "Keep one-hot in the notebook after the native test.",
+   "why": "For LightGBM no encoding was distinguishable at this data size, and one-hot is the rule-compliant one that pays for linear models."
+  },
+  {
+   "decision": "Declare min_data_per_group = 20 as the only native variant, before seeing any native result.",
+   "why": "LightGBM's default of 100 is large next to 800 to 3,200 training rows; varying more settings after seeing results would be tuning on the comparison."
+  }
+ ],
+ "change": "New dclab_rnd/categoricals.py; FeatureEngineer takes categorical and one_hot_codes; DatasetSpec.categorical_columns and recipes skip codes; the notebook's encoder one-hot encodes codes per fit fold and the feature record says how; the exported notebook routes CATEGORY_CODES to the one-hot branch (cast to text) and old records export unchanged; new dclab_rnd/code_encoding.py and evidence/campaigns/category_codes_v1 (CAT-001 to CAT-004); tests/test_category_codes.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The feature recipes did arithmetic on factorized category codes.",
+   "scenario": "bank_marketing stores month as codes in order of first appearance (May=0, Jun=1, ...); the logs recipe built log1p_month, ratios divided by month and job, and interactions, KMeans and quantile bins used codes. EXP-010's top features were poutcome, log1p_poutcome, month and log1p_month. Found while building the product demo, where log1p_month showed among the top features.",
+   "cause": "The cached UCI tables were factorized by an earlier downloader, and FeatureEngineer treated every numeric column as a quantity.",
+   "fix": "Resolve code columns from the catalog's declarations (heuristic as fallback) and keep them out of every derived feature in the ladder, the expansion recipes, the notebook and its export.",
+   "test": "tests/test_category_codes.py (fixtures such as bank_like)."
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "After the first fix, codes still reached every model as plain numbers.",
+   "scenario": "The notebook's encoder passed numeric columns through and one-hot encoded only text dtypes, and the exported notebook put code columns in the scaled numeric branch, so a linear model still treated a higher month code as more of a quantity, against DCLAB-R11 ('do not treat arbitrary category codes as ordinal').",
+   "cause": "Encoding was chosen by dtype, not by meaning.",
+   "fix": "One-hot encode the resolved code columns with levels learned on each fit fold (the 40 most frequent, unseen levels all zero) and route them to the one-hot branch in the export.",
+   "test": "Tests show a code column one-hot encoded with fit-fold levels in every recipe and fold, and never in the export's scaled numeric branch."
+  },
+  {
+   "id": "F3",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Some conclusions in the campaign's claims were written as fixed sentences, not derived from the intervals.",
+   "scenario": "Dry-running the claim code on the two smallest datasets showed sentences whose conclusion was fixed text rather than read from the interval, so a claim could say 'within noise' whatever the numbers were.",
+   "cause": "Claim text drafted from the expected result.",
+   "fix": "Make every claim conditional on its interval (better, worse or within noise), add a test for the paired-interval helper, and rerun the campaign into its result files.",
+   "test": "The paired-interval helper test in tests/test_category_codes.py."
+  },
+  {
+   "id": "F4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "LightGBM reads negative category values as missing.",
+   "scenario": "credit_default's PAY codes run from -2; passed directly as categorical_feature, every -2 and -1 would have been treated as missing in the native-split arm.",
+   "cause": "LightGBM's categorical input must be non-negative integer ids.",
+   "fix": "Recode codes to category ids learned on each fit fold before passing them; missing and unseen levels get ids of their own.",
+   "test": "A test checks the model splits a code only by membership (==), never by a threshold."
+  },
+  {
+   "id": "F5",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The selected_mi recipe got worse under one-hot encoding.",
+   "scenario": "selected_mi keeps 60% of the input columns, counted before encoding, but now picks among the encoded columns, so it keeps fewer inputs: bank_marketing -0.0411, german_credit -0.0184 under one-hot vs numbers.",
+   "cause": "Its k is sized on input columns, not encoded ones.",
+   "fix": "Not changed here: recorded as a risk in CAT-002 (the rule selected it on no dataset with one-hot codes); sizing k on encoded columns is a separate change.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Native LightGBM categorical splits collapse on a small dataset at default settings.",
+   "scenario": "On heart_disease (about 240 training rows) native splits at defaults lost 0.053 ROC-AUC on the ladder folds and 0.056 on the notebook folds against codes as numbers.",
+   "cause": "min_data_per_group=100 is too large for categories with few rows each.",
+   "fix": "The pre-declared variant min_data_per_group=20 removes the loss (+0.002 and +0.010); if native splits are ever offered, the setting must scale with the training rows.",
+   "test": "CAT-003 and CAT-004 result files."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "reproduction of the recorded campaign",
+   "gate": "On the first repeat's folds the legacy arm must reproduce model_building_50_v1's feature-stage ROC-AUC exactly.",
+   "fixed_before_run": true,
+   "result": "Exact on 7 of 7 datasets.",
+   "verdict": "pass",
+   "next": "Compare arms over all 9 folds."
+  },
+  {
+   "name": "was the derived-recipe lift real",
+   "gate": "Legacy derived stage minus raw over 9 folds; real only if the corrected 95% interval excludes zero.",
+   "fixed_before_run": true,
+   "result": "bank_marketing ratios - raw +0.0012 [-0.0185, +0.0209]; german_credit interactions - raw +0.0006 [-0.0296, +0.0308]; all three arms select raw over 9 folds.",
+   "verdict": "fail",
+   "next": "Treat the recorded EXP-008 and EXP-028 lifts as 3-fold noise."
+  },
+  {
+   "name": "does one-hot recover the lift",
+   "gate": "One-hot raw minus the legacy derived stage, corrected 95% interval above zero.",
+   "fixed_before_run": true,
+   "result": "bank_marketing -0.0065 [-0.0305, +0.0175]; german_credit +0.0178 [-0.0131, +0.0488]. LightGBM one-hot minus numbers within noise on 7 of 7; logistic regression better on bank_marketing (+0.038) and adult (+0.040), and in the notebook on adult (+0.056) and online_shoppers (+0.069); Extra Trees worse on adult, credit_default and online_shoppers (-0.014 to -0.030).",
+   "verdict": "fail",
+   "next": "Keep one-hot for rule compliance and linear models; test native splits next."
+  },
+  {
+   "name": "same folds for the native arms",
+   "gate": "The numbers arm re-run through each native experiment's loop must match the stored CAT-001 and CAT-002 fold scores exactly.",
+   "fixed_before_run": true,
+   "result": "Exact on 14 of 14 dataset runs.",
+   "verdict": "pass",
+   "next": "Compare native fold by fold with the stored arms."
+  },
+  {
+   "name": "do native categorical splits beat numbers or one-hot",
+   "gate": "Native minus numbers and minus one-hot, corrected 95% intervals; better only if an interval excludes zero above it.",
+   "fixed_before_run": true,
+   "result": "Native minus numbers within noise on 7 of 7 in both pipelines (means -0.007 and -0.010); native minus one-hot within noise except german_credit on the ladder (-0.022 [-0.034, -0.010]); min_data_per_group=20 within noise everywhere (means +0.002 and +0.001); native raw vs the recorded derived stages: bank_marketing +0.010 [-0.031, +0.050], german_credit -0.004 [-0.029, +0.021].",
+   "verdict": "fail",
+   "next": "Keep one-hot in the notebook; XGBoost and histogram boosting's native support remain untested, and truly ordered codes (repayment delays, education levels) lose their order under both one-hot and native splits."
+  }
+ ],
+ "outcome": "Codes are now kept out of derived features and one-hot encoded inside folds in the DCLab notebook, matching DCLAB-R11. The measurement overturned the idea behind the task: the code-arithmetic lift was 3-fold noise, and for LightGBM at this data size numbers, one-hot and native splits cannot be told apart. Old results stay as recorded, with the affected records listed.",
+ "lessons": [
+  "Before fixing a feature to recover a lift, check the lift is real on more folds; here it was noise.",
+  "Prove two arms ran on the same folds by reproducing a stored score exactly, not by assuming it.",
+  "Declare a sensitivity variant before seeing results, and only one.",
+  "A rule-compliant encoding can be worth keeping even when it does not raise the score."
+ ],
+ "commits": [
+  "f6354f8",
+  "7d76aeb",
+  "cb2caa0",
+  "e9448a1"
+ ]
+}

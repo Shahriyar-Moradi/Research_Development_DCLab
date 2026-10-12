@@ -1,0 +1,117 @@
+{
+ "package": "15.4",
+ "title": "Entity behaviour features, fitted inside folds",
+ "date": "2026-10-12",
+ "request": "Build what took the hand solution from about 0.1 to about 0.5 average precision: features that describe each entity's behaviour (counts, repeats, places, shrunk rates), computed only from training rows and only from what is known at the prediction moment.",
+ "spec": "A recipe entity_behaviour: counts per entity, entity-day, entity-place, place and route (place = a grid cell from coordinates), repeat shares, rates shrunk towards the training mean, fitted on the training fold only. Two modes from the prediction moment: an audit window (the window's rows known when scoring, labels never) or at the event (earlier rows only); the mode recorded. Done when no test-fold row changes a training-fold feature, the event mode uses no later row, and on the replica the ladder picks the recipe for a measured reason.",
+ "plan": [
+  "Read how recipes derive and fit features inside folds (FrameRecipe in the runner).",
+  "Write dclab_core/behaviour.py (EntityBehaviour): counts per entity, entity-day, entity-place, place and route, trip distance and money per metre, the row against its entity, shrunk rates; the mode chosen from the moment's words.",
+  "Register it as the entity_behaviour recipe of the feature ladder, so it is compared with the row-wise recipes as usual.",
+  "Restrict coordinate pairs to columns the model may use, and give a row without an entity its own cluster in the bootstrap.",
+  "Test fold isolation and no later rows in event mode; run the replica end to end on seeds 0 and 1.",
+  "Fix the two leaks the Step 2 review found, and later the tie-ordering leak the Step 3 review found in the shared window."
+ ],
+ "decisions": [
+  {
+   "decision": "The behaviour features live in dclab_core, not in the studio.",
+   "why": "The main product must be able to compute the same features; the studio's runner only wraps them as a recipe."
+  },
+  {
+   "decision": "The mode follows the prediction moment and is written in the stage record.",
+   "why": "In a daily audit the day's rides are all known when scoring; at the event only earlier rows are. The wrong mode either leaks or wastes signal."
+  },
+  {
+   "decision": "Fit rows get leave-one-out rates, and an entity the folds are grouped by gets no rate at all.",
+   "why": "A rate that includes a row's own label is a leak; and with folds grouped by an entity, a test entity is never seen, so its rate is always the prior at scoring time."
+  },
+  {
+   "decision": "In audit mode counts end with the row's own day, and place counts are shares.",
+   "why": "A ride cannot be explained by its biker's later days, and a share keeps the same scale whether a fold holds two thirds or one third of the rows."
+  }
+ ],
+ "change": "dclab_core/behaviour.py (EntityBehaviour with audit and event modes, places from coordinates, shrunk rates), the entity_behaviour recipe in the runner, the mode in the features record, coordinates limited to usable columns, rows without an entity as their own bootstrap cluster; the notebook export refuses the recipe with its reason; tests/test_core_behaviour.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The recipe would derive places from coordinate pairs in any column, including columns kept out of the model.",
+   "scenario": "A table whose forbidden columns include a coordinate pair recorded after the outcome would have had that pair turned into place counts and rates.",
+   "cause": "Coordinate detection scanned every column of the frame.",
+   "fix": "Detect coordinate pairs only among the columns the model may use.",
+   "test": ""
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The cluster bootstrap failed on the replica.",
+   "scenario": "Cancelled rides have no biker, so their group key is missing, and the bootstrap over bikers failed on NaN keys.",
+   "cause": "The bootstrap assumed every row has an entity.",
+   "fix": "A row without an entity counts as its own cluster.",
+   "test": ""
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The shrunk rates leaked each training row's own label into its features.",
+   "scenario": "On replica seed 1 the recipe scored CV AP 0.208, the ladder picked poly2, and the holdout AP was 0.0067 against chance 0.006, with recall at the budget 0.0. With only the rate columns dropped the recipe scored about 0.67, was chosen, and reached holdout AP 0.205 and recall 0.46. The acceptance test passed only because it uses seed 0.",
+   "cause": "FrameRecipe.fit fitted the rates on the fit rows and then transformed the same rows, so each row's rate counted its own label; validation entities, unseen under grouped folds, always got the prior, so the model learnt to rely on a feature that carries nothing at scoring time.",
+   "fix": "Leave-one-out rates on fit rows ((sum - y_i + shrink * prior) / (n - 1 + shrink)); the full-fit rates only for other frames; no rate for the entity the folds are grouped by.",
+   "test": "test_a_fit_row_never_sees_its_own_label_and_a_grouped_entity_has_no_rate"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Audit mode used rows that do not exist yet at the prediction moment.",
+   "scenario": "The replica's moment is a daily audit of the day's rides, but a ride on the holdout's first day got biker counts, repeat counts, place and route counts built from that biker's rides on every later day of the holdout. The counts also differed in scale between the fit frame (about two thirds of training rows) and the validation frame.",
+   "cause": "In audit mode, counts and means covered the whole frame being transformed, many days long.",
+   "fix": "Counts see only rows of the same key up to the end of the row's own day; place counts become shares.",
+   "test": "test_the_audit_window_ends_with_the_rows_day"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A project whose ladder chose the behaviour recipe exported a notebook with the raw recipe instead.",
+   "scenario": "entity_behaviour fell through to the raw preprocessing in the export, so the notebook's scores would not match the stage records.",
+   "cause": "The export had no case for the new recipe.",
+   "fix": "The export refuses the recipe with its reason (ExportUnsupported) rather than write a wrong notebook.",
+   "test": ""
+  },
+  {
+   "id": "F5s3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Event mode was not strictly earlier when timestamps tie.",
+   "scenario": "With dates without times and a file sorted by label within each day, rows of the same timestamp saw each other in file order; in the sibling feature language a count by entity and day correlated 0.71 with the label. The same stable-sort pattern was in behaviour.py.",
+   "cause": "Rows were ordered with a stable argsort, so ties were broken by file order.",
+   "fix": "One shared window implementation excludes the whole tie group from a row's history, gives rows without a time no history, and makes the rolling mean order-independent.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the feature ladder on the replica",
+   "gate": "On the replica the ladder picks the behaviour recipe for a measured reason (Done-when of 15.4).",
+   "fixed_before_run": true,
+   "result": "After the leak fixes, the ladder picks entity_behaviour on seeds 0 and 1: CV AP 0.51 and 0.62 against 0.06 to 0.24 for the row-wise recipes; holdout AP 0.54 and 0.18, the latter on a holdout with only a handful of fraud bikers.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "The notebook export of this recipe stays open."
+  }
+ ],
+ "outcome": "Done: dclab_core.behaviour fitted inside folds, two modes from the moment, chosen by the ladder on the replica for a measured gain; three leaks (own-label rates, later days in audit mode, timestamp ties) found by reviews and fixed with tests.",
+ "lessons": [
+  "Target-derived features must be computed out of fold even inside the fit rows; a passing seed can hide a leak that another seed exposes.",
+  "A feature that is always the prior at scoring time but informative in training is a leak in disguise.",
+  "'Earlier rows only' must define what happens to ties."
+ ],
+ "commits": [
+  "abb5729",
+  "4487916"
+ ]
+}

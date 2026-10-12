@@ -1,0 +1,118 @@
+{
+ "package": "A3.2",
+ "title": "A leakage reviewer that reads the prediction moment",
+ "date": "2026-10-06",
+ "request": "Add a leakage reviewer to the wizard and the intern: it reads the prediction moment, the column names with their kinds and summaries, and the column audit's flags, and proposes which columns are unavailable at that moment, each with a reason that quotes the moment and evidence records that exist. Code drops an item without a reason or with a missing record and never un-forbids a flagged column; the user ticks what to forbid. Without a model, the audit and name rules answer. Measure it on the studied samples.",
+ "spec": "A reviewer step in the wizard and for the intern; JSON output validated per column ('available' or 'after the moment', a one-sentence reason quoting the moment, record ids from the index). Done when, on the studied samples, the proposals include the R&D's own forbidden columns (for example duration on bank_marketing) and a column proposed without a reason is dropped.",
+ "plan": [
+  "Map the leakage audit pieces, then measure, before designing, what the existing audit and name rules already find on the 16 studied samples: that is the no-model path.",
+  "Write studio/leakage_review.py: inputs are the moment, column names with kind, missing rate and unique count (never a value) and the audit's flags; code filters every item; one moment rule reads clauses that exclude something.",
+  "Wire it into the wizard's proposal route, the intern (a new review_leakage tool, also on /mcp) and the gateway (its own purpose, covered by the data-limit test).",
+  "Show 'The reviewer also asks' on the wizard's solution step, unticked, with the reason and the record; check it in the real page with an uploaded table.",
+  "Run check-all and the review; fix four findings and the re-check's one; chase an intermittent PostgreSQL failure and an end-to-end 500 found during the gates; commit the store fix separately."
+ ],
+ "decisions": [
+  {
+   "decision": "Only the audit's own flags are ticked; everything the reviewer adds is shown and never applied.",
+   "why": "Code decides, a model advises: a proposal without the audit's evidence is a question for the person, not a change to the solution."
+  },
+  {
+   "decision": "A column the audit flagged stays flagged whatever a model says; its 'available' is shown as a disagreement.",
+   "why": "The package forbids un-forbidding a flagged column; showing the disagreement keeps the model's view visible without letting it weaken the guard."
+  },
+  {
+   "decision": "Ask a model only when a moment is written.",
+   "why": "Without a moment a model's reason cannot quote it, so the check that its reason quotes the moment has nothing to check, and the request costs money for nothing."
+  }
+ ],
+ "change": "dclab_rnd/studio/leakage_review.py (review, quotes_moment, the moment rule, measure); the draft proposal route stores the review and reads the wizard's edited moment; the intern's review_leakage tool (21 project tools); the gateway purpose leakage_review; the wizard's 'The reviewer also asks' row; tests/test_leakage_review.py and a data-limit case.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A model's reason skipped the 'quotes the moment' check when there was no moment, and the wizard often sent none.",
+   "scenario": "review(project, moment=None, ...) with a scripted reply 'age: Anything at all.' kept age as a model item. The wizard's proposal request sent only the target and task, never the moment textarea, and the review never re-ran when the person edited the moment; each such proposal still paid for a standard-tier request.",
+   "cause": "quotes_moment() returned True for an empty moment, and the wizard did not send its moment.",
+   "fix": "The model is asked only when a moment is written (quotes_moment is False without one); the wizard sends prediction_moment and the route prefers it.",
+   "test": "A test that a scripted client is not called when the moment is None, and a wizard-route check that an edited moment is used."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The quote check accepted pairs of function words.",
+   "scenario": "Moment 'At the monthly snapshot of each customer.' and reason 'Age is recorded at the end of the year.': 'at the' matched, so the item was kept as quoting the moment.",
+   "cause": "Any two consecutive words of the moment counted as a quote.",
+   "fix": "The matching words must include a content word of four letters or more.",
+   "test": "The reason above is dropped; 'Not known at the monthly snapshot.' is kept."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The moment rule took columns from the 'known' part of an excluding clause.",
+   "scenario": "'At signup; region and age are known but the outcome is not available' proposed region and age as after the moment, with a reason that read 'The moment says: ...'.",
+   "cause": "Clauses were split only on full stops and semicolons, and bare 'is not' and 'are not' triggered the rule.",
+   "fix": "Clauses also split on but, while and whereas, and the bare negations no longer trigger the rule; the studied samples give the same result.",
+   "test": "A moment-rule test with that sentence."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The purpose's description understated what the model sees.",
+   "scenario": "may_see said 'the ids and titles of rule records', but the catalogue also sent the titles of leakage_precedent records.",
+   "cause": "The description was written before the catalogue grew.",
+   "fix": "The description names rule and leakage-precedent records.",
+   "test": ""
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Editing the moment reset the person's ticks (found in the re-check).",
+   "scenario": "On bank_marketing, tick pdays under 'The reviewer also asks', refine the moment and click elsewhere: the sheet redraws from the server's defaults with pdays unticked, and Accept saves the solution without that column forbidden. Clicking Accept while the moment still has focus can also let a late reply overwrite the accepted sheet with the draft view.",
+   "cause": "The fix for F1 re-proposed on every moment change and redrew the sheet from the proposal's forbidden list only.",
+   "fix": "propose() saves the current choices (ticks with reasons, identifiers, time and group columns, metric) and re-applies them to the columns still listed; a reply that arrives after the solution was saved does not redraw.",
+   "test": "Checked in the real page: a ticked suggestion and an unticked audit flag survive a moment edit."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The end-to-end synthetic flow failed once: opening a project returned 500.",
+   "scenario": "A GET on a project while its stages were running read a stage file half written; four further runs passed.",
+   "cause": "Stage records were written in place, and project.json went through a temporary file with one fixed name, so two saves at once could rename each other's file away.",
+   "fix": "Both are written through a temporary file with its own name in the same folder and an atomic rename (separate commit).",
+   "test": "A test with two writers and a reader fails on the old store both ways and passes now."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "One PostgreSQL test failed once in the gate, very slowly (202 s instead of about 65 s).",
+   "scenario": "It passed 5 of 5 times alone, under the same load with a state dump, and in make test-pg.",
+   "cause": "Load from a browser check running at the same time; no race was found in the route.",
+   "fix": "The gate was rerun with nothing else running; no code change.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the R&D's forbidden columns found on the 16 studied samples, without a model",
+   "gate": "The reviewer's proposals include the R&D's own forbidden columns (for example duration on bank_marketing); proposals beyond the R&D's list are counted and shown, never applied.",
+   "result": "14 of 17 found (12 by the audit alone), including duration on bank_marketing; the 3 misses are online_shoppers' 'completed-session counts' (Administrative, Informational, ProductRelated), which name no column. 23 columns proposed beyond the R&D's list: 22 are the audit's own flags, 1 comes from the moment rule (hyperack's first_customer_fare, shown only).",
+   "verdict": "fail",
+   "next": "The 3 misses need a reader of what the moment means, not of the column names; the model path is tested with a scripted model only. Recorded as open in the status row."
+  }
+ ],
+ "outcome": "Done with the misses recorded: the reviewer runs in the wizard and for the intern, code decides what counts, nothing it adds is applied, and no cell value reaches a model. The gate passed with 473 tests on files and on PostgreSQL, the campaign tests and the four flows; five review findings fixed, and a store race found by the gates fixed separately.",
+ "lessons": [
+  "Measure the no-model path before designing the model path: the audit already found 12 of 17.",
+  "A check that passes when its input is empty is not a check; 'quotes the moment' must fail without a moment.",
+  "A UI fix that re-fetches defaults can silently undo the person's leakage choices; keep their choices across a redraw.",
+  "An intermittent 500 on a read during a run points at a write that is not atomic."
+ ],
+ "commits": ["4a92337", "6de8bfb"]
+}

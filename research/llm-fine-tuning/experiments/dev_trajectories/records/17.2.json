@@ -1,0 +1,170 @@
+{
+ "package": "17.2",
+ "title": "Understand the problem: from a description to a problem brief",
+ "date": "2026-10-12",
+ "request": "Before any data, DCLab must understand the problem or challenge as it is described: the goal and action, what one scored row is, the target or how labels are defined, whether they are complete, the moment, entities, constraints, and the deliverables with their rubric. Home and the intern start from it.",
+ "spec": "dclab_core.understand: description and file names to a ProblemBrief, every field with its status and quote, open questions ranked by impact, rubric and deliverables, confidentiality words; a model may propose fields, kept only with a quote (Home's rule). Done when four written briefs (fraud challenge, churn, delivery-time regression, ticket routing) give the expected briefs with and without a scripted model, no field is filled without a quote or a stated inference, and the fraud brief lists the API, Docker and report with their points.",
+ "plan": [
+  "Write the four briefs in invented words and the expected brief for each, as tests.",
+  "Write rules sentence by sentence for each field; the advisor proposes only for fields the rules left unknown.",
+  "Keep the brief on Home's draft and take from it only what Home's own rules would accept; add the intern's read tool understand_problem and the compact brief in describe_data.",
+  "Run the reviewer; rewrite the rules to give up rather than guess; add the seven adversarial sentences as negative tests.",
+  "Run every test that drives Home, then the whole suite on all cores."
+ ],
+ "decisions": [
+  {
+   "decision": "The rules are narrow and give up rather than guess.",
+   "why": "A wrong moment or target is a leak: an unknown field becomes a question, a wrong stated field silently admits leaky columns."
+  },
+  {
+   "decision": "A moment is never read inside the outcome's clause, from a bare 'at the moment', or from a 'when' clause whose verb does not start the process.",
+   "why": "'Predict whether a purchase is made at checkout' names the outcome, not the moment."
+  },
+  {
+   "decision": "An advisor's proposal is kept only for an unknown field, with whole quoted words, a quote that supports the value, and a valid value.",
+   "why": "Home's rule: a model may help, but only with the person's own words behind it."
+  },
+  {
+   "decision": "Home takes from the brief only a bound target and the action in the user's words; the moment stays with Home's own rules.",
+   "why": "Home's moment rules were written to refuse exactly the cases the brief's first rules got wrong."
+  },
+  {
+   "decision": "It lives in dclab_core.",
+   "why": "The main product should read problems the same way."
+  }
+ ],
+ "change": "dclab_core/understand.py (rules per field, open questions ranked by impact, the advisor's proposals checked by Home's quote rules ported into the core), Home's read_brief in draft/chat.py, the intern's understand_problem tool and the compact brief in describe_data; tests/test_core_understand.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The prediction moment was read from outcome clauses, and Home accepted it.",
+   "scenario": "'Predict whether a purchase is made at checkout' gave Home a stated moment 'at checkout'; 'whether the order will arrive late when it is delivered' gave 'when it is delivered', which would allow everything up to delivery; 'At the moment we use a rule-based system' became a moment.",
+   "cause": "The moment pattern matched 'at checkout', 'when ...' and 'at the moment' anywhere in the text, and read_brief recorded it as the user's stated moment.",
+   "fix": "Refuse a moment inside the outcome clause, drop the bare 'at the moment', accept 'when' clauses only with start-of-process verbs; Home never takes the moment from the brief.",
+   "test": "test_no_moment_is_read_from_the_outcome_or_from_a_description_of_the_present; test_home_takes_no_moment_from_the_brief"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Any column name in a sentence with a label cue became the stated target.",
+   "scenario": "'Predict which customers will churn next month. Drop refund_amount: it is written after the outcome.' gave the target refund_amount, the leaking column; 'The label is whether they upgrade their plan' gave the target plan.",
+   "cause": "Bare cue words (label, target, outcome) claimed any column in the sentence.",
+   "fix": "Claim a column only when the sentence binds it ('X is the label', 'the label is X', 'in X'); Home also requires its quote rule.",
+   "test": "test_a_column_is_the_target_only_when_the_sentence_binds_it"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Data volume and any sentence with 'cost' filled the action, so Home never asked about action and cost.",
+   "scenario": "'We process 50,000 rides a day and want to detect fraudulent rides' gave the action '50,000 rides a day'; 'Estimate the cost of each repair' gave the whole sentence.",
+   "cause": "Capacity matched any number per day, and the budget any sentence containing 'cost'.",
+   "fix": "A review capacity needs a review verb, an error cost needs an error word; Home does not map constraints to the action.",
+   "test": "test_volume_and_unrelated_costs_are_not_constraints; test_home_does_not_take_volume_as_the_action"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The advisor's quote check was a substring test, and the value was never checked against the quote.",
+   "scenario": "An advisor returning the moment 'after the ride is completed and paid' with the quote 'e' kept that leaky moment; the existing test pinned a moment taken from an unrelated quote.",
+   "cause": "Home's rule (whole words, a minimum length, the value supported by the quote) was not applied in the core.",
+   "fix": "Port Home's quoted and supports rules into the core's parse; the test now expects the unrelated quote to be dropped.",
+   "test": "test_an_advisor_fills_gaps_only_with_the_persons_words_that_support_its_value"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "understand() raised on realistic long input.",
+   "scenario": "Text pasted from a PDF made one sentence over 4,000 characters; with 'cost' or 'confidential' in it the contract refused the constraint; more than 30 cost sentences or 20 success criteria, a 5,000-character advisor value, or a file name over 100 characters also raised. The intern's project goal has no length limit.",
+   "cause": "Quotes, texts and lists were passed to the contracts unclipped, and advisor values were validated outside consult's guard.",
+   "fix": "Clip quotes and texts to the contract limits around the match, cut lists to the limits, validate advisor values in parse so an invalid answer is no answer, shorten long file names in the evidence.",
+   "test": "test_long_pasted_text_is_clipped_never_an_error; test_a_broken_or_wrong_advisor_is_no_advisor"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The advisor saw only the first 2,000 characters of a long brief.",
+   "scenario": "A 35,748-character brief of 30 paragraphs sent 2,000 characters.",
+   "cause": "Paragraphs were split after whitespace had been normalised, so there was one paragraph.",
+   "fix": "Split the raw description into paragraphs first (joining soft-wrapped lines), then normalise each.",
+   "test": "test_the_advisor_sees_every_paragraph_of_a_long_brief"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One incidental phrase decided the task.",
+   "scenario": "'Predict which customers will churn next month. We do not know how much history matters.' gave regression; 'one of 3 analysts reviews each flagged ride' gave multiclass.",
+   "cause": "Task rules ran in a fixed order over the whole text.",
+   "fix": "Read the task from the goal sentence first.",
+   "test": "test_the_task_comes_from_the_goal_sentence_first"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The intern did not start from the brief, Home's brief went stale, and only one brief was tested with an advisor.",
+   "scenario": "The intern started with describe_data; the draft's brief was built before the data was analysed and never rebuilt, so target column, entities and time were not filled; only the fraud brief ran with a scripted advisor.",
+   "cause": "Integration and the Done-when's 'with a scripted model' were done for one case.",
+   "fix": "The intern's standard plan reads the problem first and describe_data carries the compact brief; Home rebuilds the brief when the data is ready; all four briefs run with a scripted advisor. Asking label-coverage and entity questions was moved to 15.6.",
+   "test": "test_a_scripted_advisor_changes_nothing_the_rules_found_on_any_brief; test_the_intern_reads_a_project_into_a_brief"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Tests were run directly without blocking live models and made about 50 live requests.",
+   "scenario": "Running test files directly loaded the .env key, so Home's model path sent about 50 requests (about EUR 0.03) to a live model.",
+   "cause": "DCLAB_NO_LIVE_MODELS=1 is set by the make targets, not by a direct run.",
+   "fix": "Always prefix direct test runs with DCLAB_NO_LIVE_MODELS=1 (saved to memory); the spend is recorded in the playbook row.",
+   "test": ""
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The prompt gate failed because the project tools changed without re-running the judgment suite.",
+   "scenario": "Adding understand_problem changed the project tool schemas; test_prompt_gate failed on the next rd-check.",
+   "cause": "A tool-schema change needs make agent-eval, which was not run.",
+   "fix": "Run make agent-eval with live models blocked (AEV-015, scores identical to AEV-014), committed with 17.4.",
+   "test": "test_prompt_gate"
+  },
+  {
+   "id": "O1",
+   "source": "owner",
+   "severity": "gap",
+   "defect": "Tests ran on one core and slowly.",
+   "scenario": "The owner asked to use every CPU core and the memory for tests.",
+   "cause": "Test files were run one at a time.",
+   "fix": "Run the suite through the parallel runner with JOBS=8: 208 related tests in 70 s instead of 291 s one at a time; the preference saved to memory.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "four written briefs",
+   "gate": "The four briefs give the expected briefs without a model and with a scripted one, no field without a quote or a stated inference, and the fraud brief lists the API, Docker and report with their points (Done-when of 17.2).",
+   "fixed_before_run": true,
+   "result": "All four match with and without a scripted advisor; the fraud brief lists the API (2 points), Docker (1), source control (1), feature extraction (3) and the report; the seven adversarial sentences from the review give no moment, target, action or cost.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: understand() turns a description into a ProblemBrief whose fields say how they are known; Home and the intern start from it; eight review findings fixed. Open: Home does not yet ask the brief's label-coverage and entity questions (15.6).",
+ "lessons": [
+  "In leakage-sensitive fields, an unknown is safe and a confident wrong value is not: write rules that give up.",
+  "A quote check must use whole words and must support the value, not only appear in the text.",
+  "Long pasted input is normal input; clip, never raise.",
+  "Block live models in every direct test run, not only in make targets."
+ ],
+ "commits": [
+  "f92db5b"
+ ]
+}

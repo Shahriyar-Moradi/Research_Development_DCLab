@@ -1,0 +1,56 @@
+{
+ "package": "5.4",
+ "title": "Intern page",
+ "date": "2026-10-05",
+ "request": "Every project page keeps the demo's look but shows the open project's own records; a page with no result yet says so and offers to run what is missing, and nothing is filled with sample numbers. This package wires the Intern page to real sessions, live, with failures shown as failures.",
+ "spec": "Intern sessions from the server, live; the standard plan when no model is configured. Done when tests/test_intern.py passes and 'Intern drives' from the wizard lands on a running session.",
+ "plan": [
+  "Wire views/intern.html to /api/intern/sessions and its polling: the session list, steps with their tool calls, the budget used.",
+  "Show the mode (model or standard plan), errors as red callouts and an exhausted budget as a warning.",
+  "Send follow-ups to /message and poll until the turn finishes; keep the sample when there are no sessions.",
+  "Make 'Intern drives' land on the session in the product instead of the old UI.",
+  "Run a no-model session on a test server and watch it live."
+ ],
+ "decisions": [
+  {
+   "decision": "A model-written plan shows no progress marks; the standard plan marks items from the tools that ran.",
+   "why": "Progress of a free-text plan cannot be read reliably."
+  },
+  {
+   "decision": "The euro row was dropped from the budget card.",
+   "why": "Spend was not tracked yet."
+  }
+ ],
+ "change": "views/intern.html wired to real sessions; new.html's 'Intern drives' opens the session in the product; the intern's standard plan fixed.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The intern's standard plan listed the time column as forbidden, the save failed, and the session still said 'completed'.",
+   "scenario": "With no model, the task 'Audit the credit-card fraud data for leakage' copied elapsed Time into both forbidden and time_column; the solution validator rightly refused ('the time column orders the split; it is excluded automatically'), and the session ended 'completed' with a red step.",
+   "cause": "The plan did not respect column roles, and step failures did not reach the session status.",
+   "fix": "Columns that have a time, group or identifier role are no longer also forbidden, and a failed proposal or solution ends the session as 'failed'.",
+   "test": "test_time_column_is_not_also_forbidden (checks the saved solution itself)."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "live session",
+   "gate": "'Intern drives' lands on a running session that completes with the standard plan.",
+   "fixed_before_run": true,
+   "result": "'Forecast daily bike rentals' with a 12-call, 5-minute budget completed in 8 calls; plan marks and the graph rail updated live; no console error.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the Intern page shows real sessions live, and a session whose saves fail now ends as failed.",
+ "lessons": [
+  "A session that ends 'completed' with a failed step is a lie on the screen; derive the status from the steps."
+ ],
+ "commits": [
+  "6faef03",
+  "e5f66f7"
+ ]
+}

@@ -1,0 +1,48 @@
+{
+ "package": "1.1",
+ "title": "Copy the demo into the product frontend, with a build",
+ "date": "2026-10-05",
+ "request": "Build the real product with exactly the demo's UI, UX and frontend, and make it work for real with a backend; change nothing in the UI unless the owner asks.",
+ "spec": "dclab_rnd/agentic/web/src/ (shell, styles, core, one view file per page) and web/build.py writing separate files into dclab_rnd/agentic/static/app/. Done when the build's --check says the frontend is up to date and tests/test_web_build.py passes.",
+ "plan": [
+  "Explore the backend, the current web UI and the demo frontend in parallel to see what the product can reuse.",
+  "Copy docs/product-demo/src into dclab_rnd/agentic/web/src without changing its look.",
+  "Write build.py: assemble index.html, app.css and one JavaScript file per view and data file into static/app, nothing inlined.",
+  "Add --check (exit 1 when static/app is stale or has extra files), a make web target, and the check inside make rd-check.",
+  "Serve it on a test server with a temporary data folder and compare screenshots with demo v1."
+ ],
+ "decisions": [
+  {
+   "decision": "The build writes separate files instead of one self-contained page.",
+   "why": "The server's Content-Security-Policy allows no inline scripts or styles, so a single inlined page like the demo's would be blocked."
+  },
+  {
+   "decision": "static/app is generated and checked for freshness in rd-check.",
+   "why": "A hand edit to generated output would silently drift from the sources."
+  },
+  {
+   "decision": "A test server with a temporary DCLAB_AGENT_HOME, never the owner's running notebook.",
+   "why": "The owner's make notebook on port 8765 holds real projects that a check must not touch."
+  }
+ ],
+ "change": "New dclab_rnd/agentic/web/src (copied from the frozen demo) and web/build.py writing static/app; make web; the build check in rd-check; tests/test_web_build.py (build current, nothing the CSP would block, inline style caught, root serves the product).",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "look parity with demo v1",
+   "gate": "Every page served by the real server under the strict CSP renders the same as demo v1, with no console error.",
+   "fixed_before_run": true,
+   "result": "Screenshots matched demo v1 and five pages checked first had no console or CSP error; later all 19 pages were checked.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the demo's exact UI is served by the real server from built files; make web rebuilds and rd-check fails when static/app is stale. Pages still showed sample data and were wired to the API phase by phase.",
+ "lessons": [
+  "When a design must not change, copy it and add a build step around it rather than rewriting it; the check that the output is current keeps the copy honest."
+ ],
+ "commits": [
+  "b9abbad"
+ ]
+}

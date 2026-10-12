@@ -1,0 +1,142 @@
+{
+ "package": "A5.3",
+ "title": "Workspace lessons: reviewed lessons from finished projects join the evidence search",
+ "date": "2026-10-06",
+ "request": "Build the 'From projects' flow the Evidence library says is not built. After a project's final stage, propose up to three lessons, each with its claim, its scope (dataset, task, size), what argues against it and the next test, citing the stage records. A reviewer accepts, edits or rejects each. Accepted lessons are stored in the workspace's lessons table and searched with the repository's records, labelled as workspace lessons; they never change evidence/knowledge. A lesson from synthetic data is labelled and not offered as evidence.",
+ "spec": "Lessons from finished projects, reviewed by a person, that can join the evidence index with their scope and the project they came from. Done when a lesson accepted by a reviewer appears in the evidence index with its scope and is cited by an agent.",
+ "plan": [
+  "Map the code: stage records and claims, the evidence index and search, the Evidence library page.",
+  "Write dclab_rnd/lessons.py: proposals from the final stage's claims when a person approves it; with a model (purpose lesson_proposal, prompt prompts/lesson_proposal.md) a claim is kept only when cited.py passes it, otherwise code writes it from the claims and their limits; the scope is written by code.",
+  "Store lessons in lessons.json or the workspace_lesson table (migration 0006); review through POST /api/lessons/{id}/review with the activity log; accepted lessons join every evidence search as workspace_lesson records.",
+  "Show them in the Evidence library's 'From projects' panel with Accept, Edit, Reject and Withdraw.",
+  "Test the Done-when: propose, review, find the lesson in the library and the intern's search, and have a scripted model cite it in an Ask answer the check keeps; hash evidence/knowledge to prove it is not written.",
+  "A new prompt, so rerun the judgment suite (AEV-006); review; fix eight findings and one more from the re-check; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A model never sets a lesson's scope or citations; it may only word the claim, and the claim must pass the citation check in full.",
+   "why": "Scope and citations are what make a lesson verifiable; a model that could change them could make an unsupported lesson look supported."
+  },
+  {
+   "decision": "Lessons live in the workspace's own table and join the search at query time; evidence/knowledge is never written.",
+   "why": "The repository's evidence is generated and immutable; one workspace's projects must not change it."
+  },
+  {
+   "decision": "A lesson's text holds only the numbers of its claim, counter-argument, next test and scope; the run's time and number live in metadata.",
+   "why": "Every number in a cited source becomes a number an answer may state; a date in the text let a model's invented numbers pass."
+  },
+  {
+   "decision": "The role is what the request declares (X-DCLab-Role) until accounts exist, and the page says so.",
+   "why": "Accounts were a later package (10.2); pretending to verify a role would be worse than stating it is declared."
+  }
+ ],
+ "change": "dclab_rnd/lessons.py (propose_for, review, offered, merged, as_record, file and PostgreSQL stores); lessons proposed on the final stage's approval; POST /api/projects/{id}/lessons and POST /api/lessons/{id}/review; workspace_lesson records in tools._index(), the Evidence library and its Ask; migration 0006; the 'From projects' panel; the purpose lesson_proposal and its prompt; tests/test_workspace_lessons.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Reviewing a lesson whose project was deleted returned 500 on the file store, after the lesson was already saved.",
+   "scenario": "Approve the final stage, DELETE the project, then accept the lesson: it is stored as accepted and becomes evidence, but the response is 500 and the page shows an error. The file store raised FileNotFoundError where PostgreSQL raised KeyError.",
+   "cause": "The activity-log write after the review caught only KeyError.",
+   "fix": "The route catches both KeyError and OSError.",
+   "test": "test_a_lesson_of_a_deleted_project_can_still_be_reviewed."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The purpose texts no longer matched what the model is shown.",
+   "scenario": "evidence_answer said 'no project data' but now received workspace lessons (a project's aggregate claims, its name, dataset file name, row count and split); project_answer and the intern also saw other projects' results through the merged index; the Admin page showed the old text.",
+   "cause": "The merged index reached three purposes whose descriptions were not updated.",
+   "fix": "The three purposes name the accepted workspace lessons (aggregate claims and scope, no rows).",
+   "test": ""
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The merged index cache had three problems.",
+   "scenario": "(a) Accept, then edit the claim within the same second: search still served the old claim. (b) The key used the id of the base index without holding it, so a new index after make knowledge could reuse the id and get the old records. (c) Another thread clearing the cache between a lookup and a return raised KeyError.",
+   "cause": "The key used a timestamp to the second and an object id; the cache was not locked.",
+   "fix": "The key is the lessons' content; the cache holds the base and checks it is the same object; it runs under a lock and returns a local.",
+   "test": "test_an_edit_in_the_same_second_is_searched_at_once."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "After a rerun, a lesson did not say which run it came from.",
+   "scenario": "Lesson L1 accepted, the final stage rerun and re-approved, L2 proposed: both cite PRJ-...-final-C1, which now resolves to the new run's numbers, and the old run's unreviewed proposals could still be accepted.",
+   "cause": "Claim ids are stable across reruns and the record carried no run.",
+   "fix": "The lesson's metadata names its final run; older unreviewed proposals are marked superseded and refused on review; the page shows no actions on them.",
+   "test": "test_a_withdrawn_lesson_leaves_the_search_and_a_rerun_supersedes_unreviewed_ones."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The final approval could return 500 though the approval was saved.",
+   "scenario": "A store error while proposing lessons, inside the approve request after the approval committed, gave 500 and the page reported the approval as failed.",
+   "cause": "Proposing ran in the approve request without its own error handling.",
+   "fix": "A failed proposal is caught and logged as lessons_not_proposed; lessons can be proposed later.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The two stores listed lessons in different orders.",
+   "scenario": "The three lessons of one proposal share a second, so the file store's order followed their random ids, while PostgreSQL used insertion order.",
+   "cause": "A sort with an id tiebreak in one store only.",
+   "fix": "Both keep insertion order.",
+   "test": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A PostgreSQL save could silently do nothing.",
+   "scenario": "If a lesson id already belonged to another workspace, the conditional upsert wrote nothing and save() still returned the lesson as saved; the review route reported success.",
+   "cause": "The upsert result was not checked.",
+   "fix": "The upsert returns the id and raises when nothing was written (a 404 on review).",
+   "test": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two page numbers and messages were wrong.",
+   "scenario": "Accepting a synthetic lesson showed 'it is searched with the records', which is false; the library's dataset count included workspace file names from lessons.",
+   "cause": "Messages and counts written before lessons existed.",
+   "fix": "A synthetic accept has its own message; the dataset count leaves out lessons.",
+   "test": ""
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The fix for F4 put the run's date and number into the lesson's text, so a model's numbers could pass the check (re-check).",
+   "scenario": "The text said 'final stage run completed 2026-10-06T12:41:07 (run 1)'; 'The model used 12 features and 41 trees [LESSON-abc].' was kept, though the lesson only says AUC 0.81 and 400 rows, because 12 and 41 were in the timestamp.",
+   "cause": "The citation check reads every number in a cited source as allowed.",
+   "fix": "The time and run number stay in metadata only; the text names the run without numbers.",
+   "test": "The test asserts the numbers in the record text are exactly those of the claim, counter-argument, next test and scope."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "AEV-006, scripted suite rerun after a new prompt",
+   "gate": "A4.3's gate: a new prompt needs a complete scripted rerun.",
+   "result": "Complete; same scores as AEV-001 to AEV-005.",
+   "verdict": "pass",
+   "next": ""
+  }
+ ],
+ "outcome": "Done: lessons proposed from the final stage, reviewed by a person, searched with the evidence by the intern, /mcp and the Evidence library as workspace lessons with their scope and project; synthetic lessons never offered; evidence/knowledge untouched. Open: the role is declared until accounts exist; lessons come from the final stage only; one workspace's lessons per process. Nine review findings fixed over three rounds.",
+ "lessons": [
+  "Any number placed in a citable text becomes a number an answer may borrow; keep dates and counters in metadata.",
+  "A cache keyed by a timestamp to the second or an object id serves stale results; key on content.",
+  "A side effect run inside a request after the main write must not turn a successful write into a 500."
+ ],
+ "commits": ["46acc3e"]
+}

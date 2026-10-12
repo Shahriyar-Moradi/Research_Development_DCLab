@@ -1,0 +1,60 @@
+{
+ "package": "RD-sft-v3",
+ "title": "SFT corpus v3: self-contained, evidence-grounded examples with whole datasets held out",
+ "date": "2026-10-03",
+ "request": "Make paired instruction data an SFT job can train on directly, cleaner than v1, and show how to run the training job.",
+ "spec": "build_sft_dataset_v3.py writing RAFT-style examples (the evidence the answer depends on is in the prompt) in chat, Alpaca and ShareGPT formats, with whole datasets held out for validation; quality gates against paths, hashes and contradicted critic claims; train_lora.py (TRL with LoRA) and eval_sft.py (deterministic scoring, no LLM judge); docs/guides/SFT_DATA_GUIDE.md.",
+ "plan": [
+  "Give every example a dataset card (what the data predicts), a stage card (what the stage does) and a setup summary (what was compared in that run).",
+  "Build seven tasks: grounded QA, explain an experiment, critique a claim, apply a selection rule, judge leakage, reason with a rule, and workflow steps.",
+  "Drop critic challenges the gate contradicts; reject examples with a path, hash or excessive length.",
+  "Hold out heart_disease, spambase and the clothing reviews entirely; split dataset-free examples by hash.",
+  "Write the LoRA trainer and the deterministic evaluator; check the evaluator scores the reference answers 1.0."
+ ],
+ "decisions": [
+  {
+   "decision": "Hold out whole datasets for validation.",
+   "why": "Examples from the same dataset are near-duplicates; a random split would measure memory, not reasoning."
+  },
+  {
+   "decision": "Put the evidence in the prompt (RAFT-style).",
+   "why": "The model should learn to reason from given evidence, which retrieval will supply in use, rather than recite facts."
+  },
+  {
+   "decision": "Score with a deterministic evaluator, not an LLM judge.",
+   "why": "A judge model adds its own errors to the measurement."
+  }
+ ],
+ "change": "research/llm-fine-tuning/experiments/sft/build_sft_dataset_v3.py, out_v3/ (examples and MANIFEST.json), train_lora.py, eval_sft.py and the SFT guide; make sft-v3 and a freshness check.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "Examples asked about an experiment id without saying what the experiment was.",
+   "scenario": "A v1 example asked 'What did experiment EXP-023 on the credit_default dataset find during the feature engineering stage?' and answered 'Use the raw feature recipe ... 0.7317 mean training-CV ROC-AUC' without saying what credit_default predicts, what the stage does or what was compared. Training on it teaches a model to recite 'EXP-023 said X'.",
+   "cause": "The v1 builder turned claim-memory lines into questions and kept only their ids as context.",
+   "fix": "Every v3 example carries the dataset card, the stage card and the run's setup summary, all taken from the records, never invented.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "corpus v3 build",
+   "gate": "Whole datasets held out; contradicted challenges dropped; no example with a path, hash or excess length.",
+   "fixed_before_run": true,
+   "result": "326 examples at the commit; 330 after later rebuilds (264 train, 66 validation): grounded QA 83, critique 80, explain 70, apply a rule 42, leakage 23, rules 22, workflow 10; 10 contradicted challenges dropped, 147 kept, 0 rejected by the path and hash gate.",
+   "verdict": "pass",
+   "next": "SLM-001: score the base model on the held-out datasets; SLM-002: fine-tune with LoRA and compare; SLM-003: compare with a large hosted model given the same records."
+  }
+ ],
+ "outcome": "A training-ready corpus with a trainer and a scorer. No training ran, because there was no GPU; the trainer was only checked to compile.",
+ "lessons": [
+  "Train on the reasoning, with its evidence in view, not on the id of the experiment that produced it.",
+  "Hold out by the unit that creates near-duplicates (the dataset, later the whole project)."
+ ],
+ "commits": [
+  "d9c4c24",
+  "3212bd9"
+ ]
+}

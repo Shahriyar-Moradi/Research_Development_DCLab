@@ -1,0 +1,47 @@
+{
+ "package": "1.4",
+ "title": "The page's data layer: API, live stream, polling",
+ "date": "2026-10-05",
+ "request": "The product's pages must talk to the real server: JSON calls with the request token, live events and polling, while pages not yet wired keep their sample data honestly labelled.",
+ "spec": "DC.api (JSON, CSRF header from /api/config, one retry when the token is stale), DC.stream (server-sent events), DC.poll; the demo-only shared store removed; the blueprint layer and tours kept. Done when Home loads /api/workspace with no console error and a write after a server restart succeeds on the retry.",
+ "plan": [
+  "Add DC.api, DC.stream and DC.poll to web/src/core.js.",
+  "Remove the demo-only window.claude decision store; keep localStorage.",
+  "Keep the blueprint layer and the tours.",
+  "Let a wired page call DC.markSample(false); unwired pages keep the 'Sample data' pill.",
+  "Exercise a write after restarting the server."
+ ],
+ "decisions": [
+  {
+   "decision": "Pages are wired phase by phase; an unwired page keeps its sample and says so.",
+   "why": "A page half-filled with real and sample numbers would mislead; the pill tells the user which they see."
+  },
+  {
+   "decision": "The top-bar pill reads 'Your data' on a wired page instead of disappearing.",
+   "why": "Saying positively what is shown is clearer than an absent label."
+  }
+ ],
+ "change": "core.js gained the server helpers (api with the CSRF token, server-sent events, polling) and lost the artifact-only shared decision store; DC.markSample toggles the pill.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "After a server restart, an open page failed every action until it was reloaded.",
+   "scenario": "With the product open in the browser, the server restarted (a new request token); every write from the page was refused with 403 and kept failing until the user reloaded.",
+   "cause": "The page cached the token from its first load and never refreshed it.",
+   "fix": "On a refused write the page fetches a fresh token from /api/config once and retries the request.",
+   "test": "Checked in the browser after a restart while wiring the connectors."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: every wired page goes through DC.api, DC.stream and DC.poll; a write after a restart succeeds on the retry.",
+ "lessons": [
+  "A cached credential needs one refresh path; without it, a routine restart looks like a broken product."
+ ],
+ "commits": [
+  "b9abbad",
+  "15c4958",
+  "96feb56"
+ ]
+}

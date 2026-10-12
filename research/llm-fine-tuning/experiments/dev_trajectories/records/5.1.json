@@ -1,0 +1,56 @@
+{
+ "package": "5.1",
+ "title": "Workflow page",
+ "date": "2026-10-05",
+ "request": "Every project page keeps the demo's look but shows the open project's own records; a page with no result yet says so and offers to run what is missing, and nothing is filled with sample numbers. This package wires the Workflow page and lets the user run stages from it.",
+ "spec": "The graph, the log and the validator from the server; gate approvals; the project switcher with real projects; run a stage or all stages. Done when, after make product-e2e, opening #project shows every stage completed and a transition log of allowed moves.",
+ "plan": [
+  "Turn the real project, its workflow graph and transition log into the page's shape, keeping the layout code.",
+  "Add 'Run the <stage> stage' and 'Run all remaining', going through the graph like any other move, and poll while work runs.",
+  "Let the validator panel call /graph/check for the project's real moves plus moves an intern must not make.",
+  "List real projects before the samples in the switcher; add DC.currentProject so every page opens the same project.",
+  "Run the Telco draft end to end from the Workflow page."
+ ],
+ "decisions": [
+  {
+   "decision": "Running a stage from the page is a move checked by the graph.",
+   "why": "The page must not be a back door around the validator."
+  },
+  {
+   "decision": "DC.currentProject resolves the open project once (the Workflow page's choice, else the most recent, else none so the sample stays) and caches it briefly.",
+   "why": "Seven pages need the same answer; one helper keeps them consistent."
+  }
+ ],
+ "change": "views/project.html wired to the project, graph, check, transitions and approvals routes, with run buttons and polling; DC.currentProject and DC.markSample shared in core.js; the wizard ends on this page.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The data stage failed on any project whose cleaned table had yes/no columns.",
+   "scenario": "Running the Telco churn draft end to end, cleaning had turned Yes/No columns into booleans; the data stage's drift check asked numpy for quantiles of booleans and failed. CSV uploads with True/False did the same.",
+   "cause": "numpy cannot take quantiles of booleans.",
+   "fix": "prepare() turns boolean features into 0/1 with missing kept missing; the target stays compared as text, so True is still the positive class.",
+   "test": "test_data_stage_runs_with_boolean_columns."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Telco end to end",
+   "gate": "After the Home flow, the Workflow page shows every stage completed and a transition log of allowed moves.",
+   "fixed_before_run": true,
+   "result": "All five stages completed on the cleaned Telco data (7,043 rows, run in quick mode on 3,000) and the log showed only allowed moves.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "A flow check, not a result: quick mode and one holdout."
+  }
+ ],
+ "outcome": "Done: real projects run from the Workflow page through the graph; the engine accepts yes/no features.",
+ "lessons": [
+  "Wiring a page to real data is also a test of the engine: the first real upload found a crash no unit test had."
+ ],
+ "commits": [
+  "4e9b0d9",
+  "cbd79a2"
+ ]
+}

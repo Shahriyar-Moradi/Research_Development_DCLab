@@ -1,0 +1,145 @@
+{
+ "package": "A6.2",
+ "title": "The corpus v4 recipe: trajectories held out by whole project, nothing below the threshold",
+ "date": "2026-10-06",
+ "request": "Write the recipe for corpus v4: the 330 declarative examples of v3 plus trajectory examples, split by whole project (about one in five held out), with v3's quality gates (no benchmark contamination, no near-duplicate prompts across the split). Generate nothing until at least 50 trajectories from at least 10 projects exist; until then print how many exist. Keep generated files out of version control as for out_v3.",
+ "spec": "A corpus v4 recipe mixing v3's declarative examples with trajectories, held out by whole projects, with the number of held-out projects shown against the threshold. Done when the Policy model page shows 'N of 50 trajectories' from the real count and stage 2 is marked ready only at the threshold.",
+ "plan": [
+  "Define a trajectory: one opted-in project's move log or one agent run on it, with at least 3 decisions.",
+  "Write studio/corpus_v4.py: next_move examples (state, the moves or tools on offer, the last three decisions -> the move made; only allowed moves and working steps) and judge_move examples (a proposed move -> the validator's verdict, failed checks and cited rules); the split by project; v3's gates; make sft-v4 writes nothing below the threshold.",
+  "Show the real count on the Policy model page and mark stage 2 ready only at both thresholds.",
+  "Run the review; it simulated 12 standard-plan projects on the Telco sample and found the gates did not work on realistic data; fix eight findings with a realistic fixture; fix the re-check's one; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Mask the project's own ids (<project>, <run>) in prompts and targets, and count only distinct trajectories toward the threshold.",
+   "why": "Two projects that decide the same must make the same example; otherwise twenty identical standard-plan runs look like twenty trajectories and pass the duplicate gate."
+  },
+  {
+   "decision": "A project is in validation when its own id hashes there (about one in five), so it never changes split as the workspace grows; a fallback, when none hashes there, is named in the manifest.",
+   "why": "Taking the first fifth by hash rank moves projects between splits when new ones arrive, so a later build would train on an earlier build's validation."
+  },
+  {
+   "decision": "A project built on a dataset v3 holds out goes to validation, recognised by sample key, file name or column set; a project on a judgment-suite table is left out.",
+   "why": "v3's validation must stay unseen, and A6.3 evaluates on the judgment suite's tables, so training on them would contaminate the benchmark."
+  },
+  {
+   "decision": "Gates run within each split after the split, and a training prompt equal or near-equal to a validation prompt is dropped.",
+   "why": "Removing duplicates across all projects first made the split depend on the store's list order."
+  },
+  {
+   "decision": "out_v4 is not committed.",
+   "why": "Unlike out_v3, which the repository builds from its own evidence, v4 holds a workspace's projects and the repository cannot rebuild it."
+  }
+ ],
+ "change": "dclab_rnd/studio/corpus_v4.py (trajectories, masking, project_meta, held_out_projects with a recorded fallback, examples, gates, status, build) and make sft-v4; the Policy model page shows 'N of 50 distinct trajectories, from P of 10 opted-in projects' from /api/learn/policy, says when the count cannot be read, and marks stage 2 ready only at both thresholds; sft/out_v4 in .gitignore; tests/test_corpus_v4.py and tests/test_pages_learn.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The near-duplicate gate missed prompts that differ only by project id, so validation measured memory.",
+   "scenario": "12 opted-in standard-plan projects on the Telco sample: step arguments carry the project id, so two projects with the same decisions have prompts identical except for the id (Jaccard 0.887, under 0.9); 50 of 50 training examples had a validation prompt identical once ids were masked, and the gate dropped only 10. A next_move target containing the id cannot be predicted from a prompt that never shows it.",
+   "cause": "Arguments kept the project's own ids.",
+   "fix": "Project and run ids are masked in prompts and targets before the gates, and only distinct masked trajectories count; the same simulation now gives 2 distinct trajectories from 1 project, not ready.",
+   "test": "test_identical_runs_count_once_and_ids_are_masked and test_the_gates_fire_on_what_the_standard_plan_leaves."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Projects built from Home on a dataset v3 holds out were not forced into validation.",
+   "scenario": "Home, the heart_disease sample, build the project, opt in: the recipe read suggestion.sample, which only the intern's use_sample sets, so the project was split by hash with an 80% chance of training on a v3 validation dataset.",
+   "cause": "One route to recognise a sample.",
+   "fix": "project_meta recognises the dataset by sample key, file name stem or column set.",
+   "test": "test_a_project_on_a_held_out_dataset_is_recognised_whatever_built_it."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Which examples landed in which split depended on the store's list order.",
+   "scenario": "The same workspace gave train 50 / val 34 as listed and train 72 / val 12 reversed; adding one project changed the validation set.",
+   "cause": "Exact-duplicate removal ran over all projects before the split and kept the first copy.",
+   "fix": "Assign by project first, remove duplicates within each split, then drop training prompts found in validation.",
+   "test": "test_the_split_does_not_depend_on_the_order_of_the_records."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A project's split was not stable as the workspace grew.",
+   "scenario": "At 13 and 14 projects the first three by hash rank were held out; a new project with a lower hash pushed a former validation project into training, so a later build trained on an earlier build's validation.",
+   "cause": "The held-out set was the first round(n/5) projects by hash rank.",
+   "fix": "A per-project rule (its own hash modulo 5), as v3's split does.",
+   "test": "test_a_project_keeps_its_split_as_the_workspace_grows."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The tests never exercised the gates or the real count.",
+   "scenario": "The fixture gave every project a unique state, so duplicates removed and near-duplicates were 0; switching the gate off changed nothing; one test re-applied the function under test; the page's count path was never called, and a wiring error would show '0 of 50' behind a broad except.",
+   "cause": "A fixture unlike real runs.",
+   "fix": "A realistic fixture with identical states and id arguments, assertions that the gates fire, the exact 50 and 10 boundary, the path-and-hash rejection, and an API test of the count and its error path.",
+   "test": "tests/test_corpus_v4.py and tests/test_pages_learn.py."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The benchmark A6.3 evaluates on had no contamination gate.",
+   "scenario": "A workspace project built on a judgment-suite case table would put that case into training, while A6.3 measures the tuned model on those cases.",
+   "cause": "'Benchmark contamination' was read as v3's validation only.",
+   "fix": "A project whose columns match a judgment-suite case is recognised and left out.",
+   "test": "test_a_project_on_a_judgment_suite_table_is_left_out."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "v4's gates were weaker than v3's while the row said 'the same'.",
+   "scenario": "The absolute-path pattern lacked /tmp/, the hash pattern matched only 64 hex characters (v3: 40 to 64), and duplicates were keyed on prompt plus answer, so identical prompts with conflicting targets stayed in one split.",
+   "cause": "The gates were rewritten instead of reused.",
+   "fix": "v3's patterns and key (the normalised user turn) are used.",
+   "test": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "When the count failed, the page showed '0 of 50' with no cause, and the held-out count ignored forced projects.",
+   "scenario": "The API returned an error field the page never rendered; the fixture's page said 2 held out while 3 were.",
+   "cause": "Error not rendered; the count read only hash-chosen projects.",
+   "fix": "The page says the count cannot be read and why; the held-out count includes forced projects.",
+   "test": "The API error-path test."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The fallback held-out project could move to training as the workspace grew (re-check).",
+   "scenario": "At 10 projects there is about an 11% chance that none hashes to validation; the lowest-hash project is then held out, and once a project that hashes there joins, the fallback goes back to training, contradicting 'never changes split'.",
+   "cause": "An unrecorded fallback.",
+   "fix": "The fallback is named in the manifest, and the docstring and status row say it can move to training later.",
+   "test": "The stability test checks the named fallback for three ids that do not hash to validation."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "trajectory count against the stage-2 threshold",
+   "gate": "Nothing is generated until 50 distinct trajectories from at least 10 opted-in projects exist (fixed in the package).",
+   "result": "0 of 50 distinct trajectories from 0 of 10 opted-in projects in the owner's workspace; nothing was generated. In the reviewer's simulation, 12 identical standard-plan projects gave 24 recorded but 2 distinct trajectories from 1 project: not ready.",
+   "verdict": "fail",
+   "next": "A6.3 (training) waits for the threshold and the owner's approval of compute and cost."
+  }
+ ],
+ "outcome": "Done: make sft-v4 and the Policy model page count distinct trajectories, hold out whole projects stably, keep v3's held-out datasets and the judgment suite out of training, and generate nothing below the threshold. Open: the threshold is not met, so no v4 file has been generated or trained on; distinctness is exact. Nine review findings fixed.",
+ "lessons": [
+  "Test a dedup or split recipe on realistic duplicates (identical runs), or its gates never fire in tests.",
+  "Mask per-instance ids before comparing prompts; otherwise near-identical examples pass as different.",
+  "A held-out split must be a per-item rule, not a rank, or it moves as the data grows.",
+  "Count distinct examples toward a training threshold, or repeated runs fake readiness."
+ ],
+ "commits": ["7d6a164"]
+}

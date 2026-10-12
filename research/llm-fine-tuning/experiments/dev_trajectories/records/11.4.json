@@ -1,0 +1,58 @@
+{
+ "package": "11.4",
+ "title": "Progress with a model that does not call tools",
+ "date": "2026-10-05",
+ "request": "In the live check, a small local model answered the Home conversation in prose and never called a tool, so nothing was recorded and the chat stopped. Make the conversation keep moving whatever the model does: the user must always have a next step.",
+ "spec": "In HomeAgent.model_turn, when a turn ends with no tool call and a question is pending, record the user's reply as that question's answer in code; when no question is pending and something is still unknown, ask the next scripted question after the model's text. Done when a scripted model that never calls a tool still leads to a recorded outcome, moment and action, and a summary.",
+ "plan": [
+  "Run the Home conversation against the local Ollama model (qwen2.5-coder:1.5b) after the OpenAI account refused every request for lack of credit, and see where it stalls.",
+  "Pull the 'record the answer, mark the question answered, redraw the workflow, ask the next thing' block out of script_turn into one take_answer method, so the script and the model path share it.",
+  "In model_turn, remember the open question before the model speaks and whether any tool ran; when none ran, answer the still-open question from the user's text in code, start a simulation if the user asked for one and no data exists, or otherwise ask the next scripted question.",
+  "Write a test with a scripted client that only ever returns text, and run the draft-flow tests."
+ ],
+ "decisions": [
+  {
+   "decision": "Code, not the model, takes the answer when the model calls no tool.",
+   "why": "The answer to the pending question is the user's own message; recording it needs no model judgment, and a small model that only talks must not be able to stall the product."
+  },
+  {
+   "decision": "The fallback only answers a question that is still open after the model's turn.",
+   "why": "A model that did call record or ask_user in that turn has already moved the conversation; answering again would record the same text twice or skip a question."
+  },
+  {
+   "decision": "Reuse one take_answer method for the script and for the fallback.",
+   "why": "Two copies of 'record, mark answered, redraw, ask next' would drift apart; one method keeps the scripted and model paths identical."
+  }
+ ],
+ "change": "dclab_rnd/draft/chat.py: take_answer(draft_id, q, value) extracted from script_turn; reply passes the user's text into model_turn; model_turn notes the open question and whether a tool ran, and after a tool-less turn records the answer, starts a requested simulation, or asks the next question. tests/test_draft_flow.py gains test_a_model_that_only_talks_does_not_stall_the_conversation and an updated streaming test.",
+ "findings": [
+  {
+   "id": "L1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "With a model that never calls a tool, the Home conversation stopped: nothing was recorded and no next question came.",
+   "scenario": "Live check with qwen2.5-coder:1.5b on the local machine: the user answers the outcome question; the model replies with friendly prose and no record or ask_user call; the draft's understanding stays empty and the chat waits for ever.",
+   "cause": "model_turn assumed the model would drive the conversation through tools and had no path for a turn with no tool call.",
+   "fix": "After a turn with no tool call, code records the reply as the answer to the question that is still open (or starts a requested simulation, or asks the next question), as the script would.",
+   "test": "test_a_model_that_only_talks_does_not_stall_the_conversation: a Talker client that always returns text; after four answers the outcome, moment and action are recorded and the last message is the summary."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The streaming test failed after the change: the streamed tokens no longer belonged to the last message.",
+   "scenario": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them compared the token events with the draft's last message; now the next question follows the model's text, so the last message is the question, not the streamed reply.",
+   "cause": "The test assumed the model's text is always the final message of a turn.",
+   "fix": "The test looks up the streamed message by its id instead of taking the last message.",
+   "test": "test_streaming_client_sends_token_chunks_then_the_message_replaces_them."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done and pushed: a model that only talks no longer stalls Home; the code records the answer and asks the next question. make rd-check passed (320 tests) and the four end-to-end flows passed.",
+ "lessons": [
+  "A live run with a small local model finds failure modes a scripted client never shows; script the failure afterwards so it stays tested.",
+  "Every agent turn needs a deterministic next step when the model does nothing useful.",
+  "When a fix inserts a message, re-check tests that assume message order."
+ ],
+ "commits": ["a8eae10"]
+}

@@ -1,0 +1,209 @@
+{
+ "package": "12.5",
+ "title": "Backups and retention",
+ "date": "2026-10-07",
+ "request": "A product holding people's data needs a backup that can actually be restored, and the Admin page promised a retention rule that did not exist. Add make backup and make restore (the database dump plus the file storage, restorable on a clean machine, with a test that restores into a temporary database and compares counts); add the retention rule: raw uploads can be deleted after N days while the cleaned table, its hash and every record stay; deleting a project removes its files and leaves an audit entry.",
+ "spec": "make backup and make restore with a restore test comparing counts; DCLAB_RETENTION_RAW_DAYS deleting raw uploads after N days, keeping the cleaned table, its SHA-256 and the records; a deletion audit entry for a project and a draft.",
+ "plan": [
+  "Check that PostgreSQL's dump and restore tools are installed and match the server.",
+  "Write dclab_rnd/storage/backup.py: pg_dump in custom format without owners or grants, the workspace folder as files.tar.gz, and a manifest of the schema, rows per table, files and both archives' SHA-256; restore checks the archives first, goes only into an empty database and an empty folder, and compares rows and files after.",
+  "Write dclab_rnd/retention.py, the audit kinds retention and deletion, the deletion entries for projects and drafts, the settings check, the CLI with --dry-run and the Makefile targets; keep the work in the scratchpad while 12.4's gate ran, so the two commits stay separate.",
+  "Run the tests: the first run found row counts that disagreed with the dump.",
+  "Run make check-all and the reviewer; three review rounds, each finding fixed with a test, on files and on PostgreSQL.",
+  "Record the rare remaining cases in the playbook's Open list and commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Row counts and the dump come from one exported snapshot.",
+   "why": "Counting after the dump let a row written in between make the manifest disagree with the backup."
+  },
+  {
+   "decision": "Restore goes only into an empty database and an empty folder and checks the archives first.",
+   "why": "A restore must never write over data; a damaged archive must restore nothing."
+  },
+  {
+   "decision": "Retention deletes a raw file only for a ready asset, only when the file on disk still has the recorded hash, and by moving it aside atomically, checking, then removing it.",
+   "why": "A failed asset's raw file is its only copy and may be retried; a file name can be uploaded again at any moment; moving aside first means a concurrent upload can be put back and two sweeps delete and audit a file once."
+  },
+  {
+   "decision": "The sweep runs hourly on its own worker thread, never in the heartbeat.",
+   "why": "Hashing many large files can take longer than the stale-job limit, and a silent heartbeat makes another worker mark running jobs interrupted."
+  },
+  {
+   "decision": "Passwords and TLS options travel in the environment of pg_dump and pg_restore, never on a command line.",
+   "why": "Command lines are visible to other processes, and dropping the TLS options would carry the whole database over an unverified connection."
+  }
+ ],
+ "change": "New dclab_rnd/storage/backup.py (backup and restore with a manifest), dclab_rnd/retention.py (a sweep with --dry-run), backup and restore commands in storage/__main__.py and the Makefile, audit kinds retention and deletion, deletion audit entries in the project and draft delete routes, an hourly sweep in the job worker, the setting in settings.py and .env.example, the Admin privacy text and a system actor in the audit filter, tests/test_backup_retention.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The backup's row counts could disagree with its dump.",
+   "scenario": "A draft event written between the dump and the counting made the manifest's rows differ from the restored database's.",
+   "cause": "The counts were taken after the dump, outside its snapshot.",
+   "fix": "Take the counts and the dump from the same exported snapshot.",
+   "test": "The backup and restore test compares the rows."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Retention deleted another asset's file when two assets shared a file name.",
+   "scenario": "Asset A, customers.csv, ready and added 40 days ago; today the user uploads customers.csv again, overwriting the file, and asset B is queued; sweep(drafts, 30) deletes customers.csv, and B's pipeline fails with 'The file customers.csv was not found. Upload it again'. The audit row also records B's hash as A's.",
+   "cause": "Retention deleted data_dir/filename, and the upload route writes data_dir/name with no de-duplication.",
+   "fix": "Store the raw SHA-256 on the asset; group assets by file name and let the newest decide; delete only when the file still has its hash.",
+   "test": "A test with two uploads of one name."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Retention could delete a file that a retried or running pipeline needs.",
+   "scenario": "A pipeline job ends interrupted and its asset is set failed; the user clicks Retry on the Compute page, and the asset stays failed until the job is claimed; the hourly sweep runs first and deletes the raw file, and the retried job fails. A failed asset has no cleaned table, so the raw file was its only copy.",
+   "cause": "Failed assets were selected, and the update re-checked only raw_deleted, not the status or an active job.",
+   "fix": "Only ready assets are ever deleted, checked again inside the draft's update.",
+   "test": "A test of a retried asset's file surviving the sweep."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A long sweep stopped the worker's heartbeats.",
+   "scenario": "The first sweep after turning the rule on in a workspace with many old uploads hashes files of up to 200 MB inside the heartbeat thread; past the stale limit (120 s by default), another worker's recover() marks this worker's running jobs interrupted while they still run.",
+   "cause": "The sweep ran in the heartbeat thread.",
+   "fix": "The sweep runs on its own thread.",
+   "test": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The backup silently left out files under a linked folder.",
+   "scenario": "The workspace's projects folder is a link to another disk (which file storage explicitly supports): rglob does not descend into it, every project table is missing from files.tar.gz, the manifest counts the same reduced list, restore reports no difference and the restored projects have no tables. A linked file was archived as a link, which extraction refuses after the database has been restored.",
+   "cause": "Path.rglob does not follow linked folders, and tar stored links.",
+   "fix": "List files with os.walk following links and archive with dereference.",
+   "test": "test_linked_folders_..."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A file deleted during a backup crashed it and left a half-written backup.",
+   "scenario": "A project deletion or the sweep removes a file between listing and archiving: FileNotFoundError, a traceback, and a folder with database.dump, a partial files.tar.gz and no manifest.",
+   "cause": "No handling for a vanished file and no clean-up on failure.",
+   "fix": "A vanished file is skipped and listed in the manifest; a backup that fails half way is removed.",
+   "test": "A test with a file vanishing mid-backup."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Backup and restore dropped the TLS options in the database URL.",
+   "scenario": "A URL with sslmode=verify-full and a root certificate made pg_dump connect with libpq's default sslmode=prefer and no certificate check, while carrying the whole database.",
+   "cause": "Only the host query parameter was passed on.",
+   "fix": "Map sslmode, sslrootcert, sslcert, sslkey and connect_timeout to their PG environment variables.",
+   "test": "A test of the environment built for pg_dump."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "After the first fix, a file name uploaded twice was never deleted.",
+   "scenario": "Upload customers.csv, then again with new bytes; both ready; both 400 days old; sweep returns nothing and the file stays, while the Admin page says raw uploads are deleted after N days.",
+   "cause": "Every asset sharing a file name blocked every other one.",
+   "fix": "The file belongs to the newest same-name asset whose hash matches; older ones are marked superseded without unlinking; the file goes when that newest asset is due and no same-name asset is queued or processing.",
+   "test": "Two ready same-name uploads, both old, are deleted once; a newer same-name upload is left alone."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The hash re-check before unlink could not protect the file on local storage.",
+   "scenario": "An old asset's sweep has hashed customers.csv; the user uploads customers.csv again, and while new_asset hashes it, mark() claims the old asset; files.delete unlinks the new upload first, so the re-check after it saves nothing and the new pipeline fails with 'file not found'.",
+   "cause": "LocalFiles.delete unlinked unconditionally before retention's check.",
+   "fix": "Retention moves the file aside with os.replace, checks its hash, then unlinks; a new forget_one removes only the record and the bucket copy. A writer that opened the file before the move leaves a mismatching hash, and the file is put back.",
+   "test": "The reviewer's reproduction, new bytes landing between the mark and the delete, now keeps the new upload."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The Admin privacy text overstated the rule.",
+   "scenario": "It did not say that failed uploads are kept until their draft is deleted.",
+   "cause": "The page text was written before the rule's exceptions.",
+   "fix": "The text says so.",
+   "test": ""
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The 'target folder not empty' test never reached the folder check.",
+   "scenario": "It restored into the source database, which is not empty, so the database check refused first and assertIn('not empty') matched that message.",
+   "cause": "The assertion matched a substring both refusals share.",
+   "fix": "Restore into an empty database and a non-empty folder and assert 'target folder is not empty'.",
+   "test": "tests/test_backup_retention.py."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One deleted draft could stop a whole sweep, and a sweep stopped mid-way left a file forever.",
+   "scenario": "A draft deleted after it was read makes data_dir raise FileNotFoundError or update raise KeyError, ending the sweep for every remaining draft until the next hour; a process stopped between mark() and the unlink leaves a file marked raw_deleted that later sweeps skip.",
+   "cause": "No per-draft error handling; later sweeps ignored marked assets.",
+   "fix": "Skip a draft that vanished and continue; a later sweep finishes a marked asset whose file is still there with its hash.",
+   "test": "A test of a sweep stopped between marking and deleting."
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A backup written inside the workspace folder archived itself.",
+   "scenario": "With the output folder on the container's workspace volume, each backup archives its own dump, its half-written archive and every earlier backup, growing with every run.",
+   "cause": "The output folder was not excluded from the walk.",
+   "fix": "A backup inside the workspace folder is refused; .retiring- files are left out of the archive.",
+   "test": "tests/test_backup_retention.py."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Deleting a draft while a write was in progress brought it back.",
+   "scenario": "Deleting a draft while its Home agent was starting left an unhandled KeyError in a background task, and a write in progress could save the just-deleted draft again.",
+   "cause": "The draft's delete did not take the draft's lock.",
+   "fix": "A draft's delete waits for a write in progress.",
+   "test": ""
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Backups picked a pg_dump too old for the server.",
+   "scenario": "After the machine moved to PostgreSQL 16, pg_dump from PATH was the 15 client, which cannot dump a 16 server.",
+   "cause": "The tool was taken from PATH first.",
+   "fix": "Take the newest installed pg_dump (PATH, Homebrew or Debian), read its version from --version (Homebrew's ends with '(Homebrew)'); DCLAB_PG_BIN still overrides.",
+   "test": "The backup tests on PostgreSQL 16."
+  },
+  {
+   "id": "S3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Backups ignored a port and socket folder given in the URL's query.",
+   "scenario": "A URL giving host and port in its query (accepted by psycopg and libpq) sent pg_dump to the default port: the backup tests failed with the test database on 5433, and a backup would have dumped the wrong server.",
+   "cause": "Only the URL's host and port were read.",
+   "fix": "Read the port and socket folder from the query too.",
+   "test": "The backup tests on a database on another port."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done (cfb1610, with follow-ups fa8bdc0 and 4ba3896): make backup and make restore with a manifest and a restore test that opens the restored project's table through its recorded hash; retention of raw uploads with an audit entry per file; deletion audit entries. Three review rounds found real data-loss paths, each fixed and tested on files and on PostgreSQL. Open: with files in a bucket the bucket's versioning keeps them; files are archived just after the dump, so stop the app for an exact pair; a leftover .retiring- file when another file took its name; identical bytes re-uploaded in the instant of a deletion are deleted too; backups are not encrypted or sent off the machine.",
+ "lessons": [
+  "A deletion rule must identify the bytes it deletes (a recorded hash), not a file name that the next upload can reuse.",
+  "Check-then-delete is only safe when the check and the delete act on the same object; move the file aside first, then check it.",
+  "A fix for a data-loss finding needs a second review: here the first fix both blocked all deletions and left a race in the storage layer.",
+  "Never run long housekeeping inside a heartbeat."
+ ],
+ "commits": ["cfb1610", "fa8bdc0", "4ba3896"]
+}

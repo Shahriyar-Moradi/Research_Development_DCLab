@@ -1,0 +1,123 @@
+{
+ "package": "RD-expansion-v1",
+ "title": "The task-type expansion: imbalanced fraud, 26 classes, a time series and text with tables",
+ "date": "2026-10-03",
+ "request": "The 50-experiment campaign covered binary classification only. Add Kaggle and Hugging Face style data and the missing task types (multiclass, time series, imbalanced fraud, text plus tabular) with the same evidence discipline.",
+ "spec": "dclab_rnd/expansion/ and evidence/campaigns/expansion_v1: 20 experiments (EXP-051 to EXP-070), four real public datasets x the same five stages, with a task-aware split, metric, leakage heuristics, recipes, model families, bootstrap and naive baselines; raw files downloaded on first use with pinned SHA-256; results in the binary campaign's schema plus task_type, primary_metric and setup_summary.",
+ "plan": [
+  "Pick one real dataset per task type: credit-card fraud (284,807 rows, 0.17% positive), letter recognition (20,000 rows, 26 classes), daily bike sharing (728 days), women's clothing reviews (23,486 reviews with text).",
+  "Write each dataset's decision-time contract and holdout policy: last 20% by time for fraud and bike, stratified 20% for letters, unseen Clothing ID groups for reviews.",
+  "Select on training rows only with time-ordered, stratified or grouped 3-fold CV; read the holdout once in stage 5.",
+  "Make leakage heuristics task-aware (univariate signal, exact proxies, a + b == target identities, uniqueness) with synthetic canaries; measure safe vs unsafe CV and, for bike, random vs time-ordered CV.",
+  "Compare each holdout with naive baselines and, for fraud, apply a threshold chosen on training out-of-fold scores.",
+  "Fold the results into the critic gate, the evidence index, the blind auditor replay and SFT v3."
+ ],
+ "decisions": [
+  {
+   "decision": "Download from GitHub mirrors and pin each file's SHA-256; a mismatch stops the run.",
+   "why": "Kaggle, Hugging Face and UCI were blocked from the cloud environment; pinning the hash makes the mirror's file the one the results describe."
+  },
+  {
+   "decision": "For fraud, fit models on all positives and a seeded 25% of negatives, but validate and score the holdout on every row, correcting probabilities back to the true base rate.",
+   "why": "It keeps 284,807-row CV affordable while metrics, thresholds and calibration stay on the real distribution."
+  },
+  {
+   "decision": "Give tree models the top 2,000 chi-squared TF-IDF columns, selected inside each fit fold; linear models see the full matrix.",
+   "why": "Trees cannot use 30,000 sparse columns cheaply, and selecting outside the folds would be PIT-002's mistake."
+  },
+  {
+   "decision": "Copy the binary campaign's conventions into the expansion package instead of importing dclab_rnd.science.",
+   "why": "science could not be imported in that environment because general_pipeline needs catboost."
+  },
+  {
+   "decision": "Block the clothing reviews' Positive Feedback Count as well as Rating.",
+   "why": "Helpful votes accrue after the review is published, even though the measured lift was only +0.0001."
+  }
+ ],
+ "change": "dclab_rnd/expansion/ (datasets with cards and pinned hashes, runner with task-aware stages, CLI run, status, report), 20 results, manifest, report and claims memory under evidence/campaigns/expansion_v1/, tests/test_expansion.py on synthetic data, a metric-aware critic gate, the four datasets in the blind auditor replay, metric-aware leakage wording in SFT v3 and a rebuilt evidence index.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "Two bike-sharing columns add up exactly to the target.",
+   "scenario": "The identity rule found casual + registered == cnt on every training row; with them, time-ordered CV MAE fell from 833.1 to 419.5 (an apparent lift of 413.6: registered +263.5, casual +40.8), a gain that cannot exist when forecasting day d at the end of day d-2.",
+   "cause": "Same-day counts that are parts of the target were shipped as features.",
+   "fix": "Block casual and registered in the decision-time contract; keep the a + b == target identity check in the leakage heuristics.",
+   "test": "EXP-062 records the identity and the safe vs unsafe CV."
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "A random K-fold on daily data looked about twice as good as an honest time-ordered CV.",
+   "scenario": "For the bike data the safe recipe scored MAE 430.0 under random KFold(3) against 833.1 under expanding-window time-ordered CV, about 1.94 times too optimistic.",
+   "cause": "Random folds let the model train on days after the ones it is scored on.",
+   "fix": "Time-ordered CV for every selection on time data, and the random-vs-time gap measured in the leakage stage.",
+   "test": "EXP-062 records both CV protocols."
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "latent",
+   "defect": "Repeated feature vectors inflate letter-recognition CV.",
+   "scenario": "1,222 CV validation rows repeat a feature vector from their fit fold and are predicted 100% correctly, against 95.6% for unique rows; 387 of 4,000 holdout rows repeat a training vector.",
+   "cause": "Sixteen integer summaries of different glyph images can coincide.",
+   "fix": "Recorded as contamination risk (not proven label leakage) in the leakage stage and the report's limits.",
+   "test": "EXP-057 measures exact duplicate contamination across folds and train/holdout."
+  },
+  {
+   "id": "F4",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "An early fraud trial ran about 40 times slower than expected.",
+   "scenario": "During development a fraud run slowed by about 40x, apparently from thread contention with another process; the final run did not.",
+   "cause": "Parallel model threads competing with another job on the same cores.",
+   "fix": "Test mode runs single-threaded so test time stays predictable; tests/test_expansion.py runs in about 6 seconds on synthetic data.",
+   "test": "tests/test_expansion.py."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "credit-card fraud, average precision",
+   "gate": "Choices on time-ordered training CV; tuning accepted only above a 0.005 AP margin; holdout (last 20% by time) read once with a bootstrap interval; compared with random ranking.",
+   "fixed_before_run": true,
+   "result": "Extra Trees at defaults (tuning rejected: -0.0048 vs the required +0.005); holdout AP 0.8139 [0.7317, 0.8847] against 0.0013 for random ranking; ROC-AUC 0.9891; accuracy 0.9994 vs 0.9987 for always 'not fraud'. A threshold of 0.2548 chosen on training out-of-fold scores for precision >= 0.90 gave holdout precision 0.963 and recall 0.693 (52 of 75 frauds, 54 alerts).",
+   "verdict": "not scored",
+   "next": "With about 75 holdout frauds, precision and recall move by several points per case; V1-V28 were fitted by the publisher on all rows, an irreducible look-ahead."
+  },
+  {
+   "name": "letter recognition, macro-F1",
+   "gate": "Stratified CV; recipe within 0.002 of the best; tuning accepted above 0.002; holdout read once.",
+   "fixed_before_run": true,
+   "result": "Raw recipe (ratios 0.9605 within tolerance of raw 0.9592); Extra Trees tuned (+0.0047); holdout macro-F1 0.9751 [0.9704, 0.9798] against 0.0030 for the majority class; log loss 0.259 vs 3.258 for the class prior.",
+   "verdict": "not scored",
+   "next": "Verify that the source's label codes 1-26 map to A-Z in order."
+  },
+  {
+   "name": "bike sharing, MAE",
+   "gate": "Expanding-window time-ordered CV; tuning accepted above a declared margin; holdout (last 146 days) read once with a moving-block bootstrap; compared with lag-2, lag-7 and mean baselines.",
+   "fixed_before_run": true,
+   "result": "XGBoost tuned (+37.5 MAE gain vs a required 7.9); holdout MAE 680.0 [484.0, 890.1] against lag-2 1,156.4, lag-7 1,202.5 and the training mean 2,269.5; model minus lag-2 -476.5 [-731.8, -237.3]. Past-only lag and rolling recipes did not help.",
+   "verdict": "not scored",
+   "next": "One holdout season (late 2012, including the Hurricane Sandy period) is not a full-year test."
+  },
+  {
+   "name": "clothing reviews, ROC-AUC",
+   "gate": "Stratified group CV by Clothing ID; holdout of 256 unseen products read once with a cluster bootstrap; compared with a pre-declared tabular-only reference.",
+   "fixed_before_run": true,
+   "result": "Word TF-IDF with logistic regression (C01, +0.0034 above the 0.001 margin); holdout ROC-AUC 0.9459 [0.9391, 0.9525], AP 0.9864; tabular-only 0.5480; text minus tabular +0.398 [+0.350, +0.433]. Rating leaked: tabular-only CV went from 0.528 to 0.974 with it.",
+   "verdict": "not scored",
+   "next": "Keep Rating and helpful votes blocked; they are written with or after the recommendation."
+  }
+ ],
+ "outcome": "20 of 20 experiments completed in 8.3 minutes of stage time; a rerun gave identical numbers. DCLab's evidence now covers imbalanced, multiclass, time-series and text tasks, and the knowledge layer (gate, index, auditor replay, SFT) reads them.",
+ "lessons": [
+  "Each task type needs its own scorecard: accuracy is meaningless at 0.17% positives, and a random split is meaningless on days.",
+  "An exact identity (a + b == target) is the cheapest and surest leak check; run it first on regression data.",
+  "When a source is blocked, a pinned hash turns a mirror into a citable source."
+ ],
+ "commits": [
+  "3212bd9"
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "package": "A4.2",
+ "title": "Live runs of the judgment suite, behind a flag and caps that hold",
+ "date": "2026-10-06",
+ "request": "Add a live evaluation of a configured model on the A4.1 cases. Show the estimated requests and the cap and ask for --yes; run each case several times (5 by default) because a model's answers vary; report each score as a mean with a 95% interval, plus tokens and cost from the gateway; store the result under evidence/campaigns with a run id and the model's name; say that scores are evidence about this model on these traps, not about production readiness.",
+ "spec": "make agent-eval-live needs an explicit flag, prints requests, tokens and cost before it starts, refuses to exceed a stated cap, and reports scores with intervals over repeated runs. Done when a run on a local model prints per-case results and a table of scores with their spread, and no run starts without the flag.",
+ "plan": [
+  "Write dclab_rnd/agent_eval/live.py: the intern, driven by the configured model through the workspace gateway, on the A4.1 cases (all or --cases), --repeats times; print the plan (model, runs, upper bounds) and send nothing without --yes.",
+  "Store results as AEV-NNN_judgment_v1_live_<model>.json, never overwritten; the Benchmark page reads only scripted results.",
+  "Run check-all and the review in parallel; fix the eight findings, rewriting the runner.",
+  "Meet the Done-when with a real, free run: point the intern's tiers at a local Ollama (qwen2.5-coder 1.5B) for this command only, 3 cases x 2 repeats, with a request cap.",
+  "Fix the re-check's remaining finding by keeping every request in the suite the intern's own; commit the draft pipeline race found by the gate separately."
+ ],
+ "decisions": [
+  {
+   "decision": "During the suite only the intern talks to the model; tools that would ask one of their own (leakage review, project answer, stage notes and explanations) take their deterministic paths.",
+   "why": "Then the session's caps and accounting cover every request; the alternative, a per-run project cap in the gateway plus usage read back per project, was more machinery for the same guarantee."
+  },
+  {
+   "decision": "A run cut short by a cap or an error is recorded as not run, never scored, and the suite stops there.",
+   "why": "Scoring a refused run as a miss reports a score no model produced."
+  },
+  {
+   "decision": "Intervals are taken over complete repeats only; per-case counts include every scored run.",
+   "why": "Averaging repeats with different case sets mixes different questions into one rate."
+  },
+  {
+   "decision": "Refuse a euro cap on an unpriced model, and refuse a priced remote intern model without one.",
+   "why": "A euro cap on an unpriced model can never stop anything, so printing it as a cap would be false comfort."
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/live.py and make agent-eval-live: a printed plan with upper bounds on requests (runs x (tool calls + 2)), input tokens (each request carries the policy, the schemas and up to all earlier results) and euros when priced; --yes, --cases, --repeats (5 by default, at most 10), --max-requests counted at the transport, --cap-eur split over runs as each session's cap; results with a run id, the model and prompt hashes; tests/test_agent_eval_live.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Engine and tool requests bypassed every cap, the bound and the reported spend.",
+   "scenario": "With --max-requests 3 and a scripted model that calls review_leakage twice, 3 requests were counted and 2 leakage-review requests were sent uncounted, missing from the tokens; run_all makes two stage_notes requests per stage (10 per run) on the standard tier, which can be a priced remote model while the intern's strong tier is local.",
+   "cause": "Only the intern's own client was wrapped by the counter; tools built their own clients from installed().",
+   "fix": "Counting moved to the transport of the installed gateway; stage notes, explanations and project answers are switched off during the suite.",
+   "test": "A test that a tool's model request is counted."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Refused and failed runs were stored as real scores.",
+   "scenario": "A priced scripted model, --cap-eur 4, 3 cases x 4 repeats: all 12 runs were refused with 0 requests sent, and the file said status completed, 'Requests 12', leaks caught 0.0 [0.0, 0.0].",
+   "cause": "The counter incremented before the gateway's check; a session ended by a refusal or an error was scored; 'stopped' was set only when spend reached the cap exactly.",
+   "fix": "Count after the gateway accepts a request; a failed or budget-stopped session is not run and stops the suite; refuse to start when one request's estimate exceeds --cap-eur.",
+   "test": "A test where every request is refused: the first run is not scored, status stopped, 0 requests."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A run cut by the cap was scored, and a partial repeat entered the interval.",
+   "scenario": "--max-requests 10, 3 cases x 2 repeats: every completed run caught the leak, yet leaks caught came out 0.5 [0.0, 1.0], n=2.",
+   "cause": "The interrupted run counted as a miss, and repeats with different case sets were averaged.",
+   "fix": "The interrupted run is not scored; intervals use complete repeats only (here 1.0, n=1).",
+   "test": "A request-cap test with a partial repeat."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The command-line gateway had no usage log.",
+   "scenario": "installed() returned a gateway with no usage, so nothing reached the workspace usage log and the workspace monthly cap was skipped.",
+   "cause": "The command did not install the workspace gateway, unlike every other command-line tool.",
+   "fix": "for_workspace() is the default gateway and is installed for the run.",
+   "test": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "--max-requests 0 gave the full upper bound, and --max-steps was not checked against the session's limits.",
+   "scenario": "--yes --max-requests 0 ran with a cap of runs x 18 instead of sending nothing; --max-steps 1 printed a bound of runs x 3 while each session allows at least 3 tool calls.",
+   "cause": "'args.max_requests or default' treats 0 as unset.",
+   "fix": "--max-requests must be at least 1; --max-steps must be between 3 and 80.",
+   "test": "Argument tests."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The printed 'at most' euros was not an upper bound.",
+   "scenario": "It assumed 40,000 characters per request; the tool schemas are about 10,800 characters, the policy about 1,600, and each tool result adds up to 6,000, so by the 16th request a prompt is about 108,000 characters: roughly 1.6 times the printed figure.",
+   "cause": "A flat per-request estimate for a conversation that grows.",
+   "fix": "The bound grows with each request's conversation, a token bound is printed, and a euro cap on an unpriced model is refused.",
+   "test": "A plan test on the printed bounds."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The status row described guarantees the code did not keep, and marked the package done while its Done-when was not met.",
+   "scenario": "The row said --max-requests counts every request and that nothing goes to a priced remote model without --cap-eur; no local-model run existed.",
+   "cause": "The row was written before the run and before the review.",
+   "fix": "The row was rewritten after the fixes, and AEV-002 was run on a local model and stored.",
+   "test": ""
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The euro cap and the reported tokens and euros still left out the leakage-review requests (re-check).",
+   "scenario": "Every tier a priced scripted model with large usage, the model calling review_leakage four times per run, 2 cases x 2 repeats, --cap-eur 40: the suite completed with 36 requests (16 by the leakage review) and reported 2.4 euros, while the usage log showed 818.4 euros.",
+   "cause": "The run's euro limit was set only on the intern's client, and the run's spend was read from the session, which counts only the intern.",
+   "fix": "During the suite only the intern talks to the model; the leakage review takes its deterministic path.",
+   "test": "A test like the reviewer's: no leakage-review request is sent during the suite."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The PostgreSQL run of the draft flow test failed once on a draft whose data was 'ready' but had no analysis.",
+   "scenario": "A reader between two writes (the page, the Home agent, or a test polling for 'ready') saw a ready asset with no analysis.",
+   "cause": "The pipeline saved the asset as ready in one update and the analysis, cleaning log and active asset in the next.",
+   "fix": "Both go in one update (separate commit).",
+   "test": "The draft flow tests on PostgreSQL."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "AEV-002, first live run (local qwen2.5-coder 1.5B through Ollama, 3 cases x 2 repeats)",
+   "gate": "A run on a local model prints per-case results and a table of scores with their spread (the package's Done-when); scores are evidence about this model on these traps only.",
+   "result": "Per-case lines and the interval table were printed and stored. The model answered each case in one reply without calling a tool, so it kept 0 of 2 leaks out per repeat (0.0, interval 0.0 to 0.0, n=2) and made no move; 6 requests, about 16,000 input and 3,500 output tokens, 0 euros.",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "next": "The harness gate passes; the model fails the traps. Run a larger local or remote model with a euro cap; the token bound is generous; a live run does not set the Benchmark leaderboard yet."
+  }
+ ],
+ "outcome": "Done: make agent-eval-live prints its plan, needs --yes, holds its request and euro caps over every request of the suite, never scores a cut run, and stores AEV results with intervals over complete repeats. Eight findings and one re-check finding fixed; a draft race found by the gate fixed separately.",
+ "lessons": [
+  "A cap that wraps one client is not a cap when tools build their own clients; count at the transport or keep the other callers off the model.",
+  "A run refused by a budget must be 'not run', never a scored miss: otherwise the cap writes the result.",
+  "An upper bound for a growing conversation must grow with it.",
+  "The Done-when of a measurement package is met only by a real run, here a free local one."
+ ],
+ "commits": ["7ffc4b2", "ead9baa"]
+}

@@ -1,0 +1,43 @@
+{
+ "package": "14.7",
+ "title": "Staging in a cloud, smoke-tested (runbook and check built)",
+ "date": "2026-10-07",
+ "request": "Plan staging for the chosen cloud with a cost estimate; after the owner's yes, apply it; then run the end-to-end flows and the browser tests against the staging address and a backup and restore drill. The owner had not yet given a yes, a region, an account or a domain, so build the runbook and the check without touching any account.",
+ "spec": "tofu plan for staging with a cost estimate; apply only after the owner's yes; product-e2e and the browser tests against staging; a backup and restore drill; production is a separate yes.",
+ "plan": [
+  "Write deploy/STAGING.md in order: decide, tofu plan with the cost, apply only after the owner's yes, the flows, the backup and restore drill, destroy.",
+  "Add make staging-check URL=... running the end-to-end flows and the browser checks against an address.",
+  "Review with the other kits; the reviewer found the check could not work against a signed-in staging; add bearer-token support to both scripts and correct the claims; commit.",
+  "Plan and apply nothing: that needs the provider's credentials and the owner's yes."
+ ],
+ "decisions": [
+  {
+   "decision": "Nothing is planned or applied from the session.",
+   "why": "The owner's explicit yes is required before any change to a cloud account, and no account or region was given."
+  },
+  {
+   "decision": "The runbook says plainly what the check has never been run against.",
+   "why": "A smoke test that has only run on an unsigned local server must not be described as proven on staging."
+  }
+ ],
+ "change": "New deploy/STAGING.md, a staging-check target in the Makefile, DCLAB_E2E_TOKEN support in scripts/product_e2e.py and scripts/browser_e2e.py, tests/test_staging_check.py.",
+ "findings": [
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The staging check could not run against a real staging, and its claims were untrue.",
+   "scenario": "Staging requires sign-in (the server refuses no sign-in on a host name), and only /api/config and the auth routes are public; the flow scripts sent only the CSRF header, so every flow after /config would get 401. STAGING.md also said 'no model request', but its own step puts the model key into staging, so the flows would send model requests and spend money.",
+   "cause": "The scripts were written for the local unsigned server; the runbook described the intent, not the behaviour.",
+   "fix": "Both scripts take an API token of a test member in DCLAB_E2E_TOKEN and send it as a bearer header only when given; STAGING.md, the Makefile and the playbook row say that a configured key means model requests and that the check has never run against a signed-in server.",
+   "test": "test_the_flows_send_a_bearer_token_only_when_one_is_given and test_the_make_target_asks_for_an_address_and_the_runbook_states_what_it_cannot_do."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Runbook and check built (c291a1b), open on the owner's yes, region, account and domain. Nothing planned or applied; the first run against a signed-in server may need a fix.",
+ "lessons": [
+  "A smoke test written against a local server breaks on the first real difference of the target (sign-in); read the target's guard before claiming the check will run there.",
+  "A runbook must state the costs its steps cause, such as model requests when a key is configured."
+ ],
+ "commits": ["c291a1b"]
+}

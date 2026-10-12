@@ -1,0 +1,130 @@
+{
+ "package": "13.2",
+ "title": "Browser tests of the main flows",
+ "date": "2026-10-07",
+ "request": "The API flows proved the backend, but nothing proved a person can do the same through the page: a broken selector, a console error, a CSP block or a page wider than a phone would all have passed CI. Add Playwright tests that drive the real page: one sentence and an uploaded file on Home, the chat's questions answered by clicking options, the wizard's five steps with their defaults, a run on the Workflow page, and the brief; assert no console or CSP error on all 19 pages, no sideways scroll at 375 px, and that the stats on screen equal the API's; run them in CI against the container.",
+ "spec": "Browser tests of Home (sentence and upload), the chat by clicking options, the wizard's five steps, a run on the Workflow page and the brief; no console or CSP error on 19 pages; no sideways scroll at 375 px; stats on screen equal the API's numbers; run in CI against the container from 12.1.",
+ "plan": [
+  "Check the Playwright tooling and install Chromium; have an exploration agent map the exact selectors and actions of each step from the frontend's source, while writing the harness.",
+  "Write scripts/browser_e2e.py on the pattern of product_e2e (its own server on a temporary workspace, or --base for the container) with four checks: flow, stats, pages and mobile.",
+  "Add make browser-test, requirements/browser.txt and a CI step in the containers job that keeps screenshots of a failing check.",
+  "Run it; fix the product faults it found (a phone-width overflow on Benchmark); add a test that the script's page list matches the build's.",
+  "Run make check-all and the reviewer; fix six findings and run on an empty workspace, on files and on PostgreSQL; re-review; fix the last finding; gate and commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Read the numbers the page should show from the API over HTTP, not through the page.",
+   "why": "Comparing the page with itself proves nothing; the API is the independent source."
+  },
+  {
+   "decision": "Each page is read when its own load has ended (the 13.1 tracker exported as DC.loading), not after a fixed wait.",
+   "why": "A location.hash change is a same-document navigation, so 'network idle' returns at once; a fixed sleep is flaky on a slow runner and lets a late error be blamed on the next page or missed."
+  },
+  {
+   "decision": "The browser tests are not part of make check-all; CI runs them on main against the container.",
+   "why": "They need Playwright and Chromium, which the default environments do not have, and the container is the product as shipped."
+  }
+ ],
+ "change": "New scripts/browser_e2e.py (flow, stats, pages, mobile checks), requirements/browser.txt, make browser-test, a CI step in the containers job (Playwright with Chromium against the compose app, screenshots uploaded on failure), a guard test that the script's page list matches the build's, and a CSS rule to wrap a long code path on Benchmark.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The Benchmark page was wider than a phone.",
+   "scenario": "At 375 px the mobile check found Benchmark 83 px too wide: a long file path inside a code element in a footnote would not wrap.",
+   "cause": "Inline code does not break inside a long path.",
+   "fix": "Let that code wrap (first as a global rule, narrowed after review).",
+   "test": "The mobile check at 375 px."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The brief check would fail on CI, which stores records in PostgreSQL.",
+   "scenario": "The check took the first key of holdout_metrics as the metric; on files that is roc_auc, but JSONB orders keys by length, so on PostgreSQL the first key is f1 (about 0.55–0.6) while the brief shows ROC-AUC 0.85, and the check fails.",
+   "cause": "Relying on a dict's key order that the database does not keep.",
+   "fix": "Read the final record's primary_metric and compare that value.",
+   "test": "The script passes against a PostgreSQL-backed server."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Errors during the app's first load were never counted.",
+   "scenario": "A console error injected 50 ms into the first load was in problems() after the browser opened, yet the pages check printed '19 pages without a console error', because it began counting from the current number and Home was not entered again.",
+   "cause": "The check started its count after the first load.",
+   "fix": "Wait for the first load to end and fail on anything logged so far; check once more after the last page.",
+   "test": "The reviewer's injected error is now caught."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The only real wait was a fixed sleep.",
+   "scenario": "On a slow runner a page whose reads take over 1.2 s shows 'Loading…' and fails falsely; a failure arriving later is blamed on the next page or, on the last page, missed; the mobile width is measured before data renders.",
+   "cause": "Hash navigation makes the load-state wait return at once.",
+   "fix": "Export the 13.1 tracker as DC.loading and wait until the view is current and nothing is loading (60 s limit).",
+   "test": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The global code wrapping rule changed existing layouts.",
+   "scenario": "With code { overflow-wrap: anywhere }, Audit's day_of_week cell splits over two lines at 1280 px, and at 375 px Benchmark's leakage table squeezes its code column to about 34 px, breaking column names over several lines.",
+   "cause": "'anywhere' lowers the min-content width of every code element, so table columns shrink.",
+   "fix": "Scope the rule to the footnote: .panel-foot code.",
+   "test": "The mobile check passes and table cells are unaffected."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home kept the sample's project count on an empty workspace.",
+   "scenario": "--only stats on a fresh server fails: Home shows 8 projects (the sample) while the API has none; the full run passed only because the flow had already created a project.",
+   "cause": "The count was updated only inside if (ws.projects.length).",
+   "fix": "Set the count before the if.",
+   "test": "--only stats passes with 0 projects."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Home's holdout card was never compared with the API.",
+   "scenario": "The card shows holdouts opened exactly once over holdout projects (the sample shows 6 / 6); a wrong API count would pass.",
+   "cause": "The check compared the other cards only.",
+   "fix": "Compare both numbers of that card.",
+   "test": "The stats check."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The Compute page's load was untracked, so the new wait returned before its data.",
+   "scenario": "On a runner where the jobs read takes over 2 s, the stats check reads 'loading' and raises 'no number in loading'; the mobile check measures the page before a wide jobs table renders.",
+   "cause": "Compute's enter only started a poll and returned no promise.",
+   "fix": "Make Compute's first load awaitable: enter returns the first load's promise.",
+   "test": "All four checks pass."
+  },
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Adding the browser-test target broke a test that pins the Makefile line turning models off.",
+   "scenario": "rd-check failed because the line that exports DCLAB_NO_LIVE_MODELS had changed.",
+   "cause": "The new target was added onto the pinned line.",
+   "fix": "Restore that line and give browser-test its own export line.",
+   "test": "The Makefile test."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done (7848118): Chromium drives Home, the chat, the wizard, a run and the brief, checks the numbers on four pages against the API, all 19 pages at 1280 px for console, uncaught, CSP and failed-load errors, and all 19 at 375 px for sideways scroll; about 90 s, no model; checked on files and on PostgreSQL; CI runs it against the container. It found three product faults (Benchmark's overflow, Home's sample count, Compute's untracked load). Open: not in make check-all; a model-driven chat is not covered; the page-state check counts only what the 13.1 tracker sees.",
+ "lessons": [
+  "Never read a metric by a dictionary's key order: JSONB reorders keys, so a check passing on files fails on PostgreSQL.",
+  "A browser test that starts counting errors after the first load misses the bootstrap, where errors are most likely.",
+  "Fix a layout fault at the element that causes it; a global CSS rule fixes one page and breaks others.",
+  "Run a stats check on an empty workspace too: sample values hide when real data happens to exist."
+ ],
+ "commits": ["7848118"]
+}

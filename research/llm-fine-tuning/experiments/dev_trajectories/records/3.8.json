@@ -1,0 +1,76 @@
+{
+ "package": "3.8",
+ "title": "Synthetic data",
+ "date": "2026-10-05",
+ "request": "Some users cannot share data for confidentiality; they want to simulate it from a prompt, without any sample. The rows must stay labelled synthetic everywhere.",
+ "spec": "draft/synthetic.py: a validated schema (from a model, or a built-in template the user picks), seeded generation, the label 'synthetic' kept from the draft to the exports. Done when tests/test_draft_synthetic.py passes and make product-e2e passes synthetic.",
+ "plan": [
+  "Write a pydantic SyntheticSpec (columns with types and distributions, a target with a type, a rate and effects) that rejects unknown fields.",
+  "Write generate(spec) with a seed and a row cap, and five templates (churn, fraud at 0.5%, demand as time-ordered regression, credit, maintenance).",
+  "With a model, design the spec from the description as JSON; validate, retry once with the error, then fall back to a template.",
+  "Send the model the problem and the answers only, never data.",
+  "Store the asset with synthetic true, its spec and its outcome column, and label it in the project, the notebook, the report and the brief."
+ ],
+ "decisions": [
+  {
+   "decision": "A binary target's rate is calibrated exactly: a logistic latent score and the top round(rows x rate) rows positive, at least one positive.",
+   "why": "Bernoulli draws after bisection can miss the asked rate by a point on small tables; the exact count keeps the same logistic model."
+  },
+  {
+   "decision": "Missing values are applied after the target is drawn, completely at random with an exact count.",
+   "why": "The target reflects the true values, so missingness does not secretly carry signal."
+  },
+  {
+   "decision": "Effects on identifier, text and datetime columns are refused.",
+   "why": "They would plant signals no real dataset carries in that form."
+  },
+  {
+   "decision": "The context sent to the model drops lists of objects, frames, arrays and keys like rows, sample, preview and data, and is capped at 4,000 characters.",
+   "why": "The model designs a table from the description and must never receive data rows."
+  }
+ ],
+ "change": "dclab_rnd/draft/synthetic.py (specs, generate, describe, save with the synthetic flag in the Parquet metadata, templates, spec_from_model with retry and fallback) and the synthetic routes; tests/test_draft_synthetic.py (29 tests).",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Without a model, a template was picked silently from keywords and the rows did not follow the description.",
+   "scenario": "With no model configured, the template was chosen by counting keyword hits in the description, defaulting to churn; a description that matched no keyword got churn rows, and nothing on screen said the rows came from a template rather than from the description.",
+   "cause": "The fallback was silent.",
+   "fix": "The Synthetic tabs list the built-in templates to pick from, the template is picked from the description and the problem sentence together, and the chat and the wizard say when rows come from a template and do not follow the description; the generator's own outcome column is offered first.",
+   "test": "test_synthetic_templates_are_listed_chosen_and_explained; test_the_note_says_when_rows_do_not_follow_the_description."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The exported notebook and report did not say the data was synthetic.",
+   "scenario": "A project built from simulated rows showed a 'synthetic' note in the brief, but the downloaded notebook and report presented their scores with no such note.",
+   "cause": "The label was carried to the brief only.",
+   "fix": "The notebook and the report open with the same note as the brief, because their scores say nothing about real cases.",
+   "test": "tests/test_studio.py export checks."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "synthetic flow",
+   "gate": "make product-e2e passes the synthetic flow: one prompt to a completed run of all five stages, labelled synthetic.",
+   "fixed_before_run": true,
+   "result": "Passed without a model; a synthetic regression table split by time with 5 folds completed all five stages.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: simulated data from a model's validated design or a chosen template, seeded, and labelled synthetic from the draft to every export.",
+ "lessons": [
+  "A fallback that changes what the user gets must say so on screen.",
+  "Carry a 'this is not real data' label through every artefact, not only the main page."
+ ],
+ "commits": [
+  "15c4958",
+  "7ef1cea",
+  "c13bb6f"
+ ]
+}

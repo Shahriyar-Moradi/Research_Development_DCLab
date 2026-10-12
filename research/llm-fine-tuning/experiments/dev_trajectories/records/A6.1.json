@@ -1,0 +1,99 @@
+{
+ "package": "A6.1",
+ "title": "Trajectory export from opted-in projects, with no cell value",
+ "date": "2026-10-06",
+ "request": "Turn the agents' traces and the transition logs into trajectory records (state summary, allowed tools, chosen move, validator verdict, cited records, what happened next) for the policy model. Export only projects whose owner opted in (a setting, off by default, shown on the Policy model page). Keep tool arguments only as the schema's non-free-text fields. Write to a new folder, never into out_v3, and test that an export of a project built on the Telco CSV holds no cell value.",
+ "spec": "Finished runs exported as training records: state, move, validator verdict, evidence, outcome; only from runs the owner opted in. Done when python -m dclab_rnd.studio.sft --trajectories writes records for opted-in projects and none for others, and no cell value appears in any record.",
+ "plan": [
+  "Map the sources: the transition log (studio/graph.py), the agent traces (A2.3), the intern sessions and Home drafts tied to a project.",
+  "Add settings.share_for_training (off by default), set on the Policy model page or by PATCH /api/projects/{id} and logged as training_opt_in_changed.",
+  "Make graph.log write the stage and capture moves the graph allowed at each state, so a record knows what could have been chosen.",
+  "Write studio/trajectories.py: 'move' records from the transition log and 'step' records from the traces; arguments kept only where the schema says they are not free text; results, messages and summaries dropped.",
+  "Write the test: run the intern's standard plan twice on the Telco CSV, opt one project in, and scan the export for any Telco text value, the positive label and the prediction moment.",
+  "The validator's log changed, so rerun the judgment suite (AEV-007); review; fix five findings; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A name field is kept only when its value is one of the project's own names (columns, option ids, stage and gate names, sample keys, ids) or an evidence record id.",
+   "why": "A model can put a customer id in 'identifiers' or a cell value in 'choice'; the field's name proves nothing about its value."
+  },
+  {
+   "decision": "Cited ids are kept only when they resolve to an evidence record or one of the project's own claims.",
+   "why": "The id pattern also matches business codes quoted in error messages or answers."
+  },
+  {
+   "decision": "Opt-in is per project, off by default, and logged when it changes.",
+   "why": "Training on a team's projects needs the owner's explicit choice, and the choice must be auditable."
+  }
+ ],
+ "change": "dclab_rnd/studio/trajectories.py (vocabulary, keep, moves, steps, records, export with a manifest); python -m dclab_rnd.studio.sft --trajectories [--workspace DIR] [--out DIR], default under the workspace's agent_runs folder, refusing any path inside out_v3; graph.log records the allowed stage and capture moves; settings.share_for_training with a PATCH route, an activity-log entry and a switch on the Policy model page; tests/test_trajectories.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Name-typed fields were kept without checking the value, so cell values could reach the export.",
+   "scenario": "A model step set_solution(identifiers=[<a Telco customer id>], forbidden=[{'column': 'Contract=Month-to-month'}]) that failed the column check, plus approve_stage(choice='Month-to-month'): the export kept the customer id, the cell-value column and the choice. engine.approve logs the choice before checking it against the stage's options, so the transition record kept it too.",
+   "cause": "keep() trusted any string under a field named like a name.",
+   "fix": "A per-project vocabulary of names the system itself produces; a name field is kept only when its value is in it, in steps and in moves.",
+   "test": "test_a_value_a_model_put_in_a_name_field_is_not_exported (customer id, a value as a column, a value as a choice and a value in the Home agent's get_profile are dropped; real column names are kept)."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Cited ids came from a regular expression over free result text.",
+   "scenario": "A result 'error: ... see PRJ-<a customer code>' exported that code as a cited id; any business table with a code column shaped like PRJ-, LESSON-, DATASET- or LEAK- could leak through error messages or answers.",
+   "cause": "_ids() matched the id pattern anywhere in the result.",
+   "fix": "Only ids in the vocabulary (evidence records, the project's own claims) are kept.",
+   "test": "The test checks a fake PRJ code is dropped and DCLAB-R04 kept."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The intern's allowed set left out tools it can call, a wrong training label.",
+   "scenario": "A step with tool 'finish' had a chosen action that was not in its own allowed set, because the set came from the project scope only while the model-mode intern also has write_plan and finish.",
+   "cause": "One scope per agent.",
+   "fix": "The intern's allowed set is its project and session tools; the Home agent's is its draft tools.",
+   "test": "The test checks finish is in allowed and its free-text report is dropped."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The default workspace was a relative path, unlike the server's.",
+   "scenario": "Run from any folder other than the repository root, the command found nothing on the file stores, and on PostgreSQL it inserted a new empty workspace row; it printed '0 opted-in projects' with no warning.",
+   "cause": "The default was Path('agent_runs').",
+   "fix": "The default is DCLAB_AGENT_HOME or the repository's agent_runs, the same as the server.",
+   "test": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "On macOS the out_v3 refusal could be bypassed by changing letter case.",
+   "scenario": "--out .../sft/OUT_V3/x passed the check and wrote into out_v3, because APFS is case-insensitive and resolve() does not normalise case.",
+   "cause": "A case-sensitive path comparison.",
+   "fix": "Paths are compared casefolded with a separator boundary.",
+   "test": "The out_v3 test includes the case-changed path."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "AEV-007, scripted suite rerun after the validator's log changed",
+   "gate": "A4.3's gate: a validator change needs a complete scripted rerun.",
+   "result": "Complete; same scores as before.",
+   "verdict": "pass",
+   "next": ""
+  }
+ ],
+ "outcome": "Done: opted-in projects export move and step records with no table value, no positive label and no prediction moment; arguments only where the schema says they are not free text and only with the project's own names. Open: older transition entries have no allowed set; the allowed set covers stage and capture moves only; a step citing a whole stage's experiment id loses that citation; nothing checks a column name for being personal data. Five review findings fixed.",
+ "lessons": [
+  "A field's name proves nothing about its value; allow values from a vocabulary the system itself produced.",
+  "Logs that record a call's arguments before validating them carry whatever the model sent.",
+  "A training label is wrong if the chosen action is not in the offered set; build the set from the same tools the policy really had.",
+  "On a case-insensitive file system, compare protected paths casefolded."
+ ],
+ "commits": ["dfad8e5"]
+}

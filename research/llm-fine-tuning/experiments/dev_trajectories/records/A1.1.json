@@ -1,0 +1,138 @@
+{
+ "package": "A1.1",
+ "title": "The model gateway and its usage log",
+ "date": "2026-10-06",
+ "request": "Start the AI and agent layer with one model gateway. At first the owner asked to skip the intern and not depend on it; a few minutes later he changed his mind: build phases A1 and A2 in the plan's order, the intern included, package by package.",
+ "spec": "dclab_rnd/models/gateway.py with complete() and stream() taking a purpose and a tier; tiers (strong, standard, cheap) set from the environment, an unset tier falling back to standard; retries with backoff on 429 and 5xx; a model_request row per call (purpose, tier, model, tokens, latency, outcome, project; the prompt only when DCLAB_LOG_PROMPTS=1) through an Alembic migration; every caller moved onto it. Done when no openai.OpenAI( or ChatClient( exists outside the gateway, the usage table fills with a model configured, and rd-check passes with scripted clients.",
+ "plan": [
+  "Find every place that creates or configures a model client: the Home agent's flow, the intern, the evidence answers, the stage notes (Responses API), the campaign critic CLI and NOOA's research clients.",
+  "Move the client from intern/llm.py into dclab_rnd/models/client.py and keep intern/llm.py as an alias; make the SDK's own retry count a parameter so the intern's behaviour does not change while the gateway does its own retries.",
+  "Write the tier and purpose settings, the usage log (a file, or the model_request table on PostgreSQL, migration 0002) and the gateway.",
+  "Move the Home flow, stage notes, project answers, evidence answers, the critic CLI and the campaign adapter onto the gateway; after the owner's correction, the intern too.",
+  "Add GET /api/models and the Admin page's model info; add the new settings to .env.example.",
+  "Run make check-all and an adversarial review in a fresh context; fix every finding with a test; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Purposes, not callers, pick a tier and a timeout, and each purpose says in words what it may be shown.",
+   "why": "A tier is a cost and privacy choice that belongs to the kind of request; writing what each purpose may see is the basis for A1.3's data-limit test."
+  },
+  {
+   "decision": "Retry only transient failures, and a stream only before its first word reached the user.",
+   "why": "Retrying a refusal wastes money; retrying a stream after text was shown would duplicate or contradict what the person already read."
+  },
+  {
+   "decision": "NOOA's research clients are not swapped but report each request to the usage log.",
+   "why": "NOOA builds its own clients through litellm; wrapping them keeps the campaign working while every request is still counted."
+  },
+  {
+   "decision": "Store no key and no prompt in a usage row unless DCLAB_LOG_PROMPTS=1.",
+   "why": "The usage log is read on Admin pages and in exports; prompts can carry the user's words."
+  },
+  {
+   "decision": "A failed usage write never loses an answer.",
+   "why": "The answer was already paid for; logging is secondary to returning it."
+  }
+ ],
+ "change": "New dclab_rnd/models/ (client.py moved from intern/llm.py, settings.py with tiers strong/standard/cheap and purposes with tier, timeout and what each may see, usage.py with a file log and the PostgreSQL model_request table, gateway.py with retries and backoff). Migration 0002. Callers moved: draft/api.py, studio/agent.py (stage notes and project answers moved from the Responses API to chat completions), engine.py, agentic/server.py, pages/evidence.py, pages/platform.py, agentic/agents.py (NOOA campaign adapter), llm_review.py (campaign critic). GET /api/models. tests/test_models_gateway.py with a guard that no module outside the gateway creates a client.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The legacy DCLAB_INTERN_MODEL setting silently stopped applying to the Home agent, evidence answers, synthetic data and parse patterns.",
+   "scenario": "DCLAB_LLM_BASE_URL points at a local Ollama and DCLAB_INTERN_MODEL=qwen2.5:7b. Before, every caller used that model. Now only the strong tier reads it, so the Home agent sends the default OpenAI model name to Ollama, gets a 404, pauses for 10 minutes and falls back to its script.",
+   "cause": "Only the strong tier's settings read the legacy variable.",
+   "fix": "DCLAB_INTERN_MODEL is the model for every tier that names none, before OPENAI_MODEL.",
+   "test": "A gateway settings test with only the legacy variable set."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A tier's key did not follow its endpoint: a tier could get no key, or be sent another provider's key.",
+   "scenario": "With only DCLAB_TIER_STANDARD_API_KEY set, the intern, evidence answers and parse patterns got no client at all. The other way round, a tier with its own BASE_URL (for example the Hugging Face router) and no key of its own was sent the OpenAI key.",
+   "cause": "An unset tier inherited the standard tier's URL and model but read its key from OPENAI_API_KEY.",
+   "fix": "A tier inherits the standard tier's key only when it has no BASE_URL of its own; a key is never sent to another host.",
+   "test": "Gateway settings tests for both directions."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Tests and the end-to-end flows could reach a live model through the new tier settings.",
+   "scenario": "server.py loads .env on import. With DCLAB_TIER_CHEAP_BASE_URL set to a local Ollama (the example in .env.example), the cheap tier's key becomes 'ollama', so parse patterns and evidence answers call the local model during rd-check. The tests blanked only OPENAI_API_KEY.",
+   "cause": "The test environment cleared one variable, not the new DCLAB_TIER_* family.",
+   "fix": "DCLAB_NO_LIVE_MODELS=1, set by the make targets and product_e2e, makes the gateway refuse every live endpoint whatever .env holds.",
+   "test": "A test that a configured tier under DCLAB_NO_LIVE_MODELS sends nothing."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Some model requests were never counted.",
+   "scenario": "agentic/live_eval.py and agentic/guide_review.py subclass NOOA's ResponsesClient and never report; the guard regex ResponsesClient\\( misses 'class X(ResponsesClient):'; under python -m dclab_rnd.agentic run nothing is installed, so installed() returns a gateway with no usage log and every campaign request is dropped.",
+   "cause": "The guard looked for constructor calls only, and the command-line entry point never installed the workspace gateway.",
+   "fix": "Both subclasses record each request; the guard matches the word ResponsesClient; agentic/__main__.py installs the workspace's gateway so command-line runs log to the workspace.",
+   "test": "test_only_the_gateway_makes_model_clients with the wider pattern."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The intern's usage rows had no project.",
+   "scenario": "Every intern request was logged with project_id None, so A1.2's per-project caps could never see intern spend.",
+   "cause": "The intern's client was built once, without the session's project.",
+   "fix": "The client is bound per session with the session's project id.",
+   "test": "An intern test that reads the project on its usage rows."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "An endpoint URL with credentials would be written into every usage row and shown on three API routes.",
+   "scenario": "A base URL of the form https://user:password@host/v1: urlparse(...).netloc keeps user and password, so they appear in the usage log, /api/models, /api/intern and /api/platform/limits.",
+   "cause": "The endpoint label used netloc.",
+   "fix": "Endpoints are shown and stored as host and port only.",
+   "test": "A settings test with credentials in the URL."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Two silent behaviour changes: the campaign critic gained a 4,000-token cap, and stage notes sent max_tokens, which OpenAI's reasoning models reject in chat completions.",
+   "scenario": "A long JSON critique is cut at 4,000 tokens and fails to parse. A stage-notes request to a reasoning model is rejected; the helper swallows the error and the critique silently disappears.",
+   "cause": "Moving the callers onto one chat-completions client changed their token parameters.",
+   "fix": "The critic keeps no token cap; OpenAI models get max_completion_tokens.",
+   "test": "Scripted tests for the critic and the stage notes."
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The failure paths had no tests.",
+   "scenario": "Nothing checked that an answer still comes back when the usage log raises, that a paused model is not retried, or what stream() does on a transport without streaming (it fell back to complete and never called on_text).",
+   "cause": "Only the happy path was tested.",
+   "fix": "Tests for a broken usage log, the pause, and the streaming fallback.",
+   "test": "test_models_gateway.py grew from 12 to 22 tests."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Setting the SDK's retry count to 0 for the gateway would have changed the intern's behaviour.",
+   "scenario": "The intern relied on the SDK's single retry; the gateway now retries itself.",
+   "cause": "One client served both.",
+   "fix": "The retry count is a parameter: the intern keeps 1, the gateway passes 0 and retries with its own backoff.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: every model request goes through dclab_rnd/models, the intern included; NOOA's clients report to the usage log; tests cannot reach a live model. The gate passed with 369 tests on files and on PostgreSQL and all four end-to-end flows with unchanged scores; eight review findings fixed.",
+ "lessons": [
+  "When a setting is split into tiers, check what every old setting meant for every caller: a legacy variable that silently stops applying changes the model in use.",
+  "A key belongs to its endpoint; any fallback that moves a URL must move the key with it, or not at all.",
+  "A guard against live calls in tests must be one switch the gateway obeys, not a list of variables each test blanks."
+ ],
+ "commits": ["6955ed1"]
+}

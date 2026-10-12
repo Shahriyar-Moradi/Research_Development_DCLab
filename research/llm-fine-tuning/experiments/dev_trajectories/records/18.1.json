@@ -1,0 +1,81 @@
+{
+ "package": "18.1",
+ "title": "The agent contract in dclab_core: roles, prompts as files, a host runner",
+ "date": "2026-10-12",
+ "request": "The owner wants more AI, agents and LLMs inside the workflow: to understand problems better, build better workflows and make better decisions. Start with one contract every model role follows, inside the portable core, so DCLab's main product can run the same roles through its own gateway.",
+ "spec": "dclab_core/agents/: a Role (name, purpose, evidence of aggregates only, a parser that validates the answer, a deterministic fallback), run_role(role, advisor, inputs) returning a validated output or the fallback with the reason, a scripted advisor for tests, and the roles' prompts as files under dclab_core/prompts/ with a hash test. Done when a role runs with a scripted advisor, with none, and with one that fails or answers badly, the outputs are identical to the fallback in the last two cases, and a changed prompt fails the hash test until it is recorded.",
+ "plan": [
+  "Write Part 7 of the playbook first: the roles at the workflow's steps (analyst, investigator, planner, feature engineer, critic, reporter), each with a deterministic fallback, a versioned prompt in dclab_core and a gate it must pass before it is on by default.",
+  "Read how the R&D repository already keeps prompts as hashed files (dclab_rnd/prompts, package A4.3) and reproduce the idea in dclab_core without importing dclab_rnd.",
+  "Write dclab_core/prompts (text, names, fingerprints, HASHES.json and a --record entry point) and add the agents and prompts subpackages and the .md files to the wheel.",
+  "Write Role, RoleResult, run_role and ScriptedAdvisor in dclab_core/agents: run_role computes the fallback first and returns the advisor's output only after the role's parser accepts it.",
+  "Write tests/test_core_agents.py: an accepted answer is used and said so; no advisor, an abstention, a failure and a refused answer all give the fallback; rows in the evidence raise; every prompt is pinned and ships in the wheel.",
+  "Move 17.2's problem-analyst hook in understand onto the contract (PROBLEM_ANALYST with its evidence and parser, run through run_role with its pinned prompt).",
+  "Run rd-check and commit together with 17.4, because understand.py carried changes from both."
+ ],
+ "decisions": [
+  {
+   "decision": "Models propose where they are strong (meaning, domain knowledge, critique, prose); code keeps what must be exact (statistics, splits, fits, metrics, selection).",
+   "why": "This is how the main product works, and a wrong split or metric is a silent leak; every proposal is checked by code before it is used."
+  },
+  {
+   "decision": "A role returns its output with its source (advisor or fallback) and the reason (no advisor, abstained, failed, invalid).",
+   "why": "DCLab must work with the model off, and every record must say whether a value came from a model or from the rules."
+  },
+  {
+   "decision": "Prompts are files in dclab_core pinned by HASHES.json; a changed prompt fails a test until its hash is recorded.",
+   "why": "The main product sends the same words through its own gateway, and recording a new hash is the moment the role must be measured again."
+  },
+  {
+   "decision": "Evidence that carries rows raises EvidenceError to the caller instead of falling back.",
+   "why": "Sending rows is a bug in the caller, not a model failure; a fallback would hide it."
+  },
+  {
+   "decision": "A role's name is also its advisor purpose and its prompt file's name.",
+   "why": "One name routes the request, picks the prompt and finds the purpose's data-limit test."
+  }
+ ],
+ "change": "New dclab_core/agents (Role, RoleResult, run_role, ScriptedAdvisor, roles()) and dclab_core/prompts (text, names, fingerprints, recorded; __main__ for --record; problem_analyst.md; HASHES.json). The wheel's package list and package data gained both subpackages and the prompt files. understand's analyst hook now runs PROBLEM_ANALYST through run_role. tests/test_core_agents.py, and the core's boundary test skips entry-point modules.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The first test run printed OK although no test file existed.",
+   "scenario": "One chained shell command recorded the hashes with python -m dclab_core.prompts --record, then wrote tests/test_core_agents.py, then ran the tests. The record step failed ('a package cannot be directly executed'), the test file was never written, and the run printed OK for zero tests.",
+   "cause": "The prompts package had no __main__.py, and nothing checked that the earlier steps had succeeded before trusting the final OK.",
+   "fix": "Add dclab_core/prompts/__main__.py, record the hashes, write the test file in its own step, and check the number of tests that ran.",
+   "test": "tests/test_core_agents.py: 6 tests, then 7 once the analyst ran through its role."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The core's boundary test failed once the prompts package gained an entry point.",
+   "scenario": "test_importing_the_core_loads_nothing_outside_its_dependencies imports every module of dclab_core, including prompts/__main__.py, which runs on import.",
+   "cause": "An entry point is a script, not a library module; importing it executes it.",
+   "fix": "The boundary test leaves __main__ modules out of the modules it imports.",
+   "test": "test_core_contracts BoundaryTest passes (26 tests)."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The prompt safety test failed on a line break, not on content.",
+   "scenario": "test_the_analysts_prompt_names_the_rules_that_keep_it_safe searched for 'never values', but the prompt file wraps the line between 'never' and 'values'.",
+   "cause": "The test compared raw text with a phrase that crosses a wrapped line.",
+   "fix": "The test collapses whitespace before searching.",
+   "test": "test_the_analysts_prompt_names_the_rules_that_keep_it_safe."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the role contract, pinned prompts shipped in the wheel, a scripted advisor, and the problem analyst running as the first role. A role gives exactly its fallback when the advisor is absent, abstains, fails or answers something its parser refuses. rd-check passed with 914 tests (committed with 17.4). 18.1 had no reviewer report of its own; the gateway advisor and the live measurement were left to 18.2.",
+ "lessons": [
+  "Never trust an OK from a chain whose earlier step may have failed: check how many tests ran.",
+  "Before any live call, a model role needs a fallback equal to the old behaviour, a parser that refuses what code cannot check, and a pinned prompt."
+ ],
+ "commits": [
+  "0c58bcf",
+  "fc91c48"
+ ]
+}

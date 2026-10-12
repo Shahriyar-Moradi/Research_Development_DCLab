@@ -1,0 +1,53 @@
+{
+ "package": "6.1",
+ "title": "Kaggle and Hugging Face",
+ "date": "2026-10-05",
+ "request": "Every data source on Home and in the wizard must work for real (the owner chose unstructured files, Kaggle and Hugging Face, databases and cloud, and synthetic data), including when credentials must stay on the server side; each source becomes a file in the draft and goes through the same structure, clean and analyse pipeline as an upload. This package brings data from Kaggle and the Hugging Face Hub.",
+ "spec": "Search and import from Kaggle; import from the Hugging Face Hub (dataset id, revision, config, split); licence, version and SHA-256 recorded. Done when the Kaggle and Hugging Face tests in tests/test_connectors.py pass (with fakes); the live services are package 8.2.",
+ "plan": [
+  "Write connectors/kaggle.py on Kaggle's REST API with the standard library, using KAGGLE_USERNAME and KAGGLE_KEY from the server's environment.",
+  "Write connectors/hf.py with huggingface_hub and an optional HF_TOKEN, pinning the download to the commit it records.",
+  "Download one table into the draft's data folder with a size cap, record source, licence, version or revision and SHA-256, register an asset and run the pipeline.",
+  "Add the search and import routes and wire the tabs on Home and in the wizard.",
+  "Test with fakes only; never call the live services from tests."
+ ],
+ "decisions": [
+  {
+   "decision": "Kaggle through its REST API with the standard library, not the kaggle package; Hugging Face without the datasets package.",
+   "why": "Fewer dependencies for the same result."
+  },
+  {
+   "decision": "The Kaggle key goes in a header that is not passed on when Kaggle redirects to its storage host.",
+   "why": "A redirect must not hand the user's key to another host."
+  },
+  {
+   "decision": "Zip entries that are directories, absolute or '..' paths, __MACOSX or hidden files are skipped.",
+   "why": "An archive must not write outside the draft's folder."
+  },
+  {
+   "decision": "A Hugging Face download is pinned to the commit sha it records.",
+   "why": "The recorded source must match the file even if the branch moves."
+  }
+ ],
+ "change": "dclab_rnd/connectors/kaggle.py and hf.py with routes POST /api/connectors/kaggle/search, POST /api/drafts/{id}/data/kaggle and /data/hf; the Kaggle tab searches and imports; tests with fakes.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The wizard's Hugging Face tab sent no fields.",
+   "scenario": "Importing from the Hugging Face tab in the wizard posted an empty body, so the import could not know which dataset, split or config was meant.",
+   "cause": "The demo's tab was markup only.",
+   "fix": "The tab sends dataset, revision, split and config through the shared DC.connectors code used by Home.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done with fakes: search and import code with licence, revision and hash recorded. Assumptions noted at build time: Kaggle's v1 API field names and that a whole-dataset download is a zip. Live runs are 8.2 (Hugging Face done 2026-10-07; Kaggle waits for a key).",
+ "lessons": [
+  "Test connectors with fakes in the suite, and name plainly that the live service has not been run yet."
+ ],
+ "commits": [
+  "96feb56"
+ ]
+}

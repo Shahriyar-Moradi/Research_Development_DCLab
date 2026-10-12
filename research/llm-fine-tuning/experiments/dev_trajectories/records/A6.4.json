@@ -1,0 +1,123 @@
+{
+ "package": "A6.4",
+ "title": "Serve a tuned model as a tier, with a shadow mode as the safety net",
+ "date": "2026-10-06",
+ "request": "Add shadow mode to the gateway: a purpose can name a shadow model that receives the same request; its answer is stored and compared (same tool chosen? same validated output?) but never used. Show agreement rates on the Admin page. Switching a purpose to the tuned model requires a reviewer's approval, recorded in the audit trail, and can be undone in one setting.",
+ "spec": "The tuned model as an optional tier, with a shadow mode that runs it beside the current model and logs disagreements without acting on them. Done when shadow mode logs disagreements for a week of scripted traffic and the validator still sees only the production model's moves.",
+ "plan": [
+  "Map the gateway: tiers, purposes, Bound, usage, the intern's long-lived client.",
+  "Write models/routing.py (a purpose's serving tier, its shadow, the history; file or table, migration 0007) and models/shadow.py (compare the first tool call and its arguments, log without prompt, arguments or answer).",
+  "In the gateway, copy the caller's messages first, answer from the served model, then send the copy to the shadow in a background thread; never return it, never count it in usage or budgets; only a local tier may shadow.",
+  "Add the tuned tier, read only from DCLAB_TIER_TUNED_*, never falling back to another model; POST /api/models/routing with a reviewer and a reason; the Admin page's purpose table with serving tier, shadow and agreement.",
+  "Test a week of scripted traffic and an intern run whose shadow proposes moves; rerun the judgment suite (AEV-008); review; fix five findings and one more from the re-check; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Only a local tier can shadow.",
+   "why": "A shadow copies every request; locally it costs nothing and no cap needs to see it, and no data goes to another provider."
+  },
+  {
+   "decision": "The shadow's reply is never returned, never shown to the validator and never counted in usage or budgets.",
+   "why": "A candidate model must prove itself beside the current one before it decides anything."
+  },
+  {
+   "decision": "An approval is for one model at one endpoint; a different model under the same tier name serves nothing until approved.",
+   "why": "An approval tied to the tier name lets any later model inherit a reviewer's yes it never earned."
+  },
+  {
+   "decision": "Moving a purpose back to its own tier is one setting, for anyone.",
+   "why": "Undoing a risky switch must be easier than making it."
+  },
+  {
+   "decision": "Agreement compares the first tool call and its arguments only.",
+   "why": "It is what can be compared deterministically now; whether the shadow's move would pass the validator ('same validated output') is written as open."
+  }
+ ],
+ "change": "dclab_rnd/models/routing.py (change, approved, history; NOT_ROUTED for the campaign purposes), models/shadow.py (compare, record, rows), migration 0007 (model_routing, model_shadow); the gateway routes each request by the routing read before it, shadows after the served answer, and for_workspace() follows the same routing; the tuned tier; POST /api/models/routing; /api/intern names the serving tier; the live judgment suite plans with the serving tier and keeps its traffic out of the shadow log; the Admin page shows serving tier, shadow, agreement and disagreements with 'Serve with tuned' and 'Back to'; tests/test_shadow_mode.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A reviewer's approval was tied to the tier name 'tuned', not to a model.",
+   "scenario": "With the tuned model set to lora-A, a reviewer approves 'serve tuned' for the intern. Then the tuned model is changed to lora-B, never shadowed: the next request is served by lora-B, and the history has one entry with no model. Also, an approval made while tuned was unset stayed stored and silently served whatever tuned model was configured later, while the Admin page showed neither 'Back to' nor 'moved'.",
+   "cause": "The routing entry and its history recorded no model; route() served whatever the tier's settings said.",
+   "fix": "The approval stores the model and endpoint; the routed tier serves only while they match and the tier is ready; serving a tier with no model is refused; the Admin page shows 'approved ...: not serving' and 'Back to' whenever a serve is set.",
+   "test": "test_an_approval_is_for_one_model."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Routing was accepted and shown for purposes the gateway does not send.",
+   "scenario": "A reviewer moves 'campaign' to tuned: the Admin page shows it moved and the audit records the approval, but every campaign request still goes through NOOA to the original endpoint and a shadow on it never runs. Command-line tools built a gateway with no routing at all.",
+   "cause": "change() accepted every purpose, and for_workspace() did not read the routing.",
+   "fix": "The campaign purposes are not routable (422, 'not routed' on Admin); for_workspace() applies the workspace's routing and shadows.",
+   "test": "test_the_campaigns_purposes_are_not_routed and the 422 in the API tests."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "/api/intern described the intern's own tier, not the serving one.",
+   "scenario": "After 'Serve with tuned', the intern page still named the strong model; if the strong tier had no key while tuned served, the mode was 'llm' but the note said no model was configured.",
+   "cause": "The route read the purpose's own tier.",
+   "fix": "It reports the tier the gateway routes to.",
+   "test": ""
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Tool names were logged verbatim from model output.",
+   "scenario": "An untuned or tuned model can emit any string as a tool name, for example a cell value it saw in describe_data, and the shadow log kept it unbounded.",
+   "cause": "first_tool kept the name as written.",
+   "fix": "A tool name is kept only when the request offered that tool; otherwise it is logged as 'other'.",
+   "test": "A shadow test with an invented tool name."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The PostgreSQL shadow store, the default thread runner and the agreement rates were untested.",
+   "scenario": "The week test used file stores, so PgShadows.record never ran under test-pg; the background runner and summary['agreement'] were never exercised; the Admin dialog closed even on 403 or 422, losing the typed reason.",
+   "cause": "Tests built stores directly and injected a synchronous runner.",
+   "fix": "Tests open the workspace's stores (so test-pg covers PostgreSQL), run the default thread runner including the message copy, and assert the agreement after one shadowed request; the dialog closes only when the change was saved.",
+   "test": "tests/test_shadow_mode.py (10 tests)."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The live judgment suite named the wrong model once the intern was routed (introduced by the F2 fix).",
+   "scenario": "Tuned on a local endpoint and the intern approved to serve with it: for_workspace() now routes the intern to tuned, but the live suite's plan still read the purpose's own tier and reported the strong remote model. An AEV record would credit the tuned model's scores to the strong model, a purpose moved to a priced remote tier could run without the required euro cap, and benchmark traffic would mix into the Admin page's agreement rates.",
+   "cause": "plan() read settings.purpose(purpose).tier instead of the gateway's route.",
+   "fix": "plan() takes each purpose's tier from the gateway's route; the suite's gateway has no shadows.",
+   "test": "test_the_live_suite_plans_with_the_model_that_serves."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "a week of scripted shadow traffic",
+   "gate": "Shadow mode logs disagreements for a week of scripted traffic and the validator still sees only the production model's moves (the package's Done-when).",
+   "result": "168 requests an hour apart with a shadow that disagrees on every fourth and fails once: 42 disagreements over 7 days logged, every answer the served model's, 168 usage rows and none from the shadow. An intern run whose shadow proposes run_stage and set_settings leaves neither in the transition log or the project.",
+   "verdict": "pass",
+   "next": "No tuned model exists yet (A6.3), so nothing has been shadowed live."
+  },
+  {
+   "name": "AEV-008, scripted suite rerun",
+   "gate": "A4.3's gate: a complete scripted rerun after the change.",
+   "result": "Complete; the scores did not move.",
+   "verdict": "pass",
+   "next": ""
+  }
+ ],
+ "outcome": "Done: a purpose can be shadowed by a local model at no cost and with no effect on the answer, and served by a tuned model only after a reviewer approves that exact model; moving back is one setting; every change is in the routing history and the platform audit. Open: no tuned model exists; agreement compares the first tool call, not the validator's verdict; shadow requests run in a background thread with no queue. A6.3 waits for A6.2's threshold and the owner's approval. Six review findings fixed.",
+ "lessons": [
+  "Approve a model, not a name: an approval tied to a tier name passes to any model later configured under it.",
+  "A setting the system accepts but does not apply is worse than a refusal; refuse routing for purposes that bypass the gateway.",
+  "When a fix makes more callers follow a setting, find every place that reports what serves; a benchmark that names the wrong model corrupts the comparison it exists for.",
+  "Treat a model's tool name as model-written text: keep it only if it was offered."
+ ],
+ "commits": ["0488e00"]
+}

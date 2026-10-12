@@ -13,7 +13,8 @@ against the gate fixed before it ran.
 
 The examples teach four things: `plan_package` (the request → the plan and the decisions with reasons), `review_change`
 (the change → the defects, each with its scenario), `fix_finding` (a defect → its cause, the smallest fix, the test that
-proves it) and `judge_measurement` (a gate fixed before the run and the numbers → the verdict and what follows).
+proves it) and `judge_measurement` (a gate fixed before the run and the numbers → the verdict and what follows) and `retrospective` (the request and the
+outcome → the lessons the next package should keep).
 Whole packages are held out for validation. The builder refuses absolute paths, long hashes and e-mail addresses; a
 record holds names, decisions and aggregate numbers, never a row of anyone's data.
 

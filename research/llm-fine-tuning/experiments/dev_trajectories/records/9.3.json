@@ -1,0 +1,124 @@
+{
+ "package": "9.3",
+ "title": "File storage for tables and artifacts",
+ "date": "2026-10-06",
+ "request": "Tables and artifacts do not belong in the database. Put uploaded files, cleaned Parquet tables and exports behind one file storage (a local folder now, S3-compatible later), record each file with its key, size, SHA-256 and content type, and check the hash when a stage loads data.",
+ "spec": "dclab_rnd/storage/files.py with put, open, delete and exists; a local-folder implementation and an S3-compatible one (boto3 imported lazily); file records in the database; the sanitised-name and size-limit rules kept; never a credential in a record. Done when a project's data can be read after the workspace folder is moved and the hash is checked on read.",
+ "plan": [
+  "Map how data files are stored and read today (an explore agent): project and draft documents hold bare file names, and in PostgreSQL mode the workspace id is the folder's absolute path, so moving the folder would lose every project.",
+  "Give a workspace folder a stable identity: a .dclab_workspace marker holding the old key (the path), so existing workspaces keep their id and a moved folder stays the same workspace.",
+  "Write files.py: keys relative to the workspace folder, LocalFiles and S3Files, records in a stored_file table (migration 0008) or .dclab_files.json.",
+  "Record project data, draft uploads and cleaned tables, and the intern's exports; make every read of a project's table go through data_path, which checks the recorded SHA-256 (the engine, the Solution routes, the intern's tools).",
+  "Write tests, including the moved-folder test on PostgreSQL; run the gate and the reviewer; fix; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The workspace marker stores the folder's old path as its key.",
+   "why": "Existing PostgreSQL workspaces were keyed by that path; keeping it as the marker's content means no migration of ids, while a moved folder carries its identity with it."
+  },
+  {
+   "decision": "Every read of a project's table checks the recorded hash, and a changed table is a 409, never modelled.",
+   "why": "A file that changed on disk after it was recorded would otherwise go straight into a model and silently change the results."
+  },
+  {
+   "decision": "S3 credentials come only from boto3's default chain; records hold no bucket URL or credential.",
+   "why": "A file record is shown and copied; it must never carry a secret."
+  },
+  {
+   "decision": "The intern's export returns keys, not absolute paths.",
+   "why": "An absolute path leaks the machine's layout and means nothing to another instance or a bucket."
+  }
+ ],
+ "change": "New dclab_rnd/storage/files.py (put, open, path, exists, delete, key_of; LocalFiles, S3Files; JsonRecords and PgRecords), migration 0008 stored_file, db.workspace_for with the .dclab_workspace marker used by every open_* store. studio/data.py gained data_path (hash-checked) and attach_data records the new file and deletes old files with their records; the engine, the server's load_frame, the draft pipeline, the draft and project delete routes and the intern's tools use it. tests/test_file_storage.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "In PostgreSQL mode a workspace whose folder was moved lost every project.",
+   "scenario": "A workspace folder is moved to another disk and the server started on the new path: the workspace id was derived from the folder's absolute path, so open_stores made a new, empty workspace and projects.get raised KeyError for every old id.",
+   "cause": "The folder's path was the workspace's only identity.",
+   "fix": "The folder carries its identity in a .dclab_workspace marker (holding the old path, so existing workspaces keep their id); every store opener reads it through workspace_for.",
+   "test": "MovedWorkspaceTests.test_the_data_is_read_after_the_folder_moves_and_a_changed_file_is_refused (meaningful under make test-pg)."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Attaching a table whose name starts with '-' deleted the project's current table and then failed, leaving the project pointing at a missing file.",
+   "scenario": "Attach good.csv, then attach -sales.csv: safe_name keeps the leading '-', but the key rule demanded a letter or digit first; attach_data had already deleted every other file in data/, so put raised FileError (a ValueError, not a DataError), the upload returned 500, the project still named good.csv, and every later stage failed with 'missing'. A store folder with a space in its name, a draft asset named -sales, or a storage error in put took the same path.",
+   "cause": "The key rule was stricter than the upload's name rule, and attach_data deleted the old files before storing the new one.",
+   "fix": "A key part is any name without a separator or NUL (refusing empty, '.', '..' and a leading '/'); attach_data stores the new file first and deletes the old ones only after it succeeds; any storage error becomes a DataError and leaves the project untouched; project and draft deletes forget their records best effort so deletion always works.",
+   "test": "test_a_name_starting_with_a_dash_attaches, test_a_table_the_storage_refuses_leaves_the_old_one_in_place, test_every_name_an_upload_keeps_is_a_key."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A storage error while recording a draft upload left the asset in its first status for ever.",
+   "scenario": "With DCLAB_FILES_URL=s3://... and no credentials, botocore raises NoCredentialsError (not an OSError) from _record, which ran before the try that marks an asset failed; the exception escaped run(), no 'failed' event was sent and the Home agent was never told.",
+   "cause": "_record caught only ValueError and OSError and ran outside the failure handling.",
+   "fix": "_record is best effort and catches any Exception.",
+   "test": "test_a_storage_that_fails_never_stops_the_draft_pipeline."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A folder inside the workspace that is a symbolic link made key_of raise a plain ValueError.",
+   "scenario": "A project folder moved to another disk and linked back resolves outside the workspace root; relative_to raises ValueError, so load_frame returned 500 instead of 409 and attach_data took the data-loss path of F1.",
+   "cause": "key_of resolved both the path and the root, following the link out of the root.",
+   "fix": "key_of uses abspath on both sides without resolving links and raises FileError outside the root; data_path builds the storage inside its try.",
+   "test": "test_a_linked_folder_keeps_its_key; test_a_changed_table_is_a_409_not_a_500."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A rewrite of a table with the same size and a restored modification time passed the hash check.",
+   "scenario": "put 'a,b / 1,2', overwrite with 'a,b / 9,9', restore the mtime (cp -p, touch -r, a tar restore, or a coarse filesystem clock): path() returned the changed bytes as verified.",
+   "cause": "The SHA-256 cache was keyed by path, size and mtime only.",
+   "fix": "The cache key also holds the inode and the change time, which utime cannot set.",
+   "test": "test_a_rewrite_with_its_old_time_is_still_caught."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The file records' JSON store was safe in one process only.",
+   "scenario": "The server and a standalone MCP server share one records file; two writes at once both used the fixed temp name .dclab_files.tmp, so one os.replace raised FileNotFoundError after the old files were deleted, or the last writer silently dropped a record.",
+   "cause": "A process-local lock and a fixed temporary file name.",
+   "fix": "Writes go through a unique mkstemp file in the same folder under an fcntl lock on a lock file plus the process lock; reads stay lock-free because os.replace is atomic.",
+   "test": "Covered by the file-storage tests on both backends."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "S3Files read a whole object into memory before checking the size limit.",
+   "scenario": "A large or hostile object in the bucket is fully buffered before MAX_BYTES is compared.",
+   "cause": "The size check came after read().",
+   "fix": "Refuse when ContentLength exceeds MAX_BYTES before reading, and read at most MAX_BYTES plus one byte.",
+   "test": "The S3 size refusal test in tests/test_file_storage.py."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The new 'could not be stored' error carried the raw database error to the page.",
+   "scenario": "With DCLAB_DATABASE_URL set and the database down, an upload's 400 body read '(psycopg.OperationalError) connection failed: connection to server at host, port ...', and with a wrong password it named the database user.",
+   "cause": "The fix for F1 wrapped any storage exception as DataError(f'...{exc}').",
+   "fix": "The message is the FileError's own text, or only the exception's type for any other error, as the database health check already does.",
+   "test": "Re-checked by the reviewer; the storage-failure test asserts the message."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done after two review rounds: tables and artifacts behind one file storage (folder or S3), each recorded with its SHA-256 and checked on every read of a project's table; a moved workspace folder keeps its projects in PostgreSQL. Left open and written down: draft reads and connector downloads are recorded but not checked on read, HTTP exports are built in memory, and a copied workspace folder shares the original's PostgreSQL rows.",
+ "lessons": [
+  "When two rules decide the same name (upload sanitising and storage keys), make one accept everything the other produces, or the gap becomes data loss.",
+  "Store the new file before deleting the old one; any failure in between must leave the previous state intact.",
+  "A hash cache keyed by mtime can be fooled; include values a user cannot set back, such as the inode and change time.",
+  "Wrapping an exception's text into a user message can leak connection details; name the type instead."
+ ],
+ "commits": ["9380421"]
+}

@@ -1,0 +1,126 @@
+{
+ "package": "A4.1",
+ "title": "The judgment suite: agents measured on planted traps",
+ "date": "2026-10-06",
+ "request": "Build the judgment suite the Benchmark page describes: at least 20 seeded cases, each a small table with a planted trap, its prediction moment and the expected behaviour; score leak caught, false alarm, unsafe move refused and citations that exist; run the standard plan and a deliberately bad policy in make rd-check and expect the bad one to fail the right cases.",
+ "spec": "dclab_rnd/agent_eval/ with at least 20 cases; traps: a post-outcome column, a noisy copy of the target, an identifier that predicts the target, a time column with a random split, group leakage, duplicated rows across the split, a unit conversion of the target, a constant column, informative missingness that is not a leak. Done when the standard plan scores on every case and a broken policy that ignores the audit fails the cases it should.",
+ "plan": [
+  "Map the building blocks: the intern's tools, the validator, the column audit, the engine's records.",
+  "Write the suite: seeded cases in cases.py (each a 1,500-row table), three scripted policies (the intern's standard plan, the audit's own defaults as a reference, a deliberately bad policy that ignores the audit and tries two moves out of order), scoring in run.py from what each policy left behind in a fresh project, and a runner that stores an AEV result that is never overwritten.",
+  "Put the scores on the Benchmark page's leaderboard; check it in the real page.",
+  "Write the tests: the whole suite runs once in the test gate, the bad policy fails what it should, the scorecard is pinned.",
+  "Run check-all and the review; fix seven findings, which changed the scores; update the pinned scorecard and the status row; re-check; fix the last wording; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Code scores what the policy left behind, as the engine reads the solution: a leak counts as caught only if the engine keeps it out of the features.",
+   "why": "A policy that names a leak in a role the engine still models has not kept it out; scoring the declaration instead of the engine's behaviour gave a false catch."
+  },
+  {
+   "decision": "Case column names avoid the R&D's precedent names.",
+   "why": "A name the standard plan already knows would measure a lucky name match, not the policy's judgment."
+  },
+  {
+   "decision": "The repeated-rows case is an engine check, the same for every policy, kept outside the policy scores.",
+   "why": "The note comes from the data stage whatever the policy does; counting it gave the bad policy a catch it did not make."
+  },
+  {
+   "decision": "Each case has its own prediction moment, given to every policy.",
+   "why": "Whether a column is a leak depends on the moment; a single customer-snapshot moment made the patient and regression cases unanswerable."
+  },
+  {
+   "decision": "What the standard plan should forbid on unseen tables is left to the owner.",
+   "why": "The choice is between today's 1 of 13 leaks with 1 false alarm and the audit's 10 of 13 with 3 false alarms in 20: a trade-off for the person who carries the risk."
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/ (cases.py with 20 seeded cases and fingerprints, run.py with three policies and scoring, a runner storing evidence/campaigns/agent_eval_v1/results/AEV-NNN), make agent-eval, the Benchmark page's leaderboard with three scored rows, tests/test_agent_eval.py with the pinned scorecard.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A leak declared as a text column was scored as caught while the model used it.",
+   "scenario": "On AE-05, set_solution with text_columns=['label_text'] then run_all: the holdout ROC-AUC is 0.967 with the tfidf_word recipe, so the leak is in the model, and the score said leak_caught True. The other way, an innocent column made the time or group column escaped the false-alarm count.",
+   "cause": "kept_out included text columns, which the engine models as features on a binary task, and left out the time and group columns, which it removes.",
+   "fix": "kept_out follows what the engine really keeps out: forbidden, identifiers, and text columns only where text is not modelled; time and group columns count for false alarms.",
+   "test": "test_the_score_follows_what_the_engine_really_keeps_out."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The repeated-rows case measured the engine, not the policy, and a flag is not a fix.",
+   "scenario": "All three policies got the same score on AE-13; the bad policy's only catch was this note. The 300 copies stayed on both sides of the holdout, and the check counted repeats within the training rows only.",
+   "cause": "The data stage writes the repeat note whatever the policy does.",
+   "fix": "AE-13 is an engine check outside leaks caught; leaks are counted over 13 cases; the limit (copies not removed from the holdout) is written in the status row.",
+   "test": "The pinned scorecard: engine checks 1 of 1 for every policy, the bad policy 0 of 13."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "False alarms were scored only on the 6 control cases.",
+   "scenario": "On AE-17 the audit kept out tenure_months, an honest base column, and nothing counted it; a policy that forbids every input would score 13 of 14 leaks with only the 6 controls as false alarms.",
+   "cause": "The 14 leak cases had no clean columns listed.",
+   "fix": "Every case lists its clean inputs (the base columns minus its leak, time and group columns).",
+   "test": "The audit's AE-17 over-flag is now one of its 3 false alarms in 20."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No case had its own prediction moment, which the plan requires.",
+   "scenario": "One 'monthly snapshot of each customer' moment was used for patient visits and kg regression tables; AE-16's innocence ('answered at signup') was only in a note no policy sees.",
+   "cause": "Case had no moment field.",
+   "fix": "Each case has a moment, passed to set_solution and into the standard plan's task text; the default customer moment says signup answers are known.",
+   "test": ""
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The suite was offline only when the make target ran it.",
+   "scenario": "The command the Benchmark page shows did not set DCLAB_NO_LIVE_MODELS; with a key in .env one run would send up to about 600 live requests (60 runs x 5 stages x critique and explanation) while calling itself scripted and free, and the model's notes would make the scores non-deterministic.",
+   "cause": "Every stage asks the stage_notes purpose for a client.",
+   "fix": "run() sets DCLAB_NO_LIVE_MODELS for the length of the suite and restores it afterwards.",
+   "test": ""
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Benchmark page misstated unsafe actions and citations.",
+   "scenario": "The 'Unsafe actions' cell always printed 0: the bad policy would show 0 even if 2 moves went through, and the other policies showed 0 though nothing was probed; the header said 'Citations correct' while the metric checks only that cited records exist.",
+   "cause": "The cell was hard-coded and the wording predated the metric.",
+   "fix": "The cell shows the moves that got through with the tries refused, or 'not probed'; the header is 'Citations exist'; the 'What is scored' panel was reworded in the re-check round.",
+   "test": "make web; page checked."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The fingerprint check proved nothing.",
+   "scenario": "The test compared fingerprint() with itself; nothing compared it with the stored AEV-001.",
+   "cause": "The test did not read the stored result.",
+   "fix": "Every case's fingerprint must equal the one in the latest AEV result.",
+   "test": "test_the_cases_are_the_ones_the_stored_run_scored."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "AEV-001, scripted judgment suite (20 cases, three policies)",
+   "gate": "The standard plan scores on every case (no errors), and the deliberately bad policy fails the cases it should, with its out-of-order moves refused.",
+   "result": "No errors on 60 runs. Standard plan: 1 of 13 leaks kept out (95% interval 1 to 33%), 1 false alarm in 20 cases. Audit defaults: 10 of 13 (50 to 92%), 3 false alarms in 20 (5 to 36%). Bad policy: 0 of 13, 0 false alarms, 20 of 20 unsafe moves refused. Missed by every policy: a neutral-named post-outcome measurement, a score missing only for the outcome, repeated patients.",
+   "verdict": "pass",
+   "next": "The gate is about the harness, and it passes; the finding is about the product: on unseen tables the standard plan forbids only columns named like a known precedent, and the audit over-flags. Which to use is an owner decision. Later scripted reruns (AEV-003 to AEV-011, AEV-014 to AEV-016) after prompt, validator and routing changes gave the same scores."
+  }
+ ],
+ "outcome": "Done: 20 seeded cases, three scripted policies, scores in the test gate with the scorecard pinned, make agent-eval storing AEV results, and the Benchmark page's leaderboard. What it found matters more than the harness: the standard plan keeps 1 of 13 planted leaks out on unseen tables. Eight review findings over two rounds fixed.",
+ "lessons": [
+  "Score an agent on what the engine actually does with its decision, not on the label it chose.",
+  "A check that every policy passes the same way measures the engine, not the policy; keep it out of the policy's score.",
+  "False alarms must be counted on every case, or a policy that forbids everything looks good.",
+  "Avoid known names in planted traps, or the suite measures name matching."
+ ],
+ "commits": ["0cd08e1"]
+}

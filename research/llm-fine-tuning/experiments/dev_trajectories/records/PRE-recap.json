@@ -1,0 +1,65 @@
+{
+ "package": "PRE-recap",
+ "title": "A bilingual recap of the R&D project and its product, and keeping it current",
+ "date": "2026-10-05",
+ "request": "Give me one document I can read or share about everything done so far: the vision, each round of work, where the repository stands, the real findings, the product demo, the roadmap and the open questions, with a Persian summary. Later the same day: this is the recap of what I did until now; update it and regenerate the PDF.",
+ "spec": "docs/recap/recap.html as the source and docs/recap/DCLab_RD_Recap.pdf built from it, in English with a Persian summary. On update: every number and status checked against the repository today, and the PDF regenerated and checked page by page.",
+ "plan": [
+  "Write the recap from the repository's own records: the vision, every round of work in order, the state of the repository, the measured findings, the demo, the roadmap and the open questions; add a Persian summary; render the PDF.",
+  "When asked to update it, read the whole recap and compare it with the repository before editing.",
+  "Report the parts that are out of date and ask before rewriting.",
+  "Refresh the numbers (latest commit, test count, failing tests, whether any blueprint decisions were saved) from the repository itself.",
+  "Add the new rounds of work, mark the fixed bug as fixed with its re-check numbers, update the demo section, and add a Persian walkthrough of the demo.",
+  "Regenerate the PDF and check every page by eye; fix page breaks that leave a note alone on a page."
+ ],
+ "decisions": [
+  {
+   "decision": "Every number in the recap is read from the repository at the time of writing, not copied from the old recap.",
+   "why": "A recap that repeats stale numbers misleads the people it is shared with."
+  },
+  {
+   "decision": "The out-of-date parts were listed first and the rewrite waited for the owner's yes.",
+   "why": "The owner had only shared the recap; changing a shared document is the owner's call."
+  },
+  {
+   "decision": "Failing tests are reported in the recap with their known cause, not hidden.",
+   "why": "The recap is a status document; one test failed because of another session's unfinished work, which a reader needs to know."
+  },
+  {
+   "decision": "Uncommitted changes from another session were left untouched.",
+   "why": "The working copy held another session's work in progress; only the recap belonged to this task."
+  }
+ ],
+ "change": "Commit 9ddc401 added docs/recap/recap.html and DCLab_RD_Recap.pdf. The later update (left uncommitted at the owner's choice) moved the latest commit and date, added two rounds (the category-code fix and the demo redesign), refreshed the test numbers, marked the category-code bug fixed with its re-check result, rewrote the demo section for the new sidebar groups and the Overview plus tabs layout, updated the Persian summary, added a Persian section-by-section walkthrough of the demo, and removed page breaks that left short notes alone on a page. The PDF is 10 pages.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The shared recap was out of date in three places a day after it was written.",
+   "scenario": "The demo section still listed the old page groups after the redesign; the category-code bug was still listed as open although its fix was committed; the test section said 94 tests pass while the suite then ran more tests and one failed.",
+   "cause": "A recap is a snapshot; the repository kept moving.",
+   "fix": "Compare the recap with the repository before every update and refresh each number from its source.",
+   "test": "Checked against make rd-check output and git log at the time of the update."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The regenerated PDF had a short note alone on its own page.",
+   "scenario": "After the new sections were added, the 'Open it' note was pushed onto a page of its own by a forced page break.",
+   "cause": "A fixed page break written for the earlier length of the document.",
+   "fix": "Remove the page break and regenerate the PDF.",
+   "test": "Every page of the PDF checked by eye."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: a bilingual recap the owner can share, and an update that brought it in line with the repository on 5 October, including a Persian walkthrough of the demo.",
+ "lessons": [
+  "A status document is only as good as its last check against the source; refresh every number from where it lives.",
+  "Fixed page breaks break when content grows; check a regenerated PDF page by page."
+ ],
+ "commits": [
+  "9ddc401"
+ ]
+}

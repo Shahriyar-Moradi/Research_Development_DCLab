@@ -1,0 +1,80 @@
+{
+ "package": "RD-llm-critic-and-gate",
+ "title": "The LLM critic on 50 experiments, and the gate that checks its objections against the numbers",
+ "date": "2026-09-18",
+ "request": "Send the campaign's 50 bounded review tasks to a capable LLM critic and keep only cited, reviewed conclusions as durable memory. Later: make sure a critic's wrong objection never becomes memory or training data.",
+ "spec": "make rd-campaign-review runs pending critic tasks (OPENAI_API_KEY from .env) and writes llm_review_memory.jsonl and LLM_REVIEW_REPORT.md; metrics in the result JSON stay authoritative. critic_gate.py recomputes each stage's recorded selection rule and marks a challenge that disputes a confirmed selection as contradicted; contradicted challenges are excluded from memory and from the SFT corpus.",
+ "plan": [
+  "Give the critic one bounded task per experiment: the evidence bundle, the claims, and a required answer format (evidence, interpretation, decision, risks, smallest next test).",
+  "Run the 50 reviews and render the report; keep the model's challenges with an id and a severity.",
+  "When building the knowledge layer, read the critic's challenges against the recorded numbers before using them.",
+  "Write critic_gate.py: parse each stage's selection rule (tolerance, std penalty, acceptance margin) and recompute the choice from the recorded rows.",
+  "Drop contradicted challenges from memory and from the SFT builder; make the gate metric-aware when the expansion campaign added other metrics."
+ ],
+ "decisions": [
+  {
+   "decision": "The LLM critic may challenge and propose; it may not rewrite an observed metric or approve deployment.",
+   "why": "The critic reads the same evidence a person reads and can be wrong; the numbers are measured by code."
+  },
+  {
+   "decision": "Store only cited conclusions, never free chat, as durable memory.",
+   "why": "Memory that later trains a model must be checkable against a result file."
+  },
+  {
+   "decision": "Recompute the rule rather than ask a second model to judge the first.",
+   "why": "Every stage records its rule beside the numbers it was applied to, so a deterministic recomputation settles the dispute."
+  }
+ ],
+ "change": "dclab_rnd/llm_review.py and the review report and memory for model_building_50_v1; dclab_rnd/critic_gate.py with a per-experiment report; the SFT v3 builder and the evidence index read the gate's verdicts.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The critic reported selection-rule violations that do not exist.",
+   "scenario": "The feature ladder contains a recipe literally named `selected` (a feature-selection subset). On adult's feature stage (EXP-003) the critic read it as the recipe the rule selected and objected that 'selected' scored below raw despite the rule; the recorded rule had chosen raw. An earlier chat praised this as a real catch. Across the campaign, 10 of 157 challenges were of this kind.",
+   "cause": "A name collision between a recipe called selected and the rule's selected stage, and no step that recomputed the rule before trusting the objection.",
+   "fix": "critic_gate.py recomputes each stage's choice from the recorded rows and rule; a challenge that disputes a confirmed choice is marked contradicted and dropped (10 dropped, 147 kept).",
+   "test": "tests/test_knowledge_layer.py checks the gate; the SFT v3 manifest records contradicted_challenges_dropped 10."
+  },
+  {
+   "id": "F2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The gate always recomputed on ROC-AUC with fixed tolerances.",
+   "scenario": "The fraud experiments (EXP-054, EXP-055) select on average precision with a 0.005 margin; the gate recomputed them on ROC-AUC and reported disagreement with recorded choices that hold when recomputed on average precision.",
+   "cause": "The metric, tolerance and margin were constants written for the binary campaign.",
+   "fix": "Read the primary metric, its direction (MAE, RMSE, log loss and Brier are lower-is-better), the tolerance, the std penalty and the acceptance margin from each result's recorded rule.",
+   "test": "tests/test_knowledge_layer.py; afterwards all 42 recomputable selections across 70 experiments are consistent."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "critic review of 50 experiments",
+   "gate": "Each review must cite the evidence and end with a decision and a falsifiable next experiment; no accuracy threshold.",
+   "fixed_before_run": false,
+   "result": "50 reviews by gpt-5.4-mini; confidence high on 4 and medium on 46; all 50 decisions withheld acceptance (do not accept, provisional, insufficient evidence or hold), most asking for repeated or nested CV and a decision-time audit.",
+   "verdict": "not scored",
+   "next": "Check each challenge against the recorded numbers before it becomes memory."
+  },
+  {
+   "name": "critic gate consistency",
+   "gate": "Every recomputable selection must agree with the choice the result recorded.",
+   "fixed_before_run": true,
+   "result": "42 of 42 recomputable selections across 70 experiments consistent after the gate became metric-aware; 10 of 157 critic challenges contradicted.",
+   "verdict": "pass",
+   "next": "Run the gate on every new campaign before make knowledge."
+  }
+ ],
+ "outcome": "The critic's conservative reviews are kept as cited memory; its 10 checkably wrong objections are filtered out before they reach the evidence index or the SFT corpus.",
+ "lessons": [
+  "A critic that sounds careful can still be wrong in a way code can check; recompute before you remember.",
+  "Never name an artefact after a role in the rule that judges it (a recipe called selected beside a selected stage).",
+  "A model that withholds acceptance on every experiment gives its value in specific challenges, not in its verdicts."
+ ],
+ "commits": [
+  "1d26339",
+  "d9c4c24",
+  "3212bd9"
+ ]
+}

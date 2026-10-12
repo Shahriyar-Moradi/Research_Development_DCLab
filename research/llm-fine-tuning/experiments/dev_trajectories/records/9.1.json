@@ -1,0 +1,49 @@
+{
+ "package": "9.1",
+ "title": "A storage interface in front of the three stores",
+ "date": "2026-10-05",
+ "request": "The product moves to PostgreSQL for one team of about 1,000 users. First put one small interface in front of the project, draft and intern-session stores, with today's files as the first implementation, and change no behaviour.",
+ "spec": "A Protocol each for projects, drafts and intern sessions in dclab_rnd/storage/, with exactly the methods callers use today (get, save, update under a lock, list, delete, the append-only logs, the data folder); the file stores implement them and every caller depends on the Protocol. Done when every route and module reaches storage only through the interface and make rd-check and make product-e2e pass unchanged.",
+ "plan": [
+  "List the methods of ProjectStore, DraftStore and SessionStore and count every attribute use outside the stores (store.home, data_dir, directory, path, private locks).",
+  "Find the callers that build paths inside a store's folder: the agent's turn lock, the Admin page, the Compute page twice, the intern's export.",
+  "Write dclab_rnd/storage/__init__.py with one Protocol per store stating the whole surface callers may use.",
+  "Add the missing methods to the file stores (an export folder, the draft's pipeline events, the turn lock) and move the five callers onto them.",
+  "Write a test that fails when a store drifts from its Protocol or when code outside the stores reaches into their folders again.",
+  "Run make rd-check and make product-e2e; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The Protocols hold exactly what callers use today, nothing more.",
+   "why": "A wider interface would have to be built twice in 9.2 for no caller; a narrower one would leave callers reaching into folders."
+  },
+  {
+   "decision": "Give the stores methods for the five folder-reaching uses instead of exposing paths.",
+   "why": "A path inside a store's folder means nothing once the store is a database; a method can be implemented by either backend."
+  },
+  {
+   "decision": "Guard the boundary with a test, not a convention.",
+   "why": "The next change that reaches into a store's folder would break PostgreSQL mode silently; a test that greps for it fails at once."
+  }
+ ],
+ "change": "New dclab_rnd/storage/__init__.py with Projects, Drafts and Sessions Protocols. studio/store.py and draft/store.py gained the methods the folder-reaching callers needed (export folder, pipeline events, turn lock). agentic/pages/ops.py, agentic/pages/platform.py, draft/chat.py and intern/tools.py now call those methods. tests/test_storage_interface.py checks each file store against its Protocol and refuses folder access outside the stores.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Five callers built paths inside a store's folder and would break as soon as storage stops being files.",
+   "scenario": "The Home agent's turn lock, the Admin page, the Compute page (twice) and the intern's notebook export each joined store.home or data_dir with a file name; with a database behind the store there is no such folder, so each would fail or read nothing.",
+   "cause": "The stores had no method for these uses, so callers reached around them.",
+   "fix": "Each use became a store method; the callers call it.",
+   "test": "tests/test_storage_interface.py: code outside the stores that reaches into their folders fails the test."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: one interface in front of the three stores, the five folder-reaching callers moved onto it, behaviour unchanged; make rd-check passed (320 tests) and make product-e2e passed all four flows.",
+ "lessons": [
+  "Before replacing a storage backend, count every use of the old one's internals outside it; those are the places a new backend breaks.",
+  "A refactor meant to change nothing is proven by the existing suite and end-to-end flows passing without edits to their expectations."
+ ],
+ "commits": ["ec3b64a"]
+}

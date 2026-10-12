@@ -1,0 +1,56 @@
+{
+ "package": "RD-tabpfn",
+ "title": "TabPFN: a pretrained tabular model against tuned boosting",
+ "date": "2026-09-16",
+ "request": "Find out whether a pretrained tabular foundation model (TabPFN v2 and v3) matches or beats tuned gradient boosting with no tuning, and at what cost in latency and data size.",
+ "spec": "A training script and a benchmark of TabPFN (v2, v3, and v3 in thinking mode) against trees, scikit-learn models and lucidrains TabTransformer/FT-Transformer on Telco churn and HyperAck.",
+ "plan": [
+  "Write train_tabpfn.py (v2 without a token, v3 with one) and benchmark_tabpfn.py.",
+  "Run both datasets and record ROC-AUC per model.",
+  "Compare with the churn campaign and the HyperAck safe champion."
+ ],
+ "decisions": [
+  {
+   "decision": "Keep the TabPFN token in the repository-root .env, never in code or chat.",
+   "why": "v3 and thinking mode call a hosted service that needs the token."
+  }
+ ],
+ "change": "research/tabular-foundation-models/experiments/tabpfn/ with the training script, the benchmark, a notebook and results (benchmark.csv, metrics.json, thinking_metrics.json).",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The HyperAck loader of the TabPFN benchmark keeps the two post-outcome final fares.",
+   "scenario": "load_part1 in train_tabpfn.py passes final_customer_fare and final_biker_fare to every model, so TabPFN's HyperAck ROC-AUC of 0.981 (histogram boosting 0.973) is leakage-inflated; the honest safe champion on that data is 0.9455.",
+   "cause": "The loader was written before the safe-vs-unsafe analysis and never got the HyperAck contract.",
+   "fix": "Found during the repository reorganization (2026-10-03); the track README now carries a warning that the HyperAck rows are inflated, and a rerun without the fares is queued as the track's next step (it needs TabPFN, torch and the token).",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "TabPFN benchmark on Telco churn",
+   "gate": "Same split for every model; compare ROC-AUC.",
+   "fixed_before_run": false,
+   "result": "TabPFN in thinking mode 0.850; logistic regression 0.841; XGBoost 0.841; TabPFN-2 0.841.",
+   "verdict": "not scored",
+   "next": "Repeat on leakage-safe HyperAck before drawing any conclusion about foundation models."
+  },
+  {
+   "name": "TabPFN benchmark on HyperAck",
+   "gate": "Same split for every model; compare ROC-AUC.",
+   "fixed_before_run": false,
+   "result": "TabPFN thinking mode 0.981, histogram boosting 0.973, both with the leaky final fares in the inputs.",
+   "verdict": "not scored",
+   "next": "Discard these numbers as evidence; rerun with the fares removed."
+  }
+ ],
+ "outcome": "On Telco churn TabPFN in thinking mode gave the best ranking (0.850) with no tuning, about +0.009 over logistic regression. The HyperAck result is invalid until rerun without the final fares.",
+ "lessons": [
+  "Every loader of a dataset must apply that dataset's contract; a leak fixed in one suite survives in a script written earlier."
+ ],
+ "commits": [
+  "31d2413"
+ ]
+}

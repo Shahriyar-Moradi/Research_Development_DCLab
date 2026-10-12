@@ -1,0 +1,125 @@
+{
+ "package": "A2.4",
+ "title": "The Home agent, the intern and the campaign agent as policies on one runtime",
+ "date": "2026-10-06",
+ "request": "Rebuild the three agents as policies on the shared runtime, one at a time, with the existing tests as the safety net. Keep the Home agent's scripted fallback, its one-turn-per-draft lock and streamed replies; keep the intern's standard plan; put the campaign agent behind the same runtime and gateway, or keep it as an adapter that reports its requests. Delete a loop only when its tests pass on the runtime.",
+ "spec": "The Home agent, the intern and the campaign agent run on the runtime with their behaviour unchanged. Done when make product-e2e and the agent tests pass, draft/chat.py's and intern/loop.py's own loops are gone, and the campaign agent runs one campaign on the same runtime.",
+ "plan": [
+  "Plan the three moves: the intern on run() with its write_plan and finish as registered tools in a 'session' scope; the Home agent on run() with a model adapter that keeps its streaming and live bubble; the campaign agent stays on LangGraph and NOOA (its specialists return typed answers, not tool calls) with its experiment write going through the registry and a guard and each phase traced.",
+  "Draft the runtime and intern changes in the scratchpad while A2.3's gate ran; apply them after A2.3 was committed.",
+  "Save a checkpoint when the owner had to restart to free disk; after the restart, find that the four intern test errors were not the full disk but registry tests that knew only the two old scopes.",
+  "Move the intern, then the Home agent (with a trace replay test), then the campaign's experiment (run_experiment in a 'campaign' scope behind the campaign guard, with the same refusals and messages).",
+  "Make the campaign tests load again in .venv-agent (the test file imported the server, which needs pandas) and add them to make check-all.",
+  "Run check-all and the review; fix five regressions with tests; get a re-check; apply its last small fix; commit.",
+  "Find why the disk filled: the test suite never removed its temporary folders; give each test command its own TMPDIR removed at the end (separate commit) and, with the owner's yes, delete the old folders."
+ ],
+ "decisions": [
+  {
+   "decision": "The campaign agent stays a LangGraph loop; only its one write, the experiment, becomes a registered tool behind a guard.",
+   "why": "Its specialists answer in typed objects, not tool calls, so run() has nothing to drive; its requests already go through the gateway adapter, and the guard keeps the same refusals."
+  },
+  {
+   "decision": "Only a call that actually ran ends the run or the turn; a refused finish or question goes back to the model.",
+   "why": "A refused terminal call that ends the run silently loses the model's report or leaves the person with no message."
+  },
+  {
+   "decision": "A terminal tool is never refused for the step budget, even when earlier calls in the same reply used it up.",
+   "why": "Refusing the report that ends the session throws away the work the budget paid for."
+  },
+  {
+   "decision": "The draft schemas stop requiring what the handlers default (ask_user needs only the question, set_pack only the key, request_data nothing).",
+   "why": "Model calls are now checked against the full schemas; requiring defaulted keys refused small models' reasonable calls."
+  }
+ ],
+ "change": "The Home agent and the intern run on agents.run(); their own loops are gone. The runtime gained stop_when, max_replies (Home: 5 requests per message), per-scope contexts, a result size per policy, terminal tools never refused for the budget, and 'only a call that ran ends the run'. write_plan and finish are session-scope tools; Home's steps are traced under the draft's id and returned by GET /api/drafts/{id}. run_experiment is a campaign-scope tool in agentic/campaign_tools.py behind the campaign guard; each campaign phase and experiment is a trace row. Trace files share one lock per path in a process. make check-all runs the campaign tests in .venv-agent.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "finish was refused once an earlier call in the same reply had used up the step budget.",
+   "scenario": "max_steps 3 and one reply [list_samples x4, finish{'report': 'my report'}]: before, the session completed with 'my report'; now it ended budget_exhausted with 'Stopped: the budget of 3 tool calls is used up', and the report was lost.",
+   "cause": "After the first refused call the run's end reason was 'steps', and the terminal-tool exemption was never evaluated again.",
+   "fix": "The exemption is evaluated for a terminal tool even when the end reason is already 'steps'.",
+   "test": "A runtime test with a report after the budget is used in the same reply."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A refused write_plan crashed the session.",
+   "scenario": "First reply write_plan {} or write_plan with a list: the session ended failed with \"'NoneType' object is not subscriptable\"; before, it completed.",
+   "cause": "The step summary sliced session['plan'], which starts as None.",
+   "fix": "The summary uses an empty string when there is no plan.",
+   "test": "An intern test with a refused write_plan."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A refused finish ended the session as completed with no final text.",
+   "scenario": "finish {} or finish with report null: the session was completed with final None; before, it ended with the progress note.",
+   "cause": "The runtime marked the run terminal even though the handler never ran.",
+   "fix": "Only a terminal call that ran ends the run; a refused one goes back to the model as an error.",
+   "test": "An intern test where a refused finish is followed by the model's corrected answer."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A refused ask_user silently ended the Home turn.",
+   "scenario": "Reply ask_user {'question': 'When is the prediction made?', 'field': 'prediction_time'} (a field outside the enum) or with an extra key: before, the question was posted; now one request, no agent message, and the conversation stalled until the user typed again.",
+   "cause": "ask_user was in stop_after whether or not it succeeded, and the 'model only talks' fallback did not run because a step existed.",
+   "fix": "The turn stops on ask_user only when it succeeded (stop_when), or when a simulation started.",
+   "test": "A draft-flow test with a refused question followed by a second request."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The gateway got no verdict for a propose_workflow the schema refused.",
+   "scenario": "propose_workflow {'title': 'x'}: before, the verdict (False, 'no steps') was reported; now nothing, so A1.3's model-health check undercounted Home failures.",
+   "cause": "on_step skipped propose_workflow because proposals report their own verdict, but a schema refusal never reached that code.",
+   "fix": "on_step reports a failed verdict when a propose_workflow call was refused.",
+   "test": "A draft-flow test reading the verdicts."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A refused finish counted against the runtime's budget but not against the session's step count.",
+   "scenario": "Every reply is finish {} under max_steps 3: the session ends 'budget of 3 tool calls is used up' while used.steps shows 0, so a follow-up starts with the whole budget again (still bounded per run).",
+   "cause": "The session counted every tool except finish.",
+   "fix": "A finish counts when it was refused.",
+   "test": "Intern and runtime tests after the re-check."
+  },
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The campaign tests had stopped loading in their own environment.",
+   "scenario": "In .venv-agent the campaign test file imported the server, which needs pandas, so collection failed and the campaign was not tested at all.",
+   "cause": "One import at the top of the test file.",
+   "fix": "The file loads without the server; the one test that needs it skips there; make check-all runs the campaign tests in .venv-agent.",
+   "test": "8 campaign tests in check-all."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The test suite filled the disk.",
+   "scenario": "About 13,600 tmp folders (around 7.8 GB) from one day of test runs were left in the temp directory; the owner had to restart to free space mid-package.",
+   "cause": "Tests create folders with tempfile.mkdtemp and never remove them.",
+   "fix": "Each test command gets its own TMPDIR, removed when it ends whatever its result; the old folders were deleted after the owner said yes.",
+   "test": "A full gate run leaves nothing behind."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the Home agent and the intern run on agents.run() and their own loops are gone; the campaign's experiment runs through the registry guard and every phase is traced. One deliberate behaviour change: the intern's tool calls are now checked strictly (set_settings max_rows=500000 is refused, not clamped). The gate passed with 454 tests on files and on PostgreSQL, the 8 campaign tests and the four flows; five regressions fixed and re-checked.",
+ "lessons": [
+  "When a refactor makes a check stricter, every 'stop after this tool' rule must ask whether the tool actually ran.",
+  "A re-check after fixes finds the edge cases of the fixes (here a refused finish counted in one budget and not the other).",
+  "Tests that never clean up their temporary folders will eventually stop the work; give every test command its own temp folder."
+ ],
+ "commits": ["00b488f", "8c0814a"]
+}

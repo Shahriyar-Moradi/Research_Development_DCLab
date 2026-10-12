@@ -1,0 +1,101 @@
+{
+ "package": "9.2",
+ "title": "The database schema and migrations",
+ "date": "2026-10-06",
+ "request": "PostgreSQL only, for a team of about 1,000 users, runnable locally and later in the cloud. Build the schema and migrations and a PostgreSQL implementation of the 9.1 storage interfaces, tested against a real database, never a mock.",
+ "spec": "SQLAlchemy 2 models and Alembic migrations; documents read whole as JSON columns, what lists filter or sort on as indexed columns; append-only logs with a sequence per parent; immutable stage records; DCLAB_DATABASE_URL switches the product; a pooled connection; no raw SQL from request input. Done when the whole suite and make product-e2e pass against PostgreSQL and the projects list stays fast with 10,000 projects (measured, with the query plan).",
+ "plan": [
+  "Ask the owner before touching the local PostgreSQL server: create two new databases (dclab_dev for working data, dclab_test for the tests, which empty it) and install the psycopg driver.",
+  "Write the schema: ten tables (workspace, app_user, membership, project, stage_record, activity, transition, draft, draft_event, intern_session) and the first migration; python -m dclab_rnd.storage upgrade.",
+  "Share the 'new document' builders between the file and PostgreSQL stores so both create identical documents.",
+  "Write the PostgreSQL stores: row locks for update, draft event numbers from an UPDATE of the draft row, the agent turn as an advisory lock, every query filtered by workspace.",
+  "Write one contract test that runs the same behaviours against both backends.",
+  "Switch the server with DCLAB_DATABASE_URL; run the whole suite on PostgreSQL and on files, and make product-e2e on PostgreSQL.",
+  "Measure a page of 50 projects among 10,000 with timings and the query plan; add a test that the migration and the models describe the same database; add make test-pg."
+ ],
+ "decisions": [
+  {
+   "decision": "Two fixed databases on the developer's machine: dclab_dev and dclab_test.",
+   "why": "The tests empty their database; sharing one with working data would delete the owner's projects on every test run. A temporary database per run needs create and drop rights and can leave strays after a crash. The owner asked why two and agreed."
+  },
+  {
+   "decision": "A document read whole is JSONB; what a list filters or sorts on is a column with an index.",
+   "why": "Stage records, solutions and drafts are always read whole, while lists need indexed workspace, status and time columns to stay fast at thousands of projects."
+  },
+  {
+   "decision": "Keep the file stores and switch with one setting.",
+   "why": "Both backends stay tested by the same suite and contract test, and a laptop without PostgreSQL still runs."
+  },
+  {
+   "decision": "Each workspace folder is one workspace until accounts exist.",
+   "why": "Accounts come in 10.2; until then the folder is the only identity a request has, and isolation can already be tested per workspace."
+  }
+ ],
+ "change": "dclab_rnd/storage gained models.py (ten tables), db.py (engine, pool, migrations), postgres.py (projects, drafts and sessions on PostgreSQL behind the 9.1 Protocols), open_stores choosing the backend from DCLAB_DATABASE_URL, the first Alembic migration and the upgrade command. The file stores share their document builders with the PostgreSQL stores. Tests: test_storage_contract (one set of behaviours on both backends), test_storage_postgres (migration and models agree, a downgrade and upgrade round trip). make test-pg runs the suite on PostgreSQL. requirements gained psycopg.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "privacy",
+   "defect": "Saving an intern session over another workspace's id was not refused on PostgreSQL.",
+   "scenario": "Workspace B saves a session whose id belongs to workspace A: the contract test expected KeyError, none was raised, and the row stayed A's while B believed it had saved.",
+   "cause": "The upsert's ON CONFLICT DO UPDATE ... WHERE workspace matched no row, but the driver reported rowcount -1, so the check 'rowcount == 0' never fired.",
+   "fix": "The upsert returns the saved id (RETURNING); no id back means the row belongs to another workspace, and save raises KeyError.",
+   "test": "test_storage_contract: test_a_workspace_never_sees_another_workspaces_rows."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A stage record holding a score that is not a number was refused by the file store but stored as null by PostgreSQL.",
+   "scenario": "write_stage with score NaN: the file store raised ValueError (strict JSON); the PostgreSQL store's lenient encoder wrote null, so the same defect was hidden on one backend.",
+   "cause": "The PostgreSQL store encoded records with a helper that turned NaN into null.",
+   "fix": "Stage records are encoded strictly on both backends (allow_nan=False): a non-number score is a defect to surface, not to store.",
+   "test": "test_storage_contract: test_stage_records asserts ValueError and that no stage was written."
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The 'newest change first' contract test failed now and then on the file store.",
+   "scenario": "Two projects created and updated within the same second: the file store sorts by an ISO time with one-second precision, so the order between them was arbitrary; four of five repeated runs failed.",
+   "cause": "The file store's timestamps have one-second precision.",
+   "fix": "The test waits just over a second between the two changes.",
+   "test": "test_storage_contract: test_project_documents passes repeatedly."
+  },
+  {
+   "id": "T4",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Three page tests failed on PostgreSQL though the product was right.",
+   "scenario": "test_pages_ops and test_pages_learn built file stores themselves and wrote files into their folders; with DCLAB_DATABASE_URL set the server read the database, so the jobs list lacked stage, intern and data entries and a pack count was 0 instead of 1.",
+   "cause": "The tests seeded data by writing store files directly instead of going through the stores the server uses.",
+   "fix": "The tests open their stores with open_stores, so seeding goes to the same backend the server reads; the project log gained an at= argument so tests can seed times through it.",
+   "test": "The whole suite passes on both backends (347 tests each)."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "projects list at 10,000 projects",
+   "gate": "The projects list stays fast with 10,000 projects, measured with the query plan (the package's Done when).",
+   "result": "A page of 50 takes about 1 ms and uses the workspace index; reading one project takes 0.5 ms.",
+   "verdict": "pass",
+   "next": "Page the /api/projects route itself (10.1 gave every route its models; paging stayed open)."
+  },
+  {
+   "name": "results unchanged by the storage backend",
+   "gate": "The whole suite and make product-e2e pass on PostgreSQL with the same results as on files.",
+   "result": "347 tests pass on files and on PostgreSQL; the end-to-end flows give the same scores on both (0.8503 and 12.0954).",
+   "verdict": "pass",
+   "next": "One earlier test run was very slow (110 s) with one error; eight repeats did not reproduce it, so it was reported as unexplained rather than hidden."
+  }
+ ],
+ "outcome": "Done: projects, drafts and intern sessions run on PostgreSQL when DCLAB_DATABASE_URL is set, with ten tables and migrations, row and advisory locks that hold across processes, and tested workspace isolation. Tables and exports stayed files (9.3); old workspaces were not imported yet (9.4).",
+ "lessons": [
+  "Do not trust rowcount after an upsert with a WHERE clause; ask the database for the row it wrote.",
+  "Run one contract test against both backends: it found two places where they disagreed.",
+  "Tests that seed data by writing a store's files bypass the backend under test; seed through the store.",
+  "Report a failure that does not reproduce as unexplained; do not drop it."
+ ],
+ "commits": ["4e1cf7f"]
+}

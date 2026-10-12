@@ -1,0 +1,48 @@
+{
+ "package": "PRE-console-triage",
+ "title": "Triage of browser console errors on the DCLab notebook: a browser extension, not a bug",
+ "date": "2026-10-05",
+ "request": "The owner pasted the browser console of the DCLab notebook: runtime.lastError lines, Grammarly warnings, stack traces that mention saveContract in project.js, and a blocked Open Sans stylesheet.",
+ "spec": "Say whether any of it is a DCLab bug, where each line comes from, and what to do; change code only if a real defect is found.",
+ "plan": [
+  "Identify which app produced the console: the DCLab notebook served by make notebook, not the demo.",
+  "Group the lines by source: the extension's own logging, stack traces passing through the app's code, and the blocked stylesheet.",
+  "Search the app's static files for the stylesheet that was blocked.",
+  "Read the server's content security policy to see why it was blocked.",
+  "Answer in English and Persian, and ask for what visibly went wrong, if anything."
+ ],
+ "decisions": [
+  {
+   "decision": "No code was changed.",
+   "why": "Every line traced back to the browser extension; the app's own behaviour was correct."
+  },
+  {
+   "decision": "The blocked stylesheet was reported as the security policy working, not as an error.",
+   "why": "The notebook never loads Open Sans; the extension tried to inject it, and the policy (style-src 'self') rightly refused it."
+  },
+  {
+   "decision": "The answer asked for a visible symptom instead of guessing at one.",
+   "why": "A noisy console is not a defect; a contract that did not save or a stage that did not unlock would be."
+  }
+ ],
+ "change": "None: a diagnosis. The Grammarly lines and runtime.lastError are the extension's logging; saveContract appears in the stack only because the extension attaches to the new text fields when the page re-renders after the contract is saved; the Open Sans request came from the extension and was refused by the app's content security policy. Advice: open the notebook in a private window or turn the extension off for the local address.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Console errors that looked like a failure in the notebook's contract form.",
+   "scenario": "After saving the prediction contract, the console filled with warnings whose stack traces pass through saveContract in project.js, plus a refused Open Sans stylesheet.",
+   "cause": "A grammar-checking browser extension that attaches to new text fields and injects its own stylesheet; the app's code was only on the stack.",
+   "fix": "No code change: explain the source, confirm the security policy refused the injected stylesheet as designed, and suggest a private window or turning the extension off for the local address.",
+   "test": "A search of dclab_rnd/agentic/static found no Google Fonts or Open Sans reference."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: no DCLab defect; the owner was told where each line came from and what would count as a real symptom.",
+ "lessons": [
+  "Before fixing a console error, find which code wrote it; a function on the stack is not always the culprit.",
+  "A refusal by the content security policy is often the defence working; check whether the app ever asked for that resource."
+ ],
+ "commits": []
+}

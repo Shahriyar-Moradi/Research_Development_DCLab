@@ -1,0 +1,89 @@
+{
+ "package": "PRE-workflow-graph",
+ "title": "The workflow graph WF-01 to WF-10 and the validator every move goes through",
+ "date": "2026-10-05",
+ "request": "Build the first step of the roadmap that the vision review recommended: turn the five stages into the explicit workflow graph WF-01 to WF-10, where the LLM proposes and deterministic code decides (DCLAB-R20), with allowed moves, prerequisites, gates that only a person can open, and every move logged.",
+ "spec": "dclab_rnd/studio/graph.py: the ten steps with their rules, the moves (run_stage, set_contract, approve_stage, approve_gate, capture), the gates (contract signature, holdout approval) and a pure check() that answers allowed, blocked or needs a person, with the failed checks, the rules and the evidence. The engine, the intern's tools and the API all go through it, and every verdict is appended to the project's transitions.jsonl. Done when tests/test_graph.py covers states, edges, the holdout rules, the gates, the log and the wiring.",
+ "plan": [
+  "Define the ten steps, the engine stage each one runs (WF-04 to WF-07 one stage each, WF-08 and WF-09 the final stage, WF-01 to WF-03 and WF-10 declared), and the rules attached to each.",
+  "Derive each step's state from the project (done, current, waiting for a person, running, failed, to do) and a one-character-per-step state string for trajectories.",
+  "Write check() as a pure function: it reads the project, changes nothing, and returns a verdict with every check, the rules, the evidence and the side effects of the move.",
+  "Route the engine's execute and approve, the intern's tools and the API through check(); a refused move raises GraphBlocked with the verdict.",
+  "Append every verdict, allowed or not, with the state before it and its outcome, to transitions.jsonl.",
+  "Add the gates as per-project policy, off by default; add a Graph tab on the project page and get_graph and check_move for the intern.",
+  "Write tests/test_graph.py and update the studio test that reran the final stage."
+ ],
+ "decisions": [
+  {
+   "decision": "check() is pure; the effect and the log are separate steps.",
+   "why": "The UI and the intern can ask what a move would do without doing it, and the same function decides for every caller."
+  },
+  {
+   "decision": "Some invariants hold whatever the policy: no skipped steps, only a person approves a gate, the agent never reuses the holdout or changes an earlier choice after the holdout was used, and a person who reruns the final stage gives a reason that is kept in the evidence.",
+   "why": "These are the rules that leakage-safe evaluation depends on (holdout once, PIT-006); they must not depend on habit."
+  },
+  {
+   "decision": "The contract-signature and holdout-approval gates are per-project policy, off by default.",
+   "why": "Existing flows and tests keep working; a team that wants the gates turns them on."
+  },
+  {
+   "decision": "A verdict has three outcomes: allowed, blocked, or needs a person.",
+   "why": "Some refusals can be lifted by a person (a written reason, a signature) and some never by the agent; the caller must know which."
+  },
+  {
+   "decision": "Every verdict and outcome is logged, refused moves included.",
+   "why": "The log is the audit trail now and the trajectory data the policy model needs later, and refused moves are the negative examples it must learn."
+  },
+  {
+   "decision": "A signed contract stores the contract's hash; changing the contract invalidates the signature.",
+   "why": "A signature must apply to the contract as signed, not to whatever it was edited into later."
+  },
+  {
+   "decision": "Three revisits are allowed on purpose (a leak reopens the contract, the screen sends you back to the features, a shift needs a new split), and the contract can be reopened from any step.",
+   "why": "Going back is a normal part of honest work; the graph names it instead of forbidding it."
+  }
+ ],
+ "change": "New dclab_rnd/studio/graph.py (NODES, MOVES, GATES, DEFAULT_POLICY, node_states, state_string, check, approve_gate, capture, log, describe). engine.execute and engine.approve take an actor and check the move first; a rerun of an earlier stage clears every later result; a rerun of the final stage by a person needs a reuse reason stored in the record. ProjectStore gained transition() and transitions(). The intern's tools return the verdict when a move is blocked and gained get_graph and check_move. The API gained GET /api/projects/{id}/graph, POST .../graph/check and POST .../approvals. The project page gained a Graph tab.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The final stage could be rerun freely, so the holdout could be reused to chase a score.",
+   "scenario": "A person or the intern ran the final stage, did not like the score, changed something and ran it again: the holdout counter rose but nothing stopped the second look or recorded why.",
+   "cause": "The only guard in execute was 'run the previous stage first'.",
+   "fix": "The validator refuses a second holdout use by the agent outright, and asks a person for a written reason that is kept in the stage's evidence.",
+   "test": "test_holdout_reuse_needs_a_person_with_a_reason_and_never_the_agent; the studio test now reruns the final stage with a reason and checks it is recorded."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Rerunning an earlier stage kept later results that were computed on the old choice.",
+   "scenario": "All five stages done; the features stage is rerun and picks another recipe; the models and final records still show results for the previous recipe.",
+   "cause": "Only an approval with an override cleared later stages; a plain rerun did not.",
+   "fix": "A rerun of a completed stage clears every later result, and the verdict names that side effect before the move.",
+   "test": "Not covered by a dedicated test in this commit; test_approve_with_override_clears_downstream covers only the approval path."
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Nothing recorded why a move was allowed or refused.",
+   "scenario": "An intern session ran stages and approvals; afterwards there was no record of which moves were proposed, which were refused, and under which rule.",
+   "cause": "Moves were executed directly with no validator and no log.",
+   "fix": "Every verdict is appended to transitions.jsonl with the actor, the move, the state before, the failed checks, the rules, the evidence and the outcome.",
+   "test": "test_every_verdict_can_be_logged_as_a_trajectory_step"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the five stages run inside an explicit graph of ten steps; the engine, the intern and the API all go through one validator; refused and allowed moves are logged as trajectory data. Gates are available as policy, off by default.",
+ "lessons": [
+  "Put the rules that keep evaluation honest in a validator every caller uses, not in prompts or habit.",
+  "Log refused moves as well as allowed ones: they are the audit trail and the negative examples a policy model needs.",
+  "A verdict should tell the caller whether a person can lift the refusal; 'blocked' and 'needs a person' lead to different next steps."
+ ],
+ "commits": [
+  "9470f3e"
+ ]
+}

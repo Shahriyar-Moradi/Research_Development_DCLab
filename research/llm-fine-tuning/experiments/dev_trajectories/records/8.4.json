@@ -1,0 +1,45 @@
+{
+ "package": "8.4",
+ "title": "Meter the euro budget",
+ "date": "2026-10-07",
+ "request": "The wizard stores a euro budget but nothing meters money. The owner decided what counts as spend: model tokens at a price list; compute on this machine is not billed. Record tokens per request with the project, turn them into euros with one price table, show the running total on Compute and Admin, and stop a request that would pass a cap with a clear message; until a price is configured, keep saying money is not metered.",
+ "spec": "Spend metering by a price table, totals on Compute and Admin, refusal before a cap is passed, and an honest 'not metered' until a price exists.",
+ "plan": [
+  "Check what earlier packages already built: the gateway's usage log (A1.1), prices and caps (A1.2), per-person and per-workspace limits (10.6).",
+  "Confirm each claim against the code: where caps are checked, which caps exist, where totals are shown, that no price is guessed.",
+  "Record the package as done with what it still needs from the owner; have the reviewer check the row's claims."
+ ],
+ "decisions": [
+  {
+   "decision": "No price is ever guessed.",
+   "why": "A wrong price would make the cap look enforced when it is not; until a checked price is added the pages say money is not metered and euro caps cannot stop remote requests."
+  },
+  {
+   "decision": "Compute time on this machine is not billed.",
+   "why": "The owner decided spend means model tokens."
+  }
+ ],
+ "change": "Only the playbook row: the gateway records each request's tokens with its project (models/usage.py), prices them with one table (models/prices.py or a file named by DCLAB_PRICES_FILE), shows the month on Compute and Admin, and refuses before sending a request that would pass the project's wizard budget, an intern session's cap, the workspace's monthly cap or a person's monthly limit.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Two claims in the 8.4 row were not exactly true.",
+   "scenario": "(a) The row said every model request goes through the gateway and is refused before sending; the research campaign's own client does not go through the gateway's send, and check_external refuses only once a cap is already reached, without saying what is left. (b) The row said to add the price in .env; prices go in models/prices.py or a JSON file named by DCLAB_PRICES_FILE, and .env can only name that file.",
+   "cause": "A status row written from memory of several packages instead of from the code.",
+   "fix": "The row says 'every model request of the product', that the campaign's client is stopped only once a cap is reached (check_external), and where the price goes.",
+   "test": "Existing tests: a request that could pass the cap is refused before sending; a run cap stops one session; a price is never guessed; clients the gateway does not send for are stopped by a reached cap."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done (built in A1.2, 10.6 and 11.x; recorded 2026-10-07). Open: no price is configured, so until the owner adds the model's checked price the pages say money is not metered; local models cost nothing.",
+ "lessons": [
+  "A package can be done by earlier work; verify each claim against the code before marking it, and say exactly what is left for the owner."
+ ],
+ "commits": [
+  "3cbb256",
+  "6862544",
+  "f6b68a9"
+ ]
+}

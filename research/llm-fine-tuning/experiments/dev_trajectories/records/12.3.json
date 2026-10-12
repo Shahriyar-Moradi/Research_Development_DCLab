@@ -1,0 +1,87 @@
+{
+ "package": "12.3",
+ "title": "Continuous integration",
+ "date": "2026-10-07",
+ "request": "Extend the GitHub workflows: on every push run the full check and the end-to-end flows against a PostgreSQL service container, and build the image on main. No job may use a model key. Cache dependencies. A failing check should block the merge.",
+ "spec": "On every push: make rd-check and make product-e2e against a PostgreSQL service container; on main, build the image. No model key in any job; dependencies cached; a failing check blocks the merge.",
+ "plan": [
+  "Check whether CI passed on GitHub before the change: it had failed at its Python setup step on every push (it looked for a requirements file that does not exist), so it had never run a test.",
+  "Write .github/workflows/ci.yml to replace the old workflow: rd-check, the suite on a PostgreSQL service container (test-pg), product-e2e and the secrets scan on every push, pull request and nightly; on main, a containers job (12.1).",
+  "Set an empty OPENAI_API_KEY and DCLAB_NO_LIVE_MODELS=1 for the whole workflow; cache pip by requirements/base.txt and install CPU-only PyTorch.",
+  "Push, read each failing run's logs, fix the causes one by one, and mark the package done only when a run passed both jobs.",
+  "Leave branch protection to the owner: it is a repository setting."
+ ],
+ "decisions": [
+  {
+   "decision": "Pin mcp below 2 rather than rewrite the MCP server for the new major version.",
+   "why": "The code is written and tested against the 1.x decorator API; a new major version installed fresh on CI is an unplanned migration, not a CI fix."
+  },
+  {
+   "decision": "The development script's database test names CI's scratch database as remote on purpose, instead of loosening the 'this machine only' guard.",
+   "why": "CI's PostgreSQL is a service container answering from its own address; the guard refusing it is correct behaviour."
+  },
+  {
+   "decision": "Do not turn on branch protection from the session.",
+   "why": "Making checks required on main is the owner's repository setting; the package records it as open."
+  }
+ ],
+ "change": "New .github/workflows/ci.yml replacing rd-knowledge.yml: a check job (rd-check, test-pg on a PostgreSQL 16 service, product-e2e, scan-secrets) on push, pull request and nightly; a containers job on main (compose up --build --wait, the flows against the container, an image secrets scan); no model key; pip cache; CPU-only PyTorch.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "On CI nearly every test that builds the app failed, while all passed locally.",
+   "scenario": "The fresh install resolved mcp>=1.20 to 2.3.0, a new major version that removed Server.list_tools, which the MCP server uses; locally 1.27 was installed.",
+   "cause": "An unbounded dependency range met a new major release.",
+   "fix": "Pin mcp below 2.",
+   "test": "The second CI run passed the app-building tests."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The development script's database test was refused on CI.",
+   "scenario": "CI's PostgreSQL service answers from the container's own address, which the 12.0 'this machine only' check rightly refuses.",
+   "cause": "The test assumed a database on the same machine.",
+   "fix": "The test names the scratch database as remote on purpose.",
+   "test": "tests/test_dev_script.py passes on CI."
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The secrets scan failed on CI on values the local scan had not seen.",
+   "scenario": "tests/test_config.py holds a made-up key and a made-up database password; the local scan reads tracked files only, and the file was not yet committed, so only CI found them.",
+   "cause": "The scan covers what is tracked; a new test file was untracked locally.",
+   "fix": "Allow-list the two made-up values by the hash of their value; the scan reports zero findings in the files and the history.",
+   "test": "make scan-secrets in CI."
+  },
+  {
+   "id": "T4",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A test waiting for the Home agent's first message in a second workspace failed on CI and never on a laptop.",
+   "scenario": "On GitHub's runner the draft never got the agent's first message within 30 seconds, and later not within 120. Locally the same test takes about a second.",
+   "cause": "Not slowness: the signed-in test clients were never entered, so each request ran on an event loop that closes with the response; the Home agent starts as a task on that loop, and on a busy runner the task was cancelled before it began. Under uvicorn the loop outlives the request, so the product was fine.",
+   "fix": "First the wait was raised to 120 seconds with the draft's state printed on failure (which did not fix it); then the draft is created through the client entered in setUpClass, with the second owner's session.",
+   "test": "The second-workspace test in tests/test_accounts.py; CI went green after the fix."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "CI on GitHub",
+   "gate": "A run on main passes both jobs: the check job (rd-check, test-pg, product-e2e, scan-secrets) and the containers job.",
+   "result": "Run 37547513100 passed both jobs after two failing runs (first mcp 2.x, the remote-database test and the scan; then the second-workspace wait). The same wait failed again on later pushes until its real cause was fixed.",
+   "verdict": "pass",
+   "next": "The owner turns on branch protection for main with the two checks required; a lock file would make CI repeatable."
+  }
+ ],
+ "outcome": "Done (482b67b, 24f1dfb, 905e8d0, f7b9b7b; the flaky test's real cause fixed in 532c51f): CI runs the whole check, the PostgreSQL suite, the end-to-end flows and the secrets scan on every push with no model key, and the containers on main. Open: blocking the merge needs main protected by the owner; the dependencies are not locked.",
+ "lessons": [
+  "Check whether the existing CI has ever run a test before extending it; this one had failed at setup on every push.",
+  "A fresh install on CI finds what a long-lived local environment hides: unpinned major versions and untracked files.",
+  "Raising a timeout is not a diagnosis; a test that takes one second locally and never finishes on CI is usually a lifecycle problem, here an event loop that closed with the request."
+ ],
+ "commits": ["482b67b", "24f1dfb", "905e8d0", "f7b9b7b", "532c51f"]
+}

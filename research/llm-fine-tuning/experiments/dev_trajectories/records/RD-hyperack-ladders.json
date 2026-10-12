@@ -1,0 +1,79 @@
+{
+ "package": "RD-hyperack-ladders",
+ "title": "HyperAck order acceptance: 83 experiments from a leaky ceiling to an honest champion",
+ "date": "2026-09-16",
+ "request": "Build the most accurate honest classifier for HyperAck order acceptance (will an order be accepted, scored when the order is created), and find out which steps actually move the score: leakage control, feature engineering, algorithm choice, tuning or calibration.",
+ "spec": "A 15-experiment ladder, the same ladder without post-outcome columns, and a suite of optimizations on the leakage-safe features. One locked stratified 80/20 split (8,885 training rows, 2,222 test rows, seed 42). ROC-AUC is the primary metric, recall at the operating threshold the secondary one. Done when a master report gives the leakage cost per model, an algorithm scorecard and the honest champion.",
+ "plan": [
+  "Run a 15-experiment ladder: baseline, a strong LightGBM, fare and time features, geo distance and bearing, interactions and bins, feature selection, tuned XGBoost and LightGBM, histogram boosting, threshold calibration and stacking.",
+  "Ask why the ladder reached ROC-AUC near 0.98, and trace it to final_customer_fare and final_biker_fare, which are only known after the outcome.",
+  "Rerun the same 15 experiments without the two final fares to get the honest baseline.",
+  "Run 53 leakage-safe optimizations in six phases: safe feature enrichment, class weights, randomized and Bayesian search, seed and row bagging, out-of-fold target encoding, feature ablation, stacking and soft voting.",
+  "Write the master report: the leakage cost per model, a lift matrix per optimization method and a cross-algorithm scorecard."
+ ],
+ "decisions": [
+  {
+   "decision": "Keep the first ladder only as a labelled unsafe ceiling for research.",
+   "why": "The final fares reflect negotiation, surge and cancellations during or after the trip; at order creation only the first customer fare is known, so a model using them cannot exist in production."
+  },
+  {
+   "decision": "Keep a lean 25-feature safe matrix rather than the 46-feature enriched one.",
+   "why": "The enriched set scored about 0.937 against about 0.945 for the lean one: extra engineered features diluted the signal."
+  },
+  {
+   "decision": "Reach high recall with post-hoc isotonic calibration and a threshold sweep, not with class weights in training.",
+   "why": "Class weights raised recall from 0.77 to 0.80 but held ROC-AUC at 0.941; calibration after an unweighted fit reached recall 0.937 at ROC-AUC 0.9375."
+  }
+ ],
+ "change": "Three experiment suites under research/tabular-classification/experiments/ (hyperack_exp, safe_leakage_exp, optimized_safe_model) with their results, a safe-vs-unsafe comparison script and a master report with the leakage cost per model, the lift of each optimization method and an algorithm scorecard.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "The first ladder used two columns that are written after the outcome it predicts.",
+   "scenario": "With final_customer_fare and final_biker_fare as inputs, tuned LightGBM scored ROC-AUC 0.9793 and recall 0.9114 on the test split; the same model without them scored 0.9450 and 0.7707. Every one of the twelve compared models lost 0.030 to 0.041 ROC-AUC.",
+   "cause": "The final fares are set during or after the trip, so they act as near-proxies of acceptance; nothing in the ladder asked when each column is written.",
+   "fix": "Drop both final fares from every safe experiment, keep the unsafe suite only as a labelled research ceiling, and write the prediction contract (unit, moment, forbidden columns) at the top of the track.",
+   "test": "safe_leakage_exp/compare_safe_vs_unsafe.py reports the gap for each model on the identical split."
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The optimized suite chose its champion among 53 runs scored on the same test split.",
+   "scenario": "All 53 optimized runs were scored on the one 2,222-row test split and the best soft vote (0.9455) was named champion, 0.0005 above the safe LightGBM (0.9450). PIT-006 later measured that picking the best of 30 configurations by holdout score overstates ROC-AUC by +0.0072 on average, so a 0.0005 win cannot be told from selection noise.",
+   "cause": "The test split was used both to compare candidates and to report the winner; there was no training-only selection step.",
+   "fix": "The later evidence campaigns select every recipe, model and setting on training-fold CV and read the locked holdout once per dataset; PIT-006 measures this bias so the copilot can cite it.",
+   "test": "evidence/campaigns/pitfalls_v1 PIT-006 (holdout reuse for selection)."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "leakage cost on the locked test split",
+   "gate": "Compare each model with and without the two final fares on the identical split; the gap is the leakage cost.",
+   "fixed_before_run": true,
+   "result": "Tuned LightGBM 0.9793 unsafe vs 0.9450 safe (recall 0.9114 vs 0.7707); the gap across twelve models ranged 0.030 to 0.041 ROC-AUC and 0.07 to 0.14 recall.",
+   "verdict": "not scored",
+   "next": "Never report the unsafe numbers as a result; use them only as the size of the leak."
+  },
+  {
+   "name": "optimized safe suite",
+   "gate": "Development comparison of optimization methods on the safe features; no pass threshold was declared.",
+   "fixed_before_run": false,
+   "result": "Soft vote of an ExtraTrees seed bag, LightGBM and XGBoost 0.9455; stacking 0.9450 with recall 0.8006; isotonic calibration recall 0.9374 at ROC-AUC 0.9375; tuned ExtraTrees alone 0.9444; tuned logistic regression 0.8823. Row bootstrap bagging lowered LightGBM from 0.9450 to 0.9430; greedy ablation to 18 features lowered the test score to 0.9438.",
+   "verdict": "not scored",
+   "next": "Confirm the leader on a fresh, time-ordered split once the owner writes HyperAck's prediction moment."
+  }
+ ],
+ "outcome": "83 experiments recorded (15 unsafe, 15 safe, 53 optimized safe). The honest leader is ROC-AUC 0.9455 on one test split; the +0.035 leakage gap from two post-outcome columns became DCLab's first rule and the copilot's main precedent.",
+ "lessons": [
+  "A score that looks too good is a question about when each column is written, not a result.",
+  "Ranking many candidates on one test split turns it into a selection set; a win of 0.0005 needs a fresh split before anyone believes it.",
+  "Fewer, understood features beat a larger engineered set here (25 against 46)."
+ ],
+ "commits": [
+  "31d2413",
+  "11eafa5"
+ ]
+}

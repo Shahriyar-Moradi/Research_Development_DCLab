@@ -1,0 +1,79 @@
+{
+ "package": "A2.1",
+ "title": "One agent runtime and one tool registry",
+ "date": "2026-10-06",
+ "request": "Extract one agent runtime: Tool, Registry, Policy and run(); register the 20 intern tools and the Home agent's tools once; make the MCP server list the registry. Do not change any tool's behaviour or name; keep the legacy names.",
+ "spec": "dclab_rnd/agents/ with Tool (name, description, JSON schema, handler, read or write effect), Registry, Policy (system prompt, tool names, budget) and run(policy, state, gateway); run() asks the gateway, validates arguments against the schema (a bad call returns as an error the model can read), runs the tool, and loops until a final answer or the step or time budget. Done when adding a tool is one registration, the intern, the Home agent and /mcp all list it, and tests/test_mcp.py and tests/test_intern.py pass unchanged.",
+ "plan": [
+  "Read the three tool sets: the intern's Toolbox, the Home agent's run_tool branches and the MCP server's list.",
+  "Write dclab_rnd/agents/ (registry.py, runtime.py) with scoped registries: 'project' for the intern and /mcp, 'draft' for the Home agent.",
+  "Move the intern's tools into the registry while keeping the Toolbox API (schemas, names, call) for the loop, MCP and tests; turn each Home run_tool branch into a registered handler; make /mcp read the list at each request.",
+  "Run the affected test files unchanged (94 passed), then write the package's own tests (a new tool appears in all three places).",
+  "Run check-all and the review; fix the four findings with tests; park the next package's work as a patch file (not git stash) so A2.1 is gated alone; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Keep the agents' own loops calling through Toolbox.call, which checks only unknown and missing arguments, until A2.4 moves them onto run().",
+   "why": "The handlers clamp and coerce values (max_rows, k, industry); a full schema check in the old path would have changed behaviour, which the package forbids."
+  },
+  {
+   "decision": "An argument sent as null counts as not given, but an unknown argument stays unknown even when null.",
+   "why": "Models in strict mode send null for every optional field; a null for a key the handler does not take would still crash it."
+  },
+  {
+   "decision": "Make jsonschema a declared requirement in base and CI rather than an optional import.",
+   "why": "With a silent fallback the schema check turned off in CI, so the package's claim depended on the environment."
+  }
+ ],
+ "change": "dclab_rnd/agents/ with Tool (schema, handler, effect, legacy aliases), a scoped Registry with check levels, Policy and run(); the 20 intern tools and 8 Home tools registered once in default_registry(); /mcp lists the registry per request; jsonschema added to requirements/base.txt and requirements/ci.txt; tests/test_agents_runtime.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The schema check in Toolbox.call changed tool behaviour, which the package forbids.",
+   "scenario": "Calls that worked before were refused: set_solution with time_column, group_column and metric set to null; get_results with stage null; set_settings with max_rows 100 (the handler clamped to 200) or '5000' (the handler converted it); create_project with industry 'retail' (the store fell back to 'general'); search_evidence with k 50.",
+   "cause": "The full JSON-schema check ran in the old call path, ahead of handlers that were written to be lenient.",
+   "fix": "Registry.check has levels: full schema in run(), names only (unknown and missing) in Toolbox.call until A2.4; a null counts as not given.",
+   "test": "test_a_null_counts_as_not_given and the unchanged intern and MCP tests."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "CI would fail, and the schema check silently turned off without jsonschema.",
+   "scenario": "The CI workflow installs only requirements/ci.txt (numpy, pandas, scikit-learn, pyarrow). Blocking the jsonschema import made three runtime tests error: two handlers raised TypeError instead of returning an error, and the registry well-formedness test failed with ImportError.",
+   "cause": "jsonschema came only transitively through the agent lock file, and the code had an ImportError fallback.",
+   "fix": "jsonschema>=4.18 in base and CI requirements; the fallback removed.",
+   "test": "The runtime tests run in CI."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "run() overran its step and time budgets within one model reply.",
+   "scenario": "Policy with max_steps 2 and one reply holding five tool calls: all five ran (steps 5), then the run stopped for steps. The intern loop it replaces checked the budget before each call.",
+   "cause": "Budgets were checked only before asking the model.",
+   "fix": "The budget is checked before every call; a call past the budget gets a 'budget exhausted' tool message and is not run.",
+   "test": "A runtime test with five calls under a budget of two."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "run() kept executing calls after a terminal tool, and a stray argument named 'turn' crashed the Home handlers.",
+   "scenario": "One reply [finish, add]: add still ran after finish. Separately, run_tool(draft, 'get_profile', {'turn': 1}) raised 'got multiple values for argument turn', because every Home handler takes the turn as its first parameter.",
+   "cause": "The loop did not stop at a terminal tool, and the handler context shared a name space with model arguments.",
+   "fix": "After a terminal tool, the remaining calls get 'not run: the run ended'; the Home handlers' context is positional-only.",
+   "test": "Runtime tests for both cases."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: dclab_rnd/agents holds Tool, a scoped Registry, Policy and run(); 20 project tools and 8 Home tools are registered once and /mcp reads the list per request; tests/test_mcp.py and tests/test_intern.py pass unchanged. The gate passed with 414 tests on files and on PostgreSQL and the four flows; four review findings fixed.",
+ "lessons": [
+  "A refactor that adds validation in an existing path changes behaviour: lenient handlers depend on receiving what a strict schema would refuse.",
+  "An optional import with a silent fallback makes a safety check depend on the environment; declare the dependency.",
+  "A budget checked once per model reply is not a budget; check it before every call."
+ ],
+ "commits": ["6e7c2ed"]
+}

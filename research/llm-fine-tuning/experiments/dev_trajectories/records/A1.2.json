@@ -1,0 +1,109 @@
+{
+ "package": "A1.2",
+ "title": "Budgets and prices",
+ "date": "2026-10-06",
+ "request": "Add money to the gateway: price each request from one dated table, enforce per-run, per-project and per-workspace caps before a request is sent, and show real spend on the Compute and Admin pages. Never guess a price.",
+ "spec": "One price table (euros per million tokens, with a date); caps per project per run, per project per month and per workspace per month; the wizard's euro budget becomes a real cap; a refusal says how much is left; spend from the usage table on Compute and Admin; 'not metered' removed only where it is now true; an unknown model is 'price not configured' and counted in tokens only. Done when a scripted run over its cap is refused before the request is sent and the pages show euros from the usage table.",
+ "plan": [
+  "Write dclab_rnd/models/prices.py (or DCLAB_PRICES_FILE) with a date per table; a model without a price is counted in tokens only; a request to a model on this machine is free.",
+  "Add the cost to the usage log (migration 0003) and the caps to the gateway: the intern session's max_eur (run), the wizard's budget (project, per month), DCLAB_WORKSPACE_MONTHLY_EUR (workspace).",
+  "Show the euros on Compute and Admin, and how many requests have no price.",
+  "Update the test that asserted spend is not tracked, since that is exactly what changed.",
+  "Run check-all and the review; fix the six findings with tests; render the two pages; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Refuse a request when its upper-bound cost could pass a cap, checked and reserved under a lock.",
+   "why": "Checking 'already over' lets the request that crosses the cap through, and an unlocked check lets concurrent requests near the cap all pass."
+  },
+  {
+   "decision": "The upper bound is the prompt's characters divided by three times the input price plus max_tokens times the output price.",
+   "why": "The real token count is known only after the reply; an estimate that is never lower than the truth keeps the cap a cap."
+  },
+  {
+   "decision": "Never guess a price; an unpriced model is counted in tokens.",
+   "why": "A guessed price would make a cap look enforced while it is not; showing 'no price' tells the owner what to configure."
+  }
+ ],
+ "change": "dclab_rnd/models/prices.py (dated table or DCLAB_PRICES_FILE), cost per request in the usage log (migration 0003), caps in the gateway (run, project per month, workspace per month), the intern's max_eur budget, spend in euros on the Compute and Admin pages.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An intern session's euro cap restarted from zero on every message.",
+   "scenario": "A session with max_eur=1 spends 1 euro and is refused; POST /message gives it another euro, and again, with no limit. A server restart does the same.",
+   "cause": "The server builds a new Intern and a new bound client for each start or message, and a new bound client starts with spent_eur=0.",
+   "fix": "The session keeps its spend in session['used']['eur']; the loop loads it into the client before each request and writes it back afterwards.",
+   "test": "A test of a session refused at its cap that stays refused after a follow-up."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A malformed price file lost an answer that had already been paid for.",
+   "scenario": "DCLAB_PRICES_FILE holds a model price without as_of: the request is sent, then the cost computation raises KeyError; the answer is lost and no usage row is written.",
+   "cause": "The price was looked up after sending and outside the error handling.",
+   "fix": "The price table is loaded and checked before a request is sent; a broken table stops requests before they cost anything.",
+   "test": "A test with a malformed price file that sends nothing."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Research-campaign requests skipped the caps and were priced wrongly.",
+   "scenario": "The NOOA clients only record after a request, so DCLAB_WORKSPACE_MONTHLY_EUR never stops a campaign on the strong tier; NOOA names the model 'openai/<model>', so every price lookup misses; and 'local' was judged from the campaign tier's URL while litellm sends to OPENAI_BASE_URL, so remote calls could be logged as free.",
+   "cause": "The campaign adapters were wired for counting only, not for checking.",
+   "fix": "The campaign clients ask the gateway for a refusal before each request and raise if refused, and record the model name without the 'openai/' prefix.",
+   "test": "Campaign adapter tests with a cap reached."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'Local' was a substring match, so a remote endpoint could be logged as free and never capped.",
+   "scenario": "https://api.example.com:11434/v1, https://localhost.example.com/v1 and a URL with '127.0.0.1' in its query were all judged local.",
+   "cause": "The check searched the URL text.",
+   "fix": "Local means the host is exactly localhost, 127.0.0.1 or ::1, or the tier says DCLAB_TIER_<T>_LOCAL=1.",
+   "test": "A settings test over the three misleading URLs."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The cap check was 'already over', not 'would pass', and had no lock.",
+   "scenario": "The request that crosses the cap was always sent (the test itself expected 3.60 euros spent of a 3.00 cap); the project message always said '0.00 left'; N concurrent requests near the cap were all sent.",
+   "cause": "The gateway compared spent with the cap before sending, without reserving anything.",
+   "fix": "Under a gateway lock, reserve an upper-bound estimate and refuse when spent plus the estimate is over the cap; report cap minus spent as what is left.",
+   "test": "The money tests were rewritten to the 'would pass' rule, with a concurrent case."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Bad max_eur values and a budget refusal were handled badly.",
+   "scenario": "max_eur 'nan' became 0.0 and 'abc' gave a 500; max_eur=0 refused even free local requests; a budget refusal ended the session as 'failed' with a RuntimeError, while the step and minute budgets end it as 'budget_exhausted' with a progress note.",
+   "cause": "No validation of the value, and the budget error was not caught in the loop.",
+   "fix": "Non-finite and non-numeric values are refused with a clear message; a zero cap refuses only priced requests; the loop catches the budget error and ends the session as budget used up.",
+   "test": "Intern tests for each value and for the session's end state."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A test claimed to check a free local model under a zero cap but did not exercise that path.",
+   "scenario": "The test passed whether or not local requests were exempt.",
+   "cause": "The scripted endpoint was not marked local.",
+   "fix": "The test now uses a local tier and asserts the request is sent at zero cost.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: costs come from a dated price table, a request whose upper-bound cost could pass a run, project or workspace cap is refused before it is sent, under a lock, and Compute and Admin show euros. Open: no price is configured yet, so remote requests are counted in tokens until prices are added. The gate passed with 379 tests on each backend and the four flows.",
+ "lessons": [
+  "A cap must be checked against what the request could cost, before sending and under a lock; 'already over' always lets one request through.",
+  "Anything computed after a paid request must not be able to lose its answer.",
+  "Decide 'local' from the parsed host, never from a substring of the URL."
+ ],
+ "commits": ["6862544"]
+}

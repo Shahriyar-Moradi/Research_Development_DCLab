@@ -1,0 +1,45 @@
+{
+ "package": "4.1",
+ "title": "The wizard's five steps and the Goal step",
+ "date": "2026-10-05",
+ "request": "After Home, the wizard takes the draft through Goal, Data, Solution draft, Split and budget, and Review and start; the Data step shows the preprocessing and a small analysis, Domain pack is no longer a step, and Split and budget and Review stay as they look in the demo, now real. This package makes the wizard five steps on the same draft and fills the Goal step from the chat.",
+ "spec": "Goal, Data, Solution draft, Split and budget, Review and start; the 'DCLab understood' sheet filled from the chat. Done when the wizard opens from Home with the draft loaded and shows five steps.",
+ "plan": [
+  "Ask the owner what happens to the Domain pack step; the owner chose automatic detection, keeping the pack cards as an optional choice on Home and as the detected, changeable pack in the solution draft.",
+  "Make views/new.html five steps, keeping the stepper and the step markup.",
+  "Let the wizard work on the draft from Home, or create one.",
+  "Show the problem and a 'DCLab understood' sheet, each line marked as known from the chat or still open.",
+  "Open the wizard from 'Let's build the solution' in the browser and walk the steps."
+ ],
+ "decisions": [
+  {
+   "decision": "Domain pack is detected, not a step.",
+   "why": "The owner liked the pack UI but wanted the agent to pick the pack; the cards stay where the user can change the choice."
+  },
+  {
+   "decision": "Each line of the understood sheet says whether it came from the chat or is still open.",
+   "why": "The user must see what DCLab assumed versus what they said."
+  }
+ ],
+ "change": "views/new.html reduced to five steps on the draft; the Goal step shows the problem and the understood sheet from the chat.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The wizard could reopen a draft that had already been built into a project.",
+   "scenario": "After 'Let's build the solution' and a completed build, reopening the wizard loaded the same draft again, inviting a second build of a draft that already had its project.",
+   "cause": "The wizard took the last open draft without checking whether it was built.",
+   "fix": "The wizard does not reopen a built draft.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the wizard opens from Home on the draft and shows five steps; the Goal step reflects the chat.",
+ "lessons": [
+  "A state machine across pages needs an explicit 'done' state that every entry point checks."
+ ],
+ "commits": [
+  "15c4958"
+ ]
+}

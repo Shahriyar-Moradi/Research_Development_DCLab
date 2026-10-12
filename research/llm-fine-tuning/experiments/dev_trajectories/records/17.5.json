@@ -1,0 +1,129 @@
+{
+ "package": "17.5",
+ "title": "A better workflow per task: binary, multiclass, regression",
+ "date": "2026-10-12",
+ "request": "After the first model, record what a careful data scientist checks for each task: a binary alert threshold from the team's capacity or the cost of errors and calibration; per-class results and confusions for multiclass; honest intervals and where the error grows for regression.",
+ "spec": "Binary: a threshold from the stated cost or budget, calibration, precision as a lower bound with partial labels. Multiclass: per-class metrics, most confused pairs, tiny classes, top-k. Regression: target transform by residuals, intervals from out-of-fold residuals, error by segment and range, behaviour at caps. Each from the plan. Done when each replica's final record carries its task's additions, and the multiclass and regression replicas improve on the engine as it was by their acceptance margins.",
+ "plan": [
+  "Use the selected configuration's out-of-fold predictions, which the runner already keeps, so every choice is made on training rows.",
+  "Write dclab_core/assess.py and call it from the engine's final stage as task_assessment; read the holdout once from predictions already computed.",
+  "Test each task on its replica; fix a real crash found on the way (a training fold without a class).",
+  "Run the reviewer; fix the 6 findings; record what stays open (the improvement margins) and move it to 17.6."
+ ],
+ "decisions": [
+  {
+   "decision": "17.5 measures and does not change the model.",
+   "why": "Choosing a transform or merging classes is an experiment; 17.6's review rounds run experiments under a rule."
+  },
+  {
+   "decision": "The binary threshold follows the adopted plan's threshold policy: a review capacity as a share of rows, stated costs when both errors have a number, otherwise the F1-best one, said so, with a note to ask.",
+   "why": "The threshold is a business decision; the F1 optimum is a fallback, not an answer."
+  },
+  {
+   "decision": "Intervals are split-conformal on out-of-fold residuals, with their measured holdout coverage.",
+   "why": "Claim only the coverage that was measured."
+  }
+ ],
+ "change": "dclab_core/assess.py (binary threshold and calibration, multiclass per-class results, confused pairs, tiny classes and top-k, regression intervals and errors by range and segment), the engine's task_assessment in the final stage reading the plan's budget and label coverage, runner.fit_and_predict fitting codes of the classes present, the export's multiclass helpers; tests/test_core_assess.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The budget, costs and partial labels never reached the assessment, so the threshold was always the F1-best one.",
+   "scenario": "budget was read from an attribute Prepared does not have, so it was always None; costs and partial labels were never passed; every engine run said 'no budget or cost was given', even when the brief stated a review capacity, and the fraud record never said precision is a lower bound.",
+   "cause": "The engine hook read the wrong object and ignored the plan's threshold policy.",
+   "fix": "Give the prepared data the project's plan and label record; map the review budget to a share of rows and stated costs to costs; partial labels from the solution.",
+   "test": "test_a_binary_project_takes_its_threshold_and_label_coverage_from_the_plan"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The threshold search could not alert on more than half the rows.",
+   "scenario": "Prevalence 0.3, costs 1 for a false alarm and 20 for a miss: the code chose to alert on 50% at a cost of 4,638; the optimum alerts on 77% at 2,374. The existing test passed only because its optima lay above the median.",
+   "cause": "Candidates were quantiles from 0.5 to 0.999.",
+   "fix": "Try every distinct out-of-fold score.",
+   "test": "test_the_threshold_can_alert_on_most_rows_when_misses_are_dear"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The Done-when was not met.",
+   "scenario": "The binary replica's record was untested; no model changed, so no replica improved by a margin; no target transform was chosen and no merge check written; a bare except could silently drop the whole assessment.",
+   "cause": "The package measured but did not act, and the failure path had no test.",
+   "fix": "Test the binary record and the failure path (the stage stays as it was); record the improvement margins, the target transform and merging tiny classes as open and move them to 17.6.",
+   "test": "test_an_assessment_that_fails_leaves_the_stage_as_it_was"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The exported notebook mishandled a training fold without a class.",
+   "scenario": "With a forward split on the ticket replica (a class appears late), XGBoost raised 'Invalid classes inferred', and sklearn or LightGBM returned one column fewer, so argmax gave a position instead of a label and macro F1 was silently wrong.",
+   "cause": "The notebook fitted raw labels and mapped scores by position.",
+   "fix": "Fit codes of the classes present and map scores back through the fitted classes, as the runner now does.",
+   "test": "test_the_exported_notebook_fits_and_scores_a_fold_without_a_class"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Cap detection read the holdout labels and duplicated analyse's rule.",
+   "scenario": "The cap was found on out-of-fold and holdout targets together; a constant or discrete target counted as capped.",
+   "cause": "A copy of the rule, fed the wrong rows.",
+   "fix": "One shared rule (analyse.target_cap) on training rows only, never a discrete scale.",
+   "test": "test_macro_recall_counts_every_class_and_a_discrete_target_is_not_capped"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Macro recall was overstated above 30 classes.",
+   "scenario": "The per-class list was cut to the 30 largest classes before averaging, leaving out the small ones.",
+   "cause": "Truncation for the record happened before the computation.",
+   "fix": "Average over every class, then truncate the list.",
+   "test": "test_macro_recall_counts_every_class_and_a_discrete_target_is_not_capped"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A training fold without a class crashed XGBoost in the engine.",
+   "scenario": "On the ticket replica's forward folds an early fold lacked a class and XGBoost raised; the reviewer confirmed the old code crashes on that replica.",
+   "cause": "XGBoost requires contiguous class codes.",
+   "fix": "fit_and_predict fits on codes of the classes present and maps scores back.",
+   "test": "test_a_fold_without_a_class_still_fits_and_predicts_every_class"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "regression intervals on the delivery replica",
+   "gate": "Report only the coverage measured on the holdout.",
+   "fixed_before_run": true,
+   "result": "The 80% interval covered 0.81 of the holdout.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "improvement by the acceptance margins",
+   "gate": "The multiclass and regression replicas each improve on the engine as it was by the margin their acceptance tests set (Done-when of 17.5).",
+   "fixed_before_run": true,
+   "result": "Not reached: 17.5 only measures; no model, target or training step changed.",
+   "verdict": "fail",
+   "cost_eur": null,
+   "next": "Moved to 17.6 as experiments the review proposes from the measured weaknesses."
+  }
+ ],
+ "outcome": "Done in part: each task's final record carries its checks (threshold from the plan, calibration, per-class results, intervals with measured coverage, errors by range and segment), chosen on training rows and read once on the holdout; a real missing-class crash fixed in the engine and the notebook. The improvement margins moved to 17.6.",
+ "lessons": [
+  "A threshold search with a floor at the median silently forbids the right answer when misses are expensive.",
+  "Truncate for display after computing, never before.",
+  "A Done-when that asks for improvement cannot be met by a package that only measures; say so and move it."
+ ],
+ "commits": [
+  "c31ddb1"
+ ]
+}

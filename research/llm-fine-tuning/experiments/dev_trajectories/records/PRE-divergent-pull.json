@@ -1,0 +1,70 @@
+{
+ "package": "PRE-divergent-pull",
+ "title": "Reconciling a diverged main, and stopping before a commit when the check still fails",
+ "date": "2026-10-05",
+ "request": "git pull says my branches have diverged and need to be reconciled. Then, after the options were explained: yes, you do it.",
+ "spec": "Bring the local main and the remote main together without losing the local commit or the uncommitted work in the tree, run make rd-check, and commit or push only if it passes.",
+ "plan": [
+  "Fetch and compare without changing anything: which commits are only local, which only remote, and which files both touch.",
+  "Report the divergence (one local commit, the category-code fix; one remote commit, the workflow graph), the shared file (dclab_rnd/studio/engine.py) and the overlap with uncommitted edits, and recommend a rebase; ask before acting.",
+  "With the owner's yes: set the uncommitted work aside, rebase the local commit onto the remote one, and restore the work.",
+  "Run make rd-check and list the failures.",
+  "Regenerate the generated files that were stale (make knowledge, make research-index).",
+  "Investigate the remaining failing test by printing the failed session's error before changing anything.",
+  "Report the state and the options; do not commit or push while the check fails."
+ ],
+ "decisions": [
+  {
+   "decision": "Rebase rather than merge.",
+   "why": "It keeps the history linear, which fits the repository's rule of working on main."
+  },
+  {
+   "decision": "Nothing was changed until the owner said yes.",
+   "why": "Rewriting local history and touching uncommitted work are the owner's call."
+  },
+  {
+   "decision": "A generated file that conflicts is taken from either side and rebuilt; a hand-written file is merged by hand.",
+   "why": "Generated files are rebuilt by commands, never edited (rule 4 of the repository)."
+  },
+  {
+   "decision": "The failing intern test was reported with its cause and two options (wait for the rate limit, or make the test ignore the key), not changed during the pull.",
+   "why": "The failure was unrelated to the rebase; changing a test silently while reconciling history mixes two changes and hides a real problem."
+  },
+  {
+   "decision": "No commit and no push while make rd-check failed.",
+   "why": "The repository's rule: commit only when make rd-check passes."
+  }
+ ],
+ "change": "The local category-code commit was replayed on top of the remote workflow-graph commit with no conflicts; the uncommitted work came back with no conflicts; make knowledge and make research-index regenerated two research INDEX.md files, the evidence index and the SFT corpus. Nothing was committed.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "After the rebase, three checks failed on generated files that were out of date.",
+   "scenario": "make rd-check after the pull: the freshness checks of the evidence index, the SFT corpus and research INDEX.md files failed, because the new commits changed their inputs.",
+   "cause": "The generated files had not been rebuilt after the inputs changed.",
+   "fix": "Run make knowledge and make research-index; never edit the generated files by hand.",
+   "test": "The freshness checks of make rd-check pass."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The intern API test failed on this machine only.",
+   "scenario": "test_sessions_over_http expected a completed session and got 'failed'; printing the session's error showed a rate-limit answer from the real OpenAI API, because the server loaded OPENAI_API_KEY from the developer's .env and the intern ran in model mode.",
+   "cause": "The test did not isolate itself from the machine's environment.",
+   "fix": "Reported here with the two options; the owner chose to fix the test, which was done in package 0.1 (the test clears the key for its own duration).",
+   "test": "tests/test_intern.py, see package 0.1."
+  }
+ ],
+ "measurements": [],
+ "outcome": "The divergence was resolved by a clean rebase, the generated files were rebuilt, and the one remaining failure was traced to the test reading the developer's live key; nothing was committed or pushed until it was fixed. Today the repository forbids git stash (the owner keeps uncommitted work in the tree), so the same pull would now be done without setting the work aside that way.",
+ "lessons": [
+  "Look before reconciling: list local-only commits, remote-only commits and the files both touch, then ask.",
+  "When a check fails after a pull, separate stale generated files (rebuild them) from real failures (find the cause first).",
+  "Print the failing session's own error before guessing; here it named the cause in one line.",
+  "Do not fix an unrelated failure inside a history operation; report it and keep the changes separate."
+ ],
+ "commits": []
+}

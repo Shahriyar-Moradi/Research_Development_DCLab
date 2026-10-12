@@ -1,0 +1,61 @@
+{
+ "package": "3.6",
+ "title": "Pack detection and the solution workflow",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package picks the domain pack (the user may choose it on Home; otherwise it is detected) and builds the solution workflow on the ten workflow blocks.",
+ "spec": "draft/pack.py (nine packs; the user's choice wins, then the problem's words, then the data) and draft/workflow.py (a workflow on the blocks WF-01 to WF-10, gates added by code, a model's proposal validated). Done when the pack and workflow tests pass.",
+ "plan": [
+  "Serve the same nine pack keys the UI shows (tabular, imbalanced, timeseries, text, vision, driving, maps, scenegraph, llm) so the cards look identical.",
+  "Detect the pack: the user's choice wins, then the problem's words, then data signals, with a plain reason.",
+  "Write template(pack, understanding): the ten base steps, renamed per pack, with WF-01 filled once the chat knows the outcome.",
+  "Write validate(): accept a model's proposal only if every step maps to a block in order and the required blocks are present; add gates and revisit loops in code.",
+  "Make each change a new version."
+ ],
+ "decisions": [
+  {
+   "decision": "Gates ('solution signed', 'owner approves') and the two revisit loops are always added by code, even to a model's workflow.",
+   "why": "A model must never be able to remove a human gate."
+  },
+  {
+   "decision": "A proposal must start with WF-01, never go backwards, contain WF-01, 03, 05 and 09, and have at most 14 steps; otherwise the old workflow stays.",
+   "why": "Code decides and a model advises."
+  },
+  {
+   "decision": "The pack cards stay on Home as an optional choice and inside the solution draft as the detected, changeable pack.",
+   "why": "The owner asked to keep the pack UI while removing the pack step from the wizard."
+  }
+ ],
+ "change": "dclab_rnd/draft/pack.py (PACKS, KEYWORDS, detect) and dclab_rnd/draft/workflow.py (BASE steps, PACK_CHANGES, template, finish adding edges, revisits and gates, validate, with_states).",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A churn problem phrased with 'next month' was put in the time-series pack.",
+   "scenario": "Uploading a file with the sentence 'predict which subscribers will cancel next month' picked the time-series pack, which relabels the workflow for forecasting, though the task is to classify subscribers.",
+   "cause": "A time horizon was read as a forecasting signal on its own.",
+   "fix": "A horizon means forecasting only when the sentence does not ask 'which ones' (cancel, churn, leave, renew...); forecast, demand and 'per day' still decide it.",
+   "test": "test_a_horizon_alone_does_not_make_a_classification_a_time_series."
+  },
+  {
+   "id": "O1",
+   "source": "owner",
+   "severity": "behaviour",
+   "defect": "A misspelt pack word fell back to the generic pack.",
+   "scenario": "The owner wrote 'i want a classification for fruad deetction and prediction'; detection needed exact words, so it chose the tabular pack and its template workflow instead of the fraud (imbalanced) pack.",
+   "cause": "Exact keyword matching on user text.",
+   "fix": "A word of five or more letters with the same first letter and one slip (a wrong, missing or extra letter, or two swapped) is read as the keyword, only when nothing matched as typed; the reason on screen says what was typed.",
+   "test": "test_a_small_typo_in_a_pack_word_is_still_read."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the pack is chosen or detected with a reason, and the workflow is built from the ten blocks with gates only code can add. Typo reading covers one slip per word; the rest of Home still reads the sentence with exact keyword rules when no model answers.",
+ "lessons": [
+  "Keyword rules need tests with the phrasings real users write, including a horizon in a classification question and a typo."
+ ],
+ "commits": [
+  "15c4958",
+  "2899447",
+  "ddc34ee"
+ ]
+}

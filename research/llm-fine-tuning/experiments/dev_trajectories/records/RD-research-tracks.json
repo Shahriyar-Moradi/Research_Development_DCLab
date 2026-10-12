@@ -1,0 +1,82 @@
+{
+ "package": "RD-research-tracks",
+ "title": "One folder per research idea, a generated index for each, and a clean repository",
+ "date": "2026-10-03",
+ "request": "Review the project and make it clean and structured; add to the README how to run and use everything; create a folder for each separate research idea, from data science to GNNs and whatever comes next; reorganize the whole repository so it reads like a tree or a graph.",
+ "spec": "research/<track>/ with one shape everywhere (README with the question, prediction contract, status and conclusions; a generated INDEX.md with champion, experiments, notebooks, evaluation, reports and related evidence; experiments/, notebooks/, evaluation/, reports/); planned tracks with their field's leakage traps; a scaffold (make new-track); the root grouped by role (data, research, evidence, shared code); a research map in the Studio; stale and duplicate files removed.",
+ "plan": [
+  "Move loose root files into purpose-named folders and fix every path that depended on them.",
+  "Create the research tracks and move each suite with git mv so history is kept; write planned tracks with first experiments and datasets.",
+  "Merge the owner's research_tracks/ charters (pushed from another machine) into research/ without losing text.",
+  "Group the root by role: data/ (project, public, downloads), evidence/ (campaigns, knowledge), requirements/.",
+  "Generate every INDEX.md and the track graph from the registry and the campaigns; keep them fresh in rd-check and CI.",
+  "Repair broken data links, remove duplicates and regenerable model binaries, add make clean.",
+  "Serve the same track records as a research map in the Studio."
+ ],
+ "decisions": [
+  {
+   "decision": "Keep shared code (dclab_rnd, general_pipeline) at the root.",
+   "why": "python -m dclab_rnd and import general_pipeline must work without installation."
+  },
+  {
+   "decision": "Never move or rename a results/ folder by hand-editing; regenerate the registry after moves.",
+   "why": "The registry finds results by path; only path-derived run ids may change."
+  },
+  {
+   "decision": "Fold overlapping charters into the matching track as sections, and give distinct ones their own track.",
+   "why": "The owner asked that nothing be lost, and one idea should live in one place."
+  },
+  {
+   "decision": "Stop committing trained model binaries.",
+   "why": "About 55 MB of files that experiment scripts write and nothing reads back; their scores stay in the result files."
+  }
+ ],
+ "change": "Repository reorganized in several commits: research/ with 22 tracks and a template, scripts/build_research_index.py (later dclab_rnd/research_map.py) generating INDEX.md files and the track graph, data/ and evidence/ grouped by role, requirements/ folder, CLAUDE.md for local sessions, make clean, and a Research map page in the Studio with /api/research.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The ten external-project data symlinks pointed at a folder that no longer existed.",
+   "scenario": "After the first reorganization renamed external_data/ to data/public/, each external project's data link still pointed at external_data/<name> and resolved to nothing.",
+   "cause": "Symlinks are not rewritten by git mv of their target folder.",
+   "fix": "Repoint all ten links to data/public/<name>.",
+   "test": ""
+  },
+  {
+   "id": "F2",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Byte-identical duplicates and a committed run log bloated the repository.",
+   "scenario": "The model-tagged copy of the LLM review report (Markdown and a 2.8 MB PDF) and its memory, a 'previous' memory archive equal to the gpt-4o-mini snapshot, prototype copies of the v1 SFT samples and two unused benchmark images were all committed twice; plotting code kept re-copying the images.",
+   "cause": "Copies made for convenience were never removed.",
+   "fix": "Remove the duplicates and the plotting code that re-copied them; scripts/clean_workspace.py removes caches and empty folders without touching tracked files, data, environments or secrets.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "registry and links after the moves",
+   "gate": "A move may change paths, path-derived run ids and timestamps, never a number or a finding; every Markdown link must resolve.",
+   "fixed_before_run": true,
+   "result": "Same 579 registry records with identical metrics; regenerated files differed only in paths, path-derived run ids and one timestamp; all relative Markdown links resolve; checks passed locally and in a clean CI-only environment.",
+   "verdict": "pass",
+   "next": "Keep make research-index in rd-check so an INDEX never goes stale."
+  }
+ ],
+ "outcome": "22 research tracks with one shape and a generated index each, a root grouped by role, a research map in the app, and CLAUDE.md so later local sessions start with the map, commands and rules.",
+ "lessons": [
+  "Move with git mv and regenerate every derived file, then diff the generated files: only paths should change.",
+  "A reorganization must check links that git does not track semantically (symlinks, notebook data paths, script root depths)."
+ ],
+ "commits": [
+  "601868e",
+  "31c32f0",
+  "fd2652e",
+  "f226bd4",
+  "0b8de40",
+  "df270d8",
+  "64c4e15",
+  "8a22abf"
+ ]
+}

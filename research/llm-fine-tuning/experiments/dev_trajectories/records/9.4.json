@@ -1,0 +1,142 @@
+{
+ "package": "9.4",
+ "title": "Move an existing workspace into the database",
+ "date": "2026-10-06",
+ "request": "A workspace that started on the file stores has no way into PostgreSQL. Write a one-way, repeatable migration that copies it into the database, verifies it, prints a report and changes nothing in the source folder.",
+ "spec": "python -m dclab_rnd.storage migrate: projects with their solution, stage records, transitions, approvals and activity; drafts with their events; intern sessions; files copied through the 9.3 interface; counts and the SHA-256 of every data file verified; running it twice duplicates nothing. Done when a workspace created by make product-e2e --base migrates and every page shows the same projects, records and logs.",
+ "plan": [
+  "Write migrate.py: read the source folder's JSON directly (upgrading old documents in memory), copy projects, drafts and sessions each in one transaction, files through file storage, then the workspace logs (agent traces, model usage, output checks, lessons, routing, shadow log) with their own ids and timestamps.",
+  "Add verify(): every count, log and file hash compared; a report; exit 1 on a difference.",
+  "Write a test that builds a workspace, migrates it, and compares what every page lists from the files and from the database.",
+  "Run the four product-e2e flows against a server on a scratch file workspace, migrate it into a test database twice, and check the counts and hashes.",
+  "Run the gate and the reviewer; fix; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "One transaction per project, draft and session; a failure is reported by type and id and the run goes on.",
+   "why": "One bad item must not stop a whole workspace from moving, and a re-run must be able to finish what failed."
+  },
+  {
+   "decision": "Nothing the target already holds is copied again; a file the database workspace changed since is kept.",
+   "why": "The migration must be repeatable and must never overwrite work done in the database after a first run."
+  },
+  {
+   "decision": "Fewer rows in the database than in the source is a difference; more is only a note.",
+   "why": "A target that has been used since the first run legitimately holds more; missing rows are the real failure."
+  },
+  {
+   "decision": "The legacy research-campaign runs (research.sqlite3, the Jobs page) are not moved, and this is written down.",
+   "why": "They live in their own store outside the 9.1 interface; moving them is separate work, and the reviewer showed the gap must be visible."
+  }
+ ],
+ "change": "New dclab_rnd/storage/migrate.py (Source reader, copy of projects, drafts, sessions, files and logs, verify, report) and the migrate command in storage/__main__.py (it runs the schema upgrade first). tests/test_storage_migrate.py builds a workspace, migrates it, and compares every page's lists from both sides.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A lesson without a project id crashed the migration.",
+   "scenario": "The test's intern lesson had no project id (a session gets one only after it runs); copying it violated the database's constraint and stopped the run.",
+   "cause": "The migration assumed every lesson record was complete.",
+   "fix": "An invalid lesson is skipped and reported; the test gives its lesson a project.",
+   "test": "tests/test_storage_migrate.py."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A second run overwrote the target's newer files with the source's old bytes.",
+   "scenario": "Migrate; in the database workspace re-upload projects/<id>/data/t.csv with new bytes; migrate again: the report says ok, the file is back to the source's content and its record holds the old hash, while the project document holds the new one, so the engine refuses the table as changed (or the data is silently swapped). A draft's clean.parquet was overwritten the same way, and the report said 'files: N copied' on the second run.",
+   "cause": "copy_files ran for projects and drafts already in the target and put each file unconditionally.",
+   "fix": "A key whose record exists and whose file is present is skipped and counted as already there.",
+   "test": "test_zz_a_rerun_after_the_target_was_used_keeps_its_newer_file; test_running_it_twice_duplicates_nothing asserts no file is copied."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Lists came out in migration order, not newest first.",
+   "scenario": "Three projects listed newest first from the files came out in reverse id order from the database; the project list, the intern session list and the Home summary's 20 drafts showed the wrong items once there were many.",
+   "cause": "The rows got created and updated from the server default now(), and the PostgreSQL lists sort by that column.",
+   "fix": "Rows take created and updated from the document's own ISO times.",
+   "test": "The page comparison is now unsorted, with items at different times."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A target folder inside the source wrote into the source.",
+   "scenario": "migrate(ws, ws/dbcopy) added 12 paths to the source, including the target's marker and project folders, breaking 'change nothing in the source'.",
+   "cause": "Only an identical source and target were refused.",
+   "fix": "Refuse when either folder contains the other.",
+   "test": "The test covers the same folder, a folder inside the source and the source's parent."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A lesson owned by another workspace crashed the whole run with no report.",
+   "scenario": "Migrating the same source into a second target: projects were reported as conflicts, then KeyError on the first lesson; routing, verify and the report never ran, and every re-run stopped at the same place.",
+   "cause": "Lessons had no owner check, unlike projects.",
+   "fix": "Look up the lesson's owner and report it as a conflict, as for projects.",
+   "test": "test_another_workspace_s_ids_are_conflicts_not_a_crash."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The logs were never verified, so a partly copied log still printed 'Verified'.",
+   "scenario": "A first run stops after the projects phase; the server is started on the target and records one model request; the re-run skips the model_requests table (it already has a row), copies 0 of N rows and prints 'Verified: every count and every file hash matches.'",
+   "cause": "verify() checked projects, drafts, sessions and files only.",
+   "fix": "verify() compares every log's source count with the database count and lessons by id.",
+   "test": "test_a_missing_log_is_a_difference_and_a_rerun_copies_it."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The migration ignored a configured S3 bucket.",
+   "scenario": "With DCLAB_FILES_URL=s3://..., copied files were recorded as local and never uploaded, so another instance without the folder found them missing.",
+   "cause": "LocalFiles was hard-coded for the target.",
+   "fix": "The target's storage is chosen as open_files chooses it: S3 when DCLAB_FILES_URL names a bucket.",
+   "test": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A database error printed a traceback whose parameters held whole draft or session documents; the Jobs page's runs were silently not moved.",
+   "scenario": "An IntegrityError on a duplicate draft event number printed SQLAlchemy's '[parameters: ...]' with conversation text; a server on the target showed fewer jobs with nothing saying why.",
+   "cause": "The command had no error handler, and the legacy campaign store was outside the migration without a note.",
+   "fix": "Each item runs in attempt() and is reported as kind, id and exception type only; the command prints only the type and exits 1; the docstring and the playbook say the legacy runs are not moved.",
+   "test": "Covered by the conflict and failure tests."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "One of the new tests passed whatever happened.",
+   "scenario": "The missing-file check ended in 'or True', so it could never fail.",
+   "cause": "A placeholder assertion left in while writing the fixes.",
+   "fix": "The test now checks that a file missing from the target is reported as a difference.",
+   "test": "tests/test_storage_migrate.py."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "migrating a workspace built by the end-to-end flows",
+   "gate": "A workspace created by make product-e2e --base migrates, with every count and file hash verified, and a second run duplicates nothing (the package's Done when).",
+   "result": "3 projects, 4 drafts and 9 files copied and verified; the second run copied nothing and the source folder was unchanged (after F1, the report also says files copied 0).",
+   "verdict": "pass",
+   "next": "Two reviewer notes went to the Open list: a corrupt source JSON stops the run before copying and names the error, not the file; one failing log table skips the logs after it for that run (verify reports the missing rows)."
+  }
+ ],
+ "outcome": "Done after one review round: python -m dclab_rnd.storage migrate SOURCE --to TARGET copies a file workspace into PostgreSQL, verifies counts, logs and hashes, and is repeatable. The same commit marked playbook 11.1-11.3 done, since the agentic plan's A1, A2 and A4 built them.",
+ "lessons": [
+  "'Running it twice duplicates nothing' must also mean 'running it twice overwrites nothing the target changed since'.",
+  "Copy a document's own timestamps into rows, or every list sorted by time changes order after a migration.",
+  "A verification that skips logs will print 'verified' over a half-copied log; verify everything that was copied.",
+  "Never let a crash print a database driver's parameters; they can hold user text."
+ ],
+ "commits": ["b1fd28e"]
+}

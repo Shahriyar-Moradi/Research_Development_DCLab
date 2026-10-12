@@ -1,0 +1,60 @@
+{
+ "package": "3.3",
+ "title": "Structural, lossless cleaning with a log",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package cleans the table in the background, without leaking anything about the outcome.",
+ "spec": "draft/clean.py: names, missing-value markers, trimming, numbers and dates written as text, yes/no columns, empty rows and columns, exact duplicates, category codes; every step logged with counts. Done when the cleaning tests pass and the input frame is never changed.",
+ "plan": [
+  "Write clean(frame) returning a new frame and a log, with only structural, lossless steps.",
+  "Log each step that changed something with a title, a detail and counts.",
+  "Detect numeric columns that are really category codes.",
+  "Test each step, the order of steps, and that the input frame is not changed."
+ ],
+ "decisions": [
+  {
+   "decision": "No imputation, scaling, encoding or outlier removal before a project exists.",
+   "why": "Those learn from the data and belong inside training folds; doing them on Home would leak information from the rows that later form the holdout (rules 1 and 2)."
+  },
+  {
+   "decision": "Values with leading zeros ('007', postcodes) stay text; thousands separators must come in groups of three, so '1,5' stays text while '1,234' becomes 1234.",
+   "why": "Reading a code or a decimal comma as a number would change what the column means."
+  },
+  {
+   "decision": "A date must contain a digit and not be all digits.",
+   "why": "Weekday names and phone numbers must not become dates."
+  }
+ ],
+ "change": "dclab_rnd/draft/clean.py: clean(frame) and category_code_columns(frame); steps for names, missing markers, trimming, numbers, dates, yes/no values, empty rows and columns and exact duplicates, each logged with counts.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Cleaning turned yes/no columns into booleans, and two later steps crashed on them.",
+   "scenario": "An uploaded Telco CSV went through cleaning (Yes/No became True/False); the engine's data stage then failed on its drift check because numpy cannot take quantiles of booleans, and the column auditor crashed on a regression table with two yes/no columns because numpy refuses to subtract booleans (a 500 in the wizard).",
+   "cause": "Booleans count as numeric in pandas but not in numpy arithmetic, and a cleaning step made them common.",
+   "fix": "The engine turns boolean features into 0/1 with missing kept missing (the target stays compared as text), and the auditor compares column pairs as floats.",
+   "test": "test_data_stage_runs_with_boolean_columns; test_auditor_reads_yes_no_and_nullable_columns_in_the_arithmetic_check."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "cleaning speed",
+   "gate": "Cleaning a large table must take seconds.",
+   "fixed_before_run": true,
+   "result": "A 300,000-row CSV cleaned in 2.0 s; a 200,000-line access log in 2.4 s.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: cleaning is structural and lossless, logged step by step, and never changes its input. The booleans it produces are now handled by the engine and the auditor.",
+ "lessons": [
+  "A cleaning step that changes a type changes every consumer; run the whole flow on a real file after adding one."
+ ],
+ "commits": [
+  "15c4958",
+  "4e9b0d9",
+  "cb11497"
+ ]
+}

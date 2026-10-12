@@ -1,0 +1,59 @@
+{
+ "package": "5.3",
+ "title": "Notebook, Leakage & features, Models, Reliability, Decision brief",
+ "date": "2026-10-05",
+ "request": "Every project page keeps the demo's look but shows the open project's own records; a page with no result yet says so and offers to run what is missing, and nothing is filled with sample numbers. This package wires the five result pages and their exports to the open project's stage records.",
+ "spec": "Each page reads the stage records of the open project; the exports work. Done when the project-review and studio tests pass and the exported notebook reads the project's data file by its type and uses the recorded folds.",
+ "plan": [
+  "Wire notebook, audit, models, reliability and brief views to the project's stage records and notes, in parallel helpers each owning their views.",
+  "Use a read-only review route for the Notebook page instead of the export route.",
+  "Show every number with its interval where the record has one; label synthetic data on the brief and both exports; never call a model production-ready.",
+  "Check each page with full, partial and empty projects, and the switch between real and sample."
+ ],
+ "decisions": [
+  {
+   "decision": "GET /api/projects/{id}/review is read-only and returns the notebook's cells, summary and findings.",
+   "why": "The export route logs a knowledge-capture move on every call; rendering the page from it would have written to the project's log on every visit."
+  },
+  {
+   "decision": "The production gate on Reliability is a checklist read from the records, with production approval shown as false.",
+   "why": "A benchmark result is research, not production (rule 6); the fixture scored 6 of 9 items."
+  },
+  {
+   "decision": "Panels that need data the project does not have (slices, the masking test, scoring time) say 'not measured' instead of showing sample figures.",
+   "why": "No invented number anywhere."
+  }
+ ],
+ "change": "The five result pages read the project's stage records; GET /api/projects/{id}/review added; the notebook export reads the data file by its type and labels synthetic data, as does the report.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Rendering the Notebook page would have logged a knowledge-capture move on every visit.",
+   "scenario": "The page fetched /export/notebook to show cells; that route calls the graph's capture, so opening the page wrote a WF-10 move and could mark the project captured.",
+   "cause": "A route with a side effect was used for display.",
+   "fix": "A read-only /review route returns the cells, summary and findings built with the same export function; the Download button still uses /export/notebook, so capture is logged only on a real export.",
+   "test": "test_review_returns_summary_cells_and_findings_without_side_effects."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The exported notebook failed on its first cell for projects built from Home.",
+   "scenario": "Projects built from Home keep their data as Parquet, but the notebook always called pd.read_csv on the data file.",
+   "cause": "The export assumed CSV.",
+   "fix": "The notebook reads the file the way data.load_table does, by its type.",
+   "test": "tests/test_studio.py export test."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: every result page shows the project's own records with intervals, and the exports run and say when data is synthetic. Still sample-only and labelled: running notebook cells, one-click fixes, slice results and monitoring.",
+ "lessons": [
+  "Never use a route with side effects to render a page; add a read-only twin."
+ ],
+ "commits": [
+  "6faef03",
+  "c13bb6f"
+ ]
+}

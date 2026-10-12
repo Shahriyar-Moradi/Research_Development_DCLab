@@ -1,0 +1,94 @@
+{
+ "package": "RD-pitfalls-v1",
+ "title": "What six common notebook mistakes really cost",
+ "date": "2026-10-03",
+ "request": "Measure the cost of common notebook mistakes, wrong way against right way on identical data, so the copilot's severity and its 'show proof' rest on numbers rather than folklore.",
+ "spec": "dclab_rnd/pitfalls.py and evidence/campaigns/pitfalls_v1: six experiments (preprocess before split, selection before CV, oversample before split, target encoding before split, random split on time data, holdout reuse for selection), each a question, a setup, facts, a recommendation and its limits.",
+ "plan": [
+  "For each mistake, write the question and the wrong and right procedures before running.",
+  "Run on real datasets with several seeds; add a pure-noise canary where the mistake can fabricate signal.",
+  "Record the inflation as reported minus honest, with its limits.",
+  "Wire the results into the evidence index so the copilot cites them."
+ ],
+ "decisions": [
+  {
+   "decision": "Include a pure-noise canary (random labels, 2,000 features, 200 rows) for selection before CV.",
+   "why": "On real tables with few features the inflation is tiny; the canary shows what the mistake does when candidates outnumber rows."
+  },
+  {
+   "decision": "Report harmless or reversed effects as measured.",
+   "why": "The copilot's severity must follow the measurement; a scaler fitted before the split cost almost nothing, and a random split on HyperAck was not optimistic."
+  }
+ ],
+ "change": "dclab_rnd/pitfalls.py (run, report) and six result files plus PITFALLS_REPORT.md under evidence/campaigns/pitfalls_v1/.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The assumption that a random split on time-stamped data is always optimistic did not hold.",
+   "scenario": "On HyperAck (11,107 orders over about four and a half months, 11 leakage-safe features, LightGBM) a random split reported ROC-AUC 0.9332 and training on the first 80% by time and testing on the last 20% gave 0.9371: the random split was 0.0038 lower, not higher.",
+   "cause": "The process was stable over that window, so a forward-in-time test scored as well or better.",
+   "fix": "The recommendation now says: validate forward in time when future rows will be scored, report that number, and measure the gap rather than assume its direction.",
+   "test": "PIT-005 result file."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "PIT-001 preprocess before split",
+   "gate": "Logistic regression with mean imputation and scaling, 6 datasets, 3 seeds; inflation = fitted on all rows minus fitted on training rows.",
+   "fixed_before_run": true,
+   "result": "At most +0.0001 ROC-AUC on average (german_credit).",
+   "verdict": "not scored",
+   "next": "Low severity for row-wise unsupervised transforms; still use a pipeline."
+  },
+  {
+   "name": "PIT-002 selection before CV",
+   "gate": "SelectKBest plus logistic regression, 5-fold CV, 3 seeds, a noise canary and three real datasets.",
+   "fixed_before_run": true,
+   "result": "Noise canary: 0.859 with selection before CV against 0.512 inside the folds (chance 0.5); real datasets at most +0.0041.",
+   "verdict": "not scored",
+   "next": "High severity for wide data (text, many engineered features)."
+  },
+  {
+   "name": "PIT-003 oversample before split",
+   "gate": "Random oversampling to 50/50, random forest, 4 imbalanced datasets, 3 seeds.",
+   "fixed_before_run": true,
+   "result": "Up to +0.3003 ROC-AUC on average (online_shoppers 0.9019 reported vs 0.6016 honest).",
+   "verdict": "not scored",
+   "next": "Resample only inside training data and score on naturally imbalanced rows."
+  },
+  {
+   "name": "PIT-004 target encoding before split",
+   "gate": "Mean-target encoding of one categorical column, histogram boosting, 80/20 split, 3 seeds.",
+   "fixed_before_run": true,
+   "result": "Encoding Telco customerID (unique per row): 1.0000 vs 0.8160 honest (+0.1840); a low-cardinality HyperAck category: +0.0019.",
+   "verdict": "not scored",
+   "next": "Never target-encode identifiers; encode out-of-fold."
+  },
+  {
+   "name": "PIT-005 random split on time data",
+   "gate": "HyperAck orders, LightGBM on 11 leakage-safe features; random stratified 80/20 over 3 seeds against training on the first 80% by time.",
+   "fixed_before_run": true,
+   "result": "Random 0.9332 vs time-ordered 0.9371 (random minus time -0.0038): not optimistic on this window.",
+   "verdict": "not scored",
+   "next": "Validate forward in time anyway when future rows will be scored, and report that number."
+  },
+  {
+   "name": "PIT-006 holdout reuse for selection",
+   "gate": "30 random LightGBM configurations, 60/20/20 split into training and two holdouts, 5 datasets, 3 seeds; bias = the pick's drop to the untouched holdout minus the average drop.",
+   "fixed_before_run": true,
+   "result": "+0.0072 ROC-AUC optimism on average, +0.0177 on german_credit; on the untouched holdout the pick ranked 7.2 of 30 on average.",
+   "verdict": "not scored",
+   "next": "Tune on training CV and read the holdout once; the bias grows with the number of configurations."
+  }
+ ],
+ "outcome": "Six measured precedents the copilot cites as proof: the large ones (oversampling up to +0.30, identifier encoding +0.18, selection on wide noise +0.35) and the small or reversed ones (scaling 0.0001, random vs time -0.0038).",
+ "lessons": [
+  "The same mistake (fitting on all rows) ranges from harmless to fatal depending on what is fitted; severity must be measured per step.",
+  "Do not assume the direction of a validation gap; measure it."
+ ],
+ "commits": [
+  "d9c4c24"
+ ]
+}

@@ -1,0 +1,81 @@
+{
+ "package": "15.6",
+ "title": "The fraud pack reaches the engine; Home asks the right questions",
+ "date": "2026-10-12",
+ "request": "Given the two files and 'find fraudulent rides of bikers', DCLab should recognise the fraud problem, ask what is scored, who could commit the fraud, whether the labels are a sample, and how many alerts the team can review, and run with the pack's defaults.",
+ "spec": "The imbalanced pack sets engine defaults through one place the engine reads; Home asks the pack's questions within MAX_QUESTIONS; data signals pick the pack. Done when a draft of the replica reaches a solution with the entity, partial labels, the label file and the budget, and the built project runs with the pack's defaults (scripted model and no-model fallback both tested).",
+ "plan": [
+  "Map Home's flow: the model path, the no-model fallback, the draft's assets and build_project.",
+  "Find where the draft decides its active table, so a second upload (the label file) does not replace the main table.",
+  "Recognise a label file in draft/pipeline.py, pick the pack from rare labels in the data, and announce the label file in Home.",
+  "Add the pack's questions (entity, coverage, budget) within MAX_QUESTIONS, and make build_project carry the label file, the entity, the budget and the pack.",
+  "Key the engine's prepared-data cache on the pack and the label file.",
+  "Test the Home-to-engine flow without a model and with a scripted model; fix the Step 2 review's findings."
+ ],
+ "decisions": [
+  {
+   "decision": "A smaller file with a column of its own that joins the table by a key is the label file, whichever is uploaded first.",
+   "why": "People upload in either order; the label file is defined by what it adds, not by its position."
+  },
+  {
+   "decision": "The pack's questions share Home's four-question limit.",
+   "why": "A person answers a few questions; the entity, coverage and budget replace questions the data already answers."
+  },
+  {
+   "decision": "A coverage answer is 'complete' only when it says every case is labelled and nothing says otherwise; partial by default.",
+   "why": "A wrong 'complete' presents a precision floor as an exact precision."
+  }
+ ],
+ "change": "draft/pack.py (rare labels from data pick the pack, engine_defaults), draft/pipeline.py (label file detection in either order), the pack's questions in draft/plan.py and chat.py, the coverage answer parser in draft/api.py, build_project carrying the label file, entity, budget and pack, the engine cache keyed on them; tests/test_fraud_home.py.",
+ "findings": [
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Home mistook an ordinary second upload for a label file.",
+   "scenario": "A churn draft with a 1,000-row sample uploaded first and then the full 4,000-row table with the same columns: the sample became the label file, the target question was never asked, and build_project produced a target 'was in the sample' with partial labels, ignoring the real churned column.",
+   "cause": "Any file at most half the size that shared a near-unique key was classed as labels.",
+   "fix": "A label file must bring a column of its own that the table does not have.",
+   "test": "test_a_sample_of_the_same_table_is_not_a_label_file"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Negative coverage answers were read as complete labels.",
+   "scenario": "Answers such as 'Not all cases are labelled' or 'we haven't found all' matched the word 'all' and became complete, so precision was presented as exact.",
+   "cause": "The parser looked for a keyword and ignored negation.",
+   "fix": "Negations and sample words mean partial; complete needs 'every/all ... labelled/known/found' or 'complete'; partial is the default.",
+   "test": "test_a_label_coverage_answer_is_complete_only_when_it_says_so"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The Home test failed on a question that had been correctly withdrawn.",
+   "scenario": "The target question was asked after the ride table arrived but before the label file, then withdrawn when the label file supplied the target; the test counted it.",
+   "cause": "The test read every question ever asked, not the questions still standing.",
+   "fix": "The test looks only at the questions still standing.",
+   "test": "test_home_asks_the_packs_questions_and_the_project_runs_with_its_defaults"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "fraud replica end to end (the 15.1 acceptance test)",
+   "gate": "Fixed in 15.1 before 15.2 to 15.6 were built: the label key, partial labels, folds by biker, the behaviour recipe, the families, a stated rule, recall at the budget above the budget, precision as a lower bound, the disagreeing column as a limit, and holdout AP above 0.35 and above 20 times chance on seed 0.",
+   "fixed_before_run": true,
+   "result": "Every decision is reached; holdout AP 0.54 on seed 0 (the engine as it was: 0.277). Seed 1, outside the test, reaches 0.18 on a holdout with a handful of fraud bikers. The Home draft reaches the entity, partial labels, the label file and a budget in 4 questions.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "15.10 (the service) and 16.13 (challenge mode) build on the solved replica."
+  }
+ ],
+ "outcome": "Done: from a draft of the replica, Home finds the label file, picks the fraud pack, asks four questions and builds a project that runs with the pack's defaults; the fraud acceptance tests pass. Open: a single table under 1% positives is not yet read as the pack; Home does not ask to confirm a detected label file.",
+ "lessons": [
+  "A detector of file roles must be tested on the ordinary case it could misread (a sample of the same table), not only on the case it was built for.",
+  "When an answer is free text, default to the safer reading and require explicit words for the riskier one."
+ ],
+ "commits": [
+  "abb5729"
+ ]
+}

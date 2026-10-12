@@ -1,0 +1,101 @@
+{
+ "package": "PRE-product-demo",
+ "title": "A clickable demo of the whole DCLab R&D product, with a blueprint of what is built and what is missing",
+ "date": "2026-10-04",
+ "request": "Show me what the final product would look like: not a landing page but the full UI, with every tool and option, as a developer or a business person would see it, over several pages if needed, so I can see what we have, what we miss and what we do not need. Also remember that in this conversation 'DCLab' means the DCLab R&D project and its product, not DCLab's main product.",
+ "spec": "A demo of the final product as one buildable page: the main pages of the product with role views and guided tours, a blueprint layer that marks each feature as built, partial, to build or research with the code path behind it, and a decision board for Must, Later or Cut. Real evidence wherever it exists, everything else labelled as sample data. Sources in docs/product-demo/src, make product-demo rebuilds the page, and rd-check keeps it fresh. The naming note goes into CLAUDE.md.",
+ "plan": [
+  "Save the naming note in CLAUDE.md, so every later session reads it.",
+  "Read the repository for the real numbers the pages can show (evidence records, registry champions, the copilot's findings, the blind auditor replay, the SFT v3 manifest).",
+  "Write the design system, then the app core: navigation, role switch, blueprint layer, tours, search and charts.",
+  "Write the feature registry that drives the blueprint: every feature on every page with its status and code path.",
+  "Write the shell and the shared sample data, and a build script that assembles the sources into one page.",
+  "Render the shell and Home first and fix layout problems before writing the other pages.",
+  "Write the pages one by one (New project, Workflow graph, Contract, Notebook, Leakage, Models, Holdout, Decision brief, Intern, Compute, Evidence, Research lab, Judgment benchmark, Policy model, Domain packs, Integrations, Admin, Blueprint), rendering and checking each group.",
+  "Check interactions, phone width and dark mode with a headless browser, then publish the page privately with a shared store for the Must, Later or Cut decisions.",
+  "Add the demo's freshness check to make rd-check, run it, and commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A blueprint layer marks each of the features as built, partial, to build or research, with the code path behind it.",
+   "why": "The owner's goal was to see what exists, what is missing and what is not needed; a pretty mock alone would hide that."
+  },
+  {
+   "decision": "Real evidence is used wherever it exists, and every other number is labelled as sample data.",
+   "why": "A demo of an evidence-first product must not invent results; the labels keep the reader from mistaking samples for measurements."
+  },
+  {
+   "decision": "Four role views (Developer, Business, Researcher, Admin); the business view hides code and shows decisions.",
+   "why": "The owner asked how both a developer and a business person would see the product."
+  },
+  {
+   "decision": "The Blueprint page records Must, Later or Cut per feature in a shared store the assistant can read back.",
+   "why": "The walkthrough should turn directly into a plan, without copying decisions by hand."
+  },
+  {
+   "decision": "The page is built from sources by a script and checked for freshness by rd-check.",
+   "why": "A single generated file edited by hand would drift from its sources."
+  }
+ ],
+ "change": "New docs/product-demo/: src/ (design system, app core, feature registry, shell, data drawn from the repository's evidence records, the copilot review and the SFT manifest, and 19 view files), build.py assembling index.html, and a README. make product-demo rebuilds it; make rd-check runs build.py --check. CLAUDE.md records what 'DCLab' means in these conversations.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The top bar was crowded and the projects table was cut off on desktop.",
+   "scenario": "Rendering the shell and Home at desktop width: the menu button meant for phones showed, the avatar wrapped to a second line, and the project status column was cut off.",
+   "cause": "Phone-only controls were not hidden at desktop width and the table had no room for its last column.",
+   "fix": "Hide the menu button on desktop, keep the avatar on one line and give the status column its space.",
+   "test": "Rendered again and checked by screenshot."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The workflow graph was squeezed into part of the page.",
+   "scenario": "The Workflow page drew WF-01 to WF-10 in a narrow column, so the steps and their moves were hard to read.",
+   "cause": "The graph sat inside the normal page grid.",
+   "fix": "Give the graph the full width of the page.",
+   "test": "Checked by screenshot."
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Turning on the blueprint layer broke the page it described.",
+   "scenario": "With Blueprint on, its side panel took width from the page: the notebook's columns and the top bar collapsed.",
+   "cause": "The blueprint panel was laid out as a side column next to the page.",
+   "fix": "Make the blueprint a small floating card that starts collapsed and expands on demand, so the page keeps its full width.",
+   "test": "The interaction check now opens the card first and then checks the labels."
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The interaction check failed after the blueprint fix.",
+   "scenario": "The scripted browser check looked for the blueprint labels straight away and found none.",
+   "cause": "Expected: the card now starts collapsed; the check was written for the old open panel.",
+   "fix": "Update the check to open the blueprint card first.",
+   "test": "All interaction checks pass with no console errors."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "Scores shown on the Notebook page",
+   "gate": "No gate: numbers measured while building the demo, to show real behaviour instead of samples.",
+   "fixed_before_run": true,
+   "result": "The leaky demo notebook prints accuracy 0.9689; the fixed version reaches ROC-AUC 0.7577.",
+   "verdict": "not scored"
+  }
+ ],
+ "outcome": "Done: a 19-page clickable demo of the final product with four role views, tours, a blueprint over 151 features and a Must, Later or Cut board, published privately and committed; make rd-check passed (94 tests OK). It used the 133 evidence records and the real registry numbers (579 experiments, 11 datasets). On 5 October the owner asked for a calmer redesign (package 0.1), which was frozen as demo v1 (package 0.2).",
+ "lessons": [
+  "A product demo meant for decisions should say, feature by feature, what is real today; label every sample number as a sample.",
+  "Render the first page before writing the others: layout problems found on page one are fixed once, not nineteen times.",
+  "An overlay that takes layout width breaks the page it annotates; float it."
+ ],
+ "commits": [
+  "4865ead"
+ ]
+}

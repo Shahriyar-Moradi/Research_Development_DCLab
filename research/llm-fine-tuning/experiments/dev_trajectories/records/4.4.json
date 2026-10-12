@@ -1,0 +1,67 @@
+{
+ "package": "4.4",
+ "title": "Split and budget, Review and start",
+ "date": "2026-10-05",
+ "request": "After Home, the wizard takes the draft through Goal, Data, Solution draft, Split and budget, and Review and start; the Data step shows the preprocessing and a small analysis, Domain pack is no longer a step, and Split and budget and Review stay as they look in the demo, now real. This package makes Split and budget and Review and start real without changing how they look.",
+ "spec": "The unchanged controls, now real: rows, quick mode and folds reach the engine; the split shown is the one the solution implies; the review summarises what will run; 'I drive' opens the project, 'Intern drives' starts an intern session. Done when the draft-flow tests pass (folds reach cross-validation; the stored split follows the solution) and make product-e2e shows StratifiedKFold(5 and TimeSeriesSplit(5).",
+ "plan": [
+  "Store rows, quick mode, folds, where it runs and the budget with PUT /api/drafts/{id}/settings.",
+  "Let the solution decide the split (a time column, then a group column, otherwise stratified); show it, disable the others and say how to change it.",
+  "Make the folds reach the engine's cross-validation and the exported notebook.",
+  "Allow only 'this machine' until sandboxes exist, and say so.",
+  "List the problem, pack, data, solution, split and budget in the review; 'I drive' builds and opens the Workflow page, 'Intern drives' builds and starts a session with the budget."
+ ],
+ "decisions": [
+  {
+   "decision": "The split is not a free choice: the solution decides it.",
+   "why": "A random split on rows with a declared time column answers a different question (PIT-005, DCLAB-R02); the stored value must always be what runs."
+  },
+  {
+   "decision": "The euro budget is stored but marked as not metered.",
+   "why": "Nothing metered money yet; the page must not imply a cap it cannot enforce (metering came later, 8.4)."
+  }
+ ],
+ "change": "Settings route and wiring for the Split and budget and Review steps; the project's folds drive the engine's cross-validation, the random-versus-time comparison and the exported notebook.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The wizard saved the user's fold count but the engine always used 3.",
+   "scenario": "A user chose 5 folds; the project stored 5, but cross-validation, the random-versus-time comparison and the notebook all ran 3.",
+   "cause": "The engine had a hard-coded fold count.",
+   "fix": "The project's folds drive the cross-validation and the comparison, and the exported notebook reads the fold count the stages recorded.",
+   "test": "test_the_wizard_folds_reach_the_cross_validation_and_the_solution_decides_the_split."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The split control could show a split the engine would not use.",
+   "scenario": "On a table with a declared time column the control could be set to a random stratified split, which the engine would not run; the stored and shown setting then differed from what ran.",
+   "cause": "The control was a free choice disconnected from the solution.",
+   "fix": "The solution decides the split; the wizard shows that choice, disables the others and says how to change it.",
+   "test": "Same test: the stored split follows the solution."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "folds and split in the end-to-end run",
+   "gate": "make product-e2e shows StratifiedKFold(5 for the Telco upload and TimeSeriesSplit(5) for the synthetic table split by time.",
+   "fixed_before_run": true,
+   "result": "Both appeared: the Telco CSV ran with 5 stratified folds and the synthetic demand table with 5 time-ordered folds; all five stages completed.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "The scores in that run show the flow works; they are not results (quick mode, one holdout)."
+  }
+ ],
+ "outcome": "Done: what the wizard sets is what runs; the review lists what will run; both start buttons work.",
+ "lessons": [
+  "Every visible setting needs a test that it reaches the code that uses it.",
+  "Do not offer a choice the system will override; show the decision and how to change its cause."
+ ],
+ "commits": [
+  "15c4958",
+  "7ef1cea"
+ ]
+}

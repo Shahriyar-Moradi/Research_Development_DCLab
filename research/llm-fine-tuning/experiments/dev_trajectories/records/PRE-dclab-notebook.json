@@ -1,0 +1,72 @@
+{
+ "package": "PRE-dclab-notebook",
+ "title": "The first DCLab notebook: projects, the prediction contract and the five-stage engine on the person's own data",
+ "date": "2026-10-04",
+ "request": "Remove what does not serve the goal from the data and the UI, then redesign the R&D frontend as a product: a data scientist or ML engineer comes in, creates a project and builds a model of any kind, in any industry, the agentic way instead of writing the pipeline by hand, a more agentic Colab.",
+ "spec": "First trim the Studio UI to what serves the research goal. Then add dclab_rnd/studio/: projects on disk, any CSV, TSV or Parquet loaded and profiled, a prediction contract (target, task, prediction moment, forbidden columns with reasons, identifiers, time, group and text columns, metric) with proposals and proof, the five stages (understand, audit leakage, feature ladder, algorithm screen, tune and confirm once) running on user data through the expansion campaign's primitives, evidence-cited notes per stage, and an export of a runnable scikit-learn notebook and a markdown report. Done when make notebook starts the UI in the ML environment and tests/test_studio.py covers data, contract, engine, exports and the API.",
+ "plan": [
+  "Trim the Studio: remove the Recipes & traces page (it only repeated the run list), the slogan heading, the three marketing cards, the workspace badge, the decorative pill and the vendor footer; keep the one footer line that matters (research evidence is not production approval); check the data folder file by file.",
+  "Build the project store on disk: project.json, data/, stages/ and an activity log per project.",
+  "Load and profile any table, detect the task, and offer the R&D datasets as samples.",
+  "Write the prediction contract as a typed model, with a heuristic proposal that uses the column auditor of the agent tools.",
+  "Run the five stages on the person's data with the expansion campaign's primitives (locked holdout, training-only folds, fit-fold recipes, explicit selection rules), so every record has the campaign's shape.",
+  "Generalize the expansion primitives only where user data needs it: regression without a time column, and two generic feature derivations.",
+  "Add evidence-cited notes per stage, an optional LLM critique, answers to questions, and the notebook and report export.",
+  "Expose it all under /api/projects with stage runs queued in the background, build the Projects home and the project workspace, and keep the earlier pages as Library and Lab.",
+  "Write tests/test_studio.py and run make rd-check before committing."
+ ],
+ "decisions": [
+  {
+   "decision": "The project runs the same deterministic code that produced the R&D evidence, not a new pipeline.",
+   "why": "Each stage record then has the shape of a campaign result, so the agent can cite like with like and the product inherits the leakage safety the campaigns proved."
+  },
+  {
+   "decision": "The prediction contract is written and saved before any stage can run.",
+   "why": "Leakage is the top risk; the contract says what is known at the prediction moment, so forbidden columns are blocked before any score exists."
+  },
+  {
+   "decision": "The final stage tunes on training folds, keeps tuning only if it beats the default by the declared margin, then scores the sealed holdout once with a bootstrap interval and trivial baselines.",
+   "why": "The holdout is used once (rule DCLAB-R17); an honest score needs its uncertainty and a baseline to be read."
+  },
+  {
+   "decision": "The feature ladder picks the simplest recipe within a declared tolerance of the best (0.002 absolute, or 1% relative for regression).",
+   "why": "A recipe has to earn its place on identical folds; tiny gains within fold noise do not justify extra features."
+  },
+  {
+   "decision": "Regression without a time column splits with KFold or GroupKFold; two generic derivations (log of numeric columns, pairwise products restricted to safe inputs) serve user data.",
+   "why": "The expansion campaign only knew a time-series regression and dataset-specific recipes; user tables need a generic default without changing the campaign's behaviour."
+  },
+  {
+   "decision": "LLM help is optional and advisory; the notebook works with no model configured.",
+   "why": "Deterministic code owns splits, metrics and selection (rule 5 of the repository); the product must run offline."
+  },
+  {
+   "decision": "The earlier research pages stay, as Library (map, knowledge) and Lab (campaigns).",
+   "why": "The owner asked to add the product beside the research, not to remove what works."
+  }
+ ],
+ "change": "Commit 1 removed the Recipes & traces page and the decorative parts of the Studio UI; navigation became Research map and Knowledge (explore) plus Agent research (run). Commit 2 added dclab_rnd/studio/ (store.py, data.py, contract.py, engine.py, agent.py, export.py), generalized dclab_rnd/expansion/datasets.py and runner.py for regression without time and two generic derivations, added /api/projects (create, upload, sample, contract proposal and save, run stages in the background, approve with override, ask, export) and /api/evidence/{id} for 'show proof', and a new UI: Projects home, the project workspace (workflow rail, stage cells, agent panel with notes, questions and activity) and a proof drawer. make notebook starts it in the ML environment.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A studio test failed or passed depending on the order the tests ran in.",
+   "scenario": "An approve test changed a stage's status from completed to approved; a later test that expected exactly 'completed' then failed when it ran after it.",
+   "cause": "The tests shared one project and asserted one exact status where two are valid.",
+   "fix": "Assert that the status is one of completed or approved, the two states that mean a stage is done.",
+   "test": "tests/test_studio.py passes in any order."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the Studio became the DCLab notebook. A person can bring a table or pick a sample, write the contract, run the five stages with evidence-cited notes, approve or override a choice, ask questions and export a runnable notebook and a report. Tabular only at this point; LLM help optional.",
+ "lessons": [
+  "Build the product on the code that produced the evidence; then every product claim can cite a measured precedent of the same shape.",
+  "When trimming a UI, remove what repeats or decorates, and keep the one line that guards against misuse (research is not production approval).",
+  "Stop a local server by its port (fuser -k PORT/tcp), not with pkill -f on a pattern: the pattern matched the agent's own shell and killed it."
+ ],
+ "commits": [
+  "f769714",
+  "f552746"
+ ]
+}

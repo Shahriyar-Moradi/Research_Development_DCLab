@@ -1,0 +1,97 @@
+{
+ "package": "5.6",
+ "title": "Workspace and platform pages",
+ "date": "2026-10-05",
+ "request": "The remaining pages still on demo numbers (Compute & jobs, Home's Activity tab, Research lab, Benchmark, Policy model, Domain packs, Integrations and Admin) must show what actually happened, and say plainly what does not exist yet.",
+ "spec": "Those pages on real data, with plain empty states for what does not exist yet (GPU jobs, spend, a review queue, training runs). Done when the ops, lab, learn and platform page tests pass.",
+ "plan": [
+  "Add a scaffold first: one route module per group in dclab_rnd/agentic/pages (ops, lab, learn, platform), each with register(app, ctx), loaded if present, so four helpers can work in parallel without editing the server together.",
+  "Each group reads only files the product already writes (activity and transition logs, intern sessions, draft assets, the evidence index, the SFT manifest, campaign results).",
+  "Replace every invented figure with a real one or an honest 'not tracked yet'.",
+  "Review the helpers' reports for problems in shared code and fix those centrally.",
+  "Load all 19 pages on a workspace with projects and on an empty one and check for console errors."
+ ],
+ "decisions": [
+  {
+   "decision": "Route modules per page group, discovered by the server.",
+   "why": "Four parallel helpers could each own a file; no merge conflicts in server.py."
+  },
+  {
+   "decision": "Admin's policies ask the validator about a test project kept in memory on every request.",
+   "why": "The page cannot claim a rule the code no longer enforces."
+  },
+  {
+   "decision": "Plan figures with no source (5 suites, 120 cases, 4 policies) are returned as 'planned', with no scores.",
+   "why": "No invented number on any page."
+  },
+  {
+   "decision": "Stage 2 of the policy-model curriculum counts as ready at 50 trajectories.",
+   "why": "Holding out whole projects (about one in five) leaves about 10 unseen projects to validate on."
+  }
+ ],
+ "change": "pages/ops.py, lab.py, learn.py, platform.py with read-only routes and tests; Compute, Lab, Benchmark, Policy model, Domain packs, Integrations, Admin and Home's Activity tab wired; gate switch changes now logged; the privacy text corrected; the research map's status parser fixed.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Turning a project's gate switch on or off was the one governance action with no record.",
+   "scenario": "An Admin toggled require_solution_signoff on a project; the change saved through PATCH /api/projects/{id} but never appeared in the audit log.",
+   "cause": "The PATCH route predated the audit log.",
+   "fix": "The project PATCH now logs gate switch changes and the platform audit includes them.",
+   "test": ""
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "privacy",
+   "defect": "The privacy text said raw rows never reach a model, but the intern's describe_data sends up to three example values per column.",
+   "scenario": "With a model configured, an intern session describing the data sent up to three example values per column to the provider, while /api/config said 'Raw rows ... not included'.",
+   "cause": "The text described one agent and was read as covering all.",
+   "fix": "The text now says that example values are sent by the intern; 'never rows' is stated only for the Home agent's context.",
+   "test": ""
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Seven research tracks showed an empty status on the research map.",
+   "scenario": "Tracks whose README opens with '**Status: proposed research.**' showed 'see README.md' in their INDEX.md and an empty status on the map, hiding that they are proposals with no result; the Lab page had worked around it with its own looser pattern.",
+   "cause": "The parser read only '**Status:** ...'.",
+   "fix": "One shared reader handles both forms, the seven INDEX.md files were regenerated, and a test fails if any track declares a status the map does not read.",
+   "test": "test_every_track_readme_status_is_read_in_both_forms."
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Pages showed invented numbers.",
+   "scenario": "The Benchmark leaderboard showed policy scores no run produced; the Lab listed a queued 'expansion_v2' campaign that does not exist; the Policy page showed an 8B training run's GPU hours and cost; the Admin plan table never rendered its cells (missing td).",
+   "cause": "Demo content carried over.",
+   "fix": "Scores read 'planned, no policy scored yet', the invented campaign row and run figures were removed, the cost ladder says no latency or cost is measured, and the table was fixed.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "console check",
+   "gate": "No console error on any of the 19 pages, on a workspace with projects and on an empty one.",
+   "fixed_before_run": true,
+   "result": "None found on either.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: every workspace and platform page shows real data or says plainly that a thing is not built or not metered. Open at the time: the wizard's euro budget was stored but not metered (8.4).",
+ "lessons": [
+  "When parallel helpers each own one file, collect their notes about shared code and fix those in one place.",
+  "A governance action without an audit record is a gap even if it works."
+ ],
+ "commits": [
+  "d7a8d37",
+  "1f96282",
+  "aeb1221",
+  "3695306"
+ ]
+}

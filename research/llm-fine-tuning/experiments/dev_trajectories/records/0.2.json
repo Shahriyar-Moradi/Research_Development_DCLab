@@ -1,0 +1,33 @@
+{
+ "package": "0.2",
+ "title": "Freeze the demo as v1",
+ "date": "2026-10-05",
+ "request": "Keep the redesigned demo as demo v1, the agreed reference for development: the product must look and behave exactly like it, and nobody edits the demo from now on.",
+ "spec": "The tag demo-v1 and a note in the demo's README that it is the frozen reference. Done when git tag -l demo-v1 prints it, docs/product-demo/README.md says 'Demo v1', and python docs/product-demo/build.py --check passes.",
+ "plan": [
+  "Add a 'Demo v1: frozen reference for development' note to docs/product-demo/README.md.",
+  "Tag the demo commit as demo-v1 with an annotated message.",
+  "Keep the demo's build --check inside make rd-check so it stays buildable.",
+  "Ask the owner before pushing main, dev and the tag; push once approved."
+ ],
+ "decisions": [
+  {
+   "decision": "The product frontend is a copy of the demo, never the demo itself.",
+   "why": "The frozen demo is the yardstick; editing it would remove the reference the product is compared against."
+  },
+  {
+   "decision": "Pushing waited for the owner's explicit yes.",
+   "why": "A push changes the shared repository; the package prompt asks for approval first."
+  }
+ ],
+ "change": "Annotated tag demo-v1 on the demo commit ('Demo v1: the agreed UI and UX, frozen reference for building the product') and the frozen-reference note in the demo README.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "Done: tag demo-v1 exists and was pushed with main and dev after the owner approved. Later fixes (phone-width top bar, fonts) went into the product only; demo v1 keeps its own copy.",
+ "lessons": [
+  "Freeze the agreed design with a tag before building on it, so every later page can be compared against something that does not move."
+ ],
+ "commits": [
+  "8469de7"
+ ]
+}

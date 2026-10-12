@@ -1,0 +1,49 @@
+{
+ "package": "3.9",
+ "title": "The Home page",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package wires Home itself, in the demo's look: the composer, 'Connect data' and the 'Bring the data' card, the chat thread, the solution workflow card, the pack cards, and real counts.",
+ "spec": "The composer that starts a draft and keeps the user on Home; 'Connect data' and a 'Bring the data' card (Upload, Studied samples, Kaggle, Hugging Face, Warehouse, Synthetic); the chat with pipeline progress and analysis cards; the solution workflow card; the optional pack picker; the Projects and Activity tabs and 'Needs you' on real data. Done when, in the browser, one sentence plus a file leads to cleaning steps, an analysis card, a question with the right outcome first and a redrawn workflow, with no console error.",
+ "plan": [
+  "Reuse the intern's thread markup for the chat, the wizard's data-source tabs for the 'Bring the data' card, .stats and the existing charts for the analysis card.",
+  "Show the pipeline as a tool-call block, questions as ask-cards answered with one click, and streamed replies inserted as text.",
+  "Move the project graph renderer into DC.graph with automatic layout and redraw the workflow on every workflow event.",
+  "Fill the stats, Projects, Activity and 'Needs you' from /api/workspace; remember the open draft across reloads.",
+  "Drive the flow in the browser like a user: one sentence, a file, the answers, 'Let's build the solution'."
+ ],
+ "decisions": [
+  {
+   "decision": "Every new piece reuses an existing component.",
+   "why": "The owner asked for the demo's UI unchanged; new parts must look like they were always there."
+  },
+  {
+   "decision": "'Let's build the solution' hands the draft to the wizard instead of creating the project itself.",
+   "why": "The wizard is where the user checks the solution, the split and the budget before anything runs."
+  },
+  {
+   "decision": "The top-bar pill reads 'Your data' on Home and in the wizard.",
+   "why": "It tells the user they are no longer looking at sample content."
+  }
+ ],
+ "change": "dclab_rnd/agentic/web/src/views/home.html wired to the draft API and its event stream; DC.graph, DC.connectors and DC.synthetic in core.js; Home's Activity tab lists real jobs and the newest evidence records.",
+ "findings": [],
+ "measurements": [
+  {
+   "name": "browser walk-through",
+   "gate": "One sentence plus an uploaded file leads to cleaning steps, an analysis card, a question with the right outcome column first and a redrawn workflow, with no console error.",
+   "fixed_before_run": true,
+   "result": "Walked through in the browser with the Telco CSV: the steps, the analysis card and the questions appeared, the workflow redrew, and no console error was logged; the outcome ordering was corrected in 3.7.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: Home starts a real flow in the demo's look, with real counts and an Activity tab on real jobs.",
+ "lessons": [
+  "Reuse existing markup for new features when the design is frozen: the result is consistent and the review is small."
+ ],
+ "commits": [
+  "15c4958",
+  "aeb1221"
+ ]
+}

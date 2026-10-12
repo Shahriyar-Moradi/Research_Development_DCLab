@@ -1,0 +1,163 @@
+{
+ "package": "18.5",
+ "title": "The feature engineer and its feature language",
+ "date": "2026-10-12",
+ "request": "Let a model propose features as small programs in a safe feature language (counts and shares per entity and place, ratios, distances, time since the previous row, rolling means) that code compiles into fold-safe features; on the fraud replica it should find the repeated drop-off and short-trip features without being told, and the ladder keep them only for a measured gain.",
+ "spec": "A small feature language that code compiles into fold-safe transformers (15.4's behaviour recipe becomes programs in it); a role that proposes programs from the brief, the findings and domain knowledge; the feature ladder screens them. Done when on the fraud replica the engineer proposes the repeated-drop-off and short-trip features without being told, and the ladder keeps them for a measured gain; no proposal can read the target or the holdout.",
+ "plan": [
+  "Write dclab_core/features.py: the operations (count, share, mean, deviation, ratio, value, since_previous, rolling_mean) over columns, distances, places, days and indicators; checks (no target, no forbidden column, an entity never a value); a compiler with an audit mode (up to the row's day) and an event mode (strictly earlier rows).",
+  "Write 15.4's behaviour recipe as programs in the language, and add an engineered recipe to the engine from project['feature_programs'].",
+  "Write the FEATURE_ENGINEER role (names and kinds only), its prompt, purpose and data-limit test; remove from the prompt the hints that named the answer.",
+  "Test with scripted programs: the two classic fraud programs lift the engineered recipe by more than 0.1 AP over raw columns on folds grouped by biker; no program reads the target; no test row changes a training feature.",
+  "Build the harness with engineer_gate_v1 fixed before any run; run the Step 3 reviewer; fix its findings.",
+  "Measure (ROL-002); fix the prompt for the failure it showed; measure again (ROL-004).",
+  "At the owner's request, write engineer_gate_v2 (measured gain on unseen seeds) and commit it before its first run; fix the crash the run found; run once (ROL-005); record v1 and v2 side by side."
+ ],
+ "decisions": [
+  {
+   "decision": "Features are programs in a small language, compiled by code, never code written by a model.",
+   "why": "Code can check a program (no target, no forbidden column, no future row) and fit it inside the folds; free code could not be checked."
+  },
+  {
+   "decision": "The prompt does not hint at the answer: the line about 'the same place again and again, trips that end where they start' was removed before any run.",
+   "why": "The package asks whether the engineer finds those features without being told."
+  },
+  {
+   "decision": "engineer_gate_v1 encoded the package's Done when: the two named shapes proposed, and the engineered recipe beating the raw columns by at least 0.05 training-CV AP.",
+   "why": "It was the written definition of done, fixed before the first run."
+  },
+  {
+   "decision": "After v1 failed twice, the gate was not edited; v1 and its two results stay as recorded.",
+   "why": "Changing a gate after seeing the result turns a measurement into a story."
+  },
+  {
+   "decision": "The second prompt teaches syntax with examples from an unrelated domain (customer orders).",
+   "why": "It fixes the format failure without hinting at fraud features."
+  },
+  {
+   "decision": "engineer_gate_v2, a new version written at the owner's request after v1's second failure and committed (895b1e7) before its first run: on fraud replica seeds 1 and 2, never used for the engineer, with folds grouped by biker, the engineered recipe must beat the raw columns by at least 0.05 training-CV AP and match or beat 15.4's behaviour recipe, on both seeds.",
+   "why": "It judges the measured gain rather than named shapes, on seeds the engineer was never run on, so it is a fresh measurement under a fresh gate, not a rescue of v1."
+  },
+  {
+   "decision": "An offline replay of ROL-004's programs on the v2 seeds, made while debugging the crash, showed seed 2 slightly below the behaviour recipe (0.551 against 0.562); the gate was left as committed and the live answer decided.",
+   "why": "The gate was fixed before the run; what the replay suggested must not move it."
+  }
+ ],
+ "change": "Step 3 of the plan built 18.4, 18.5 and 18.6 together and one reviewer read them together. For 18.5: dclab_core/features.py (the language, its checks, the compiler with audit and event modes, outputs named prog__..., 15.4's recipe as programs, FEATURE_ENGINEER); the engine's engineered recipe from project['feature_programs']; prompt feature_engineer.md pinned; the feature_engineer purpose and data-limit test; measure_engineer and later measure_engineer_v2 with GATES engineer and engineer_v2; tests/test_core_features.py and tests/test_roles_measure.py. Later: the prompt rewritten (11bab0d), gate v2 (895b1e7), the grouped holdout fold choice (12e7333).",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Event mode was not 'strictly earlier' when timestamps tied.",
+   "scenario": "Dates without times, and a file sorted by label within each day: count by [entity, day] correlated 0.71 with the label, and a zero since_previous gap occurred in 100% of positives against 80% of negatives, because rows of one timestamp saw each other in file order. Rows with no time sorted last and saw every row; in audit mode the 'NaT' day string sorted after every date.",
+   "cause": "Windows used a stable argsort on time, so ties were ordered by file position.",
+   "fix": "The whole tie group is excluded from a row's window, and a row with no time has no history (NaN); the same window implementation was put into 15.4's behaviour features.",
+   "test": "test_rows_at_the_same_time_never_see_each_other_and_a_missing_time_has_no_past."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An exported notebook silently used the wrong recipe for an engineered project.",
+   "scenario": "A project whose ladder chose 'engineered' fell through to the raw preprocessing in the notebook export, so the notebook's scores would not match the records.",
+   "cause": "'engineered' was neither handled nor in NOT_EXPORTED.",
+   "fix": "'engineered' is in NOT_EXPORTED: the export refuses with a reason rather than writing a wrong notebook.",
+   "test": ""
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A program named like an existing column was silently lost.",
+   "scenario": "A program named biker_fare on the fraud replica collided in pd.concat; the engineered AP came out identical to raw, so the program had no effect and nothing said so.",
+   "cause": "Program outputs shared the table's column namespace.",
+   "fix": "Every program output is named prog__<name>.",
+   "test": "test_core_features assertions on prog__ names."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The measurement credited the wrong programs as the gate's shapes, and the language accepted arguments an operation ignores.",
+   "scenario": "{op: count, by: [biker_id], of: {below: [distance, 50]}} was kept and counted as the short-trip share although count ignores 'of' (a plain per-biker count); any column paired with any place, the pick-up place too, counted as the repeated drop-off.",
+   "cause": "_is_short and _is_repeat matched loosely, and the language kept 'of' and 'per' on operations that never read them.",
+   "fix": "_is_short accepts only a mean of a short-distance indicator per biker; _is_repeat needs the entity and the drop-off pair; the language refuses 'of' and 'per' on count, share and since_previous, and 'per' on anything but ratio.",
+   "test": "test_the_engineer_path_finds_the_shapes_and_measures_the_gain; test_the_role_keeps_checked_programs_and_says_what_it_refused."
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The ratio's floor was computed from each transformed frame and turned a tiny negative denominator positive.",
+   "scenario": "Fit rows and test rows got different floors, and a ratio's sign could flip near zero.",
+   "cause": "The floor was a statistic of the frame being transformed.",
+   "fix": "The floor is learned on the fit rows only (fit learns no label, only this floor) and the sign is kept.",
+   "test": ""
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "In the first live run, 11 of the engineer's 12 programs were refused for carrying arguments their operation does not read.",
+   "scenario": "ROL-002: the engineer filled every argument on every program (for example a daily count per biker with 'of' and 'per'); the language refused them ('count reads no of or per: say what it counts with by'), including counts per drop-off and pick-up place.",
+   "cause": "The prompt's template listed every argument for every operation, while R4's fix had made the language refuse unused ones.",
+   "fix": "The prompt shows each operation with only its own arguments, with examples from an unrelated domain; re-pinned.",
+   "test": "ROL-004: all 12 programs kept, none refused."
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The gate v2 run crashed twice, after its requests, on a grouped holdout with no positive case.",
+   "scenario": "On fraud replica seed 2, fraud sits on a few bikers, so the first stratified group fold's holdout held no fraud; the holdout AP was None and the final stage raised TypeError computing the CV-to-holdout gap. The two attempts sent 4 engineer requests, about EUR 0.003, and stored nothing.",
+   "cause": "prepare_bundle always took the first group fold, and the gap was computed without checking for a missing holdout score.",
+   "fix": "For a classification, the split takes the first group fold whose holdout and training rows both hold each class (decided before any model is fitted) and names that fold; a holdout metric that cannot be measured gives no gap instead of a crash. Reproduced offline with a scripted engineer before spending more.",
+   "test": "test_a_grouped_holdout_always_holds_both_classes."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "ROL-002, feature engineer on the fraud replica, gate v1",
+   "gate": "engineer_gate_v1: a repeated drop-off count and a short-trip share are proposed, and the engineered recipe beats the raw columns by >= 0.05 training-CV average precision.",
+   "fixed_before_run": true,
+   "result": "12 programs proposed, 11 refused for unused arguments; the one kept, fare per metre of the trip, lifted training-CV AP from 0.044 (raw) to 0.631, above 15.4's behaviour recipe at 0.452, on folds grouped by biker. Neither named shape was proposed. gpt-6-luna, 1 request.",
+   "verdict": "fail",
+   "cost_eur": 0.0008,
+   "next": "Fix the prompt's template (each operation with only its own arguments) and measure again under the same gate."
+  },
+  {
+   "name": "ROL-004, feature engineer after the prompt fix, gate v1",
+   "gate": "engineer_gate_v1: a repeated drop-off count and a short-trip share are proposed, and the engineered recipe beats the raw columns by >= 0.05 training-CV average precision.",
+   "fixed_before_run": true,
+   "result": "All 12 programs kept (trip distance, fare per metre, rides per biker and day, per sender, per pick-up and drop-off cell and day, the biker's fare against his mean, time since his previous ride, a rolling fare). Engineered AP 0.589 against 0.044 raw and 0.452 for the behaviour recipe. Neither a repeated drop-off per biker nor a short-trip share was proposed (places were counted per day, not per biker). Owner's cap EUR 0.01.",
+   "verdict": "fail",
+   "cost_eur": 0.0008,
+   "next": "v1 stays failed. The engineered recipe stays off by default. A gate that judges the measured gain would be a new version, fixed before a fresh measurement, if the owner wants it."
+  },
+  {
+   "name": "ROL-005, feature engineer on unseen seeds, gate v2",
+   "gate": "engineer_gate_v2 (fixed 2026-10-12 before its first run, committed in 895b1e7): on fraud replica seeds 1 and 2 (unseen), with folds grouped by biker, the engineered recipe beats the raw columns by >= 0.05 training-CV average precision and matches or beats 15.4's behaviour recipe; both seeds.",
+   "fixed_before_run": true,
+   "result": "Seed 1: 11 programs kept, none refused; engineered AP 0.607 against raw 0.056 (+0.551) and behaviour 0.502 (+0.105). Seed 2: 10 kept; 0.707 against 0.067 (+0.640) and 0.617 (+0.090). The ladder chose the engineered recipe on both. 2 requests, plus about EUR 0.003 for the two crashed attempts, within the owner's EUR 0.01 cap.",
+   "verdict": "pass",
+   "cost_eur": 0.0011,
+   "next": "Record v2's pass beside v1's two fails. The notebook export still refuses the engineered recipe. The named shapes of the original Done when were never proposed."
+  }
+ ],
+ "outcome": "Done under gate v2 (ROL-005: the engineered recipe beat the raw columns by +0.55 and +0.64 AP and the behaviour recipe by +0.10 and +0.09 on two unseen seeds; EUR 0.0011). Gate v1, the package's original Done when (the two named fraud shapes), failed twice (ROL-002, ROL-004) and stays recorded as failed; v2 is a separate, later gate written at the owner's request and fixed before its own run. The measurements also found a real engine bug (a grouped holdout with no positive) and a prompt template that made the model's programs unparseable. The review's tie-ordering leak was fixed here and in 15.4's behaviour features.",
+ "lessons": [
+  "A gate that names specific features measures recall of an answer key, not usefulness; decide which one you mean before the run, and if you change your mind, write a new version and measure afresh.",
+  "Fixing one finding (refuse unused arguments) can break the next measurement through the prompt: re-read the prompt whenever the checker tightens.",
+  "'Strictly earlier' must handle ties and missing times, or a sorted file leaks its labels into time features.",
+  "Reproduce a crash offline with a scripted role before paying for another live run."
+ ],
+ "commits": [
+  "4487916",
+  "af9936d",
+  "11bab0d",
+  "895b1e7",
+  "12e7333",
+  "ca46b57"
+ ]
+}

@@ -1,0 +1,97 @@
+{
+ "package": "14.3",
+ "title": "A frozen benchmark of 100 or more unseen cases",
+ "date": "2026-10-07",
+ "request": "The judgment suite's 20 cases were written alongside the prompts, so its scores cannot say how DCLab does on tables it has never seen. After writing Part 3 (prove it works) into the playbook, build a frozen benchmark: 100 or more seeded cases from bases no prompt was tuned on, each with a prediction moment, at most one planted trap and the decisions a careful data scientist would accept, split into a dev set and a sealed test set whose fingerprints are committed; score the scripted policies on both, per family, with Wilson intervals; never tune on the sealed set.",
+ "spec": "dclab_rnd/agent_eval/benchmark.py (make benchmark): 100+ cases (60+ sealed) from new generators and scikit-learn's bundled tables; trap families from docs/SYSTEM_EVALUATION.md plus clean controls; dev and sealed test split, fingerprints committed and checked by a test; scripted policies scored on both sets per family with Wilson intervals and stored as evidence.",
+ "plan": [
+  "Propose Part 3 to the owner (inputs, live models, frozen benchmark, users, staging, policy model); on the owner's yes, write it into the playbook as packages 14.1 to 14.8 and push.",
+  "Read the judgment suite's scorer and runner so the benchmark reuses them.",
+  "Write base generators (claims, subscriptions and demand for dev; loans, readmissions, sensors and the diabetes and wine tables shipped with scikit-learn for test), plant at most one trap per case, add clean controls, and split by base so no base is in both sets.",
+  "Generate: 95 cases with 57 sealed fell short of the package's 100 and 60, so add one more held-out generator (late deliveries) for 108 cases, 38 dev and 70 sealed.",
+  "Commit the sealed fingerprints; write tests for size, the split by source, unique seeds and unchanged fingerprints.",
+  "Run the scripted policies on both sets and record them as BEN-001 (dev) and BEN-002 (sealed).",
+  "Run the reviewer; fix its findings; make check-all; commit together with 14.2."
+ ],
+ "decisions": [
+  {
+   "decision": "Split dev and test by base table, not by case.",
+   "why": "Cases from one base share columns and a generator; splitting by base keeps the sealed set genuinely unseen."
+  },
+  {
+   "decision": "Include two real public tables that ship with scikit-learn in the sealed set.",
+   "why": "They need no download and are not shaped by the author's generators."
+  },
+  {
+   "decision": "A run on the sealed set is always recorded, and an existing result file is refused before the run, not after.",
+   "why": "An unrecorded look at the sealed set is tuning by memory; refusing afterwards would already have shown the scores."
+  },
+  {
+   "decision": "A weakness found in one sealed family is written down, not fixed.",
+   "why": "The sealed set had already been scored; renaming its columns now would be tuning on it. It waits for a new benchmark version."
+  }
+ ],
+ "change": "New dclab_rnd/agent_eval/benchmark.py (benchmark_v2: base dataclasses, build_cases with 108 cases, the split, fingerprints, run and a command line that requires an output for the test split), benchmark_sealed.json (70 fingerprints), run.py falls back to benchmark cases and adds by_trap_families, tests/test_benchmark.py, make benchmark, evidence/campaigns/benchmark_v2 with BEN-001 and BEN-002.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The first build was short of the package's size.",
+   "scenario": "95 cases with 57 sealed, where the package asks for 100 and 60.",
+   "cause": "Too few held-out bases.",
+   "fix": "Add a late-deliveries generator to the test set: 108 cases, 70 sealed.",
+   "test": "test_size_and_a_split_by_source."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "latent",
+   "defect": "The benchmark imported a function where it meant a module.",
+   "scenario": "The agent_eval package exports a function named run that hides the module of the same name, so the benchmark's trial run called the wrong thing.",
+   "cause": "A package-level name shadowing a submodule.",
+   "fix": "Import the module directly in benchmark.py and in the trial.",
+   "test": "test_two_dev_cases_run_and_are_scored_by_family."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "In the missing-is-outcome family the audit's catches come from column names, not from the missingness.",
+   "scenario": "The audit flags exit_rating and delivery_rating_given only because the name suggests a post-outcome value; on the neutral names (recovery_score, repayment_survey) it flags nothing, so its 1 of 2 (dev) and 1 of 5 (test) measure a lucky name, against the module's own rule that names avoid what the audit matches.",
+   "cause": "Two generators gave the planted column a telling name.",
+   "fix": "A limitation line in the run and the manifest saying these catches come from the name signal; the names are fixed only in a future version, because the sealed set has been scored.",
+   "test": ""
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A look at the sealed set could go unrecorded.",
+   "scenario": "Running the test split with --output pointing at the existing BEN-002 file runs all 210 policy runs and prints the sealed scores, then fails to write with FileExistsError.",
+   "cause": "The output was checked for presence, not for existing, and only after the run.",
+   "fix": "Refuse an existing output file right after parsing the arguments, before any run.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "scripted policies on the sealed set (BEN-002)",
+   "gate": "Score each scripted policy on the 70 sealed cases per family with Wilson intervals; record every run (no pass threshold yet: the gate is 14.5's).",
+   "fixed_before_run": true,
+   "result": "Audit rules: 28 of 38 leaks kept out (95%: 58–85%), 18 false alarms in 70 (17–37%). Standard plan (no model): 7 of 38 (9–33%), 12 of 70 false alarms. Bad policy: 0 of 38, valid moves 0.75. On dev (BEN-001): audit 17 of 21, standard plan 3 of 21. The reviewer's recomputation matched scipy's Wilson intervals exactly.",
+   "verdict": "not scored",
+   "next": "14.5 writes the AND gate before any model runs on the sealed set; the labels are the author's until 14.4."
+  }
+ ],
+ "outcome": "Done (76e0d5d for Part 3's plan, 7f2a256 for the benchmark): 108 cases, 38 dev on 3 bases and 70 sealed on 6 bases (two real scikit-learn tables), fingerprints committed and checked, every sealed run recorded. Open: the labels are the author's until 14.4; cases from one base are not independent; the missing-is-outcome catches come from two telling names, kept until a new version.",
+ "lessons": [
+  "Split a benchmark by source, not by row or case, or the 'unseen' set shares generators with the tuning set.",
+  "Refuse before running, not after: a check that fails after printing sealed scores has already leaked them.",
+  "Once a sealed set is scored, a flaw in it is documented and fixed only in a new version; fixing it in place is tuning on the test set."
+ ],
+ "commits": [
+  "76e0d5d",
+  "7f2a256"
+ ]
+}

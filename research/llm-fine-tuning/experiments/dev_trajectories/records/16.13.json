@@ -1,0 +1,126 @@
+{
+ "package": "16.13",
+ "title": "Challenge mode: from a brief and files to every deliverable",
+ "date": "2026-10-12",
+ "request": "Give DCLab a challenge text and its files and let it produce every deliverable: notebooks, a report with the sections the rubric names, a scoring service, tests, a git repository, and a table mapping every requirement to the file that meets it or the reason it is not met. Confidentiality words in the brief keep the data out of exports, prompts and training data.",
+ "spec": "Read the brief into requirements with rubric points; detect each part's kind; one project per part; deliverables per part; COVERAGE.md; a git commit. Done when a written two-part mock challenge (a classification with a pricing question, and a fraud part, on replicas) is solved end to end with every rubric line covered or explained, and a test proves the private data entered no export or model request.",
+ "plan": [
+  "Write dclab_core.challenge.read_brief: parts and their kinds, shared sections such as Deliverables, requirements with points and kinds, confidentiality words.",
+  "Write dclab_rnd/challenge solve: a project per part from its files; the brief, findings and plan adopted as the solution through the set_solution move; every stage run; per-part report, notebook (or why not) and service; COVERAGE.md; one git commit.",
+  "Add the gateway's private_scope so no purpose gets a model on private data, and run a private project's stages inside it.",
+  "Write the mock brief on the delivery-time and fraud replicas, with part 1's post-delivery columns left in the table as leaks the plan must keep out.",
+  "Make the private-data test honest, then run the review and fix its findings; switch the reports to 17.7's traced report."
+ ],
+ "decisions": [
+  {
+   "decision": "A private brief runs with no model at all: the advisor must be None and the gateway's private scope gives no client, and an inner scope cannot lift it.",
+   "why": "The brief says the data must not be disclosed; the only safe number of model requests about it is zero."
+  },
+  {
+   "decision": "Challenge mode approves a part's final stage only when the person running it passes approve=True, recorded as their approval; without it no service is exported and the coverage says why.",
+   "why": "A tool must not record a human approval no person made, and a service is built only from an approved result."
+  },
+  {
+   "decision": "A requirement DCLab cannot meet is marked not met with the reason, never claimed.",
+   "why": "The pricing question needs the decisions package (16.9); a coverage table that over-claims is worse than one with a gap."
+  },
+  {
+   "decision": "The reports come from 17.7's traced report, with the short report as the fallback.",
+   "why": "Every number in a deliverable for a grader should trace to a record."
+  }
+ ],
+ "change": "dclab_core/challenge.py (read_brief), dclab_rnd/challenge/ (solve: a temporary store removed at the end, a project per part, set_solution checked and logged as an agent's move, stages run inside the private scope, per-part reports, notebooks or the reason, services when approved, COVERAGE.md, one git commit), Gateway.private_scope, the engine running private projects inside it; tests/test_challenge.py.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The first private-data test could not fail.",
+   "scenario": "It mocked the very function that holds the private check, so the check never ran and the test passed whatever the code did.",
+   "cause": "The test replaced the code under test.",
+   "fix": "Let a model appear available and fail if any request is actually sent.",
+   "test": "test_a_two_part_mock_challenge_end_to_end"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The private-data test still did not prove 'no model request'.",
+   "scenario": "The fake client raised AssertionError, but narrate and explain swallow exceptions with a broad except; with private_scope replaced by a no-op the end-to-end test still passed while requests were attempted.",
+   "cause": "A failure signalled by raising can be swallowed by the caller.",
+   "fix": "Make a model available everywhere and record every client Gateway.client hands out, whoever asks; assert the list is empty.",
+   "test": "test_a_two_part_mock_challenge_end_to_end"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The coverage table could say 'met' when nothing met the requirement.",
+   "scenario": "A part with no files still had its requirements met with paths that did not exist; 'Report the model performance on a held-out test set' was classed as tests and met by test_service.py; 'Use the rest of the data' was classed as an API; the report row always cited REPORT.pdf although reportlab may be missing.",
+   "cause": "Keyword matching on single words and no check of what each part produced.",
+   "fix": "A part's requirements are not met when the part failed, with its error; report wording is matched before tests, and kinds match phrases (unit tests, test suite, REST API); the PDF is cited only when it was written.",
+   "test": "test_parts_points_shared_sections_and_confidentiality"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One failing part aborted the whole challenge.",
+   "scenario": "A stage failure, or the service export refusing a text part, re-raised: no COVERAGE.md and no git repository were written, and the other parts' results were lost.",
+   "cause": "No error boundary per part.",
+   "fix": "Each part runs in its own try; a failure is recorded as that part's error and the coverage says so.",
+   "test": ""
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Challenge mode bypassed the validator and recorded a human approval no person made.",
+   "scenario": "The solution, plan and settings were written with store.save without graph.check or graph.log, and engine.approve used the default actor 'human', which also satisfied the service's approved-only rule by the tool itself.",
+   "cause": "The orchestrator wrote state directly instead of through the governed moves.",
+   "fix": "The solution goes through set_solution checked and logged as an agent's move; approval happens only with approve=True from the person running it.",
+   "test": "test_without_approval_no_service_and_the_coverage_says_why"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The private flag worked only inside the engine, and confidential copies were left in a temporary folder.",
+   "scenario": "Other model callers ignored settings.private, and solve defaulted to tempfile.mkdtemp(), leaving full copies of the confidential files outside the workspace, never cleaned.",
+   "cause": "Privacy was enforced at one caller instead of at the gateway, and the temporary store had no cleanup.",
+   "fix": "The gateway's private scope refuses every purpose inside it; the engine runs a private project's stages inside it; the temporary store is removed at the end.",
+   "test": "test_inside_the_private_scope_no_purpose_gets_a_model"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The deliverables misstated how they were made.",
+   "scenario": "The report printed the plan's 'labels: complete' while the run used partial labels, contradicting its own limits; quick mode trained on at most 3,000 rows without saying so.",
+   "cause": "The report read the plan, not what ran.",
+   "fix": "The report states quick mode and its row limit; the reports were later replaced by 17.7's report written from the stage records.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the two-part mock challenge",
+   "gate": "Every rubric line covered or explained, and no private data in any export or model request (Done-when of 16.13).",
+   "fixed_before_run": true,
+   "result": "Solved end to end: 17 of 19 points covered; the pricing line marked not met (it needs 16.9); part 1's post-delivery columns kept out; folds grouped by biker in part 2; no data file or row value in the deliverables; no model client handed out on the private brief.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "The real challenge is run once on the owner's machine (15.11), recording aggregates only."
+  }
+ ],
+ "outcome": "Done: challenge mode turns a brief and files into reports, notebooks or the reason, services, COVERAGE.md and a git repository, with confidential data kept from every model and deliverable; thirteen review findings fixed.",
+ "lessons": [
+  "A test that mocks the function containing the check proves nothing; observe the boundary the data would cross instead.",
+  "Detect forbidden calls by recording them, not by raising: callers swallow exceptions.",
+  "A coverage claim needs the artefact behind it, checked per part."
+ ],
+ "commits": [
+  "4487916",
+  "1566b7c"
+ ]
+}

@@ -1,0 +1,74 @@
+{
+ "package": "7.2",
+ "title": "Visual, console and phone-width checks",
+ "date": "2026-10-05",
+ "request": "Load all 19 pages on a workspace with projects and on an empty one, and report any console or Content-Security-Policy error; compare with demo v1; at 375 px no page may scroll sideways. Fix what is found without changing the design.",
+ "spec": "Every page compared with demo v1 at 1440 px; no console error on any of the 19 pages, on a workspace with projects and on an empty one; no sideways scroll at 375 px. Done when the three checks are reported page by page.",
+ "plan": [
+  "Start the product on spare ports, once with projects and once empty.",
+  "Load all 19 pages headless and collect console and CSP errors.",
+  "Measure horizontal overflow on every page at 375 px.",
+  "Ask the owner before changing the top bar, since demo v1 has the same overflow.",
+  "Fix in the product only and recheck all 19 pages."
+ ],
+ "decisions": [
+  {
+   "decision": "The owner was asked before fixing the phone overflow.",
+   "why": "Demo v1 had the same overflow and the rule was not to change the UI unless asked; the owner chose to fix it in the product only."
+  },
+  {
+   "decision": "Below 640 px the breadcrumb shrinks and ellipsizes; wider screens are unchanged and demo v1 keeps its old rule.",
+   "why": "The smallest change that removes the overflow without touching the desktop design or the frozen demo."
+  }
+ ],
+ "change": "A product-only CSS change: the breadcrumb may shrink and ellipsize below 640 px.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "On a phone, long page names pushed the top bar past the edge and the page scrolled sideways.",
+   "scenario": "At 375 px, a name such as 'Compute & jobs' or 'Evidence library' moved the theme button 7 to 19 px outside the viewport.",
+   "cause": "The breadcrumb was flex 0 0 auto, so it could not shrink.",
+   "fix": "Below 640 px the breadcrumb shrinks and its text ellipsizes.",
+   "test": "Measured at 375 px on all 19 pages; later covered by make browser-test (13.2)."
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "The first console sweep could not be trusted.",
+   "scenario": "Nineteen headless Chrome instances at once hit a 25-second alarm, so a page that timed out read as 'clean'.",
+   "cause": "Too many browsers at once on an 8 GB machine.",
+   "fix": "Rerun in small batches so each page completes, and read the errors from the logs rather than the exit status.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "phone width",
+   "gate": "At 375 px no page scrolls sideways.",
+   "fixed_before_run": true,
+   "result": "Zero horizontal overflow on all 19 pages after the fix.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "console and CSP",
+   "gate": "No console or CSP error on any of the 19 pages, with projects and on an empty workspace.",
+   "fixed_before_run": true,
+   "result": "None found on either workspace, also under the stricter CSP after the fonts change.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: no console or policy error on any page, no sideways scroll on a phone, and the look matches demo v1 apart from the agreed additions.",
+ "lessons": [
+  "A check that times out must not count as a pass; size parallel browser checks to the machine."
+ ],
+ "commits": [
+  "02ca606"
+ ]
+}

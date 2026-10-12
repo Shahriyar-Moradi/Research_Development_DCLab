@@ -1,0 +1,66 @@
+{
+ "package": "1.5",
+ "title": "Serve the fonts from the app",
+ "date": "2026-10-05",
+ "request": "The page should contact no other host: a page load told Google that someone opened the workspace, which sits badly next to 'data stays on this machine', and the UI lost its fonts offline. Ask before downloading any font file.",
+ "spec": "Inter, JetBrains Mono and Vazirmatn as variable woff2 files under web/src/fonts (SIL Open Font License, licence texts beside them); no request to any other host. Done when the build tests pass: no outside host in the page, the stylesheet or the CSP, and every @font-face file is shipped.",
+ "plan": [
+  "Ask the owner before downloading Inter and Vazirmatn (about 1 MB, OFL); JetBrains Mono was already on the machine.",
+  "Subset the local JetBrains Mono to woff2 and take the Latin and Arabic subsets of the other two (about 268 KB in all).",
+  "Declare them with @font-face under the same family names so the look does not change.",
+  "Make the build copy binary files and compare them in --check; remove the Google hosts from the CSP.",
+  "Test that nothing loads from another host and that every named font is shipped; check all 19 pages in a browser."
+ ],
+ "decisions": [
+  {
+   "decision": "Latin-extended and Arabic files load only when a page uses those characters.",
+   "why": "Most pages need only Latin; unicode-range keeps the first load small while Persian text still renders."
+  },
+  {
+   "decision": "The test inspects what the page loads (link, script, img, @import, url()), not every URL in its text.",
+   "why": "The page legitimately mentions URLs as text and placeholders; only loaded resources contact a host."
+  }
+ ],
+ "change": "Three font families as woff2 under web/src/fonts with their OFL texts, copied by the build to static/app/fonts and declared with @font-face; the build copies and checks binary files; the CSP lists no outside host; tests for outside hosts and shipped fonts.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The first test for outside hosts was too broad and failed on harmless text.",
+   "scenario": "The page's text mentions URLs (for example as input placeholders); a test that searched the whole page for http hosts failed although nothing was loaded from them.",
+   "cause": "It tested the wrong property: mention instead of load.",
+   "fix": "Narrow the test to resources the page loads: link, script and img tags, @import and url() in the stylesheet.",
+   "test": "tests/test_web_build.py: test_fonts_are_served_by_the_app_and_nothing_loads_from_outside, test_a_stale_or_missing_font_fails_the_check."
+  },
+  {
+   "id": "O1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A git stash and pop was run in a tree where the owner keeps uncommitted work.",
+   "scenario": "While checking the fonts change, a stash and pop pair touched the owner's uncommitted recap files; nothing was lost, which was verified afterwards.",
+   "cause": "A habitual command in a repository whose rules forbid it.",
+   "fix": "Verified the recap files and the existing stashes were intact, reported the mistake to the owner, and the rule 'never git stash' was recorded for later sessions.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "no outside host on any page",
+   "gate": "A page load contacts no host other than the app, and every font the stylesheet names is shipped.",
+   "fixed_before_run": true,
+   "result": "In the browser the fonts loaded from localhost only; Persian and Latin-extended files loaded only on pages that use them; all 19 pages loaded under the stricter CSP with no console or policy error.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the fonts come from the app (about 268 KB, OFL), the CSP names no outside host, and the UI works offline with an identical look.",
+ "lessons": [
+  "Test the behaviour you care about (what loads) rather than a proxy (what is mentioned).",
+  "In a tree with someone else's uncommitted work, never stash; read the repository's gotchas before habitual commands."
+ ],
+ "commits": [
+  "93a9a65"
+ ]
+}

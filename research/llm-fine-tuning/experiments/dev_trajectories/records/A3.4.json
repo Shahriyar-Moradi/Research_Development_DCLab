@@ -1,0 +1,191 @@
+{
+ "package": "A3.4",
+ "title": "A model-written fix beside each notebook finding, without touching the findings",
+ "date": "2026-10-06",
+ "request": "The notebook copilot finds problems deterministically. Keep every finding exactly as it is; for each, ask a model for a fix in two sentences that cites the rule and the matching pitfall record, and show it under the finding. A finding never depends on the model. Test with the leaky bank-marketing notebook and a scripted client.",
+ "spec": "The copilot reviews a notebook with a model for the explanations and code for the findings. Done when the leaky demo notebook gives the same findings as today, with a model-written fix per finding that cites the rule.",
+ "plan": [
+  "Map the notebook copilot: detectors, how findings render, which records each cites.",
+  "While A3.3's review ran, write the core in files that review did not cover: copilot/fixes.py adds a fix key to a copy of each finding; the findings, severities, messages and proof are untouched.",
+  "After A3.3 was committed, add the gateway purpose notebook_review, the on-request route POST /api/projects/{id}/review/fixes, the CLI flag --fixes and a button on the Notebook page.",
+  "Check the page end to end with a scratch server whose model is scripted (nothing leaves the machine).",
+  "Run check-all; send A3.4 and the last A3.3 follow-ups to the reviewer together; fix over three rounds; verify the double-click guard in the real page with a slow scripted model that counts requests; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "The fix is a separate key on a copy of the finding; nothing in a finding depends on a model.",
+   "why": "The findings are the deterministic product; a model failure or a bad reply must not be able to change a severity, a message or the exit code."
+  },
+  {
+   "decision": "A fix is dropped unless every sentence passes the shared check and it cites one of the finding's rules and, where the finding has one, its pitfall or precedent record.",
+   "why": "Citations are what code can check; a fix that cites nothing of its finding is advice without a source."
+  },
+  {
+   "decision": "The model sees each finding's title, message and suggestion and its records' text, with anything quoted from the code other than a plain name replaced, and two detectors redacted whole.",
+   "why": "Findings quote the notebook's code (paths, selector strings, comparison values); the purpose says the model never sees the notebook's code or data."
+  },
+  {
+   "decision": "Fixes are requested by a person, one request at a time per project, keyed to their finding by detector, cell and line.",
+   "why": "It is a model request with a cost; and a review can change between the GET and the POST, so matching by index can attach a fix to the wrong finding."
+  }
+ ],
+ "change": "dclab_rnd/copilot/fixes.py (prompt building with redaction, chunks of eight findings, lenient parsing, the per-fix check); python -m dclab_rnd.copilot review NB --fixes; POST /api/projects/{id}/review/fixes with a per-project in-flight guard and fixes keyed by detector:cell:line; GET .../review says fixes_available; the Notebook page's companion shows each fix under the unchanged finding; cited.py follow-ups (number words, denial window, glued stops and dotted code names).",
+ "findings": [
+  {
+   "id": "A1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "String literals from the notebook's code reached the prompt.",
+   "scenario": "A notebook with pd.read_csv on an absolute path holding a client folder name, a feature list with 'final <name>' and df['label <name>']: the marked names all appeared in the prompt, through the absolute_data_path message and the known_leakage_column and suspicious_column_name messages.",
+   "cause": "Finding messages were sent verbatim, and two detectors embed code literals in them.",
+   "fix": "Anything a finding quotes that is not a plain name becomes <code>; the absolute-path message is replaced by a fixed text.",
+   "test": "The data-limit test plants an absolute path and selector literals and finds none in the prompt."
+  },
+  {
+   "id": "A2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A fix could be attached to the wrong finding.",
+   "scenario": "Switching project during the request (up to 60 s) applied project A's fixes by index to project B's findings; a stage rerun between the GET and the POST shifted the indices, so a fix landed on a finding whose rule it never cited.",
+   "cause": "Fixes came back as a list matched by position, and the reply was applied to whatever review was on screen.",
+   "fix": "Fixes are keyed by detector:cell:line and matched on that key; the page ignores a reply for a review that is no longer the one on screen.",
+   "test": "Route tests with keyed fixes."
+  },
+  {
+   "id": "A3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The fixes request could fire twice.",
+   "scenario": "Any re-render during the request (apply fix, undo, a tab switch) rebuilt the button enabled, so a second paid request could start; the server had no guard.",
+   "cause": "The only guard was the button's disabled state.",
+   "fix": "A page flag survives re-renders, and the server answers 409 to a concurrent request for the same project.",
+   "test": "A route test for the 409; in the real page four rapid clicks made exactly one model request."
+  },
+  {
+   "id": "A4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Fixes that name dotted code were garbled while still labelled as cited.",
+   "scenario": "The fix '...ideally inside an imblearn.pipeline.Pipeline [DCLAB-R02]. The measured case shows why [PIT-003].' was stored as 'Pipeline. The measured case shows why.'",
+   "cause": "A3.3's new split at a stop glued to a capital split code names.",
+   "fix": "The dot of a code name does not end a sentence (see B4).",
+   "test": "Splitter tests with dotted names."
+  },
+  {
+   "id": "A5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The parser accepted booleans as finding numbers.",
+   "scenario": "{'finding': true} fixed finding 1 and false fixed finding 0.",
+   "cause": "isinstance(True, int) is true in Python.",
+   "fix": "Only a real integer is accepted; the status row states that a fix written for one finding passes on another sharing its rule and having no pitfall record.",
+   "test": "A parser test with booleans."
+  },
+  {
+   "id": "A6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The request was unbounded and truncation failed silently.",
+   "scenario": "Ten findings made an 18.7k-character prompt; around 25 or more truncated the JSON at max_tokens 1500, the parser returned nothing, and the page said 'no fix passed the checks'; the CLI said nothing when a configured model failed.",
+   "cause": "One request for all findings and no message for that case.",
+   "fix": "Eight findings per request with global numbering; a failing chunk does not stop the others; the CLI prints a line when a model was asked and no fix passed.",
+   "test": "A test with a long review."
+  },
+  {
+   "id": "B1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The shared check let some number words through unchecked.",
+   "scenario": "Kept against sources with no matching number: 'improved by one percent', 'a one-point gain', 'Hundreds of rows', 'Dozens of columns'; 'twenty-one rows' was kept against 20.",
+   "cause": "'one' was always exempt, plurals were not number words, and compounds were read as their first word.",
+   "fix": "'one' is a number before percent, point, fold and similar; compounds are read whole; plural multipliers must be words of a cited source.",
+   "test": "Number-word tests."
+  },
+  {
+   "id": "B2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A count word lost its unit.",
+   "scenario": "'It has ten percent' was kept against a source saying '10 candidates'; '10 percent' in digits was correctly dropped.",
+   "cause": "'ten' became a bare 10.",
+   "fix": "A following percent, thousand or million is attached to the count word.",
+   "test": "A unit test for 'ten percent'."
+  },
+  {
+   "id": "B3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The four-word denial window reopened double negatives.",
+   "scenario": "Kept: 'I do not doubt it is production-ready', 'We cannot deny it is production-ready', 'It is not wrong to call it production-ready', 'It does not fail to be production-ready'.",
+   "cause": "The window skipped any words.",
+   "fix": "The window may not contain doubt, deny, wrong, fail, unlike, hard or unreasonable.",
+   "test": "Denial tests with each sentence."
+  },
+  {
+   "id": "B4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Splitting at a stop plus a capital mangled dotted code names.",
+   "scenario": "'Wrap it in pd.DataFrame first [A].' was kept as 'DataFrame first.'; 'Use sklearn.pipeline.Pipeline to fit the scaler [A].' as 'Pipeline to fit the scaler.'",
+   "cause": "The glued-stop rule did not know code names.",
+   "fix": "A stop between letters inside a dotted name, or after a known module prefix, does not split.",
+   "test": "Splitter tests for dotted names."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Identifier-shaped literals from the code still reached the prompt (second round).",
+   "scenario": "df[df['status'] == 'closed_<marker>'] produced 'Check when `closed_<marker>` is created' and the marker, a cell value, was in the prompt; a backtick inside a path literal defeated the plain-name rule.",
+   "cause": "suspicious_column_name quotes any string in a subscript, including comparison values, and plain() kept any backticked name.",
+   "fix": "suspicious_column_name is sent as <column>; the absolute-path message is a fixed text.",
+   "test": "The data-limit test plants an underscore name, a comparison value and a backtick path."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "'one-' before any hyphen was read as the number 1.",
+   "scenario": "'Fit the one-hot encoder', 'one-vs-rest', 'one-class', 'one-time cost' and 'at one point' were dropped when the source had no 1; the copilot flags OneHotEncoder, so fixes often say one-hot.",
+   "cause": "The B1 fix read 'one' before any hyphen.",
+   "fix": "'one' is a number only before point, percent, fold, times, in and similar.",
+   "test": "A test that 'one-hot' is kept."
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Single-word module names still split, and some uncited prefixes still merged.",
+   "scenario": "'Use imblearn.Pipeline so the sampler runs in the fold [A]' was kept as 'Pipeline so the sampler runs in the fold.'; 'It is OK.It scored 0.9248 [A].' merged because short tokens were protected.",
+   "cause": "Protection by token length instead of by known module prefixes.",
+   "fix": "Only a list of module prefixes (np, pd, sklearn, imblearn, torch and others) is protected before a capital; every other stop plus capital splits.",
+   "test": "Splitter tests for both sides."
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A module name wrapped in backticks, quotes or parentheses still split (third round).",
+   "scenario": "'Convert it with `pd.DataFrame` first [A].' was kept as 'DataFrame` first.'; '(sklearn.Pipeline)' and '\"pd.DataFrame\"' the same; aliases such as xgb, lgb, pathlib and polars were missing.",
+   "cause": "The token kept its opening punctuation, so the prefix was not found in the list.",
+   "fix": "Leading punctuation is stripped before the lookup, and the module list gained the missing aliases.",
+   "test": "Tests for the three wrapped forms."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the leaky bank-marketing notebook with a scripted model",
+   "gate": "The same findings as before the change, and a fix per finding that cites its rule (the package's Done-when).",
+   "result": "All 10 findings identical to before; each gets a fix citing its rule and its pitfall or precedent record (for example DCLAB-R02 and PIT-003 for the oversampling finding).",
+   "verdict": "pass",
+   "next": "A fix's quality (is the advice right) is not measured; the model path is tested with a scripted model only."
+  }
+ ],
+ "outcome": "Done: findings unchanged, a checked and cited fix beside each when a person asks, from the CLI or the Notebook page, with the notebook's code and data kept out of the prompt. Open: only the project's own exported notebook is reviewed in the product; notebook_assist is untouched; a fix's quality beyond the checks is not measured. The gate passed with 508 tests; fourteen review findings over three rounds fixed.",
+ "lessons": [
+  "Messages written for humans quote the input; before sending findings to a model, list every detector that embeds code and redact by shape, then plant each shape in a test.",
+  "Match asynchronous results to stable keys, never to list positions on a screen that can change.",
+  "Each fix to a text splitter opens a new edge (code names, wrapped names, short tokens); keep the reviewer's exact probes as tests."
+ ],
+ "commits": ["f0df6e8"]
+}

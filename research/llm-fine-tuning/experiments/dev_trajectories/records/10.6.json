@@ -1,0 +1,134 @@
+{
+ "package": "10.6",
+ "title": "Rate limits and per-user quotas",
+ "date": "2026-10-07",
+ "request": "With about 1,000 users on one service, one person's script or upload must not starve everyone else. Add limits per user and per workspace on requests, uploads, running jobs and model spend, stored in the database and shown on the Admin page.",
+ "spec": "Requests per minute, upload bytes per day, jobs running at once and model spend per month (from the gateway's usage log); enforced in one dependency and in the job queue; 429 with what was exceeded and when it resets; usage against limits on the Admin page; limits are settings with safe defaults. Done when a user over a limit gets a 429 with a clear message and the others are unaffected.",
+ "plan": [
+  "Read how the gateway enforces its spending caps and what each usage row records.",
+  "Write limits.py: four limits per person and per workspace as settings (0 switches one off; a bad value keeps the default); requests and bytes as counters in PostgreSQL (usage_counter, migration 0014), incremented in one statement; jobs counted from the job table; model spend from the usage log, which now records the person each request was for.",
+  "Enforce requests in the middleware, bytes in the upload and connector routes, jobs in the queue, model spend in the gateway; return 429 with which limit, whose, allowed, used and Retry-After.",
+  "Show each limit with what you and the workspace used on the Admin Budgets pane.",
+  "Test; gate and reviewer; fix; re-check; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Limits apply only with accounts on.",
+   "why": "One owner on one machine has no one to starve; the owner chose sign-in only when configured (10.2)."
+  },
+  {
+   "decision": "Counters are fixed windows incremented in one statement in PostgreSQL; a refused request is not counted.",
+   "why": "Every instance must count the same, and a person retrying after a 429 must not push their own reset further away."
+  },
+  {
+   "decision": "Over the model budget the gateway refuses with the same words instead of a 429.",
+   "why": "Model requests happen inside agent turns, not in the request that would carry a status code; the agent shows the refusal in its turn."
+  },
+  {
+   "decision": "A job is checked before anything is written, and counted under a lock per workspace.",
+   "why": "A refusal must leave no half-made state (a stage queued, an asset stored, bytes charged), and requests at once must not slip past the limit together."
+  }
+ ],
+ "change": "New dclab_rnd/limits.py (settings, counters, charge, check_jobs, job_slot, LimitExceeded, over_limit), migration 0014 usage_counter; the middleware charges requests; upload and connector routes charge bytes; Services.job_room() and queue_job check jobs; the usage log records the person; the gateway refuses over a person's monthly budget; the Admin Budgets pane shows usage against limits; the frontends show a refusal's message. tests/test_limits.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A stage run over the job limit returned 500 and left the project stuck 'queued'.",
+   "scenario": "A user with DCLAB_LIMIT_JOBS_PER_USER=1 and one running job calls POST /api/projects/{id}/stages/data/run: LimitExceeded escapes start_job, the project is left with running=data and the data stage queued but no job, and the page polls it for ever, each poll counting against the requests limit.",
+   "cause": "start_job caught only ActiveJob, and mark_queued had already saved the project.",
+   "fix": "Services.job_room() refuses with 429 before mark_queued; a LimitExceeded from the queue (a race) unmarks the project and returns 429; retry_job checks job_room() first.",
+   "test": "test_a_stage_run_or_a_retry_at_the_job_limit_is_refused_and_changes_nothing."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A bad DCLAB_WORKSPACE_MONTHLY_EUR made every API request fail with accounts on.",
+   "scenario": "DCLAB_WORKSPACE_MONTHLY_EUR=lots: the server starts (settings accept it), then limits() calls the gateway's strict float() on every request and every /api call returns 500; before, a bad value only refused model requests.",
+   "cause": "limits() read the workspace cap through gateway.workspace_cap() for every kind of limit.",
+   "fix": "limits() reads the value through the lenient _number reader.",
+   "test": "test_a_bad_workspace_budget_does_not_break_the_limits."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A draft upload over the job limit got a 429 but left the asset stored, queued for ever, and the bytes charged.",
+   "scenario": "At the job limit, PUT /api/drafts/{id}/data returns 429, yet the assets list shows the file queued and 2,414 bytes used; retrying creates a duplicate asset and charges the bytes again. The sample and connector routes did the same.",
+   "cause": "The order was charge bytes, write the file, create the asset, then submit the job, and the job limit was checked only at submit.",
+   "fix": "The upload, sample and connector routes call job_room() before the write, the charge, the copy or the download.",
+   "test": "test_a_draft_upload_at_the_job_limit_stores_and_charges_nothing."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Concurrent requests could exceed the job limit.",
+   "scenario": "8 threads for one user with limit 1, each checking then enqueuing: 2 queued, 6 refused.",
+   "cause": "check_jobs listed the jobs and enqueue inserted in a separate step with no lock between them.",
+   "fix": "The count and the insert run inside limits.job_slot(workspace), a session advisory lock released after the insert commits.",
+   "test": "test_requests_at_once_never_take_more_than_the_job_limit (8 threads, limit 1: 1 taken, 7 refused)."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Retrying a job skipped the job limit.",
+   "scenario": "With limit 4: queue 4 jobs and cancel them, queue 4 more, retry the 4 cancelled: the user has 8 active jobs.",
+   "cause": "retry_job called the job store directly, never the limit check.",
+   "fix": "retry_job calls job_room() first; after the re-check, the retry also runs inside job_slot so two retries at once cannot both pass.",
+   "test": "Covered by the stage-run and retry test."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The page showed a 429 as raw JSON instead of its message.",
+   "scenario": "Over the requests limit the page showed {\"error\":\"limit\",\"limit\":\"requests\",...,\"message\":\"You have reached...\"}.",
+   "cause": "The new 429 detail is an object, and both frontends stringified non-string details.",
+   "fix": "Both frontends show detail.message when the detail is an object; the static app was rebuilt.",
+   "test": ""
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Home agent's synthetic-data request at the job limit was reported as 'the model was unavailable'.",
+   "scenario": "The agent says it will simulate a dataset; the queue refuses; the turn shows 'The model was unavailable ((jobs, user, 1.0, 1, ...))' and then fails again inside the background task.",
+   "cause": "DraftWork.requests caught only ActiveJob, and LimitExceeded's text was its dataclass fields.",
+   "fix": "requests() catches LimitExceeded and posts its message as a status note; LimitExceeded's str is its message.",
+   "test": ""
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The per-person monthly model budget was enforced per workspace.",
+   "scenario": "A member of three workspaces could spend three times the per-person limit in a month.",
+   "cause": "PgUsage.spent(user_id=...) also filtered by the current workspace.",
+   "fix": "With a user id, spend is summed across workspaces.",
+   "test": "test_a_refused_request_is_not_counted_and_a_person_spends_across_workspaces (it also shows a refused request is not counted)."
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The counter table was never pruned, and some checks ran database work on the event loop.",
+   "scenario": "One row per user per minute plus one per workspace per minute is about 1.4 million rows a day at 1,000 active users; charge_upload and the job-room check ran synchronous queries inside async routes.",
+   "cause": "No cleanup; synchronous calls in async handlers.",
+   "fix": "charge() deletes windows older than two days on about 1% of calls; charge_upload and the job checks run through asyncio.to_thread.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done after two review rounds: with accounts on, requests a minute, bytes a day, jobs at once and model spend a month are limited per person and per workspace; over a limit is a 429 that says which limit, whose and when it resets (model spend is refused by the gateway in words), the others are unaffected, and the Admin page shows usage against limits. Left open: nothing is limited without accounts; a fixed window lets a burst of up to twice a limit straddle a minute's edge; unpriced models are not counted in euros.",
+ "lessons": [
+  "Check a quota before the first write of the action it guards; a refusal after a write leaves half-made state.",
+  "A count-then-insert limit needs a lock across both steps, or concurrent requests pass it together.",
+  "Every path that creates work (queue, retry, a background agent) must go through the same limit.",
+  "A refusal must reach the person as words in every frontend and in the agent's turn, not as a raw object or a misleading 'model unavailable'."
+ ],
+ "commits": ["f6b68a9"]
+}

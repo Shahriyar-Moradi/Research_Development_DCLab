@@ -1,0 +1,204 @@
+{
+ "package": "17.3",
+ "title": "Initial data analysis for decisions, for every task",
+ "date": "2026-10-12",
+ "request": "Do a first data analysis that leads to decisions for binary, multiclass and regression alike: each finding with its evidence and what it implies for the plan, reading the target only on the training rows.",
+ "spec": "dclab_core.analyse: tables and a brief to DataFindings, evidence (numbers, never row values) and implication per finding. Common: grain and duplicates, keys and joins across files, entities and target concentration, time and drift, leakage suspects, missingness and whether it predicts the target, types and impossible values. Per task checks. New replicas: ticket routing (multiclass) and delivery time (regression). Done when the findings name each replica's traps with the right implication and hand-checked numbers.",
+ "plan": [
+  "Write the two replicas with their traps: tickets (tiny classes, a label copy resolved_by, duplicated tickets, a late class, a post-moment column) and delivery time (a cap at 60, a heavy tail, a target recomputable from timestamps, a post-delivery rating, negative distances, weather missing in storms, restaurants).",
+  "Write analyse(): structure on all rows without the target; anything reading the target on the training rows only; every claim measured out of fold against chance.",
+  "Move all replicas, 15.1's included, into dclab_core/replicas so the main product can run them.",
+  "Hand-check each replica's numbers in tests; run the reviewer; fix the 14 findings with a failure-path test each and shuffled-label controls.",
+  "Vectorise the slow paths and time a 200,000-row table."
+ ],
+ "decisions": [
+  {
+   "decision": "Every claim about the target is measured out of fold (two seeded halves) against chance.",
+   "why": "A column or entity that only memorises rows must not look like signal; shuffled labels must raise nothing."
+  },
+  {
+   "decision": "A name alone never forbids a column: a post-outcome name without history words is a question, unless the column also predicts the target.",
+   "why": "Honest columns like previous_rating or delivered_count_last_30d were flagged by name."
+  },
+  {
+   "decision": "A cap is a spike at the maximum; the tail is read below the cap.",
+   "why": "A discrete scale is not a cap, and a cap cuts off the tail it hides."
+  },
+  {
+   "decision": "Ids are compared as text, never through float.",
+   "why": "Long ids lose digits in a float and two ids collapse into one key."
+  }
+ ],
+ "change": "dclab_core/analyse.py (grain, keys, label joins, conflicts, target behaviour per task, entities, time and drift, leakage, missingness, columns), dclab_core/replicas/ticket_routing.py and delivery_time.py, delivery_fraud moved into dclab_core/replicas; tests/test_core_analyse.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A holdout statistic steered a choice.",
+   "scenario": "Training rows 100 to 149 had no conflicting groups and the holdout rows had two; the result reported groups: 2, and that finding bears on the primary metric.",
+   "cause": "The grain check grouped all rows by every feature and counted target values.",
+   "fix": "Conflicting labels are counted on the training rows only; only target-free checks (duplicates, keys) use all rows.",
+   "test": "test_conflicting_labels_are_counted_on_training_rows_only"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "An exact copy of a multiclass label went unreported when one class held half the rows or more.",
+   "scenario": "Classes at 70/20/10 and a column status_code equal to the label: power 0.294, no finding at all.",
+   "cause": "Power was the accuracy gain over the majority, whose maximum is 1 minus the majority share, so it could never reach the 0.5 alarm.",
+   "fix": "Normalise the gain to (acc - majority) / (1 - majority).",
+   "test": "test_a_copy_of_a_multiclass_label_is_critical_even_when_one_class_dominates"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Entity concentration fired on random labels.",
+   "scenario": "With the fraud labels shuffled, biker_id was still a warning that labels concentrate (64 bikers with positives out of 240); on tickets mean purity was 0.533 under shuffled labels, above the 0.5 cut-off. The test of frauds on bikers proved nothing.",
+   "cause": "A descriptive concentration rule with no comparison to chance.",
+   "fix": "Use the same out-of-fold power for entities as for columns, with a margin over chance, for every task.",
+   "test": "test_frauds_sit_on_a_few_bikers_and_shuffled_labels_say_nothing"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The delivery replica's heavy tail was not named.",
+   "scenario": "On seed 0 the training skew was 0.27, so the finding said 'close to symmetric'; the cap at 60 cut off the tail the replica plants.",
+   "cause": "Skew was measured on the capped target.",
+   "fix": "Read the tail by skew or by the quantile tail ratio below the cap, robust to it, and assert the implication.",
+   "test": "test_the_long_tail_below_the_cap"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "analyse() raised on ordinary input.",
+   "scenario": "Columns named 'Order Time' and 'Delivered At' gave an id with spaces that the contract refused; a key 'Customer ID' did the same; 600 classes made a statement over 4,000 characters; 40 disagreeing columns exceeded the 30-key limit; a regression with no labelled training rows put NaN in the evidence.",
+   "cause": "Ids were not slugged, lists were not capped, empty data was not guarded.",
+   "fix": "Every id through one slug function, every list capped with 'and N more', no distribution finding without values.",
+   "test": "test_odd_names_many_classes_and_missing_labels_never_raise; test_many_disagreeing_columns_are_capped"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With pandas 3, the main product's version, time columns were never found.",
+   "scenario": "With future.infer_string on, text columns have the str dtype; the time detector returned nothing, so no drift and no recompute leak were found.",
+   "cause": "The check was dtype == object.",
+   "fix": "Accept object or string dtypes.",
+   "test": "test_text_time_columns_are_found_with_the_string_dtype"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The name rule flagged honest history columns as leaks.",
+   "scenario": "previous_rating, response_time_sla_target, delivered_count_last_30d, avg_rating, last_order_completed and prior_outcome all became warnings to keep out.",
+   "cause": "Post-outcome words matched without regard to history words.",
+   "fix": "Skip names with history words; a name alone is an info question, a leak only with predictive power.",
+   "test": "test_honest_history_columns_are_not_leaks"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Decimal coordinates were called identifiers to keep out.",
+   "scenario": "On the fraud replica the identifier list held the pick-up and drop-off latitudes and longitudes, which carry the planted signal; a plan following it would drop them.",
+   "cause": "Any mostly-distinct numeric column counted as an id.",
+   "fix": "Exclude non-integer floats and datetimes from identifiers.",
+   "test": "test_coordinates_are_not_identifiers"
+  },
+  {
+   "id": "F9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Labels coded 1 and 2 were misread.",
+   "scenario": "With 2 meaning fraud at 0.5%, class 1 was taken as positive and the positive rate reported as 99.5%, so the rare-event regime was missed.",
+   "cause": "'1' was always the positive.",
+   "fix": "Take 1/true/yes as positive only against 0/false/no; otherwise the rarer class.",
+   "test": "test_labels_coded_one_and_two_take_the_rarer_as_positive"
+  },
+  {
+   "id": "F10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Long ids lost digits in the label join.",
+   "scenario": "Two different 18-digit ids became the same number through float, inflating rows marked; 20-digit ids wrapped to negative.",
+   "cause": "Key normalisation went through float.",
+   "fix": "Normalise keys as text only (strip a trailing .0 from all-digit strings).",
+   "test": "test_long_ids_keep_every_digit"
+  },
+  {
+   "id": "F11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Multiclass missingness was never compared with the target.",
+   "scenario": "Only regression and binary checked whether missingness predicts the target, though the package asks it for every task.",
+   "cause": "The multiclass branch was not written.",
+   "fix": "Compare the class mix when missing and when present (total variation distance).",
+   "test": "test_multiclass_missingness_and_late_positives"
+  },
+  {
+   "id": "F12",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The cap check fired on discrete targets.",
+   "scenario": "A uniform integer target from 0 to 39 was reported capped at 39 with 2.5% at the cap.",
+   "cause": "Any mass at the maximum counted as a cap.",
+   "fix": "Require a spike: the share at the maximum at least 3 times the share at the next value.",
+   "test": "test_a_discrete_scale_is_not_a_cap"
+  },
+  {
+   "id": "F13",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Multiclass analysis was slow on large tables.",
+   "scenario": "At 200,000 rows by 50 columns, multiclass took 30 s, about 26 s of it in group-by lambdas computing modes.",
+   "cause": "Per-group Python lambdas.",
+   "fix": "Vectorised group counts with a max per group.",
+   "test": ""
+  },
+  {
+   "id": "F14",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Binary drift missed positives that appear only later.",
+   "scenario": "A positive rate of 0 in the first third and above 0 later was never flagged, because the check needed a positive early rate.",
+   "cause": "The ratio test required a > 0.",
+   "fix": "Also flag a zero early rate followed by positives.",
+   "test": "test_multiclass_missingness_and_late_positives"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the replicas' traps",
+   "gate": "On the three replicas the findings name each planted trap with the right implication and numbers that match hand computations (Done-when of 17.3).",
+   "fixed_before_run": true,
+   "result": "Tickets: tiny classes, the label copy, duplicates, a late class, the post-moment column. Delivery: the cap, the tail below it, the recomputable target, the post-delivery rating, negative distances, missingness in storms, restaurants. Fraud: rarity, partial labels, the order join and the inflating pairs, the disagreeing column, frauds on bikers (and nothing under shuffled labels).",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  },
+  {
+   "name": "speed on a large table",
+   "gate": "No gate fixed in advance; a check after the review's performance finding.",
+   "fixed_before_run": false,
+   "result": "200,000 rows by 48 columns: about 7 s for multiclass, down from 30 s.",
+   "verdict": "not scored",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: analyse() gives decision-oriented findings for every task, target statistics on training rows only, every claim measured against chance; three replicas in dclab_core; 14 review findings fixed with failure-path tests. Open: the studio calls analyse only through 17.4's plan.",
+ "lessons": [
+  "Every detector of signal needs a shuffled-label control; descriptive concentration fires on noise.",
+  "Normalise a gain by its maximum, or a dominant class hides a perfect copy of the label.",
+  "Test with the consumer's library versions: pandas 3's string dtype silently disabled a whole family of checks."
+ ],
+ "commits": [
+  "9344c42"
+ ]
+}

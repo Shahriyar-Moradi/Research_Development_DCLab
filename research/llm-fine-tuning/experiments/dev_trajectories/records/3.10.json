@@ -1,0 +1,46 @@
+{
+ "package": "3.10",
+ "title": "Build the project from the draft",
+ "date": "2026-10-05",
+ "request": "When the user says 'Let's build the solution', the draft becomes a project with everything the chat and the wizard established, and the solution enters the project through the workflow validator.",
+ "spec": "POST /api/drafts/{id}/build: a project with the cleaned table, the solution, the settings, the pack, the workflow and what the chat established; the solution saved through the workflow validator. Done when the sample-then-build flow test passes and a draft without data builds a plan-only project.",
+ "plan": [
+  "Create the project, copy the cleaned Parquet file and attach it.",
+  "Carry over the synthetic flag, the settings (rows, quick mode, folds) and the budget; keep a copy of the pack, workflow, cleaning log and answers.",
+  "Save the solution through studio.graph.check and graph.log so the transition log starts with an allowed set_solution.",
+  "Make building twice return the same project.",
+  "Let a draft with no data build a plan the user can add data to later."
+ ],
+ "decisions": [
+  {
+   "decision": "The solution goes through the same graph check as any later edit.",
+   "why": "A project must never start in a state the validator would refuse."
+  },
+  {
+   "decision": "Building is idempotent.",
+   "why": "A double click or a retried request must not create two projects."
+  }
+ ],
+ "change": "build_project in dclab_rnd/draft/api.py creating the project from the draft, logging the solution as a set_solution move.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The transition log recorded the state after the move instead of before it.",
+   "scenario": "Building from a draft logged set_solution with the state after the move, while the project page's own rows record the state before the move; a built project's first row would not have matched how the page reads its log.",
+   "cause": "The order of logging and applying was swapped.",
+   "fix": "Record the state before the move, as the project page expects.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: a draft builds a project (or a plan-only project without data) whose log starts with an allowed set_solution.",
+ "lessons": [
+  "When two components share a log, write down what each row means (state before or after) and test it from the reader's side."
+ ],
+ "commits": [
+  "15c4958",
+  "7ef1cea"
+ ]
+}

@@ -1,0 +1,89 @@
+{
+ "package": "4.3",
+ "title": "The Solution draft step",
+ "date": "2026-10-05",
+ "request": "After Home, the wizard takes the draft through Goal, Data, Solution draft, Split and budget, and Review and start; the Data step shows the preprocessing and a small analysis, Domain pack is no longer a step, and Split and budget and Review stay as they look in the demo, now real. This package wires the Solution draft step: a proposed solution the user checks and accepts, with the detected pack and the workflow.",
+ "spec": "The proposal (target, task, prediction moment, forbidden columns with proof, identifiers, time and group column, metric), the detected pack as changeable cards, the solution workflow, and Accept. Done when the untouched defaults save without an error for a table with a unique timestamp and an empty prediction moment is refused with a clear message.",
+ "plan": [
+  "Wire the step to POST /api/drafts/{id}/solution/proposal and PUT /api/drafts/{id}/solution.",
+  "Preselect the outcome from the chat, then the source's own outcome, then the first candidate.",
+  "Show the column audit's flagged columns as ticked 'forbidden' lines with their reason and proof chips.",
+  "Show the detected pack with the pack cards and the solution workflow; Accept saves and moves on.",
+  "Check the product against the plan with real runs on the untouched defaults and fix what failed."
+ ],
+ "decisions": [
+  {
+   "decision": "The solution is audited with the existing column auditor and validated like a project's.",
+   "why": "One definition of a valid solution for drafts and projects."
+  },
+  {
+   "decision": "The task is detected from the target; the Task box applies only when the user asks for the audit again.",
+   "why": "A stale Task value must not override what the data says."
+  }
+ ],
+ "change": "The Solution draft step wired to the proposal and save routes, with forbidden columns and proof chips, the pack cards and the workflow.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A unique timestamp was pre-ticked as forbidden and pre-selected as the time column, so Accept refused its own defaults.",
+   "scenario": "On a synthetic table with a unique timestamp, the untouched defaults ticked the timestamp as a forbidden leakage candidate and chose it as the time key; Accept then refused the pair.",
+   "cause": "The auditor's uniqueness flag was treated as a leakage flag.",
+   "fix": "A timestamp that is only 'unique' is the time key, not a forbidden candidate.",
+   "test": "test_a_unique_timestamp_is_the_time_key_not_a_forbidden_candidate."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Accept saved the guidance text as the prediction moment.",
+   "scenario": "The prediction-moment box was prefilled with an instruction; a user who accepted the defaults stored that instruction as the moment.",
+   "cause": "Guidance and value shared one field.",
+   "fix": "A real moment (from the chat or a studied sample) is a value; guidance is shown beside an empty box, and Accept asks for a real moment.",
+   "test": ""
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The Task box kept its value from another target or draft and forced it on the next one.",
+   "scenario": "After a binary target, choosing a numeric column kept 'binary' in the Task box, which forced a classification on a regression target.",
+   "cause": "Form state survived a change of target.",
+   "fix": "The task is detected from the target and the box applies only when the user asks for the audit again.",
+   "test": ""
+  },
+  {
+   "id": "T4",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The proposal demanded a target the chat or the sample had already established, and the auditor crashed on yes/no columns.",
+   "scenario": "Requesting a proposal without a body after the chat named the outcome returned an error asking for a target; on a regression table with two yes/no columns the proposal returned 500 from the auditor's arithmetic check.",
+   "cause": "The route ignored known context; numpy refuses to subtract booleans.",
+   "fix": "The proposal body is optional and the target falls back to what the chat understood, then the sample's own, then the profile's first candidate; the auditor compares column pairs as floats.",
+   "test": "test_auditor_reads_yes_no_and_nullable_columns_in_the_arithmetic_check."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "untouched defaults",
+   "gate": "The untouched defaults save without an error for a table with a unique timestamp; an empty prediction moment is refused with a clear message.",
+   "fixed_before_run": true,
+   "result": "After the fixes, synthetic fraud and demand tables went through the wizard's default path in the browser and saved.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the Solution draft step proposes, explains and saves a valid solution on its untouched defaults.",
+ "lessons": [
+  "Test the path a hurried user takes: accept every default. Defaults that refuse each other are the commonest wizard bug.",
+  "Never put guidance in the field that stores the value."
+ ],
+ "commits": [
+  "15c4958",
+  "7ef1cea",
+  "88acb12",
+  "cb11497"
+ ]
+}

@@ -1,0 +1,174 @@
+{
+ "package": "10.3",
+ "title": "Durable jobs and workers",
+ "date": "2026-10-06",
+ "request": "Background work runs as asyncio tasks inside the server: a restart loses it, leaves projects stuck 'running', and nothing can stop it. Make stage runs, data pipelines, synthetic data and intern sessions rows in a job table run by workers, with progress, cancel, retry and recovery after a restart.",
+ "spec": "A job table (kind, payload, status, progress, started, finished, error, attempts, cancel requested) and python -m dclab_rnd.worker claiming with SELECT ... FOR UPDATE SKIP LOCKED; cancel checked between steps and wired to the Compute page's Stop; a job left running by a dead worker marked interrupted and retryable; a stage stays deterministic. Done when killing the server mid-run and starting it again resumes or cleanly fails the job, and Stop works on the Compute page.",
+ "plan": [
+  "Map every background task the server starts (an explore agent).",
+  "Write the job store on files (jobs.json under a lock) and PostgreSQL (the job table, migration 0009, one queued or running job per key by a partial unique index).",
+  "Write the control (checkpoint, progress) and a worker with one dispatcher thread, heartbeats every 5 s and recovery of stale jobs; handlers for the four kinds.",
+  "Move the draft work out of the route closures, queue jobs from the routes, add checkpoints between stages, pipeline steps, intern tool calls and synthetic design and generation.",
+  "Add the jobs API (list, read, Stop, Retry) and the buttons on the Compute page; run the worker as its own process under make dev.",
+  "Check the Done when by hand: kill a real server with SIGKILL mid-run on files and on PostgreSQL, start it again, retry; then two API instances and a separate worker on one database.",
+  "Gate and reviewer; three review rounds; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A stop takes effect at the next checkpoint between steps; a stage is never cut.",
+   "why": "A stage must stay deterministic: same seed, same record. Cutting a stage mid-fit would leave half a record."
+  },
+  {
+   "decision": "One queued or running job per key, enforced by a unique index.",
+   "why": "Two app instances must never start the same project's stages; only the database can decide that for both."
+  },
+  {
+   "decision": "A running job is interrupted only while its heartbeat is still stale, and a worker whose job was taken stops and writes nothing more.",
+   "why": "Recovery must never take a job from a live worker or let the displaced worker damage the run that took over (findings F1 and R1)."
+  },
+  {
+   "decision": "Job responses leave out the free text a payload carries.",
+   "why": "An intern message or a prompt for a model is user text; the API strips it as it already strips session messages."
+  }
+ ],
+ "change": "New dclab_rnd/jobs/ (store on files and PostgreSQL, worker, handlers, live views), dclab_rnd/worker.py, agentic/routers/jobs.py, migration 0009, Stop and Retry on the Compute page; draft, intern and stage work run as jobs with checkpoints; ?wait=true still runs a job in the request; make dev starts a worker process. tests/test_jobs.py.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The intern stop test timed out: the job finished 'done' instead of stopping.",
+   "scenario": "A model was configured in the developer's shell, so the intern ran in model mode and never waited on the patched tool the test used to hold it.",
+   "cause": "The test inherited the shell's model settings.",
+   "fix": "The test forces the standard plan, as test_intern does.",
+   "test": "test_an_intern_turn_and_a_data_pipeline_stop_too."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Recovery could interrupt a job whose worker was still alive, and that worker never noticed.",
+   "scenario": "Worker A's heartbeat goes stale (a database outage, a debugger, a laptop asleep under make dev); worker B's recovery marks the job interrupted and settles it; a person retries and B claims it; A keeps running through every later checkpoint, so A and B run the same stage job on one project at once, and whichever finishes first marks it done.",
+   "cause": "interrupt() did not re-check that the heartbeat was still stale; Control.check looked only at cancel and stopping; finish and progress did not check the worker id.",
+   "fix": "interrupt takes older_than and requires the heartbeat to still be that old; Control.check stops a job whose row is no longer running or no longer this worker's; finish and progress are no-ops for another worker.",
+   "test": "test_a_live_worker_whose_job_was_taken_stops_at_its_next_checkpoint."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The intern retry test failed under load.",
+   "scenario": "After Retry the test waited 20 s for the retried turn to run the whole standard plan with five real stages; it failed three times out of three with three copies in parallel and twice during check-all, while passing alone in 12 to 16 s.",
+   "cause": "The test waited for real work instead of the state it was checking.",
+   "fix": "After Retry the test waits for attempts == 2, stops the job and waits for it to end.",
+   "test": "test_jobs passes three times at once on a loaded machine."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "make dev relied on watchfiles, which no requirements file installs.",
+   "scenario": "On a fresh .venv from requirements/base.txt the worker subprocess exits with 'No module named watchfiles'; the API runs with DCLAB_WORKER=external, so every stage run, pipeline and intern turn stays queued for ever, silently.",
+   "cause": "watchfiles was present only because another package pulled it in.",
+   "fix": "worker_command() falls back to running the worker without reload, and a watcher thread warns loudly if the worker exits while the API runs.",
+   "test": "tests/test_dev_script.py covers the fallback and the warning."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No Stop button during the pipeline phase of a synthetic-data job.",
+   "scenario": "Once the synthetic asset exists, its Compute row looks up a pipeline job keyed by draft and asset, which does not exist because the pipeline runs inside the synthetic job; the page offers no Stop though the job would honour one.",
+   "cause": "The row's control lookup did not know a pipeline can run inside a synthetic job.",
+   "fix": "A draft's pipeline row falls back to the active synthetic job.",
+   "test": "test_a_synthetic_tables_pipeline_offers_stop."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "No recovery on start after a quick restart.",
+   "scenario": "A server killed and restarted within 120 s leaves its job running: the project shows running, new runs get 409, and a Stop does nothing for up to about three minutes until the periodic recovery runs.",
+   "cause": "Recovery at start only caught heartbeats older than DCLAB_JOB_STALE_SECONDS.",
+   "fix": "A running job whose worker was a process of this machine that has ended (a dead pid) is interrupted at once, provided its heartbeat is at least 15 s old.",
+   "test": "test_a_job_of_a_dead_process_on_this_machine_is_recovered_at_once (a live pid stays untouched)."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A project was marked queued before the job insert, which could lose the race for the job key.",
+   "scenario": "Instance A queues the final stage while instance B's run-all passes its active check in the same window: B overwrites data to models as queued, wiping their completed status, then gets 409, and those stages stay queued for good.",
+   "cause": "mark_queued saved the project before the insert that may raise ActiveJob, with no undo.",
+   "fix": "mark_queued returns a snapshot that start_job and retry restore on ActiveJob; the pipeline retry checks for an active job first.",
+   "test": "test_a_run_that_loses_the_race_puts_the_project_back."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The job API returned free text.",
+   "scenario": "GET /api/jobs returned payload.text (the user's intern message) and payload.prompt (text sent to the synthetic-schema model).",
+   "cause": "The routes returned whole job rows.",
+   "fix": "A public view drops text and prompt in list, read, stop and retry.",
+   "test": "The intern retry test checks the payload text is absent."
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "After the F1 fix, a worker that lost its job still settled it on top of the new owner's live run.",
+   "scenario": "A goes stale, B recovers and later claims the retried job; A reaches a checkpoint and stops, then settles again: B's current stage becomes failed ('Interrupted'), its remaining stages go back to pending and the project's running field is cleared while B keeps executing.",
+   "cause": "execute() settled whatever the stop reason, and the stage handler's finally always tidied.",
+   "fix": "Control records that the job was lost; execute skips settling and the stage handler tidies only when the job is still this worker's. A last gap (taken over during its last stage, so no later checkpoint) was closed with Control.owned(), checked before tidying.",
+   "test": "test_a_live_worker_whose_job_was_taken_stops_at_its_next_checkpoint asserts nothing is settled after the takeover; test_a_stage_job_taken_over_during_its_last_stage_leaves_the_project_alone."
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The dead-pid recovery could interrupt a live job in another container with the same host name.",
+   "scenario": "Two containers report the same hostname with separate process namespaces: os.kill(pid, 0) on the other container's live worker raises ProcessLookupError, so its job beating every 5 s is interrupted at once.",
+   "cause": "The F5 path skipped the heartbeat check.",
+   "fix": "The dead-pid path also requires a heartbeat at least max(3 beats, 15 s) old.",
+   "test": "A fresh heartbeat is left alone; one 20 s old is recovered."
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The final gate failed once on test_jobs on PostgreSQL.",
+   "scenario": "Under load the stop arrived while the intern job was still queued, which is valid, but the test expected one finished step.",
+   "cause": "The test assumed the job had started before the stop.",
+   "fix": "The test waits until the first tool call has started before stopping.",
+   "test": "Passes three times in parallel; the gate then passed."
+  },
+  {
+   "id": "T3",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The takeover test failed once under load (status done, not running), found while reviewing 10.4.",
+   "scenario": "Between the test's Retry and the second worker's claim, the worker under test, polling every 50 ms, claimed the job back.",
+   "cause": "A race in the test itself.",
+   "fix": "The test hands the job to the other worker in one step.",
+   "test": "Four parallel runs pass; shipped with the 10.4 commit."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "kill the server mid-run, then start it again",
+   "gate": "Killing the server mid-run and starting it again resumes or cleanly fails the job, and Retry runs it (the package's Done when).",
+   "result": "On files and on PostgreSQL: SIGKILL during the leakage stage, restart, the job is interrupted, the stage it was on failed and the rest pending; Retry ran all five stages to done (attempts 2). Two API instances and one worker process on one database: the second instance refused the run the first had queued, and the worker process ran it.",
+   "verdict": "pass",
+   "next": "The first attempt wrongly showed the job finishing: an older test server from a failed run still held the port and did the work; the script then used a free port and cleaned up its server."
+  }
+ ],
+ "outcome": "Done after three review rounds: four kinds of work are jobs in one table, claimed with SKIP LOCKED by a worker in the server or its own process, stoppable between steps, recovered after a crash and retryable. Left open: Home agent turns stay asyncio tasks (10.5 moved the turn lock), a stop waits for the step it is on, a retried run re-runs completed stages it was asked for, jobs are not copied by storage migrate.",
+ "lessons": [
+  "Recovery that takes over a job must re-check staleness at the moment of taking it, and the displaced worker must notice and write nothing more.",
+  "Check every fix for a race for the new race it opens; here the fix moved the damage from running twice to settling twice.",
+  "A by-hand crash test must start on a free port and clean up, or a leftover server answers and the test proves nothing.",
+  "Tests that wait for real work to finish flake under the parallel gate; wait for the state being checked."
+ ],
+ "commits": ["d2b4b86"]
+}

@@ -1,0 +1,134 @@
+{
+ "package": "17.6",
+ "title": "Review and improve: error analysis and the next experiments",
+ "date": "2026-10-12",
+ "request": "Do not stop at the model screen: look at where the first model fails on the training rows, form hypotheses that cite the measured weakness, and try the change they point to on the same folds, with the holdout untouched until the end.",
+ "spec": "dclab_core.review: error analysis by segment, class, range and entity; hypotheses citing measured weaknesses; experiments ranked by expected gain and cost; at most N recorded rounds on training folds; holdout once. Done when on the fraud replica a round finds the behaviour features or on the regression replica the cap, the improvement is measured on folds, and the holdout is used once.",
+ "plan": [
+  "Add runner support for experiments learned on the fit fold only: a log target, a median loss, predictions held to the fit rows' range, balanced class weights.",
+  "Write review.py: weaknesses from the leader's out-of-fold errors, hypotheses that must cite them, experiments ranked runnable first.",
+  "Run at most 2 rounds in the models stage on the same folds; keep a change only by the rule; the final stage trains with what was kept.",
+  "Try it on the delivery replica at its usual size (at 1,500 rows the gain was within noise and rightly not kept).",
+  "Run the reviewer; fix the 7 findings without adding scipy to the core (a small t-table)."
+ ],
+ "decisions": [
+  {
+   "decision": "A change is kept only if its paired gain beats the tuning margin (relative when the engine's is) and the one-sided 90% t bound (1.89 standard errors with 3 folds).",
+   "why": "Mean above one standard error keeps a change with no effect about 21% of the time per round."
+  },
+  {
+   "decision": "A change the leader cannot make is tried on the best family that can, kept only if it beats both the leader and that family's own screen.",
+   "why": "Otherwise the gain of switching family is credited to the change."
+  },
+  {
+   "decision": "Hypotheses must cite a measured weakness; check refuses one that cites nothing measured.",
+   "why": "A model may propose hypotheses later (18.6); code decides whether they rest on evidence."
+  },
+  {
+   "decision": "At most two rounds, on the same folds, holdout once.",
+   "why": "More rounds on the same folds make the training-CV score more optimistic; the claim says it is."
+  }
+ ],
+ "change": "dclab_core/review.py (weaknesses, hypotheses, experiments, adopt), the models stage's review rounds, runner.change_params with the changes named review__*, the final stage training with the kept change, the export replaying it; tests/test_core_review.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every kept change whose name began with '_' was lost when the record was saved.",
+   "scenario": "Forcing a clip round to be kept on the delivery replica gave adopted_params {} and a final stage without the change; the tickets run recorded its class-weights round with change {}. The final stage, the holdout score and the export never saw the change.",
+   "cause": "The record serialiser drops keys starting with '_', and the tests only exercised a model__ key.",
+   "fix": "Name the changes review__target, review__clip and review__class_weight; test that a kept change reaches the final stage and the record.",
+   "test": "test_a_kept_change_reaches_the_final_stage_and_the_record"
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The entity check fired on pure noise, and the segment check flagged a calibrated model.",
+   "scenario": "With 300 entities of 10 rows and no entity effect, the top-decile rule fired in 15 of 20 seeds for binary and 20 of 20 for multiclass; a segment with a higher base rate was flagged even when the model predicted that rate exactly.",
+   "cause": "Descriptive rules without a null.",
+   "fix": "Compare entities with shuffled labels; judge segments against calibration (classes) or bias (numbers).",
+   "test": "test_noise_and_honest_differences_raise_no_alarm"
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The review's margin ignored the relative tuning margin.",
+   "scenario": "On delivery (MAE 8.29) the required gain should have been 0.083 (1%); 0.01 was used as an absolute value.",
+   "cause": "The flag tuning_margin_relative was not read.",
+   "fix": "Scale the margin by the base score when it is relative, as the final stage does.",
+   "test": "test_adopt_needs_a_paired_gain_beyond_noise"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "When a round switched family, the models record contradicted itself.",
+   "scenario": "On delivery seed 1 the selected model became histogram boosting while the selected mean stayed at ridge's 8.288, the claim still said ridge leads, and the round claim 'MAE 8.2883 to 8.0746' credited the family switch to the median loss.",
+   "cause": "Only the selected model was updated on a switch.",
+   "fix": "Update the selected scores, name both families in the claim, and require the change to beat the family's own screen row too.",
+   "test": "test_a_family_switch_keeps_the_record_consistent"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Forbidden and blocked columns entered the segment analysis.",
+   "scenario": "The review got the full training frame, so a forbidden post-outcome status with few levels could become a weakness and a hypothesis advising features from it.",
+   "cause": "The frame was passed before blocked columns were removed.",
+   "fix": "Drop blocked and forbidden columns, the time column and text columns before the review.",
+   "test": "test_classes_segments_and_entities"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The adoption rule was weak and the final CV mean optimistic.",
+   "scenario": "With 3 folds, 'mean above 1 SE' keeps a null change about 21% of the time, about 38% over two rounds; each experiment is chosen and tested on the same errors.",
+   "cause": "A lenient threshold.",
+   "fix": "Require the one-sided 90% t bound; say in the round claim and the final stage that the kept training-CV score is optimistic.",
+   "test": "test_adopt_needs_a_paired_gain_beyond_noise"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Class weights could be applied twice.",
+   "scenario": "A kept class-weight change merged with a tuning candidate that already sets class_weight balanced would square the inverse frequencies.",
+   "cause": "The final stage merged candidate and kept parameters blindly.",
+   "fix": "Drop the candidate's class_weight when class weights are kept.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "review rounds on the delivery replica",
+   "gate": "A change is kept only when its paired gain beats the tuning margin and the one-sided 90% t bound on the same folds; the holdout is used once.",
+   "fixed_before_run": true,
+   "result": "The cap and the lopsided errors are found on seeds 0 to 2 and a median loss gains on average every time. When 17.6 was committed, seed 1's gain cleared the bound and was kept (ridge to histogram boosting with an absolute loss, holdout MAE about 7.7); seeds 0 (gain +0.141, SE 0.207) and 2 stayed within noise and were refused. Since 15.4 changed the features, seed 1 sits on the bound (+0.2958 against 0.296) and is not kept.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": "The fraud replica's entity path waited for 15.4."
+  },
+  {
+   "name": "review rounds on the ticket replica",
+   "gate": "The same rule.",
+   "fixed_before_run": true,
+   "result": "Class weights lost on every fold (gains -0.062, -0.011, -0.019) and were refused; the multiclass margin is not reached because the signal is in the ticket text, which multiclass does not model yet.",
+   "verdict": "fail",
+   "cost_eur": null,
+   "next": "Text for multiclass is a later kind (16.x)."
+  }
+ ],
+ "outcome": "Done: error analysis on training rows, hypotheses that cite measured weaknesses, at most two rounds on the same folds under a t-bound rule, the kept change carried to the final stage and the export, the holdout used once; seven review findings fixed.",
+ "lessons": [
+  "A serialiser that drops private-looking keys can silently erase the result of a whole stage; name state you need to keep plainly.",
+  "With three folds, one standard error is not evidence; use the t bound.",
+  "A record that changes its selected model must change every number and claim that describes it."
+ ],
+ "commits": [
+  "54b8950"
+ ]
+}

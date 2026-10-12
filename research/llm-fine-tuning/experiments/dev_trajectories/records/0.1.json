@@ -1,0 +1,55 @@
+{
+ "package": "0.1",
+ "title": "Commit the demo redesign and the test fix",
+ "date": "2026-10-05",
+ "request": "The demo was crowded and hard to read; make it clean, with an Overview per page and the details in tabs at the top, so a data scientist sees a calm product. Then commit the redesign and the fix for the two failing tests, and leave every other uncommitted file alone.",
+ "spec": "Two commits: the redesigned demo (docs/product-demo/**) and the intern test that no longer calls a live model. Done when git log shows the redesign, tests/test_intern.py patches the environment in setUp, and make rd-check passes.",
+ "plan": [
+  "Split the demo's pages into four groups (workspace and knowledge, project flow A, project flow B, platform and plan) and restructure each into an Overview with four headline numbers and the details in top tabs.",
+  "Rebuild after each group and check every page for console errors with a headless browser, and compare screenshots.",
+  "Investigate the two failing tests reported by make rd-check before touching them.",
+  "Fix the intern test so it never reaches the developer's live model; leave the research-map test alone once its cause was known.",
+  "Run make rd-check, then commit the demo and the test fix as two separate commits, staging only those files."
+ ],
+ "decisions": [
+  {
+   "decision": "Every page opens on an Overview with four headline numbers and the one card that matters; details move into tabs with deep links (#view/tab).",
+   "why": "The owner found the first demo crowded; a data scientist should see the state of a project at a glance and reach details on demand."
+  },
+  {
+   "decision": "Tours and the Blueprint 'Show on page' open the right tab by themselves.",
+   "why": "Moving content into tabs would otherwise break the guided tours that point at it."
+  },
+  {
+   "decision": "The test clears the model key only for its own duration instead of changing .env or the app.",
+   "why": "The bug was in the test's isolation, not in the product; the owner's .env must stay as it is."
+  },
+  {
+   "decision": "The research-map test was not changed.",
+   "why": "It failed only because another session's work was half finished; once that session regenerated its files the test passed."
+  }
+ ],
+ "change": "docs/product-demo restructured: every page on an Overview plus top tabs, the sidebar regrouped as Workspace, Project, Knowledge and Platform, a new design system (cool grey ground, white cards, green actions, Inter and JetBrains Mono). tests/test_intern.py clears OPENAI_API_KEY for the duration of the API test so the intern follows its deterministic standard plan.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The intern API test sent a real request to OpenAI on a developer machine and failed there while CI stayed green.",
+   "scenario": "On a laptop with OPENAI_API_KEY in .env, the server loaded the key, the intern called the live model, the provider answered with a rate-limit error, the session ended 'failed' and the test went red; CI has no key, so it passed.",
+   "cause": "The server loads .env, and the test did not isolate itself from it.",
+   "fix": "Clear the key in the test's setUp for its own duration so the intern always runs the standard plan, as in CI.",
+   "test": "tests/test_intern.py: the API test now patches the environment and passes with or without a key on the machine."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the redesign and the test fix are two commits; make rd-check passed (125 tests, 8 skipped). The redesigned demo became the reference frozen as demo v1 in 0.2.",
+ "lessons": [
+  "A test that passes in CI and fails on a laptop often reads the laptop's environment; make the test own its environment.",
+  "Before 'fixing' a failing test, find out whether another session's half-finished work is the cause."
+ ],
+ "commits": [
+  "d7937e9",
+  "8469de7"
+ ]
+}

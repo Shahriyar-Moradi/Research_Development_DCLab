@@ -1,0 +1,94 @@
+{
+ "package": "RD-real-evaluation-pilot",
+ "title": "The first real evaluation pilot: what the notebook copilot and the agents actually do",
+ "date": "2026-09-26",
+ "request": "Verify whether the R&D tools are correct in use, not only whether their tests pass: run the notebook copilot on real notebooks, call the live specialists, audit archived agent cycles and replay a trial.",
+ "spec": "A frozen notebook suite (cells pinned by hash, expected signals and rationales) for the copilot on the HyperAck and churn notebooks; a live suite of five fixed specialist cases; an audit of archived Studio cycles and historical agent traces; a replay of one bank-marketing trial with the current worker. Every report is a new immutable file; no notebook is executed or edited and no holdout is used.",
+ "plan": [
+  "Label seven notebook cases with expected findings and the rule that should be cited, pinning each cell's hash.",
+  "Run the copilot prototype on them and score detection and the retrieved proof.",
+  "Run the first of five live specialist cases against the configured provider.",
+  "Audit archived Studio cycles and 37 historical agent outputs against the current schema and contract checks.",
+  "Replay one fingerprinted bank trial with the current worker into a new folder and compare it byte for byte."
+ ],
+ "decisions": [
+  {
+   "decision": "Record a provider failure as a failed case, never replace it with a mock answer.",
+   "why": "A synthetic response would turn an operational failure into a fake pass."
+  },
+  {
+   "decision": "Reject a changed notebook cell instead of re-scoring it against an old label.",
+   "why": "The owner's notebooks evolve; a stale label silently scores different code."
+  },
+  {
+   "decision": "Do not train on the pilot's answers.",
+   "why": "It would contaminate the cases that must later serve as an evaluation set."
+  }
+ ],
+ "change": "dclab_rnd/notebook_eval.py with a frozen case manifest and dclab_rnd/agentic/live_eval.py (both later committed); the trace audit, the replay comparison and the system audit ran from tools that stayed on the author's machine (their tests skip until the files are committed); a pilot report, docs/REAL_EVALUATION_PILOT_2026-09-26.md.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The copilot missed a scaler and KMeans fitted on the full data before the split.",
+   "scenario": "The HyperAck notebook fits a scaler and KMeans on the full coordinate frame and adds geo_cluster before the later train/test split; the prototype's same-cell detector did not connect the fit to the split in another cell. It did catch full-data StandardScaler fitting before the split in other cells.",
+   "cause": "The prototype checked fits only within one cell.",
+   "fix": "Recorded as the pilot's next step 4 (fix the cross-cell pattern and keep the seven cases as development tests); the copilot rewritten on 2026-10-03 reviews notebooks in cell order with state carried across cells.",
+   "test": "The frozen case hyperack_full_data_clustering in the notebook suite."
+  },
+  {
+   "id": "F2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A name-based leakage warning was worded as certain and cited the wrong rule.",
+   "scenario": "On the churn notebook the copilot called cancellation_date 'confirmed leaky' from its name alone, without the prediction moment or source timestamps, and cited DCLAB-R06 (score-gap interpretation) instead of DCLAB-R05 (a name is only a warning).",
+   "cause": "The warning text and the rule lookup did not distinguish a name match from a proven leak.",
+   "fix": "Recorded as a next step: word name matches as an availability question and cite DCLAB-R05; the owner must define churn's snapshot time and outcome horizon.",
+   "test": "The frozen case churn_cancellation_date_availability (wording 0 of 1, proof 3 of 4 overall)."
+  },
+  {
+   "id": "F3",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The live planner could not be scored: the provider failed every attempt.",
+   "scenario": "The first specialist case was attempted three times on the configured model and once on another model name; every call returned InternalServerError with no response or token usage.",
+   "cause": "Provider-side failure; changing the model name did not restore access.",
+   "fix": "Recorded as failed cases, no further retries, and a provider-access check added to the owner worksheet before the suite is rerun.",
+   "test": "live_specialists probe reports kept as immutable files."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "notebook copilot on fixed cases",
+   "gate": "Development pilot on seven researcher-labelled cases; no accuracy threshold, and not a population estimate.",
+   "fixed_before_run": true,
+   "result": "Detection 6 of 7; retrieved proof matched the predeclared rule 3 of 4; cautious wording 0 of 1.",
+   "verdict": "not scored",
+   "next": "Build a new, source-held-out, blinded notebook set with clean and flawed examples before claiming any accuracy."
+  },
+  {
+   "name": "archived Studio cycles and trial records",
+   "gate": "Operational completion and an independent evidence audit of each trial record.",
+   "fixed_before_run": true,
+   "result": "3 of 6 cycles completed; 7 of 12 trial records passed the evidence audit; trace checks: 4 of 4 first proposals were transparent baselines, 26 of 26 citations referenced prior successful trials, 5 of 9 comparisons named a reference trial id, 1 of 37 outputs no longer validates against the current schema.",
+   "verdict": "not scored",
+   "next": "Remediate the five failing trial records; require an explicit reference trial id in every comparison."
+  },
+  {
+   "name": "bank trial replay with the current worker",
+   "gate": "Metrics and out-of-fold predictions identical to the archived trial; a changed worker or catalog hash makes it a cross-version reproduction, not an exact replay.",
+   "fixed_before_run": true,
+   "result": "ROC-AUC, AP, log loss and Brier identical (4 of 4); 4,000 out-of-fold records and the split fingerprint byte-identical; the exact-replay command refused because the worker and catalog hashes differ.",
+   "verdict": "pass",
+   "next": "Label it a cross-version reproduction; it shows reproducibility, not validity on new data."
+  }
+ ],
+ "outcome": "The first honest scorecard: the copilot is useful on a tiny development suite, the agents' decision quality is still unmeasured, and one trial reproduces exactly. Nothing here is proof of overall correctness; the release decision stayed false.",
+ "lessons": [
+  "Passing software tests is not evidence that an agent decides well; measure behaviour on fixed cases and say how small the sample is.",
+  "Do not turn 6 of 7 on two notebooks into an accuracy claim.",
+  "A replay command that refuses when code hashes changed is a safeguard working, not a failure."
+ ],
+ "commits": []
+}

@@ -1,0 +1,58 @@
+{
+ "package": "3.4",
+ "title": "Descriptive analysis",
+ "date": "2026-10-05",
+ "request": "Home is where a problem becomes a solution: the user writes one sentence (or asks for any kind of model), brings data or not, and while the data is structured, cleaned and described in the background, a chat at the bottom asks a few questions about the real problem and an agent draws a solution workflow for this specific problem that follows the conversation. This package writes the small analysis the chat shows as the data becomes ready, and it must never relate a column to the outcome before the split.",
+ "spec": "draft/analyze.py: size, kinds, missing values, distributions, top values, time coverage, feature-to-feature correlations and plain findings; nothing relates a column to the outcome. Done when the analysis tests pass, including the one that leaves the target and outcome-like columns out of the correlations.",
+ "plan": [
+  "Write analyze(frame, target=None) returning plain JSON: a summary, the profile, per-column distributions, Spearman correlations between features only, and short findings.",
+  "Describe large tables from a seeded sample.",
+  "Leave the target and outcome-like columns out of the correlations.",
+  "Check the output survives json.dumps with allow_nan=False."
+ ],
+ "decisions": [
+  {
+   "decision": "Analysis before the split is descriptive only.",
+   "why": "Any statistic linking a column to the outcome, computed on all rows, would inform choices with the future holdout's labels."
+  },
+  {
+   "decision": "Minute and hour time buckets are offered besides day to year.",
+   "why": "Logs often span only hours."
+  },
+  {
+   "decision": "Numbers are rounded to 4 decimals, or 4 significant digits below 1.",
+   "why": "Large values stay readable and small rates do not round to zero."
+  }
+ ],
+ "change": "dclab_rnd/draft/analyze.py with summary, profile, per-column distributions, feature-only correlations and highlights (many missing, duplicates, likely identifiers, near-constant columns, possible category codes, names suggesting a value known only after the outcome).",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Narrow tables got no correlations at all.",
+   "scenario": "The first version left out every column the profile listed as a target candidate; the profile lists up to eight, so a table with about nine or fewer non-identifier columns had nothing left to correlate.",
+   "cause": "The exclusion rule used a broad candidate list where a narrow one was meant.",
+   "fix": "Correlations leave out the stated target and the columns whose names flag them as outcome-like, and nothing else.",
+   "test": "tests/test_draft_data.py: test_correlations_leave_out_the_target_and_outcome_like_columns, updated to the new rule."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "analysis speed",
+   "gate": "Describing a large table must take about a second.",
+   "fixed_before_run": true,
+   "result": "A 300,000-row CSV was analysed in 0.9 s from a seeded sample.",
+   "verdict": "pass",
+   "cost_eur": null,
+   "next": ""
+  }
+ ],
+ "outcome": "Done: the chat's analysis cards come from plain JSON; nothing relates a column to the outcome.",
+ "lessons": [
+  "A leakage guard can be so broad that it removes the feature; say exactly which columns are excluded and why."
+ ],
+ "commits": [
+  "15c4958"
+ ]
+}

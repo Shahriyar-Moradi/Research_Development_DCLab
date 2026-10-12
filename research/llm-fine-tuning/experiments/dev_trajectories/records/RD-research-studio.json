@@ -1,0 +1,48 @@
+{
+ "package": "RD-research-studio",
+ "title": "The agentic Research Studio: typed agents propose, a deterministic worker measures",
+ "date": "2026-09-18",
+ "request": "Turn the fixed campaign into an adaptive learning loop: agents interpret a research goal, audit the data, choose a bounded experiment, critique the measured result and pick the next test, without ever owning the numbers. Add HyperAck and churn as first-class projects and a field guide of what was learned.",
+ "spec": "A LangGraph loop with typed NOOA specialists and the OpenAI Responses API; a validated experiment language instead of generated code; an isolated worker that owns data access, preprocessing, training and metrics; budgets of 1 to 50 experiments, pause and resume, run history and trajectory export; three evidence contexts (open tabular lab, HyperAck, Telco churn); a field guide with 22 rules and 10 workflow blocks; archives and clean exports of every run.",
+ "plan": [
+  "Build the loop: LangGraph owns the durable state; NOOA specialists plan, review the data, design the experiment, critique the result and curate lessons.",
+  "Make agents return an experiment in a validated schema; the worker refuses blocked columns and their descendants and fits preprocessing inside each training fold.",
+  "Keep exact duplicate input rows in one fold, propagate source-column masking through derived features, and record fingerprints, repeat-level metrics, out-of-fold predictions, calibration and missing-input stress.",
+  "Add HyperAck and Telco churn as separate projects, with new HyperAck runs blocking the final fares.",
+  "Write the model-building field guide, the 22 rules and the 10 workflow blocks from the evidence, with an optional four-reviewer LLM pass.",
+  "Archive every run's output and write clean cards and an SFT export beside the raw artefacts."
+ ],
+ "decisions": [
+  {
+   "decision": "Generated Python is never executed; agents return a validated experiment language.",
+   "why": "Only an isolated deterministic worker may touch data and compute metrics, so an agent cannot leak, skip a fold or invent a number."
+  },
+  {
+   "decision": "Raw dataset rows and API keys are never sent to the model, and provider storage is off.",
+   "why": "The agents need summaries and evidence ids, not data; the owner's data must not leave the machine."
+  },
+  {
+   "decision": "Every trajectory is marked training_ready false.",
+   "why": "A person must verify claims, licences, privacy and source-grouped train and evaluation separation before a trajectory trains a model."
+  },
+  {
+   "decision": "When the reviewer model could not run, merge nothing into the field guide.",
+   "why": "The four-reviewer pass was blocked by exhausted API credit; the status file records the failure instead of invented findings."
+  }
+ ],
+ "change": "dclab_rnd/agentic/ (agents, engine, worker, schemas, catalog, projects, server and UI, archive, clean_export, guide_review), dclab_rnd/master_review.py, the field guide, master evidence pack, 22 rules and 10 workflow blocks under knowledge/, and worker safety tests.",
+ "findings": [],
+ "measurements": [],
+ "outcome": "A working, local research loop where models propose and critique and code measures; its safety rules (blocked ancestors, fold-only fitting, no executed code) are covered by worker tests. Its decision quality was not measured here; the 26 September pilot (RD-real-evaluation-pilot) found 3 of 6 archived cycles completed and could not score the planner because the provider failed.",
+ "lessons": [
+  "An agent's proposal should be data in a schema, never code: the schema is what a validator and a worker can enforce.",
+  "When the model call fails, record the failure; a guide padded with invented reviews poisons everything trained on it."
+ ],
+ "commits": [
+  "15582aa",
+  "076803b",
+  "dd41bc5",
+  "71bf3c2",
+  "cba27c2"
+ ]
+}

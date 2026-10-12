@@ -1,0 +1,108 @@
+{
+ "package": "A1.3",
+ "title": "Tiers by purpose, data limits per purpose, and failing models reported",
+ "date": "2026-10-06",
+ "request": "Assign every model purpose to a tier in one table, let a local model serve the cheap tier, write down what data each purpose may see and test that no caller exceeds it, and report on the Admin page a model that fails a purpose's output check twice.",
+ "spec": "parse_pattern and evidence_answer on cheap, home_agent and synthetic_schema on standard, intern and campaign on strong; each tier configurable from the environment (for example a local Ollama); per purpose the data it may be shown; a test that callers never exceed it; a model failing a purpose's output check twice is shown on Admin with the purpose and tier. Done when, with a local model on the cheap tier, parse patterns and evidence answers run on it and the usage log says so.",
+ "plan": [
+  "Give each purpose its tier and the most cell values one request may contain: none for the Home agent, synthetic schemas, evidence answers, stage notes, project answers and campaigns; 20 lines for a file no reader can parse; three examples per column for the intern.",
+  "Write a model_output_check log (migration 0004) with fixed reasons only, and have every caller that validates a model's output report a verdict.",
+  "Show the real tiers, what each purpose may see, and any model failing a purpose twice this month on the Admin page's Models tab.",
+  "Write tests/test_model_data_limits.py: run every caller on a table whose values are findable and fail if a purpose sees more than its limit.",
+  "Run the Done-when on a real local model: start Ollama, point the cheap tier at qwen2.5-coder 1.5B, ask an evidence question and parse a log file, read the usage log.",
+  "Run check-all and the review; fix the five findings; prove the data-limit test fails on a deliberate leak; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "A data limit is a number of cell values per request, tested by planting findable values, not a description checked by reading code.",
+   "why": "A planted value either appears in the prompt or it does not; a description can drift from what the code sends."
+  },
+  {
+   "decision": "The output-check log keeps fixed reasons only, never the model's text.",
+   "why": "A model's output can quote the user's column names or values; the log is shown on Admin."
+  },
+  {
+   "decision": "Prove the leak test works by adding a leak on purpose.",
+   "why": "A test that has never failed may not be able to fail; letting the Home agent see each column's top values, min and max showed it catches the leak."
+  }
+ ],
+ "change": "Purpose.cell_values in models/settings.py; the model_output_check log (file or table, migration 0004) with Bound.output and Gateway.check and summary; verdicts reported from draft/structure.py (parse patterns), draft/synthetic.py, pages/evidence.py, draft/chat.py (workflows and tool calls), intern/loop.py, agentic/agents.py and guide_review.py (campaign typed outputs), llm_review.py (critiques); Admin's Models tab from /api/models; tests/test_model_data_limits.py.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The output-check log stored pieces of the model's output.",
+   "scenario": "A scripted synthetic spec names a column 'patient_ssn_...' and lists a category twice: the check row's reason holds the column name from the validation message, and the Admin page shows it as last_reason. This breaks the column's own comment ('never the model's output or the user's data').",
+   "cause": "The synthetic path passed str(error), and pydantic and the spec validator quote the input in their messages.",
+   "fix": "Pass a fixed reason (for example 'spec failed validation') or the error class only, never the error text.",
+   "test": "A test with a marked column name that is absent from the check log."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The two strong-tier purposes, intern and campaign, never reported a verdict, so 'a model that fails twice is reported' could never hold for them.",
+   "scenario": "The intern's unknown tool names, bad arguments and validator refusals, the Home agent's unknown pack or tool, and NOOA's typed-output parse failures were all unreported.",
+   "cause": "Only the callers that already had an explicit check were wired.",
+   "fix": "The intern loop reports each tool call (unknown tool, invalid arguments, refused by the validator, or passed); the Home agent reports its tool calls; the campaign's ask() and the guide reviewer report their typed outputs.",
+   "test": "Intern and campaign tests that read the verdicts."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The 'failed twice' report itself had no test.",
+   "scenario": "A search of tests/ found nothing exercising Bound.output, Gateway.check, record_check, failing() or the threshold of two.",
+   "cause": "The reporting path was written without its own test.",
+   "fix": "OutputCheckTests check summary()['failing'] with zero, one and two failing verdicts, purpose, tier and model present, on files and on PostgreSQL.",
+   "test": "OutputCheckTests in tests/test_models_gateway.py."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The data-limit test could not see numeric or date cells and covered only one stage.",
+   "scenario": "Adding min and max to the Home agent's profile fields stayed green, because the markers were strings only; the stage-notes case ran only the data stage. The reviewer found no live leak today, so this was coverage, not a leak.",
+   "cause": "Markers were text values only.",
+   "fix": "The planted table has unique findable numbers and a date column, and every stage plus the project answer runs in the test.",
+   "test": "test_model_data_limits.py; shown to fail when the Home agent is deliberately given top values, quantiles, min and max."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The critic reported a pass before checking the answer's shape.",
+   "scenario": "The model returns a JSON list: the check is logged as passed, then reading review['experiment_id'] raises a TypeError.",
+   "cause": "output(True) was called right after parsing.",
+   "fix": "Report a pass only when the critique is a JSON object; otherwise report 'the critique is not a JSON object'.",
+   "test": "A scripted critic test with a list reply."
+  },
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The intern case of the data-limit test saw no markers at all, so it was not exercising the call it meant to.",
+   "scenario": "The scripted replies left out the token counts the real client always returns, and the intern's call path stopped early.",
+   "cause": "A scripted reply that did not look like a real one.",
+   "fix": "The scripted replies carry token counts like the real client's.",
+   "test": "The intern case now finds its three examples per column and no more."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "cheap tier on a real local model",
+   "gate": "With a local model on the cheap tier, parse patterns and evidence answers run on it and the usage log says so (the package's Done-when).",
+   "result": "With the cheap tier pointed at qwen2.5-coder 1.5B in a local Ollama, one evidence answer and one parse pattern ran on it; the usage log shows two requests on that model, both local, 0 euros. The model's evidence answer failed the citation and number check (0 sentences kept), and its parse pattern failed (parse rate 0, built-in parser used): the code fell back both times.",
+   "verdict": "pass",
+   "next": "Better local or remote models are a later choice; the fallback held."
+  }
+ ],
+ "outcome": "Done: each purpose names its tier and its cell-value limit, tested on findable text, numbers and dates through all five stages; every caller that checks a model's output reports a verdict, and a model failing a purpose twice a month is listed on Admin. The gate passed with 391 tests on each backend and the four flows; five review findings fixed.",
+ "lessons": [
+  "A privacy test must plant every kind of value (text, numbers, dates) or it can only catch one kind of leak.",
+  "Prove a guard test can fail by adding the leak on purpose once.",
+  "Error messages quote their input; never log str(error) from validating a model's output."
+ ],
+ "commits": ["968d172"]
+}

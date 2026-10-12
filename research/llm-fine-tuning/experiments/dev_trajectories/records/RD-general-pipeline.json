@@ -1,0 +1,70 @@
+{
+ "package": "RD-general-pipeline",
+ "title": "The shared tabular pipeline: a four-quadrant benchmark and ten public datasets",
+ "date": "2026-09-16",
+ "request": "Turn the HyperAck experiments into one reusable pipeline, benchmark every model family safe vs unsafe and baseline vs optimized (including a tabular transformer), and replay the same ladder on ten public datasets.",
+ "spec": "general_pipeline/ with one runner for every model and mode; a 44-run benchmark (11 models in four quadrants: safe or unsafe features, default or optimized settings) on HyperAck's locked split; a 140-run benchmark on ten UCI datasets (7 models, baseline and optimized); a per-dataset 15-step playbook ladder with notebooks and reports.",
+ "plan": [
+  "Write general_pipeline/ so the HyperAck runner, the external runner and later the research package import one implementation.",
+  "Run the 4-way HyperAck benchmark: 11 architectures (boosting, forests, stacking, a soft vote, an FT-Transformer, linear models) in each quadrant.",
+  "Cache ten public UCI classification datasets under data/public/ and run 7 models with baseline and optimized settings on a stratified 80/20 split, subsampling tables above 20,000 rows.",
+  "Give each public dataset its own project folder with the 15-step ladder, a safe-vs-unsafe arm where a leak is known, notebooks and three reports.",
+  "Plot and tabulate the results under research/tabular-classification/evaluation/benchmark_outputs/."
+ ],
+ "decisions": [
+  {
+   "decision": "Run every architecture in all four quadrants on the identical split.",
+   "why": "Holding the split fixed separates the effect of leakage from the effect of the model and of tuning."
+  },
+  {
+   "decision": "Keep the pipeline at the repository root rather than inside a research folder.",
+   "why": "Other tracks and the dclab_rnd package import it, so it must work without installation."
+  },
+  {
+   "decision": "Use HyperAck's safe-tuned settings as the optimized arm on the public datasets.",
+   "why": "The pipeline was meant to be reusable on future datasets with one recipe (general_pipeline/playbook/FUTURE_DATASET_PIPELINE.md)."
+  }
+ ],
+ "change": "New general_pipeline/ package (runner, models, benchmark plots, playbook with FeatureEngineer and run_playbook.py), results for the 44-run HyperAck benchmark and the 140-run public benchmark, ten external project folders and two master reports.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "measurement",
+   "severity": "leakage",
+   "defect": "The public benchmark's best scores for two datasets include a column known only after the outcome.",
+   "scenario": "bank_marketing reached ROC-AUC 0.939 with call duration as an input, though duration is known only when the call ends; online_shoppers reached 0.932 with PageValues. The later evidence campaign measured their apparent lifts at +0.1842 and +0.1968 training-CV ROC-AUC and honest holdouts of 0.7718 and 0.7394.",
+   "cause": "The external runner had no prediction contract per dataset, so every column was used.",
+   "fix": "The playbook ladders carry a safe-vs-unsafe arm where the leak is known (bank duration, shoppers PageValues), and the evidence campaign blocks both columns by its decision-time contract.",
+   "test": "evidence/campaigns/model_building_50_v1 leakage audits EXP-007 and EXP-042."
+  }
+ ],
+ "measurements": [
+  {
+   "name": "4-way HyperAck benchmark",
+   "gate": "Compare all 11 architectures on the same split in four quadrants; no pass threshold.",
+   "fixed_before_run": false,
+   "result": "Safe optimized: LightGBM 0.9449, stacking 0.9445, CatBoost baseline 0.9435, FT-Transformer 0.9186 (0.9051 at defaults, the largest tuning lift, +0.0135), logistic regression 0.8818. Leakage lifted every family: boosting +0.034 to +0.041, FT-Transformer +0.046 (0.9186 to 0.9647).",
+   "verdict": "not scored",
+   "next": "Treat the transformer as not worth its cost on this table unless a later dataset says otherwise."
+  },
+  {
+   "name": "public benchmark, 140 runs",
+   "gate": "Best ROC-AUC per dataset across 7 models and two settings; no pass threshold.",
+   "fixed_before_run": false,
+   "result": "adult 0.927, bank_marketing 0.939 (with duration), breast_cancer 0.999, credit_default 0.797, german_credit 0.811, heart_disease 0.962, mushroom 1.000, online_shoppers 0.932 (with PageValues), spambase 0.988, wine_quality 0.916.",
+   "verdict": "not scored",
+   "next": "Rerun the datasets through an evidence-first campaign with a contract, training-only selection and one holdout read."
+  }
+ ],
+ "outcome": "One pipeline every later campaign imports; the leakage gap measured across 11 architectures; ten public projects ready for the evidence campaign. The best-per-dataset table is a leaderboard, not evidence, until each dataset has a contract.",
+ "lessons": [
+  "The leakage gap is about the same size for every model family, so changing the model never fixes a leak.",
+  "A benchmark without a prediction contract per dataset reports leaks as wins.",
+  "The playbook's derived features were later found to do arithmetic on category codes (see RD-category-codes); generic feature generation needs to know which columns are categories."
+ ],
+ "commits": [
+  "784f82a",
+  "33fa74d",
+  "2051e38"
+ ]
+}

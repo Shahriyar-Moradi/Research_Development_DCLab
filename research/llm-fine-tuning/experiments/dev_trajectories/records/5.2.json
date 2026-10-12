@@ -1,0 +1,57 @@
+{
+ "package": "5.2",
+ "title": "Solution & data page, with editing",
+ "date": "2026-10-05",
+ "request": "Every project page keeps the demo's look but shows the open project's own records; a page with no result yet says so and offers to run what is missing, and nothing is filled with sample numbers. This package wires the Solution & data page and lets the user edit the solution there instead of in the old UI.",
+ "spec": "The saved solution, the data and the column audit; an editor that saves through the validator and asks before clearing completed stages. Done when editing the target saves, logs set_solution allowed, and works for a project built from an upload.",
+ "plan": [
+  "Fill the page's panels from the open project (solution sheet, owner questions, known-when timeline, sign-off with versions, data and split), keeping the sample markup to restore.",
+  "Show empty states with a run button when a stage has not run.",
+  "Add 'Edit the solution' in the page's drawer saving with PUT /api/projects/{id}/solution.",
+  "When the target changes, fetch the task and metric from the proposal; keep the user's edits when they ask for the audit again; confirm before clearing completed stages.",
+  "Make the proposal route work for projects whose suggestion holds only what the chat established."
+ ],
+ "decisions": [
+  {
+   "decision": "A 'Sign this version' button was added though the sample has none.",
+   "why": "Signing the solution is a real gate in the graph; the page needed a way to pass it, and the owner was told so it could be dropped."
+  },
+  {
+   "decision": "Cost amounts in the calculator are labelled 'examples to replace'.",
+   "why": "They are the only example values on a real page and must not pass for project numbers."
+  }
+ ],
+ "change": "views/solution.html (and audit.html) wired to the project; the solution editor in the drawer saves through PUT /solution so the validator logs the change.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "'Audit again' on the Solution page crashed for every project built from an upload.",
+   "scenario": "A project built from Home holds a suggestion with only what the chat established (no sample suggestion); asking the audit again raised on the missing fields.",
+   "cause": "The route assumed a studied sample's full suggestion.",
+   "fix": "The proposal route works from what the chat established.",
+   "test": "test_a_project_built_from_an_upload_can_be_audited_again."
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "Changing the solution sent people to the old UI at /classic.",
+   "scenario": "On a real project, 'Edit the solution' linked to /classic#project/<id> to change the target, forbidden columns or metric.",
+   "cause": "The page was wired before the editor was built.",
+   "fix": "The editor opens in the page's drawer and saves through PUT /solution; when the target changes it fetches the task and metric first, and it asks before clearing completed stages.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done: the Solution & data page shows the project's solution and edits it through the validator.",
+ "lessons": [
+  "A project built by a new path (Home) carries less context than one built by the old path; test every route on both."
+ ],
+ "commits": [
+  "6faef03",
+  "0678f0d",
+  "7ef1cea"
+ ]
+}

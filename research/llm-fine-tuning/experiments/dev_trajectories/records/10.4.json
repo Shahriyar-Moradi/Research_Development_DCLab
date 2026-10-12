@@ -1,0 +1,132 @@
+{
+ "package": "10.4",
+ "title": "One audit trail",
+ "date": "2026-10-07",
+ "request": "The Admin audit tab assembles its list on every request from each project's transition and activity files, sees no data imports or solution changes, and nothing stops an entry from being rewritten. Write every governed action to one append-only audit with who, when and what.",
+ "spec": "Validated moves allowed or refused, gate approvals and their use, policy switches, solution changes, data imports with their source and hash, sign-ins and role changes, in one append-only table with the user, the workspace, the time and a JSON detail; no update or delete in the application; the Admin audit tab reads it with paging and filters. Done when the Admin tab reads one query and an entry cannot be changed or deleted through the application.",
+ "plan": [
+  "Map every audit source and every place a governed action happens (an explore agent).",
+  "Write dclab_rnd/audit.py: one log per workspace, audit.jsonl on files or the audit_event table (migration 0010) whose trigger refuses UPDATE and DELETE, with no cascade from projects.",
+  "Write the audit where each action happens: graph.log (so the engine, the intern's guard, the person's routes and build_project all write it), approvals and their use, gate switches and the training opt-in, routing changes, the four solution-save sites, data imports, lesson reviews, memory-note removals, the Home agent's refused draft moves.",
+  "Point the Admin tab at one query with paging and filters; import a workspace's earlier history once, under a lock; make storage migrate copy and verify the audit.",
+  "Run make agent-eval for the graph.py change; gate and reviewer; fix; commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Append-only is enforced by a database trigger, not by the application's good behaviour.",
+   "why": "The Done when says an entry cannot be changed through the application; a trigger also holds against a bug or a direct query."
+  },
+  {
+   "decision": "No cascade from projects to the audit.",
+   "why": "The audit must outlive what it records; deleting a project must not erase who did what to it."
+  },
+  {
+   "decision": "Writing the audit is best effort for the action: a failure is reported on stderr and the action stands.",
+   "why": "A briefly unavailable audit must not block a stage run or an upload; the failure is still visible."
+  },
+  {
+   "decision": "The Home agent's refused moves are audited with a fixed reason per move, never the model's arguments or text.",
+   "why": "Model output can carry user text or invented values; the audit records that a move was refused, not what the model wrote."
+  }
+ ],
+ "change": "New dclab_rnd/audit.py (FileAudit, PgAudit, record, page, backfill), migration 0010 with the append-only trigger; audit writes in studio/graph.py, the engine (approval use), routers (gate switches, routing, lessons, memory), the solution-save sites, draft imports and the Home agent's guard; the Admin audit tab reads audit.page with filters for kind, outcome, people or agents, and project; storage migrate copies the audit. tests/test_audit.py and updated platform tests.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A line cut by a crash hid the next audit row.",
+   "scenario": "The file ends with a partial line without a newline; the next append was glued onto it, so reading the log lost the new row ('a' read back instead of 'b' and 'a').",
+   "cause": "append wrote rows assuming the file ended with a newline.",
+   "fix": "append starts a new line when the file does not end with one; backfill uses the same helper.",
+   "test": "test_a_line_cut_by_a_crash_does_not_hide_the_rest."
+  },
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Routing changes that changed nothing wrote fake audit rows.",
+   "scenario": "Three POSTs setting a purpose's shadow to null on a fresh workspace: the routing history stays empty but the audit gets three rows with purpose, setting, from and to all None; repeating a real change re-audits the previous change with a new time.",
+   "cause": "The route recorded history[-1] whether or not change() had added an entry.",
+   "fix": "Record only when the history returned by change() grew, using the new entry; the routing read sits inside the best-effort block.",
+   "test": "test_audit.WiringTests.test_switches_routing_and_a_failing_audit (the same setting twice gives no row)."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A holdout approval could be audited as used when it was not, and then audited twice.",
+   "scenario": "The final stage starts with an approval and the table's hash check fails in prepare(): the audit says the approval was used, the project still holds it unused, and the next run writes a second approval_used row.",
+   "cause": "approval_used was written before _execute saved the project.",
+   "fix": "Write it after _execute returns, or on failure only when the saved project shows that approval used.",
+   "test": "test_a_holdout_approval_is_audited_as_used_only_once_the_project_saved_it."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Synthetic data the Home agent asked for was audited as a person's action.",
+   "scenario": "The agent requests a simulation (job by='agent'); the asset's import row says actor human, shown as 'Person'.",
+   "cause": "new_asset always wrote actor human.",
+   "fix": "new_asset takes an actor; the job's 'by' flows through the synthetic handler and simulate, shown as 'Home agent'.",
+   "test": "test_synthetic_data_the_home_agent_asked_for_is_the_agents."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The Home agent's refused arguments reached the audit through the message.",
+   "scenario": "A refused set_pack wrote 'Unknown pack 'no-such-pack'...' into detail.message: up to 40 characters of the model's argument, though the test checked only that an 'args' key was absent.",
+   "cause": "The audit reused the user-facing error text.",
+   "fix": "A fixed reason per refused move (REFUSED), never the user-facing error.",
+   "test": "The audit test asserts 'no-such-pack' is absent from the row."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The audit split into two files when DCLAB_STUDIO_HOME pointed elsewhere.",
+   "scenario": "With the projects folder outside the agent home, moves, approvals, solutions and imports went to one file and the Admin tab, policy and routing rows to another, so the tab never showed moves.",
+   "cause": "Services opened the audit at the agent home while the stores wrote next to the projects folder.",
+   "fix": "open_stores gives the file stores an explicit audit_path; Services uses the same log the stores write.",
+   "test": "for_store and Services tests."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Stores made outside a workspace wrote the audit into the shared system temp folder.",
+   "scenario": "Any ProjectStore on a mkdtemp folder (code_encoding and many tests) wrote to $TMPDIR/audit.jsonl; on the machine it already held 70 rows from test runs and grew without bound.",
+   "cause": "for_store derived the audit path from the store's parent folder.",
+   "fix": "for_store returns PostgreSQL, the explicit audit_path, or None; ad-hoc stores write nothing. The stray file was deleted.",
+   "test": "for_store returns None for a store made outside a workspace."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Hashing large uploads blocked the server.",
+   "scenario": "A 200 MB draft upload or a connector import re-read the whole file for its SHA-256 on the event loop, stalling every other request.",
+   "cause": "new_asset hashed synchronously inside async routes.",
+   "fix": "The upload, sample and connector routes call new_asset through asyncio.to_thread.",
+   "test": ""
+  }
+ ],
+ "measurements": [
+  {
+   "name": "agent judgment suite after the audit write in graph.py",
+   "gate": "A change to studio/graph.py needs a fresh make agent-eval before commit, and its scores must match the last result (the prompt gate's rule; the first gate failed on it).",
+   "result": "AEV-009's scores are identical to AEV-008's: the audit write changes no verdict.",
+   "verdict": "pass",
+   "next": ""
+  }
+ ],
+ "outcome": "Done after one review round: one append-only audit per workspace, written where each governed action happens, refused UPDATE and DELETE by a trigger, read by the Admin tab in one query with filters; earlier history imported once; storage migrate copies it. Left open: sign-ins and role changes waited for 10.2; the per-project transition and activity logs stay; the earlier history is imported only into an empty audit.",
+ "lessons": [
+  "Audit what happened, not what was attempted: record after the state is saved, and only when something changed.",
+  "Never put a model's text or arguments into a log through an error message; use fixed reasons.",
+  "Derive a log's location from one place; two writers guessing it from different folders split the log.",
+  "Library code that writes beside a store's folder will litter the temp directory when tests make stores there."
+ ],
+ "commits": ["29409c7"]
+}

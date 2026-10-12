@@ -1,0 +1,114 @@
+{
+ "package": "12.4",
+ "title": "Logs, health and metrics",
+ "date": "2026-10-07",
+ "request": "Running the product in containers leaves operators blind. Add structured JSON logs with a request id (never a secret, a prompt or a data value), a liveness route and a readiness route (database and file storage reachable), counters for requests, job durations, failures and model usage in Prometheus format on a port that is not public, and show job failures on the Compute page.",
+ "spec": "JSON log lines with a request id, the route pattern, status, time and the person's and workspace's ids; GET /healthz (process up) and GET /readyz (database and file storage reachable, 503 naming what failed); Prometheus counters on DCLAB_METRICS_PORT for requests, jobs, failures and model requests, tokens and euros; failed or interrupted jobs listed on the Compute page with Retry.",
+ "plan": [
+  "Check what is installed for metrics and how the server logs today; write a small metrics registry in Prometheus text format rather than add a dependency.",
+  "Write dclab_rnd/observe.py (JSON formatter, request id, metrics registry and its own HTTP server), the request middleware, /healthz and /readyz (public in the accounts guard), job counters in the worker, model counters in the gateway, and a Failures panel on the Compute page.",
+  "Set DCLAB_LOG_FORMAT=json and the metrics ports in the containers, use /readyz as the compose health check, document the settings.",
+  "Write tests/test_observe.py; run make check-all and the reviewer; fix the seven findings with a test each; gate again and commit, keeping the 12.5 work started meanwhile out of this commit."
+ ],
+ "decisions": [
+  {
+   "decision": "Log and label the route's pattern, never the path.",
+   "why": "Paths hold project and draft ids, and query strings and bodies can hold data; the pattern keeps the label set bounded and free of values."
+  },
+  {
+   "decision": "Metrics on a port of their own that the containers never publish, off unless DCLAB_METRICS_PORT is set.",
+   "why": "Counters by route and workspace are operational detail that must not be public, and a local run needs no extra port."
+  },
+  {
+   "decision": "A metrics port that cannot be bound turns metrics off with a warning instead of stopping the process.",
+   "why": "Observability must never be the reason the product does not start."
+  },
+  {
+   "decision": "Readiness runs at most one probe at a time and gives up after 5 seconds.",
+   "why": "A database that drops packets would otherwise block one thread per probe until the TCP timeout and starve the executor the request guard also uses."
+  }
+ ],
+ "change": "New dclab_rnd/observe.py; a request middleware in the server (request id kept from a proxy when it is a plain token, one JSON line per request, counters); /healthz and /readyz in routers/core.py and public in the accounts guard; job counters and a 'job ended' log line in jobs/worker.py; model request, token and euro counters in the gateway; a failures() list on the Compute page with Retry; docker-compose and the Dockerfile set the log format and metrics ports; .env.example documents them.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Metric labels could grow without bound through the HTTP method.",
+   "scenario": "The image runs uvicorn on h11, which accepts any token as a method; 50 requests with random methods such as XABC12 added 150 new series, each answered 403, with no sign-in needed, so anyone could grow the process's memory and Prometheus's series.",
+   "cause": "request.method was used as a label as sent.",
+   "fix": "Map the method to a fixed set (GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS) or OTHER, in the counters and the log line.",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A busy or invalid metrics port stopped the app or the worker from starting.",
+   "scenario": "A developer sets DCLAB_METRICS_PORT=9464 in .env as .env.example suggests; the server and a separate worker both load it and collide, and the worker dies with 'Address already in use'; every parallel test process also loads .env and runs a lifespan, so every test file after the first fails to start its app. DCLAB_METRICS_PORT=abc raised a raw ValueError.",
+   "cause": "The bind and the int() ran unguarded in the lifespan and in the worker's main.",
+   "fix": "Wrap the bind in try/except OSError and log that metrics are off; check the value as an integer port in problems().",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Counters lost precision after six digits.",
+   "scenario": "A token counter at 123456789 rendered as 1.23457e+08; token counts reach millions within days and probe counts within weeks, after which rate() and increase() move in steps of 10, 100, 1000.",
+   "cause": "Values rendered with the :g format.",
+   "fix": "Render with full precision (repr of the float).",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A 500 response carried no request id.",
+   "scenario": "A route raising ValueError, called with X-Request-ID: trace-err-0001, returned 500 without the header: the error middleware outside this middleware built the response. Errors are when a person most needs an id to quote.",
+   "cause": "call_next re-raised and the response was built outside the middleware.",
+   "fix": "Catch the exception in the middleware, log the line and return a JSON 500 with the request id in the body and the header.",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A dead worker's jobs were never counted as failures.",
+   "scenario": "The worker container is killed for memory while running a stage; another process's recover() marks the job interrupted, but dclab_jobs_total and dclab_job_failures_total do not move and nothing is logged, though this is the failure an alert most needs.",
+   "cause": "Only execute() counted; the recovery path did not.",
+   "fix": "recover() counts the job as interrupted with its time and writes the 'job ended' line.",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A 429's log line had no person or workspace.",
+   "scenario": "Someone hits the rate limit: the line says user null, workspace null, so an operator cannot see who hit it.",
+   "cause": "request.state.who was set after the rate-limit check returned.",
+   "fix": "Set it right after the person is identified.",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Plain-text mode printed an empty line per request.",
+   "scenario": "Without DCLAB_LOG_FORMAT=json (the default for make notebook, make dev and make test) every request, including the Compute page's 2.5-second poll, printed a bare 'INFO dclab request' with no route, status or id, flooding the output the parallel runner prints for a failing file.",
+   "cause": "The plain formatter dropped the record's fields.",
+   "fix": "Plain text logs only server errors, with the same fields.",
+   "test": "A test in tests/test_observe.py for this finding (the commit says each of the seven is fixed and tested)."
+  }
+ ],
+ "measurements": [],
+ "outcome": "Done (412525c): one JSON line per request and per job that ends badly, a request id on every response including a 500, /healthz and /readyz used by the compose health check, Prometheus counters on a private port, and failures with Retry on the Compute page. Seven review findings fixed and tested. Open: each process serves its own counters and they reset on restart; a load balancer probing by IP needs that name allowed; a streamed answer's time is the time to its first byte; uvicorn's error lines and a job's traceback stay plain text.",
+ "lessons": [
+  "Every metric label must come from a closed set; anything the client sends, even the HTTP method, can explode the series.",
+  "Observability must fail soft: a busy metrics port should turn metrics off, never stop the server.",
+  "Test the error path of a request-id feature first: a 500 is where the id matters most and where middleware order loses it."
+ ],
+ "commits": [
+  "412525c"
+ ]
+}

@@ -9,7 +9,8 @@ and the test that proves it, and each measurement against its gate. One record p
 - ``plan_package``: the request → the plan and the decisions with their reasons;
 - ``review_change``: the package and what changed → the findings, each with the scenario that shows it;
 - ``fix_finding``: one finding and its scenario → the cause, the smallest fix and the test that proves it;
-- ``judge_measurement``: a gate fixed before the run and the numbers → the verdict and what follows.
+- ``judge_measurement``: a gate fixed before the run and the numbers → the verdict and what follows;
+- ``retrospective``: the request and the outcome → the lessons the next package should keep.
 
 Whole packages are held out for validation (by the hash of the package id, about one in five), so validation measures
 work the model has not seen. The gates of corpus v3 apply: no absolute path, no long hex hash, no e-mail address; a
@@ -124,6 +125,9 @@ def examples(t: Trajectory) -> list[dict]:
         fixed = "fixed before the run" if m.fixed_before_run else "written after the run (not a valid gate)"
         out.append(("judge_measurement", f"{head}\n\nMeasurement: {m.name}. The gate ({fixed}): {m.gate}\n\nThe numbers: {m.result}\n\n"
                                          "Judge it against the gate and say what follows.", answer))
+    if t.lessons:
+        out.append(("retrospective", f"{head}\n\nThe request: {t.request}\n\nThe outcome: {t.outcome}\n\nWhat should the next package "
+                                     "keep from this one?", "\n".join(f"- {lesson}" for lesson in t.lessons)))
     return [{"task": task, "prompt": prompt, "answer": answer, "package": t.package} for task, prompt, answer in out]
 
 
