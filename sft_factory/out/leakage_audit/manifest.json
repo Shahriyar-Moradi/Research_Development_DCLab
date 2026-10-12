@@ -1,0 +1,70 @@
+{
+  "total": 1059,
+  "splits": {
+    "train": 738,
+    "val": 105,
+    "test": 216
+  },
+  "split_datasets": {
+    "val": [
+      "wine_quality"
+    ],
+    "test": [
+      "online_shoppers",
+      "german_credit"
+    ]
+  },
+  "by_action": {
+    "keep": 360,
+    "exclude": 474,
+    "flag_for_review": 151,
+    "rebuild_within_folds": 74
+  },
+  "by_generator": {
+    "real_available": 40,
+    "target_copy": 80,
+    "post_outcome_documented": 80,
+    "strong_signal_unknown_origin": 71,
+    "full_data_target_encoding": 74,
+    "sorted_identifier": 64,
+    "random_identifier": 80,
+    "date_after_decision": 80,
+    "date_before_decision": 80,
+    "missingness_after_outcome": 80,
+    "missingness_unknown_origin": 80,
+    "clean_weak_feature": 80,
+    "suspicious_name_but_clean": 80,
+    "strong_but_available": 80,
+    "real_blocked": 10
+  },
+  "by_action_per_split": {
+    "train": {
+      "exclude": 328,
+      "keep": 252,
+      "flag_for_review": 104,
+      "rebuild_within_folds": 54
+    },
+    "val": {
+      "keep": 36,
+      "exclude": 46,
+      "flag_for_review": 16,
+      "rebuild_within_folds": 7
+    },
+    "test": {
+      "keep": 72,
+      "exclude": 100,
+      "flag_for_review": 31,
+      "rebuild_within_folds": 13
+    }
+  },
+  "dropped_by_checker": {
+    "strong_signal_unknown_origin": 9
+  },
+  "duplicates_removed": 22,
+  "answer_leak_rejections": 0,
+  "settings": {
+    "variants": 8,
+    "max_rows": 4000,
+    "seed": 7
+  }
+}

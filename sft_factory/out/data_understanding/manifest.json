@@ -1,0 +1,31 @@
+{
+  "stage": "data_understanding",
+  "total": 640,
+  "splits": {
+    "train": 431,
+    "val": 80,
+    "test": 129
+  },
+  "by_action": {
+    "proceed": 113,
+    "deduplicate_before_split": 142,
+    "use_imbalance_aware_evaluation": 123,
+    "impute_within_folds": 108,
+    "small_data_protocol": 154
+  },
+  "by_generator": {
+    "du_proceed": 113,
+    "du_deduplicate_before_split": 142,
+    "du_use_imbalance_aware_evaluation": 123,
+    "du_impute_within_folds": 108,
+    "du_small_data_protocol": 154
+  },
+  "dropped_by_checker": {
+    "small_data_protocol": 2,
+    "proceed": 32,
+    "use_imbalance_aware_evaluation": 34,
+    "impute_within_folds": 52,
+    "deduplicate_before_split": 18
+  },
+  "seconds": 9
+}

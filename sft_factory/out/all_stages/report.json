@@ -1,0 +1,107 @@
+{
+  "data_understanding": {
+    "samples": 640,
+    "train": 431,
+    "val": 80,
+    "test": 129,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "small_data_protocol": 154,
+      "deduplicate_before_split": 142,
+      "use_imbalance_aware_evaluation": 123,
+      "proceed": 113,
+      "impute_within_folds": 108
+    },
+    "largest_decision_share": 0.241,
+    "rejection_examples": []
+  },
+  "leakage_audit": {
+    "samples": 1059,
+    "train": 738,
+    "val": 105,
+    "test": 216,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "exclude": 474,
+      "keep": 360,
+      "flag_for_review": 151,
+      "rebuild_within_folds": 74
+    },
+    "largest_decision_share": 0.448,
+    "rejection_examples": []
+  },
+  "feature_engineering": {
+    "samples": 154,
+    "train": 106,
+    "val": 16,
+    "test": 32,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "keep_raw": 116,
+      "adopt_interactions": 19,
+      "adopt_log_transforms": 14,
+      "adopt_ratios": 5
+    },
+    "largest_decision_share": 0.753,
+    "rejection_examples": []
+  },
+  "feature_engineering_balance": {
+    "samples": 90,
+    "train": 63,
+    "val": 9,
+    "test": 18,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "keep_raw": 54,
+      "adopt_interactions": 25,
+      "adopt_log_transforms": 9,
+      "adopt_ratios": 2
+    },
+    "largest_decision_share": 0.6,
+    "rejection_examples": []
+  },
+  "model_selection": {
+    "samples": 160,
+    "train": 112,
+    "val": 16,
+    "test": 32,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "hist_gradient_boosting": 45,
+      "extra_trees": 44,
+      "random_forest": 42,
+      "logistic_regression": 29
+    },
+    "largest_decision_share": 0.281,
+    "rejection_examples": []
+  },
+  "optimization_reliability": {
+    "samples": 307,
+    "train": 211,
+    "val": 32,
+    "test": 64,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "keep_uncalibrated": 108,
+      "accept_result": 78,
+      "investigate_distribution_shift": 56,
+      "calibrate_sigmoid": 38,
+      "calibrate_isotonic": 14,
+      "investigate_gap_without_shift": 13
+    },
+    "largest_decision_share": 0.352,
+    "rejection_examples": []
+  },
+  "datasets_in_more_than_one_split": [],
+  "totals": {
+    "train": 1661,
+    "val": 258,
+    "test": 491
+  }
+}
