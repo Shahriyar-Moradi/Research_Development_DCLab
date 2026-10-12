@@ -15,6 +15,10 @@ dependencies = [
     "scikit-learn>=1.3",
 ]
 
+[project.optional-dependencies]
+# the PDF renderer of dclab_core.report (imported only when a PDF is asked for); Markdown and HTML need nothing more
+pdf = ["reportlab>=4.0"]
+
 # The package is this folder itself, so it can live at the R&D repository's root (imported without installation) and
 # still be built as a wheel: pip install "dclab-core @ git+https://...#subdirectory=dclab_core"
 [tool.setuptools]
