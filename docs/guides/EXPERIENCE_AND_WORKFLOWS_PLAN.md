@@ -6,7 +6,14 @@ and understood, and turned into training data (SFT) and evaluation cases. *Then*
 understand the data, connect the two, analyse, build the solution workflow, the pipeline of workflows, and the code of
 each step, for the common problems of machine learning. Both must be adoptable by DCLab's main product.
 
-Why now: the owner's own test that morning ("I want build anomaly detection", a 100-row delivery-events table) was
+Why now (checked against the records, 2026-10-13): the owner uploaded the challenge's two halves into two separate
+drafts: the orders (134,362 rows, no label) and the known frauds (100 rows, every one DELIVERED, a `reason` column with
+"fake ride" and "same_biker_same_customer", `order_request_id` unique on every row: a label file, keyed to the
+orders). The right solution, which DCLab solves on the replica (15.2–15.6), joins the frauds to the orders on
+`order_request_id`, predicts a fake delivery with partial labels, splits by biker and judges by a review budget.
+Instead, the target candidates were ranked "few distinct values first", `customer_id` (3 values) came first, the
+answer "it is anomaly detection" named no column, and the build took the first candidate. The details of the owner's
+own test that morning:  ("I want build anomaly detection", a 100-row delivery-events table) was
 built into a project whose target was `customer_id`, task multiclass, and all five stages "completed": DCLab trained a
 model to predict customer ids and objected to nothing. The labels question was asked but unanswered when it built.
 Reconstructing that took six tables joined by hand, by time. Both halves of this plan answer that morning.
@@ -223,6 +230,57 @@ code are not one connected object a data scientist can read, run and change.
 
 ---
 
+---
+
+# Part 10 — Agents that are managed, orchestrated and measured (packages 21.x)
+
+The owner, 2026-10-13: better models, better agent management and orchestration, better harness engineering. Today
+the Home agent, the intern, the team flow and the campaign each run their own loop on `agents.run()` or beside it;
+`/mcp` and team tool calls are not traced; nothing coordinates the answers into one understanding (the Home agent
+asked the labels question, and the build happened anyway); one model tier served every role that morning.
+
+### 21.1 One harness for every agent
+- **Delivers:** every agent (Home, intern, team roles, campaign, `/mcp` callers) runs through one harness: typed state,
+  a step and spend budget, the tool registry and its scope guard, the validator before every write, retries with a
+  reason, stop, and the Part 8 recorder on every step (the assistant's text included). No agent loop outside it.
+- **Done when:** a test enumerates every agent entry point and fails if one runs a step the recorder did not see.
+
+### 21.2 The coordinator
+- **Delivers:** a lead agent over an explicit state machine: problem card → data cards of every file → their links →
+  analysis → solution workflow → pipeline. It delegates to specialist roles (problem analyst, data investigator,
+  file-relations reader, planner, critic, feature engineer, reporter) through typed hand-offs, and moves state only
+  through deterministic gates (20.1's readiness, 20.4's checks). It never builds while a blocking issue is open, and
+  says which one.
+- **Done when:** the owner's morning, replayed, ends in the fraud project (labels joined, partial, biker groups), and
+  a planted bad hand-off (a role naming a column that does not exist) is refused by the gate.
+
+### 21.3 Files understood together
+- **Delivers:** every file of a workspace's draft read together: a table of cases (each row one confirmed case, a
+  type or reason column, a key unique per row that matches another table's key) recognized as a label file; its join
+  key found and its coverage measured; files uploaded to separate drafts offered to be joined; duplicates of the key
+  in the main table found and resolved before the join.
+- **Done when:** the two challenge-shaped replica files, uploaded separately, are recognized (labels for orders, key
+  `order_request_id`), and a table that merely shares a column is not taken for a label file.
+
+### 21.4 Model management
+- **Delivers:** each role's model and tier chosen per role (the routing of `models/routing.py`, with a reviewer and a
+  reason), prompts versioned, a shadow model compared on live turns without being used, spend caps per role, a page
+  that shows each role's model, prompt version, measured score and cost; a stronger model for the understanding roles
+  when, and only when, it measures better on 20.10's conversations.
+- **Done when:** switching a role's model is one audited change, and the conversation suite reports each role's
+  score and cost by model.
+
+### 21.5 Harness evaluation from real sessions
+- **Delivers:** every role and the coordinator measured on the conversation suite (20.10) and on replays of recorded
+  sessions (Part 8); each failure a regression case; a gate fixed before each run; traces graded step by step (the
+  right question asked, the right tool, the right hand-off).
+- **Done when:** the owner's morning is a permanent regression case, and a change to a prompt, a model or a gate runs
+  the suite before it is on.
+
+The main product has the same shape already: `agent_runs` with kinds assistant, lead, specialist and ops; a harness
+recorder; one gateway with `prompt_releases`; governed decision points. The coordinator maps onto its lead kind, the
+roles onto its specialists and decision points, and the evaluations onto its `r3_runs`.
+
 ## Adoption by the main product
 
 Read at github.com/Shahriyar-Moradi/DCLab, commit 7fa23b9 (2026-10-09), file by file; never copied here. Its rules
@@ -253,8 +311,10 @@ product's, as `main_product_fields.json` does for the earlier contracts.
 
 ## Order and owner decisions
 
-Order: 19.1 → 19.2 → 19.3 → 19.4 → 19.5 → 19.6 → 19.7 → 19.8, then 20.1 → 20.3 → 20.4 → 20.2 → 20.5 → 20.6 → 20.7 →
-20.8 → 20.9 → 20.10. The failure detectors (19.5) and the problem card's readiness rule (20.1) are the two fastest
+Order: first a guard against the morning's failure (an identifier, a constant, a row number or a key unique per row
+is never a target; a build waits for the outcome to be named or confirmed; a table of cases is offered as a label
+file), then 19.1 → 19.2 → 19.3 → 19.4 → 19.5 → 19.6 → 19.7 → 19.8, then 20.1 → 20.3 → 21.3 → 20.4 → 21.1 → 21.2 →
+20.2 → 21.4 → 20.5 → 20.6 → 20.7 → 20.8 → 20.9 → 20.10 → 21.5. The failure detectors (19.5) and the problem card's readiness rule (20.1) are the two fastest
 answers to the owner's morning; 20.1's readiness rule may be pulled forward as a guard while Part 8 is built.
 
 Owner decisions:
