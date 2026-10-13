@@ -4,6 +4,28 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.7.0 (2026-10-14)
+
+Package 19.5: lineage. One new contract at v1 and the event contract at v2; the others unchanged.
+
+- `lineage` (new): `RunRecord` (`dclab_core.run_record.v1`): one run (a stage, a pipeline step, an agent, a job) with
+  what it read (`RunInputs`: the table's SHA-256 and size, the sampling rule, the solution's hash, the settings, the
+  earlier runs' choices it used and their ids, the seed, and `refs` for ids and digests no field names), its
+  parameters, what it made (`RunOutputs`: metric, value, interval, choice, and every number by its record path), its
+  duration and its code (`RunCode`: commit, whether tracked code differed and the hash of that difference, this
+  library's version, the runner, the prompts' and tools' hashes). `fingerprint` hashes the inputs and parameters (not
+  when, not which run, not the code; fields at their default left out, so a field added later keeps stored records
+  valid), is computed on validation, and a record edited after its run is refused. `numbers`, `flat`, `run_for_path`
+  (a report path's first part names the stage), `compare` (same inputs, code, value, choice, and every number written,
+  timings left out), `event_payload` (with the run's own id), `latest`.
+- `experience`: `ExperienceEvent` is `dclab_core.experience_event.v2`: one kind added, `run.recorded` (a run's flat
+  parts, meta and counts only). `ExperienceEvent.read` reads a v1 event as v2 (every v1 event is a valid v2 event).
+- `adapters.main_product_lineage` (new): `from_experiment`, `from_stage_run`, `from_agent_run`; columns checked against
+  the lists read at the recorded commit (`experiments` and `pipeline_stage_runs` added), a live row is not a run,
+  `INPUTS_MISSING` names what the tables cannot fill; an experiment's `intent` (the person's text) and a stage's input
+  summary (only its numbers kept) never become meta. `main_product_experience.events(..., experiments=, stage_runs=)`
+  adds each finished run as `run.recorded`; `from_run_record`.
+
 ## 0.6.0 (2026-10-13)
 
 Package 20.1: the problem card. One new contract at v1; the others unchanged.

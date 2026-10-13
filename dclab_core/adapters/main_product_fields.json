@@ -812,6 +812,58 @@
       "duration_ms",
       "payload",
       "created_at"
+    ],
+    "experiments": [
+      "id",
+      "workspace_id",
+      "project_id",
+      "workflow_run_id",
+      "pipeline_id",
+      "pipeline_version_id",
+      "run_number",
+      "pipeline_name",
+      "pipeline_index",
+      "pipeline_purpose",
+      "environment_id",
+      "task_id",
+      "dataset_id",
+      "parent_pipeline_run_id",
+      "branch_key",
+      "branch_reason",
+      "source_dataset_id",
+      "split_plan_id",
+      "intent",
+      "change_set",
+      "status",
+      "failure_reason",
+      "config",
+      "result",
+      "artifact_dir",
+      "git_commit",
+      "seed",
+      "started_at",
+      "ended_at",
+      "scientific_evidence_locked_at",
+      "created_at"
+    ],
+    "pipeline_stage_runs": [
+      "id",
+      "workspace_id",
+      "project_id",
+      "pipeline_run_id",
+      "stage_key",
+      "stage_type",
+      "sequence",
+      "name",
+      "status",
+      "started_at",
+      "completed_at",
+      "duration_ms",
+      "input_summary",
+      "output_summary",
+      "failure_code",
+      "failure_reason",
+      "created_at"
     ]
   },
   "experience_vocabularies": {
@@ -879,7 +931,25 @@
       "terminal_stage": "terminal",
       "terminal_event": "pipeline_terminal",
       "source": "apps/api/app/services/workflow_execution_service.py: _stage_status, apply_live_stage_from_event"
-    }
+    },
+    "agent_runs.status": [
+      "queued",
+      "running",
+      "waiting_user",
+      "completed",
+      "failed",
+      "rejected_by_validator",
+      "over_budget",
+      "timed_out",
+      "cancelled",
+      "closed"
+    ],
+    "agent_runs.kind": [
+      "assistant",
+      "lead",
+      "specialist",
+      "ops"
+    ]
   },
   "experience_payload_keys": {
     "user_message": [
@@ -929,5 +999,6 @@
     ],
     "llm_invocations.currency": "USD (apps/api/app/agents/gateway/budget.py CURRENCY)"
   },
-  "experience_read_on": "2026-10-13"
+  "experience_read_on": "2026-10-13",
+  "lineage_read_on": "2026-10-14 (experiments and pipeline_stage_runs from apps/api/app/db/models.py; agent_runs statuses and kinds from apps/api/app/domain/agent_records.py)"
 }

@@ -1103,11 +1103,31 @@ def _execute(store: ProjectStore, project_id: str, stage: str, project: dict[str
         return _execute_stage(store, project_id, stage, project, reuse_reason)
 
 
-def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None) -> dict[str, Any]:
+def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None,
+                   parent: str | None = None) -> dict[str, Any]:
+    """One stage run with its lineage (19.5): an id every event inside it carries, and its run record in the stage
+    record (``record["run"]``) and in the session record. ``parent``: the run a replay reruns."""
+    from .. import experience
+    from . import lineage
+
+    run_id = lineage.new_run()
+    previous = {k: store.read_stage(project_id, k) for k in STAGE_KEYS[:STAGE_KEYS.index(stage)]}
+    with experience.bind(run=run_id):
+        return _run_stage(store, project_id, stage, project, reuse_reason, run_id, parent, previous)
+
+
+def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[str, Any], reuse_reason: str | None, run_id: str,
+               parent: str | None, previous: dict[str, Any]) -> dict[str, Any]:
+    from .. import experience
+    from dclab_core import lineage as lineage_contract
+    from . import lineage
+
     p = prepare(store, project)
+    started = _now()
+    params: dict[str, Any] = {}
     meta = STAGE_BY_KEY[stage]
     eid = f"PRJ-{project_id[:6]}-{stage}"
-    project["stages"][stage] = {"status": "running", "started": _now()}
+    project["stages"][stage] = {"status": "running", "started": started, "run": run_id}
     project["running"] = stage
     store.save(project)
     store.log(project_id, "stage_started", {"stage": stage})
@@ -1117,7 +1137,7 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
         from .machine import MachinePrepared
 
         if isinstance(p, MachinePrepared):  # 16.15: the kind's machine, stage by stage
-            previous = {k: store.read_stage(project_id, k) for k in STAGE_KEYS[:STAGE_KEYS.index(stage)]}
+            params = {"machine": p.kind.key}
             if stage == "final":
                 project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
             evidence, claims, summary, decision = p.machine.run(stage, eid, previous)
@@ -1136,6 +1156,7 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
                                      "mean": rn._mean(r, p.metric), "std": rn._std(r, p.metric), "elapsed_seconds": r["elapsed_seconds"]} for r in evidence["stage_results"]]}
         elif stage == "models":
             recipe = chosen(store.read_stage(project_id, "features"), "selected_recipe")
+            params = {"recipe": recipe}
             evidence, claims, summary = stage_models(p, eid, recipe)
             decision = {"kind": "model", "selected": evidence["selected_model"], "chosen": evidence["selected_model"], "rule": evidence["selection_rule"],
                         "options": [{"id": r["model"], "label": r["model"], "mean": r["mean"], "std": r["std"], "adjusted": r["adjusted_score"],
@@ -1146,6 +1167,7 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
             family = chosen(models, "selected_model")
             review = ((models or {}).get("evidence") or {}).get("review") or {}
             reviewed = review.get("adopted_params") if review.get("family") == family else None  # kept for this family only
+            params = {"recipe": recipe, "model": family, "holdout_reuse": bool(reuse_reason), "reviewed": reviewed or {}}
             project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
             evidence, claims, summary = stage_final(p, eid, recipe, family, reviewed)
             evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
@@ -1172,9 +1194,14 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
         explanation = agent.explain_stage(record, project_id)  # a model's words from the record, checked by code (A3.3)
         if explanation:
             record["explanation"] = explanation
+        run = lineage.stage_run(run_id, project, stage, previous=previous, prepared=p, record=record, params=params,
+                                started=record["started_at"], finished=record["completed_at"], seconds=float(elapsed), parent=parent,
+                                seed=ds.RANDOM_STATE)
+        record["run"] = run.model_dump(mode="json")
         store.write_stage(project_id, stage, record)
         project = store.get(project_id)
-        project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed)}
+        project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed),
+                                    "run": run_id}
         if stage == "final":
             project["holdout_uses"] = evidence["holdout_uses_in_this_project"]
         project["running"] = None
@@ -1184,13 +1211,30 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
         store.log(project_id, "stage_completed", {"stage": stage, "elapsed_seconds": round(elapsed, 1), "summary": summary[:300],
                                                   "metric": record.get("primary_metric"), "chosen": str(picked)[:120] if picked is not None else None,
                                                   "value": value if isinstance(value, (int, float)) and not isinstance(value, bool) else None})
+        experience.record("run.recorded", "system", lineage_contract.event_payload(run), project=project_id)
         return record
     except Exception as exc:  # noqa: BLE001 — the failure itself is the record
         project = store.get(project_id)
-        project["stages"][stage] = {"status": "failed", "error": f"{type(exc).__name__}: {str(exc)[:600]}", "finished": _now()}
+        project["stages"][stage] = {"status": "failed", "error": f"{type(exc).__name__}: {str(exc)[:600]}", "finished": _now(), "run": run_id}
         project["running"] = None
         store.save(project)
         store.log(project_id, "stage_failed", {"stage": stage, "error": project["stages"][stage]["error"]})
+        try:  # the failed run is on the record too: what it read, and why it stopped
+            run = lineage.stage_run(run_id, project, stage, previous=previous, prepared=p, params=params, started=started,
+                                    finished=project["stages"][stage]["finished"], seconds=time.perf_counter() - clock, status="failed",
+                                    error=project["stages"][stage]["error"], parent=parent, seed=ds.RANDOM_STATE)
+            experience.record("run.recorded", "system", lineage_contract.event_payload(run), project=project_id)
+        except Exception:  # noqa: BLE001 - the stage's own failure is what is raised
+            pass
+        raise
+    except BaseException:  # a person's Stop (jobs.worker.Stopped) between steps: the run stopped; the job marks the stage
+        try:
+            run = lineage.stage_run(run_id, project, stage, previous=previous, prepared=p, params=params, started=started,
+                                    finished=_now(), seconds=time.perf_counter() - clock, status="stopped", parent=parent,
+                                    seed=ds.RANDOM_STATE)
+            experience.record("run.recorded", "system", lineage_contract.event_payload(run), project=project_id)
+        except Exception:  # noqa: BLE001
+            pass
         raise
 
 

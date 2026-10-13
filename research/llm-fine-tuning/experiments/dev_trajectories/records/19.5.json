@@ -1,0 +1,261 @@
+{
+ "package": "19.5",
+ "title": "Workflow runs: the lineage of every processing step — a run record per stage run, data pipeline and agent run; a report's number traced to its run; a stage replayed from its record",
+ "date": "2026-10-14",
+ "request": "The owner asked for every processing step to be stored in an organized way that is clear to find and understand; milestone A's second package makes every number traceable to the run, inputs and code that made it.",
+ "spec": "Every stage run, pipeline job and agent run as a run record in the log: its inputs (the table's hash and version, the sampling rule, the settings, the solution's hash, the decisions it used), parameters, outputs (metrics with intervals, the chosen option), duration and code (commit, dclab-core version, prompt hashes). Done when, for any number in a project's report, the run that made it, its inputs and its code version are one query away, and a stage rerun from its record reproduces its number.",
+ "plan": [
+  "A RunRecord contract in dclab_core with a fingerprint of inputs and parameters, numbers by record path, a comparison of two runs, and the flat parts for the session record.",
+  "Move the event contract to v2 for the new kind run.recorded; read stored v1 events as v2.",
+  "The engine gives each stage run an id bound to every event inside it and writes its record into the stage record; failed and stopped runs too.",
+  "Agent runs (agents.run) and draft data pipelines as runs, through hooks that do nothing when no record is kept.",
+  "Trace a report path to its value and run with the report's own lookup; replay a stage in a scratch copy and refuse when anything it read differs.",
+  "Map the main product's experiments, stage runs and agent runs onto the same record; review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "The event contract moves to v2 for one new kind; ExperienceEvent.read reads v1 as v2.",
+   "why": "The kind is an enum in the frozen schema: a new kind changes its shape, and the rule is that a shape changes only with its version. Every v1 event is a valid v2 event, and the log is append-only, so stored rows are read, never rewritten."
+  },
+  {
+   "decision": "The run record lives with the host (the stage record here); the session record carries its flat parts.",
+   "why": "The event vocabulary keeps meta flat and short; the full record (every number by path) belongs next to the evidence it describes."
+  },
+  {
+   "decision": "A replay reproduces a run or refuses: anything it would read differently (table, sampling, solution, run-changing settings, earlier choices, labels, pack, feature programs, plan, the engine profile) refuses it.",
+   "why": "A replay under changed inputs would be a new run that nobody asked for; for the final stage it would be an uncounted, unaudited second look at the holdout."
+  },
+  {
+   "decision": "The final stage is replayed only on the code it ran on (same commit and the same uncommitted difference, by hash).",
+   "why": "It reads the holdout: on the same code and inputs it can only repeat its number; on other code it would be a new evaluation."
+  },
+  {
+   "decision": "Only the settings that change a run enter its inputs (rows, quick, folds, the critic, private).",
+   "why": "Turning the training opt-in on made a faithful replay look like a different run."
+  },
+  {
+   "decision": "The commit comes from git, or from DCLAB_COMMIT baked into the image.",
+   "why": "The container has no .git: every deployed run would have recorded no code version."
+  }
+ ],
+ "change": "dclab_core/lineage.py (new), adapters/main_product_lineage.py (new), experience.py (v2, run.recorded, read upgrades v1), adapters/main_product_experience.py (runs as run.recorded), main_product_fields.json (experiments, pipeline_stage_runs, agent_runs vocabularies), contracts.py, schemas and baselines, CHANGELOG and 0.7.0, scripts/core_wheel_check.py; dclab_rnd/studio/lineage.py (new), studio/engine.py (run id, record['run'], failed and stopped runs, parent), agents/runtime.py and draft/pipeline.py (runs), experience/hooks.py, experience/__init__.py (quiet, v2 read), experience/__main__.py (lineage, replay), storage/files.py (a store's own file storage), agentic/routers/projects.py (GET lineage), Makefile, Dockerfile, docker-compose.yml, deploy/README.md; tests/test_lineage.py (new), test_core_experience.py, test_experience_log.py; docs.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The fingerprint could not be set on a frozen record.",
+   "scenario": "Building a RunRecord raised frozen_instance.",
+   "cause": "An after-validator assigned the computed field.",
+   "fix": "Compute it in a before-validator; a given one must match.",
+   "test": "test_the_fingerprint_is_the_inputs_and_parameters"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Moving prepare into the guarded block would have marked a stage failed on a data error.",
+   "scenario": "A missing or changed table used to raise before anything was saved.",
+   "cause": "Wrapping all of the stage in the try.",
+   "fix": "Keep prepare first, outside it.",
+   "test": "the suite's data-error tests"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A failed pipeline hook was silently skipped.",
+   "scenario": "No run.recorded for an upload.",
+   "cause": "The helper's parameter was named run, colliding with the run id keyword.",
+   "fix": "Rename the parameter.",
+   "test": "test_a_draft_pipeline_run"
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "The strict session-sequence test failed on PostgreSQL only.",
+   "scenario": "The pipeline's run.recorded landed after the next request's events.",
+   "cause": "It is written when the background pipeline returns, after the draft is ready.",
+   "fix": "Treat it like a background job's end: out of the strict sequence, checked on its own.",
+   "test": "test_the_background_runs_are_on_the_record"
+  },
+  {
+   "id": "S5",
+   "source": "self",
+   "severity": "latent",
+   "defect": "A replay found candidate models' numbers different with the same recorded inputs.",
+   "scenario": "extra_trees and others differed between the test's run and its replay.",
+   "cause": "The engine's model-size profile (fast in tests) changes every number but was not an input.",
+   "fix": "Record it as engine_profile in the run's settings: a replay under another profile is refused.",
+   "test": "test_a_replay_under_another_engine_profile_is_refused"
+  },
+  {
+   "id": "S6",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A final replay always showed one changed number.",
+   "scenario": "holdout_uses_in_this_project went from 1 to 2 in the copy.",
+   "cause": "The copy counted its replay as another holdout use.",
+   "fix": "The copy starts from the count the original run had: a replay repeats a use, adds none.",
+   "test": "test_a_replay_reproduces_the_number_and_leaves_the_project_alone"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Most report numbers could not be traced.",
+   "scenario": "61 of 94 paths of a real report traced; @n and #n paths and findings_meta failed.",
+   "cause": "trace split paths on dots and knew only stage roots.",
+   "fix": "Use dclab_core.report.lookup; report-time roots (brief, findings, plan) answer that no stage run made them.",
+   "test": "test_every_number_in_the_report_is_traced"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A replay of a stage that chooses nothing always matched.",
+   "scenario": "A planted apparent_lift of 999 in the leakage stage replayed as the same.",
+   "cause": "Only the chosen value was compared; data and leakage have none.",
+   "fix": "compare every number written, timings left out, and name the changed paths.",
+   "test": "test_a_changed_number_is_seen_even_when_nothing_is_chosen"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A final replay could re-evaluate the holdout under other settings or code, uncounted and unaudited.",
+   "scenario": "quick off and max_rows 300 after the run: replay gave 7.59 against 8.18, holdout_uses unchanged.",
+   "cause": "The refusal checked only the table, the solution and earlier choices, and replay ran on the current project.",
+   "fix": "Compare every input the run would read now with the record's; replay the final stage only on the same code.",
+   "test": "test_a_replay_is_refused_when_what_it_read_has_changed, test_the_final_stage_is_replayed_only_on_its_own_code"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Run inputs left out what changes a run.",
+   "scenario": "Two runs with different packs or feature programs had one fingerprint.",
+   "cause": "Only the labels hash was recorded, while prepare keys its work on pack, feature programs, plan and categorical columns.",
+   "fix": "Their hashes in refs.",
+   "test": "test_a_replay_is_refused_when_what_it_read_has_changed (refs)"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failed run with a long error was lost.",
+   "scenario": "Type name plus 600 characters exceeded the field; the error was swallowed.",
+   "cause": "The message was cut before the type was added.",
+   "fix": "Cut the whole error to 600.",
+   "test": "test_a_failed_stage_is_a_failed_run"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The main product's experiment intent (the person's text) became meta.",
+   "scenario": "intent, up to 2000 characters, entered params and so the shareable class.",
+   "cause": "Columns were taken into params without their class.",
+   "fix": "Drop intent; keep only the numbers of a stage's input summary.",
+   "test": "test_an_experiment_its_stages_and_an_agent_run"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Deployed runs recorded no code version.",
+   "scenario": "The image excludes .git: commit None for every run.",
+   "cause": "The commit came only from git.",
+   "fix": "DCLAB_COMMIT from a build argument (Dockerfile, compose, the deploy README).",
+   "test": "code() reads it when git is absent"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Volatile and incomplete code and settings comparisons.",
+   "scenario": "Turning the training opt-in on changed a run's inputs; a dirty tree compared equal to a clean one.",
+   "cause": "All settings were fingerprinted; dirty was ignored.",
+   "fix": "Run-changing settings only; the hash of the uncommitted difference compared.",
+   "test": "test_a_setting_that_changes_no_run_changes_no_replay"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Agent turns in one conversation could not be told apart; a person's Stop was a failure.",
+   "scenario": "Two turns shared ids and payload; Stop was recorded as failed, and nothing for a stage or a pipeline.",
+   "cause": "The run's own id was not in the event; BaseException was read as an error.",
+   "fix": "The event carries its run id; a Stop is a stopped run in stages, pipelines and agent runs.",
+   "test": "test_an_agent_run, test_a_failed_stage_is_a_failed_run"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A replay on PostgreSQL created a workspace for the temporary folder.",
+   "scenario": "files_for(scratch) opened database records for the system temp folder.",
+   "cause": "The scratch store's files had no storage of their own.",
+   "fix": "A store may carry its file storage; the scratch copy keeps files and records in its folder.",
+   "test": "replay on PostgreSQL in make test-pg"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Adding a field to the run inputs would invalidate every stored record.",
+   "scenario": "The fingerprint hashed defaults too.",
+   "cause": "model_dump included every field.",
+   "fix": "Fields at their default are left out of the fingerprint.",
+   "test": "test_the_fingerprint_is_the_inputs_and_parameters"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted faults",
+   "gate": "each planted fault in the contract, the engine, replay, trace, hooks and the adapter fails a test",
+   "result": "16 of 16 caught after adding the stopped-agent-run test (15 of 16 before)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 16 against 16",
+   "limits": [
+    "Only the faults planted."
+   ]
+  },
+  {
+   "name": "report numbers traced",
+   "gate": "every number of a real solution report resolves to its value, and to its stage's run when a stage wrote it",
+   "result": "every path of the delivery-time replica's report traced (stage roots to their runs, report-time roots said so)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "all paths",
+   "limits": [
+    "One replica project, regression."
+   ]
+  },
+  {
+   "name": "replays reproduce",
+   "gate": "models and final replayed in a scratch copy give the same value, choice and every number; the project unchanged",
+   "result": "same inputs, value, choice and all compared numbers (timings left out); project, records and holdout count unchanged",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "2 of 2 stages",
+   "limits": [
+    "Under the test profile; a full-profile replay was not timed."
+   ]
+  }
+ ],
+ "outcome": "Every number DCLab writes can be traced to the run that made it, with what that run read, what it was told and the code it ran on; a stage can be replayed to check its numbers, and a replay that would be a new run is refused.",
+ "lessons": [
+  "A new kind in a closed vocabulary is a schema change: move the version and read the old one as the new.",
+  "Compare everything a rerun writes, not only what it chose: a stage that chooses nothing always matches on its choice.",
+  "An input nobody records (a process-wide profile) shows up as a run that does not reproduce: record it, or replay will lie."
+ ],
+ "risks": [
+  "Stage records from before 19.5 have no run; they say so until rerun.",
+  "A label file held only in S3 is not copied into a replay's scratch folder.",
+  "The run block adds about 25 KB to a final stage record (its numbers by path)."
+ ],
+ "commits": []
+}

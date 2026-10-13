@@ -6,7 +6,10 @@
 name: dclab
 
 x-product: &product
-  build: .
+  build:
+    context: .
+    args:  # the commit every run's record names (19.5): DCLAB_COMMIT=$(git rev-parse HEAD) docker compose build
+      DCLAB_COMMIT: ${DCLAB_COMMIT:-}
   image: dclab:local
   environment: &env
     DCLAB_DATABASE_URL: postgresql+psycopg://dclab:${DCLAB_DB_PASSWORD:-dclab-local-only}@db:5432/dclab

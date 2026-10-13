@@ -53,7 +53,7 @@ A first deployment goes in three steps, because the image and the secrets must e
 2. **The image and the values.** Build for the cloud's processors (`linux/amd64`; a Mac with Apple silicon builds arm64
    by default, which neither cloud runs), push it, and give each secret in `secrets_to_fill` a value:
    ```bash
-   docker build --platform linux/amd64 -t <image_repository>:$(git rev-parse --short HEAD) .
+   docker build --platform linux/amd64 --build-arg DCLAB_COMMIT=$(git rev-parse HEAD) -t <image_repository>:$(git rev-parse --short HEAD) .
    docker push <image_repository>:$(git rev-parse --short HEAD)
    aws secretsmanager put-secret-value --secret-id <name> --secret-string '<value>'          # AWS
    printf '%s' '<value>' | gcloud secrets versions add <name> --data-file=-                    # Google Cloud

@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 from typing import Any, Callable
 
-from . import model_text_allowed, record
+from . import model_text_allowed, now, record
 
 
 def _quiet(fn: Callable[..., Any]) -> Callable[..., Any]:
@@ -202,3 +202,72 @@ def settings_changed(changes: dict[str, Any], **ids: Any) -> None:
               if not isinstance(v, (dict, list))}
     if choice:
         record("decision.accepted", "person", {"point": "settings", "choice": choice, "by": "person"}, **ids)
+
+
+# ---------------------------------------------------------------------- 19.5: runs other than a project's stages
+
+def _run_event(done: Any, **ids: Any) -> None:
+    from dclab_core.lineage import event_payload
+
+    record("run.recorded", "system", event_payload(done), **ids)
+
+
+@_quiet
+def from_agent_run(policy: Any, result: Any, trace: Any, started: str, seconds: float, error: str | None = None,
+                   interrupted: bool = False) -> None:
+    """One ``agents.run()`` call (the Home agent's turn, the intern's, the campaign's phase) as a run: what it was
+    allowed (its budget and tools), how it ended, its steps and tokens, the code and prompts it ran with."""
+    from . import contract, current_log
+
+    if contract is None or current_log() is None:  # nothing kept: no record built
+        return
+    from dclab_core import lineage
+
+    from ..studio.lineage import code, new_run
+
+    stopped = getattr(result, "stopped", None)
+    status = "stopped" if interrupted or stopped in ("steps", "time", "replies") else "failed" if error else "completed"
+    usage = getattr(result, "usage", None) or {}
+    numbers = {"steps": float(len(getattr(result, "steps", None) or [])), **{k: float(v) for k, v in usage.items()}}
+    done = lineage.RunRecord(run=new_run(), kind="agent", name=str(policy.name)[:120], parent=getattr(trace, "run_id", None),
+                               status=status, started=started, finished=now(), seconds=max(seconds, 0.0),
+                               params={"max_steps": policy.max_steps, "max_seconds": policy.max_seconds, "max_replies": policy.max_replies,
+                                       "tools": len(policy.tools)},
+                               outputs=lineage.RunOutputs(chosen=stopped, numbers=numbers), code=code("dclab_rnd.agents.runtime"),
+                               error=(error or None) and error[:600])
+    ids = {"run": getattr(trace, "run_id", None)}
+    if getattr(trace, "agent", None) in ("home", "intern"):  # as its steps (from_trace): the conversation is the run
+        ids["conversation"] = ids["run"]
+    _run_event(done, **ids)
+
+
+@_quiet
+def from_draft_pipeline(draft_id: str, asset: dict[str, Any], final: dict[str, Any], path: Any, run: str, started: str, seconds: float) -> None:
+    """One asset through a draft's pipeline (structure → clean → analyse) as a run: the file it read (by hash), how it
+    was read, the table it made, or why it failed."""
+    from . import contract, current_log
+
+    if contract is None or current_log() is None:
+        return
+    import hashlib
+
+    from dclab_core import lineage
+
+    from ..studio.lineage import code
+
+    digest = final.get("raw_sha256") or asset.get("raw_sha256")  # the upload's hash as the pipeline recorded it
+    if not digest:
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            digest = None
+    ready, stopped = final.get("status") == "ready", final.get("status") == "stopped"
+    numbers = {k: float(final[k]) for k in ("rows", "columns") if isinstance(final.get(k), (int, float))}
+    done = lineage.RunRecord(run=run, kind="pipeline", name="draft_pipeline", draft=draft_id,
+                             status="completed" if ready else "stopped" if stopped else "failed",
+                               started=started, finished=now(), seconds=max(seconds, 0.0),
+                               inputs=lineage.RunInputs(data_sha256=digest, refs={"asset": str(asset.get("id"))}),
+                               params={"kind": asset.get("kind"), "format": final.get("format")},
+                               outputs=lineage.RunOutputs(chosen=final.get("status"), numbers=numbers), code=code("dclab_rnd.draft.pipeline"),
+                               error=None if ready else str(final.get("error") or "")[:600] or None)
+    _run_event(done, conversation=draft_id, run=run)

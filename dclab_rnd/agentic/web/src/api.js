@@ -291,6 +291,7 @@
     projectGraph: ["GET", "/projects/{project_id}/graph", ["project_id"], []],
     checkMove: ["POST", "/projects/{project_id}/graph/check", ["project_id"], []],
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
+    projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
     reviewProjectNotebook: ["GET", "/projects/{project_id}/review", ["project_id"], []],
     reviewProjectFixes: ["POST", "/projects/{project_id}/review/fixes", ["project_id"], []],
@@ -832,6 +833,13 @@
    *  @returns {Promise<Lessons>} */
   client.projectLessons = (...args) => call('projectLessons', args);
   client.path.projectLessons = (...args) => build('projectLessons', args).path;
+  /** GET /api/projects/{project_id}/lineage: Project Lineage
+   *  @param {string} project_id
+   *  @param {{query?: {path?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectLineage = (...args) => call('projectLineage', args);
+  client.path.projectLineage = (...args) => build('projectLineage', args).path;
+  client.href.projectLineage = (...args) => '/api' + build('projectLineage', args).path;
   /** DELETE /api/projects/{project_id}/memory/{note_id}: Remove Memory Note
    *  @param {string} project_id
    *  @param {string} note_id

@@ -62,6 +62,20 @@ def bind(**ids: Any) -> Iterator[dict[str, Any]]:
         _IDS.reset(token)
 
 
+_QUIET: contextvars.ContextVar[bool] = contextvars.ContextVar("dclab_experience_quiet", default=False)
+
+
+@contextlib.contextmanager
+def quiet() -> Iterator[None]:
+    """Nothing recorded inside the block: work done on a scratch copy (a replay, 19.5) is not something that happened
+    to the project; the caller records what it means (one ``run.recorded``) after the block."""
+    token = _QUIET.set(True)
+    try:
+        yield
+    finally:
+        _QUIET.reset(token)
+
+
 def mark_new(visit: str, surface: str) -> None:
     """A visit this process just minted: its visit.started waits for its first event."""
     with _PENDING_LOCK:
@@ -280,7 +294,7 @@ class PgLog:
         q = q.order_by(t.c.at.desc(), t.c.seq.desc()).limit(limit)
         with self.engine.connect() as c:
             docs = [r[0] for r in c.execute(q)]
-        return contract.timeline(contract.ExperienceEvent.model_validate(d) for d in docs)
+        return contract.timeline(contract.ExperienceEvent.read(d) for d in docs)  # a v1 row is read as v2
 
     def visits(self, limit: int = 50) -> list[str]:
         import sqlalchemy as sa
@@ -325,7 +339,7 @@ def record(kind: str, actor: str = "system", payload: dict[str, Any] | None = No
            at: str | None = None, **ids: Any) -> Optional[contract.ExperienceEvent]:
     """Record one event in the current workspace's log; None when there is no log, or when it was refused or lost."""
     target = log if log is not None else current_log()
-    if target is None or contract is None:
+    if target is None or contract is None or _QUIET.get():
         return None
     surface = _started(_IDS.get().get("visit")) if kind != "visit.started" else None
     if surface is not None:

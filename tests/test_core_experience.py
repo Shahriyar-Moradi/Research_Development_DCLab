@@ -194,7 +194,7 @@ class MainProductTest(unittest.TestCase):
         self.assertEqual(set(mp.DECISION_KINDS) | set(mp.DECISIONS_NOT_MAPPED), set(vocab["project_decision_records.decision_type"]))
         self.assertEqual(set(mp.ACTORS), set(vocab["project_decision_records.actor_kind"]))
         self.assertTrue(set(mp.AGENT_EVENT_KINDS.values()) | set(mp.DECISION_KINDS.values()) <= set(x.KINDS))
-        produced = set(mp.AGENT_EVENT_KINDS.values()) | set(mp.DECISION_KINDS.values()) | {"stage.started", "stage.finished", "stage.failed"}
+        produced = set(mp.AGENT_EVENT_KINDS.values()) | set(mp.DECISION_KINDS.values()) | {"stage.started", "stage.finished", "stage.failed", "run.recorded"}
         self.assertEqual(produced | set(mp.KINDS_MISSING), set(x.KINDS))  # every contract kind is produced or listed as missing
         self.assertFalse(produced & set(mp.KINDS_MISSING))
         self.assertEqual(set(mp.RUN_STATUS), set(vocab["ml_run_events.status"]))

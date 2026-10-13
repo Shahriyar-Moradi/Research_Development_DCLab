@@ -16,7 +16,11 @@ COPY --from=build /wheels /wheels
 RUN pip install --no-cache-dir --no-index /wheels/* && rm -rf /wheels
 WORKDIR /app
 COPY --chown=dclab:dclab . /app
-ENV PYTHONUNBUFFERED=1 \
+# the commit the image is built from (docker build --build-arg DCLAB_COMMIT=$(git rev-parse HEAD)): .git is not copied,
+# so every run's record names its code by this (19.5)
+ARG DCLAB_COMMIT=""
+ENV DCLAB_COMMIT=${DCLAB_COMMIT} \
+    PYTHONUNBUFFERED=1 \
     DCLAB_AGENT_HOME=/workspace \
     DCLAB_ML_PYTHON=/usr/local/bin/python
 RUN mkdir -p /workspace && chown dclab:dclab /workspace

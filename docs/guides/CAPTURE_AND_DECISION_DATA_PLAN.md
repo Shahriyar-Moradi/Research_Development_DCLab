@@ -107,6 +107,13 @@ person's overrides.
   version, the prompt files' hashes). A run can be found from any of its outputs and replayed from its record.
 - **Done when:** for any number in a project's report, the run that made it, its inputs and its code version are one
   query away, and a stage rerun from its record reproduces its number.
+- **Status: done (2026-10-14).** `dclab_core/lineage.py` (`RunRecord` v1, dclab-core 0.7.0; the event contract at v2
+  with `run.recorded`, v1 events read as v2), `adapters/main_product_lineage.py` (experiments, stage runs, agent runs),
+  `dclab_rnd/studio/lineage.py` (the stage's run in its record; `trace`, `replay` in a scratch copy, refused when the
+  table, the solution or an earlier choice changed), every `agents.run()` and every draft data pipeline a run with its
+  id on the events inside it; `GET /api/projects/{id}/lineage`, `make lineage`, `make replay`. Left open: a page for
+  lineage (the report's numbers as links), job runs other than stages (synthetic data, exports), and stage records from
+  before 19.5 (they say so; a rerun records its run).
 
 ## Phase C3 — The decision ledger
 

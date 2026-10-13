@@ -8,6 +8,8 @@
     python -m dclab_rnd.experience search --kind refused           events and their visits: --kind (a kind, a family,
                                                                    refused, errors), --project, --draft, --person,
                                                                    --text, --code, --since, --until (until excluded)
+    python -m dclab_rnd.experience lineage PROJECT [--path P]      each stage's run, or where a report's number comes from
+    python -m dclab_rnd.experience replay PROJECT STAGE            rerun a stage from its record (a scratch copy) and compare
 
 The workspace is DCLAB_AGENT_HOME's (the server's own), on PostgreSQL when DCLAB_DATABASE_URL is set.
 """
@@ -31,6 +33,47 @@ def _log():
     return open_log(home, workspace)
 
 
+def _projects():
+    from ..settings import Settings
+    from ..storage import open_stores
+
+    return open_stores(Path(Settings.load().agent_home))[0]
+
+
+def _lineage(args, parser) -> int:
+    """19.5: a run's lineage, from the project's stage records; a replay in a scratch copy."""
+    from ..studio import lineage
+
+    store = _projects()
+    try:
+        if args.command == "replay":
+            with _workspace_log():
+                out = lineage.replay(store, args.project, args.stage)
+        else:
+            out = lineage.trace(store, args.project, args.path) if args.path else lineage.runs(store, args.project)
+    except (KeyError, ValueError) as exc:  # an unknown project, stage or path; a table that changed on disk (DataError)
+        parser.error(str(exc.args[0]) if exc.args else "not found")
+    print(json.dumps(out, indent=2, ensure_ascii=False, default=str))
+    reproduced = all(out.get(k) for k in ("replayed", "same_inputs", "same_value", "same_numbers"))
+    return 0 if args.command != "replay" or reproduced else 1
+
+
+def _workspace_log():
+    """The workspace's record installed for this process, so the replay's one run.recorded event is kept."""
+    import contextlib
+
+    from . import install
+
+    @contextlib.contextmanager
+    def installed():
+        install(_log())
+        try:
+            yield
+        finally:
+            install(None)
+    return installed()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.experience", description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -48,7 +91,15 @@ def main(argv: list[str] | None = None) -> int:
         find.add_argument(f"--{name}")
     find.add_argument("--limit", type=int, default=50)
     find.add_argument("--json", action="store_true")
+    trace = sub.add_parser("lineage")
+    trace.add_argument("project")
+    trace.add_argument("--path", help="a report's record path, e.g. final.evidence.holdout_metrics.roc_auc")
+    again = sub.add_parser("replay")
+    again.add_argument("project")
+    again.add_argument("stage")
     args = parser.parse_args(argv)
+    if args.command in ("lineage", "replay"):
+        return _lineage(args, parser)
     from ..storage import db
 
     if db.database_url(required=False):  # the record lives in the database: say plainly when it cannot be read yet

@@ -85,8 +85,26 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
 
     ``trace`` (a ``traces.Tracer``) gets one row per step, with the reply's tokens on its first step (package A2.3).
     ``contexts`` gives a tool scope its own context (the intern: its toolbox for project tools, its session for
-    write_plan and finish); a scope without one gets ``context``.
+    write_plan and finish); a scope without one gets ``context``. Each call is a run in the session record (19.5).
     """
+    from datetime import datetime, timezone
+
+    from ..experience import hooks
+
+    began, clock, result, error, interrupted = datetime.now(timezone.utc).isoformat(timespec="microseconds"), time.monotonic(), None, None, False
+    try:
+        result = _run(policy, client, registry, messages, context, on_step, stream, steps_used, started, trace, contexts)
+        return result
+    except BaseException as exc:
+        error = f"{type(exc).__name__}: {str(exc)[:500]}"
+        interrupted = not isinstance(exc, Exception)  # a person's Stop (jobs.worker.Stopped), not a failure
+        raise
+    finally:
+        hooks.from_agent_run(policy, result, trace, began, time.monotonic() - clock, error, interrupted)
+
+
+def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str, Any]], context: Any, on_step: Any, stream: Any,
+         steps_used: int, started: float | None, trace: Any, contexts: dict[str, Any] | None) -> RunResult:
     started = time.monotonic() if started is None else started
     unknown = [n for n in policy.tools if registry.get(n) is None]
     if unknown:

@@ -232,10 +232,22 @@ def from_run_event(row: Mapping[str, Any]) -> Optional[ExperienceEvent]:
                 source=f"ml_run_events:{name}"[:120])
 
 
+def from_run_record(record: Any, run_row: Optional[Mapping[str, Any]] = None) -> ExperienceEvent:
+    """A run's lineage (``dclab_core.lineage.RunRecord``, from ``adapters.main_product_lineage``) as ``run.recorded``."""
+    from dclab_core.lineage import event_payload
+
+    ids = {"workspace": record.workspace or str((run_row or {}).get("workspace_id") or "unknown"), "project": record.project, "run": record.run}
+    return make("run.recorded", "system", ids, event_payload(record), id=f"mp-run-{record.run}"[:80], at=record.finished or record.started,
+                source=f"lineage:{record.kind}")
+
+
 def events(agent_events: Iterable[Mapping[str, Any]] = (), runs: Mapping[Any, Mapping[str, Any]] | None = None,
            invocations: Iterable[Mapping[str, Any]] = (), decisions: Iterable[Mapping[str, Any]] = (),
-           run_events: Iterable[Mapping[str, Any]] = ()) -> list[ExperienceEvent]:
-    """Every row read as an event, the unmapped ones left out. ``runs`` maps an agent run's id to its row."""
+           run_events: Iterable[Mapping[str, Any]] = (), experiments: Iterable[Mapping[str, Any]] = (),
+           stage_runs: Iterable[Mapping[str, Any]] = ()) -> list[ExperienceEvent]:
+    """Every row read as an event, the unmapped ones left out. ``runs`` maps an agent run's id to its row; each finished
+    agent run, experiment and stage run is also a ``run.recorded`` (19.5)."""
+    from dclab_core.adapters import main_product_lineage as lineage
     runs = runs or {}
     invocations = list(invocations)
     given = {str(r["id"]) for r in invocations}
@@ -245,4 +257,7 @@ def events(agent_events: Iterable[Mapping[str, Any]] = (), runs: Mapping[Any, Ma
             for e in [from_agent_event(r, runs[r["run_id"]])] if e]
     out += [e for r in decisions for e in [from_decision_record(r)] if e]
     out += [e for r in run_events for e in [from_run_event(r)] if e]
+    records = [lineage.from_agent_run(r) for r in (runs or {}).values()]
+    records += [lineage.from_experiment(r) for r in experiments] + [lineage.from_stage_run(r) for r in stage_runs]
+    out += [from_run_record(r) for r in records if r is not None]
     return out

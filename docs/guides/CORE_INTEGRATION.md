@@ -232,3 +232,15 @@ situation, the questions still open (blocking or not) and `ready` with `blocking
 (`adapters.main_product.problem_spec(card.brief)`); `family` is a proposal at its `spec.objective` decision point and
 `outcome` at `target.column`; a spec is locked (`problem_spec_locked`) only from a ready card, and `blocking` is what
 its assistant asks next.
+
+## Lineage: where every number comes from (19.5)
+
+The main product adds no table here either. `dclab_core.adapters.main_product_lineage` reads its `experiments`,
+`pipeline_stage_runs` and `agent_runs` rows as `RunRecord`s (`dclab_core.lineage`): what a run read (dataset and split
+plan ids, config, seed, an agent's context, policy and tool-catalog digests), its parameters, its numbers by path, its
+duration and its code (`git_commit`, the runtime, the prompt release). `events(..., experiments=..., stage_runs=...)`
+adds each finished run to the session record as `run.recorded` (event contract v2; v1 events still read). Where it goes
+there: the technical run report (`services/technical_run_report.py`) can cite, for each number, the run and
+`RunRecord.fingerprint`; a rerun of an experiment is checked with `lineage.compare` (same inputs, same code, same
+number). What it cannot fill from these tables is listed in `INPUTS_MISSING` (the dataset version's hash, the problem
+spec's lock), never guessed.

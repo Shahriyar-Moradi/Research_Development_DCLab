@@ -96,7 +96,27 @@ def _label_role(store: DraftStore, draft_id: str, asset_id: str, frame) -> tuple
 
 
 def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None) -> dict[str, Any]:
-    """Process one asset. Returns the final asset record (status "ready" or "failed")."""
+    """Process one asset. Returns the final asset record (status "ready" or "failed"). The whole pass is one run in the
+    session record (19.5): every event inside it carries its id, and its ``run.recorded`` says what it read and made."""
+    import secrets
+    import time
+
+    from ..experience import bind, hooks, now
+
+    run_id, began, clock = "run" + secrets.token_hex(8), now(), time.monotonic()
+    asset = next(a for a in store.get(draft_id)["assets"] if a["id"] == asset_id)
+    try:
+        with bind(run=run_id):
+            final = _run(store, draft_id, asset_id, agent, client)
+    except BaseException:  # a person's Stop between steps: the run stopped
+        hooks.from_draft_pipeline(draft_id, asset, {"status": "stopped"}, store.data_dir(draft_id) / asset["filename"], run_id, began,
+                                  time.monotonic() - clock)
+        raise
+    hooks.from_draft_pipeline(draft_id, asset, final, store.data_dir(draft_id) / asset["filename"], run_id, began, time.monotonic() - clock)
+    return final
+
+
+def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None) -> dict[str, Any]:
     from ..jobs import checkpoint  # a stop asked for on the Compute page takes effect between the steps (package 10.3)
     from . import analyze, clean, structure  # imported lazily: the store and the chat do not need pandas
 

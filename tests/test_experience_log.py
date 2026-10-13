@@ -46,7 +46,7 @@ WRITE_ROUTES = {
     "POST /api/drafts": (EVENTS, ["draft.created"]),
     "PATCH /api/drafts/{draft_id}": (EVENTS, ["draft.edited"]),
     "DELETE /api/drafts/{draft_id}": (NONE, "the deletion is audited; what the draft left stays in the record until retention (19.6)"),
-    "PUT /api/drafts/{draft_id}/data": (EVENTS, ["data.uploaded", "data.cleaned", "data.analysed"]),  # a label file: no analysis of its own
+    "PUT /api/drafts/{draft_id}/data": (EVENTS, ["data.uploaded", "data.cleaned", "data.analysed", "run.recorded"]),  # a label file: no analysis of its own
     "POST /api/drafts/{draft_id}/data/sample": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/data/synthetic": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/data/kaggle": (EVENTS, ["data.uploaded"]),
@@ -66,8 +66,8 @@ WRITE_ROUTES = {
     "POST /api/projects/{project_id}/data/sample": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/solution": (EVENTS, ["graph.move", "solution.saved"]),
     "POST /api/projects/{project_id}/solution/proposal": (NONE, "the project page's audit is shown, not saved: the saved solution is the event"),
-    "POST /api/projects/{project_id}/stages/{stage}/run": (EVENTS, ["job.started", "stage.started", "stage.finished", "job.stopped"]),
-    "POST /api/projects/{project_id}/run": (EVENTS, ["job.started", "stage.started", "stage.finished", "job.stopped"]),
+    "POST /api/projects/{project_id}/stages/{stage}/run": (EVENTS, ["job.started", "stage.started", "stage.finished", "run.recorded", "job.stopped"]),
+    "POST /api/projects/{project_id}/run": (EVENTS, ["job.started", "stage.started", "stage.finished", "run.recorded", "job.stopped"]),
     "POST /api/projects/{project_id}/stages/{stage}/approve": (EVENTS, ["graph.move", "stage.approved"]),
     "POST /api/projects/{project_id}/approvals": (EVENTS, ["decision.accepted"]),
     "POST /api/projects/{project_id}/ask": (EVENTS, ["chat.person", "chat.agent"]),
@@ -208,12 +208,19 @@ class OneSessionTest(unittest.TestCase):
         mine = [(e.kind, e.payload.get("stage") or e.payload.get("point") or e.payload.get("move") or e.payload.get("surface") or "")
                 for e in self.events if ((e.ids.conversation == self.draft or e.ids.project == self.project) and e.kind != "chat.agent"
                                          or (e.kind == "chat.agent" and e.ids.project == self.project))
-                and not (e.kind.startswith("job.") and e.payload.get("kind") == "pipeline")]  # a background job's end races the next request
+                and not (e.kind.startswith("job.") and e.payload.get("kind") == "pipeline")  # a background job's end races the next request
+                and not (e.kind == "run.recorded" and e.payload.get("run_kind") in ("agent", "pipeline"))]  # background: they race the next request
         self.assertEqual(mine, [
             ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("graph.move", "set_solution"),
-            ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("graph.move", "run_stage"),
+            ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
             ("job.stopped", ""), ("graph.move", "approve_stage"), ("stage.approved", "data"), ("chat.person", "project"), ("chat.agent", "project"),
             ("solution.refused", "")])  # the raising /ask failed before its question was logged; its error is the visit's, not the project's
+
+    def test_the_background_runs_are_on_the_record(self):
+        pipeline = [e for e in self.events if e.kind == "run.recorded" and e.payload.get("run_kind") == "pipeline" and e.ids.conversation == self.draft]
+        self.assertEqual([e.payload["status"] for e in pipeline], ["completed"])  # the one upload, read and cleaned
+        analysed = next(e for e in self.events if e.kind == "data.analysed" and e.ids.conversation == self.draft)
+        self.assertEqual(analysed.ids.run, pipeline[0].ids.run)  # the pipeline's events carry its run
 
     def test_one_action_is_one_event(self):
         kinds = [e.kind for e in self.events if e.ids.conversation == self.draft or e.ids.project == self.project]

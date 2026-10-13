@@ -17,10 +17,14 @@ Content classes. Every payload field has a declared class (:data:`KINDS`): ``met
 ``model_text`` (a prompt or a reply), ``cell_values`` (values from a person's table). An event says each field's class,
 and it must be the declared one: a field cannot be recorded as a lower class than it is. Secrets are never recorded.
 :func:`redact` keeps only the classes a use is allowed (an export for training never keeps cell values).
+
+Versions. v2 (package 19.5) added one kind, ``run.recorded`` (a run's lineage, ``dclab_core.lineage``); a v1 event is
+read as v2 by :meth:`ExperienceEvent.read`, since every v1 event is a valid v2 event.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from collections.abc import Iterable, Mapping
@@ -49,6 +53,7 @@ SECRET = re.compile(
     r"|(?i:\bbearer\s+[A-Za-z0-9._~+/-]{20,})"
     r"|[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@")                # a password in a connection string
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
+READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1"})  # versions an event is read from: each a subset of v2
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -100,6 +105,9 @@ KINDS: dict[str, dict[str, str]] = {
     "job.started": {"kind": M, "key": M},
     "job.stopped": {"kind": M, "by": M, "status": M},
     "error.raised": {"where": M, "code": M, "message": A},  # a message may quote a value: agent text, never meta
+    # a run's lineage (v2, package 19.5): the flat parts of a dclab_core.lineage.RunRecord; the record stays with the host
+    "run.recorded": {"run": M, "run_kind": M, "name": M, "status": M, "fingerprint": M, "inputs": M, "params": M, "outputs": M, "code": M,
+                     "upstream": M, "parent": M, "seconds": C, "numbers": C},
 }
 
 
@@ -149,7 +157,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v1"] = _version("experience_event")
+    schema_version: Literal["dclab_core.experience_event.v2"] = _version("experience_event", 2)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)
@@ -160,6 +168,14 @@ class ExperienceEvent(Versioned):
     classes: dict[str, ContentClass] = Field(default_factory=dict)
     redacted: list[str] = Field(default_factory=list, description="Fields removed by redact(), with their class.")
     source: Optional[str] = Field(default=None, max_length=120, description="Where the host read it: table:type.")
+
+    @classmethod
+    def read(cls, document):
+        """An event as stored; a v1 event (before ``run.recorded``) is read as v2: v2 only added a kind."""
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") in READ_AS_CURRENT:
+            data["schema_version"] = cls.model_fields["schema_version"].default
+        return super().read(data)
 
     @field_validator("at")
     @classmethod

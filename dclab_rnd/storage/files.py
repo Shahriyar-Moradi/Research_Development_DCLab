@@ -383,7 +383,11 @@ def open_files(root: Path) -> LocalFiles:
 
 
 def files_for(store: Any) -> LocalFiles:
-    """The file storage behind a project or draft store: the workspace folder it keeps its files in."""
+    """The file storage behind a project or draft store: the workspace folder it keeps its files in (or the storage a
+    store was given, ``store.file_storage``: a replay's scratch copy keeps its files and their records in its folder)."""
+    given = getattr(store, "file_storage", None)
+    if given is not None:
+        return given
     root = getattr(store, "files_home", None) or Path(store.home).parent
     return open_files(Path(root))
 

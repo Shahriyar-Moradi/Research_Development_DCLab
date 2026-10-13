@@ -62,6 +62,13 @@ assert (event.kind, card.model_requests, card.cost) == ("model.request", 1, {"EU
 from dclab_core.card import problem_card
 pc = problem_card(understand("I want build anomaly detection"), words="I want build anomaly detection")
 assert (pc.ready, pc.in_play) == (False, ["rare_event", "anomaly"]), pc
+# 19.5: a main-product experiment read as a run record, and as a v2 event in the session record
+from dclab_core.adapters import main_product_lineage as mpl
+xcols = mp.recorded()["experience_tables"]["experiments"]
+run = mpl.from_experiment({c: None for c in xcols} | {"id": "e1", "workspace_id": "w1", "status": "COMPLETED", "seed": 7, "git_commit": "abc",
+                                                     "started_at": "2026-10-14T08:00:00+00:00", "result": {"mae": 3.2}})
+ev = mpx.from_run_record(run)
+assert (run.outputs.numbers, ev.kind, ev.schema_version) == ({"mae": 3.2}, "run.recorded", "dclab_core.experience_event.v2"), (run, ev)
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())
@@ -89,6 +96,7 @@ print(json.dumps({
     "direct": sorted(norm(re.match(r"[A-Za-z0-9_.\-]+", r).group(0)) for r in metadata.requires("dclab-core") if "extra ==" not in r),
     "unexpected_distributions": sorted({d.split("==")[0] for d in dists} - closure - {"dclab-core"}),
     "experience": event.kind,
+    "lineage": run.fingerprint,
 }))
 '''
 

@@ -268,7 +268,7 @@ experience_event = sa.Table(  # every event of every session, append-only: a tri
     sa.Column("job_id", sa.String(64)),
     sa.Column("request_id", sa.String(80)),
     sa.Column("model_request", sa.String(80)),
-    sa.Column("doc", JSONB, nullable=False),  # the event whole (dclab_core.experience_event.v1)
+    sa.Column("doc", JSONB, nullable=False),  # the event whole (dclab_core.experience_event, v1 or v2)
     sa.Index("ix_experience_event_workspace_id_at", "workspace_id", "at"),
     sa.Index("ix_experience_event_workspace_id_visit", "workspace_id", "visit"),
     sa.Index("ix_experience_event_workspace_id_project_id", "workspace_id", "project_id"),

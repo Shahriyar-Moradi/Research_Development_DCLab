@@ -12,9 +12,9 @@ from fastapi.responses import Response
 
 from ... import audit, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
-from ...studio import graph as studio_graph, memory as studio_memory, sft as studio_sft, solution as studio_solution
+from ...studio import graph as studio_graph, lineage as studio_lineage, memory as studio_memory, sft as studio_sft, solution as studio_solution
 from ..api_models import (OCTET, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
-                          ProposalRequest, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, Verdict, download)
+                          ProposalRequest, Page, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, Verdict, download)
 from ..services import charge_upload, Services, services
 
 router = Router()
@@ -278,6 +278,22 @@ async def project_lessons(project_id: str, s: Services = Depends(services)):
 async def project_graph(project_id: str, s: Services = Depends(services)):
     p = s.project(project_id)
     return {**studio_graph.describe(p), "transitions": s.projects.transitions(project_id)}
+
+
+@router.get("/api/projects/{project_id}/lineage", response_model=Page)
+async def project_lineage(project_id: str, path: str | None = None, s: Services = Depends(services)):
+    """Where the project's numbers come from (19.5): each stage's run (its inputs, parameters, outputs and code), or,
+    with ``path`` (a report's record path such as ``final.evidence.holdout_metrics.roc_auc``), the value there and
+    the run that wrote it."""
+    s.project(project_id)
+    if path is None:
+        return {"runs": await asyncio.to_thread(studio_lineage.runs, s.projects, project_id)}
+    if len(path) > 300:
+        raise HTTPException(422, "path is a record path of at most 300 characters")
+    try:
+        return await asyncio.to_thread(studio_lineage.trace, s.projects, project_id, path)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc.args[0]) if exc.args else "No such path") from None
 
 
 @router.post("/api/projects/{project_id}/graph/check", response_model=Verdict)
