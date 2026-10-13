@@ -80,6 +80,10 @@ separate stores.
 - **Done when:** a test lists every route and agent tool and fails when one changes state without emitting an
   event; the owner's morning, replayed on a replica, shows the target chosen while the labels question was open.
 
+> **Superseded from 19.4 on (2026-10-13):** the owner asked for a fuller plan that captures every decision and every
+> processing step, and adds decision models (any model: open-source, classical, hosted). Part 8 from 19.4 and the new
+> Part 11 are in `docs/guides/CAPTURE_AND_DECISION_DATA_PLAN.md`; the packages below are kept for their history.
+
 ## Phase C2 — Find and understand
 
 ### 19.4 Timeline, finder and session cards
