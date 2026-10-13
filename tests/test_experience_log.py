@@ -44,6 +44,7 @@ def orders(n=400, seed=0):
 EVENTS, NONE = "events", "none"
 WRITE_ROUTES = {
     "POST /api/drafts": (EVENTS, ["draft.created"]),
+    "POST /api/ledger/blind/{record_id}": (NONE, "a blind label is the ledger's own record (decision_label), not a session event"),
     "PATCH /api/drafts/{draft_id}": (EVENTS, ["draft.edited"]),
     "DELETE /api/drafts/{draft_id}": (NONE, "the deletion is audited; what the draft left stays in the record until retention (19.6)"),
     "PUT /api/drafts/{draft_id}/data": (EVENTS, ["data.uploaded", "data.cleaned", "data.analysed", "run.recorded"]),  # a label file: no analysis of its own

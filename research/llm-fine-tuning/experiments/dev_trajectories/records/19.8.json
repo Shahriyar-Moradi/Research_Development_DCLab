@@ -1,0 +1,172 @@
+{
+ "package": "19.8",
+ "title": "Labels from every source: planted truth, measurements, people who chose otherwise, and blind reviewers with known weights",
+ "date": "2026-10-14",
+ "request": "The owner wants decision models trained on DCLab's decisions; a decision without a label of what was right teaches nothing.",
+ "spec": "Benchmark labels for decisions on replicas, measured labels (a leak's lift, a split's optimism), person labels from overrides (user_decision_exposed), and a blind labelling page on a sample drawn with known probabilities; the precedence blind, benchmark, measured, exposed as one function.",
+ "plan": [
+  "The precedence and the blind draw in dclab_core, so both hosts weigh labels the same way.",
+  "Benchmark labels from a replica's declared traps after an acceptance run; exposed labels where a person was shown the rule's answer; measured labels where the leakage stage measures.",
+  "Routes and an Admin tab: the ledger's counts and blind labelling, for the owner and reviewers.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "An exposed label counts only when it contradicts an answer a rule or a model gave.",
+   "why": "A person who saw the answer and agreed is not evidence it was right (the main product's rule: demote, never promote)."
+  },
+  {
+   "decision": "Only planted traps are labelled on a replica, never 'not a leak' for the other columns.",
+   "why": "A replica declares what was planted; an unplanted column may still leak by accident."
+  },
+  {
+   "decision": "The blind draw is a hash of the record's id against its stratum's probability.",
+   "why": "Reproducible, and its probability is known before anyone labels: every blind label carries 1/p."
+  },
+  {
+   "decision": "Only points a reviewer can answer from what is shown are drawn, and a state field equal to the answer is hidden.",
+   "why": "A value with no options stalled the queue; a revisit's state named the stage it revisited."
+  },
+  {
+   "decision": "Strata are whether the answers agree, not only rule against model.",
+   "why": "Most studio decisions have no model answer; an override (rule against person) is the disagreement worth over-sampling."
+  }
+ ],
+ "change": "dclab_core/ledger.py (effective_label, current_labels, stratum, blind_probability, blind_options, blind_eligible, blind_draw, blind_view; 0.9.0), dclab_rnd/ledger/labels.py (new), ledger/capture.py (exposed and measured labels), kinds/acceptance.py, agentic/pages/ledger.py (new), pages/__init__.py, server.py, accounts/guard.py, the Admin Decisions tab; tests/test_decision_labels.py (new), test_experience_log.py; CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The replica test expected a group label where no group decision was made.",
+   "scenario": "column.group missing on delivery_time.",
+   "cause": "The case never states a group column.",
+   "fix": "Label every decision made about a planted column; a decision not made is not labelled.",
+   "test": "test_a_replica_labels_the_decisions_about_its_planted_traps"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "latent",
+   "defect": "A measured split label was untested against an older split.",
+   "scenario": "Planted fault: labelling the latest split of any strategy passed.",
+   "cause": "The test's time split was also the latest.",
+   "fix": "The test adds a later group split.",
+   "test": "test_a_measured_optimism_labels_the_split"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An override's exposed label never counted.",
+   "scenario": "The person forbade a column the rule kept; effective_label returned none.",
+   "cause": "It compared the label with the value used, which is the person's own.",
+   "fix": "Count it when it contradicts a rule's or a model's answer.",
+   "test": "test_a_person_who_chose_otherwise_writes_an_exposed_label"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Heuristics nobody saw wrote person labels.",
+   "scenario": "The leakage stage labelled zone as the person's exposed decision.",
+   "cause": "Every person-used record wrote an exposed label.",
+   "fix": "Only where the person was shown the rule's answer (a saved solution, an override).",
+   "test": "test_heuristics_nobody_saw_write_no_exposed_label"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Blind labels on yes/no points were wrong.",
+   "scenario": "Clicking run_stage on a move stored no.",
+   "cause": "A yes/no point showed its decision's options.",
+   "fix": "A yes/no point is answered yes or no.",
+   "test": "test_a_blind_reviewer_answers_only_what_the_state_can_answer"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The blind queue could stall for good.",
+   "scenario": "A split strategy with no options came first: no button, no skip.",
+   "cause": "Every point was drawn.",
+   "fix": "Only points with options and a state that does not name the answer.",
+   "test": "test_a_blind_reviewer_answers_only_what_the_state_can_answer"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An empty or repeated blind label was accepted.",
+   "scenario": "A null value outranked the planted truth; one reviewer's second label doubled its weight.",
+   "cause": "No check on the value or on repeats.",
+   "fix": "Refuse an empty value and a second label by the same reviewer.",
+   "test": "test_a_blind_label_carries_its_weight_and_only_a_drawn_decision_takes_one"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A blind view could show the answer.",
+   "scenario": "A revisit's state named the stage; a template's the pack.",
+   "cause": "The state was shown whole.",
+   "fix": "Those points are not drawn; a state field equal to the answer is hidden.",
+   "test": "test_a_blind_reviewer_answers_only_what_the_state_can_answer"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Most replicas' traps were ignored.",
+   "scenario": "binary named its leak 'leak', time to event 'leaks'.",
+   "cause": "Only one naming was read.",
+   "fix": "Every naming the replicas use.",
+   "test": "test_replicas_name_their_traps_their_own_way"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Disagreements were hardly over-sampled.",
+   "scenario": "Overrides fell in the 0.10 stratum.",
+   "cause": "The stratum was rule against model only.",
+   "fix": "A stratum from whether any answers disagree.",
+   "test": "test_a_disagreement_is_drawn_more_often"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted faults",
+   "gate": "each planted fault in the precedence, the draw, the labels and the route fails a test",
+   "result": "13 of 14 caught; the 14th (the route's empty-value check) is a second guard behind the label function's own",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "13 of 14, the 14th redundant",
+   "limits": [
+    "Only the faults planted."
+   ]
+  },
+  {
+   "name": "blind draw",
+   "gate": "the drawn share per stratum matches its declared probability",
+   "result": "agreeing decisions near 0.10, disagreeing near 0.60 over 2,000 each, reproducible",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "near 0.10 and near 0.60, as declared",
+   "limits": [
+    "Synthetic records."
+   ]
+  }
+ ],
+ "outcome": "Decisions now carry what was right where it is known: planted truth on replicas, the leakage stage's measurements, people's corrections counted only when they correct, and a blind sample whose weights undo its own over-sampling.",
+ "lessons": [
+  "A label's meaning depends on what its author saw: write exposed labels only where the answer was shown.",
+  "A queue that always serves the first item must be able to answer it, or it stalls."
+ ],
+ "risks": [
+  "No replica declares its label key or family yet.",
+  "Who labels blind is the owner's decision."
+ ],
+ "commits": []
+}

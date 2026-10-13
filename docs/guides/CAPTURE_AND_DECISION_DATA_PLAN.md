@@ -165,6 +165,15 @@ person's overrides.
 - **Done when:** every decision on a replica has its benchmark label; a person's override becomes a label that
   supersedes the rule's; a blind label carries its sampling weight; the precedence (blind, benchmark, measured,
   exposed) is one function.
+- **Status: done (2026-10-14).** dclab-core 0.9.0 (`effective_label`, the blind draw); `dclab_rnd/ledger/labels.py`
+  (benchmark labels from a replica's declared traps, written after every acceptance run that keeps a ledger; the blind
+  draw and label); exposed labels where a person chose otherwise than the rule, measured labels from the leakage
+  stage (a forbidden column's lift, a random split's optimism); the Admin page's Decisions tab (counts, blind
+  labelling) behind `/api/ledger/*` (owner and reviewers); the blind draw is stratified by whether the answers agree
+  (disagreements at 0.60, the rest at 0.10 to 0.30), only over points a reviewer can answer from what is shown.
+  Left open: benchmark labels for the label key and the family (no replica declares them yet) and for the
+  `agent_eval` cases (22.1 generates labelled cases at scale); measured labels from the tuning gain, the recipe ladder
+  and the holdout against cross-validation; who labels blind (the owner's answer).
 
 ## Phase C4 — Quality, consent and data samples
 

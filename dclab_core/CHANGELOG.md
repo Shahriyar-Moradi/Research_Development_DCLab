@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.9.0 (2026-10-14)
+
+Package 19.8: which label counts, and blind labels. New functions; no contract changes shape.
+
+- `ledger.effective_label(record, labels)`: the one label that says what was right: among the labels no later one
+  supersedes, blind, then benchmark, then measured, then exposed (the latest within a source); an exposed label (a
+  person who saw the answers) counts only when it says the value used was wrong: it may demote, never promote.
+  `current_labels`, `PRECEDENCE`.
+- Blind labels: `blind_probability` (fixed per stratum of agreement, disagreements over-sampled, `BLIND_RATES`),
+  `blind_draw` (a hash of the record's id and a seed against that probability: reproducible, its probability known
+  before anyone labels; a label's weight is 1 / it), `blind_view` (what a blind reviewer sees: the question, the
+  subject, the state and the options; never an answer, the value used or who decided).
+
 ## 0.8.1 (2026-10-14)
 
 Package 19.7: the ledger's vocabulary as the studio's capture needs it; no contract changes shape.

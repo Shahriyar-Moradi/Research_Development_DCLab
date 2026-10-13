@@ -262,6 +262,9 @@
     labSummaryRoute: ["GET", "/lab/summary", [], []],
     learnPacks: ["GET", "/learn/packs", [], []],
     learnPolicy: ["GET", "/learn/policy", [], []],
+    ledgerBlindNext: ["GET", "/ledger/blind/next", [], ["point"]],
+    ledgerBlindLabel: ["POST", "/ledger/blind/{record_id}", ["record_id"], []],
+    ledgerSummary: ["GET", "/ledger/summary", [], []],
     listLessons: ["GET", "/lessons", [], ["project_id", "status"]],
     reviewLesson: ["POST", "/lessons/{lesson_id}/review", ["lesson_id"], []],
     modelOverview: ["GET", "/models", [], []],
@@ -654,6 +657,24 @@
   client.learnPolicy = (...args) => call('learnPolicy', args);
   client.path.learnPolicy = (...args) => build('learnPolicy', args).path;
   client.href.learnPolicy = (...args) => '/api' + build('learnPolicy', args).path;
+  /** GET /api/ledger/blind/next: Ledger Blind Next
+   *  @param {{query?: {point?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.ledgerBlindNext = (...args) => call('ledgerBlindNext', args);
+  client.path.ledgerBlindNext = (...args) => build('ledgerBlindNext', args).path;
+  client.href.ledgerBlindNext = (...args) => '/api' + build('ledgerBlindNext', args).path;
+  /** POST /api/ledger/blind/{record_id}: Ledger Blind Label
+   *  @param {string} record_id
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.ledgerBlindLabel = (...args) => call('ledgerBlindLabel', args);
+  client.path.ledgerBlindLabel = (...args) => build('ledgerBlindLabel', args).path;
+  /** GET /api/ledger/summary: Ledger Summary
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.ledgerSummary = (...args) => call('ledgerSummary', args);
+  client.path.ledgerSummary = (...args) => build('ledgerSummary', args).path;
+  client.href.ledgerSummary = (...args) => '/api' + build('ledgerSummary', args).path;
   /** GET /api/lessons: List Lessons
    *  @param {{query?: {project_id?: *, status?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Lessons>} */

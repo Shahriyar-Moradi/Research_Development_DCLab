@@ -46,6 +46,10 @@ SPECIAL = {
     ("GET", "/api/experience/sessions"): "timelines",
     ("GET", "/api/experience/sessions/{visit}"): "timelines",
     ("GET", "/api/experience/search"): "timelines",
+    # the decision ledger and its blind labels (19.8): the owner and reviewers
+    ("GET", "/api/ledger/summary"): "review",
+    ("GET", "/api/ledger/blind/next"): "review",
+    ("POST", "/api/ledger/blind/{record_id}"): "review",
 }
 
 

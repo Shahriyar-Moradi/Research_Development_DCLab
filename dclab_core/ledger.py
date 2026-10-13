@@ -349,4 +349,88 @@ class DecisionLabel(Versioned):
         return self
 
 
+# ------------------------------------------------------------------------------------------------ which label counts (19.8)
+PRECEDENCE = ("blind", "benchmark", "measured", "user_decision_exposed")  # first is strongest
+
+
+def current_labels(labels: list[DecisionLabel]) -> list[DecisionLabel]:
+    """The labels no later label supersedes."""
+    superseded = {x.supersedes for x in labels if x.supersedes}
+    return [x for x in labels if x.id not in superseded]
+
+
+def effective_label(record: DecisionRecord, labels: list[DecisionLabel]) -> Optional[DecisionLabel]:
+    """The one label that says what was right for ``record``: among the labels of this record no later one supersedes,
+    the strongest source wins (blind, benchmark, measured, then exposed), the latest within a source. An exposed label
+    (a person who saw the answers) may demote, never promote: it counts only when it says the value used was wrong,
+    since a person who saw the answer and agreed is not evidence that it was right: it counts when it contradicts an
+    answer a rule or a model gave. A label without a value says nothing and never counts."""
+    mine = [x for x in current_labels(labels) if x.record == record.id and x.value is not None]
+    shown = [a.value for a in record.answers if a.by != "person" and a.value is not None]
+    for source in PRECEDENCE:
+        found = sorted((x for x in mine if x.source == source), key=lambda x: x.at)
+        if source == "user_decision_exposed":
+            found = [x for x in found if any(v != x.value for v in shown)]
+        if found:
+            return found[-1]
+    return None
+
+
+# ------------------------------------------------------------------------------------------------ blind labels (19.8)
+BLIND_RATES = {"agree": 0.10, "disagree": 0.60, "single": 0.10, "abstain": 0.30}  # disagreements over-sampled
+# points a blind reviewer cannot answer from the state alone, or whose state names the answer
+NOT_BLIND = frozenset({"workflow.revisit", "workflow.template", "problem.pack", "workflow.next_question", "agent.tool_choice",
+                       "workflow.stop", "report.claim", "lesson.accept", "workflow.stage_approval"})
+
+
+def stratum(record: DecisionRecord) -> str:
+    """How its answers relate: they disagree (any two answers with a value differ: a rule against a person, a model
+    against a rule), agree, a model abstained, or there was a single answer."""
+    values = [a.value for a in record.answers if a.value is not None]
+    if len({repr(v) for v in values}) > 1:
+        return "disagree"
+    if any(a.by in ("model_role", "classifier") and a.value is None for a in record.answers):
+        return "abstain"
+    return "agree" if len(values) > 1 else "single"
+
+
+def blind_probability(record: DecisionRecord, rates: Optional[dict[str, float]] = None) -> float:
+    """The probability with which ``record`` is drawn for a blind label: fixed per stratum, so every blind label
+    carries its weight, 1 / this, and estimates can be corrected for the over-sampling."""
+    return float((rates or BLIND_RATES).get(stratum(record), 0.10))
+
+
+def blind_options(record: DecisionRecord) -> list[str]:
+    """What a blind reviewer chooses among: yes or no, the point's choices, or the options the decision had."""
+    point = POINTS[record.point]
+    if point.answer == "noul":
+        return ["yes", "no"]
+    return list(point.choices) or list(record.options)
+
+
+def blind_eligible(record: DecisionRecord) -> bool:
+    """A decision a reviewer can answer from what it shows: a point whose state does not name the answer, with options."""
+    return record.point not in NOT_BLIND and bool(blind_options(record))
+
+
+def blind_draw(record: DecisionRecord, seed: str = "blind-v1", rates: Optional[dict[str, float]] = None) -> bool:
+    """Whether ``record`` is in the blind sample: a hash of its id and the seed against its stratum's probability, so
+    the draw is reproducible and its probability known before anyone labels."""
+    import hashlib
+
+    if not blind_eligible(record):
+        return False
+    u = int(hashlib.sha256(f"{seed}:{record.id}".encode()).hexdigest()[:12], 16) / float(16 ** 12)
+    return u < blind_probability(record, rates)
+
+
+def blind_view(record: DecisionRecord) -> dict[str, Any]:
+    """What a blind reviewer sees: the question, the subject, the state and the options; never an answer, the value
+    used, or who decided."""
+    point = POINTS[record.point]
+    state = {k: v for k, v in record.state.items() if v != record.value_used or isinstance(v, bool)}  # never the answer itself
+    return {"record": record.id, "point": record.point, "question": point.about, "answer": point.answer, "subject": record.subject.model_dump(),
+            "state": state, "options": blind_options(record)}
+
+
 CONTRACTS.update({"decision_record": DecisionRecord, "decision_label": DecisionLabel})

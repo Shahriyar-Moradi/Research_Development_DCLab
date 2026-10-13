@@ -42,16 +42,22 @@ def _who(actor: str) -> tuple[str, str, int]:
 
 
 def _put(point: str, subject: tuple[str, str], answers: list[Any], value: Any, used: str, *, state: dict[str, Any] | None = None,
-         options: Any = (), level: int = 0, **ids: Any) -> Any:
-    return decide(point, subject, answers=[a for a in answers if a is not None], value_used=value, used=used, state=state or {},
-                  options=[str(o)[:200] for o in options if o is not None][:64], level=level, **ids)
+         options: Any = (), level: int = 0, exposed: bool = False, **ids: Any) -> Any:
+    answers = [a for a in answers if a is not None]
+    record = decide(point, subject, answers=answers, value_used=value, used=used, state=state or {},
+                    options=[str(o)[:200] for o in options if o is not None][:64], level=level, **ids)
+    if record is not None and exposed and used == "person":  # 19.8: a person who was shown the rule's answer and chose otherwise
+        rule = next((a for a in answers if a.by == "rule" and a.value is not None), None)
+        if rule is not None and rule.value != value:
+            label(record, value, "user_decision_exposed", next((a.answerer for a in answers if a.by == "person"), "person"))
+    return record
 
 
 # ---------------------------------------------------------------------- a saved solution
 
 @_quiet
 def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | None, solution: dict[str, Any], actor: str = "human",
-                   truth: dict[str, Any] | None = None, **ids: Any) -> int:
+                   truth: dict[str, Any] | None = None, exposed: bool = True, **ids: Any) -> int:
     """A saved solution against what was proposed for its target: the task, and for each column whether it is an
     identifier, whether it leaks, whether it is the time or the entity column. The rules' answers are the proposal's own
     (``proposal["rule"]``: before a studied sample's written solution is merged in); the leakage reviewer's per-column
@@ -73,12 +79,12 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
     with batch():
         if target:  # nothing ranks the outcome for the person (a key once became one): only their choice is recorded
             written += bool(_put("target.column", where, [answer(by, who, target)], target, by, state={**problem, "outcome_known": True},
-                                 options=((profile or {}).get("target_candidates") or [])[:20], level=level, **ids))
+                                 options=((profile or {}).get("target_candidates") or [])[:20], level=level, exposed=exposed, **ids))
         detected = (proposal.get("detected") or {}).get("task")
         if task:
             written += bool(_put("task.framing", where, [answer("rule", "rule:detect_task", detected if detected in TASKS else None),
                                                           answer(by, who, solution.get("task"))],
-                                 solution.get("task"), by, state=problem, options=list(TASKS), level=level, **ids))
+                                 solution.get("task"), by, state=problem, options=list(TASKS), level=level, exposed=exposed, **ids))
         ids_rule = set(own.get("identifiers") or [])
         audit = {f.get("column") for f in own.get("forbidden") or [] if "DCLAB-R01" not in (f.get("proof") or [])}
         saved_ids = set(solution.get("identifiers") or [])
@@ -96,7 +102,7 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
             bands = column_state(column, rows)
             rec = _put("column.is_identifier", ("column", name),
                        [answer("rule", "rule:id_like", name in ids_rule) if own else None, answer(by, who, name in saved_ids)],
-                       name in saved_ids, by, state=bands, options=["yes", "no"], level=level, **ids)
+                       name in saved_ids, by, state=bands, options=["yes", "no"], level=level, exposed=exposed, **ids)
             written += bool(rec)
             if truth and rec is not None:
                 label(rec, name in true_ids, "benchmark", f"sample:{truth.get('key') or 'written'}")
@@ -107,7 +113,7 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                 answers.append(answer("model_role", "leakage_review", verdicts[name]))
             answers.append(answer(by, who, name in forbidden))
             rec = _put("feature.leakage_suspect", ("column", name), answers, name in forbidden, by,
-                       state={**bands, "target": str(target)[:200] if target else None, "task": task}, options=["yes", "no"], level=level, **ids)
+                       state={**bands, "target": str(target)[:200] if target else None, "task": task}, options=["yes", "no"], level=level, exposed=exposed, **ids)
             written += bool(rec)
             if truth and rec is not None:
                 label(rec, name in true_forbidden, "benchmark", f"sample:{truth.get('key') or 'written'}")
@@ -117,14 +123,14 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                 written += bool(_put("column.time", ("column", name), [answer("rule", "rule:time_candidates", name == (times[0] if times else None)),
                                                                       answer(by, who, name == solution.get("time_column"))],
                                      name == solution.get("time_column"), by, state=column_state(columns[name], rows), options=["yes", "no"],
-                                     level=level, **ids))
+                                     level=level, exposed=exposed, **ids))
         groups = list(own.get("group_candidates") or [])
         for name in dict.fromkeys(groups[:10] + ([solution["group_column"]] if solution.get("group_column") else [])):
             if name in columns:
                 written += bool(_put("column.group", ("column", name), [answer("rule", "rule:group_candidates", name in groups),
                                                                        answer(by, who, name == solution.get("group_column"))],
                                      name == solution.get("group_column"), by, state=column_state(columns[name], rows), options=["yes", "no"],
-                                     level=level, **ids))
+                                     level=level, exposed=exposed, **ids))
     return written
 
 
@@ -197,6 +203,16 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                 written += bool(rec)
                 if rec is not None and isinstance(lift, (int, float)) and name in declared and lift > 0:  # measured: it would have looked better
                     label(rec, True, "measured", "apparent_lift", evidence={"kind": "apparent_lift", "value": float(lift), "ref": f"leakage.evidence.{name}"[:200]})
+            gap = (evidence.get("random_vs_time_cv") or {}).get("optimism_gap")
+            if isinstance(gap, (int, float)) and gap > 0:  # 19.8 measured: a random split would have looked better than it is
+                from . import current_ledger
+
+                book = current_ledger()
+                splits = [r for r in (book.records(project=ids.get("project"), point="split.strategy") if book is not None and ids.get("project") else [])
+                          if r.value_used == "time"]  # the gap is measured against a time split: it confirms that one only
+                if splits:
+                    label(splits[-1], "time", "measured", "optimism_gap",
+                          evidence={"kind": "optimism_gap", "value": float(gap), "ref": "leakage.evidence.random_vs_time_cv"})
         elif stage == "features" and decision.get("chosen") is not None:
             put("features.recipe", str(decision.get("selected", decision["chosen"]))[:200], "rule:select_within_tolerance",
                 options=[o.get("id") for o in decision.get("options") or []])
@@ -283,7 +299,7 @@ def approval(stage: str, record: dict[str, Any] | None, choice: Any, actor: str,
         if point and choice not in (None, "") and str(choice) != str(selected):
             written += bool(_put(point, ("project", project_id), [answer("rule", "rule:stage_selection", str(selected)[:200] if selected is not None else None),
                                                                   answer(by, who, str(choice)[:200])],
-                                 str(choice)[:200], by, state={"stage": _code(stage)}, options=options, level=level, project=project_id))
+                                 str(choice)[:200], by, state={"stage": _code(stage)}, options=options, level=level, exposed=True, project=project_id))
     return written
 
 

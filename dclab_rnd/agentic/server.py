@@ -211,11 +211,11 @@ def create_app(home=None) -> FastAPI:
     app.include_router(accounts_api.router)
     # the draft routes and the pages hold stand-ins: each use reaches the request's workspace (agentic/current.py)
     c = {name: Current(name, s) for name in ("store", "projects", "drafts", "intern_sessions", "gateway", "draft_tasks", "traces", "jobs",
-                                             "intern_jobs", "draft_jobs", "job_store", "audit", "experience")}
+                                             "intern_jobs", "draft_jobs", "job_store", "audit", "experience", "ledger")}
     draft_api.register(app, c["drafts"], c["projects"], c["gateway"], c["draft_tasks"], c["traces"], services=Current(None, s))
     pages.register_all(app, pages.Context(store=c["store"], projects=c["projects"], drafts=c["drafts"], intern_sessions=c["intern_sessions"],
                                           models=c["gateway"], jobs=c["jobs"], intern_jobs=c["intern_jobs"], draft_jobs=c["draft_jobs"],
-                                          job_store=c["job_store"], audit=c["audit"], experience=c["experience"]))
+                                          job_store=c["job_store"], audit=c["audit"], experience=c["experience"], ledger=c["ledger"]))
     if s.mcp is not None:
         app.mount("/mcp", app=s.mcp.handle_request, name="mcp")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")

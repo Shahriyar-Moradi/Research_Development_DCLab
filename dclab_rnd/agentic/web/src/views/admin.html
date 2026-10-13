@@ -125,6 +125,23 @@
       <div class="panel-foot bar" id="audit-foot" hidden><span id="audit-range"></span><span data-style="flex:1"></span><button type="button" class="btn sm" id="audit-newer">Newer</button><button type="button" class="btn sm" id="audit-older">Older</button></div>
     </div>
   </div>
+  <div class="pane" data-pane="decisions" data-label="Decisions">
+    <div class="stats" id="dec-stats">
+      <div class="stat"><span class="v">—</span><span class="l">decisions recorded</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">labels</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">drawn for a blind label</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">decided by a person</span></div>
+    </div>
+    <div class="panel" data-f="admin.blind">
+      <div class="panel-head"><div class="panel-title"><h2>Label a decision, blind</h2><span class="sub">You see the question and what was known, never the answer DCLab gave. Your label weighs as the draw says.</span></div></div>
+      <div class="panel-body stack" id="blind-body"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="panel" data-f="admin.decisions">
+      <div class="panel-head"><div class="panel-title"><h2>Decisions by point</h2><span class="sub" id="dec-sub">Every decision DCLab made, technical and workflow, with who decided</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Point</th><th>Decisions</th></tr></thead><tbody id="dec-body"></tbody></table></div>
+    </div>
+  </div>
+
   <div class="pane" data-pane="sessions" data-label="Sessions">
     <div class="stats" id="sess-stats">
       <div class="stat"><span class="v">—</span><span class="l">sessions recorded</span></div>
@@ -308,7 +325,42 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el)]);
+    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadDecisions(el)]);
+  },
+
+  async loadDecisions(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.ledgerSummary({ quiet: true }); } catch (e) { DC.states.failed($('#dec-body', el), e, { retry: () => this.loadDecisions(el), cols: 2 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    $('#dec-stats', el).innerHTML = [[n(r.decisions), `decisions recorded · ${n((r.by_kind || {}).technical)} technical, ${n((r.by_kind || {}).workflow)} workflow`],
+      [n(r.labels), 'labels · ' + (Object.entries(r.by_source || {}).map(([k, v]) => `${n(v)} ${k.replace(/_/g, ' ')}`).join(', ') || 'none yet')],
+      [n(r.drawn), 'drawn for a blind label'], [n((r.by_used || {}).person), 'decided by a person']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${esc(l)}</span></div>`).join('');
+    const points = Object.entries(r.by_point || {});
+    if (points.length) $('#dec-body', el).innerHTML = points.map(([p, c]) => `<tr><td class="mono small">${esc(p)}</td><td class="mono small">${n(c)}</td></tr>`).join('');
+    else DC.states.empty($('#dec-body', el), 'No decision recorded yet: they appear as DCLab works on drafts and projects.', { cols: 2 });
+    await this.loadBlind(el);
+  },
+
+  async loadBlind(el) {
+    const { $, esc } = DC;
+    const box = $('#blind-body', el);
+    let r;
+    try { r = await DC.client.ledgerBlindNext({ quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => this.loadBlind(el) }); return; }
+    const item = r.item;
+    if (!item) { DC.states.empty(box, 'Nothing to label: every decision drawn so far has its blind label.'); return; }
+    const state = Object.entries(item.state || {}).map(([k, v]) => `<dt>${esc(k.replace(/_/g, ' '))}</dt><dd class="mono small">${esc(Array.isArray(v) ? v.join(', ') : String(v))}</dd>`).join('');
+    box.innerHTML = `<div><b>${esc(item.question)}</b><div class="xs muted">About the ${esc(item.subject.kind)} <code>${esc(item.subject.key)}</code> · weight ${esc(String(item.weight))}</div></div>`
+      + (state ? `<dl class="kv">${state}</dl>` : '<div class="xs muted">No state was recorded for this decision.</div>')
+      + `<div class="row" data-style="flex-wrap:wrap;gap:6px">${(item.options || []).map(o => `<button type="button" class="btn sm" data-blind="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+    box.querySelectorAll('[data-blind]').forEach(b => b.addEventListener('click', async () => {
+      const raw = b.dataset.blind;
+      const value = item.answer === 'noul' ? raw === 'yes' : raw;
+      try { await DC.client.ledgerBlindLabel(item.record, { body: { value } }); DC.toast('Labelled, blind.'); await this.loadDecisions(el); }
+      catch (e) { DC.toast(e.message, { ok: false }); }
+    }));
+    DC.hydrate(el);
   },
 
   sessQuery(el) {

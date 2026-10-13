@@ -2004,6 +2004,23 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-foot bar" id="audit-foot" hidden><span id="audit-range"></span><span data-style="flex:1"></span><button type="button" class="btn sm" id="audit-newer">Newer</button><button type="button" class="btn sm" id="audit-older">Older</button></div>
     </div>
   </div>
+  <div class="pane" data-pane="decisions" data-label="Decisions">
+    <div class="stats" id="dec-stats">
+      <div class="stat"><span class="v">—</span><span class="l">decisions recorded</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">labels</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">drawn for a blind label</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">decided by a person</span></div>
+    </div>
+    <div class="panel" data-f="admin.blind">
+      <div class="panel-head"><div class="panel-title"><h2>Label a decision, blind</h2><span class="sub">You see the question and what was known, never the answer DCLab gave. Your label weighs as the draw says.</span></div></div>
+      <div class="panel-body stack" id="blind-body"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="panel" data-f="admin.decisions">
+      <div class="panel-head"><div class="panel-title"><h2>Decisions by point</h2><span class="sub" id="dec-sub">Every decision DCLab made, technical and workflow, with who decided</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Point</th><th>Decisions</th></tr></thead><tbody id="dec-body"></tbody></table></div>
+    </div>
+  </div>
+
   <div class="pane" data-pane="sessions" data-label="Sessions">
     <div class="stats" id="sess-stats">
       <div class="stat"><span class="v">—</span><span class="l">sessions recorded</span></div>

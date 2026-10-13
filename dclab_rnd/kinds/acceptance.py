@@ -140,10 +140,13 @@ def build(case: Case, root: Path) -> tuple[Any, str]:
     project["solution"] = Solution(**stated).model_dump()
     project["settings"]["quick"] = case.quick
     store.save(project)
+    from dclab_rnd.ledger import capture  # 19.7: the proposal a person accepts, as decisions (when a ledger keeps them)
+
+    capture.solution_saved(proposal, project["data"]["profile"], project["solution"], "human", exposed=False, project=project["id"])  # a simulated person
     return store, project["id"]
 
 
-def engine_run(case: Case) -> Run:
+def engine_run(case: Case, replica: str | None = None) -> Run:
     """The case as a project, every stage run by the engine with no model asked anything (a replica's records stay on the
     machine), and the finished records."""
     from dclab_rnd.expansion import runner
@@ -154,6 +157,9 @@ def engine_run(case: Case) -> Run:
         store, project_id = build(case, Path(tmp))
         with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
             engine.run_all(store, project_id)
+        from dclab_rnd.ledger import labels  # 19.8: the replica's planted traps label its decisions (when a ledger keeps them)
+
+        labels.from_replica(project_id, case.facts, replica or case.target)
         records = {stage: store.read_stage(project_id, stage) for stage in engine.STAGE_KEYS}
         project = store.get(project_id)
         return Run(case, project["solution"], records, project.get("labels") or {})
@@ -170,11 +176,11 @@ def run(kind: Any, seed: int = 0) -> dict[str, Any]:
     if own is not None:
         checks = kind.accept(own)
         if kind.own_machine() is not None:  # 16.15: and the engine runs the same case, stage by stage, under its gates
-            checks += kind.accept_engine(engine_run(case))
+            checks += kind.accept_engine(engine_run(case, kind.key))
         missing = [c["decision"] for c in checks if not c["ok"]] + ([] if kind.runs_in_engine else [ENGINE_MISSING])
         return {"kind": kind.key, "status": "supported" if checks and not missing else "partial", "checks": checks,
                 "missing": missing, "seconds": round(time.perf_counter() - started, 1)}
-    done = engine_run(case)
+    done = engine_run(case, kind.key)
     checks = kind.accept(done)
     computed = set((done.evidence("final").get("baselines") or {}).keys())
     checks.append(check("the baselines the kind declares are the ones the final stage computes", set(kind.baselines) <= computed,
