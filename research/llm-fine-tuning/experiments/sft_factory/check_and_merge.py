@@ -26,12 +26,14 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "out"
-STAGES = ["problem_understanding", "data_analysis", "solution_design", "connected_problem_to_plan",
-          "data_understanding", "leakage_audit", "feature_engineering", "feature_engineering_balance",
+STAGES = ["problem_understanding", "contract_check", "data_analysis", "solution_design", "connected_problem_to_plan",
+          "end_to_end", "data_understanding", "leakage_audit", "feature_engineering", "feature_engineering_balance",
           "model_selection", "optimization_reliability"]
 # Stages whose answers are JSON contracts (problem_to_plan_samples.py). Their generator already validates them
 # against dclab_core's contracts, quote rules, plan.validate and a stricter number check; here they must parse.
-JSON_STAGES = {"problem_understanding", "data_analysis", "solution_design", "connected_problem_to_plan"}
+JSON_STAGES = {"problem_understanding", "contract_check", "data_analysis", "solution_design", "connected_problem_to_plan"}
+# end_to_end mixes both formats: JSON turns must parse, DECISION turns must pick an action their own turn allows.
+# Its generator already checks every number of every turn against everything before it.
 NUM = re.compile(r"[+-]?\d[\d,]*\.\d+%?|[+-]?\d+/5")
 
 
@@ -40,7 +42,27 @@ def load(stage, split):
     return [json.loads(l) for l in open(p, encoding="utf-8")] if p.exists() else []
 
 
+def check_turns(sample):
+    problems, msgs = [], sample["messages"]
+    for i, m in enumerate(msgs):
+        if m["role"] != "assistant":
+            continue
+        if m["content"].startswith("DECISION:"):
+            decision = re.search(r"DECISION: (\S+)", m["content"]).group(1)
+            allowed = re.search(r"ALLOWED ACTIONS: (.*)", msgs[i - 1]["content"]).group(1).split(" | ")
+            if decision not in allowed:
+                problems.append(f"turn_{i}_decision_not_allowed")
+        else:
+            try:
+                json.loads(m["content"])
+            except json.JSONDecodeError:
+                problems.append(f"turn_{i}_not_json")
+    return problems
+
+
 def check(sample):
+    if sample["metadata"].get("stage") == "end_to_end":
+        return check_turns(sample)
     if sample["metadata"].get("stage") in JSON_STAGES:
         problems = []
         for m in sample["messages"]:

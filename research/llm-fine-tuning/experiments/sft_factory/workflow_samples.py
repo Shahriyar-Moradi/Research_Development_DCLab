@@ -320,6 +320,45 @@ def fe_recipes(X, rng, force=()):
     return out
 
 
+def fe_decide(res):
+    """Rule R07/R16 on paired fold results {recipe: {"folds", "n"}}; adds "gain"/"wins" to res."""
+    raw = res["raw"]["folds"]
+    rows, qualified = [], []
+    for name, r in res.items():
+        gain = r["folds"] - raw
+        r["gain"], r["wins"] = float(gain.mean()), int((gain > 0).sum())
+        gain_txt = "—" if name == "raw" else f"{r['gain']:+.4f}"
+        wins_txt = "—" if name == "raw" else f"{r['wins']}/5"
+        rows.append(f"| {name} | {r['n']} | {r['folds'].mean():.4f} | {r['folds'].std():.4f} | {gain_txt} | {wins_txt} |")
+        if name != "raw" and r["gain"] >= FE_TOL and r["wins"] == 5:
+            qualified.append(name)
+    if qualified:
+        qualified.sort(key=lambda n: -res[n]["gain"])
+        best = qualified[0]
+        if len(qualified) > 1 and res[best]["gain"] - res[qualified[1]]["gain"] <= 0.002 \
+                and res[qualified[1]]["n"] < res[best]["n"]:
+            best = qualified[1]
+        action = f"adopt_{best}"
+        r = res[best]
+        why = (f"`{best}` improves on raw by {r['gain']:+.4f} mean paired ROC-AUC and wins on {r['wins']}/5 folds, "
+               f"which clears the +0.005 bar consistently, not by luck on one fold. "
+               + (f"Other recipes that also qualified gained less. " if len(qualified) > 1 else "")
+               + f"It adds {r['n'] - res['raw']['n']} features with a recorded formula, so its lineage stays auditable.")
+        rule, nxt = ("DCLAB-R07 (promote the smallest defensible set within tolerance) and DCLAB-R16 (paired margin)",
+                     f"Carry the raw + {best} feature set into model selection and log each new feature's formula.")
+    else:
+        action, best = "keep_raw", "raw"
+        cand = [n for n in res if n != "raw"]
+        bestg = max(cand, key=lambda n: res[n]["gain"]) if cand else None
+        why = ("No engineered recipe clears the bar. "
+               + (f"The closest, `{bestg}`, changes ROC-AUC by {res[bestg]['gain']:+.4f} and wins on "
+                  f"{res[bestg]['wins']}/5 folds, which is not a consistent gain of at least +0.005. " if bestg else "")
+               + "Extra features without a real gain only add maintenance and drift risk, so the raw baseline stays.")
+        rule, nxt = ("DCLAB-R07 (start from a strong raw baseline) and DCLAB-R16 (demand a predeclared margin)",
+                     "Carry the raw feature set into model selection.")
+    return {"rows": rows, "action": action, "recipe": best, "why": why, "rule": rule, "next": nxt}
+
+
 def stage_feature_engineering(key, variants, seed, sims_only=False):
     rng = np.random.default_rng(seed)
     Xf, yf, meta = load(key, 3000, seed)
@@ -348,40 +387,8 @@ def stage_feature_engineering(key, variants, seed, sims_only=False):
         for name, Xr in recipes.items():
             a, t = fold_aucs(model, Xr, y, splits, seed)
             res[name] = {"folds": a, "n": Xr.shape[1], "t": t}
-        raw = res["raw"]["folds"]
-        rows, qualified = [], []
-        for name, r in res.items():
-            gain = r["folds"] - raw
-            r["gain"], r["wins"] = float(gain.mean()), int((gain > 0).sum())
-            gain_txt = "—" if name == "raw" else f"{r['gain']:+.4f}"
-            wins_txt = "—" if name == "raw" else f"{r['wins']}/5"
-            rows.append(f"| {name} | {r['n']} | {r['folds'].mean():.4f} | {r['folds'].std():.4f} | {gain_txt} | {wins_txt} |")
-            if name != "raw" and r["gain"] >= FE_TOL and r["wins"] == 5:
-                qualified.append(name)
-        if qualified:
-            qualified.sort(key=lambda n: -res[n]["gain"])
-            best = qualified[0]
-            if len(qualified) > 1 and res[best]["gain"] - res[qualified[1]]["gain"] <= 0.002 \
-                    and res[qualified[1]]["n"] < res[best]["n"]:
-                best = qualified[1]
-            action = f"adopt_{best}"
-            r = res[best]
-            why = (f"`{best}` improves on raw by {r['gain']:+.4f} mean paired ROC-AUC and wins on {r['wins']}/5 folds, "
-                   f"which clears the +0.005 bar consistently, not by luck on one fold. "
-                   + (f"Other recipes that also qualified gained less. " if len(qualified) > 1 else "")
-                   + f"It adds {r['n'] - res['raw']['n']} features with a recorded formula, so its lineage stays auditable.")
-            rule, nxt = ("DCLAB-R07 (promote the smallest defensible set within tolerance) and DCLAB-R16 (paired margin)",
-                         f"Carry the raw + {best} feature set into model selection and log each new feature's formula.")
-        else:
-            action = "keep_raw"
-            cand = [n for n in res if n != "raw"]
-            bestg = max(cand, key=lambda n: res[n]["gain"]) if cand else None
-            why = ("No engineered recipe clears the bar. "
-                   + (f"The closest, `{bestg}`, changes ROC-AUC by {res[bestg]['gain']:+.4f} and wins on "
-                      f"{res[bestg]['wins']}/5 folds, which is not a consistent gain of at least +0.005. " if bestg else "")
-                   + "Extra features without a real gain only add maintenance and drift risk, so the raw baseline stays.")
-            rule, nxt = ("DCLAB-R07 (start from a strong raw baseline) and DCLAB-R16 (demand a predeclared margin)",
-                         "Carry the raw feature set into model selection.")
+        d = fe_decide(res)
+        rows, action, why, rule, nxt = d["rows"], d["action"], d["why"], d["rule"], d["next"]
         body = (f"MODEL USED FOR THE COMPARISON: {model} | 5 stratified folds, identical for every recipe\n"
                 f"RESULTS:\n| recipe | features | mean ROC-AUC | std | mean paired gain vs raw | folds improved |\n"
                 f"|---|---|---|---|---|---|\n" + "\n".join(rows))
@@ -406,6 +413,38 @@ MS_CARD = (
 MS_GUIDE = "choose the one model family to carry into optimization"
 
 
+def ms_decide(res):
+    """Rule R13/R14 on {model: {"mean", "std", "score", "t"}}."""
+    order = sorted(res, key=lambda n: -res[n]["score"])
+    best, second = order[0], order[1]
+    tie = res[best]["score"] - res[second]["score"] <= 0.002
+    fast_ratio = max(res[best]["t"], res[second]["t"]) / max(min(res[best]["t"], res[second]["t"]), 1e-3)
+    speed_tie_break = tie and fast_ratio >= 1.5
+    if speed_tie_break and res[second]["t"] < res[best]["t"]:
+        best, second = second, best
+    rows = [f"| {n} | {res[n]['mean']:.4f} | {res[n]['std']:.4f} | {res[n]['score']:.4f} | {res[n]['t']:.2f} |"
+            for n in res]
+    b, s_ = res[best], res[second]
+    if speed_tie_break:
+        why = (f"`{best}` and `{second}` are effectively tied on stability-adjusted score ({b['score']:.4f} vs "
+               f"{s_['score']:.4f}, within 0.002), so the clearly faster one goes forward: `{best}` takes {b['t']:.2f}s vs "
+               f"{s_['t']:.2f}s. A score gap this small is noise, while a speed gap this large is real.")
+    elif tie:
+        why = (f"`{best}` and `{second}` are effectively tied: stability-adjusted scores {b['score']:.4f} vs "
+               f"{s_['score']:.4f} (within 0.002) and similar runtimes ({b['t']:.2f}s vs {s_['t']:.2f}s). Nothing here "
+               f"separates them meaningfully, so `{best}` goes forward on its slightly higher score, as a low-confidence "
+               f"choice that later evidence (calibration, stability on new folds) can overturn.")
+    else:
+        why = (f"`{best}` has the highest stability-adjusted score ({b['score']:.4f}: mean {b['mean']:.4f}, std "
+               f"{b['std']:.4f}), ahead of `{second}` at {s_['score']:.4f}. "
+               + ("The linear baseline wins here, which is exactly why it is always screened: no family is best on every dataset."
+                  if best == "logistic_regression" else
+                  f"The linear baseline scores {res['logistic_regression']['score']:.4f}, so the nonlinear family earns its extra complexity."))
+    return {"rows": rows, "best": best, "second": second, "why": why, "tie": tie, "speed_tie_break": speed_tie_break,
+            "confidence": "low" if (tie and not speed_tie_break) else "medium" if tie else "high",
+            "next": f"Carry `{best}` into optimization; keep `{second}` as the paired comparison when tuning."}
+
+
 def stage_model_selection(key, variants, seed):
     rng = np.random.default_rng(seed)
     Xf, yf, meta = load(key, 4000, seed)
@@ -428,31 +467,8 @@ def stage_model_selection(key, variants, seed):
         for name in MODELS:
             a, t = fold_aucs(name, X, y, splits, seed)
             res[name] = {"mean": a.mean(), "std": a.std(), "score": a.mean() - 0.25 * a.std(), "t": t}
-        order = sorted(res, key=lambda n: -res[n]["score"])
-        best, second = order[0], order[1]
-        tie = res[best]["score"] - res[second]["score"] <= 0.002
-        fast_ratio = max(res[best]["t"], res[second]["t"]) / max(min(res[best]["t"], res[second]["t"]), 1e-3)
-        speed_tie_break = tie and fast_ratio >= 1.5
-        if speed_tie_break and res[second]["t"] < res[best]["t"]:
-            best, second = second, best
-        rows = [f"| {n} | {res[n]['mean']:.4f} | {res[n]['std']:.4f} | {res[n]['score']:.4f} | {res[n]['t']:.2f} |"
-                for n in MODELS]
-        b, s_ = res[best], res[second]
-        if speed_tie_break:
-            why = (f"`{best}` and `{second}` are effectively tied on stability-adjusted score ({b['score']:.4f} vs "
-                   f"{s_['score']:.4f}, within 0.002), so the clearly faster one goes forward: `{best}` takes {b['t']:.2f}s vs "
-                   f"{s_['t']:.2f}s. A score gap this small is noise, while a speed gap this large is real.")
-        elif tie:
-            why = (f"`{best}` and `{second}` are effectively tied: stability-adjusted scores {b['score']:.4f} vs "
-                   f"{s_['score']:.4f} (within 0.002) and similar runtimes ({b['t']:.2f}s vs {s_['t']:.2f}s). Nothing here "
-                   f"separates them meaningfully, so `{best}` goes forward on its slightly higher score, as a low-confidence "
-                   f"choice that later evidence (calibration, stability on new folds) can overturn.")
-        else:
-            why = (f"`{best}` has the highest stability-adjusted score ({b['score']:.4f}: mean {b['mean']:.4f}, std "
-                   f"{b['std']:.4f}), ahead of `{second}` at {s_['score']:.4f}. "
-                   + ("The linear baseline wins here, which is exactly why it is always screened: no family is best on every dataset."
-                      if best == "logistic_regression" else
-                      f"The linear baseline scores {res['logistic_regression']['score']:.4f}, so the nonlinear family earns its extra complexity."))
+        d = ms_decide(res)
+        rows, best, second, why, tie, speed_tie_break = d["rows"], d["best"], d["second"], d["why"], d["tie"], d["speed_tie_break"]
         note = None
         if sim:
             note = ("Training-variety scenario: the outcome was replaced by a simulated one built from the real columns; "
@@ -463,8 +479,8 @@ def stage_model_selection(key, variants, seed):
         samples.append(make_sample(
             "model_selection", MS_CARD, card(key, meta, X, y, note), body, MS_ACTIONS, MS_GUIDE, best, why,
             "DCLAB-R13 (no universal best family; screen a linear baseline) and DCLAB-R14 (stability and runtime, not ROC-AUC alone)",
-            "low" if (tie and not speed_tie_break) else "medium" if tie else "high",
-            f"Carry `{best}` into optimization; keep `{second}` as the paired comparison when tuning.",
+            d["confidence"],
+            d["next"],
             {"dataset": key, "generator": f"ms_{'sim_' + sim if sim else 'real'}_{size or 'full'}",
              "source": "simulated_target" if sim else "real"}))
     return samples, drops
@@ -513,6 +529,71 @@ def psi(a, b, bins=10):
     return float(np.sum((ha - hb) * np.log(ha / hb)))
 
 
+def cal_decide(st, model, train_rows):
+    """Rules R14/R18 on {"raw"|"sigmoid"|"isotonic": {"ece", "auc", "brier"}}."""
+    raw = st["raw"]
+    ok = {m: raw["ece"] > 0.03 and st[m]["ece"] <= 0.75 * raw["ece"] and st[m]["auc"] >= raw["auc"] - 0.002
+          for m in ("sigmoid", "isotonic")}
+    if not any(ok.values()):
+        action = "keep_uncalibrated"
+        why = (f"Raw `{model}` probabilities are already usable or calibration does not pay: raw ECE is {raw['ece']:.4f}"
+               + (" (at or below the 0.03 bar)" if raw["ece"] <= 0.03 else
+                  f", and neither method cuts it by 25% without losing ROC-AUC (sigmoid {st['sigmoid']['ece']:.4f}, "
+                  f"isotonic {st['isotonic']['ece']:.4f})")
+               + ". Adding a calibration layer would add complexity for no measured benefit.")
+    else:
+        cands = [m for m in ("sigmoid", "isotonic") if ok[m]]
+        pick = min(cands, key=lambda m: st[m]["ece"])
+        if pick == "isotonic" and ok["sigmoid"] and (train_rows < 1000 or st["sigmoid"]["ece"] - st["isotonic"]["ece"] < 0.005):
+            pick = "sigmoid"
+        action = f"calibrate_{pick}"
+        why = (f"Raw `{model}` probabilities are off by an ECE of {raw['ece']:.4f}, above the 0.03 bar. {pick.capitalize()} "
+               f"calibration fitted inside the training folds brings ECE to {st[pick]['ece']:.4f} with ROC-AUC "
+               f"{st[pick]['auc']:.4f} vs {raw['auc']:.4f} raw, so ranking is kept while probabilities become trustworthy. "
+               + ((f"Sigmoid is preferred over isotonic because the training folds have only about {train_rows:,} rows "
+                   f"(under 1,000), where isotonic tends to overfit." if train_rows < 1000 else
+                   f"Sigmoid is preferred because isotonic is better by less than 0.005 ECE "
+                   f"({st['isotonic']['ece']:.4f} vs {st['sigmoid']['ece']:.4f}), not enough to justify the more flexible method.")
+                  if pick == "sigmoid" and ok["isotonic"] else ""))
+    nxt = ("Lock the uncalibrated model and move to the final holdout check." if action == "keep_uncalibrated"
+           else f"Add {action.split('_')[1]} calibration inside the pipeline, lock it, and move to the final holdout check.")
+    return {"action": action, "why": why, "next": nxt}
+
+
+HOLDOUT_NEXT = {
+    "accept_result": "Report CV and holdout together with uncertainty, and do not tune anything on the holdout.",
+    "investigate_distribution_shift": "Do not tune on the holdout. Slice results by the shifted feature, document the gap, and decide with the data owner.",
+    "investigate_gap_without_shift": "Do not tune on the holdout. Put a bootstrap interval on the holdout score, review which earlier choices were made on CV, and report both numbers with the explanation.",
+}
+
+
+def holdout_decide(cv, hauc, psis, n_holdout):
+    """Rules R17/R19: cv = fold AUCs on training, hauc = holdout AUC scored once, psis = [(column, psi)] sorted."""
+    gap = cv.mean() - hauc
+    if abs(gap) <= 0.02:
+        action = "accept_result"
+        why = (f"CV ROC-AUC {cv.mean():.4f} and holdout ROC-AUC {hauc:.4f} differ by {gap:+.4f}, inside the ±0.02 band, "
+               f"so the CV estimate held up on untouched data. "
+               + (f"`{psis[0][0]}` does shift (PSI {psis[0][1]:.3f}), so it goes on the monitoring list, but it did not hurt "
+                  f"performance here." if psis[0][1] > 0.2 else "No feature shifted meaningfully between training and holdout."))
+    elif psis[0][1] > 0.2:
+        action = "investigate_distribution_shift"
+        why = (f"The holdout ROC-AUC ({hauc:.4f}) is {abs(gap):.4f} {'below' if gap > 0 else 'above'} CV ({cv.mean():.4f}), "
+               f"outside the ±0.02 band, and `{psis[0][0]}` has a PSI of {psis[0][1]:.3f} (above 0.2): the holdout "
+               f"population is different from training. The CV number does not describe this population, so the shift "
+               f"must be explained before any claim is made.")
+    else:
+        action = "investigate_gap_without_shift"
+        why = (f"CV ({cv.mean():.4f}) and holdout ({hauc:.4f}) differ by {gap:+.4f}, outside the ±0.02 band, yet no feature "
+               f"shifts much (highest PSI {psis[0][1]:.3f}). "
+               + (f"The holdout scored higher than CV, which usually means an easier or luckier sample of "
+                  f"{n_holdout:,} rows rather than a better model, so the higher number must not be reported as the expected performance."
+                  if gap < 0 else
+                  f"The holdout scored lower than CV without a population change, which points to choices fitted to CV noise "
+                  f"(optimistic CV) or an unstable estimate on {n_holdout:,} rows, so the gap needs explaining before results are reported."))
+    return {"action": action, "why": why, "next": HOLDOUT_NEXT[action]}
+
+
 def stage_optimization(key, variants, seed):
     rng = np.random.default_rng(seed)
     Xf, yf, meta = load(key, 4000, seed)
@@ -537,30 +618,8 @@ def stage_optimization(key, variants, seed):
         st = {k: {"ece": ece(y, p), "auc": roc_auc_score(y, p),
                   "brier": float(np.mean((p - y.to_numpy()) ** 2))} for k, p in preds.items()}
         train_rows = int(len(y) * 2 / 3)
-        raw = st["raw"]
-        ok = {m: raw["ece"] > 0.03 and st[m]["ece"] <= 0.75 * raw["ece"] and st[m]["auc"] >= raw["auc"] - 0.002
-              for m in ("sigmoid", "isotonic")}
-        if not any(ok.values()):
-            action = "keep_uncalibrated"
-            why = (f"Raw `{model}` probabilities are already usable or calibration does not pay: raw ECE is {raw['ece']:.4f}"
-                   + (" (at or below the 0.03 bar)" if raw["ece"] <= 0.03 else
-                      f", and neither method cuts it by 25% without losing ROC-AUC (sigmoid {st['sigmoid']['ece']:.4f}, "
-                      f"isotonic {st['isotonic']['ece']:.4f})")
-                   + ". Adding a calibration layer would add complexity for no measured benefit.")
-        else:
-            cands = [m for m in ("sigmoid", "isotonic") if ok[m]]
-            pick = min(cands, key=lambda m: st[m]["ece"])
-            if pick == "isotonic" and ok["sigmoid"] and (train_rows < 1000 or st["sigmoid"]["ece"] - st["isotonic"]["ece"] < 0.005):
-                pick = "sigmoid"
-            action = f"calibrate_{pick}"
-            why = (f"Raw `{model}` probabilities are off by an ECE of {raw['ece']:.4f}, above the 0.03 bar. {pick.capitalize()} "
-                   f"calibration fitted inside the training folds brings ECE to {st[pick]['ece']:.4f} with ROC-AUC "
-                   f"{st[pick]['auc']:.4f} vs {raw['auc']:.4f} raw, so ranking is kept while probabilities become trustworthy. "
-                   + ((f"Sigmoid is preferred over isotonic because the training folds have only about {train_rows:,} rows "
-                       f"(under 1,000), where isotonic tends to overfit." if train_rows < 1000 else
-                       f"Sigmoid is preferred because isotonic is better by less than 0.005 ECE "
-                       f"({st['isotonic']['ece']:.4f} vs {st['sigmoid']['ece']:.4f}), not enough to justify the more flexible method.")
-                      if pick == "sigmoid" and ok["isotonic"] else ""))
+        d = cal_decide(st, model, train_rows)
+        action, why = d["action"], d["why"]
         body = (f"MODEL: {model} | 3 stratified folds | training rows per fold: about {train_rows:,}\n"
                 f"| probabilities | ECE | ROC-AUC | Brier |\n|---|---|---|---|\n"
                 + "\n".join(f"| {k} | {s['ece']:.4f} | {s['auc']:.4f} | {s['brier']:.4f} |" for k, s in st.items()))
@@ -568,8 +627,7 @@ def stage_optimization(key, variants, seed):
             "optimization_reliability", OPT_CAL_CARD, card(key, meta, X, y), body, OPT_CAL_ACTIONS,
             "keep_uncalibrated | calibrate_sigmoid | calibrate_isotonic", action, why.strip(),
             "DCLAB-R14 (probability quality, not ROC-AUC alone) and DCLAB-R18 (thresholds need trustworthy probabilities)",
-            "high", ("Lock the uncalibrated model and move to the final holdout check." if action == "keep_uncalibrated"
-                     else f"Add {action.split('_')[1]} calibration inside the pipeline, lock it, and move to the final holdout check."),
+            "high", d["next"],
             {"dataset": key, "generator": f"opt_calibration_{model}", "source": "real"}))
     # --- holdout samples
     cont = [c for c in Xf.columns if Xf[c].nunique() > 10] or list(Xf.columns)
@@ -591,27 +649,8 @@ def stage_optimization(key, variants, seed):
         hauc = roc_auc_score(yho, m.predict_proba(Xho)[:, 1])
         psis = sorted(((c, psi(Xtr[c], Xho[c])) for c in Xf.columns), key=lambda t: -t[1])[:3]
         gap = cv.mean() - hauc
-        if abs(gap) <= 0.02:
-            action = "accept_result"
-            why = (f"CV ROC-AUC {cv.mean():.4f} and holdout ROC-AUC {hauc:.4f} differ by {gap:+.4f}, inside the ±0.02 band, "
-                   f"so the CV estimate held up on untouched data. "
-                   + (f"`{psis[0][0]}` does shift (PSI {psis[0][1]:.3f}), so it goes on the monitoring list, but it did not hurt "
-                      f"performance here." if psis[0][1] > 0.2 else "No feature shifted meaningfully between training and holdout."))
-        elif psis[0][1] > 0.2:
-            action = "investigate_distribution_shift"
-            why = (f"The holdout ROC-AUC ({hauc:.4f}) is {abs(gap):.4f} {'below' if gap > 0 else 'above'} CV ({cv.mean():.4f}), "
-                   f"outside the ±0.02 band, and `{psis[0][0]}` has a PSI of {psis[0][1]:.3f} (above 0.2): the holdout "
-                   f"population is different from training. The CV number does not describe this population, so the shift "
-                   f"must be explained before any claim is made.")
-        else:
-            action = "investigate_gap_without_shift"
-            why = (f"CV ({cv.mean():.4f}) and holdout ({hauc:.4f}) differ by {gap:+.4f}, outside the ±0.02 band, yet no feature "
-                   f"shifts much (highest PSI {psis[0][1]:.3f}). "
-                   + (f"The holdout scored higher than CV, which usually means an easier or luckier sample of "
-                      f"{len(yho):,} rows rather than a better model, so the higher number must not be reported as the expected performance."
-                      if gap < 0 else
-                      f"The holdout scored lower than CV without a population change, which points to choices fitted to CV noise "
-                      f"(optimistic CV) or an unstable estimate on {len(yho):,} rows, so the gap needs explaining before results are reported."))
+        d = holdout_decide(cv, hauc, psis, len(yho))
+        action, why = d["action"], d["why"]
         body = (f"MODEL: {model} (locked) | training rows: {len(Xtr):,} | holdout rows: {len(Xho):,} "
                 f"(holdout positive rate {yho.mean():.1%})\n"
                 f"- 3-fold CV ROC-AUC on training: {cv.mean():.4f} (std {cv.std():.4f})\n"
@@ -623,9 +662,7 @@ def stage_optimization(key, variants, seed):
             "optimization_reliability", OPT_HO_CARD, card(key, meta, Xf, yf), body, OPT_HO_ACTIONS,
             "accept_result | investigate_distribution_shift | investigate_gap_without_shift", action, why,
             "DCLAB-R17 (holdout scored once, never tuned on) and DCLAB-R19 (check shift slices)", "high",
-            {"accept_result": "Report CV and holdout together with uncertainty, and do not tune anything on the holdout.",
-             "investigate_distribution_shift": "Do not tune on the holdout. Slice results by the shifted feature, document the gap, and decide with the data owner.",
-             "investigate_gap_without_shift": "Do not tune on the holdout. Put a bootstrap interval on the holdout score, review which earlier choices were made on CV, and report both numbers with the explanation."}[action],
+            d["next"],
             {"dataset": key, "generator": f"opt_holdout_{'shifted' if shifted else 'random'}", "source": "real"}))
     return samples, drops
 

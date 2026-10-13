@@ -4,8 +4,8 @@ from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ORDER = ["problem_understanding", "data_analysis", "solution_design", "connected_problem_to_plan",
-         "data_understanding", "leakage_audit", "feature_engineering", "model_selection", "optimization_reliability"]
+ORDER = ["problem_understanding", "contract_check", "data_analysis", "solution_design", "connected_problem_to_plan",
+         "end_to_end", "data_understanding", "leakage_audit", "feature_engineering", "model_selection", "optimization_reliability"]
 
 rows = [json.loads(l) for l in open(HERE / "out" / "all_stages" / "train.jsonl", encoding="utf-8")]
 report = json.loads((HERE / "out" / "all_stages" / "report.json").read_text())

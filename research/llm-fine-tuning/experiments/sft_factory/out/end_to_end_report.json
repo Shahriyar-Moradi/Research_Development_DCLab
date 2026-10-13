@@ -1,0 +1,167 @@
+{
+  "dropped": {
+    "metric_not_roc_auc": 52,
+    "number_not_in_input": 16
+  },
+  "decisions": {
+    "recipe": {
+      "keep_raw": 90,
+      "adopt_log_transforms": 3,
+      "adopt_ratios": 3
+    },
+    "model": {
+      "logistic_regression": 21,
+      "random_forest": 60,
+      "hist_gradient_boosting": 15
+    },
+    "calibration": {
+      "keep_uncalibrated": 72,
+      "calibrate_isotonic": 18,
+      "calibrate_sigmoid": 6
+    },
+    "holdout": {
+      "accept_result": 60,
+      "investigate_gap_without_shift": 27,
+      "investigate_distribution_shift": 9
+    }
+  },
+  "max_benchmark_similarity": 0.307,
+  "number_examples": [
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    },
+    {
+      "scenario": "breast_cancer",
+      "seed": 3,
+      "numbers": [
+        "0.914"
+      ]
+    }
+  ],
+  "splits": {
+    "train": 69,
+    "val": 9,
+    "test": 18
+  },
+  "by_scenario": {
+    "subscription_churn": 9,
+    "adult": 9,
+    "bank_marketing": 9,
+    "breast_cancer": 6,
+    "credit_default": 9,
+    "german_credit": 9,
+    "heart_disease": 9,
+    "mushroom": 9,
+    "online_shoppers": 9,
+    "spambase": 9,
+    "wine_quality": 9
+  },
+  "length": {
+    "chars_median": 22852,
+    "chars_max": 46105,
+    "approx_tokens_median": 6529,
+    "approx_tokens_max": 13172
+  }
+}
