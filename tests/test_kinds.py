@@ -200,7 +200,7 @@ class ApiTest(unittest.TestCase):
         self.assertIn("16.14", body["note"])
         packs = {p["key"]: p for p in client.get("/api/packs").json()}
         self.assertIn(packs["imbalanced"]["maturity"], ("Supported", "Partial"))
-        self.assertEqual(packs["vision"]["maturity"], "Not built")
+        self.assertEqual(packs["scenegraph"]["maturity"], "Not built")
         self.assertIn("capability", packs["tabular"])
 
 

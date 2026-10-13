@@ -69,8 +69,8 @@ class PackTest(unittest.TestCase):
         self.assertEqual(cards["tabular"]["maturity"], "Supported")  # binary, multiclass and regression all pass
         self.assertEqual(cards["timeseries"]["maturity"], "Partial")  # forecasting passes as a library; the engine cannot run it yet
         self.assertIn("engine does not run it yet", " ".join(cards["timeseries"]["capability"]["missing"]))
-        self.assertEqual(cards["vision"]["maturity"], "Not built")  # no kind yet
-        self.assertTrue(cards["vision"]["capability"]["missing"])
+        self.assertEqual(cards["scenegraph"]["maturity"], "Not built")  # no kind yet
+        self.assertTrue(cards["scenegraph"]["capability"]["missing"])
         one_fails = [r if r["kind"] != "regression" else {**r, "status": "partial", "missing": ["MAE below the median"],
                                                           "checks": [{"decision": "MAE below the median", "ok": False}]} for r in supported]
         cards = {p["key"]: p for p in pack.cards(one_fails)}

@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T03:08:32+00:00",
+ "at": "2026-10-13T03:33:57+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -529,6 +529,46 @@
     }
    ],
    "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "embedded",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "vectors are cached by content: a second pass encodes nothing",
+     "ok": true,
+     "detail": "320 encoded, then 320 read from the cache"
+    },
+    {
+     "decision": "a source stays on one side; the holdout's rows are never fitted",
+     "ok": true,
+     "detail": "images: 16 scenes held out; notes: 12 authors held out"
+    },
+    {
+     "decision": "shots of one scene are near copies a random split spreads, and folds by scene do not",
+     "ok": true,
+     "detail": "threshold 0.9984 (calibrated); random folds 24 pairs, folds by scene 0"
+    },
+    {
+     "decision": "every text pasted again by another author is found, and nothing else",
+     "ok": true,
+     "detail": "12 of 12 copies found, 0 other pairs, threshold 0.9362"
+    },
+    {
+     "decision": "both replicas are solved on whole sources: folds by source at least 0.9, the holdout at least 0.8",
+     "ok": true,
+     "detail": "images roc_auc folds by scene 0.9617, holdout 0.9739; notes folds by author 0.9993, holdout 1.0; 4 near copies straddle the holdout line: its score may be helped by them"
+    },
+    {
+     "decision": "a pretrained local encoder is measured on the replicas",
+     "ok": false,
+     "detail": "measured with baselines only (random-features-64-seed0, hashing-text-2048): no pretrained weights are on this machine, and no model purpose may read workspace texts yet"
+    }
+   ],
+   "missing": [
+    "a pretrained local encoder is measured on the replicas",
     "the engine does not run it yet: it runs as a library (dclab_core) only"
    ]
   }

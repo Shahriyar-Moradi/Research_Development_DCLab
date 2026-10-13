@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8, 16.10 and 16.11. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8 and 16.10 to 16.12. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -93,6 +93,15 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8, 16.10 and 16.11. The six co
   on the same periods, injected detectors (the studio's percentile rules and ECOD), and a future check that recomputes
   the windows with every later reading changed.
 - `replicas.machine_sensors` (new): machines with hourly readings, rare failures and the warning signs before them.
+- `embeddings` (new): images and long text through an injected encoder (16.12). `content_key` (SHA-256 of the content,
+  tagged by type: arrays and images by their values, files by their bytes; anything else refused), `Cache` (vectors by
+  encoder and content, written through a temp file of its own), `encode` (the cache first; widths checked),
+  `calibrate` (the near-copy threshold for an encoder, from items against slightly changed copies of them),
+  `near_duplicates` (pairs across sides), `evaluate` (a logistic or ridge baseline: whole sources held out once, folds by
+  source, near copies counted across the holdout, folds by source and random folds, the holdout's predictions kept),
+  and two local baselines that need no download and say they are not pretrained: `HashingText` and `RandomFeatures`.
+- `replicas.shapes_and_notes` (new): shapes photographed several times per scene, and tickets by authors with a few
+  pasted again by another author.
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

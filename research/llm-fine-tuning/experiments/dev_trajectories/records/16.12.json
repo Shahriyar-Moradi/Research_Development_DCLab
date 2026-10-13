@@ -1,0 +1,51 @@
+{
+ "package": "16.12",
+ "title": "Images and long text through pretrained embeddings",
+ "date": "2026-10-13",
+ "request": "Let DCLab use images and long documents as inputs: an encoder turns each into a vector, cached by content, then a tabular model reads the vectors, with splits by source and near copies found.",
+ "spec": "Images and long text turned into features by a pretrained encoder run locally and cached; splits by scene, document source or author; checks for near-duplicate images or texts across the split. Done when an image replica (synthetic shapes with a planted label) and a text replica are solved with the embeddings cached by content hash, and near-duplicates across folds are found.",
+ "plan": [
+  "Keep the encoder injected; dclab_core owns the cache, the near-copy check and the grouped evaluation.",
+  "Provide local baselines that need no download, named as baselines in every record.",
+  "Load a pretrained image encoder only from weights the owner places; never download.",
+  "Plant near copies in the replicas (shots of a scene, texts pasted again) and find them.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {"decision": "No text encoder goes through the gateway's embedding purpose.", "why": "That purpose may see only the evidence records, never a workspace's texts; reading user texts needs a purpose of its own, which is the owner's decision."},
+  {"decision": "The near-copy threshold is calibrated per encoder from items against slightly changed copies, three quarters of the way to the copies.", "why": "A fixed 0.99 flagged different scenes with the same shape, and a midpoint flagged a text that was not a copy."},
+  {"decision": "The pretrained gap is a decision that fails, so the matrix lists it as missing.", "why": "A check that the encoder is a baseline passed by construction and hid the open item."},
+  {"decision": "The cache keys arrays and images by their values and files by their bytes, and refuses anything else.", "why": "A printed form keyed a PIL image by its memory address: 18 of 20 different images were served another image's vector."}
+ ],
+ "change": "dclab_core/embeddings.py, dclab_core/replicas/shapes_and_notes.py, dclab_rnd/encoders.py, dclab_rnd/kinds/embedded.py, tests/test_core_embeddings.py, tests/test_kind_matrix.py and tests/test_kinds.py (the 'Not built' example moved to scene graphs), dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "M1", "source": "reviewer", "severity": "privacy", "defect": "The gateway text encoder sent workspace texts through a purpose that may never see them.", "scenario": "Support-ticket texts would go to the embedding purpose, whose limit is the evidence records with no cell values.",
+   "cause": "The purpose was reused.", "fix": "The encoder is removed; a purpose with its own data limit is the owner's decision.", "test": "", "impact": "User data would have reached a model the Admin page says never sees it."},
+  {"id": "M2", "source": "reviewer", "severity": "behaviour", "defect": "The cache keyed items by their printed form.", "scenario": "20 different PIL images encoded into one cache gave 18 served from the cache; a replaced file kept its stale vector.",
+   "cause": "A str() fallback.", "fix": "Values for arrays and images, bytes for files, a type tag, and a refusal for anything else.", "test": "test_content_is_the_key_whatever_its_form"},
+  {"id": "M3", "source": "reviewer", "severity": "behaviour", "defect": "The image near-copy threshold flagged different scenes and the acceptance failed on two seeds.", "scenario": "At 0.99, 32 to 135 pairs of different scenes with the same shape were flagged; seeds 2 and 3 failed.",
+   "cause": "A fixed threshold for an encoder it was not set for.", "fix": "A threshold calibrated per encoder; the acceptance run on several seeds.", "test": "test_the_acceptance_holds_on_several_seeds_and_says_no_pretrained_encoder_was_measured"},
+  {"id": "M4", "source": "reviewer", "severity": "behaviour", "defect": "A copied text could stay with its own author, and the text threshold flagged a non-copy.", "scenario": "Seed 0 pasted ticket 44 again for the same author; a pair at 0.905 that was not a copy was flagged.",
+   "cause": "The other author was drawn from all authors; the threshold was loose.", "fix": "Another author always; the calibrated threshold; every copy found and nothing else required; a caveat when copies straddle the holdout.", "test": "test_texts_pasted_by_another_author_are_found"},
+  {"id": "M5", "source": "reviewer", "severity": "leakage", "defect": "Tests could not catch a model fitted on the holdout or random folds called grouped.", "scenario": "Both faults kept the tests and the acceptance green.",
+   "cause": "Nothing compared what the model saw.", "fix": "The holdout's predictions are kept and must not move when the holdout's labels change; grouped folds must score below random ones.", "test": "test_image_shots_of_one_scene_are_near_copies_a_random_split_spreads"},
+  {"id": "M6", "source": "reviewer", "severity": "gap", "defect": "A check passed by construction and the open items were hidden.", "scenario": "solve always used the baselines, so 'the encoder is a baseline' always held; the matrix listed only the engine.",
+   "cause": "The check described the run instead of the goal.", "fix": "The check asks for a pretrained encoder measured, fails, and appears in missing.", "test": "test_the_acceptance_holds_on_several_seeds_and_says_no_pretrained_encoder_was_measured"},
+  {"id": "M7", "source": "reviewer", "severity": "behaviour", "defect": "Briefs mentioning photos were detected as this kind.", "scenario": "'Forecast daily demand per store; we also have photos of the shelves' became embedded and set the vision pack.",
+   "cause": "Bare words and an equal specificity.", "fix": "A lower specificity and words that need the items to be the input.", "test": "test_detected_only_when_the_items_are_the_input"},
+  {"id": "M8", "source": "reviewer", "severity": "behaviour", "defect": "Cache names and writes could mix encoders.", "scenario": "Two weight files named weights.pt shared vectors; two writers shared one temp file.",
+   "cause": "A file stem as the name; a fixed temp name.", "fix": "The weights' hash and the size in the name; a temp file per writer; widths checked.", "test": "test_vectors_of_another_width_under_one_name_are_refused"},
+  {"id": "M9", "source": "reviewer", "severity": "behaviour", "defect": "The image encoder did not scale 0-255 photos.", "scenario": "uint8 photos were normalised as if they were 0-1.", "cause": "No dtype check.",
+   "fix": "Integer images are divided by 255.", "test": "test_the_image_encoder_never_downloads_and_the_engine_refuses_the_kind"}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library with baseline encoders: 5 of 6 decisions on five seeds; the pretrained encoder is the listed open item.",
+ "lessons": [
+  "A data limit belongs to a purpose: reusing a purpose for other data breaks its promise.",
+  "Key a cache by content, never by a printed form.",
+  "Calibrate a similarity threshold to the encoder that produced the vectors.",
+  "A check that describes what the run did instead of what was asked passes by construction."
+ ],
+ "risks": ["User texts sent to a purpose that may not see them.", "Different items served one cached vector.", "Near copies across the split inflating scores.", "Baselines reported as pretrained."],
+ "commits": []
+}
