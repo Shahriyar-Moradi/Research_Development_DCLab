@@ -226,6 +226,7 @@
     readDraft: ["GET", "/drafts/{draft_id}", ["draft_id"], []],
     editDraft: ["PATCH", "/drafts/{draft_id}", ["draft_id"], []],
     build: ["POST", "/drafts/{draft_id}/build", ["draft_id"], []],
+    draftCard: ["GET", "/drafts/{draft_id}/card", ["draft_id"], []],
     upload: ["PUT", "/drafts/{draft_id}/data", ["draft_id"], ["filename"]],
     dataCloud: ["POST", "/drafts/{draft_id}/data/cloud", ["draft_id"], []],
     dataDatabase: ["POST", "/drafts/{draft_id}/data/database", ["draft_id"], []],
@@ -429,6 +430,13 @@
    *  @returns {Promise<Project>} */
   client.build = (...args) => call('build', args);
   client.path.build = (...args) => build('build', args).path;
+  /** GET /api/drafts/{draft_id}/card: Draft Card
+   *  @param {string} draft_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.draftCard = (...args) => call('draftCard', args);
+  client.path.draftCard = (...args) => build('draftCard', args).path;
+  client.href.draftCard = (...args) => '/api' + build('draftCard', args).path;
   /** PUT /api/drafts/{draft_id}/data: Upload
    *  @param {string} draft_id
    *  @param {{query?: {filename?: *}, body: Blob, headers?: Object}} [opts]

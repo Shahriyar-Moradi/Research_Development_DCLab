@@ -376,3 +376,4 @@ CONTRACTS: dict[str, type[Versioned]] = {
 }
 
 import dclab_core.experience  # noqa: E402,F401  (registers its contracts in CONTRACTS: every reader sees all of them)
+import dclab_core.card  # noqa: E402,F401  (the problem card, 20.1)

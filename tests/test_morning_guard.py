@@ -32,6 +32,7 @@ else:
     MISSING = ""
 
 PROBLEM = "I want build anomaly detection"
+MOMENT = "After delivery, in the daily audit of the day's orders"
 
 
 def upload(store, agent, draft_id, name, frame):
@@ -149,12 +150,13 @@ class TheMorningTest(unittest.TestCase):
         self.assertIsNone(cases_table(profile_table(no_state), "known_frauds.csv"))
 
     def test_naming_an_outcome_lets_the_person_build_what_they_chose(self):
-        self.store.update(self.cases_draft["id"], lambda d: d["understanding"].update(target="biker_fare"))
+        self.store.update(self.cases_draft["id"], lambda d: d["understanding"].update(target="biker_fare", prediction_moment=MOMENT))
         project = build_project(self.store, ProjectStore(Path(tempfile.mkdtemp())), self.cases_draft["id"])
         self.assertTrue(project["id"])
 
     def test_with_the_orders_in_the_same_draft_the_cases_become_their_labels(self):
         upload(self.store, self.agent, self.cases_draft["id"], "part2-dataset.csv", self.orders)
+        self.store.update(self.cases_draft["id"], lambda d: d["understanding"].update(prediction_moment=MOMENT))
         draft = self.store.get(self.cases_draft["id"])
         labels = next(a for a in draft["assets"] if a.get("kind") == "labels")
         self.assertEqual(labels["label_review"]["key"], ["order_id"])
@@ -163,6 +165,7 @@ class TheMorningTest(unittest.TestCase):
 
     def test_a_key_saved_as_the_solution_is_refused_by_the_graph(self):
         upload(self.store, self.agent, self.cases_draft["id"], "part2-dataset.csv", self.orders)
+        self.store.update(self.cases_draft["id"], lambda d: d["understanding"].update(prediction_moment=MOMENT))
         projects = ProjectStore(Path(tempfile.mkdtemp()))
         project = build_project(projects=projects, drafts=self.store, draft_id=self.cases_draft["id"])
         for target, allowed in (("Unnamed: 0", False), ("order_id", False), ("is_case", True)):

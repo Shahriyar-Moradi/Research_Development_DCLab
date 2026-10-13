@@ -423,6 +423,14 @@ class HomeAgent:
         column_asked = any(q["field"] == "target" and q.get("options") and not q.get("superseded") for q in draft["questions"])
         has_labels = plans.label_asset(draft) is not None  # the label file defines the target: no outcome column to ask for
         profile_columns = ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or []
+        outcome_raised = "target" in asked or bool(u.get("target"))  # the outcome comes first, the labels right after it
+        if outcome_raised and "labels" not in asked and not u.get("labels") and not has_labels:  # 20.1: whatever the pack
+            from .card import card_of
+            from dclab_core.card import LABELS_OPTIONS, LABELS_QUESTION
+
+            if card_of(draft).in_play:
+                return ("labels", LABELS_QUESTION, list(LABELS_OPTIONS),
+                        "Confirmed cases mean learning from them (rare events); none means finding the unusual rows (anomalies).")
         for field in plans.fields_for(draft):
             if field == "target" and plan[field]["status"] != "unknown" and candidates and columns and u.get("target") not in columns \
                     and not column_asked and not has_labels:
@@ -450,8 +458,9 @@ class HomeAgent:
                 return ("entity", "Who could commit it: which person or thing do the cases belong to (a biker, a customer, a card)?",
                         entities + ["No single entity"], plans.WHY["entity"])
             if field == "labels":
-                return ("labels", "Are the labelled cases every case there is, or a sample of the ones you found?",
-                        ["A sample of the cases we found", "Every case is labelled"], plans.WHY["labels"])
+                # 20.1: "nothing is labelled" is an answer too: it makes the problem an anomaly search, not rare events
+                return ("labels", "Are some cases already confirmed? If so, are they every case there is, or a sample of the ones you found?",
+                        ["A sample of the cases we found", "Every case is labelled", "Nothing is labelled"], plans.WHY["labels"])
             if field == "budget":
                 return ("budget", "How many alerts can the team review, for example a day?",
                         ["About 50 a day", "About 200 a day", "About 1% of rows", "No fixed budget"], plans.WHY["budget"])

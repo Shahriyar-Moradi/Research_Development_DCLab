@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.6.0 (2026-10-13)
+
+Package 20.1: the problem card. One new contract at v1; the others unchanged.
+
+- `card` (new): `ProblemCard` (`dclab_core.problem_card.v1`) holds the brief and adds the problem's family
+  (classification, regression, rare events with labels (all or a sample), anomalies without labels, forecasting,
+  time to event, ranking, segmentation, uplift, entity tables, streams, text or images; the last three named by a host,
+  no word rules) with how it was decided (a family the person stated first, then the label situation, then a stated
+  task, then the words), the families still in play when the words do not settle it,
+  the label situation (a column, a file of known cases, nothing), the outcome, the questions still open (each marked
+  blocking or not) and a readiness verdict with its reasons. `problem_card(brief, words=, data=)`: rules in code; words
+  like "anomaly" or "fraud" with no label situation leave rare events and anomalies in play and raise a blocking
+  question about confirmed cases; an outcome is a column or a joined file of known cases, never a file only spoken of;
+  the outcome blocks for a family that learns from one; the moment blocks for every family scored at a moment; the
+  unit and the action are open questions that never block. `adapters.main_product.problem_card(card)`: the ProblemSpec
+  content, the family at `spec.objective`, the outcome at `target.column`, `lock` only for a ready card.
+
 ## 0.5.0 (2026-10-13)
 
 Package 19.1: the record of what a person and DCLab did. Two new contracts, at v1; the six earlier ones unchanged.

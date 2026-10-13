@@ -893,6 +893,44 @@ def experiment_changes(review: Any) -> dict[str, Any]:
 # ------------------------------------------------------------------------------------------------ all at once
 
 
+# 20.1: a problem card's family as the main product's task type, where it has one (its task types: binary, multiclass,
+# regression, classification); the others are None with the reason
+FAMILY_TO_TASK = {"classification": "classification", "regression": "regression", "rare_event": "binary"}
+FAMILY_NOTES = {
+    "anomaly": "no task type for an unlabelled search for unusual rows: its runs need a target; confirmed cases make it binary",
+    "forecasting": "its runs have no forecasting task type: a horizon and rolling origins are not in its spec",
+    "time_to_event": "its runs have no censored-duration task type",
+    "ranking": "its runs have no ranking task type",
+    "segmentation": "its runs need a target; groups have none",
+    "uplift": "its runs have no treatment-effect task type",
+    "entity_tables": "the outcome per entity maps to binary, multiclass or regression once its tables are joined into one",
+    "streams": "its runs have no stream task type",
+    "text_or_images": "its runs read tables: an encoder's vectors are columns of one, then binary, multiclass or regression",
+}
+
+
+def problem_card(card: Any) -> dict[str, Any]:
+    """A problem card (20.1) as the main product's proposals: the ProblemSpec content (from the card's brief, the task
+    type from the family when the brief does not say), the family at ``spec.objective``, the outcome at
+    ``target.column``, and whether a spec may be locked from it (``lock``: only a ready card), with what blocks it."""
+    from dclab_core.card import ProblemCard
+
+    card = _as(ProblemCard, card)
+    spec = problem_spec(card.brief)
+    family = card.family.value
+    if spec["fields"].get("task_type") is None and family:
+        spec["fields"]["task_type"] = FAMILY_TO_TASK.get(family)
+        spec["notes"]["task_type"] = (f"from the problem's family ({family})" if family in FAMILY_TO_TASK
+                                      else FAMILY_NOTES.get(family, f"no task type for the family {family}"))
+    points = {"spec.objective": {"proposal": {"family": family, "in_play": list(card.in_play), "labels": card.labels.value},
+                                 "reason": card.family.reason or ("the words leave " + " or ".join(card.in_play) if card.in_play else "not settled")},
+              "target.column": {"proposal": spec["fields"].get("target_column"),
+                                "reason": card.outcome or "no outcome named yet"}}
+    known = set(recorded()["decision_points"]["points"])
+    return {"contract": "ProblemCard", "ProblemSpec": spec, "decision_points": {k: v for k, v in points.items() if k in known},
+            "lock": card.ready, "blocking": list(card.blocking)}
+
+
 def proposals(brief: Any = None, findings: Any = None, plan: Any = None) -> dict[str, Any]:
     """Every mapping the inputs allow, by contract name, and the decision points of the plan."""
     out: dict[str, Any] = {}

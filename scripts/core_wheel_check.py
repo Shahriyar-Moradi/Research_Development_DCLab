@@ -58,6 +58,10 @@ row = {c: None for c in cols} | {"id": "i1", "workspace_id": "w1", "purpose": "a
 event = mpx.from_llm_invocation(row)
 card = xp.session_card([event.model_copy(update={"ids": event.ids.model_copy(update={"visit": "v1"})})])
 assert (event.kind, card.model_requests, card.cost) == ("model.request", 1, {"EUR": 0.0015}), (event.kind, card)
+# 20.1: the problem card from the installed wheel: the morning's sentence leaves two families and a blocking question
+from dclab_core.card import problem_card
+pc = problem_card(understand("I want build anomaly detection"), words="I want build anomaly detection")
+assert (pc.ready, pc.in_play) == (False, ["rare_event", "anomaly"]), pc
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())

@@ -557,6 +557,15 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                     listening.unsubscribe(draft_id, woken)
         return StreamingResponse(stream(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
+    @router.get("/api/drafts/{draft_id}/card", response_model=Doc)
+    async def draft_card(draft_id: str):
+        """The problem card (20.1): the family, the label situation, the questions still open and whether a project
+        can be built yet, with why not."""
+        from .card import card_of
+
+        card = await asyncio.to_thread(card_of, get(draft_id))
+        return card.model_dump(mode="json")
+
     @router.post("/api/drafts/{draft_id}/build", status_code=201, response_model=Project)
     async def build(draft_id: str):
         draft = get(draft_id)
@@ -570,7 +579,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         except BuildRefused as exc:
             from .. import experience
 
-            experience.record("draft.refused", "system", {"reason": str(exc)[:2000], "rule": "list of known cases"}, conversation=draft_id)
+            experience.record("draft.refused", "system", {"reason": str(exc)[:2000], "rule": exc.rule}, conversation=draft_id)
             raise HTTPException(409, str(exc)) from None
 
     app.include_router(router)
@@ -632,7 +641,11 @@ def _budget_share(answer: Any, projects, project: dict[str, Any]) -> float | Non
 
 
 class BuildRefused(ValueError):
-    """The draft cannot become a project yet; the message says what is missing."""
+    """The draft cannot become a project yet; the message says what is missing, ``rule`` which check said so."""
+
+    def __init__(self, message: str, rule: str):
+        super().__init__(message)
+        self.rule = rule
 
 
 def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
@@ -647,7 +660,18 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
                                                               (draft.get("understanding") or {}).get("target") in columns else None)
     if cases and plans.label_asset(draft) is None and not named:  # the morning of 2026-10-13: the cases' file alone became a project
         raise BuildRefused("This draft holds only a list of known cases: add the table they belong to (with "
-                           f"{', '.join(cases['keys'][:2])}), and its cases become the labels")
+                           f"{', '.join(cases['keys'][:2])}), and its cases become the labels", "list of known cases")
+    from .card import card_of
+
+    card = card_of(draft)
+    has_data = any(a.get("status") == "ready" for a in draft.get("assets") or [])
+    if has_data and not card.ready:  # 20.1: a project is built from a ready problem card
+        raise BuildRefused("Not yet: " + " ".join(card.blocking[:3]), "problem card not ready")
+    if not has_data and card.in_play:  # a plan-only draft carries its questions, but not one about what the problem is
+        raise BuildRefused("Not yet: " + " ".join(b for b in card.blocking if "confirmed" in b), "problem card not ready")
+    if card.family.value == "anomaly":  # said plainly, never built as something else (it became a model of customer ids once)
+        raise BuildRefused("Anomaly detection without labels is not in the engine yet (package 20.7). With a file of known "
+                           "cases (even a sample), it is a rare-event problem DCLab solves: add that file to this draft.", "family not built yet")
     u = draft.get("understanding") or {}
     name = (u.get("target") or draft["problem"])[:60].strip().rstrip(".") or "New project"
     project = projects.create(name[:1].upper() + name[1:], "general", draft["problem"])
@@ -690,6 +714,7 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         project["budget"] = st["budget"]
     project["pack"] = (draft.get("pack") or {}).get("key")  # the engine reads the pack's defaults from here (15.6)
     project["draft"] = {"id": draft_id, "problem": draft["problem"], "pack": draft.get("pack"), "understanding": u, "settings": draft.get("settings"),
+                        "card": card.model_dump(mode="json"),  # 20.1: the problem as understood, its open questions with it
                         "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
                         "synthetic": bool(asset and asset.get("synthetic"))}
     projects.save(project)

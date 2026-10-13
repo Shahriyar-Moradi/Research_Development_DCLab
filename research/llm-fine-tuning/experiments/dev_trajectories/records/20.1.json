@@ -1,0 +1,199 @@
+{
+  "package": "20.1",
+  "title": "The problem card: the family, the label situation, the questions that block, and a build only from a ready card",
+  "date": "2026-10-13",
+  "request": "Make DCLab understand the problem before building: the owner's anomaly-detection test was built into a model of customer ids while the labels question was open.",
+  "spec": "ProblemCard v1 in dclab_core: the brief, the family with the families still in play, the label situation, the outcome, the questions marked blocking or not, and readiness with reasons; on Home, a project is built only from a ready card. Done when the morning's sentence leaves rare events and anomalies in play with a blocking labels question, and the build is refused with that reason until it is answered.",
+  "plan": [
+    "Build on the brief: the card adds what the brief cannot say alone (family, label situation, readiness).",
+    "Rules in code with their reasons; precedence: a stated kind, the label situation, a stated task, then the words.",
+    "Read the draft's card from its words, answers, saved solution, sample suggestion and files.",
+    "Refuse the build while the card blocks; say plainly what DCLab cannot build yet.",
+    "Map the card onto the main product's ProblemSpec and decision points.",
+    "Review, plant faults, fix."
+  ],
+  "decisions": [
+    {
+      "decision": "The morning's sentence leaves two families in play rather than choosing anomaly.",
+      "why": "The same words fit rare events with labels and anomalies without; only the label situation tells them apart, so it is asked."
+    },
+    {
+      "decision": "The unit and the action are asked but never block a build.",
+      "why": "Home has no unit question and the brief rarely knows it; blocking on it would refuse almost every build. Passed to the conversation (20.2)."
+    },
+    {
+      "decision": "With a table, an outcome is a column or a joined file of known cases; never a sentence or a file only mentioned.",
+      "why": "'It is anomaly detection', typed when asked the outcome, and 'a file lists the known ones' with no file both made a card ready with no outcome."
+    },
+    {
+      "decision": "A ready anomaly card is refused with a plain message naming what DCLab does solve.",
+      "why": "Anomaly detection without labels is not in the engine (20.7); building it as something else is the morning's failure."
+    },
+    {
+      "decision": "What the person said beats a matching word.",
+      "why": "'market segment' made a churn problem segmentation; 'default settings' made it rare events."
+    }
+  ],
+  "change": "dclab_core/card.py (new), dclab_core/contracts.py, schemas and baseline, dclab_core/adapters/main_product.py (problem_card), CHANGELOG and version 0.6.0, CORE_INTEGRATION.md, scripts/core_wheel_check.py; dclab_rnd/draft/card.py (new), draft/api.py (card route, readiness, BuildRefused.rule, the card kept with the project), draft/chat.py (the labels question in any pack, with 'Nothing is labelled'); tests/test_problem_card.py (new), test_morning_guard.py; the web client.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A sentence typed as the outcome made the outcome known.",
+      "scenario": "'it is anomaly detection' was taken as the outcome's definition.",
+      "cause": "Any answer to the outcome question was an outcome.",
+      "fix": "With a table, only a column or a joined file is an outcome.",
+      "test": "test_the_build_waits_for_the_labels_and_the_moment_and_says_why"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A ready anomaly card would be built as something it is not.",
+      "scenario": "No engine for anomalies without labels.",
+      "cause": "Readiness alone was checked.",
+      "fix": "Refused with a plain message and the route DCLab solves.",
+      "test": "same test"
+    },
+    {
+      "id": "S3",
+      "source": "self",
+      "severity": "latent",
+      "defect": "My fault-planting script restored the wrong file over the library card.",
+      "scenario": "Two files named card.py shared one backup name; the restore wrote the studio's card over dclab_core's; tests skipped and the product flows failed.",
+      "cause": "Backups named by base name only.",
+      "fix": "Rebuilt from an earlier backup and the review's edits; backups now named by full path; the flows and tests rerun.",
+      "test": "product-e2e, test_problem_card"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Words alone invented an outcome and a project was built with neither outcome nor labels.",
+      "scenario": "'A file lists the known ones' with no file attached: ready, built.",
+      "cause": "A file spoken of set the outcome.",
+      "fix": "Only a joined file sets it; a file spoken of asks for it.",
+      "test": "test_a_file_spoken_of_is_never_an_outcome"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Family words overrode what the person stated.",
+      "scenario": "'market segment' made a churn problem segmentation, ready with no moment and no outcome.",
+      "cause": "Words were tried before the task.",
+      "fix": "A stated kind, then a stated task, before words; segmentation only with no outcome.",
+      "test": "test_what_the_person_said_beats_a_word, test_a_kind_chosen_on_home_is_the_cards_family"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Words matched by accident.",
+      "scenario": "'Rank customers by risk' was ranking; 'default settings' rare events; 'lifetime value' time to event; 'incremental loads' uplift.",
+      "cause": "Patterns too wide.",
+      "fix": "Patterns need their objects (rank items, default on a loan, incremental lift).",
+      "test": "same test"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The blocking labels question was often never asked, and a plain no was misread.",
+      "scenario": "Outside the fraud pack it was never asked; 'No' read as partial labels, looping on a file the person did not have.",
+      "cause": "The question belonged to one pack; the answer parser was narrow.",
+      "fix": "Asked in any pack right after the outcome when two families are in play; the card's own words read the answer, a no first.",
+      "test": "test_a_plain_no_is_no_labels, test_a_draft_without_data_is_not_built_while_its_family_is_open"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Drafts without data skipped the card.",
+      "scenario": "A plan-only project built while the labels question was open.",
+      "cause": "Readiness checked only with data.",
+      "fix": "A plan-only draft is refused while its family is open; every project keeps its card.",
+      "test": "test_the_built_project_keeps_its_card"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "No mapping for the main product, only prose.",
+      "scenario": "Its ProblemSpec lost the family and readiness.",
+      "cause": "Not built.",
+      "fix": "adapters.main_product.problem_card: spec, spec.objective, target.column, lock.",
+      "test": "test_the_card_as_the_main_products_proposals"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The frozen v1 lacked families the plan lists.",
+      "scenario": "Entity tables, streams, text or images would force a v2.",
+      "cause": "Left out.",
+      "fix": "Added now, named by a host.",
+      "test": "schema baseline"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The generated client was stale.",
+      "scenario": "draftCard missing from api.js.",
+      "cause": "make web not run.",
+      "fix": "Rebuilt; the route tested with a 404.",
+      "test": "test_the_card_route"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The record named the wrong refusal rule for anomalies.",
+      "scenario": "rule 'list of known cases' for the anomaly refusal.",
+      "cause": "The rule was guessed from the message.",
+      "fix": "BuildRefused carries its rule.",
+      "test": "draft.refused events"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "planted faults",
+      "gate": "each of the 9 planted faults in the card and Home fails a test",
+      "result": "9 of 9 caught after adding 2 tests for faults first uncaught (words beating the person, a chosen kind ignored)",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "9 of 9 against 9",
+      "limits": [
+        "Only the faults planted."
+      ]
+    },
+    {
+      "name": "product flows",
+      "gate": "the four end-to-end flows pass with the readiness rule on",
+      "result": "upload, no-data, synthetic, log-file passed",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "4 of 4",
+      "limits": [
+        "The browser test of the wizard was not run on this machine."
+      ]
+    }
+  ],
+  "outcome": "A project is built only from a ready card; the morning's sentence asks about confirmed cases, and an anomaly search without labels is said plainly, not built as something else.",
+  "lessons": [
+    "When the same words fit two families, ask the question that tells them apart.",
+    "What a person stated outranks any word that happens to match.",
+    "An outcome must be something the table or its files hold, not something said.",
+    "Back up by full path: two files with one name will overwrite each other.",
+    "Plant each new rule's fault; a passing test may be passing for another rule's sake."
+  ],
+  "risks": [
+    "A model built on a guessed outcome.",
+    "A family chosen by a stray word.",
+    "A question that blocks and is never asked.",
+    "A backup restoring the wrong file."
+  ],
+  "commits": []
+}

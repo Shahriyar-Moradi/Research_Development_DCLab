@@ -339,6 +339,13 @@ Status:
   Every write route says what it records. Prompts and replies only with DCLAB_LOG_PROMPTS=1 and never for a purpose
   shown cell values. Open: partitioning by month; the Admin page and search (19.4).
 
+- **20.1 the problem card: done (2026-10-13).** `dclab_core.card` (ProblemCard v1, 12 families, the label situation,
+  blocking questions, readiness; `adapters.main_product.problem_card`), `dclab_rnd/draft/card.py`, and on Home a build
+  only from a ready card (`GET /api/drafts/{id}/card`). Against the plan's text: the morning's sentence leaves rare
+  events and anomalies in play (asked, not chosen); the unit and the action are open questions that never block (Home
+  asks neither yet: 20.2); a ready anomaly card is refused plainly until 20.7. Only Home builds read the card; a
+  project made on the project page or by the intern is checked by the solution's own rules. Review: 9 findings, fixed.
+
 Owner decisions (answered 2026-10-13):
 - **Prompts and replies: kept for training.** `DCLAB_LOG_PROMPTS=1` in the owner's `.env`: the usage log and the session
   record keep each model request's prompt and reply (class `model_text`, in the workspace). A purpose shown cell values
