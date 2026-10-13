@@ -262,6 +262,24 @@ class ValidatorHolesTest(unittest.TestCase):
         self.assertNotEqual((p.decision("split.strategy").choice or {}).get("time_column"), "completed_at")
         Solution(**solution_fields_from_plan(p, "y", "When the order is placed, before it is completed."))
 
+    def test_a_column_kept_out_twice_reaches_the_solution_once(self):
+        """18.9's sealed run: the roles and the rules both forbade a column, and the Solution refused the duplicate."""
+        from dclab_core.analyse import analyse
+        from dclab_core.plan import plan
+        from dclab_core.replicas import delivery_time
+        from dclab_rnd.core_adapter import solution_fields_from_plan
+        from dclab_rnd.studio.solution import Solution
+
+        frame = delivery_time.generate(seed=0, n=1500).orders
+        p = plan(None, analyse({"o": frame}, target="actual_minutes", train_index=frame.index[:1200]))
+        twice = [{"column": "courier_rating", "reason": "the rules"}, {"column": "courier_rating", "reason": "a role"}]
+        decisions = [d.model_copy(update={"choice": twice}) if d.key == "features.forbidden" else
+                     d.model_copy(update={"choice": [{"column": "courier_rating", "question": "When is it written?"}]})
+                     if d.key == "features.to_confirm" else d for d in p.decisions]
+        fields = solution_fields_from_plan(p.model_copy(update={"decisions": decisions}), "actual_minutes", "When the order is placed.")
+        self.assertEqual([f["reason"] for f in fields["forbidden"] if f["column"] == "courier_rating"], ["the rules"])
+        Solution(**fields)
+
     def test_a_plan_without_a_training_split_says_so(self):
         from dclab_core.analyse import analyse
         from dclab_core.plan import plan

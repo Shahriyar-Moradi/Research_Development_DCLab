@@ -106,7 +106,7 @@ def judge() -> dict[str, Any]:
         d = json.loads(path.read_text(encoding="utf-8"))
         verdict = (d.get("verdict") or {}).get("status", "not scored")
         comparison, solved, unsafe = _compare(role, d)
-        spent = float(d.get("spent_eur") or 0.0)
+        spent = float(d.get("spent_eur") or sum(((d.get("verdict") or {}).get("eur") or {}).values()) or 0.0)  # the layer: its arms together
         rows.append({"role": role, "result": rel, "experiment_id": d.get("experiment_id") or d.get("id"),
                      "gate": (d.get("gate") or {}).get("version") if isinstance(d.get("gate"), dict) else d.get("gate"),
                      "verdict": verdict, "on": verdict == "pass" and role not in ("team", "layer") and (role not in PIPELINE or layer_pass),

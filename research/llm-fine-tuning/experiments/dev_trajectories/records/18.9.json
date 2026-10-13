@@ -1,0 +1,116 @@
+{
+ "package": "18.9",
+ "title": "The agentic layer judged",
+ "date": "2026-10-13",
+ "request": "Decide which of the measured roles the product uses by default, and compare the whole agentic layer with the rules alone and a plain prompted model on the sealed benchmark, with a gate written before the runs.",
+ "spec": "A comparison per role and for the whole workflow: rules only, a plain prompted model, and the roles, on the replicas and the sealed benchmark, with intervals, unsafe moves, and euros per solved problem; the gate written before the runs. Done when each role is on by default only where it passed its gate; the others stay available and off.",
+ "plan": [
+  "Generate one table of every role from the result its gate was judged on, never re-running a measurement: verdict, intervals, euros, euros per solved problem, unsafe moves.",
+  "Let the product read the table: a role is on only where its gate passed; the owner can override; no advisor for a private project or an unserved purpose; a small cap per product call.",
+  "Wire the roles into Home, the intern's understanding and plan adoption, and the solution report.",
+  "Freeze a gate for the whole layer on benchmark v3's sealed set: rules, a plain model and the roles on the same cases; the pipeline roles on only if it passes.",
+  "Review the harness before any paid or sealed run, then run each sealed arm once under the owner's cap."
+ ],
+ "decisions": [
+  {
+   "decision": "The analyst, the investigator and the planner wait for the whole layer's comparison, even though each passed alone.",
+   "why": "They feed one plan: a role that passes alone can still make the plan worse, as the team run showed on churn (18.8)."
+  },
+  {
+   "decision": "A run where a role failed, never answered, or a case errored is 'not scored', never a pass.",
+   "why": "A role that silently falls back to the rules would make the layer look exactly as good as the rules, and the gate would credit the model for the rules' work."
+  },
+  {
+   "decision": "One sealed run per arm, only from committed and clean code, with the models and prompt hashes recorded.",
+   "why": "A second run on the sealed set is tuning on it; uncommitted code makes the result impossible to reproduce."
+  },
+  {
+   "decision": "The not-scored verdict stands; the bug it exposed is fixed but the sealed arms are not re-run.",
+   "why": "Re-running after seeing the sealed results until they pass is the overfitting the seal exists to prevent; a new comparison needs a new sealed set."
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/judged.py (the table, make roles-judged, checked in rd-check), dclab_rnd/roles_judged.json (generated), dclab_rnd/roles.py (on, advisor, status, DCLAB_ROLES, CALL_CAP_EUR), the wiring in draft/chat.py, intern/tools.py, studio/solution.py core_plan, agentic/routers/projects.py (solution-report export, cached) and routers/core.py (/api/roles), core_adapter.py (partial labels; one entry per forbidden column), dclab_rnd/agent_eval/layer.py (layer_gate_v1, three arms, judge), tests/test_roles_layer.py, tests/test_core_plan.py.",
+ "findings": [
+  {"id": "L1", "source": "reviewer", "severity": "behaviour", "defect": "The layer's gate passed when the roles silently fell back to the rules.",
+   "scenario": "An advisor that raised on every request gave the roles arm the rules' catches, and the gate compared rules with rules and passed.",
+   "cause": "Nothing counted whether a role answered.", "fix": "A counting wrapper records answered, failed and abstained per role; any failure, or a pipeline role that never answered, is not scored.",
+   "test": "test_roles_that_fail_or_never_answer_are_not_scored_never_passed"},
+  {"id": "L2", "source": "reviewer", "severity": "behaviour", "defect": "Errors in the other arms did not stop the gate.",
+   "scenario": "A plain arm with 4 case errors still let the comparison pass.", "cause": "Only the roles arm's errors were read.",
+   "fix": "Errors in any arm make the verdict not scored.", "test": "test_the_gate_compares_the_three_arms"},
+  {"id": "L3", "source": "reviewer", "severity": "gap", "defect": "A sealed arm could be run again.",
+   "scenario": "Running the roles arm twice on the sealed split wrote a second result and the judge took the newer one.", "cause": "No record of earlier sealed runs was checked.",
+   "fix": "A sealed arm with an earlier result is refused, stubs included; the judge refuses more than one per arm.", "test": "test_a_sealed_arm_runs_once_and_only_from_committed_code"},
+  {"id": "L4", "source": "reviewer", "severity": "gap", "defect": "The gate and the code it measures were not frozen.",
+   "scenario": "An uncommitted change to the planner's prompt would have been measured and recorded as the committed one.", "cause": "No check of the files a sealed run depends on.",
+   "fix": "A sealed run requires the benchmark, the harness, the adapter, dclab_core's understanding, analysis and plan and their prompts tracked and clean.", "test": "test_a_sealed_arm_runs_once_and_only_from_committed_code"},
+  {"id": "L5", "source": "reviewer", "severity": "behaviour", "defect": "A paid arm could run on a model with no price.",
+   "scenario": "With an unpriced model configured, the euro cap counted zero and could not stop the run.", "cause": "No price check before sending.",
+   "fix": "The arm refuses an unpriced model or an unavailable purpose before any request.", "test": ""},
+  {"id": "L6", "source": "reviewer", "severity": "behaviour", "defect": "Partial labels were never passed to the solution.",
+   "scenario": "On a partial-labels case the plan read the labels as partial, but the solution kept them complete, so the trap was never caught.", "cause": "The adapter dropped the labels.coverage decision.",
+   "fix": "labels.coverage partial becomes labels: partial with its provenance.", "test": "test_partial_labels_reach_the_solution_in_both_pipeline_arms"},
+  {"id": "L7", "source": "reviewer", "severity": "behaviour", "defect": "The product did not run what was measured.",
+   "scenario": "The measured pipeline gave the planner the analyst's brief; the intern's plan adoption did not.", "cause": "The brief was not passed through core_plan.",
+   "fix": "adopt_plan builds the brief with the analyst, the person's target and moment, and label coverage, and passes it to the investigator and planner.", "test": "test_adopt_plan_asks_the_investigator_the_planner_and_the_engineer_that_are_on"},
+  {"id": "L8", "source": "reviewer", "severity": "behaviour", "defect": "Replanning without a model asked the analyst.",
+   "scenario": "Home's replan, run with no client, still created a paid advisor.", "cause": "read_brief asked the role regardless of the client.",
+   "fix": "The analyst is asked only when Home has a model client.", "test": "test_home_without_a_model_asks_no_role"},
+  {"id": "L9", "source": "reviewer", "severity": "behaviour", "defect": "The intern's role calls had no cap.",
+   "scenario": "One plan adoption could ask three roles with no limit on spend.", "cause": "The advisor was created without a cap.",
+   "fix": "Each product call of a role has a cap of 0.05 EUR, and its spend is logged.", "test": ""},
+  {"id": "L10", "source": "reviewer", "severity": "behaviour", "defect": "The solution-report export paid the reporter on every request.",
+   "scenario": "Reloading the export page asked the model again each time.", "cause": "No cache.",
+   "fix": "The report is cached in the project record by a digest of its inputs.", "test": "test_the_solution_report_route_uses_the_reporter_only_after_the_final_stage"},
+  {"id": "L11", "source": "reviewer", "severity": "gap", "defect": "The sealed result did not say which models and prompts produced it.",
+   "scenario": "A later reader could not tell which model or prompt version the roles arm used.", "cause": "Not recorded.",
+   "fix": "Each arm records its models per purpose and dclab_core's prompt hashes.", "test": ""},
+  {"id": "L12", "source": "reviewer", "severity": "gap", "defect": "A crash could lose a sealed run's record.",
+   "scenario": "A failure at case 90 of 100 would leave no record, and the arm could not be run again.", "cause": "The record was written once at the end.",
+   "fix": "Rows go to a .jsonl as each case finishes; the record is written atomically.", "test": ""},
+  {"id": "L13", "source": "reviewer", "severity": "behaviour", "defect": "/api/roles showed roles the product never asks as on.",
+   "scenario": "DCLAB_ROLES=critic showed the critic on, though no flow asks it.", "cause": "Status ignored the wiring.",
+   "fix": "A role is on in the status only when it is also wired.", "test": ""},
+  {"id": "L14", "source": "reviewer", "severity": "behaviour", "defect": "The layer's verdict decided nothing.",
+   "scenario": "A failing layer comparison left the pipeline roles on.", "cause": "The table read each role's own gate only.",
+   "fix": "The analyst, investigator and planner are on only when the layer also passed.", "test": "test_the_table_is_generated_and_a_role_is_on_only_where_its_gate_passed"},
+  {"id": "L15", "source": "measurement", "severity": "behaviour", "defect": "A column kept out by both the rules and a role reached the solution twice, and the solution was refused.",
+   "scenario": "In the sealed roles arm, 7 of 100 cases (6 of one family) failed with 'A column is listed twice under forbidden'.", "cause": "The adapter joined the plan's forbidden and to-confirm columns without removing repeats.",
+   "fix": "One entry per column, the first reason kept.", "test": "test_a_column_kept_out_twice_reaches_the_solution_once",
+   "impact": "The whole layer's comparison could not be scored, so the pipeline roles stay off."},
+  {"id": "L16", "source": "self", "severity": "gap", "defect": "The judged table showed 0 EUR for the layer.",
+   "scenario": "The layer's record keeps its spend per arm, not in one total, and the table read the total.", "cause": "Two shapes of record.",
+   "fix": "The table adds the arms' euros when the record has no total.", "test": ""}
+ ],
+ "measurements": [
+  {
+   "name": "the whole layer on benchmark v3's sealed set (BEN3-006, BEN3-007, BEN3-008, judged in LAYER-001)",
+   "gate": "layer_gate_v1, fixed and committed before the runs: the roles catch at least as many traps as the rules-only pipeline, with no more false alarms, and at least as many as a plain prompted model; no case errors in any arm; the analyst, the investigator and the planner each answered, and no request failed.",
+   "fixed_before_run": true,
+   "result": "Rules: 47 of 55 traps caught (95% interval 0.738 to 0.924), 0 of 100 false alarms, 0 EUR. Plain model: 40 of 55 (0.598 to 0.827), 18 of 100 false alarms, 0.013588 EUR. Roles: 45 of 50 scored traps (0.786 to 0.957), 14 of 93 false alarms, 7 case errors, 0.054204 EUR; every role answered all 100 cases with no failed request.",
+   "verdict": "not scored",
+   "cost_eur": 0.0678,
+   "against_gate": "The roles arm had 7 case errors, so the gate does not score it. On the 93 cases it did score, it raised 14 false alarms against the rules' 0, which the gate's no-more-false-alarms condition does not allow.",
+   "limits": [
+    "One sealed run per arm with one model; the 7 errored cases are missing from the roles arm.",
+    "Benchmark cases are planted traps on invented tables, not real projects.",
+    "The plain arm is one prompted reviewer, not the best possible prompt."
+   ],
+   "next": "Keep the analyst, investigator and planner off by default. A new comparison needs a new sealed set; on dev cases, look at why the roles accuse clean columns."
+  }
+ ],
+ "outcome": "The product now uses the feature engineer and the reporter, whose gates passed; the analyst, investigator and planner stay available and off because the whole layer's comparison was not scored, and on the cases it did score the roles raised false alarms the rules did not.",
+ "lessons": [
+  "A role that passes alone is not a layer that helps: judge the pipeline as a whole before switching it on.",
+  "Count whether the model really answered; a silent fallback looks like success.",
+  "A sealed result that exposes a bug stays as it is; fix the bug, do not re-run the seal.",
+  "The rules' strength is their silence on clean data: 0 false alarms is the bar a model must meet before it may add catches."
+ ],
+ "risks": [
+  "Roles switched on by default without passing their gate.",
+  "A sealed set run until it passes.",
+  "Model spend in product flows without a cap.",
+  "A comparison credited to a model for the rules' work."
+ ],
+ "commits": ["c7a4331"]
+}

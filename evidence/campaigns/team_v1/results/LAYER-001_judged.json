@@ -1,0 +1,77 @@
+{
+  "experiment_id": "LAYER-001",
+  "id": "LAYER-001",
+  "campaign_id": "team_v1",
+  "kind": "layer_judged",
+  "status": "completed",
+  "at": "2026-10-12T23:50:05+00:00",
+  "completed_at": "2026-10-12T23:50:05+00:00",
+  "gate": {
+    "version": "layer_gate_v1",
+    "fixed": "2026-10-13, before any of its runs",
+    "rule": "on benchmark v3's sealed set: the roles catch at least as many traps as the rules-only pipeline, with no more false alarms, and at least as many traps as a plain prompted model; no case errors in any arm; the roles really answered (no failed request, and the analyst, the investigator and the planner each answered at least once)"
+  },
+  "verdict": {
+    "gate": "layer_gate_v1",
+    "caught": {
+      "rules": [
+        47,
+        55
+      ],
+      "plain": [
+        40,
+        55
+      ],
+      "roles": [
+        45,
+        50
+      ]
+    },
+    "false_alarms": {
+      "rules": [
+        0,
+        100
+      ],
+      "plain": [
+        18,
+        100
+      ],
+      "roles": [
+        14,
+        93
+      ]
+    },
+    "ci95": {
+      "rules": [
+        0.738,
+        0.924
+      ],
+      "plain": [
+        0.598,
+        0.827
+      ],
+      "roles": [
+        0.786,
+        0.957
+      ]
+    },
+    "eur": {
+      "rules": 0.0,
+      "plain": 0.013588,
+      "roles": 0.054204
+    },
+    "eur_per_caught_trap": {
+      "rules": 0.0,
+      "plain": 0.00034,
+      "roles": 0.0012
+    },
+    "status": "not scored",
+    "why": "errors in an arm: {'rules': 0, 'plain': 0, 'roles': 7}"
+  },
+  "split": "test",
+  "inputs": {
+    "rules": "BEN3-006",
+    "plain": "BEN3-007",
+    "roles": "BEN3-008"
+  }
+}

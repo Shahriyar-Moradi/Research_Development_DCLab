@@ -122,6 +122,8 @@ def solution_fields_from_plan(plan: SolutionPlan, target: str, prediction_moment
                  + [{"column": f["column"], "reason": ("Kept out until a person confirms when it is written: " + f["question"])[:600]}
                     for f in choice("features.to_confirm", []) or []])
     forbidden = [f for f in forbidden if f["column"] != time_column]  # the column that orders the split is not a feature anyway
+    seen: set[str] = set()  # a column named twice (by the rules and a role, or forbidden and to confirm) is kept out once, first reason kept
+    forbidden = [f for f in forbidden if not (f["column"] in seen or seen.add(f["column"]))]
     return {
         "target": target, "task": plan.task, "prediction_moment": prediction_moment,
         "group_column": split.get("group_column"), "time_column": time_column,

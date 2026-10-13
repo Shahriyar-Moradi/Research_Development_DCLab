@@ -328,8 +328,63 @@
   {
    "role": "layer",
    "result": "team_v1/results/LAYER-001_judged.json",
-   "verdict": "not measured",
-   "on": false
+   "experiment_id": "LAYER-001",
+   "gate": "layer_gate_v1",
+   "verdict": "not scored",
+   "on": false,
+   "comparison": {
+    "caught": {
+     "rules": [
+      47,
+      55
+     ],
+     "plain": [
+      40,
+      55
+     ],
+     "roles": [
+      45,
+      50
+     ]
+    },
+    "false_alarms": {
+     "rules": [
+      0,
+      100
+     ],
+     "plain": [
+      18,
+      100
+     ],
+     "roles": [
+      14,
+      93
+     ]
+    },
+    "ci95": {
+     "rules": [
+      0.738,
+      0.924
+     ],
+     "plain": [
+      0.598,
+      0.827
+     ],
+     "roles": [
+      0.786,
+      0.957
+     ]
+    },
+    "eur_per_caught_trap": {
+     "rules": 0.0,
+     "plain": 0.00034,
+     "roles": 0.0012
+    }
+   },
+   "spent_eur": 0.0678,
+   "solved": 45,
+   "eur_per_solved": 0.00151,
+   "unsafe": []
   }
  ]
 }
