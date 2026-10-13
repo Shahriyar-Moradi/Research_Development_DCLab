@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T00:21:41+00:00",
+ "at": "2026-10-13T00:54:13+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -299,6 +299,45 @@
      "decision": "survival curves per group in the final record",
      "ok": true,
      "detail": "basic: {'90': 0.806, '180': 0.615, '365': 0.305}, plus: {'90': 0.847, '180': 0.631, '365': 0.333}, pro: {'90': 0.875, '180': 0.75, '365': 0.437}"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "ranking",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "no interaction after the moment is read; the ranker's features end before its training window",
+     "ok": true,
+     "detail": "last read 2025-04-09 23:57:05; the ranker's features until 2025-03-26 23:56:47, its labels 2025-03-27 00:00:00 to 2025-04-09 23:57:05"
+    },
+    {
+     "decision": "`lifetime_sales` is kept out: counted after the moment",
+     "ok": true,
+     "detail": "beyond everything the log knew of an item at the moment, it still follows the counts of event = purchase after the moment (partial correlation 1.00): it was counted later"
+    },
+    {
+     "decision": "no item created after the moment is recommended",
+     "ok": true,
+     "detail": "15 items created after the moment; 0 of them in a list"
+    },
+    {
+     "decision": "every model, the ranker included, is compared with popularity",
+     "ok": true,
+     "detail": "mf: NDCG@10 0.126, popularity: NDCG@10 0.0579, ranker: NDCG@10 0.1053, recent_popularity: NDCG@10 0.0643"
+    },
+    {
+     "decision": "the model chosen before the moment's window beats popularity, its interval above zero",
+     "ok": true,
+     "detail": "ranker (chosen at 2025-03-27 00:00:00): gain 0.0474, 90% interval [0.0304, 0.0637]"
+    },
+    {
+     "decision": "NDCG and recall at k, coverage and novelty, with and without a history",
+     "ok": true,
+     "detail": "coverage 0.551, users with a history 322"
     }
    ],
    "missing": [

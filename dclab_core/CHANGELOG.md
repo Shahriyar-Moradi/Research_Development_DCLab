@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 and 16.4. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3, 16.4 and 16.5. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -31,6 +31,16 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 and 16.4. The six contracts are unch
   the chosen model is also fitted with censored rows dropped and counted as events, to show the bias.
 - `replicas.subscription_lifetimes` (new): signups over two years, Weibull lifetimes, right-censored where the data
   ends, two columns counted during the follow-up, the true survival and every true lifetime in its facts (for judging).
+- `ranking` (new): what to show each user next (16.5). `evaluate` reads the interactions up to the recommendation
+  moment and the items created by it; it chooses a model at a validation origin one window earlier, then scores every
+  model once on the window after the moment: popularity, recent popularity, matrix factorisation (dense, bounded) and
+  a pointwise boosted ranker on candidates (trained on the window before an origin, its features ending before that
+  window; item columns that track interactions kept out of it) by NDCG@k and recall@k (each against popularity, with a
+  paired 90% bootstrap interval over users), coverage and novelty, for users with and without a history. `item_check`
+  finds item columns that know counts after the moment (beyond everything the log knew then, for any event, on the raw
+  or log scale) and the items created after it. `choose` never picks the popularity baseline. Relevant events may be a set.
+- `replicas.shop_interactions` (new): a shop's views and purchases with category tastes, items arriving later, and an
+  item column of lifetime sales.
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

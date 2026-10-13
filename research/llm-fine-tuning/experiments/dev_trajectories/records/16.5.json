@@ -1,0 +1,83 @@
+{
+ "package": "16.5",
+ "title": "Ranking and recommendation",
+ "date": "2026-10-13",
+ "request": "Let DCLab solve recommendation problems: which items to show each user next, from views and purchases with time.",
+ "spec": "A ranking kind: users, items and interactions with timestamps; splits by time; popularity and recently-popular baselines; matrix factorisation and a gradient-boosted ranker on candidate features; NDCG@k, recall@k, coverage and novelty; checks for interactions after the recommendation moment and for items that did not exist yet. Done when the replica (a shop's views and purchases) is solved, every model is compared with popularity, and a future-interaction leak is caught.",
+ "plan": [
+  "Cut every user at one recommendation moment; models read only the interactions up to it and the items created by it.",
+  "Baselines first (popularity, recent popularity), then matrix factorisation and a pointwise boosted ranker on candidates trained on the window before the moment.",
+  "Score on the window after the moment against popularity, with a paired bootstrap over users.",
+  "Plant a lifetime-sales column in the item table and items arriving later, and find both from the data.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {
+   "decision": "The model is chosen at a validation origin one window earlier, then the moment's window is read once.",
+   "why": "Choosing on the window the result is reported on makes the winner look better than it is (PIT-006); the validation chose the ranker by 0.001 and on the moment matrix factorisation scored higher, which is reported as it is."
+  },
+  {
+   "decision": "A column knows the future when, beyond everything the log knew of an item at the moment, it still follows the item's later counts of any event.",
+   "why": "A simple correlation with full-log counts missed lifetime views, revenue and a 7-day-after count, and raised a false alarm on a 30-day count; the partial view catches all four and passes honest counts, windows, projections and ratings on six seeds."
+  },
+  {
+   "decision": "Item columns that track interactions are kept out of the ranker.",
+   "why": "The item table holds a count at one moment only; in the ranker's training window it would contain that window's own labels."
+  },
+  {
+   "decision": "Held-out-user splits are a scope cut, recorded.",
+   "why": "Every user cut at one moment answers the question the replica asks; a second split would add code without a decision that depends on it yet."
+  }
+ ],
+ "change": "dclab_core/ranking.py (item_check, _matrix, _State, _ndcg, _labels, _origin, _scores, choose, evaluate), dclab_core/replicas/shop_interactions.py, dclab_rnd/kinds/ranking.py, tests/test_core_ranking.py, dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "K1", "source": "reviewer", "severity": "leakage", "defect": "An item column counted over the whole log with another event passed the check and reached the ranker.",
+   "scenario": "Adding lifetime_views (views over the whole log) gave correlation 0.978 and 0.40, not flagged; the ranker's NDCG@10 rose from 0.1053 to 0.1292 and it became best.",
+   "cause": "Counts were built for the relevant event only, with a fixed correlation rule.", "fix": "Partial correlation, beyond everything the log knew of an item at the moment, with later counts of every event and of all, on the raw and log scale.",
+   "test": "test_item_columns_that_know_the_future_are_found_for_any_event", "impact": "A leaky item column would have made the ranker look best."},
+  {"id": "K2", "source": "reviewer", "severity": "gap", "defect": "No test checked a metric's value.",
+   "scenario": "An ideal DCG over range(k), recall divided by k, coverage over the whole table, a flipped novelty and an unresampled interval all kept the tests green.",
+   "cause": "Tests compared models, not values.", "fix": "Hand-worked NDCG, recall, coverage, novelty and bootstrap tests.",
+   "test": "MetricTest"},
+  {"id": "K3", "source": "reviewer", "severity": "leakage", "defect": "The ranker's features ending before its training window was neither tested nor checked.",
+   "scenario": "Building the training state at the origin put the label purchases into the features, and every test and the acceptance still passed; a snapshot count in the item table held the training window's labels.",
+   "cause": "The window end was written as a literal and the check compared strings.", "fix": "The features' and labels' last dates are measured and checked; count-like item columns are kept out of the ranker.",
+   "test": "test_the_rankers_features_end_before_its_training_window; test_a_count_column_is_kept_out_of_the_ranker"},
+  {"id": "K4", "source": "reviewer", "severity": "gap", "defect": "The not-yet-existing check could not fail.",
+   "scenario": "Letting items exist 60 days early passed: an item with no earlier interactions scores 0 anyway, and the count compared lists with the same list of items they came from.",
+   "cause": "The check echoed its own input.", "fix": "Lists are compared with the item table's created dates; the test moves the top seller's creation after the moment and requires it in no list.",
+   "test": "test_an_item_created_after_the_moment_is_never_recommended"},
+  {"id": "K5", "source": "reviewer", "severity": "leakage", "defect": "The model was chosen on the window it was judged on.",
+   "scenario": "best was the highest NDCG on the moment's window, then reported as beating popularity there.", "cause": "No validation origin.",
+   "fix": "Choose at an origin one window earlier, then read the moment's window once.", "test": "test_every_model_is_compared_with_popularity_and_chosen_before_the_window"},
+  {"id": "K6", "source": "reviewer", "severity": "behaviour", "defect": "Edge cases crashed with unclear errors.",
+   "scenario": "A moment after the log ended raised AttributeError; one before it raised an SVD error from the training state.", "cause": "No checks before fitting.",
+   "fix": "Plain ValueErrors for no history and no relevant event; the ranker skipped with its reason when it has nothing to learn.", "test": "test_edges_are_refused_plainly"},
+  {"id": "K7", "source": "reviewer", "severity": "gap", "defect": "The acceptance did not require the ranker.", "scenario": "With no ranker all six decisions still held.",
+   "cause": "The required set listed three models.", "fix": "The ranker is required.", "test": "test_the_acceptance_holds_and_fails_when_the_leak_is_kept"},
+  {"id": "K8", "source": "reviewer", "severity": "behaviour", "defect": "Any 'recommend' took the problem to ranking.",
+   "scenario": "'Predict whether a review is negative so we can recommend a reply' and 'Recommend whether to approve each loan' were detected as ranking.",
+   "cause": "A bare word.", "fix": "An item object is required.", "test": "test_detected_only_with_an_item_to_recommend_and_refused_by_the_engine"},
+  {"id": "K9", "source": "reviewer", "severity": "gap", "defect": "Held-out users and explicit ratings were not covered.", "scenario": "Only one global moment; a rating counted as a weak positive.",
+   "cause": "Scope.", "fix": "Relevant events may be a set; held-out-user splits recorded as a scope cut.", "test": ""},
+  {"id": "K10", "source": "reviewer", "severity": "gap", "defect": "The kind named an evidence track that does not exist.", "scenario": "research/ranking/ does not exist; research/recommender-systems/ does.",
+   "cause": "Named by guess.", "fix": "recommender-systems.", "test": ""},
+  {"id": "K11", "source": "reviewer", "severity": "behaviour", "defect": "Timestamps were compared as strings.", "scenario": "An interaction at 2025-04-10 00:00:00 with the moment 2025-04-10 failed the check.",
+   "cause": "String comparison.", "fix": "pd.Timestamp comparison.", "test": ""}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica (6 decisions); refused by the engine and partial in the matrix until the engine runs it.",
+ "lessons": [
+  "A check that compares a result with the list it was drawn from cannot fail: compare with an independent source (the item table).",
+  "To tell whether a column knows the future, remove everything the past could explain first, then look at the future.",
+  "Choose on an earlier window; report the chosen model on the later one even when another model scores higher there.",
+  "A snapshot column in a side table holds the training window's labels when the model is trained on an earlier window."
+ ],
+ "risks": [
+  "Interactions after the moment read through popularity, candidates or the ranker's training.",
+  "Item columns counted over the whole log.",
+  "Items created after the moment recommended.",
+  "A model chosen on the window it is reported on."
+ ],
+ "commits": []
+}
