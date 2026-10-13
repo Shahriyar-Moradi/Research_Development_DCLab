@@ -26,8 +26,12 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "out"
-STAGES = ["data_understanding", "leakage_audit", "feature_engineering", "feature_engineering_balance",
+STAGES = ["problem_understanding", "data_analysis", "solution_design", "connected_problem_to_plan",
+          "data_understanding", "leakage_audit", "feature_engineering", "feature_engineering_balance",
           "model_selection", "optimization_reliability"]
+# Stages whose answers are JSON contracts (problem_to_plan_samples.py). Their generator already validates them
+# against dclab_core's contracts, quote rules, plan.validate and a stricter number check; here they must parse.
+JSON_STAGES = {"problem_understanding", "data_analysis", "solution_design", "connected_problem_to_plan"}
 NUM = re.compile(r"[+-]?\d[\d,]*\.\d+%?|[+-]?\d+/5")
 
 
@@ -37,6 +41,15 @@ def load(stage, split):
 
 
 def check(sample):
+    if sample["metadata"].get("stage") in JSON_STAGES:
+        problems = []
+        for m in sample["messages"]:
+            if m["role"] == "assistant":
+                try:
+                    json.loads(m["content"])
+                except json.JSONDecodeError:
+                    problems.append("assistant_not_json")
+        return problems
     user = sample["messages"][1]["content"]
     ans = sample["messages"][2]["content"]
     decision = re.search(r"DECISION: (\S+)", ans).group(1)
@@ -65,7 +78,7 @@ def main():
         for split in merged:
             for s in load(stage, split):
                 s["metadata"].setdefault("stage", stage)
-                h = hashlib.sha256(s["messages"][1]["content"].encode()).hexdigest()
+                h = hashlib.sha256(json.dumps(s["messages"][1:], ensure_ascii=False).encode()).hexdigest()  # whole conversation
                 if h in seen:
                     stats["duplicate"] += 1
                     continue

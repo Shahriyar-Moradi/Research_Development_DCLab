@@ -4,7 +4,8 @@ from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ORDER = ["data_understanding", "leakage_audit", "feature_engineering", "model_selection", "optimization_reliability"]
+ORDER = ["problem_understanding", "data_analysis", "solution_design", "connected_problem_to_plan",
+         "data_understanding", "leakage_audit", "feature_engineering", "model_selection", "optimization_reliability"]
 
 rows = [json.loads(l) for l in open(HERE / "out" / "all_stages" / "train.jsonl", encoding="utf-8")]
 report = json.loads((HERE / "out" / "all_stages" / "report.json").read_text())
@@ -24,8 +25,11 @@ for stage in ORDER:
     for (st, action), r in sorted(picked.items()):
         if st != stage:
             continue
-        out += [f"### `{action}`  ({r['metadata']['dataset']}, {r['metadata'].get('generator', '')})", "",
-                "**Input**", "", "```", r["messages"][1]["content"], "```", "",
-                "**Answer**", "", "```", r["messages"][2]["content"], "```", ""]
+        out += [f"### `{action}`  ({r['metadata']['dataset']}, {r['metadata'].get('generator', r['metadata'].get('source', ''))})", ""]
+        for m in r["messages"][1:]:
+            body = m["content"]
+            if m["role"] == "assistant" and body.lstrip().startswith(("{", "[")):
+                body = json.dumps(json.loads(body), indent=1, ensure_ascii=False)
+            out += [f"**{'Input' if m['role'] == 'user' else 'Answer'}**", "", "```", body, "```", ""]
 (HERE / "SAMPLES_PREVIEW.md").write_text("\n".join(out), encoding="utf-8")
 print("wrote", len(picked), "examples")

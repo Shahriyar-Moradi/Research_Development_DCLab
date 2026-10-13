@@ -3,10 +3,40 @@
 Generates supervised fine-tuning (SFT) samples for **every step** of the DCLab workflow agent, built on the 10 real datasets in `data/public/`:
 
 ```
+problem_understanding → data_analysis → solution_design        (the front: problem → contract → findings → plan)
 data_understanding → leakage_audit → feature_engineering → model_selection → optimization_reliability
 ```
 
+The front three are also joined into **connected samples**: one multi-turn conversation per scenario that goes from the
+problem text to the contract, to the findings checked against that contract, to the solution plan laid on WF-01…WF-10.
+
 Each sample is **one decision at one step**: the input shows the situation and computed evidence, and the output is the decision, the reasoning (citing only numbers shown in the input), the rule, a confidence level and the next step.
+
+## The front of the workflow: problem → contract → findings → plan
+
+Built by `problem_to_plan_samples.py` on six replicas from `dclab_core.replicas` (subscription churn, ticket routing,
+delivery time, city prices, store demand, product reviews) and the ten public datasets, each with written problem
+descriptions assembled from sentences whose meaning is known.
+
+| Stage | Input | Output | Where the answer comes from |
+|---|---|---|---|
+| `problem_understanding` | problem text + file headers | the problem contract (`ProblemBrief`): each field stated (with the person's quote), inferred (with the reason) or unknown, plus the open questions | built by construction; checked with `ProblemBrief`, `understand.quoted` and `understand.supports`; open questions from `understand._questions` |
+| `data_analysis` | the contract + measurements on the training partition | the findings: severity, statement, implication, decisions affected | `dclab_core.analyse.analyse`, run with the gold contract |
+| `solution_design` | the contract + the findings | the plan (decisions, reasons, citations, alternatives, risks) laid on WF-01…WF-10 with its gates | `dclab_core.plan.plan`, every plan passing `plan.validate`; steps from `dclab_rnd.studio.graph` |
+| `connected_problem_to_plan` | all three, in one conversation | all three answers | as above |
+
+Why the contract comes first: with no target in the contract, `analyse` cannot test a column against the outcome. On
+the churn replica it then misses the planted leak `final_refund_amount` and the plan reports a wrong positive rate.
+With the contract, it finds the leak (critical), the real rate, the identifier and the time span, and the plan
+forbids the leak and chooses a time split.
+
+**Benchmark safety:** the problem analyst's briefs (`dclab_rnd/agent_eval/analyst`, dev and sealed) are never used.
+Each generated description is compared with all of them and dropped at difflib similarity 0.5 or more; the highest
+seen is about 0.37.
+
+**What the rule-based reader gets wrong** (diagnostic in `out/problem_to_plan_report.json`, never used as labels):
+`dclab_core.understand` often takes the action or target sentence as the goal, and takes `day_of_week`, `Month`
+and even the target `defaulted_next_month` as the time column.
 
 ## How the right answer is known
 
@@ -52,6 +82,7 @@ See `out/all_stages/report.json` for counts per stage and per decision.
 
 ```bash
 pip install pandas pyarrow scikit-learn
+python research/llm-fine-tuning/experiments/sft_factory/problem_to_plan_samples.py                            # ~2 min
 python research/llm-fine-tuning/experiments/sft_factory/leakage_audit_samples.py --variants 8                 # ~10 min
 python research/llm-fine-tuning/experiments/sft_factory/workflow_samples.py --variants 16                     # ~45 min on 2 CPUs
 python research/llm-fine-tuning/experiments/sft_factory/workflow_samples.py --stages feature_engineering_balance --variants 9
