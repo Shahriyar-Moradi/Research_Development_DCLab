@@ -192,6 +192,9 @@ class HomeAgent:
         advisor = roles.advisor("problem_analyst", draft_id=draft_id, cap_eur=roles.CALL_CAP_EUR) if self.client is not None else None
         brief = understand(draft.get("problem") or "", {"table": columns} if columns else None, advisor=advisor)
         self.store.update(draft_id, lambda d: d.update(brief=brief.model_dump(mode="json")))
+        from .. import decisions
+
+        decisions.record_brief(self.store, brief, draft_id=draft_id, columns=columns)  # A6.5: the contract fields, as samples
         texts = plans.user_text(draft)
         found: dict[str, str] = {}
         if brief.target_column.status == "stated" and plans.quoted(brief.target_column.quote, texts):

@@ -1141,6 +1141,9 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
         if explanation:
             record["explanation"] = explanation
         store.write_stage(project_id, stage, record)
+        from .. import decisions
+
+        decisions.record_stage(store, project, record)  # A6.5: the stage's judgments and choice, as training data for a decision model
         project = store.get(project_id)
         project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed)}
         if stage == "final":
@@ -1198,6 +1201,9 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
     project["stages"][stage]["approved_at"] = _now()
     from . import memory
     memory.stage_approved(project, stage, (record or {}).get("decision"), choice, actor)  # A5.2: kept as a note the agents read
+    from .. import decisions
+
+    decisions.label_stage(store, project, stage, record, choice, actor)  # A6.5: the person's answer beside the rule's
     store.save(project)
     store.log(project_id, "stage_approved", {"stage": stage, "choice": choice})
     return project

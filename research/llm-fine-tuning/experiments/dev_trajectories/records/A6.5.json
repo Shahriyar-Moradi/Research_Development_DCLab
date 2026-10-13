@@ -1,0 +1,134 @@
+{
+  "package": "A6.5",
+  "title": "Decision samples: every typed decision the studio makes, with its evidence and the person's answer, as training data for DCLab's own decision models",
+  "date": "2026-10-13",
+  "request": "Collect, under the hood and as much as we can, the data to train a decision model (the classifier Jev plays today: is this column an identifier, a leak suspect, which split, which family) from what happens in the studio: every decision and every processing step, stored in a correct, organised, structured way that is easy to find and understand.",
+  "spec": "A sample row per decision point where the decision is computed (the proposal, the brief, each stage) with the evidence the rule saw, the rule's answer and version, and the same evidence as one line of text a model reads; a label row per human action against the latest sample with the same key; files or PostgreSQL tables like every other log; an export split by dataset with a manifest; never a cell value or a holdout number; a write that fails never fails the work.",
+  "plan": [
+    "Read where each decision is computed: dclab_core understand/analyse/plan (contract fields, per-column findings, plan decisions), the studio engine's five stages (column roles and risks, leakage candidates, recipe, family, optimization), the approval, solution-save and gate-approval paths, the trace and audit store patterns.",
+    "Define the schema: POINTS (the decision points with their subject and allowed answers), the sample and label fields, the key a label attaches to, the scrub of cell keys, state_text.",
+    "Write the stores (two append-only files, two tables with migration 0015, the move from files) and the extractors (from_brief, from_core, from_stage) and the labels (stage_approved, solution_saved, gate_approved).",
+    "Hook them in: engine._execute_stage and approve, graph.approve_gate, the proposal route through a recorder callback on solution.propose, the draft chat's brief, the project delete route.",
+    "Write the export (join by id or by key, split by dataset digest, masked ids) and the CLI; test on the churn table end to end; document in the plan, CLAUDE.md and the project."
+  ],
+  "decisions": [
+    {
+      "decision": "A label attaches by key (point:subject) to the latest sample in the project, and keeps the sample id when one exists.",
+      "why": "A person can save a solution before the proposal ran and approve a stage that was re-run; joining by key at export time keeps every label, and the id is the exact match when the order was the usual one."
+    },
+    {
+      "decision": "The evidence is the aggregates the rules already compute (rates, ratios, counts, fold scores) plus column names, not bands.",
+      "why": "Bands lose information a model may use; the aggregates are never cell values, and a builder can band them later for any model that wants bands."
+    },
+    {
+      "decision": "Every label written today is human_exposed.",
+      "why": "The person saw the rule's answer before deciding, so agreement is inflated; ADR 0008's rule (exposed labels train and monitor, never promote) is kept by naming the source on every row, and the blind label queue is a later package."
+    },
+    {
+      "decision": "The recorder is a callback on solution.propose, not a second run of dclab_core.",
+      "why": "analyse and plan are the costly part of a proposal; running them twice to record their output would double the proposal's time."
+    },
+    {
+      "decision": "A deleted project takes its samples and labels with it; the export is how rows outlive a project.",
+      "why": "The same rule the traces follow; keeping decision rows of a deleted project would be a retention decision the owner has not made."
+    },
+    {
+      "decision": "The split is by dataset digest, 20% sealed, 20% val, 60% train, fixed by hash.",
+      "why": "Every column of a table lands in one split, so no leakage between splits through the same table; the sealed share is scored once per evaluation run, as the agent benchmark does."
+    }
+  ],
+  "change": "dclab_rnd/decisions/ (schema, store, extract, labels, export, __main__), storage/models.py and migration 0015 (decision_sample, decision_label), storage/migrate.py (the two files move with the workspace), hooks in studio/engine.py (record_stage, label_stage), studio/graph.py (label_gate), studio/solution.py (the recorder callback), agentic/routers/projects.py (record_core on the proposal, label_solution on save, forget on delete), draft/chat.py (record_brief); tests/test_decision_samples.py; AGENTIC_FOUNDATION_PLAN A6.5; CLAUDE.md.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The recorder test saw no samples at all after a full engine run.",
+      "scenario": "The test class runs the five stages once in setUpClass; unittest runs the methods alphabetically, and the method that deletes the project's rows (named test_a_...) ran first, so the later methods read an empty store.",
+      "cause": "Test order, not the recorder: the deletion test was named to sort first.",
+      "fix": "The methods are numbered in the order of the story (write, check, label, delete).",
+      "test": "test_1_every_stage_wrote_its_decisions_with_the_evidence_the_rule_saw and test_4_... in tests/test_decision_samples.py",
+      "impact": "None in the product; a misleading failure in the test.",
+      "alternatives": [
+        "A fresh engine run per method (35 s each) was rejected for the suite's time."
+      ],
+      "open": ""
+    },
+    {
+      "id": "F2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The brief's target column read as unknown for a sentence that names it.",
+      "scenario": "understand('Predict whether a customer churns before renewal; the label is the churned column.') leaves target_column unknown.",
+      "cause": "The rule-based reader's known weakness (the sft_factory README records it); the sample records the rule's answer, whatever it is.",
+      "fix": "The test asserts the sample equals the brief's own reading, never a corrected one: a sample is a record of the rule, and a wrong rule answer is exactly what a label later corrects.",
+      "test": "test_the_brief_gives_one_sample_per_contract_field",
+      "impact": "None; it shows why contract samples need human labels.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F3",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The features stage carried train_rows=None into state_text.",
+      "scenario": "The features, models and final stage evidence has no train_rows key; the context dict put None into the line a model reads.",
+      "cause": "The context was built without dropping missing values.",
+      "fix": "Context keys are kept only when present.",
+      "test": "shown in the sample dump; covered by the state_text assertions",
+      "impact": "Noise in state_text.",
+      "alternatives": [],
+      "open": ""
+    }
+  ],
+  "measurements": [
+    {
+      "name": "samples per run on the churn table (300 rows, 7 columns, quick mode)",
+      "gate": "a sample for every stage decision and every column judgment",
+      "fixed_before_run": true,
+      "result": "data 15 (7 roles, 7 risks, 1 split), leakage 5, features 1, models 1, final 1; the proposal adds 2 per column plus the plan's decisions",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "against_gate": "every stage and every column present",
+      "limits": [
+        "one table; the counts scale with the columns"
+      ]
+    },
+    {
+      "name": "no cell value and no holdout number in any row",
+      "gate": "zero occurrences",
+      "fixed_before_run": true,
+      "result": "0 (a customer id, a preview key and the holdout ROC-AUC to 6 places searched over every row)",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "against_gate": "0 of 0 allowed",
+      "limits": [
+        "the churn table's values; the scrub is by key, so a cell copied into an unknown key would pass"
+      ]
+    },
+    {
+      "name": "tests",
+      "gate": "test_decisions, test_studio, test_draft_flow, test_graph, test_project_memory, test_storage_migrate, test_agentic pass",
+      "fixed_before_run": true,
+      "result": "87 tests pass, 3 skipped (no PostgreSQL on the build machine: the table round trip and the file-to-database move are written but unrun here)",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "against_gate": "all pass",
+      "limits": [
+        "the PostgreSQL tests must run on a machine with the test database before the migration is trusted"
+      ]
+    }
+  ],
+  "outcome": "Every decision the studio computes now leaves a sample with its evidence, and every approval, override and saved solution leaves a label; one export command turns a workspace into a split, masked training set for a decision model.",
+  "lessons": [
+    "Record where the decision is computed, label where the person acts, and join by a key: the two moments are seconds or days apart and in either order.",
+    "A sample records the rule, right or wrong; the correction is the label. A recorder that fixes the rule's answer destroys the training signal.",
+    "Name the label's source on every row from the first day: an exposed label and a blind label look the same and must never be mixed at promotion time."
+  ],
+  "risks": [
+    "The PostgreSQL round trip and migration 0015 were not run on this machine; run make test-pg before relying on the tables.",
+    "Every label is exposed; a decision model trained on them learns the rule's answers plus the person's edits, which is monitoring data, not promotion evidence, until the blind queue exists.",
+    "The holdout verdict and calibration points are defined but not recorded by the studio (it has no such rule); the sample factory's rules are the source for them until the studio gets one."
+  ],
+  "commits": []
+}

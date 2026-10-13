@@ -290,4 +290,52 @@ usage_counter = sa.Table(  # requests and bytes counted per user and per workspa
     sa.Column("window", sa.Float, primary_key=True),  # the window's start, seconds since the epoch
     sa.Column("amount", sa.Float, nullable=False))
 
+decision_sample = sa.Table(  # one typed decision the studio made, with the evidence the rule saw (dclab_rnd/decisions, A6.5); never a cell value
+    "decision_sample", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("sample_id", sa.String(32), nullable=False),
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("point", sa.Text, nullable=False),  # the decision point, e.g. column.leakage (dclab_rnd/decisions/schema.py POINTS)
+    sa.Column("subject_kind", sa.Text, nullable=False),  # column, table or problem
+    sa.Column("subject", sa.Text),  # the column name; null for a table or problem decision
+    sa.Column("key", sa.Text, nullable=False),  # point:subject, what a label attaches to
+    sa.Column("project_id", sa.String(64)),
+    sa.Column("draft_id", sa.String(64)),
+    sa.Column("dataset_ref", sa.String(32)),  # the first 16 hex characters of the table's digest, never its file name
+    sa.Column("stage", sa.Text),
+    sa.Column("run_ref", sa.Text),
+    sa.Column("features", JSONB, nullable=False),  # aggregates and names the rule saw
+    sa.Column("state_text", sa.Text, nullable=False),  # the same, as one line a model reads
+    sa.Column("rule_answer", JSONB),
+    sa.Column("rule_version", sa.Text, nullable=False),
+    sa.Column("alternatives", JSONB, nullable=False),
+    sa.Column("evidence_partition", sa.Text, nullable=False),  # metadata or train; never holdout
+    sa.Column("actor", sa.Text, nullable=False),
+    sa.Column("user_id", sa.String(64)),
+    sa.Column("schema_version", sa.Integer, nullable=False),
+    sa.UniqueConstraint("sample_id", name="uq_decision_sample_sample_id"),
+    sa.Index("ix_decision_sample_workspace_id_project_id", "workspace_id", "project_id"),
+    sa.Index("ix_decision_sample_workspace_id_key", "workspace_id", "key"))
+
+decision_label = sa.Table(  # what a person did to a decision sample: approved, chose another option, corrected the solution (A6.5)
+    "decision_label", metadata,
+    sa.Column("id", sa.BigInteger, sa.Identity(), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id", ondelete="CASCADE"), nullable=False),
+    sa.Column("label_id", sa.String(32), nullable=False),
+    sa.Column("at", sa.Text, nullable=False),
+    sa.Column("sample_id", sa.String(32)),  # null when the label came before its sample; the key joins them at export
+    sa.Column("key", sa.Text, nullable=False),
+    sa.Column("project_id", sa.String(64)),
+    sa.Column("label", JSONB),
+    sa.Column("source", sa.Text, nullable=False),  # human_exposed today; human_blind, construction, … from the builders
+    sa.Column("who", sa.Text, nullable=False),
+    sa.Column("user_id", sa.String(64)),
+    sa.Column("reason", sa.Text, nullable=False),
+    sa.Column("move", sa.Text),
+    sa.Column("schema_version", sa.Integer, nullable=False),
+    sa.UniqueConstraint("label_id", name="uq_decision_label_label_id"),
+    sa.Index("ix_decision_label_workspace_id_project_id", "workspace_id", "project_id"),
+    sa.Index("ix_decision_label_workspace_id_key", "workspace_id", "key"))
+
 TABLES = [t.name for t in metadata.sorted_tables]

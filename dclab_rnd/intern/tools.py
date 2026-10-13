@@ -253,7 +253,12 @@ class Toolbox:
         if not project.get("data"):
             return {"error": "The project has no data yet."}
         frame = studio_data.load_table(studio_data.data_path(self.projects, project))  # checked against the recorded SHA-256
-        proposal = studio_solution.propose(frame, project["data"]["profile"], target, task, studio_engine.pack_of(project))
+        from .. import decisions
+
+        def recorder(findings, plan):  # A6.5: the core's decisions, as samples, whoever asked for the proposal
+            decisions.record_core(self.projects, project, findings, plan, [str(c) for c in frame.columns], target, project["data"].get("profile"))
+
+        proposal = studio_solution.propose(frame, project["data"]["profile"], target, task, studio_engine.pack_of(project), recorder=recorder)
         self.projects.update(project_id, proposal=proposal)  # only the proposal: the project read above is seconds old
         return {k: proposal.get(k) for k in ("target", "task", "detected", "positive_label", "forbidden", "identifiers", "time_candidates",
                                              "group_candidates", "text_columns", "metric", "metric_options", "prediction_moment_hint",
@@ -291,6 +296,11 @@ class Toolbox:
         findings, plan_ = studio_solution.core_plan(frame.drop(columns=[target]), frame[target], target, task, time_column,
                                                     investigator=advisors["data_investigator"], planner=advisors["solution_planner"],
                                                     moment=prediction_moment, brief=brief)
+        from .. import decisions
+
+        decisions.record_brief(self.projects, brief, project_id=project_id, columns=[str(c) for c in frame.columns])  # A6.5
+        decisions.record_core(self.projects, project, findings, plan_, [str(c) for c in frame.columns], target, project["data"].get("profile"),
+                              run_ref="adopt_plan")
         spent = round(sum(float(a.spent_eur()) for a in advisors.values() if a is not None and hasattr(a, "spent_eur")), 6)
         if spent:
             self.projects.log(project_id, "roles_spent", {"call": "adopt_plan", "eur": spent})

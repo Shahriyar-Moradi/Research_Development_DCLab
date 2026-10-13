@@ -167,9 +167,11 @@ def default_metric(task: str, positive_rate: float | None = None) -> str:
     return kinds.get(task).default_metric(None, positive_rate)
 
 
-def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None) -> dict[str, Any]:
+def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None,
+            recorder: Any = None) -> dict[str, Any]:
     """What the agent suggests for the solution, with the signal behind each suggestion. The problem kind (16.1) follows
-    from the task, the Domain pack and the text columns; its metrics are the options offered."""
+    from the task, the Domain pack and the text columns; its metrics are the options offered. ``recorder(findings, plan)``,
+    when given, receives dclab_core's findings and plan as objects (A6.5: the decision samples)."""
     if target not in frame.columns:
         raise ValueError(f"Target {target!r} is not in the data")
     detected = detect_task(frame, target)
@@ -213,7 +215,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "prediction_moment_hint": _moment_hint(task, time_candidates, forbidden),
         "audit_note": audit["note"],
         "all_columns": audit["all_columns"],
-        "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None),
+        "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None, recorder),
     }
 
 
@@ -251,12 +253,16 @@ def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column
     return findings, plan(brief, findings)
 
 
-def _core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None) -> list[dict[str, Any]] | None:
+def _core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None,
+               recorder: Any = None) -> list[dict[str, Any]] | None:
     """The plan, compact (each decision, its choice and why): advice beside the proposal above, which it does not
     change; adopting it is a set_solution move (the intern's adopt_plan). None, logged, when the core cannot read the
     table: the proposal stands without it."""
     try:
-        return [{"decision": d.key, "choice": d.choice, "why": d.reason} for d in core_plan(X, y, target, task, time_column)[1].decisions]
+        findings, plan = core_plan(X, y, target, task, time_column)
+        if recorder is not None:
+            recorder(findings, plan)  # reports its own failures; never raises
+        return [{"decision": d.key, "choice": d.choice, "why": d.reason} for d in plan.decisions]
     except Exception as exc:  # noqa: BLE001 - a table the core cannot read leaves the proposal as it was
         from ..observe import log
 

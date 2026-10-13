@@ -263,6 +263,8 @@ python research/llm-fine-tuning/experiments/sft/eval_sft.py score --reference   
 
 Guide: [SFT data guide](docs/guides/SFT_DATA_GUIDE.md). Training (`train_lora.py`) needs a GPU.
 
+Every typed decision the studio makes (a column's role, identifier or leakage judgment, the split, the recipe, the family, the contract fields) is also kept with the evidence it was made on, and a person's approval, override or correction beside it: the training data of DCLab's own decision models. `python -m dclab_rnd.decisions export` turns a workspace into a split, masked set. Guide: [Decision samples](docs/guides/DECISION_SAMPLES.md).
+
 ### Start a new research idea
 
 ```bash

@@ -359,6 +359,9 @@ def approve_gate(store: ProjectStore, project_id: str, gate: str, by: str = "own
     from . import memory
     memory.gate_approved(project, gate, "human", reason)  # A5.2
     store.save(project)
+    from .. import decisions
+
+    decisions.label_gate(store, project, gate, by, reason)  # A6.5
     from .. import audit
 
     audit.record_for(store, "approval", "human", (by or "owner").capitalize(), project=project, move="approve_gate", status="allowed",

@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import Body, Depends, HTTPException, Request
 from fastapi.responses import Response
 
-from ... import audit, lessons as workspace_lessons
+from ... import audit, decisions, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
 from ...studio import graph as studio_graph, memory as studio_memory, sft as studio_sft, solution as studio_solution
 from ..api_models import (OCTET, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
@@ -107,6 +107,8 @@ async def delete_project(project_id: str, s: Services = Depends(services)):
         files = prefix = None
     data = project.get("data") or {}
     projects.delete(project_id)
+    source = data.get("source") if isinstance(data.get("source"), dict) else {}
+    decisions.forget(projects, project_id, source.get("draft_id") if source.get("kind") == "draft" else None)  # A6.5: the samples go with the project
     forgotten: list[str] = []
     if files is not None:
         try:
@@ -151,9 +153,14 @@ async def use_sample(project_id: str, body: SampleChoice, s: Services = Depends(
 async def _proposal(project_id: str, body: ProposalRequest, s: Services) -> dict[str, Any]:
     p = s.project(project_id)
     frame = s.load_frame(p)
+    target = str(body.target if body.target is not None else "")
+
+    def recorder(findings, plan):  # A6.5: the core's per-column and plan decisions, as training data for a decision model
+        decisions.record_core(s.projects, p, findings, plan, [str(c) for c in frame.columns], target, p["data"].get("profile"))
+
     try:
-        proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], str(body.target if body.target is not None else ""), body.task,
-                                               studio_engine.pack_of(p))
+        proposal = await asyncio.to_thread(studio_solution.propose, frame, p["data"]["profile"], target, body.task,
+                                               studio_engine.pack_of(p), recorder=recorder)
     except ValueError as exc:
         raise HTTPException(422, str(exc))
     if p.get("suggestion"):  # a studied sample carries the R&D's whole solution; a draft-built project only what the chat established
@@ -197,6 +204,8 @@ async def _save_solution(project_id: str, payload: SolutionBody, s: Services) ->
     if changed:
         studio_memory.solution_saved(p, before, p["solution"], "human")  # A5.2: a correction when it changes the agent's
     projects.save(p)
+    if changed:
+        decisions.label_solution(projects, p, before, p["solution"], "human")  # A6.5: the person's column judgments, as labels
     if changed:
         audit.solution(projects, p, p["solution"], "human")
         projects.clear_stages(project_id)

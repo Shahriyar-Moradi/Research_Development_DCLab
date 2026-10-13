@@ -68,7 +68,8 @@ class Source:
     """The file workspace, read without writing (the file stores' get can upgrade and save an old document)."""
 
     LOG_FILES = {"agent_steps": "agent_steps.jsonl", "model_requests": "model_requests.jsonl",
-                 "model_output_checks": "model_requests_checks.jsonl", "model_shadow": "model_shadow.jsonl", "audit": "audit.jsonl"}
+                 "model_output_checks": "model_requests_checks.jsonl", "model_shadow": "model_shadow.jsonl", "audit": "audit.jsonl",
+                 "decision_samples": "decision_samples.jsonl", "decision_labels": "decision_labels.jsonl"}
 
     def __init__(self, home: Path):
         self.home = Path(home)
@@ -126,14 +127,16 @@ AUDIT_FIELDS = ("at", "kind", "actor", "who", "user_id", "project_id", "project_
 
 
 def _log_tables():
-    from .models import agent_step, audit_event, model_output_check, model_request, model_shadow
+    from .models import agent_step, audit_event, decision_label, decision_sample, model_output_check, model_request, model_shadow
     from ..agents.traces import FIELDS as TRACE_FIELDS
+    from ..decisions.schema import LABEL_FIELDS, SAMPLE_FIELDS
     from ..models.shadow import FIELDS as SHADOW_FIELDS
     from ..models.usage import CHECK_FIELDS, FIELDS as USAGE_FIELDS
 
     return {"agent_steps": (agent_step, TRACE_FIELDS), "model_requests": (model_request, USAGE_FIELDS),
             "model_output_checks": (model_output_check, CHECK_FIELDS), "model_shadow": (model_shadow, SHADOW_FIELDS),
-            "audit": (audit_event, AUDIT_FIELDS)}  # the audit trail (10.4): in its order, so the ids keep it
+            "audit": (audit_event, AUDIT_FIELDS),  # the audit trail (10.4): in its order, so the ids keep it
+            "decision_samples": (decision_sample, SAMPLE_FIELDS), "decision_labels": (decision_label, LABEL_FIELDS)}
 
 
 def _count(table, wid: str, url: str | None) -> int:
