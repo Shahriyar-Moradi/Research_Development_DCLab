@@ -1,0 +1,51 @@
+{
+ "package": "16.8",
+ "title": "Several tables: entity targets from event tables",
+ "date": "2026-10-13",
+ "request": "Let DCLab answer questions asked about an entity at a moment, from several related tables: will this customer stop ordering in the 30 days after a date, from customers, orders and tickets.",
+ "spec": "Related tables with keys; the target and features built per entity as of a cutoff time (counts, recencies, sums and trends over windows before the cutoff), with the cutoff per row recorded; checks for events after the cutoff and for one-to-many joins that duplicate rows. Done when the replica (customers, orders, support tickets; churn in the 30 days after a cutoff) is solved with no event after a row's cutoff used (tested), and a duplicating join is refused with the numbers.",
+ "plan": [
+  "Make one training row per (entity, cutoff); everything about a row from events strictly before its cutoff, its target from the horizon after it.",
+  "Check every join for repeated rows before it happens, and refuse with the numbers.",
+  "Find entity columns written at the export, not at any cutoff.",
+  "Train on earlier cutoffs whose horizon ends before the latest, score once on the latest against recency alone.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {"decision": "Features stop strictly before the cutoff; the target window is [cutoff, cutoff + horizon).", "why": "With features before and the target after, an order on the cutoff day fell into neither, and every such order was lost."},
+  {"decision": "A training row is used only when its target's horizon ends by the holdout's cutoff, and the last event the training targets read is recorded and checked.", "why": "A row 15 days before the last cutoff reads 15 days of the holdout's own window as its target; checking the planned horizon instead of what was read let a doubled horizon pass."},
+  {"decision": "Entity numbers are compared with whole-log totals and last event times over the entities that have both.", "why": "A total exported with gaps made the correlation NaN and silently passed; a date stored as a number was never checked."},
+  {"decision": "A label table joins only before its label's time, or is refused when an entity has several cutoffs.", "why": "A June row of a customer whose churn was decided in March reads behaviour after the outcome."}
+ ],
+ "change": "dclab_core/entities.py (check_join, snapshot_rows, window_features, window_target, label_join, entity_check, build, evaluate), dclab_core/replicas/shop_customers.py, dclab_rnd/kinds/entity_tables.py, tests/test_core_entities.py, dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "E1", "source": "reviewer", "severity": "leakage", "defect": "Export-time numbers reached the model.", "scenario": "lifetime_orders exported with gaps stayed a feature; last_order_date as epoch seconds raised the holdout ROC-AUC from 0.906 to 0.947.",
+   "cause": "A NaN correlation compared as False, and numeric dates were never checked.", "fix": "Pairwise correlation with whole-log totals and last event times, absolute.", "test": "test_export_numbers_are_kept_out_with_gaps_and_as_epochs",
+   "impact": "A snapshot taken at the end would have been scored as a forecast."},
+  {"id": "E2", "source": "reviewer", "severity": "leakage", "defect": "The guard that training targets end by the holdout's cutoff could not fail.", "scenario": "Cutoffs 30 days apart with a 30-day horizon: removing the filter, or reading twice the horizon, passed every test and check.",
+   "cause": "The replica's spacing matched the horizon, and the check read the planned horizon, not what was read.", "fix": "The target records its last read; a cutoff 15 days before the last is in the replica; the check reads the recorded time.",
+   "test": "test_rows_past_the_data_end_are_left_out_and_training_ends_before_the_holdout"},
+  {"id": "E3", "source": "reviewer", "severity": "behaviour", "defect": "An event exactly at the cutoff fell into neither window.", "scenario": "A customer who ordered on the cutoff day was counted as churned.",
+   "cause": "Features read before the cutoff and the target after it.", "fix": "The target reads [cutoff, cutoff + horizon).", "test": "test_the_target_window_starts_at_the_cutoff_and_ends_before_the_horizon"},
+  {"id": "E4", "source": "reviewer", "severity": "behaviour", "defect": "Missing keys were miscounted, so a repeating join passed.", "scenario": "left a, None, b and right a, None, None: reported 3 to 3, the join gave 4.",
+   "cause": "value_counts drops missing keys; a join matches them.", "fix": "The join itself counts.", "test": "test_a_join_that_repeats_rows_is_refused_with_the_numbers"},
+  {"id": "E5", "source": "reviewer", "severity": "leakage", "defect": "The label join ignored cutoffs.", "scenario": "Rows for a at January and June with a label decided in March both got the label.",
+   "cause": "A plain key join.", "fix": "Only rows before the label's time, or a refusal when an entity has several cutoffs and the label has no time.", "test": "test_a_label_table_joins_only_before_its_label"},
+  {"id": "E6", "source": "reviewer", "severity": "behaviour", "defect": "The kind took over other kinds' briefs.", "scenario": "'Forecast daily sales from the orders table' was detected as several tables instead of forecasting; 'Recommend products per customer from their orders' instead of ranking.",
+   "cause": "Bare table words.", "fix": "Several tables or a cutoff must be said.", "test": "test_detected_only_when_several_tables_or_a_cutoff_are_said"},
+  {"id": "E7", "source": "reviewer", "severity": "gap", "defect": "The leak counter missed an event at the cutoff itself.", "scenario": "With features reading up to and including the cutoff the counter stayed 0.",
+   "cause": "It counted reads after the cutoff only.", "fix": "Reads at or after the cutoff count.", "test": "test_window_features_and_target_by_hand"},
+  {"id": "E8", "source": "reviewer", "severity": "gap", "defect": "The trend feature was untested.", "scenario": "recent + prior instead of recent - prior passed.", "cause": "No hand case.",
+   "fix": "A hand case with events in both 30-day bands.", "test": "test_the_trend_by_hand"}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica (6 decisions); refused by the engine and partial in the matrix until a project can hold several tables.",
+ "lessons": [
+  "Check what was read, not what was planned to be read.",
+  "A replica whose numbers line up hides the boundary a test was written for: put a case on the boundary.",
+  "A missing value in a correlation is a silent pass; compare over the rows that have both.",
+  "Feature and target windows must meet exactly at the cutoff, with nothing lost between them."
+ ],
+ "risks": ["Events after a row's cutoff in its features.", "Training targets read in the holdout's window.", "Columns of an export-day snapshot used as if known at a cutoff.", "Joins that repeat rows."],
+ "commits": []
+}

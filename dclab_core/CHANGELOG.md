@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3 to 16.7. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3 to 16.8. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -62,6 +62,17 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3 to 16.7. The six contracts are un
   and the uplift by decile; arms weighted by inverse propensity when the action was not random.
 - `replicas.campaign_uplift` (new): a discount campaign, randomised or chosen by the team, a planted responsive
   segment and every row's true uplift in its facts (for judging).
+- `entities` (new): several tables related by keys (16.8). `check_join` refuses a join that repeats rows, counted by
+  the join itself (missing keys included), with the numbers; `snapshot_rows` makes (entity, cutoff) rows for entities
+  with an event strictly before the cutoff; `window_features` counts, sums, recency and trend from events strictly
+  before each row's cutoff, recording the last event read; `window_target` reads [cutoff, cutoff + horizon), leaves a
+  row unknown when its horizon passes the data's end, and records the last event it read; `entity_check` keeps out
+  entity columns written after a row's cutoff (later dates; numbers that follow a whole-log total or last event time,
+  over the entities that have both); `label_join` joins a label table by key, only before the label's time;
+  `build` and `evaluate` (trained on earlier cutoffs whose horizon ends by the latest, scored once on the latest,
+  against recency; the training targets' last read reported).
+- `replicas.shop_customers` (new): customers, orders, tickets and addresses, an export-day snapshot in the customer
+  table, churn in the 30 days after monthly cutoffs.
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).
