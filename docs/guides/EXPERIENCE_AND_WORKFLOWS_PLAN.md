@@ -339,7 +339,20 @@ Status:
   Every write route says what it records. Prompts and replies only with DCLAB_LOG_PROMPTS=1 and never for a purpose
   shown cell values. Open: partitioning by month; the Admin page and search (19.4).
 
-Owner decisions:
+Owner decisions (answered 2026-10-13):
+- **Prompts and replies: kept for training.** `DCLAB_LOG_PROMPTS=1` in the owner's `.env`: the usage log and the session
+  record keep each model request's prompt and reply (class `model_text`, in the workspace). A purpose shown cell values
+  (the parser's sample lines, the intern's tool results) still keeps none: those are cell values, and 19.6 decides them
+  with the consent below.
+- **Consent: yes, off by default for each workspace and each project, customer data included.** The record may be used
+  for improving DCLab and for training once a workspace's owner switches it on, and per project; nothing is used
+  before. This covers the main product too: its ADR 0008 (no fine-tuning on customer data) is to be amended there to
+  "only with this consent"; until its own change, its exports stay off. 19.6 builds the switches, the audit of each
+  change and the export's refusal without them.
+- Still open: retention per class (proposed: events 24 months, model text 12 months); who may read session timelines
+  (proposed: owner and admin roles).
+
+Earlier note:
 - The main product: its ADR 0008 rejects fine-tuning its assistant on customer data. Whether its sessions may ever
   feed a training set is the owner's call; until then the library's exports there produce nothing.
 - Consent defaults: recorded for the workspace always; used for improving DCLab and for training only when switched
