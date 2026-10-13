@@ -48,7 +48,10 @@ def new_job(kind: str, key: str, payload: dict[str, Any], by: str = "human", wor
 
     who = current()  # the person who asked (package 10.2): the job's audit rows name them
     user = {"user_id": who.user_id, "email": who.email, "name": who.name, "role": who.role, "workspace_id": who.workspace_id} if who and who.user_id else None
+    from .. import experience
+
     return {"id": "j" + secrets.token_hex(6), "kind": kind, "key": key, "payload": payload, "by": by, "user": user,
+            "origin": experience.origin() or None,  # 19.2: the visit and the request that queued it
             "status": "running" if running else "queued", "progress": {}, "created": now(),
             "started": now() if running else None, "finished": None, "heartbeat": time.time() if running else None,
             "worker": worker, "error": None, "attempts": 1 if running else 0, "cancel_requested": False}
@@ -117,6 +120,9 @@ class Jobs:
             if j["status"] not in RETRYABLE:
                 raise ValueError(f"only a failed, stopped or interrupted job can be retried; this one is {j['status']}")
             j.update(status="queued", error=None, cancel_requested=False, worker=None, started=None, finished=None, heartbeat=None, progress={})
+            from .. import experience
+
+            j["origin"] = experience.origin() or j.get("origin")  # 19.2: a retry belongs to the visit and request that asked for it
             return True
         return self._change(job_id, put)
 

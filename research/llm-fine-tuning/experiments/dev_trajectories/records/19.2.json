@@ -1,0 +1,294 @@
+{
+  "package": "19.2",
+  "title": "The studio records every session: one log, a visit and a request id, every writer emitting (19.2 and 19.3)",
+  "date": "2026-10-13",
+  "request": "Store and collect everything a person does in DCLab and everything DCLab does in reply, organized and findable.",
+  "spec": "One append-only log per workspace in the shape of dclab_core.experience; a visit minted by the server and carried into jobs with the request id; the existing writers (audit, draft events, project activity, agent traces, the model gateway, intern turns, jobs, MCP calls) emitting into it; a finder. Done when one flow through the API is one ordered timeline of one visit with its ids, the same on files and PostgreSQL, and every write route says what it records.",
+  "plan": [
+    "One record() reading its ids from the context; a file log by day and visit, a PostgreSQL table with a trigger refusing update and delete.",
+    "Mint the visit in the workspace middleware, carry the visit and request into jobs.",
+    "Hook the central writers once each, mapping their records onto the vocabulary, never failing them.",
+    "Test one real flow end to end; list every write route with what it records.",
+    "Review, read real row shapes, plant faults."
+  ],
+  "decisions": [
+    {
+      "decision": "Existing stores keep their jobs and emit into the log; nothing is rewritten.",
+      "why": "Their readers (pages, trajectories, SFT) depend on them; the log joins them by ids."
+    },
+    {
+      "decision": "A visit's start is recorded with its first event, by the web process that minted it.",
+      "why": "Pollers and probes would otherwise make a visit and a file per request; a worker must never repeat a start."
+    },
+    {
+      "decision": "Prompts and replies are kept only with DCLAB_LOG_PROMPTS=1, and never for a purpose shown cell values.",
+      "why": "The usage log's own switch; a prompt holding sample rows would be cell values under a lower class."
+    },
+    {
+      "decision": "One action is one event: the draft's upload and save are the events; the build's copies are not.",
+      "why": "Duplicates inflated uploads threefold and saves twofold."
+    },
+    {
+      "decision": "Every write route is listed with what it records or why nothing; a new route fails the test until it is.",
+      "why": "Coverage is a decision per route, not an omission."
+    },
+    {
+      "decision": "The table is indexed by every id; partitioning by month is left for when a workspace's volume needs it.",
+      "why": "Indexes serve the finder now; partitions are an operations choice."
+    }
+  ],
+  "change": "dclab_rnd/experience/ (new: __init__, hooks, __main__), dclab_rnd/storage/models.py and migration 0015, dclab_rnd/storage/migrate.py, hooks in audit.py, draft/store.py, storage/postgres.py, studio/store.py, agents/traces.py, agents/runtime.py, models/gateway.py, agentic/routers/projects.py, agentic/routers/jobs.py, intern/loop.py, draft/api.py, draft/chat.py, mcp_server.py, jobs/store.py, jobs/worker.py, agentic/services.py, agentic/server.py, studio/engine.py; tests/test_experience_log.py (new), tests/test_storage_migrate.py.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A new local name shadowed the engine's own function.",
+      "scenario": "Every run after the features stage failed with UnboundLocalError.",
+      "cause": "`chosen = ...` inside the function that calls chosen().",
+      "fix": "Renamed; caught by the engine's tests, not by the new test that ran one stage.",
+      "test": "test_studio"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "Opening the log in file mode wrote a marker into the workspace folder.",
+      "scenario": "storage migrate changed its source.",
+      "cause": "The id came through workspace_key, which writes the marker.",
+      "fix": "The id is read without writing.",
+      "test": "test_storage_migrate test_the_source_is_not_changed"
+    },
+    {
+      "id": "S3",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The visit's start was lost when its first request recorded nothing.",
+      "scenario": "A GET minted the visit; later requests carried the cookie.",
+      "cause": "The start waited inside one request.",
+      "fix": "Minted visits wait in the web process for their first event.",
+      "test": "test_the_flow_is_one_visit_in_order"
+    },
+    {
+      "id": "S4",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The Home agent made no tracer without a trace store, so its steps never reached the record.",
+      "scenario": "A model turn recorded no agent step.",
+      "cause": "The tracer was optional.",
+      "fix": "Always a tracer; with no store it writes only the event.",
+      "test": "test_a_home_turn_through_the_gateway_joins_its_model_request_to_its_step"
+    },
+    {
+      "id": "S5",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "Migrating into a second workspace aborted on duplicate event ids.",
+      "scenario": "The lessons were never reached.",
+      "cause": "Event ids are global keys.",
+      "fix": "Conflicts counted and skipped; the record's copy cannot abort the rest.",
+      "test": "test_another_workspace_s_ids_are_conflicts_not_a_crash"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The audit mapping read the wrong fields: a lesson accept was recorded as refused.",
+      "scenario": "The real row keeps arguments under detail.args.",
+      "cause": "Fields read at the top level.",
+      "fix": "args and message read where they are.",
+      "test": "the flow test"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "One upload made three data.uploaded events; one save two solution.saved.",
+      "scenario": "The pipeline event and the audit row both mapped; the build's copies too.",
+      "cause": "Two sources for one action.",
+      "fix": "The draft's events only; the build's copies marked and skipped.",
+      "test": "test_one_action_is_one_event"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The route table claimed events the code does not emit.",
+      "scenario": "Approvals claimed a move; a stopped queued job left nothing; settings were NONE.",
+      "cause": "Claims unchecked.",
+      "fix": "Corrected; settings and stops recorded; claims checked for the routes the flow uses.",
+      "test": "test_every_write_route_says_what_it_records"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Agent steps never held the model's own words.",
+      "scenario": "reply_text was never set.",
+      "cause": "The tracer had no text.",
+      "fix": "The runtime passes each reply's text to the step's event.",
+      "test": "test_a_home_turn_through_the_gateway_joins_its_model_request_to_its_step"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "A database query or a cloud URI went into a shareable field.",
+      "scenario": "data.uploaded.source held the source dict as text.",
+      "cause": "str() of the dict.",
+      "fix": "Only its kind.",
+      "test": "from_audit"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Prompts with sample rows could be kept as model text.",
+      "scenario": "The parser and the intern are shown cell values.",
+      "cause": "No purpose check.",
+      "fix": "No prompt or reply for a purpose shown cell values; the usage log's exact switch.",
+      "test": "test_a_prompt_and_a_reply_are_kept_only_when_the_workspace_keeps_them"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Every cookie-less request minted a visit and a file.",
+      "scenario": "Three polls made three visits.",
+      "cause": "visit.started recorded at mint.",
+      "fix": "Recorded with the first event; the cookie set in the error path and Secure like the session's; the visit header only for MCP.",
+      "test": "test_a_second_browser_is_a_second_visit_and_probes_are_none"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A stopped queued job and a retry lost who and where.",
+      "scenario": "Stop recorded nothing; a retry joined the old visit.",
+      "cause": "The worker never ran them; the origin was kept.",
+      "fix": "The stop route records the stopper; a retry takes the new origin.",
+      "test": "jobs routes"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A failed data pipeline left no error.",
+      "scenario": "pipeline failed was unmapped.",
+      "cause": "No mapping.",
+      "fix": "error.raised for it.",
+      "test": "from_draft_event"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The migration did not carry the record.",
+      "scenario": "After migrate, the record was empty.",
+      "cause": "Not in migrate.",
+      "fix": "Copied once, conflicts counted.",
+      "test": "test_every_page_shows_the_same_projects_records_and_logs"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Tests could not fail for the trace, intern, gateway and error hooks.",
+      "scenario": "The flow had no agent turn, no error.",
+      "cause": "Thin flow.",
+      "fix": "An intern turn, a gateway Home turn, a raising route, refusals and a list of cases in the tests; the exact event sequence pinned.",
+      "test": "test_experience_log"
+    },
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The model_request id was never filled.",
+      "scenario": "No id was minted.",
+      "cause": "The usage entry has none.",
+      "fix": "The gateway mints one; the step it answers carries it.",
+      "test": "the gateway test"
+    },
+    {
+      "id": "S6",
+      "source": "self",
+      "severity": "gap",
+      "defect": "The credential tests wrote key-shaped strings into the repository.",
+      "scenario": "The secret scanner found nine 'keys' in a test once it was tracked (committed with 19.1).",
+      "cause": "Literal examples.",
+      "fix": "The examples are assembled at runtime; the scan finds none.",
+      "test": "test_config test_no_secret_is_committed"
+    },
+    {
+      "id": "S7",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "Recording broke the campaign agent in the agent environment.",
+      "scenario": "No numpy there: importing the contract failed inside the tracer.",
+      "cause": "The contract imported unconditionally.",
+      "fix": "Without the core's dependencies nothing is recorded; the agent runs.",
+      "test": "tests/test_agentic.py in .venv-agent"
+    },
+    {
+      "id": "S8",
+      "source": "self",
+      "severity": "latent",
+      "defect": "A reporter test built its project in a file store and asked an app reading PostgreSQL.",
+      "scenario": "Under make test-pg: 404 instead of 409.",
+      "cause": "The test's store and the app's differed (since 18.8).",
+      "fix": "The test's app reads the file store it builds in.",
+      "test": "test_roles_layer on PostgreSQL"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "planted faults",
+      "gate": "each of the 6 planted faults in the recorder fails a test",
+      "result": "6 of 6 caught (no cookie, jobs without origin, audit hook removed, answer dropped, no request id, replay recorded)",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "6 of 6 against 6",
+      "limits": [
+        "Planted before the review's fixes; the new tests cover the review's cases directly."
+      ]
+    },
+    {
+      "name": "file and PostgreSQL",
+      "gate": "the same flow gives the same pinned event sequence on both stores",
+      "result": "test_the_sequence_is_exactly_the_flow_on_either_store passes on files and on PostgreSQL",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "equal",
+      "limits": [
+        "Background events (a pipeline job's end, the Home agent's replies) are left out of the pinned order: they race the next request."
+      ]
+    },
+    {
+      "name": "the gate",
+      "gate": "rd-check, the suite on PostgreSQL, the agent environment's tests and the end-to-end flows pass",
+      "result": "rd-check 1316 tests passed; the PostgreSQL suite passed after S8; agent env 8 passed; product-e2e four flows passed",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "all four parts pass",
+      "limits": [
+        "The failing parts were rerun alone after their fixes, not the whole gate again."
+      ]
+    }
+  ],
+  "outcome": "The studio records every session in one log a person can read; the finder, feedback and failure detectors (19.4, 19.5) read it next.",
+  "lessons": [
+    "Hook the central writers once each, and read their real record shapes before mapping them.",
+    "One action, one event: decide which writer owns it.",
+    "A visit is a sitting, not a request: start it with what the person does.",
+    "A field's class follows what its value can hold: a source can be a query.",
+    "Read a folder's identity without writing into it.",
+    "A test of the whole flow still missed a bug the stage tests caught: run the neighbours."
+  ],
+  "risks": [
+    "Values exported through a shareable field.",
+    "Duplicated events inflating counts.",
+    "A visit per poll.",
+    "A migration that changes or aborts."
+  ],
+  "commits": []
+}

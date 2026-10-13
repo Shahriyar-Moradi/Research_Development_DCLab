@@ -180,6 +180,10 @@ class PgProjects(_Base):
         with self.engine.begin() as c:
             self._owned(c, project_id)
             c.execute(sa.insert(activity).values(project_id=project_id, at=at or draft_now(), kind=kind, payload=json.loads(db.dumps(payload))))
+        if at is None:  # 19.3: a fresh entry (a replayed one carries its own time) in the session's record too
+            from ..experience import hooks
+
+            hooks.from_activity(project_id, kind, payload)
 
     def activity(self, project_id: str, limit: int = 60) -> list[dict[str, Any]]:
         with self.engine.connect() as c:
@@ -325,6 +329,9 @@ class PgDrafts(_Base):
             c.execute(sa.insert(draft_event).values(draft_id=draft_id, **event))
             # delivered when this transaction commits, to every app instance listening (package 10.5: storage/notify.py)
             c.execute(sa.text("select pg_notify(:channel, :draft)"), {"channel": NOTIFY_CHANNEL, "draft": _key(draft_id)})
+        from ..experience import hooks  # 19.3: the chat, the data and the build in the session's record too
+
+        hooks.from_draft_event(draft_id, kind, data)
         return event
 
     def wait_for_events(self):

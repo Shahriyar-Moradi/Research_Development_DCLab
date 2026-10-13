@@ -20,7 +20,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .catalog import ROOT
 from .current import Current
 from .pool import Pool
-from .. import context, limits, observe
+from .. import context, experience, limits, observe
 from ..accounts import api as accounts_api
 from ..accounts.guard import identify
 from ..accounts.principal import ANONYMOUS, LOCAL_OWNER, reset_current, set_current
@@ -50,6 +50,28 @@ STATIC = ROOT / "dclab_rnd" / "agentic" / "static"
 # No inline scripts or styles anywhere, and nothing is loaded from outside this app: the fonts are served from /static/app/fonts.
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; "
        "font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
+
+
+VISIT_COOKIE = "dclab_visit"
+NO_VISIT = ("/static/", "/healthz", "/readyz", "/metrics", "/favicon")
+
+
+def _visit(request: Request) -> tuple[str | None, bool]:
+    """The request's visit (19.2): the browser's cookie, an MCP client's X-DCLab-Visit header, or a new one for a page or
+    API request; none for static files and probes. A cookie lives 30 idle minutes: after that, a new visit begins."""
+    import re
+
+    from .. import experience
+
+    path = request.url.path
+    if path.startswith(NO_VISIT):
+        return None, False
+    offered = request.cookies.get(VISIT_COOKIE) or (request.headers.get("x-dclab-visit") if path.startswith("/mcp") else None)
+    if offered and re.fullmatch(r"v[0-9a-f]{16}", offered):
+        return offered, False
+    if path.startswith("/mcp"):  # a client without a visit of its own: its calls are not one sitting we can see
+        return None, False
+    return experience.new_visit(), True
 
 
 def create_app(home=None) -> FastAPI:
@@ -132,11 +154,24 @@ def create_app(home=None) -> FastAPI:
             except limits.LimitExceeded as over:
                 return JSONResponse({"detail": over.body}, status_code=429, headers={"Retry-After": str(over.body["retry_after"])})
         principal_token, services_token = set_current(who), context.set_services(workspace)
+        visit, fresh = _visit(request)  # 19.2: one sitting of one person, renewed while they work, carried into its jobs
         try:
-            response = await call_next(request)
+            if fresh:
+                experience.mark_new(visit, "web")
+            with experience.bind(visit=visit):
+                try:
+                    response = await call_next(request)
+                except Exception as exc:  # recorded with its ids and answered here, so the browser keeps its visit
+                    experience.record("error.raised", "system", {"where": getattr(request.scope.get("route"), "path", None) or "unmatched",
+                                                                 "code": type(exc).__name__})
+                    observe.log.error("unhandled error", extra={"fields": {"error": type(exc).__name__}})
+                    response = JSONResponse({"detail": "Internal error", "request_id": observe.REQUEST_ID.get()}, status_code=500)
         finally:
             context.reset_services(services_token)
             reset_current(principal_token)
+        if visit and not request.url.path.startswith("/mcp"):
+            response.set_cookie(VISIT_COOKIE, visit, max_age=experience.VISIT_IDLE_SECONDS, httponly=True, samesite="lax", path="/",
+                                secure=bool(settings.cookie_secure))
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Cache-Control"] = "no-store"

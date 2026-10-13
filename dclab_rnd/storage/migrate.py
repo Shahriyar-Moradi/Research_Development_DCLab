@@ -136,6 +136,26 @@ def _log_tables():
             "audit": (audit_event, AUDIT_FIELDS)}  # the audit trail (10.4): in its order, so the ids keep it
 
 
+def _experience(src: Any, wid: str, url: str | None, report: dict[str, Any], engine: Any) -> None:
+    import sqlalchemy as sa
+
+    from ..experience import FileLog, PgLog
+    from .models import experience_event
+
+    events = FileLog(src.home / "experience", wid).read(limit=10 ** 9)
+    present = _count(experience_event, wid, url)
+    if present or not events:
+        report["logs"]["experience"] = {"source": len(events), "copied": 0, "already": present, "conflict": 0}
+        return
+    with engine.connect() as c:
+        taken = {r[0] for r in c.execute(sa.select(experience_event.c.id).where(experience_event.c.id.in_([e.id for e in events])))}
+    fresh = [e.model_copy(update={"ids": e.ids.model_copy(update={"workspace": wid})}) for e in events if e.id not in taken]
+    target = PgLog(wid, engine)
+    for start in range(0, len(fresh), 500):
+        target.append(fresh[start:start + 500])
+    report["logs"]["experience"] = {"source": len(events), "copied": len(fresh), "already": 0, "conflict": len(events) - len(fresh)}
+
+
 def _count(table, wid: str, url: str | None) -> int:
     import sqlalchemy as sa
 
@@ -282,6 +302,12 @@ def _logs(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> Non
             for r in rows:
                 c.execute(sa.insert(table).values(workspace_id=wid, **{k: r.get(k) for k in fields if k in table.c}))
         report["logs"][name] = {"source": len(rows), "copied": len(rows), "already": 0}
+    # 19.2: the record of every session, copied once into a workspace whose record is empty, the events unchanged; an
+    # event whose id another workspace already holds is a conflict, counted and left, as for projects and lessons
+    try:
+        _experience(src, wid, url, report, engine)
+    except Exception as exc:  # noqa: BLE001 - the record is reported failed; the lessons and the routing still move
+        report["failed"].append(f"experience log: {type(exc).__name__}")
     lessons, out = PgLessons(wid, url), report["lessons"]
     for lesson in src.lessons():
         lid = lesson.get("id")

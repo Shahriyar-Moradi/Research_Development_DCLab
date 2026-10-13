@@ -131,6 +131,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, "Describe the problem in one sentence first")
         key = body.get("pack") if body.get("pack") in packs.KEYS else None
         draft = drafts.create(problem[:2000], key)
+        from .. import experience  # 19.3: the problem as the person first wrote it
+
+        experience.record("draft.created", "person", {"problem": problem[:2000], "pack": key}, conversation=draft["id"])
         background(draft["id"] + ":agent", lambda: agent(draft["id"]).start(draft["id"]))
         return draft
 
@@ -181,6 +184,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             before = drafts.get(draft_id)["problem"]
             drafts.update(draft_id, lambda d: d.update(problem=problem[:2000]))
             if problem[:2000] != before:  # what was read from the old sentence is read again from the new one
+                from .. import experience  # 19.3: a rewritten problem is a signal of what was not understood
+
+                experience.record("draft.edited", "person", {"field": "problem", "before": before, "after": problem[:2000]}, conversation=draft_id)
                 await asyncio.to_thread(HomeAgent(drafts, None).replan, draft_id)
         return drafts.get(draft_id)
 
@@ -210,6 +216,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             raise HTTPException(422, "Choose the outcome column: DCLab does not pick it for you")
         refused = studio_data.target_refusal(next((c for c in profile.get("columns") or [] if c.get("name") == target), None))
         if refused:
+            from .. import experience
+
+            experience.record("solution.refused", "system", {"target": target[:200], "reason": refused, "rule": "Target can be an outcome"},
+                              conversation=draft_id)
             raise HTTPException(422, refused)
         hint = asset.get("suggestion") or {}
         try:  # a studied sample's time column orders the rows the proposal reads, as it will order the run's split
@@ -238,6 +248,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             leakage_review.review, profile, proposal["prediction_moment"] or hint.get("prediction_moment"), proposal["forbidden"], target,
             proposal["identifiers"], models.client("leakage_review", draft_id=draft_id))
         drafts.update(draft_id, lambda d: d.update(proposal=proposal))
+        from .. import experience  # 19.3: what was proposed, to compare with what the person saved
+
+        experience.record("solution.proposed", "system", {"by": "audit", "target": target[:200], "task": proposal.get("task"), "kind": proposal.get("kind"),
+                                                          "forbidden": [str(f["column"])[:120] for f in proposal["forbidden"]][:200] or None},
+                          conversation=draft_id)
         return proposal
 
     @router.put("/api/drafts/{draft_id}/solution", response_model=Draft)
@@ -253,6 +268,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
             refused = studio_data.target_refusal(next((c for c in profile.get("columns") or [] if c.get("name") == solution.target), None))
             if refused:  # the same rule as the project's set_solution check
+                from .. import experience
+
+                experience.record("solution.refused", "system", {"target": solution.target[:200], "reason": refused, "rule": "Target can be an outcome"},
+                                  conversation=draft_id)
                 raise ValueError(refused)
         except ValidationError as exc:
             raise HTTPException(422, "; ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors())) from None
@@ -289,7 +308,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                        "eur": max(0.0, min(float(budget.get("eur") or 5), 1000.0))},
             "ask_over_eur": bool(body.get("ask_over_eur", True)),
         }
+        before = draft.get("settings") or {}
         drafts.update(draft_id, lambda d: d.update(settings=settings))
+        from ..experience import hooks  # 19.3: how it will run, as the person set it
+
+        hooks.settings_changed({k: v for k, v in settings.items() if k != "budget" and before.get(k) != v}, conversation=draft_id)
         return drafts.get(draft_id)
 
     @router.post("/api/drafts/{draft_id}/messages", status_code=202, response_model=Doc)
@@ -545,6 +568,9 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         try:
             return await asyncio.to_thread(build_project, drafts, projects, draft_id)
         except BuildRefused as exc:
+            from .. import experience
+
+            experience.record("draft.refused", "system", {"reason": str(exc)[:2000], "rule": "list of known cases"}, conversation=draft_id)
             raise HTTPException(409, str(exc)) from None
 
     app.include_router(router)
@@ -683,7 +709,7 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
             projects.save(project)
             from .. import audit
 
-            audit.solution(projects, project, draft["solution"], "human")
+            audit.solution(projects, project, draft["solution"], "human", built=True)
 
     def done(d):
         d["status"], d["project_id"] = "built", pid

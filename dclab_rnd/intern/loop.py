@@ -58,6 +58,9 @@ class Intern:
         mode = "llm" if self.client is not None else "standard"
         session = self.sessions.create(task, mode=mode, model=(model or getattr(self.client, "model", None)) if self.client else None, budget=budget, project_id=project_id)
         session["messages"] = [{"role": "system", "content": POLICY}, {"role": "user", "content": self._task_message(session)}]
+        from .. import experience  # 19.3: the person's request in the session's record
+
+        experience.record("chat.person", "person", {"text": task[:4000], "surface": "intern"}, conversation=session["id"], project=project_id)
         return self.sessions.save(session)
 
     def _trace(self, session: dict[str, Any]) -> Tracer:
@@ -86,6 +89,14 @@ class Intern:
             session["status"] = "failed"
             session["error"] = f"{type(exc).__name__}: {str(exc)[:400]}"
         session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
+        from .. import experience  # 19.3: the intern's answer, or how the turn ended, in the session's record
+
+        if session.get("final"):
+            experience.record("chat.agent", "agent", {"text": str(session["final"])[:4000], "kind": "answer", "surface": "intern"},
+                              conversation=session["id"], project=session.get("project_id"))
+        elif session.get("error"):
+            experience.record("error.raised", "system", {"where": "intern", "code": str(session["error"]).split(":")[0][:80],
+                                                         "message": str(session["error"])[:2000]}, conversation=session["id"], project=session.get("project_id"))
         return self.sessions.save(session)
 
     def message(self, session_id: str, text: str, again: bool = False) -> dict[str, Any]:
@@ -96,6 +107,9 @@ class Intern:
         last = session["messages"][-1] if session["messages"] else {}
         if not (again and last.get("role") == "user" and last.get("content") == text and session.get("final") is None):
             session["messages"].append({"role": "user", "content": text})
+            from .. import experience  # 19.3: the follow-up in the session's record
+
+            experience.record("chat.person", "person", {"text": text, "surface": "intern"}, conversation=session_id, project=session.get("project_id"))
         session["final"] = None
         session["status"] = "queued"
         self.sessions.save(session)

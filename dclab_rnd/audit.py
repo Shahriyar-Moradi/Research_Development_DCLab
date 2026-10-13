@@ -231,9 +231,14 @@ def record(log: AuditLog | None, kind: str, actor: str | None = "human", who: st
     if log is None:
         return
     try:
-        log.append([_row(kind, actor, who, **values)])
+        row = _row(kind, actor, who, **values)
+        log.append([row])
     except Exception as exc:  # noqa: BLE001 — never stop a person's work because the audit is briefly away
         print(f"audit: could not record {kind}: {type(exc).__name__}", file=sys.stderr, flush=True)
+        return
+    from .experience import hooks  # 19.3: the governed action in the session's record too
+
+    hooks.from_audit(row)
 
 
 def record_for(store: Any, kind: str, actor: str | None = "human", who: str | None = None, **values: Any) -> None:
@@ -244,13 +249,15 @@ def record_for(store: Any, kind: str, actor: str | None = "human", who: str | No
     record(log, kind, actor, who, **values)
 
 
-def solution(store: Any, project_or_draft: dict[str, Any], value: dict[str, Any], actor: str, draft: bool = False) -> None:
-    """A saved solution: its target, task, forbidden columns and hash (what a later review checks a run against)."""
+def solution(store: Any, project_or_draft: dict[str, Any], value: dict[str, Any], actor: str, draft: bool = False, built: bool = False) -> None:
+    """A saved solution: its target, task, forbidden columns and hash (what a later review checks a run against).
+    ``built``: the draft's solution copied into the project it became (saved once, by the person, in the draft)."""
     from .studio.graph import solution_hash
 
     where = {"draft_id": project_or_draft.get("id")} if draft else {"project": project_or_draft}
     record_for(store, "solution", actor, move="set_solution", status="allowed", **where, target=value.get("target"), task=value.get("task"),
-               forbidden=[f.get("column") for f in value.get("forbidden") or [] if isinstance(f, dict)], solution_hash=solution_hash(value))
+               forbidden=[f.get("column") for f in value.get("forbidden") or [] if isinstance(f, dict)], solution_hash=solution_hash(value),
+               **({"built": True} if built else {}))
 
 
 def sha256_of(path: Path) -> str | None:

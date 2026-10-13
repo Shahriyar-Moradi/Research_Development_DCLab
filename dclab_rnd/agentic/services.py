@@ -62,6 +62,11 @@ class Services:
             audit.backfill(self.audit, self.projects, self.gateway.routing)
         except Exception as exc:  # noqa: BLE001 — the history stays in the project logs; the server starts either way
             print(f"audit: the earlier history was not imported ({type(exc).__name__})", flush=True)
+        from .. import experience  # 19.2: the record of every session in this workspace
+
+        self.experience = experience.open_log(self.store.home, self.workspace_id)
+        if primary:
+            experience.install(self.experience)
         self.lesson_store = workspace_lessons.open_lessons(self.store.home)  # the workspace's lessons table (A5.3)
         if primary:
             workspace_lessons.install(self.lesson_store)  # accepted lessons join every evidence search

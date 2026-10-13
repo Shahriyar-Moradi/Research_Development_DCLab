@@ -64,6 +64,7 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
     opted = None
     if isinstance(body.get("settings"), dict):
         settings = body["settings"]
+        before = dict(p["settings"])
         if "max_rows" in settings:
             p["settings"]["max_rows"] = max(200, min(int(settings["max_rows"]), 200000))
         if "quick" in settings:
@@ -73,6 +74,10 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
         if isinstance(settings.get("share_for_training"), bool) and settings["share_for_training"] != bool(p["settings"].get("share_for_training")):
             p["settings"]["share_for_training"] = settings["share_for_training"]  # A6.1: only the owner's choice puts a project's runs in the export
             opted = {"share_for_training": settings["share_for_training"], "actor": "human"}
+        from ...experience import hooks  # 19.3: how it will run, as the person set it (the opt-in is a policy, recorded as one)
+
+        hooks.settings_changed({k: p["settings"].get(k) for k in ("max_rows", "quick", "folds") if before.get(k) != p["settings"].get(k)},
+                               project=project_id)
     changed = {}
     if isinstance(body.get("policy"), dict):  # which gates wait for a person; the invariants hold either way
         named = {studio_graph.LEGACY_POLICY.get(k, k): v for k, v in body["policy"].items()}
@@ -326,6 +331,7 @@ async def ask_agent(project_id: str, body: Question, s: Services = Depends(servi
     task_type = next((r["task_type"] for r in records.values()), None)
     answer = await asyncio.to_thread(studio_agent.answer, question[:1000], p, records, task_type)
     s.projects.log(project_id, "question", {"question": question[:300], "proof": answer["proof"]})
+    s.projects.log(project_id, "answer", {"answer": str(answer.get("answer") or "")[:4000], "proof": answer["proof"]})  # 19.3: kept, not dropped
     return answer
 
 

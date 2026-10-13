@@ -127,6 +127,9 @@ class DraftStore:
             event = {"seq": seq + 1, "at": now(), "kind": kind, "data": data or {}}
             with path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(event, ensure_ascii=False, default=str) + "\n")
+        from ..experience import hooks  # 19.3: the chat, the data and the build in the session's record too
+
+        hooks.from_draft_event(draft_id, kind, data)
         return event
 
     def events(self, draft_id: str, after: int = 0) -> list[dict[str, Any]]:

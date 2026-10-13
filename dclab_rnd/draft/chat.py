@@ -509,8 +509,7 @@ class HomeAgent:
                       max_replies=max_replies)
 
     def tracer(self, draft_id: str) -> Tracer | None:
-        if self.traces is None:
-            return None
+        # without a trace store the steps still reach the session's record (19.3): the tracer writes no row, only its event
         return Tracer.resume(self.traces, draft_id, "home", lambda: understood(self.store.get(draft_id)))
 
     def model_turn(self, draft_id: str, max_replies: int = MODEL_REPLIES, text: str = "") -> None:

@@ -56,6 +56,10 @@ async def stop_job(job_id: str, s: Services = Depends(services)):
     job = s.job_store.cancel(job_id)
     if job["status"] == "cancelled":  # it never started: its domain goes back to how it was (stages "pending", the asset failed)
         _settle(s, job, "stopped")
+        from ... import experience  # 19.3: who stopped it; a running job's stop is recorded by its worker when it ends
+
+        experience.record("job.stopped", "person", {"kind": job["kind"], "status": "cancelled", "by": "person"}, job=job_id,
+                          project=(job.get("payload") or {}).get("project_id"))
     return public(job)
 
 

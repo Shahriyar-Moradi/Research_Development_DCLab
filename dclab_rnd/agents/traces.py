@@ -204,7 +204,7 @@ class Tracer:
         self.reply_base = self.last_reply + 1
 
     def __call__(self, tool: str, arguments: dict[str, Any] | None, result: Any, seconds: float, reply: int | None = None,
-                 tokens: dict[str, int] | None = None, verdict: str | None = None, n: int | None = None) -> dict[str, Any]:
+                 tokens: dict[str, int] | None = None, verdict: str | None = None, n: int | None = None, text: str | None = None) -> dict[str, Any]:
         """One row. ``n`` is the caller's own step number when it keeps one (the intern session's), so the two never drift."""
         self.n = n if n is not None else self.n + 1
         if reply is not None:
@@ -221,6 +221,9 @@ class Tracer:
                 self.store.record(row)
             except Exception:  # noqa: BLE001 — losing a trace row must not lose the user's work
                 pass
+        from ..experience import hooks  # 19.3: the step and its tool call in the session's record too
+
+        hooks.from_trace({**row, "reply_text": text})  # the model's own words: in the session's record, not in the trace row
         return row
 
 

@@ -252,6 +252,29 @@ audit_event = sa.Table(  # every governed action, append-only: a trigger refuses
     sa.Index("ix_audit_event_workspace_id_kind", "workspace_id", "kind"),
     sa.Index("ix_audit_event_workspace_id_project_id", "workspace_id", "project_id"))
 
+experience_event = sa.Table(  # every event of every session, append-only: a trigger refuses update and delete (dclab_rnd/experience, 19.2)
+    "experience_event", metadata,
+    sa.Column("id", sa.String(40), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),  # no cascade: the record outlives a project
+    sa.Column("at", sa.Text, nullable=False),  # UTC ISO 8601 with microseconds: text order is time order
+    sa.Column("seq", sa.BigInteger, nullable=False),
+    sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("actor", sa.Text, nullable=False),
+    sa.Column("visit", sa.String(40)),
+    sa.Column("user_id", sa.String(64)),
+    sa.Column("conversation", sa.String(64)),  # a draft or an intern session
+    sa.Column("project_id", sa.String(64)),
+    sa.Column("run_id", sa.String(64)),
+    sa.Column("job_id", sa.String(64)),
+    sa.Column("request_id", sa.String(80)),
+    sa.Column("model_request", sa.String(80)),
+    sa.Column("doc", JSONB, nullable=False),  # the event whole (dclab_core.experience_event.v1)
+    sa.Index("ix_experience_event_workspace_id_at", "workspace_id", "at"),
+    sa.Index("ix_experience_event_workspace_id_visit", "workspace_id", "visit"),
+    sa.Index("ix_experience_event_workspace_id_project_id", "workspace_id", "project_id"),
+    sa.Index("ix_experience_event_workspace_id_conversation", "workspace_id", "conversation"),
+    *[sa.Index(f"ix_experience_event_workspace_id_{c}", "workspace_id", c) for c in ("user_id", "run_id", "job_id", "request_id", "model_request", "kind")])
+
 model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
     "model_pause", metadata,
     sa.Column("key", sa.Text, primary_key=True),  # endpoint, model and a hash of the API key: never the key

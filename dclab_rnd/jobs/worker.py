@@ -117,8 +117,14 @@ def _acting(env: Any, job: dict[str, Any]):
     from .. import context
     from ..accounts.principal import Principal, acting
 
+    from .. import experience
+
     stack = contextlib.ExitStack()
     stack.enter_context(context.using(env))
+    origin = job.get("origin") or {}  # 19.2: the job's events join the visit and the request that queued it
+    payload = job.get("payload") or {}
+    stack.enter_context(experience.bind(visit=origin.get("visit"), request=origin.get("request"), job=job["id"], project=payload.get("project_id"),
+                                        conversation=payload.get("draft_id") or payload.get("session_id")))
     user = job.get("user")
     if isinstance(user, dict) and user.get("role"):
         stack.enter_context(acting(Principal(role=user["role"], workspace_id=user.get("workspace_id"), user_id=user.get("user_id"),
@@ -229,6 +235,9 @@ class Worker:
             outer, _LOCAL.control = current(), control  # a job run inside another job's thread (the agent's synthetic request)
             try:
                 with _acting(self.env, job):  # the job's workspace and the person who started it (package 10.2)
+                    from .. import experience
+
+                    experience.record("job.started", "system", {"kind": job["kind"], "key": str(job.get("key") or "")[:120]})
                     h.run(self.env, job.get("payload") or {})
             finally:
                 _LOCAL.control = outer
@@ -244,6 +253,11 @@ class Worker:
             from .. import observe
 
             ended = self.store.finish(job["id"], status, error, worker=self.id)
+            with _acting(self.env, job):  # 19.2: how it ended, with its visit and request
+                from .. import experience
+
+                experience.record("job.stopped", "system", {"kind": job["kind"], "status": status,
+                                                            "by": "person" if control.observed == "stopped" else "system"})
             observe.observe_job(job["kind"], status, time.monotonic() - began)  # 12.4: durations and failures, by kind
             if status != "done":
                 observe.event("job ended", job=job["id"], kind=job["kind"], status=status, attempts=job.get("attempts"))

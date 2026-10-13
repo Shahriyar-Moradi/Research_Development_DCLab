@@ -94,6 +94,10 @@ class FlowsTest(unittest.TestCase):
         from dclab_rnd.studio import ProjectStore, engine
 
         home = Path(tempfile.mkdtemp())
+        # the project is built in a file store below: the app reads the same one (under make test-pg it would read PostgreSQL)
+        files = mock.patch.dict(os.environ, {"DCLAB_DATABASE_URL": ""})
+        files.start()
+        self.addCleanup(files.stop)
         client = TestClient(create_app(home))
         token = client.get("/api/config").json()["csrf"]
         store = ProjectStore(home / "projects")

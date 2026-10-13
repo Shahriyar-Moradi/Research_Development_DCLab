@@ -56,6 +56,12 @@ class MigrateTests(unittest.TestCase):
         cls.source = Path(tempfile.mkdtemp()) / "files-workspace"
         with mock.patch.dict(os.environ, cls.files_env):
             cls.build_source(cls.source)
+            from dclab_rnd import experience
+
+            log = experience.FileLog(cls.source / "experience", experience.file_workspace_id(cls.source))
+            for n, kind in enumerate(("draft.created", "chat.person")):  # a visit's record (19.2) moves with the workspace
+                log.append([experience.contract.make(kind, "person", {"workspace": log.workspace, "visit": "v00000000000000cc"},
+                                                     {"problem" if kind == "draft.created" else "text": "Find the late orders"}, id=f"ev-migrate-{n}")])
         cls.before = snapshot(cls.source)
         cls.target = Path(tempfile.mkdtemp()) / "db-workspace"
         from dclab_rnd.storage.migrate import migrate
@@ -101,6 +107,9 @@ class MigrateTests(unittest.TestCase):
         self.assertTrue(self.first["ok"], self.first)
         self.assertEqual(len(self.first["projects"]["copied"]), 2)
         self.assertGreater(self.first["logs"]["audit"]["copied"], 0)  # the audit trail moves with the workspace (10.4)
+        moved = self.first["logs"]["experience"]  # the record of every session moves too (19.2), once
+        self.assertEqual((moved["copied"], moved["source"] > 0), (moved["source"], True))
+        self.assertEqual(self.second["logs"]["experience"]["copied"], 0)
         self.assertEqual(pages(self.source, self.files_env), pages(self.target, self.db_env))
 
     def test_the_source_is_not_changed(self):
@@ -155,6 +164,7 @@ class MigrateTests(unittest.TestCase):
         self.assertFalse(other["ok"])
         self.assertEqual(len(other["projects"]["conflict"]), 2)
         self.assertEqual(other["lessons"]["conflict"], ["abc123def0"])
+        self.assertEqual(other["logs"]["experience"]["conflict"], 2)  # another workspace's events: counted, never copied over
         self.assertEqual(other["failed"], [])
 
     def test_a_missing_log_is_a_difference_and_a_rerun_copies_it(self):

@@ -407,6 +407,16 @@ class Bound:
         eur = self.gateway.record(self.purpose, self.model, (out or {}).get("usage"), seconds, attempts, outcome, self.project_id, self.draft_id, prompt,
                                   tier=self.tier.get("name"))
         self.spent_eur += eur or 0.0
+        from ..experience import hooks  # 19.3: the request in the session's record, its prompt and reply only when kept
+
+        from .. import experience
+
+        usage = (out or {}).get("usage") or {}
+        hooks.from_model_request({"id": experience.new_model_request(), "purpose": self.purpose, "tier": self.tier.get("name"), "model": self.model,
+                                  "project_id": self.project_id,
+                                  "draft_id": self.draft_id, "input_tokens": usage.get("input_tokens"), "output_tokens": usage.get("output_tokens"),
+                                  "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome},
+                                 messages, (out or {}).get("content") if isinstance((out or {}).get("content"), str) else None)
 
 
 def check_external(purpose: str, project_id: str | None = None) -> None:

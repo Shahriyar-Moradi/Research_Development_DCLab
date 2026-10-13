@@ -200,6 +200,10 @@ class ProjectStore:
         line = json.dumps({"at": at or now(), "kind": kind, "payload": payload}, ensure_ascii=False)
         with (self.directory(project_id) / "activity.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(line + "\n")
+        if at is None:  # 19.3: a fresh entry (a replayed one carries its own time) in the session's record too
+            from ..experience import hooks
+
+            hooks.from_activity(project_id, kind, payload)
 
     def activity(self, project_id: str, limit: int = 60) -> list[dict[str, Any]]:
         path = self.directory(project_id) / "activity.jsonl"

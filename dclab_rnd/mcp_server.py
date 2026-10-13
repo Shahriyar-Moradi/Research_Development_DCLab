@@ -53,6 +53,9 @@ def build_server(toolbox: Toolbox):
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:
         result = await asyncio.to_thread(toolbox.call, name, arguments or {})
+        from .experience import hooks  # 19.3: a tool an MCP client called, in the session's record
+
+        hooks.from_mcp_call(name, arguments or {}, result)
         return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, default=str))]
 
     return server

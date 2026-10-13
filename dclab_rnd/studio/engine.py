@@ -1179,7 +1179,11 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
             project["holdout_uses"] = evidence["holdout_uses_in_this_project"]
         project["running"] = None
         store.save(project)
-        store.log(project_id, "stage_completed", {"stage": stage, "elapsed_seconds": round(elapsed, 1), "summary": summary[:300]})
+        picked = (record.get("decision") or {}).get("chosen")  # not `chosen`: that is this module's function, used above
+        value = ((record.get("evidence") or {}).get("holdout_metrics") or {}).get(record.get("primary_metric")) if stage == "final" else None
+        store.log(project_id, "stage_completed", {"stage": stage, "elapsed_seconds": round(elapsed, 1), "summary": summary[:300],
+                                                  "metric": record.get("primary_metric"), "chosen": str(picked)[:120] if picked is not None else None,
+                                                  "value": value if isinstance(value, (int, float)) and not isinstance(value, bool) else None})
         return record
     except Exception as exc:  # noqa: BLE001 — the failure itself is the record
         project = store.get(project_id)

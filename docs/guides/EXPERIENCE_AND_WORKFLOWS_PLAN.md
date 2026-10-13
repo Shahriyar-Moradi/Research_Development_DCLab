@@ -331,6 +331,14 @@ Status:
   decision records and run events read as events; every type mapped or listed). dclab-core 0.5.0. Review: 14
   findings, fixed; 18 planted faults caught.
 
+- **19.2 and 19.3 the studio's record: done (2026-10-13).** `dclab_rnd/experience`: one append-only log per workspace
+  (PostgreSQL `experience_event`, trigger-protected, indexed by every id; or `experience/YYYY/MM/DD/<visit>.jsonl`),
+  a visit minted by the server and carried into jobs with the request id, and the existing writers emitting into it
+  (audit, draft events, project activity, agent steps with the model's words, the gateway with a model-request id,
+  intern turns, jobs, MCP calls, settings, edits, refusals, errors). `python -m dclab_rnd.experience sessions|show`.
+  Every write route says what it records. Prompts and replies only with DCLAB_LOG_PROMPTS=1 and never for a purpose
+  shown cell values. Open: partitioning by month; the Admin page and search (19.4).
+
 Owner decisions:
 - The main product: its ADR 0008 rejects fine-tuning its assistant on customer data. Whether its sessions may ever
   feed a training set is the owner's call; until then the library's exports there produce nothing.

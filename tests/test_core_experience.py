@@ -71,8 +71,8 @@ class ContractTest(unittest.TestCase):
             "a field recorded as a lower class": lambda: x.ExperienceEvent(**{**good.model_dump(), "classes": {"text": "meta"}}),
             "a field without its class": lambda: x.ExperienceEvent(**{**good.model_dump(), "classes": {}}),
             "prose in a meta field": lambda: x.make("graph.move", "system", IDS, {"move": "x" * 400}, id="ev-bad3"),
-            "a credential": lambda: x.make("chat.person", "person", IDS, {"text": "my key is sk-abcdefghijklmnopqrstuvwxyz012"}, id="ev-bad4"),
-            "a private key": lambda: x.make("model.request", "model", IDS, {"prompt": "-----BEGIN RSA PRIVATE KEY-----"}, id="ev-bad5"),
+            "a credential": lambda: x.make("chat.person", "person", IDS, {"text": "my key is " + "sk-" + "abcdefghijklmnopqrstuvwxyz012"}, id="ev-bad4"),
+            "a private key": lambda: x.make("model.request", "model", IDS, {"prompt": "-----BEGIN " + "RSA PRIVATE KEY-----"}, id="ev-bad5"),
             "no workspace": lambda: x.make("chat.person", "person", {"user": "u"}, {"text": "a"}, id="ev-bad6"),
             "a tool's result recorded as meta": lambda: x.ExperienceEvent(**{**x.make("tool.call", "agent", IDS, {"result": {"a": 1}}, id="ev-tool0").model_dump(),
                                                                           "classes": {"result": "meta"}}),
@@ -80,7 +80,7 @@ class ContractTest(unittest.TestCase):
             "a yes in a count": lambda: x.make("model.request", "model", IDS, {"cost": True}, id="ev-bad8"),
             "values nested in meta": lambda: x.make("data.analysed", "system", IDS, {"roles": {"a": {"b": "alice"}}}, id="ev-bad9"),
             "a time without its zone": lambda: x.make("chat.person", "person", IDS, {"text": "a"}, id="ev-bad10", at="2026-10-13T06:00:00"),
-            "a credential in an id": lambda: x.make("chat.person", "person", {**IDS, "request": "sk-abcdefghijklmnopqrstuvwxyz012"}, {"text": "a"}, id="ev-bad11"),
+            "a credential in an id": lambda: x.make("chat.person", "person", {**IDS, "request": "sk-" + "abcdefghijklmnopqrstuvwxyz012"}, {"text": "a"}, id="ev-bad11"),
         }
         for name, build in cases.items():
             with self.subTest(name):
@@ -88,10 +88,13 @@ class ContractTest(unittest.TestCase):
                     build()
 
     def test_credentials_are_refused_and_ordinary_words_are_not(self):
-        secrets = ["sk-proj-abcdefghijklmnopqrstuvwxyz0123", "sk-ant-api03-abcdefghijklmnopqrstuvwx", "AKIAABCDEFGHIJKLMNOP", "ASIAABCDEFGHIJKLMNOP",
-                   "ghp_" + "a" * 36, "github_pat_" + "a" * 45, "hf_" + "a" * 34, "AIza" + "b" * 35, "sk_live_" + "c" * 24,
-                   "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
-                   "postgresql://dclab:S3cretPass@db.internal/dclab", "authorization: bearer abcdefghijklmnopqrstuvwx", "-----BEGIN PRIVATE KEY-----"]
+        j = "".join  # every example is assembled here: no key-shaped text sits in the repository (scripts/scan_secrets.py)
+        secrets = [j(["sk-", "proj-", "abcdefghijklmnopqrstuvwxyz0123"]), j(["sk-", "ant-api03-", "abcdefghijklmnopqrstuvwx"]),
+                   j(["AK", "IA", "ABCDEFGHIJKLMNOP"]), j(["AS", "IA", "ABCDEFGHIJKLMNOP"]), j(["gh", "p_", "a" * 36]), j(["github", "_pat_", "a" * 45]),
+                   j(["h", "f_", "a" * 34]), j(["AI", "za", "b" * 35]), j(["sk", "_live_", "c" * 24]),
+                   j(["ey", "JhbGciOiJIUzI1NiJ9.", "eyJzdWIiOiIxMjM0NTY3ODkwIn0.", "dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"]),
+                   j(["postgresql://dclab:", "S3cretPass", "@db.internal/dclab"]), j(["authorization: bearer ", "abcdefghijklmnopqrstuvwx"]),
+                   j(["-----BEGIN ", "PRIVATE KEY-----"])]
         for secret in secrets:
             with self.subTest(secret[:12]):
                 with self.assertRaises(ValueError):

@@ -161,7 +161,7 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
             if trace is not None:
                 first = sum(1 for s in result.steps if s.reply == reply) == 1
                 trace(step.tool, step.arguments, step.result, step.seconds, reply=reply,
-                      tokens=tokens if first else None)
+                      tokens=tokens if first else None, text=(out.get("content") or "").strip() or None if first else None)
             if on_step:
                 on_step(step)
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": _text(value, policy.result_chars)})
