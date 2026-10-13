@@ -26,8 +26,8 @@ Every answer cites only numbers that appear in its input, and splits are by data
 
 Usage
 -----
-    python sft_factory/workflow_samples.py                       # all stages, all datasets
-    python sft_factory/workflow_samples.py --stages model_selection --variants 2
+    python research/llm-fine-tuning/experiments/sft_factory/workflow_samples.py                       # all stages, all datasets
+    python research/llm-fine-tuning/experiments/sft_factory/workflow_samples.py --stages model_selection --variants 2
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from leakage_audit_samples import CATALOG, ROOT, SYSTEM_PROMPT, TARGETS, load, univariate_auc
+from leakage_audit_samples import CATALOG, HERE, SYSTEM_PROMPT, TARGETS, load, univariate_auc
 
 # ----------------------------------------------------------------------------
 # Shared helpers
@@ -648,7 +648,7 @@ def main():
     ap.add_argument("--seed", type=int, default=11)
     ap.add_argument("--val-datasets", nargs="*", default=["wine_quality"])
     ap.add_argument("--test-datasets", nargs="*", default=["online_shoppers", "german_credit"])
-    ap.add_argument("--out", type=Path, default=ROOT / "sft_factory" / "out")
+    ap.add_argument("--out", type=Path, default=HERE / "out")
     args = ap.parse_args()
     split_of = {**{k: "val" for k in args.val_datasets}, **{k: "test" for k in args.test_datasets}}
 

@@ -4,7 +4,7 @@ leakage_audit_samples.py
 
 Generates SFT training samples for the LEAKAGE AUDIT step of the DCLab
 workflow agent, using "planted problems" on the real datasets in
-`external_data/`.
+`data/public/`.
 
 Idea
 ----
@@ -33,9 +33,9 @@ datasets the model has not seen.
 
 Usage
 -----
-    python sft_factory/leakage_audit_samples.py                 # all datasets, defaults
-    python sft_factory/leakage_audit_samples.py --variants 4    # quicker run
-    python sft_factory/leakage_audit_samples.py --test-datasets online_shoppers german_credit --val-datasets wine_quality
+    python research/llm-fine-tuning/experiments/sft_factory/leakage_audit_samples.py                 # all datasets, defaults
+    python research/llm-fine-tuning/experiments/sft_factory/leakage_audit_samples.py --variants 4    # quicker run
+    python research/llm-fine-tuning/experiments/sft_factory/leakage_audit_samples.py --test-datasets online_shoppers german_credit --val-datasets wine_quality
 """
 
 from __future__ import annotations
@@ -58,7 +58,9 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold
 
-ROOT = Path(__file__).resolve().parents[1]
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[3]  # research/llm-fine-tuning/experiments/sft_factory -> repo root
+DATA = ROOT / "data" / "public"
 sys.path.insert(0, str(ROOT))
 from dclab_rnd.agentic.catalog import DATASETS as CATALOG  # noqa: E402
 
@@ -131,9 +133,9 @@ SKIP_REAL = {"adult": {"fnlwgt"}}
 # ----------------------------------------------------------------------------
 
 def load(key: str, max_rows: int, seed: int):
-    X = pd.read_parquet(ROOT / "external_data" / key / "X.parquet")
-    y = pd.read_parquet(ROOT / "external_data" / key / "y.parquet").iloc[:, 0].astype(int)
-    meta = json.loads((ROOT / "external_data" / key / "meta.json").read_text())
+    X = pd.read_parquet(DATA / key / "X.parquet")
+    y = pd.read_parquet(DATA / key / "y.parquet").iloc[:, 0].astype(int)
+    meta = json.loads((DATA / key / "meta.json").read_text())
     if len(X) > max_rows:  # stratified subsample, so evidence is fast but representative
         rng = np.random.default_rng(seed)
         idx = []
@@ -663,7 +665,7 @@ def main():
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--val-datasets", nargs="*", default=["wine_quality"])
     ap.add_argument("--test-datasets", nargs="*", default=["online_shoppers", "german_credit"])
-    ap.add_argument("--out", type=Path, default=ROOT / "sft_factory" / "out" / "leakage_audit")
+    ap.add_argument("--out", type=Path, default=HERE / "out" / "leakage_audit")
     args = ap.parse_args()
 
     all_samples, all_drops, seen, dupes, leaks = [], Counter(), set(), 0, 0

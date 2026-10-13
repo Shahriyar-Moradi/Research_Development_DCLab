@@ -1,6 +1,6 @@
 # SFT sample factory: the whole DCLab workflow
 
-Generates supervised fine-tuning (SFT) samples for **every step** of the DCLab workflow agent, built on the 10 real datasets in `external_data/`:
+Generates supervised fine-tuning (SFT) samples for **every step** of the DCLab workflow agent, built on the 10 real datasets in `data/public/`:
 
 ```
 data_understanding → leakage_audit → feature_engineering → model_selection → optimization_reliability
@@ -52,13 +52,13 @@ See `out/all_stages/report.json` for counts per stage and per decision.
 
 ```bash
 pip install pandas pyarrow scikit-learn
-python sft_factory/leakage_audit_samples.py --variants 8                 # ~10 min
-python sft_factory/workflow_samples.py --variants 16                     # ~45 min on 2 CPUs
-python sft_factory/workflow_samples.py --stages feature_engineering_balance --variants 9
-python sft_factory/check_and_merge.py                                    # checks + merged set
+python research/llm-fine-tuning/experiments/sft_factory/leakage_audit_samples.py --variants 8                 # ~10 min
+python research/llm-fine-tuning/experiments/sft_factory/workflow_samples.py --variants 16                     # ~45 min on 2 CPUs
+python research/llm-fine-tuning/experiments/sft_factory/workflow_samples.py --stages feature_engineering_balance --variants 9
+python research/llm-fine-tuning/experiments/sft_factory/check_and_merge.py                                    # checks + merged set
 ```
 
-The merged training set is in `sft_factory/out/all_stages/{train,val,test}.jsonl`, and each stage also has its own folder.
+The merged training set is in `research/llm-fine-tuning/experiments/sft_factory/out/all_stages/{train,val,test}.jsonl`, and each stage also has its own folder.
 
 ## Train on it (LoRA, loss on the answer only)
 
@@ -67,8 +67,8 @@ from datasets import load_dataset
 from trl import SFTConfig, SFTTrainer
 from peft import LoraConfig
 
-ds = load_dataset("json", data_files={"train": "sft_factory/out/all_stages/train.jsonl",
-                                      "validation": "sft_factory/out/all_stages/val.jsonl"})
+ds = load_dataset("json", data_files={"train": "research/llm-fine-tuning/experiments/sft_factory/out/all_stages/train.jsonl",
+                                      "validation": "research/llm-fine-tuning/experiments/sft_factory/out/all_stages/val.jsonl"})
 # prompt/completion form: TRL computes the loss on the completion (the answer) only
 ds = ds.map(lambda r: {"prompt": r["messages"][:2], "completion": r["messages"][2:]},
             remove_columns=["messages", "metadata"])
@@ -102,4 +102,4 @@ Accuracy per decision type matters most where one decision dominates. In feature
 1. **Trajectory samples:** chain one dataset's five decisions into one sequence, so the model learns the order and hand-offs.
 2. **Mistake → fix samples:** show a wrong decision and train the correction.
 3. **Teacher-model samples:** a strong model answers the same inputs, and only answers matching these labels are kept. This adds varied phrasing.
-4. **New datasets:** add a folder in `external_data/` and an entry in `dclab_rnd/agentic/catalog.py`.
+4. **New datasets:** add a folder in `data/public/` and an entry in `dclab_rnd/agentic/catalog.py`.
