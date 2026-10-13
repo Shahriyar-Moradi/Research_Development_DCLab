@@ -7,7 +7,7 @@ passed the artefacts of the steps before it, under the same rules as any move:
   a brief; the person is asked only what is still open after the brief, the label file and the data have spoken (the
   target, the prediction moment, the checker's questions), and every answer goes into the brief the later roles read;
 - WF-04, analyse: the data investigator reads the columns' names and kinds against the moment, on the provisional
-  training rows only (the earliest 80 % when the table has a time column);
+  training rows only (the earliest 75 % when the table has a time column);
 - WF-01 and WF-03, plan: the solution planner proposes; the plan's validator checks it; the solution is saved through
   the graph validator, the kind of the problem (16.1) asks what it needs (a rare event's review budget), the feature
   engineer's programs are proposed, and the person signs the solution with the programs shown (the solution gate);
@@ -201,7 +201,8 @@ def _run(store: Any, project_id: str, description: str, person: Person, advisor:
     # WF-04: analyse the provisional training rows (the earliest, when time orders the rows) with the investigator
     time_column = brief.time_column.value if brief.time_column.known and brief.time_column.value in columns else None
     time_column = time_column or next((c for c in (project["data"].get("profile") or {}).get("time_candidates") or [] if c in columns), None)
-    train = provisional_training_rows(frame.index, frame[time_column] if time_column else None)
+    present = frame.index[frame[target].notna()]
+    train = provisional_training_rows(present, frame.loc[present, time_column] if time_column else None)
     findings = analyse({"table": frame}, target=target, task=task, brief=brief, train_index=train, advisor=advisor, moment=moment)
     if advisor is not None:
         rules_only = {f.id for f in analyse({"table": frame}, target=target, task=task, brief=brief, train_index=train, moment=moment).findings}

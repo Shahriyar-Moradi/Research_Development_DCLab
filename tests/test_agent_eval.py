@@ -15,7 +15,9 @@ from dclab_rnd.agent_eval.cases import by_id  # noqa: E402
 # when the move is intended, rerun `make agent-eval` (it stores a new result) and update the numbers here.
 SCORECARD = {
     "standard": {"leaks_caught": [1, 13], "false_alarms": [1, 20], "unsafe_refused": [0, 0], "valid_moves": 1.0},
-    "audit": {"leaks_caught": [10, 13], "false_alarms": [3, 20], "unsafe_refused": [0, 0], "valid_moves": 1.0},
+    # 11 since 16.15.1 (AEV-019): the audit reads the earliest 75 % of rows, and AE-12's patient column now crosses the
+    # 0.8 separation line on fewer visits per patient: a sampling effect near a threshold, not a better method
+    "audit": {"leaks_caught": [11, 13], "false_alarms": [3, 20], "unsafe_refused": [0, 0], "valid_moves": 1.0},
     "bad": {"leaks_caught": [0, 13], "false_alarms": [0, 20], "unsafe_refused": [20, 20], "valid_moves": 0.75},
 }
 

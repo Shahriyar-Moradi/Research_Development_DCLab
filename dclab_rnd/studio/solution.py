@@ -168,23 +168,39 @@ def default_metric(task: str, positive_rate: float | None = None) -> str:
     return kinds.get(task).default_metric(None, positive_rate)
 
 
-def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None) -> dict[str, Any]:
+def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str | None = None, pack: str | None = None,
+            time_column: str | None = None) -> dict[str, Any]:
     """What the agent suggests for the solution, with the signal behind each suggestion. The problem kind (16.1) follows
-    from the task, the Domain pack and the text columns; its metrics are the options offered."""
+    from the task, the Domain pack and the text columns; its metrics are the options offered. ``time_column``: the
+    column the person (or a studied sample) says orders the rows, read first among the time candidates."""
     if target not in frame.columns:
         raise ValueError(f"Target {target!r} is not in the data")
-    detected = detect_task(frame, target)
+    detected = detect_task(frame, target)  # the target's form: its values and classes, over every row
     task = task if task in TASKS else detected["task"]
     columns = {c["name"]: c for c in profile["columns"]}
-    y = frame[target]
-    X = frame.drop(columns=[target])
+    time_candidates = [name for name in profile["time_candidates"] if name != target]
+    if time_column and time_column in frame.columns and time_column != target:
+        time_candidates = [time_column] + [c for c in time_candidates if c != time_column]
+    # What reads the target's relation to the rest (the audit, the plan, the class balance behind the metric) reads the
+    # provisional training rows only, the earliest when a column orders the rows in time: the rows a later holdout takes
+    # never shape what is proposed (16.15). The rows the engine drops (no target, a target it cannot read) are not read.
+    usable = frame[target].notna()
+    if task == "regression":
+        usable &= pd.to_numeric(frame[target], errors="coerce").notna()
+    present = frame.index[usable]
+    read, by_time = provisional_reading(present, frame.loc[present, time_candidates[0]] if time_candidates else None)
+    y = frame.loc[read, target]
+    X = frame.loc[read].drop(columns=[target])
+    if detected.get("task") == "binary" and len(y):  # the class balance that decides the metric, on the rows read
+        rate = float((y.astype(str) == str(detected["positive_label"])).mean())
+        detected = {**detected, "positive_rate": rate,
+                    "note": f"Two classes; `{detected['positive_label']}` is treated as the positive class ({rate:.1%} of the rows read)."}
     if len(X) > 20000:
         X = X.sample(20000, random_state=42)
         y = y.loc[X.index]
     audit = tools._audit_frame(X, y, task="regression" if task == "regression" else "classification", blind=False)
     identifiers = [name for name, c in columns.items() if name != target and (c["id_like"] or (c["name_id_like"] and c["unique_ratio"] > 0.5))]
     group_candidates = [name for name, c in columns.items() if name != target and c["name_id_like"] and 0.005 < c["unique_ratio"] < 0.5 and c["kind"] != "numeric"]
-    time_candidates = [name for name in profile["time_candidates"] if name != target]
     forbidden = []
     for row in audit["flagged"]:
         name = row["column"]
@@ -213,28 +229,55 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "metric": default_metric(task, positive_rate), "metric_options": METRICS[task],
         "prediction_moment_hint": _moment_hint(task, time_candidates, forbidden),
         "audit_note": audit["note"],
+        "rows_read": rows_read_note(len(read), len(present), time_candidates[0] if time_candidates else None, by_time),
         "all_columns": audit["all_columns"],
-        "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None),
+        "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None, rows=X.index),
     }
 
 
-def provisional_training_rows(index: pd.Index, times: Any = None) -> pd.Index:
-    """80 % of the rows: what the plan may read before the engine locks its holdout (the rest stays unseen). With
-    ``times`` (the rows' time column), the earliest 80 %, so a later, time-based holdout is never read; otherwise a seeded
-    random 80 %."""
+PROVISIONAL_SHARE = 0.75  # at most 1 - the largest holdout an engine split takes (20 % tabular, 25 % time to event)
+MIN_TIMED_ROWS = 30  # fewer rows with a valid time than this: the rows cannot be ordered, a seeded share is read
+
+
+def provisional_reading(index: pd.Index, times: Any = None) -> tuple[pd.Index, bool]:
+    """75 % of the rows: what may be read before the engine locks its holdout (the rest stays unseen), and whether they
+    were chosen by time. With ``times`` (the rows' time column), the earliest 75 % of the rows with a valid time and no
+    row past the earliest 75 % of its distinct times, so a later holdout (the latest 20 % of a tabular split, the latest
+    25 % of starts, a forecast's last dates) is never read; a row without a valid time is never read (the engine drops it,
+    or orders it last). Otherwise a seeded random 75 %, which a random holdout drawn later overlaps (``rows_read_note``
+    says so). Pass the rows that have a target."""
     import numpy as np
 
     if times is not None:
-        stamps = pd.to_datetime(pd.Series(list(times), index=index), errors="coerce")
-        if stamps.notna().mean() > 0.9:
-            order = stamps.rank(method="first").fillna(len(index))
-            return index[(order <= int(0.8 * len(index))).to_numpy()]
-    keep = np.random.default_rng(42).random(len(index)) < 0.8
-    return index[keep]
+        stamps = pd.Series(list(times), index=index)
+        stamps = pd.to_numeric(stamps, errors="coerce") if pd.api.types.is_numeric_dtype(stamps) else pd.to_datetime(stamps, errors="coerce")
+        valid = stamps.dropna()
+        if len(valid) >= MIN_TIMED_ROWS:
+            distinct = np.sort(valid.unique())
+            cutoff = distinct[max(int(PROVISIONAL_SHARE * len(distinct)) - 1, 0)]
+            keep = (valid.rank(method="first") <= int(PROVISIONAL_SHARE * len(valid))) & (valid <= cutoff)
+            return valid.index[keep.to_numpy()], True
+    keep = np.random.default_rng(42).random(len(index)) < PROVISIONAL_SHARE
+    return index[keep], False
+
+
+def provisional_training_rows(index: pd.Index, times: Any = None) -> pd.Index:
+    """The rows of :func:`provisional_reading`."""
+    return provisional_reading(index, times)[0]
+
+
+def rows_read_note(read: int, rows: int, time_column: str | None, by_time: bool) -> str:
+    """What the proposal read of the target, in words a person can check."""
+    if by_time:
+        return (f"The target was read on the earliest {read} of {rows} rows by `{time_column}` (rows without a valid time left out): "
+                f"a holdout of later rows by `{time_column}` is never read before the engine locks it.")
+    why = (f"`{time_column}` has too few valid times to order the rows" if time_column else "no column orders the rows in time")
+    return (f"The target was read on a seeded {read} of {rows} rows: {why}, so a random holdout drawn later shares about three "
+            "quarters of its rows with them.")
 
 
 def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None,
-              investigator: Any = None, planner: Any = None, moment: str | None = None, brief: Any = None):
+              investigator: Any = None, planner: Any = None, moment: str | None = None, brief: Any = None, rows: Any = None):
     """dclab_core's findings and plan for this table (package 17.4), read on the provisional training rows only (the
     earliest ones when the table has a time column). ``investigator`` and ``planner``: the roles' advisors (18.9), when
     they are on; each proposal is checked by code, and the rules stand when they abstain."""
@@ -242,8 +285,11 @@ def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column
     from dclab_core.plan import plan
 
     frame = X.assign(**{target: y})
-    times = frame[time_column] if time_column and time_column in frame.columns else None
-    findings = analyse({"table": frame}, target=target, task=task, brief=brief, train_index=provisional_training_rows(frame.index, times),
+    if rows is None:  # ``rows``: the provisional training rows, when the caller has chosen them already
+        present = frame.index[frame[target].notna()]
+        times = frame.loc[present, time_column] if time_column and time_column in frame.columns else None
+        rows = provisional_training_rows(present, times)
+    findings = analyse({"table": frame}, target=target, task=task, brief=brief, train_index=pd.Index(rows),
                        advisor=investigator, moment=moment)
     if planner is not None:
         from dclab_core.plan import plan_with
@@ -252,12 +298,12 @@ def core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column
     return findings, plan(brief, findings)
 
 
-def _core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None) -> list[dict[str, Any]] | None:
+def _core_plan(X: pd.DataFrame, y: pd.Series, target: str, task: str, time_column: str | None = None, rows: Any = None) -> list[dict[str, Any]] | None:
     """The plan, compact (each decision, its choice and why): advice beside the proposal above, which it does not
     change; adopting it is a set_solution move (the intern's adopt_plan). None, logged, when the core cannot read the
     table: the proposal stands without it."""
     try:
-        return [{"decision": d.key, "choice": d.choice, "why": d.reason} for d in core_plan(X, y, target, task, time_column)[1].decisions]
+        return [{"decision": d.key, "choice": d.choice, "why": d.reason} for d in core_plan(X, y, target, task, time_column, rows=rows)[1].decisions]
     except Exception as exc:  # noqa: BLE001 - a table the core cannot read leaves the proposal as it was
         from ..observe import log
 

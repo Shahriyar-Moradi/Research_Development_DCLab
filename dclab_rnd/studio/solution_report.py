@@ -24,7 +24,7 @@ MAX_ROWS = 20_000  # what solution.propose reads at most
 
 def findings_for(store: Any, project: dict[str, Any]) -> tuple[Optional[DataFindings], Optional[str]]:
     """dclab_core's findings on the run's training rows, and how those rows were chosen; (None, None), logged, when
-    they cannot be read. When the run's split cannot be rebuilt, the plan's own reading (a seeded 80 % of the table,
+    they cannot be read. When the run's split cannot be rebuilt, the plan's own reading (a seeded 75 % of the table,
     read before the holdout was locked) is used, and the note says plainly that it includes most of the held-out rows."""
     solution = project.get("solution") or {}
     if not project.get("data") or not solution.get("target"):
@@ -64,7 +64,7 @@ def findings_for(store: Any, project: dict[str, Any]) -> tuple[Optional[DataFind
             frame = label_file.apply(store, project, frame)
         frame = frame[frame[target].notna()]
         return (core_plan(frame.drop(columns=[target]), frame[target], target, task)[0],
-                "a seeded 80% of the table, read before the run locked its holdout, so it includes most of the held-out rows")
+                "a seeded 75% of the table, read before the run locked its holdout, so it includes most of the held-out rows")
     except Exception as exc:  # noqa: BLE001 - the report then says the findings are missing
         from ..observe import log
 

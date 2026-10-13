@@ -205,12 +205,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         target = str(body["target"]) if body.get("target") else next((str(t) for t in hinted if t and str(t) in frame.columns), "")
         if not target:
             raise HTTPException(422, "Name the target column")
-        try:
+        hint = asset.get("suggestion") or {}
+        try:  # a studied sample's time column orders the rows the proposal reads, as it will order the run's split
             proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"),
-                                               (draft.get("pack") or {}).get("key"))
+                                               (draft.get("pack") or {}).get("key"), hint.get("time_column"))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        hint = asset.get("suggestion") or {}
         if hint:  # a studied sample: merge the solution the R&D wrote for it (same rule as a project's proposal)
             known = {f["column"] for f in proposal["forbidden"]}
             proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in hint.get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]

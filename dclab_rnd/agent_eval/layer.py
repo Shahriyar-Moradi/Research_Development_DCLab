@@ -43,6 +43,22 @@ GATE = {"version": "layer_gate_v1", "fixed": "2026-10-13, before any of its runs
         "rule": "on benchmark v3's sealed set: the roles catch at least as many traps as the rules-only pipeline, with no more false "
                 "alarms, and at least as many traps as a plain prompted model; no case errors in any arm; the roles really answered "
                 "(no failed request, and the analyst, the investigator and the planner each answered at least once)"}
+def _provisional_rows_v1(index: Any, times: Any = None) -> Any:
+    """The provisional training rows exactly as this sealed run read them (the product's rule moved to 75 % in 16.15):
+    the earliest 80 % by time, else a seeded 80 %."""
+    import numpy as np
+    import pandas as pd
+
+    if times is not None:
+        stamps = pd.to_datetime(pd.Series(list(times), index=index), errors="coerce")
+        if stamps.notna().mean() > 0.9:
+            order = stamps.rank(method="first").fillna(len(index))
+            return index[(order <= int(0.8 * len(index))).to_numpy()]
+    keep = np.random.default_rng(42).random(len(index)) < 0.8
+    return index[keep]
+
+
+
 ROLE_PURPOSES = ("problem_analyst", "data_investigator", "solution_planner")
 # what a sealed run depends on: committed and unchanged before it may start
 FROZEN = (*v3.GUARDED, "dclab_rnd/agent_eval/layer.py", "dclab_rnd/agent_eval/baselines.py", "dclab_rnd/core_adapter.py",
@@ -85,7 +101,6 @@ def pipeline_policy(advisor: Any, counter: dict[str, Any]):
 
         from dclab_rnd.core_adapter import solution_fields_from_plan
         from dclab_rnd.studio import data as sd
-        from dclab_rnd.studio.solution import provisional_training_rows
 
         project = store.get(pid)
         frame = sd.load_table(sd.data_path(store, project))
@@ -97,7 +112,7 @@ def pipeline_policy(advisor: Any, counter: dict[str, Any]):
                                                                                           quote=coverage[1], source="person")})
         task = sd.detect_task(frame, "target")["task"]
         times = next((c for c in (project["data"].get("profile") or {}).get("time_candidates") or [] if c in frame.columns), None)
-        train = provisional_training_rows(frame.index, frame[times] if times else None)
+        train = _provisional_rows_v1(frame.index, frame[times] if times else None)
         findings = analyse({"table": frame}, target="target", task=task, brief=brief, train_index=train, advisor=advisor, moment=case.moment)
         plan_ = plan_with(advisor, brief, findings)["plan"] if advisor is not None else rule_plan(brief, findings)
         fields = solution_fields_from_plan(plan_, "target", case.moment)

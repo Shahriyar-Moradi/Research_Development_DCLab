@@ -179,10 +179,8 @@ class TheHoldoutReachesOnlyTheFinalTest(unittest.TestCase):
         self._same_until_the_final("time_to_event", case, dataclasses.replace(case, table=table))
 
     def _same_until_the_final(self, key, case, altered):
-        store, pid, a = run_case(key, case)
-        # the same solution for both: the proposal made before the project reads the whole table, as a person's draft does
-        stated = {k: store.get(pid)["solution"][k] for k in ("forbidden", "identifiers")}
-        _, _, b = run_case(key, dataclasses.replace(altered, solution={**altered.solution, **stated}))
+        _, _, a = run_case(key, case)
+        _, _, b = run_case(key, altered)  # the proposal made before the project reads the earliest rows only: it is part of the test
         first, second = before_final(a), before_final(b)
         for stage in first:
             self.assertEqual(first[stage], second[stage], f"{key}: the {stage} stage read the holdout's targets")

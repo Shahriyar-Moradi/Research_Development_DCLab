@@ -1,0 +1,194 @@
+{
+  "package": "16.15.1",
+  "title": "The solution proposal reads the provisional training rows only",
+  "date": "2026-10-13",
+  "request": "Make the solution proposal read training rows only: a person's proposal must not change when only the outcomes of the rows a holdout will take change.",
+  "spec": "Everything in the proposal that reads the target's relation to the other columns (the leakage audit that proposes forbidden columns, the plan, the class balance behind the metric) reads the provisional training rows only: the earliest 75 % by the time column, never a row the engine later holds out; a seeded 75 % without one, said plainly. Done when changing only those later targets leaves the proposal unchanged for every timed replica, and the rows read are disjoint from the engine's own holdout.",
+  "plan": [
+    "Measure first: change only the latest quarter of targets (or a seeded fifth) on every kind's replica and compare the proposals field by field.",
+    "Read the audit on the same provisional rows as the plan; one rule for every reader before the holdout is locked.",
+    "Choose the share from the engine's largest holdout, with a test that keeps them consistent.",
+    "Test against the engine's own holdout rows, not a hand-computed share.",
+    "Review, fix, and plant the faults again."
+  ],
+  "decisions": [
+    {
+      "decision": "The provisional share is 75 %, not 80 %.",
+      "why": "The survival machine holds out the latest 25 % of starts; 80 % overlapped it."
+    },
+    {
+      "decision": "With a time column, the rows read stop at the earliest 75 % of the rows with a valid time and of the distinct times.",
+      "why": "A growing panel puts more than a quarter of its rows on a forecast's last dates; the row count alone reached them."
+    },
+    {
+      "decision": "Rows without a valid time, a target or a readable target are never read.",
+      "why": "The engine drops them or orders them last; counting them moved the boundary into the holdout."
+    },
+    {
+      "decision": "The task's form (its classes) is still read over every row; the class balance behind the metric over the rows read.",
+      "why": "A class seen only later must still be known to exist; how often it occurs decided the metric."
+    },
+    {
+      "decision": "The sealed layer harness keeps its own copy of the 80 % rule.",
+      "why": "Its recorded runs read 80 %; a sealed run's code must reproduce them."
+    },
+    {
+      "decision": "A random holdout drawn later is not predicted; the proposal says it shares about three quarters of its rows.",
+      "why": "The person declares the group or time column after the proposal; the engine's random split depends on it and on the sample."
+    }
+  ],
+  "change": "dclab_rnd/studio/solution.py (propose, provisional_reading, PROVISIONAL_SHARE, rows_read_note, core_plan rows), dclab_rnd/studio/team.py, dclab_rnd/studio/solution_report.py, dclab_rnd/draft/api.py (a sample's time column orders the reading), dclab_rnd/agent_eval/layer.py (its own frozen rule), tests/test_proposal_rows.py (new), tests/test_engine_machines.py (no longer holds the solution fixed).",
+  "findings": [
+    {
+      "id": "M1",
+      "source": "self",
+      "severity": "leakage",
+      "defect": "The leakage audit behind the proposed forbidden columns read every row.",
+      "scenario": "On the time-to-event replica, changing only the latest starts' durations dropped months_billed from the proposal; on text-tabular a changed fifth of labels dropped shop_reply.",
+      "cause": "The audit was given the whole table; only the plan read provisional rows.",
+      "fix": "The audit reads the provisional rows.",
+      "test": "test_changing_the_latest_quarter_of_targets_changes_nothing_proposed"
+    },
+    {
+      "id": "M2",
+      "source": "self",
+      "severity": "leakage",
+      "defect": "The provisional 80 % overlapped the survival machine's 25 % holdout.",
+      "scenario": "The plan changed when the latest quarter of starts changed.",
+      "cause": "The share was set for the tabular 20 % holdout only.",
+      "fix": "75 %, with a test against every engine holdout share.",
+      "test": "test_the_share_leaves_room_for_every_engine_holdout"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "propose crashed on a timed table with missing targets.",
+      "scenario": "400 rows with a date column and 5 missing targets: Length of values (400) does not match length of index (395); the wizard answered 422.",
+      "cause": "The rows with a target were passed with the whole time column.",
+      "fix": "The time column of the same rows is passed.",
+      "test": "test_a_timed_table_with_missing_targets_and_invalid_times_is_read_before_the_engines_holdout"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "With many missing times the rows were read at random but the note said by time.",
+      "scenario": "A numeric event_time with 150 blanks: the note said earliest 743 by event_time; they were a random draw.",
+      "cause": "A silent fallback; the note was worded from the candidate's existence.",
+      "fix": "The reading returns whether it ordered by time; the note is worded from that; too few valid times say so.",
+      "test": "test_too_few_valid_times_read_a_seeded_share_and_say_so"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "Rows the engine drops moved the boundary into its holdout.",
+      "scenario": "99 unparseable times of 1000: the proposal read 750, the engine held out 180 of 901, 29 of them read.",
+      "cause": "The share counted rows the engine drops.",
+      "fix": "The share counts valid times only; invalid ones are never read.",
+      "test": "the same engine test, against the bundle's own holdout rows"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "The proposed metric depended on the holdout's class balance.",
+      "scenario": "Earliest rows 1 in 11 positive, latest quarter 1 in 7 or 1 in 40: roc_auc or average_precision.",
+      "cause": "detect_task's positive rate read every row.",
+      "fix": "The balance behind the metric is read on the rows read.",
+      "test": "test_the_metric_follows_the_class_balance_of_the_rows_read"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A forecast's last dates could exceed a quarter of the rows.",
+      "scenario": "10 series early, 100 late, horizon 14: the holdout is 30 % of rows.",
+      "cause": "The share was in rows; the forecast holds out dates.",
+      "fix": "The reading also stops at the earliest 75 % of distinct times.",
+      "test": "test_a_growing_panel_keeps_the_forecast_holdout_unread"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The sealed layer harness changed under its recorded results.",
+      "scenario": "Its rules arm read 80 %; the shared function moved to 75 %.",
+      "cause": "The harness imported the product's rule; its frozen list did not include it.",
+      "fix": "The harness keeps its own copy of the rule it ran with.",
+      "test": "the harness's own code"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The proposal ordered rows by the profile's first time candidate, not the sample's time column.",
+      "scenario": "A studied sample whose time column is not the first candidate.",
+      "cause": "propose took no time column.",
+      "fix": "propose takes the time column; the draft passes the sample's.",
+      "test": "test_too_few_valid_times_read_a_seeded_share_and_say_so passes one"
+    },
+    {
+      "id": "M3",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The judgment suite's audit scorecard moved from 10 to 11 leaks caught of 13.",
+      "scenario": "AE-12, patients with many visits: the patient column is now proposed as forbidden.",
+      "cause": "Reading the earliest 75 % leaves fewer visits per patient, and the column's target-mean separation crosses the audit's 0.8 line: a sampling effect near a threshold.",
+      "fix": "Recorded as measured (AEV-019) with its cause in the scorecard's comment; not claimed as a better method.",
+      "test": "tests/test_agent_eval.py SCORECARD"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "proposal changes when only later targets change",
+      "gate": "on every timed replica, no proposal field changes when only the latest quarter of targets changes",
+      "result": "before: plan changed on 4 of 5 timed replicas and forbidden on 1; after: 0 of 5",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "0 of 5 against 0",
+      "limits": [
+        "Without a time column a random holdout still overlaps three quarters of the rows read; stated in the proposal."
+      ]
+    },
+    {
+      "name": "planted faults",
+      "gate": "each of the 6 planted faults fails a test",
+      "result": "6 of 6 caught: reading every row, a share of 0.85, ignoring time order, the first rule's counting, no date cap, the metric on every row",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "6 of 6 against 6",
+      "limits": [
+        "Only the faults planted."
+      ]
+    },
+    {
+      "name": "scripted judgment suite after the change",
+      "gate": "the audit policy's scorecard is recorded as measured, false alarms not higher than 3 of 20",
+      "result": "AEV-019: audit 11 of 13 leaks caught (was 10), false alarms 3 of 20 (unchanged)",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "3 of 20 against at most 3 of 20",
+      "limits": [
+        "One case moved near a threshold; 13 leaks are few."
+      ]
+    }
+  ],
+  "outcome": "The proposal reads only the provisional training rows; with a time column they end before every holdout the engine takes.",
+  "lessons": [
+    "Measure the leak across every kind before fixing one: the survival case was one of five.",
+    "One rule for every reader before the holdout: two readers with two rules leave one open.",
+    "Count only the rows the engine keeps: a share of rows it drops moves the boundary.",
+    "A holdout in dates is not a holdout in rows.",
+    "Word a note from what the code did, not from what it would have done.",
+    "A sealed harness keeps its own copy of the rule it ran with."
+  ],
+  "risks": [
+    "Holdout outcomes choosing the forbidden columns.",
+    "Holdout class balance choosing the metric.",
+    "A crash on partial labels.",
+    "A note claiming time order for a random draw."
+  ],
+  "commits": []
+}
