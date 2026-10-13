@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-12T19:54:34+00:00",
+ "at": "2026-10-12T23:55:09+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -221,6 +221,45 @@
     }
    ],
    "missing": []
+  },
+  {
+   "kind": "forecasting",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "the backtests never read a target after their origin",
+     "ok": true,
+     "detail": "3 origins, gap 0, last target read: 2025-10-19"
+    },
+    {
+     "decision": "`rain_mm` is kept out: not known at the forecast moment",
+     "ok": true,
+     "detail": "not declared known ahead of the forecast moment: a value for a future date is not known at the moment"
+    },
+    {
+     "decision": "the planned promotion is used: known ahead, as the moment says",
+     "ok": true,
+     "detail": "promotions are planned weeks ahead"
+    },
+    {
+     "decision": "every model is compared with the seasonal naive",
+     "ok": true,
+     "detail": "seasonal naive MASE 1.0386"
+    },
+    {
+     "decision": "the chosen model beats the seasonal naive",
+     "ok": true,
+     "detail": "global_gbm: MASE 0.6773 against 1.0386"
+    },
+    {
+     "decision": "intervals by horizon step, their coverage measured on a later origin",
+     "ok": true,
+     "detail": "7 steps; coverage 0.757 of 0.8 on 2025-10-19"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
   }
  ]
 }

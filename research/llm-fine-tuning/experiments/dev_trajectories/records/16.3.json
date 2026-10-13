@@ -1,0 +1,132 @@
+{
+ "package": "16.3",
+ "title": "Forecasting",
+ "date": "2026-10-13",
+ "request": "Let DCLab solve forecasting problems: many series, a horizon and a forecast moment, judged on rolling origins that never see the future, with covariates kept to those known at the moment.",
+ "spec": "A forecasting kind with its own machine: rolling-origin backtests with a gap, the naive, seasonal naive and moving-average baselines, one boosted model for all series on lags and windows of the past, a smoothing model per long series, MASE and sMAPE, intervals by horizon step, and a check of which covariates are known at the moment. Done when the store-demand replica reaches its decisions: no target after an origin is read, the day's rain is kept out, the planned promotion is used, every model is compared with the seasonal naive and the chosen one beats it, and intervals are measured.",
+ "plan": [
+  "Write the machine in dclab_core (pure: numpy, pandas, scikit-learn) so the main product can install it as it is.",
+  "Build a replica with the traps planted: a planned promotion known ahead, the day's rain measured on the day, a weekly season, short series.",
+  "Add the kind with a solve hook for kinds that run their own machine, and its acceptance decisions.",
+  "Keep a time-series project running as regression until the kind is declared; never assume it from a pack.",
+  "Review, fix, then record the capability matrix."
+ ],
+ "decisions": [
+  {
+   "decision": "Which covariates are known ahead is read from the person's moment, never from the replica's answer.",
+   "why": "An acceptance that reads the answer key cannot fail; the product only ever has the person's words."
+  },
+  {
+   "decision": "A declared covariate that moves with the target is kept but marked to confirm, not silently trusted and not silently dropped.",
+   "why": "Data cannot tell a planned promotion from measured rain: both move demand. Only the person knows when a value is written, so the system asks."
+  },
+  {
+   "decision": "The kind is partial in the matrix and refused by the Solution until the five-stage engine runs it.",
+   "why": "A pack labelled Supported must mean the product can do it; the library passing its decisions is not the product running them."
+  },
+  {
+   "decision": "Intervals are fitted on earlier origins and scored on the last one, with residuals scaled per series.",
+   "why": "Coverage measured on the residuals the interval came from is about 80% by construction, and pooled raw residuals under-cover large series."
+  }
+ ],
+ "change": "dclab_core/forecast.py (covariate_check, backtest with per-origin forecasts and dates, target_seen_until, gap-aligned lags and season, text covariates coded per origin, scaled intervals measured on a later origin, pinball for the boosted model and the seasonal naive), dclab_core/replicas/store_demand.py, dclab_rnd/kinds/forecasting.py (known_from_moment, solve, accept, runs_in_engine=False), kinds/base.py (solve hook, runs_in_engine), kinds/acceptance.py (a library-only kind is partial), studio/solution.py (refuses a kind the engine does not run), tests/test_core_forecast.py, tests/test_kind_matrix.py, dclab_core/CHANGELOG.md.",
+ "findings": [
+  {
+   "id": "F1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The test that backtests never see the future could not fail.",
+   "scenario": "With the past cut three days after each origin, the leak test still passed: it changed targets only after the forecast window, and the future_seen flag was true by construction.",
+   "cause": "The test compared errors, not forecasts, and changed only dates no model could reach; the flag checked the forecast dates, not the data read.",
+   "fix": "Every forecast is returned with its dates and values; the test changes every target after the origin and requires identical forecasts; each origin records the last target date it read.",
+   "test": "test_an_origin_never_sees_a_target_after_it (fails on a planted three-day lookahead)",
+   "impact": "A lookahead in the backtest would have passed every check and been reported as a forecast skill."
+  },
+  {
+   "id": "F2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The rain column was kept out only because the replica's answer said so.",
+   "scenario": "solve took known_ahead from the replica's facts; declaring rain by mistake kept it silently and the MASE fell from 0.68 to 0.47 with no warning.",
+   "cause": "The acceptance read the answer key, and covariate_check trusted any declaration.",
+   "fix": "solve reads known-ahead columns from the moment's words; a declared column whose day-to-day changes move with the target is marked to confirm.",
+   "test": "test_known_ahead_is_read_from_the_moment_not_from_the_replica; test_a_covariate_not_declared_is_kept_out_and_one_declared_by_mistake_is_shown_to_confirm",
+   "impact": "A leaky covariate declared by mistake would have made the forecast look a third better than it is."
+  },
+  {
+   "id": "F3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A declared text covariate crashed the backtest.",
+   "scenario": "known_ahead with a holiday column of 'sun' and 'none' raised ValueError: could not convert string to float.",
+   "cause": "Features cast every covariate to float.",
+   "fix": "Text covariates are coded from the rows known at each origin; a value first seen later is -1.",
+   "test": "test_a_text_covariate_known_ahead_is_coded_from_the_training_rows"
+  },
+  {
+   "id": "F4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A Solution declaring the forecasting kind was accepted and then crashed the engine.",
+   "scenario": "PUT solution with kind forecasting saved it; the leakage stage failed with KeyError 'mase'; with metric mae it ran as plain regression, ignoring series, horizon, gap and known-ahead.",
+   "cause": "Nothing said which kinds the five-stage engine can run.",
+   "fix": "A kind declares runs_in_engine; the Solution refuses one that is False, saying the engine does not run it yet.",
+   "test": "test_the_engine_refuses_the_kind_until_it_runs_it_and_the_matrix_says_partial"
+  },
+  {
+   "id": "F5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Interval coverage and pinball loss were measured on the residuals the intervals came from, pooled across series of different sizes.",
+   "scenario": "On the full replica, coverage per series ranged from 0.40 to 1.00 while the result reported 0.8; the pinball loss existed only for the boosted model.",
+   "cause": "One pool of raw residuals served both to fit and to score the intervals.",
+   "fix": "Residuals are scaled by each series' seasonal-naive error; intervals from earlier origins are scored on the last origin, for the boosted model and the seasonal naive.",
+   "test": "test_every_model_is_scored_against_the_seasonal_naive_with_measured_intervals"
+  },
+  {
+   "id": "F6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Time series pack said Supported though the product cannot run a forecast.",
+   "scenario": "pack.cards() returned timeseries supported; a project with that pack ran as regression, and a declared kind crashed.",
+   "cause": "The matrix counted the library's acceptance as the product's.",
+   "fix": "A kind that runs only as a library is partial, with 'the engine does not run it yet'.",
+   "test": "test_a_pack_reads_its_label_from_the_matrix; test_a_failing_acceptance_turns_its_row_from_supported_to_partial"
+  },
+  {
+   "id": "F7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The gap test could not fail, and with a gap the lags and the season feature pointed at the wrong days.",
+   "scenario": "With the gap removed from training and forecasting the test still passed; with gap 2, lag_1 was really three days back and season_back fell on another weekday.",
+   "cause": "The test only echoed the gap; the features counted lags from the origin, not from the forecast date.",
+   "fix": "The test checks the first forecast date is origin + gap + 1 and a training row's target and lag; lags and the season use the gap.",
+   "test": "test_a_gap_moves_the_first_forecast_date_and_the_training_targets (fails when the gap is removed)"
+  },
+  {
+   "id": "F8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "dclab_core's changelog had no entry for the new modules a host installs.",
+   "scenario": "forecast and replicas.store_demand were public in 0.3.0 without a line saying so.",
+   "cause": "The entry was left for later.",
+   "fix": "0.3.0 lists forecast and store_demand.",
+   "test": ""
+  }
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica; the product keeps it partial and refuses it until the engine runs forecasts.",
+ "lessons": [
+  "A test that a leak is impossible must be shown to fail on a planted leak; otherwise it measures nothing.",
+  "An acceptance that reads the replica's answer cannot fail: derive the decision from what the person would say.",
+  "Data cannot say when a value is written; a check can only ask the person to confirm.",
+  "A label in the product must mean the product runs it, not that a library could."
+ ],
+ "risks": [
+  "A covariate written on the day used as if known ahead.",
+  "A backtest reading targets after its origin.",
+  "Intervals that cover only on the data they were fitted on.",
+  "A pack labelled Supported that the product cannot run."
+ ],
+ "commits": []
+}

@@ -101,6 +101,9 @@ class Solution(BaseModel):
         kind = self.problem_kind()
         if self.kind_fields and not self.kind:
             raise ValueError("A kind's fields need the kind itself: declare `kind` with them")
+        if not kind.runs_in_engine:
+            raise ValueError(f"The {kind.title.lower()} kind runs as a library (dclab_core) for now: the notebook's engine does not run it "
+                             "yet, so a project cannot declare it")
         if kind.base_task != self.task:
             raise ValueError(f"The {kind.title.lower()} kind runs as a {kind.base_task} task, not {self.task}")
         self.kind_fields = kind.fields(self.kind_fields)

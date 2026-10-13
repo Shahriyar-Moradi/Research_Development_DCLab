@@ -146,6 +146,12 @@ def run(kind: Any, seed: int = 0) -> dict[str, Any]:
         return {"kind": kind.key, "status": "partial", "checks": [], "missing": ["a replica case and its acceptance decisions"],
                 "seconds": 0.0}
     started = time.perf_counter()
+    own = kind.solve(case)  # a kind with its own machine (16.3 onward) solves its case itself
+    if own is not None:
+        checks = kind.accept(own)
+        missing = [c["decision"] for c in checks if not c["ok"]] + ([] if kind.runs_in_engine else [ENGINE_MISSING])
+        return {"kind": kind.key, "status": "supported" if checks and not missing else "partial", "checks": checks,
+                "missing": missing, "seconds": round(time.perf_counter() - started, 1)}
     with tempfile.TemporaryDirectory() as tmp:
         store, project_id = build(case, Path(tmp))
         from dclab_rnd.models.gateway import private_scope
@@ -186,6 +192,9 @@ def load(path: Path = RESULTS) -> list[dict[str, Any]]:
         return []
 
 
+ENGINE_MISSING = "the engine does not run it yet: it runs as a library (dclab_core) only"
+
+
 def matrix(results: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """One row per registered kind: supported only when its stored acceptance passed; partial otherwise, with what is
     missing (a kind never run says so)."""
@@ -200,7 +209,10 @@ def matrix(results: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
                          "missing": ["its acceptance has not been run (make kinds-check)"]})
             continue
         passed = sum(1 for c in result.get("checks", []) if c.get("ok"))
-        ok = result.get("status") == "supported" and passed == len(result.get("checks", [])) and passed > 0
+        ok = result.get("status") == "supported" and passed == len(result.get("checks", [])) and passed > 0 and kind.runs_in_engine
+        missing = [] if ok else list(result.get("missing") or ([] if not kind.runs_in_engine else ["no decision checked"]))
+        if not kind.runs_in_engine and ENGINE_MISSING not in missing:
+            missing.append(ENGINE_MISSING)  # its decisions may all pass as a library; the product cannot run it yet
         rows.append({"kind": kind.key, "title": kind.title, "status": "supported" if ok else "partial", "passed": passed,
-                     "decisions": len(result.get("checks", [])), "missing": [] if ok else (result.get("missing") or ["no decision checked"])})
+                     "decisions": len(result.get("checks", [])), "missing": missing})
     return rows

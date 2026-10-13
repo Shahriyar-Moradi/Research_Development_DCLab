@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7 and 18.8. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -14,6 +14,14 @@ Packages 16.2, 16.9, 15.9, 18.7 and 18.8. The six contracts are unchanged: all s
   price multiple of a reference, selling or paying, with the best multiple and a bootstrap interval.
   `price_variation` refuses to draw a curve when prices were not varied: too few levels, too little spread, or prices
   set by a formula of the other columns. Every result states its assumption (16.9).
+- `forecast` (new): many series forecast a horizon ahead (16.3). `backtest` cuts rolling origins with an optional gap, fits
+  each model on the target up to the origin only (each origin records the last target date it read, and every forecast
+  is returned with its dates and values), and compares naive, seasonal naive, a moving average, one boosted model for
+  all series and a smoothing model per series by MASE and sMAPE. Intervals by horizon step come from residuals scaled by
+  each series' own error; their coverage and pinball loss are measured on the last origin from the earlier ones, for
+  the boosted model and the seasonal naive. `covariate_check` keeps the covariates declared known ahead and those that
+  describe a series, keeps the others out, and marks a declared one that moves with the target "to confirm".
+- `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).
 - `report.REPORTER` and `report.write_prose` (18.7): a model's summary above a section's lines, labelled as a model's, each

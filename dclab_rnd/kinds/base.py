@@ -156,6 +156,13 @@ class ProblemKind:
         """The kind's replica as a person brings it (a ``kinds.acceptance.Case``), or None: then the kind is partial."""
         return None
 
+    runs_in_engine = True  # False: the kind runs only as a library (its own ``solve``); the Solution refuses it, the matrix says partial
+
+    def solve(self, case: Any) -> Any:
+        """A kind with its own machine (forecasting, survival, ranking…) solves its case here and returns what ``accept``
+        reads; None (the default) means the five-stage engine solves it."""
+        return None
+
     def accept(self, run: Any) -> list[dict[str, Any]]:
         """The decisions a careful data scientist reaches on the replica, each checked on the finished run
         (``kinds.acceptance.check``)."""

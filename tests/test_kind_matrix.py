@@ -22,7 +22,10 @@ class MatrixTest(unittest.TestCase):
     def test_a_failing_acceptance_turns_its_row_from_supported_to_partial(self):
         results = [passing(k.key) for k in kinds.all_kinds()]
         rows = {r["kind"]: r for r in acceptance.matrix(results)}
-        self.assertEqual({r["status"] for r in rows.values()}, {"supported"})
+        self.assertEqual({r["status"] for k, r in rows.items() if kinds.get(k).runs_in_engine}, {"supported"})
+        for key in [k for k in rows if not kinds.get(k).runs_in_engine]:  # passing as a library is not running in the product
+            self.assertEqual(rows[key]["status"], "partial")
+            self.assertIn(acceptance.ENGINE_MISSING, rows[key]["missing"])
         failed = [r if r["kind"] != "multiclass" else
                   {"kind": "multiclass", "status": "partial", "missing": ["`resolved_by` is kept out of the model"],
                    "checks": [{"decision": "`resolved_by` is kept out of the model", "ok": False, "detail": "its role: feature"},
@@ -64,6 +67,8 @@ class PackTest(unittest.TestCase):
         cards = {p["key"]: p for p in pack.cards(supported)}
         self.assertEqual(cards["imbalanced"]["maturity"], "Supported")
         self.assertEqual(cards["tabular"]["maturity"], "Supported")  # binary, multiclass and regression all pass
+        self.assertEqual(cards["timeseries"]["maturity"], "Partial")  # forecasting passes as a library; the engine cannot run it yet
+        self.assertIn("engine does not run it yet", " ".join(cards["timeseries"]["capability"]["missing"]))
         self.assertEqual(cards["vision"]["maturity"], "Not built")  # no kind yet
         self.assertTrue(cards["vision"]["capability"]["missing"])
         one_fails = [r if r["kind"] != "regression" else {**r, "status": "partial", "missing": ["MAE below the median"],
