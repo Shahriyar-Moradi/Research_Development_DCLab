@@ -418,6 +418,9 @@ def log(store: ProjectStore, project_id: str, verdict: Verdict, project: dict[st
         audit.record_for(store, "move", verdict.actor, project=project, move=verdict.move, status=verdict.status, at=entry["at"],
                          args=verdict.args, message=verdict.message, outcome=outcome, rules=verdict.rules,
                          failed_checks=entry["failed_checks"], **{"from": verdict.node_from, "to": verdict.node_to})
+    from ..ledger import capture  # 19.7: every move the validator checked, as a decision of the workflow
+
+    capture.move(verdict, entry, project, project_id)
     return entry
 
 

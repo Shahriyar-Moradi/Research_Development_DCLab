@@ -432,6 +432,9 @@ def attach_labels(store, project_id: str, filename: str, target: str = "is_case"
         review = label_review.review(table, frame, key=key, per_entity=per_entity)
     except ValueError as exc:
         raise DataError(str(exc)) from None
+    from ..ledger import capture  # 19.7: the key that joins the labels, the rule's or the person's
+
+    capture.join_key(review, list(key) if key else None, project=project_id)
     if not review["key"]:
         refused = [c for c in review["candidates"] if c["verdict"] == "refused"][:3]
         raise DataError("No key joins the labels to the table at about one row per label"

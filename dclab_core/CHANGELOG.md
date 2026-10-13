@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.8.1 (2026-10-14)
+
+Package 19.7: the ledger's vocabulary as the studio's capture needs it; no contract changes shape.
+
+- `ledger`: `workflow.template` is decided on a draft (Home) or a project; a state may say whether a person gave a
+  reason (`reason_given`, a flag: a holdout reuse).
+
 ## 0.8.0 (2026-10-14)
 
 Package 19.6: the decision ledger. Two new contracts at v1; the others unchanged.

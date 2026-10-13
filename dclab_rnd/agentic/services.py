@@ -67,6 +67,11 @@ class Services:
         self.experience = experience.open_log(self.store.home, self.workspace_id)
         if primary:
             experience.install(self.experience)
+        from .. import ledger  # 19.7: every decision made in this workspace
+
+        self.ledger = ledger.open_ledger(self.store.home, self.workspace_id)
+        if primary:
+            ledger.install(self.ledger)
         self.lesson_store = workspace_lessons.open_lessons(self.store.home)  # the workspace's lessons table (A5.3)
         if primary:
             workspace_lessons.install(self.lesson_store)  # accepted lessons join every evidence search

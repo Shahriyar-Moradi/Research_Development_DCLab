@@ -1,0 +1,237 @@
+{
+ "package": "19.7",
+ "title": "Capture every decision: a decision record wherever the studio decides, technical and workflow, attributed to who answered",
+ "date": "2026-10-14",
+ "request": "The owner asked that every decision and step be stored as training data for decision models of any kind, for data scientists and inside DCLab's workflow, organized and findable.",
+ "spec": "Each decision point writes a decision record where it decides, with its state and every answer it had, for both kinds of points; a test lists the points and fails when one decides without a record. Done when one project from Home to its report leaves a record for every decision it made and the list of points is complete.",
+ "plan": [
+  "Map where each of the 45 points is decided in the studio (a subagent's survey of the code).",
+  "A ledger store like the session record: files or PostgreSQL (migration 0016), append-only, best effort, quiet during a replay.",
+  "One capture module: the saved solution against the proposal, the stages' choices, the graph's moves, Home's pack, workflow, question and card, cleaning, label joins, agents' tools and stops, the report's sentences, lessons.",
+  "A test that walks a project from Home through every stage and an override, and checks the points of both kinds.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "A saved solution is captured against the proposal made for its target, column by column.",
+   "why": "That one moment holds the rule's answer and the person's for the identifier, leakage, time, group and task points: the richest decisions in the studio."
+  },
+  {
+   "decision": "A studied sample's written solution is planted truth: a benchmark label, never an answer.",
+   "why": "Merged into the proposal, it made the rules look as right as the R&D's own solution; as labels it is what a decision model is measured against."
+  },
+  {
+   "decision": "A state never holds the decision's own value or the verdict it led to.",
+   "why": "A model trained on the state would read its label there (the task in task.framing's state, the gate in a move's)."
+  },
+  {
+   "decision": "A saved solution's records are written in one batch, off the event loop.",
+   "why": "Hundreds of column decisions one transaction each would block the server on a remote database."
+  },
+  {
+   "decision": "The leakage stage's measured lift becomes a measured label of the person's forbidding.",
+   "why": "It is the evidence that the column would have inflated the score: the best label the studio produces itself."
+  },
+  {
+   "decision": "Points not decided here are listed with why, and the list is checked complete.",
+   "why": "A missing record must be a statement, never an omission; the owner's main product decides some of them."
+  }
+ ],
+ "change": "dclab_rnd/ledger/__init__.py and capture.py (new), storage/migrations 0016 and models.py, storage/migrate.py, agentic/services.py, agentic/routers/projects.py, intern/tools.py, draft/api.py, draft/chat.py, draft/pipeline.py, studio/data.py, studio/engine.py (review rounds keep the rules' order), studio/graph.py, studio/leakage_review.py (per-column verdicts), studio/solution_report.py, lessons.py, agents/runtime.py, agents/traces.py (a replay is quiet), dclab_core/ledger.py (0.8.1); tests/test_decision_capture.py (new), test_storage_migrate.py; CLAUDE.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Stage decisions were never recorded.",
+   "scenario": "Every stage: stage_decisions skipped (TypeError).",
+   "cause": "Its parameter was named project and the call passed project= as an id.",
+   "fix": "Rename the parameter.",
+   "test": "test_the_path_from_home_to_the_stages_leaves_its_decisions"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The workflow drawn on Home was refused.",
+   "scenario": "workflow.template decides about a project, not a draft.",
+   "cause": "The point allowed one subject kind.",
+   "fix": "A draft or a project (dclab-core 0.8.1).",
+   "test": "test_the_path_from_home_to_the_stages_leaves_its_decisions"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Taking every row was not recorded as a sampling decision.",
+   "scenario": "data.sampling missing for a small table.",
+   "cause": "The engine writes a sampling rule only when it drops rows.",
+   "fix": "A code for each case: all_rows, latest_by_time, random_seeded.",
+   "test": "test_the_path_from_home_to_the_stages_leaves_its_decisions"
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A revisit was never recorded from the page.",
+   "scenario": "Running a completed data stage again left no revisit.",
+   "cause": "The route marks the stage queued before the worker logs the move.",
+   "fix": "Capture the revisit at the route, before the job.",
+   "test": "test_every_answer_is_attributed_to_who_gave_it"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every stage approval with a choice was refused, overrides never recorded.",
+   "scenario": "Approving models with another family: 0 records.",
+   "cause": "The approval is yes/no but the option id was recorded as its value.",
+   "fix": "Approval as true; an override at the stage's own point with both answers.",
+   "test": "test_every_answer_is_attributed_to_who_gave_it"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A person's metric and folds were recorded as a rule's.",
+   "scenario": "metric.primary and split.folds used=rule while the wizard saved them.",
+   "cause": "The capture did not separate the default from the person's setting.",
+   "fix": "The default as the rule's answer, the setting as the person's.",
+   "test": "test_every_answer_is_attributed_to_who_gave_it"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Home agent's pack was recorded as a rule, and a crashed run as the model's choice to stop.",
+   "scenario": "set_pack(..., 'agent') became rule; stopped(result=None) used=model_role.",
+   "cause": "Unmapped sources and endings.",
+   "fix": "agent maps to a model role; a failure, a Stop or text tools end by rule.",
+   "test": "test_who_set_a_pack_and_why_a_run_ended"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A holdout reuse without a reason was recorded as the person saying no.",
+   "scenario": "The person asked to rerun final; their answer was False.",
+   "cause": "The answer was whether a reason was given.",
+   "fix": "They asked: True; whether a reason was given goes in the state (reason_given).",
+   "test": "test_every_answer_is_attributed_to_who_gave_it"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A studied sample's written solution was recorded as the rules' answers.",
+   "scenario": "rule:id_like and rule:column_audit agreed with the person by construction.",
+   "cause": "The proposal merged the R&D's solution before the capture read it.",
+   "fix": "The proposal keeps the rules' own answers; the written solution becomes benchmark labels.",
+   "test": "test_a_studied_samples_solution_is_truth_not_an_answer"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A proposal for another target answered for this one, and the target had an invented rule answer.",
+   "scenario": "Proposing for A and saving B recorded A's audit as B's; the outcome got the profile's ranking.",
+   "cause": "The capture used whatever proposal was stored and the ranking nothing proposes.",
+   "fix": "A proposal counts only for its own target; the outcome is the person's alone.",
+   "test": "test_a_proposal_for_another_target_answers_nothing"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The leakage reviewer's answers were partial and biased.",
+   "scenario": "Only its after-the-moment items and disagreements survived.",
+   "cause": "The review returned no per-column verdicts.",
+   "fix": "The review returns every verdict; each is a model's answer, false included.",
+   "test": "test_every_answer_is_attributed_to_who_gave_it"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The critic's experiment choice was not recorded and the leakage stage wrote nothing.",
+   "scenario": "experiment.next listed as not decided; the stage's lift lost.",
+   "cause": "The capture had no branch for them.",
+   "fix": "experiment.next per review round (rules' first, critic's first, the one run); the leakage stage per column with its lift and a measured label.",
+   "test": "test_review_rounds_and_the_leakage_measurement"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "States held their own answer.",
+   "scenario": "task.framing's state had the task; moves had gate_required.",
+   "cause": "Shared base states.",
+   "fix": "Each point's own value and verdict left out of its state.",
+   "test": "test_a_state_never_holds_its_own_answer"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Duplicate workflows and questions never asked were recorded.",
+   "scenario": "Four identical templates for one draft; a question recorded when ask() refused.",
+   "cause": "Recording before the outcome, on every refresh.",
+   "fix": "A workflow only when proposed or changed; a question after it was asked.",
+   "test": "test_a_question_the_agent_could_not_ask_is_none"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Migrating a large ledger would fail and saves were slow.",
+   "scenario": "More than 65,535 ids in one statement; 400 transactions per save.",
+   "cause": "Unchunked queries, one write per record.",
+   "fix": "Chunked id checks and inserts; a batch per save, off the event loop.",
+   "test": "test_a_saved_solution_is_one_write"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A replayed agent trace recorded its steps again.",
+   "scenario": "traces.replay ran outside quiet().",
+   "cause": "Replays were quiet only for stages.",
+   "fix": "A trace replay is quiet.",
+   "test": "the suite's trace replay tests"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted faults",
+   "gate": "each planted fault in the capture, the ledger and their call sites fails a test",
+   "result": "17 of 17 caught after adding the unasked-question test (16 of 17 before)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "17 of 17 against 17",
+   "limits": [
+    "Only the faults planted."
+   ]
+  },
+  {
+   "name": "Home to the stages",
+   "gate": "every point decided on the path leaves a record with its answers, none holding a table value",
+   "result": "Home's and the project's points all recorded; a value planted in the table appears in no record",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "all points on the path",
+   "limits": [
+    "The report's sentences and lessons need a model or a reviewer: tested with their functions, not on this path."
+   ]
+  }
+ ],
+ "outcome": "Every decision the studio makes is a record in one ledger, with the state it was made in, every answer it had and who gave it, and the labels the studio can already write (planted truth, measured lift).",
+ "lessons": [
+  "Record after the outcome, not before: a question the plan wanted is not a question asked.",
+  "Never let the truth leak into the answers: a merged proposal made the rules look perfect."
+ ],
+ "risks": [
+  "Points for the unit, moment, entities and findings do not exist yet.",
+  "The research campaign chooses on its own endpoint, outside the ledger."
+ ],
+ "commits": []
+}

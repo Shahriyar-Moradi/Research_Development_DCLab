@@ -243,6 +243,9 @@ class HomeAgent:
             d["workflow"] = wf
         self.store.update(draft_id, put)
         self.store.emit(draft_id, "workflow", {"workflow": wf, "rejected": problems})
+        from ..ledger import capture  # 19.7: the workflow drawn, the template's or a model's
+
+        capture.workflow_drawn(draft_id, key, wf, draft.get("workflow"), bool(proposed), problems)
         return wf
 
     def set_pack(self, draft_id: str, key: str, source: str, why: str) -> None:
@@ -250,6 +253,9 @@ class HomeAgent:
             d["pack"] = {"key": key, "source": source, "why": why, "kind": packs.kind_for(key)}
         self.store.update(draft_id, put)
         self.store.emit(draft_id, "status", {"pack": {"key": key, "source": source, "why": why, "kind": packs.kind_for(key)}})
+        from ..ledger import capture  # 19.7: the pack, detected or chosen
+
+        capture.pack(draft_id, key, source)
 
     # ------------------------------------------------------------------ entry points
     @turn
@@ -399,7 +405,11 @@ class HomeAgent:
             return
         self.update_plan(draft_id)
         question = self.next_question(self.store.get(draft_id), opening)
-        if question is not None and self.ask(draft_id, *question):
+        asked = question is not None and self.ask(draft_id, *question)
+        from ..ledger import capture  # 19.7: the question actually asked, or none
+
+        capture.next_question(self.store.get(draft_id), question if asked else None)
+        if asked:
             return
         if not opening:
             self.summarize(draft_id)

@@ -291,7 +291,10 @@ def replay(rows: list[dict[str, Any]], policy: Policy, registry: Registry) -> di
     steps: list[Step] = []
     while True:
         before = len(script.replies)
-        out = run(policy, script, stub, messages, on_step=count, steps_used=len(steps))
+        from ..experience import quiet  # a replay repeats recorded steps: nothing new happened, nothing is recorded
+
+        with quiet():
+            out = run(policy, script, stub, messages, on_step=count, steps_used=len(steps))
         steps += out.steps
         if not script.replies or len(script.replies) == before or out.stopped in ("steps", "time"):
             break

@@ -101,6 +101,9 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
         raise
     finally:
         hooks.from_agent_run(policy, result, trace, began, time.monotonic() - clock, error, interrupted)
+        from ..ledger import capture  # 19.7: why the run ended
+
+        capture.stopped(policy, result, trace, interrupted)
 
 
 def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str, Any]], context: Any, on_step: Any, stream: Any,
@@ -182,6 +185,9 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
                       tokens=tokens if first else None, text=(out.get("content") or "").strip() or None if first else None)
             if on_step:
                 on_step(step)
+            from ..ledger import capture  # 19.7: the tool the model chose among those it was offered
+
+            capture.tool_choice(policy, step, allowed, trace)
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": _text(value, policy.result_chars)})
             # Only a call that ran ends the run or the turn: a refused finish or question goes back to the model to correct.
             if step.ok and tool is not None and tool.name in terminal:

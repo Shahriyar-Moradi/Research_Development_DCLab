@@ -730,6 +730,7 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
                 break
             reasons = {e.name: (last.hypotheses[e.hypothesis].statement, last.hypotheses[e.hypothesis].cites) for e in last.next_experiments}
             ranked = [e.name for e in runnable(last.next_experiments)]
+            rule_ranked = list(ranked)  # the rules' own order, before the critic's (19.7: experiment.next records both)
             critic = None
             if p.critic is not None:  # 18.6: the critic's ranking, each hypothesis checked against the measured weaknesses
                 critic = critique(p.critic, last, kind, metric=metric, model=family, score=rn._mean(current, metric), tried=tried)
@@ -772,6 +773,7 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
                             "why": decision["why"] + f"; against {candidate}'s own screen: " + own["why"]}
             statement, cites = reasons[name]
             rounds.append({"round": number, "experiment": name, "hypothesis": statement, "cites": cites,
+                           "options": ranked[:20], "rule_first": rule_ranked[0] if rule_ranked else None,
                            "family": candidate, "base_family": family, "change": trial, "base_mean": base_mean,
                            "variant_mean": rn._mean(row, metric), "margin": needed, **decision,
                            **({"critic": {**{k: critic[k] for k in ("source", "reason", "order", "refused")},
@@ -1199,6 +1201,9 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
                                 seed=ds.RANDOM_STATE)
         record["run"] = run.model_dump(mode="json")
         store.write_stage(project_id, stage, record)
+        from ..ledger import capture  # 19.7: what the stage chose among what it measured
+
+        capture.stage_decisions(stage, record, p, project, project=project_id)
         project = store.get(project_id)
         project["stages"][stage] = {"status": "completed", "started": record["started_at"], "finished": record["completed_at"], "elapsed_seconds": float(elapsed),
                                     "run": run_id}
@@ -1280,6 +1285,9 @@ def approve(store: ProjectStore, project_id: str, stage: str, choice: str | None
     memory.stage_approved(project, stage, (record or {}).get("decision"), choice, actor)  # A5.2: kept as a note the agents read
     store.save(project)
     store.log(project_id, "stage_approved", {"stage": stage, "choice": choice})
+    from ..ledger import capture  # 19.7: the rule's choice and the person's
+
+    capture.approval(stage, record, choice, actor, project_id)
     return project
 
 

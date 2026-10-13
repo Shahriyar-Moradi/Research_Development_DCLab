@@ -87,6 +87,9 @@ def _label_role(store: DraftStore, draft_id: str, asset_id: str, frame) -> tuple
     if not (set(map(str, small.columns)) - set(map(str, big.columns))):
         return None, None, None  # every column is the table's own: a sample of the same table, not a file of known cases
     review = label_review.review(big, small)
+    from ..ledger import capture  # 19.7: the key that joins the labels
+
+    capture.join_key(review, None, draft=draft_id, conversation=draft_id)
     if not review["key"]:
         return None, None, None
     summary = {"key": review["key"], "rows_marked": review["rows_marked"], "rows": int(len(big)), "label_rows": review["label_rows"],
@@ -136,6 +139,9 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
 
         checkpoint()
         frame, log = clean.clean(frame)
+        from ..ledger import capture  # 19.7: each cleaning step applied
+
+        capture.cleaning(draft_id, log, int(len(frame)))
         codes = clean.category_code_columns(frame)
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "cleaned",
                                           "text": f"{len(log)} cleaning step{'s' if len(log) != 1 else ''} applied" if log else "No cleaning needed",
@@ -180,6 +186,7 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
             if cases is not None:
                 cases["tables"] = label_review.tables_it_labels(store, draft_id, frame, cases["keys"])
                 report["cases_table"] = cases
+            capture.cases_table(draft_id, asset.get("name") or "", cases, report["profile"])
         checkpoint()
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)

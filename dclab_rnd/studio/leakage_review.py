@@ -152,11 +152,12 @@ def review(profile: dict[str, Any], moment: str | None, flagged: list[dict[str, 
     flagged_names = {i["column"] for i in items}
     skip = flagged_names | {target or ""} | set(identifiers or [])
     items += from_moment(columns, moment, skip)
-    mode, dropped, disagreements = "rules", 0, []
+    mode, dropped, disagreements, verdicts = "rules", 0, [], []
     if client is not None and str(moment or "").strip():  # without a written moment there is nothing to judge the columns against
         try:
             proposed, dropped = from_model(client, columns, moment, flagged, target, records)
             mode = "model"
+            verdicts = [{"column": i["column"], "verdict": i["verdict"]} for i in proposed]  # 19.7: every column it judged
         except Exception:  # noqa: BLE001 — no model, no problem: the audit and the moment rule still answer
             proposed = []
         for item in proposed:
@@ -171,7 +172,7 @@ def review(profile: dict[str, Any], moment: str | None, flagged: list[dict[str, 
                 items.append(item)
             else:
                 same["records"] = sorted(set(same["records"]) | set(item["records"]))
-    return {"items": items, "mode": mode, "dropped": dropped, "disagreements": disagreements,
+    return {"items": items, "mode": mode, "dropped": dropped, "disagreements": disagreements, "verdicts": verdicts,
             "note": "Ticked: the column audit's flags. Shown, not applied: what the moment" + (" or the reviewer model" if mode == "model" else "")
                     + " says is written after the prediction moment. You decide what to forbid."}
 

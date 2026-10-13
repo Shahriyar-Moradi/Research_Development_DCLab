@@ -77,7 +77,7 @@ STATE_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "stage": (CODE, ()), "move": (CODE, ()), "from_state": (CODE, ()), "to_state": (CODE, ()), "agent": (CODE, ()),
     "pack": (CODE, ()), "kind": (CODE, ()), "metric": (CODE, ()), "strategy": (CODE, ()), "step": (COUNT, ()),
     "steps_left": (COUNT, ()), "tools_offered": (COUNT, ()), "revisits": (COUNT, ()), "budget_left": (RATIO, ()),
-    "gate_required": (FLAG, ()), "approved": (FLAG, ()), "holdout_used": (COUNT, ()),
+    "gate_required": (FLAG, ()), "approved": (FLAG, ()), "holdout_used": (COUNT, ()), "reason_given": (FLAG, ()),
 }
 Scalar = Union[str, int, float, bool, None]
 
@@ -174,7 +174,7 @@ POINTS: dict[str, Point] = {p.key: p for p in (
     _p("problem.ready", W, DP, "noul", "Is the problem understood enough to build?"),
     _p("problem.pack", W, DP, "value", "Which domain pack does it start from?"),
     _p("workflow.next_question", W, "conversation", "value", "Which question is asked next, if any?"),
-    _p("workflow.template", W, "project", "value", "Which solution workflow does it follow?"),
+    _p("workflow.template", W, DP, "value", "Which solution workflow does it follow?"),
     _p("workflow.move", W, "workflow", "noul", "Is this move allowed now?"),
     _p("workflow.revisit", W, "workflow", "value", "Which earlier step is revisited, if any?"),
     _p("workflow.stage_approval", W, "project", "noul", "Is the stage's choice approved?"),

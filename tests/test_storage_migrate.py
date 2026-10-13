@@ -62,6 +62,12 @@ class MigrateTests(unittest.TestCase):
             for n, kind in enumerate(("draft.created", "chat.person")):  # a visit's record (19.2) moves with the workspace
                 log.append([experience.contract.make(kind, "person", {"workspace": log.workspace, "visit": "v00000000000000cc"},
                                                      {"problem" if kind == "draft.created" else "text": "Find the late orders"}, id=f"ev-migrate-{n}")])
+            from dclab_rnd import ledger  # and its decisions (19.7)
+
+            book = ledger.FileLedger(cls.source / "ledger", log.workspace)
+            decided = ledger.decide("split.strategy", ("project", "p1"), answers=[ledger.answer("rule", "rule:kind_split", "time")],
+                                    value_used="time", ledger=book, project="p1")
+            ledger.label(decided, "time", "measured", "optimism_gap", ledger=book)
         cls.before = snapshot(cls.source)
         cls.target = Path(tempfile.mkdtemp()) / "db-workspace"
         from dclab_rnd.storage.migrate import migrate
@@ -110,6 +116,8 @@ class MigrateTests(unittest.TestCase):
         moved = self.first["logs"]["experience"]  # the record of every session moves too (19.2), once
         self.assertEqual((moved["copied"], moved["source"] > 0), (moved["source"], True))
         self.assertEqual(self.second["logs"]["experience"]["copied"], 0)
+        self.assertEqual((self.first["logs"]["decisions"]["copied"], self.first["logs"]["decision_labels"]["copied"]), (1, 1))
+        self.assertEqual(self.second["logs"]["decisions"]["copied"], 0)
         self.assertEqual(pages(self.source, self.files_env), pages(self.target, self.db_env))
 
     def test_the_source_is_not_changed(self):

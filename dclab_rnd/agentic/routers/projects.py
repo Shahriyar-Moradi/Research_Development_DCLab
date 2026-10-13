@@ -161,6 +161,7 @@ async def _proposal(project_id: str, body: ProposalRequest, s: Services) -> dict
                                                studio_engine.pack_of(p))
     except ValueError as exc:
         raise HTTPException(422, str(exc))
+    proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates")}  # 19.7: the rules' own
     if p.get("suggestion"):  # a studied sample carries the R&D's whole solution; a draft-built project only what the chat established
         known = {f["column"] for f in proposal["forbidden"]}
         proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in p["suggestion"].get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
@@ -204,6 +205,10 @@ async def _save_solution(project_id: str, payload: SolutionBody, s: Services) ->
     projects.save(p)
     if changed:
         audit.solution(projects, p, p["solution"], "human")
+        from ...ledger import capture  # 19.7: the person's choices against the proposal, as decisions; a studied sample's truth as labels
+
+        await asyncio.to_thread(capture.solution_saved, p.get("proposal"), (p.get("data") or {}).get("profile"), p["solution"], "human",
+                                p.get("suggestion"), project=project_id)
         projects.clear_stages(project_id)
         projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden]})
     return s.with_records(projects.get(project_id))
@@ -227,6 +232,10 @@ async def run_stage(project_id: str, stage: str, wait: bool = False, reuse_reaso
     if not p.get("solution"):
         raise HTTPException(409, "Save the solution first")
     s.validate(p, "run_stage", stage=stage, reuse_reason=reuse_reason)
+    if (p["stages"].get(stage) or {}).get("status") in ("completed", "approved"):  # 19.7: before the job marks it queued
+        from ...ledger import capture
+
+        capture.revisit(stage, "human", project_id, int(p.get("holdout_uses") or 0))
     job = s.start_job(project_id, [stage], wait, reuse_reason or None)
     if wait:
         await s.run_here(job)

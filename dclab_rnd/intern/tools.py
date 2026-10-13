@@ -397,6 +397,10 @@ class Toolbox:
             from .. import audit
 
             audit.solution(self.projects, project, project["solution"], "agent")
+            from ..ledger import capture  # 19.7: the intern's choices against the proposal, as decisions
+
+            capture.solution_saved(project.get("proposal"), (project.get("data") or {}).get("profile"), project["solution"], "agent",
+                                   project.get("suggestion"), project=project_id)
         self.projects.clear_stages(project_id)
         self.projects.log(project_id, "solution_saved", {"target": solution.target, "task": solution.task, "forbidden": [f.column for f in solution.forbidden], "by": "intern"})
         return {"saved": True, "solution": project["solution"], "next": "run_stage('data') or run_all"}

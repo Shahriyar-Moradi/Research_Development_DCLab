@@ -93,6 +93,9 @@ def build(store: Any, project_id: str, rubric: Optional[list[dict[str, Any]]] = 
 
     report, info = core_report.write_prose(advisor, report, cited.check)
     store.log(project_id, "report_prose", {k: info[k] for k in ("source", "reason", "kept", "dropped")})
+    from ..ledger import capture  # 19.7: each summary sentence kept or dropped by the citation check
+
+    capture.report_claims(project_id, info)
     return report
 
 

@@ -227,6 +227,7 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                                                (draft.get("pack") or {}).get("key"), hint.get("time_column"))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
+        proposal["rule"] = {k: proposal.get(k) for k in ("identifiers", "forbidden", "time_candidates", "group_candidates")}  # 19.7: the rules' own
         if hint:  # a studied sample: merge the solution the R&D wrote for it (same rule as a project's proposal)
             known = {f["column"] for f in proposal["forbidden"]}
             proposal["forbidden"] = [{**f, "proof": ["DCLAB-R01"]} for f in hint.get("forbidden") or [] if f["column"] not in known] + proposal["forbidden"]
@@ -289,6 +290,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
 
         if draft.get("solution") != value:
             audit.solution(drafts, draft, value, "human", draft=True)
+            from ..ledger import capture  # 19.7: the person's choices against the proposal, as decisions
+
+            active = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset")), None) or {}
+            await asyncio.to_thread(capture.solution_saved, draft.get("proposal"), profile, value, "human", active.get("suggestion"),
+                                    draft=draft_id, conversation=draft_id)
         HomeAgent(drafts, None).refresh_workflow(draft_id)
         return drafts.get(draft_id)
 
@@ -664,6 +670,9 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
     from .card import card_of
 
     card = card_of(draft)
+    from ..ledger import capture  # 19.7: the card's family and readiness, at the moment a build is asked for
+
+    capture.problem_card(draft, card)
     has_data = any(a.get("status") == "ready" for a in draft.get("assets") or [])
     if has_data and not card.ready:  # 20.1: a project is built from a ready problem card
         raise BuildRefused("Not yet: " + " ".join(card.blocking[:3]), "problem card not ready")

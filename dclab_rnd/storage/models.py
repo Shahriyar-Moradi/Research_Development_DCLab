@@ -275,6 +275,25 @@ experience_event = sa.Table(  # every event of every session, append-only: a tri
     sa.Index("ix_experience_event_workspace_id_conversation", "workspace_id", "conversation"),
     *[sa.Index(f"ix_experience_event_workspace_id_{c}", "workspace_id", c) for c in ("user_id", "run_id", "job_id", "request_id", "model_request", "kind")])
 
+decision_record = sa.Table(  # every decision DCLab makes, append-only (dclab_rnd/ledger, 19.7)
+    "decision_record", metadata,
+    sa.Column("id", sa.String(80), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),
+    sa.Column("at", sa.Text, nullable=False), sa.Column("point", sa.Text, nullable=False), sa.Column("kind", sa.Text, nullable=False),
+    sa.Column("used", sa.Text, nullable=False), sa.Column("project_id", sa.String(64)), sa.Column("draft_id", sa.String(64)),
+    sa.Column("run_id", sa.String(80)), sa.Column("conversation", sa.String(80)),
+    sa.Column("doc", JSONB, nullable=False),  # dclab_core.decision_record.v1
+    *[sa.Index(f"ix_decision_record_workspace_id_{c}", "workspace_id", c) for c in ("at", "point", "project_id", "draft_id", "run_id")])
+
+decision_label = sa.Table(  # what was right, from one source; a new label supersedes, never edits (19.7, 19.8)
+    "decision_label", metadata,
+    sa.Column("id", sa.String(80), primary_key=True),
+    sa.Column("workspace_id", sa.String(64), sa.ForeignKey("workspace.id"), nullable=False),
+    sa.Column("at", sa.Text, nullable=False), sa.Column("record_id", sa.String(80), nullable=False), sa.Column("point", sa.Text, nullable=False),
+    sa.Column("source", sa.Text, nullable=False), sa.Column("supersedes", sa.String(80)),
+    sa.Column("doc", JSONB, nullable=False),  # dclab_core.decision_label.v1
+    *[sa.Index(f"ix_decision_label_workspace_id_{c}", "workspace_id", c) for c in ("record_id", "point", "source")])
+
 model_pause = sa.Table(  # requests to an endpoint and model stop until a time, after a refusal that stays (models/pause.py, 10.5)
     "model_pause", metadata,
     sa.Column("key", sa.Text, primary_key=True),  # endpoint, model and a hash of the API key: never the key

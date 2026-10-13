@@ -148,6 +148,12 @@ person's overrides.
   the decision points of both kinds and fails when one decides without a record.
 - **Done when:** one project, from Home to its report, leaves a record for every decision it made, each with its
   state and its answers, and the list of points is complete by the test.
+- **Status: done (2026-10-14).** `dclab_rnd/ledger` (the stores, `decide`, `label`, `column_state` in Jev's bands) and
+  `ledger/capture.py` at each site; 35 points captured, 10 said not decided here with why (`NOT_DECIDED`); migration
+  0016 (`decision_record`, `decision_label`, append-only); a saved solution written in one batch; a studied sample's
+  written solution as benchmark labels and the leakage stage's lift as measured labels. Left open: the research
+  campaign's own experiment choice (its own endpoint), points for the unit, the moment, the entities and the data
+  findings (no point in the vocabulary yet), labels from every other source (19.8).
 
 ### 19.8 Labels: planted truth, measurements, people
 - **Delivers:** labels from every source, as superseding rows: **benchmark** labels written for every decision made on

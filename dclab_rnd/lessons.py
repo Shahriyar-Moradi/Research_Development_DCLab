@@ -221,7 +221,11 @@ def review(store: "LessonStore", lesson_id: str, action: str, role: str | None, 
     lesson["status"] = "rejected" if action == "reject" else "accepted"
     lesson["review"] = entry
     lesson["history"] = [*(lesson.get("history") or []), entry]
-    return store.save(lesson)
+    saved = store.save(lesson)
+    from .ledger import capture  # 19.7: a person's verdict on a lesson a model proposed
+
+    capture.lesson_review(lesson, action, role)
+    return saved
 
 
 # ---------------------------------------------------------------------- the workspace's lessons table

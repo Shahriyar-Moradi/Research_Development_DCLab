@@ -156,6 +156,26 @@ def _experience(src: Any, wid: str, url: str | None, report: dict[str, Any], eng
     report["logs"]["experience"] = {"source": len(events), "copied": len(fresh), "already": 0, "conflict": len(events) - len(fresh)}
 
 
+def _ledger(src: Any, wid: str, url: str | None, report: dict[str, Any], engine: Any) -> None:
+    """The decision ledger (19.7): its records and labels, copied once; ids already there are counted, never doubled."""
+    import sqlalchemy as sa
+
+    from ..ledger import FileLedger, PgLedger
+    from .models import decision_label, decision_record
+
+    source = FileLedger(src.home / "ledger", wid)
+    target = PgLedger(wid, engine)
+    for name, table, rows in (("decisions", decision_record, source.records()), ("decision_labels", decision_label, source.labels())):
+        taken: set[str] = set()
+        with engine.connect() as c:  # the ids already there, a chunk at a time (a statement binds at most 65,535 values)
+            for start in range(0, len(rows), 5000):
+                taken |= {r[0] for r in c.execute(sa.select(table.c.id).where(table.c.id.in_([x.id for x in rows[start:start + 5000]])))}
+        fresh = [x.model_copy(update={"workspace": wid}) if hasattr(x, "workspace") else x for x in rows if x.id not in taken]
+        for start in range(0, len(fresh), 5000):
+            target.add_many(fresh[start:start + 5000], []) if name == "decisions" else target.add_many([], fresh[start:start + 5000])
+        report["logs"][name] = {"source": len(rows), "copied": len(fresh), "already": len(rows) - len(fresh)}
+
+
 def _count(table, wid: str, url: str | None) -> int:
     import sqlalchemy as sa
 
@@ -308,6 +328,10 @@ def _logs(src: Source, wid: str, url: str | None, report: dict[str, Any]) -> Non
         _experience(src, wid, url, report, engine)
     except Exception as exc:  # noqa: BLE001 - the record is reported failed; the lessons and the routing still move
         report["failed"].append(f"experience log: {type(exc).__name__}")
+    try:
+        _ledger(src, wid, url, report, engine)
+    except Exception as exc:  # noqa: BLE001 - the ledger is reported failed; the rest still moves
+        report["failed"].append(f"decision ledger: {type(exc).__name__}")
     lessons, out = PgLessons(wid, url), report["lessons"]
     for lesson in src.lessons():
         lid = lesson.get("id")
