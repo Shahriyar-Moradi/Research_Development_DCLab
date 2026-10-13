@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3, 16.4, 16.5 and 16.6. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3 to 16.7. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -52,6 +52,16 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3, 16.4, 16.5 and 16.6. The six contra
   no ground truth.
 - `replicas.customer_behaviours` (new): three planted buying behaviours, a tenth of customers following none, two
   columns that carry no behaviour, the planted labels and a later outcome in its facts (for judging).
+- `uplift` (new): who responds to an action (16.7). `binary` reads a two-valued column (1/0, yes/no, true/false) or
+  refuses it by name; `overlap` (out-of-fold gradient-boosted propensities, their AUC, the share inside a band that
+  allows a small control arm, imbalanced columns); `wording` (effects only with randomisation the columns do not
+  contradict; effects under an assumption with balanced overlap; differences between unlike arms; associations
+  otherwise, said in the record); `evaluate`: a T-learner, an X-learner and a transformed-outcome uplift tree against a
+  response model and random targeting, the model chosen on a validation cut of the training rows by the Qini
+  coefficient, then the Qini coefficient and the AUUC on a holdout split once by arm, each with a paired 90% interval,
+  and the uplift by decile; arms weighted by inverse propensity when the action was not random.
+- `replicas.campaign_uplift` (new): a discount campaign, randomised or chosen by the team, a planted responsive
+  segment and every row's true uplift in its facts (for judging).
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

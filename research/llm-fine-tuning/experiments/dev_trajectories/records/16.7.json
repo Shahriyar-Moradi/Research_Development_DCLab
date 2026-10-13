@@ -1,0 +1,59 @@
+{
+ "package": "16.7",
+ "title": "Uplift: who responds to an action",
+ "date": "2026-10-13",
+ "request": "Let DCLab find who changes because of an action (an offer, a call), not who would have bought anyway, and never call a difference an effect when the data cannot support it.",
+ "spec": "An uplift kind: a treatment column, an outcome, and whether assignment was randomised; T- and X-learners and uplift trees; Qini and AUUC with intervals; propensity overlap checks; a refusal to call effects causal when assignment was not randomised and overlap is poor, said in the record. Done when the replica (a randomised campaign with a planted responsive segment) recovers the segment, and an observational variant raises the overlap warning.",
+ "plan": [
+  "Check how alike the arms are first: a propensity model out of fold, its AUC, the share of rows with comparable rows in the other arm, and imbalanced columns.",
+  "Bind the record's wording to that check and to the person's statement of randomisation.",
+  "Fit T- and X-learners and a transformed-outcome tree; compare them with a response model and random targeting.",
+  "Choose on a validation cut, score once on a holdout split by arm, with paired intervals.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {"decision": "The overlap propensity is gradient-boosted, not linear.", "why": "An offer sent to the youngest and the oldest gives a linear model AUC 0.499 and full overlap, and the record called the result causal."},
+  {"decision": "When the action was not random, the arms are compared with inverse-propensity weights, for choosing and for scoring.", "why": "Unweighted, the model that found who was targeted won: its top decile's true uplift was 0.043 against 0.2 for the X-learner."},
+  {"decision": "The Qini coefficient and the AUUC are two scores with their own intervals.", "why": "One area under two names hid which claim the record made."},
+  {"decision": "The observational campaign is a second table the person brings, said not random.", "why": "Generating it inside solve from the replica's seed would read the answer key."}
+ ],
+ "change": "dclab_core/uplift.py (binary, overlap, wording, TLearner, XLearner with mix, transformed_outcome, UpliftTree, Response, qini, qini_coefficient, auuc, choose, evaluate), dclab_core/replicas/campaign_uplift.py, dclab_rnd/kinds/uplift.py, tests/test_core_uplift.py, dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "U1", "source": "reviewer", "severity": "behaviour", "defect": "The overlap check missed assignment a line cannot see, and the record called it causal.",
+   "scenario": "The offer sent at 97% to customers under 30 or over 62 and 3% to the rest: AUC 0.499, inside the band 1.0, no imbalanced column; with randomised=True the record said effects.",
+   "cause": "A linear propensity and mean differences only.", "fix": "A gradient-boosted propensity out of fold; randomised wording also requires overlap.",
+   "test": "test_a_rule_a_line_cannot_see_is_still_found", "impact": "A targeted campaign would have been reported as an experiment's effects."},
+  {"id": "U2", "source": "reviewer", "severity": "behaviour", "defect": "Overlapping but imbalanced arms were said not to overlap.",
+   "scenario": "With 100% of rows comparable and past_purchases imbalanced, the record said 'the arms do not overlap (100% of rows have a comparable row…)'.",
+   "cause": "One branch for every imbalance.", "fix": "Its own sentence: differences between arms that differ on the named columns, not effects.",
+   "test": "test_the_wording_follows_randomisation_and_overlap"},
+  {"id": "U3", "source": "reviewer", "severity": "behaviour", "defect": "On observational data the model was chosen and judged by an unweighted Qini.",
+   "scenario": "The uplift tree was chosen with a top-decile true uplift of 0.043 while the X-learner's was 0.200; best_beats_response_model was True.",
+   "cause": "Treated minus control compared arms that differ by design.", "fix": "Inverse-propensity weights fitted on the rows the models are fitted on.",
+   "test": "test_an_observational_campaign_is_never_called_causal"},
+  {"id": "U4", "source": "reviewer", "severity": "gap", "defect": "Seven estimator and selection faults passed every test.",
+   "scenario": "Swapped X-learner weights, a flipped sign, the transformed outcome over e, the Qini without N_T/N_C, choosing on the holdout, and an absolute interval bound all kept the suite green.",
+   "cause": "Only the best model's segment was checked, and no hand case had control buyers.", "fix": "Every learner must recover the segment; hand-worked Qini with unequal arms and weights, the X-learner's mix, the transformed outcome, a null test, and validation rows recorded apart from the holdout.",
+   "test": "QiniTest; test_the_responsive_segment_is_recovered_by_every_uplift_learner_and_the_response_model_does_worse; test_no_effect_means_no_claim"},
+  {"id": "U5", "source": "reviewer", "severity": "behaviour", "defect": "Treatment and outcome values were not checked.", "scenario": "'yes'/'no' raised a parsing error; a treatment coded 1/2 failed deep in scikit-learn.",
+   "cause": "An int cast.", "fix": "Two values read as yes and no, or a refusal that names the column and its values.", "test": "test_treatment_and_outcome_values_are_read_or_refused"},
+  {"id": "U6", "source": "reviewer", "severity": "gap", "defect": "The Qini coefficient was never computed and the AUUC was the Qini area under another name.",
+   "scenario": "The kind declared a Qini coefficient metric; the record had one area called AUUC with one interval.", "cause": "Conflated definitions.",
+   "fix": "Both scores, each with a paired interval; the choice by the Qini coefficient.", "test": "test_the_auuc_by_hand"}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica (6 decisions); refused by the engine and partial in the matrix until the engine runs it.",
+ "lessons": [
+  "An overlap check must see the shapes a team really targets with, not only lines.",
+  "Who was targeted is not who responds: compare unlike arms only with weights, or not at all.",
+  "Test every learner and the hand-worked pieces; checking only the winner hides broken losers.",
+  "The record's wording is part of the result: bind it to the evidence."
+ ],
+ "risks": [
+  "Differences called effects without randomisation or overlap.",
+  "A model chosen for finding who was targeted.",
+  "A model chosen on the window it is reported on.",
+  "Uplift confused with the chance of buying."
+ ],
+ "commits": []
+}

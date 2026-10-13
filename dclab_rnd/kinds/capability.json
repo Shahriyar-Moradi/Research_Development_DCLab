@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T01:15:18+00:00",
+ "at": "2026-10-13T01:43:47+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -377,6 +377,45 @@
      "decision": "the record says there is no ground truth, and the outcome only describes the segments",
      "ok": true,
      "detail": "{'0': 0.317, '1': 0.536, '2': 0.821}"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "uplift",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
+     "ok": true,
+     "detail": "uplift_tree chosen on 3500 validation rows; 6000 held out"
+    },
+    {
+     "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
+     "ok": true,
+     "detail": "100% of uplift_tree's top tenth are app users under 35 (all rows 14%; the response model's top tenth 68%)"
+    },
+    {
+     "decision": "uplift beats random targeting, with an interval",
+     "ok": true,
+     "detail": "uplift_tree: Qini coefficient 0.0107, 90% interval [0.006, 0.0163]; AUUC 0.0109, interval [0.0061, 0.0163]; random 0.0009"
+    },
+    {
+     "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+     "ok": true,
+     "detail": "propensity AUC 0.498; effects: the action was assigned at random, and the columns do not predict who got it"
+    },
+    {
+     "decision": "the observational campaign raises the overlap warning and is never called causal",
+     "ok": true,
+     "detail": "associations, not effects: the action was not assigned at random and the arms do not overlap (1% of rows have a comparable row in the other arm; imbalanced: past_purchases)"
+    },
+    {
+     "decision": "uplift by decile and the Qini curve in the record",
+     "ok": true,
+     "detail": "uplift in the top decile 0.203, the second 0.042"
     }
    ],
    "missing": [
