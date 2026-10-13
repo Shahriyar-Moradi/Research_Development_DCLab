@@ -123,9 +123,16 @@ def build(case: Case, root: Path) -> tuple[Any, str]:
             for item in decision.get("choice") or []:
                 if item.get("column") and item["column"] not in {f["column"] for f in stated["forbidden"]} and item["column"] != case.target:
                     stated["forbidden"].append({"column": item["column"], "reason": str(item.get("reason") or item.get("question") or decision["decision"])[:600]})
+        choice = decision.get("choice")
+        if (decision.get("decision") == "split.strategy" and isinstance(choice, dict) and choice.get("kind") == "spatial_block"
+                and not {"time_column", "group_column", "spatial"} & set(case.solution)):  # 16.10: the plan's blocks of places, adopted
+            stated["spatial"] = {"lat_column": choice["lat_column"], "lon_column": choice["lon_column"], "block_km": float(choice["block_km"])}
+            stated["group_column"] = None
+            if stated.get("kind") == case.task:  # the proposal's plain task kind was a suggestion: the pack's kind may now apply
+                stated.pop("kind")
     stated.pop("metric", None)  # the kind's default decides, as for a person who leaves it
     stated.update({"target": case.target, "task": case.task, "prediction_moment": case.moment, **case.solution})
-    if "time_column" not in case.solution and proposal.get("time_candidates"):
+    if "time_column" not in case.solution and proposal.get("time_candidates") and not stated.get("spatial"):
         stated["time_column"] = proposal["time_candidates"][0]
     if stated.get("time_column"):  # the time column orders the split: the person unticks it under Forbidden, as the form asks
         stated["forbidden"] = [f for f in stated["forbidden"] if f["column"] != stated["time_column"]]

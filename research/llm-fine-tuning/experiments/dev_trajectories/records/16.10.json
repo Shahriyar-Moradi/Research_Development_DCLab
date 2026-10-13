@@ -1,0 +1,48 @@
+{
+ "package": "16.10",
+ "title": "Places: spatial splits and features",
+ "date": "2026-10-13",
+ "request": "Let DCLab see when places cluster (prices across a city) and test on areas the model has not seen, in the product's engine, with the maps pack running on it.",
+ "spec": "A spatial part usable by any kind with coordinates: grid cells, distances, neighbourhood counts fitted inside folds, and spatial block cross-validation when places cluster; a check for random splits on spatially autocorrelated data; ties the maps pack to it. Done when a replica with spatial autocorrelation shows the random split's optimism against spatial blocks, and the engine picks blocks for it.",
+ "plan": [
+  "Measure, on the training rows, whether nearby targets are alike (Moran's I) and over what distance (the correlation range).",
+  "Let the plan choose blocks of that size, and the validator refuse a random split while places cluster.",
+  "Carry the blocks into the Solution and have the engine derive them as the group of every split.",
+  "Add a places kind on the maps pack, accepted through the engine on a replica with a district price field.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {"decision": "Rows in time keep the time split; blocks come before a random split only.", "why": "Blocks first dropped the time order even when prices rose 80% over the data, putting later rows in training (DCLAB-R02)."},
+  {"decision": "The notebook export refuses a project split by blocks.", "why": "Its split code knows time and group columns only, so it would have scored exactly the random split the package exists to prevent."},
+  {"decision": "Coordinates not in degrees give an info finding and no blocks.", "why": "Metres read as degrees gave a block of 479,328 km, and the Solution then refused the whole adopted plan."},
+  {"decision": "A random split on clustered places is recorded as a risk by the engine even when no plan set blocks.", "why": "The wizard cannot set blocks yet; a person who skips the plan must still be told."}
+ ],
+ "change": "dclab_core/spatial.py, dclab_core/analyse.py (_places), dclab_core/plan.py (spatial_block, validate, guard), dclab_core/replicas/city_prices.py, dclab_rnd/core_adapter.py, dclab_rnd/studio/solution.py (SpatialSplit), dclab_rnd/kinds/base.py (default_split), dclab_rnd/studio/engine.py (derived blocks, few-blocks refusal, spatial evidence, data-stage risk), dclab_rnd/studio/export.py (refusal), dclab_rnd/kinds/acceptance.py (the plan's blocks adopted), dclab_rnd/kinds/places.py, tests/test_spatial.py.",
+ "findings": [
+  {"id": "P1", "source": "reviewer", "severity": "leakage", "defect": "Blocks overrode the time split even when the target drifts.", "scenario": "City prices with a listing date and an 80% rise: F-time warning and F-places warning, plan spatial_block, validate empty, and a planner proposing time refused.",
+   "cause": "The blocks branch came before the time branches, and the guard refused any other split.", "fix": "Blocks only when no entity group and no time column; otherwise named as the risk; the guard refuses only a random replacement.",
+   "test": "test_places_are_read_on_training_rows_and_time_comes_first", "impact": "Later rows would have trained a model scored on earlier ones."},
+  {"id": "P2", "source": "reviewer", "severity": "leakage", "defect": "The notebook export of a spatial project split at random.", "scenario": "The places acceptance project exported a notebook with train_test_split and KFold(shuffle) while claiming to reproduce the approved workflow.",
+   "cause": "The export reads time and group columns only.", "fix": "The export refuses a spatial project, saying why.", "test": ""},
+  {"id": "P3", "source": "reviewer", "severity": "behaviour", "defect": "Coordinates not in degrees broke plan adoption, and the antimeridian was ignored.", "scenario": "UTM metres under lat/lon gave block_km 479328 and the Solution refused the adopted plan; points 10 km apart across 180 degrees were 38,146 km apart.",
+   "cause": "Degrees were assumed.", "fix": "No blocks unless the values are degrees; longitudes unwrapped when that narrows them.", "test": "test_coordinates_not_in_degrees_give_no_blocks_and_the_antimeridian_is_near"},
+  {"id": "P4", "source": "reviewer", "severity": "gap", "defect": "The product's wizard could not reach blocks, and nothing warned.", "scenario": "Home, maps pack, accept: the project ran as regression with a time or random split and no warning.",
+   "cause": "Blocks arrive only by adopting the plan.", "fix": "The data stage records a risk when places cluster under a random split; the wizard field stays open.", "test": ""},
+  {"id": "P5", "source": "reviewer", "severity": "gap", "defect": "Neighbourhood counts fitted inside folds and distances were not delivered.", "scenario": "neighbourhood_counts was called only by its unit test.", "cause": "Scope.",
+   "fix": "Stated in the docstring, the changelog and the playbook as open.", "test": ""},
+  {"id": "P6", "source": "reviewer", "severity": "behaviour", "defect": "Too few blocks failed with sklearn's raw error.", "scenario": "30 km blocks on the city gave 4 blocks and 'Cannot have number of splits n_splits=5 greater than the number of groups: 4'.",
+   "cause": "No check before the folds.", "fix": "The engine refuses in words when blocks are fewer than the folds need.", "test": "test_the_engine_keeps_each_block_on_one_side_and_the_maps_pack_runs_as_places"},
+  {"id": "P7", "source": "reviewer", "severity": "gap", "defect": "Two guarantees were untested.", "scenario": "F-places read on every row, and the advisor guard removed, both passed the tests.",
+   "cause": "No test for either.", "fix": "A test that changing rows outside the training partition changes no evidence, and one that the guard refuses a random replacement.", "test": "test_places_are_read_on_training_rows_and_time_comes_first"}
+ ],
+ "measurements": [],
+ "outcome": "Built and running in the engine: the plan picks blocks of places, the engine keeps each on one side, and the maps pack reads Supported (places 5/5).",
+ "lessons": [
+  "A new split must take its place among the old rules, not above them: time order and entities still come first.",
+  "Every path that reproduces a split (exports included) must know the new split, or refuse.",
+  "Check the units of coordinates before turning them into kilometres.",
+  "A capability reached only through one path needs a warning on the others."
+ ],
+ "risks": ["Random splits on clustered places.", "Later rows in training when time is dropped for blocks.", "Exports that reproduce a different split than the engine ran.", "Coordinates in the wrong units."],
+ "commits": []
+}

@@ -64,6 +64,16 @@ class Decision(BaseModel):
         return [c for c in (self.price_column, self.reference_column, self.unit_value_column, *self.test_arm_columns) if c]
 
 
+class SpatialSplit(BaseModel):
+    """Package 16.10: places that cluster are split by area. The engine derives square blocks of ``block_km`` from the
+    coordinates and keeps each block on one side of every split."""
+
+    model_config = ConfigDict(extra="forbid")
+    lat_column: str
+    lon_column: str
+    block_km: float = Field(gt=0, le=1000)
+
+
 class Solution(BaseModel):
     model_config = ConfigDict(extra="forbid")
     target: str
@@ -89,6 +99,8 @@ class Solution(BaseModel):
     kind_fields: dict[str, Any] = Field(default_factory=dict)
     # package 16.9: the decision on top of the model (a review budget or a price), chosen by expected value
     decision: Decision | None = None
+    # package 16.10: a split by blocks of places, when nearby rows have alike targets
+    spatial: SpatialSplit | None = None
 
     @model_validator(mode="after")
     def coherent(self):
@@ -98,6 +110,12 @@ class Solution(BaseModel):
         if self.time_column and self.time_column in names:
             raise ValueError("The time column orders the split and is kept out of the model automatically, so it cannot also be "
                              "forbidden: untick it under Forbidden, or choose another time column")
+        if self.spatial is not None:
+            if self.group_column or self.time_column:
+                raise ValueError("A split by blocks of places is one way to split: it cannot be combined with a group or a time column here")
+            coords = {self.spatial.lat_column, self.spatial.lon_column}
+            if self.target in coords or coords & names:
+                raise ValueError("The coordinates that make the blocks cannot be the target or forbidden")
         kind = self.problem_kind()
         if self.kind_fields and not self.kind:
             raise ValueError("A kind's fields need the kind itself: declare `kind` with them")
@@ -134,7 +152,8 @@ class Solution(BaseModel):
         known = set(columns)
         for name in [self.target, *(f.column for f in self.forbidden), *self.identifiers, *self.text_columns,
                      *( [self.time_column] if self.time_column else []), *([self.group_column] if self.group_column else []),
-                     *(self.decision.columns() if self.decision else [])]:
+                     *(self.decision.columns() if self.decision else []),
+                     *([self.spatial.lat_column, self.spatial.lon_column] if self.spatial else [])]:
             if name not in known:
                 raise ValueError(f"Column {name!r} is not in the data")
 

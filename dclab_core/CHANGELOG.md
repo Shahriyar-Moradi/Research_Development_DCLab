@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3 to 16.8. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8 and 16.10. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -73,6 +73,16 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3 to 16.8. The six contracts are un
   against recency; the training targets' last read reported).
 - `replicas.shop_customers` (new): customers, orders, tickets and addresses, an export-day snapshot in the customer
   table, churn in the 30 days after monthly cutoffs.
+- `spatial` (new): places (16.10). `project` and `blocks` (square cells in km), `morans_i` (nearest-neighbour
+  autocorrelation with a permutation p-value), `correlation_range` (the distance within which values stay alike),
+  `neighbourhood_counts` (fitted rows within a radius, never a row itself; a host fits it per fold, the studio's engine
+  does not use it yet), `split_optimism` (random folds against folds of whole blocks). Longitudes are unwrapped across
+  the antimeridian; coordinates not in degrees give no blocks.
+- `analyse`: `F-places` when the rows carry coordinates and nearby targets are alike, with the block size and how much a
+  random split flatters on the training rows. `plan`: a `spatial_block` split for it instead of a random split (an
+  entity group or rows in time come first, with the blocks named as the risk); `validate` refuses a random split while
+  F-places stands, and an advisor may not replace the blocks by a random split.
+- `replicas.city_prices` (new): flat prices over a city with a smooth district field.
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

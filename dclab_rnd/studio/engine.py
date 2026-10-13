@@ -43,6 +43,7 @@ STAGES: list[dict[str, str]] = [
 ]
 STAGE_BY_KEY = {s["key"]: s for s in STAGES}
 QUICK_ROWS = 3000
+SPATIAL_BLOCK = "_spatial_block"  # 16.10: the derived group column of a split by blocks of places
 DEFAULT_FOLDS, FOLD_CAPS = 3, (2, 10)
 
 
@@ -160,6 +161,19 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
                          else "time" if column == time_column else "group" if column == solution.group_column
                          else "text" if column in text_columns else "feature")
 
+    group_column = solution.group_column
+    if solution.spatial is not None:  # 16.10: blocks of places derived from the coordinates are the groups of every split
+        from dclab_core.spatial import blocks
+
+        sp = solution.spatial
+        X[SPATIAL_BLOCK] = blocks(pd.to_numeric(X[sp.lat_column], errors="coerce"), pd.to_numeric(X[sp.lon_column], errors="coerce"), sp.block_km)
+        roles[SPATIAL_BLOCK] = "group"
+        group_column = SPATIAL_BLOCK
+        need = max(6, cv_folds(project) + 1)  # the holdout's group folds and the training folds each need whole blocks
+        found = int(pd.Series(X[SPATIAL_BLOCK]).nunique())
+        if found < need:
+            raise ValueError(f"{found} blocks of {sp.block_km:g} km cover these places; the split needs at least {need}: choose smaller blocks")
+
     settings = project.get("settings") or {}
     max_rows = int(settings.get("max_rows") or 20000)
     if settings.get("quick"):
@@ -185,7 +199,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         sha256=project["data"]["sha256"], description=project.get("goal") or project["name"],
         decision_time_contract=solution.prediction_moment, split_strategy=split, source_rows=source_rows,
         feature_count=int(X.shape[1]), blocked_features=blocked, identifier_columns=identifiers,
-        text_columns=text_columns, time_column=time_column, group_column=solution.group_column,
+        text_columns=text_columns, time_column=time_column, group_column=group_column,
         positive_rate=positive_rate,
         settings={"precision_target": 0.9, "fe_tolerance": 0.01 if regression else 0.002, "fe_tolerance_relative": regression,
                   "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression,
@@ -221,7 +235,8 @@ def _behaviour_config(spec: ds.DatasetSpec, X: pd.DataFrame, roles: dict[str, st
     date column) for days and order, coordinate pairs for places, the mode from the prediction moment."""
     from dclab_core.behaviour import coordinate_pairs, mode_for
 
-    entities = [spec.group_column] if spec.group_column and spec.group_column in X else []
+    # a block of places groups the folds; it is not an entity whose behaviour is counted
+    entities = [spec.group_column] if spec.group_column and spec.group_column in X and spec.group_column != SPATIAL_BLOCK else []
     usable = [c for c, role in roles.items() if role in ("feature", "group", "time", "identifier")]
     if not entities and len(coordinate_pairs(usable)) < 1:
         return None
@@ -347,6 +362,22 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
         sizes = X_tr[spec.group_column].value_counts()
         evidence["group_stats"] = {"train_groups": int(len(sizes)), "holdout_groups": int(X_te[spec.group_column].nunique()),
                                    "largest_group_share": float(sizes.iloc[0] / sizes.sum()), "median_rows_per_group": float(sizes.median())}
+    if p.solution.spatial is not None and spec.group_column == SPATIAL_BLOCK:  # 16.10: how much a random split would flatter here
+        from dclab_core import spatial
+
+        sp = p.solution.spatial
+        held = set(X_te[SPATIAL_BLOCK])
+        evidence["spatial"] = {"block_km": sp.block_km, "lat_column": sp.lat_column, "lon_column": sp.lon_column,
+                               "train_blocks": int(X_tr[SPATIAL_BLOCK].nunique()), "holdout_blocks": int(len(held)),
+                               "blocks_on_both_sides": int(len(held & set(X_tr[SPATIAL_BLOCK])))}
+        numeric = [c for c in feature_cols if pd.api.types.is_numeric_dtype(X_tr[c])]
+        try:
+            head = X_tr.iloc[:5000]  # the training rows only: the holdout stays sealed
+            evidence["spatial"]["random_split_optimism"] = spatial.split_optimism(
+                head[numeric], np.asarray(y_tr)[:5000], head[sp.lat_column], head[sp.lon_column], block_km=sp.block_km,
+                task="binary" if p.kind.base_task == "binary" else "regression")
+        except (ValueError, KeyError) as exc:
+            evidence["spatial"]["random_split_optimism"] = {"refused": str(exc)[:300]}
     if spec.text_columns:
         evidence["text_stats"] = {c: {"missing_rate": float(X_tr[c].isna().mean()),
                                       "median_words": float(X_tr[c].dropna().astype(str).str.split().str.len().median())} for c in spec.text_columns}
@@ -362,6 +393,14 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
     ]
     claim_kind, statement, paths = p.kind.target_claim(evidence["target_summary"], _label(p.metric), spec)
     claims.append(_claim(f"{eid}-C3", claim_kind, statement, paths))
+    if p.solution.spatial is None and not spec.group_column and not spec.time_column and p.kind.base_task in ("binary", "regression"):
+        from dclab_core.analyse import _places  # 16.10: places that cluster under a random split are said, even when no plan set blocks
+
+        found = _places(X_tr, pd.Series(np.asarray(y_tr), index=X_tr.index), p.kind.base_task, None)
+        if found and found[0].severity == "warning":
+            evidence["places_warning"] = {"statement": found[0].statement, **found[0].evidence}
+            claims.append(_claim(f"{eid}-C4", "risk", "The split is random, but " + found[0].statement[0].lower() + found[0].statement[1:]
+                                 + " " + found[0].implication, ["evidence.places_warning"]))
     summary = (f"Profiled {len(X_tr)} training rows × {X_tr.shape[1]} columns (holdout: {bundle.holdout_description}); "
                f"per-column missingness, uniqueness and PSI; {len(risks)} columns flagged for review.")
     return evidence, claims, summary

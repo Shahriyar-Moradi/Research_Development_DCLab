@@ -111,6 +111,9 @@ def notebook(project: dict[str, Any], records: dict[str, dict[str, Any]]) -> dic
     if not kind.export.get("notebook", True) or type(kind).target is not type(kinds.get(kind.base_task)).target:
         raise ExportUnsupported(f"This notebook cannot be exported yet: the {kind.title.lower()} kind reads its own target, and "
                                 "its notebook code is not written")
+    if solution.get("spatial"):  # 16.10: the notebook's split code knows time and group columns, not blocks of places
+        raise ExportUnsupported("This notebook cannot be exported yet: the project splits by blocks of places, and the notebook would "
+                                "split at random instead (the score it reproduces would flatter areas it trained on)")
     if recipe in NOT_EXPORTED:
         raise ExportUnsupported(f"This notebook cannot be exported yet: {NOT_EXPORTED[recipe]}.")
     family = models.get("chosen") or models.get("selected") or ("ridge" if regression else "logistic_regression")

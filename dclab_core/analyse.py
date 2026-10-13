@@ -838,6 +838,57 @@ def _investigate(advisor: Advisor, features: pd.DataFrame, train: pd.DataFrame, 
     return run_role(DATA_INVESTIGATOR, advisor, {"features": features, "target": target, "task": task, "moment": moment}).output
 
 
+def _places(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optional[str]) -> list[Finding]:
+    """Places that cluster (16.10): when the rows carry coordinates and the target is alike for nearby rows (Moran's I
+    over each row's nearest neighbours, permutation p-value), a random split scores how well a model remembers an area.
+    The block size follows the distance within which targets stay alike; how much a random split flatters a model is
+    measured on the training rows with random folds against folds of whole blocks."""
+    from dclab_core import spatial
+    from dclab_core.behaviour import coordinate_pairs
+
+    pairs = coordinate_pairs([c for c in df.columns if c != target])
+    if not pairs or y is None or len(df) < 200 or task not in ("binary", "regression"):
+        return []
+    _, lat, lon = pairs[0]
+    la, lo = pd.to_numeric(df[lat], errors="coerce"), pd.to_numeric(df[lon], errors="coerce")
+    ok = (la.notna() & lo.notna() & y.notna()).to_numpy()
+    if ok.mean() < 0.9:
+        return []
+    if ((la.abs() > 90) | (lo.abs() > 180)).mean() > 0.01:  # metres or another projection: blocks in km cannot be read from it
+        return [_f("places", "places", f"{lat} and {lon} are not latitude and longitude in degrees (values beyond ±90 or ±180).",
+                   {"lat_column": str(lat), "lon_column": str(lon), "degrees": False},
+                   "Places cannot be split into blocks from these columns; give coordinates in degrees to test areas apart.",
+                   ["split.strategy"], "info")]
+    values = ((y == _positive(y)).astype(float) if task == "binary" else pd.to_numeric(y, errors="coerce").rank()).to_numpy()[ok]
+    moran = spatial.morans_i(values, la.to_numpy()[ok], lo.to_numpy()[ok], permutations=99)
+    if moran["i"] is None:
+        return []
+    reach = spatial.correlation_range(values, la.to_numpy()[ok], lo.to_numpy()[ok])
+    span = float(reach["span_km"] or 0.0)
+    block = float(np.clip(reach["range_km"] or span, span / 40 if span else 0.1, span / 4 if span else 1.0))  # at least four blocks a side
+    block = max(round(block * 2) / 2, 0.5)
+    strong = moran["i"] >= 0.1 and (moran["p_value"] or 1) <= 0.01
+    evidence: dict[str, Any] = {"lat_column": str(lat), "lon_column": str(lon), "moran_i": moran["i"], "p_value": moran["p_value"],
+                                "neighbours": moran["k"], "range_km": reach["range_km"], "span_km": reach["span_km"], "block_km": _r(block, 2)}
+    if strong:
+        numeric = [c for c in df.columns if c != target and pd.api.types.is_numeric_dtype(df[c])]
+        rows = np.flatnonzero(ok)[:5000]
+        try:
+            gap = spatial.split_optimism(df.iloc[rows][numeric], np.asarray(values)[: len(rows)], la.to_numpy()[rows], lo.to_numpy()[rows],
+                                         block_km=block, task="binary" if task == "binary" else "regression")
+            evidence.update(random_folds=gap["random"], block_folds=gap["blocked"], optimism=gap["optimism"], score=gap["metric"], blocks=gap["blocks"])
+        except ValueError:
+            pass
+    statement = (f"Nearby rows have alike targets: Moran's I {moran['i']} over each row's {moran['k']} nearest neighbours (p {moran['p_value']}), "
+                 f"alike within about {reach['range_km']} km." if strong else
+                 f"The rows carry coordinates ({lat}, {lon}); nearby targets are not clearly alike (Moran's I {moran['i']}, p {moran['p_value']}).")
+    if "optimism" in evidence:
+        statement += f" Random folds score {evidence['random_folds']} {evidence['score']}, folds of whole {block:g} km blocks {evidence['block_folds']}."
+    implication = (f"Split by blocks of about {block:g} km, so the test is on areas the model has not seen; a random split would score how "
+                   "well it remembers an area." if strong else "A split by area is not needed for this target.")
+    return [_f("places", "places", statement, evidence, implication, ["split.strategy"], "warning" if strong else "info")]
+
+
 def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, task: Optional[TaskType] = None,
             brief: Optional[ProblemBrief] = None, train_index: Optional[Sequence[Any]] = None,
             main: Optional[str] = None, labels: Optional[str] = None, advisor: Optional[Advisor] = None,
@@ -872,6 +923,7 @@ def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, ta
     proposals = _investigate(advisor, features, train, target, task, moment, findings) if advisor is not None and y is not None else {}
     findings += _entities(train, y, task, brief, target, proposals.get("entities"))
     findings += _time(train, y, task, brief, target)
+    findings += _places(train, y, task, target)
     findings += _leakage(features, y, task, target, proposals.get("after"))
     findings += _missing(train, y, task, target)
     findings += _columns(df, target)

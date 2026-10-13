@@ -39,6 +39,8 @@ def default_split(solution: Any) -> str:
     """The solution decides the split, not a setting: a declared time column means the holdout is the latest period
     (DCLAB-R02); otherwise a declared group column keeps each group on one side; otherwise a stratified random split.
     Time and group together: forward in time and no entity on both sides (15.3)."""
+    if _get(solution, "spatial"):  # 16.10: blocks of places are the groups
+        return "group"
     if _get(solution, "time_column") and _get(solution, "group_column"):
         return "time_group"
     return "time" if _get(solution, "time_column") else "group" if _get(solution, "group_column") else "stratified"

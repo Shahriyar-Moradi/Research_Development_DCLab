@@ -127,6 +127,8 @@ def solution_fields_from_plan(plan: SolutionPlan, target: str, prediction_moment
     return {
         "target": target, "task": plan.task, "prediction_moment": prediction_moment,
         "group_column": split.get("group_column"), "time_column": time_column,
+        **({"spatial": {"lat_column": split["lat_column"], "lon_column": split["lon_column"], "block_km": float(split["block_km"])}}
+           if split.get("kind") == "spatial_block" and split.get("lat_column") and split.get("lon_column") and split.get("block_km") else {}),
         "forbidden": forbidden,
         "identifiers": list(choice("features.identifiers", []) or []), "metric": metric, "notes": " ".join(notes),
         **({"labels": "partial", "label_provenance": "the plan reads the labels as partial: an unmarked row is unknown"}

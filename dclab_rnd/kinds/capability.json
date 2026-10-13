@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T02:05:18+00:00",
+ "at": "2026-10-13T02:44:54+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -460,6 +460,38 @@
    "missing": [
     "the engine does not run it yet: it runs as a library (dclab_core) only"
    ]
+  },
+  {
+   "kind": "places",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
+     "ok": true,
+     "detail": "blocks of 7.5 km from lat, lon; holdout: 600 rows from 7 `_spatial_block` groups never seen in training (fold 1 of 5 stratified group folds)"
+    },
+    {
+     "decision": "no block of places is on both sides of the holdout",
+     "ok": true,
+     "detail": "25 training blocks, 7 held out, 0 on both sides"
+    },
+    {
+     "decision": "a random split's optimism against blocks is measured on the training rows",
+     "ok": true,
+     "detail": "r2: random folds 0.8833, blocks 0.7478, optimism 0.1354"
+    },
+    {
+     "decision": "the holdout MAE is below the training median's",
+     "ok": true,
+     "detail": "94509.84664502164 against 155211.66666666666"
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+    }
+   ],
+   "missing": []
   }
  ]
 }

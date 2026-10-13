@@ -27,7 +27,7 @@ METRICS = {
     "multiclass": ("macro_f1", "weighted_f1", "balanced_accuracy", "accuracy", "top_k_accuracy", "log_loss"),
     "regression": ("mae", "rmse", "median_absolute_error", "quantile_loss", "share_within_tolerance", "r2"),
 }
-SPLITS = ("stratified", "random", "group", "time", "time_and_group")
+SPLITS = ("stratified", "random", "group", "time", "time_and_group", "spatial_block")
 FAMILIES = {
     "binary": ["logistic_regression", "random_forest", "gradient_boosting"],
     "multiclass": ["logistic_regression", "random_forest", "gradient_boosting"],
@@ -138,7 +138,21 @@ def _split(task: str, brief: Optional[ProblemBrief], findings: DataFindings) -> 
     if no_split:
         cites.append(no_split.id)
     overlap = float(group.evidence.get("later_rows_seen_before", 0.0)) if group else 0.0
-    if group and drifting and overlap >= RECURRING:
+    places = _get(findings, "F-places")
+    clustered = places is not None and places.severity == "warning"
+    if clustered:
+        cites.append(places.id)
+    if clustered and not group and not tcol:  # 16.10: places that cluster are split by area rather than at random
+        e = places.evidence
+        choice = {"kind": "spatial_block", "lat_column": e.get("lat_column"), "lon_column": e.get("lon_column"), "block_km": e.get("block_km")}
+        reason = (f"Nearby rows have alike targets (Moran's I {e.get('moran_i')}): test on whole blocks of about {e.get('block_km')} km the "
+                  "model has not seen, not on rows whose neighbours it trained on.")
+        if e.get("optimism") is not None:
+            reason += f" On the training rows random folds score {e.get('random_folds')} against {e.get('block_folds')} for blocks."
+        alternatives = [("stratified" if task in ("binary", "multiclass") else "random", "a row's neighbours on the other side: an optimistic score")]
+        if tcol:
+            alternatives.append(("time", f"rows also arrive over time ({tcol}), but neighbours on both sides are the larger risk here"))
+    elif group and drifting and overlap >= RECURRING:
         choice = {"kind": "group", "group_column": column}
         reason = (f"Rows repeat for {column} and the target moves over time, but {overlap:.0%} of the latest rows belong to a {column} "
                   f"seen earlier: keeping both apart would leave almost nothing to test. Each {column} stays on one side; the "
@@ -169,6 +183,10 @@ def _split(task: str, brief: Optional[ProblemBrief], findings: DataFindings) -> 
         choice = {"kind": "stratified" if task in ("binary", "multiclass") else "random"}
         reason = "No entity repeats strongly and no time orders the rows: a " + choice["kind"] + " split is fair."
         alternatives = []
+    if clustered and choice.get("kind") != "spatial_block":  # time or an entity group came first: blocks are the stated risk
+        reason += (f" Nearby rows also have alike targets ({places.id}): the score may flatter areas seen in training; blocks of about "
+                   f"{places.evidence.get('block_km')} km were set aside for this split.")
+        alternatives.append(("spatial_block", f"{choice['kind']} comes first here; nearby rows on both sides remain a risk"))
     choice["holdout"] = "locked first, used once, after the choice"
     for f in others[:3]:
         n = int(f.evidence.get("entities", 0))
@@ -450,6 +468,10 @@ def validate(plan_: SolutionPlan, findings: DataFindings) -> list[str]:
             problems.append(shape)
         elif kind not in SPLITS:
             problems.append(f"split.strategy {kind!r} is not a known split")
+        places = next((f for f in findings.findings if f.id == "F-places" and f.severity == "warning"), None)
+        if places is not None and kind in ("stratified", "random") and not _persons(split):
+            problems.append(f"split.strategy is {kind} although nearby rows have alike targets ({places.id}): split by blocks of places, "
+                            "or a person must say why not")
         strong = [f for f in findings.findings if f.topic == "entities" and f.severity in ("warning", "critical")
                   and int(f.evidence.get("entities", 0)) >= MIN_GROUPS]
         if strong and kind in ("stratified", "random") and not _persons(split):
@@ -546,6 +568,8 @@ def _guard(key: str, choice: Any, current: SolutionPlan, findings: DataFindings)
         if problem or kind not in SPLITS:
             return problem or f"{kind!r} is not a split"
         old_choice = old.choice if old is not None and isinstance(old.choice, Mapping) else {}
+        if old_choice.get("kind") == "spatial_block" and kind in ("stratified", "random"):
+            return "the findings call for folds of whole blocks of places (F-places): an advisor may not replace them by a random split"
         if old_choice.get("group_column"):
             if kind not in ("group", "time_and_group") or not isinstance(choice, Mapping) or choice.get("group_column") != old_choice["group_column"]:
                 return f"the findings call for folds grouped by {old_choice['group_column']}: an advisor may not drop it"
