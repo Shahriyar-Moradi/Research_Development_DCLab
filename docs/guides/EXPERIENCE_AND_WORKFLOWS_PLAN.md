@@ -326,6 +326,11 @@ Status:
   draft once the outcome is raised. The owner's morning replayed on the replica (`tests/test_morning_guard.py`).
   Judgment suite unchanged (AEV-020 = AEV-019). Review: 10 findings, fixed; 12 planted faults caught.
 
+- **19.1 the experience contract: done (2026-10-13).** `dclab_core.experience` (event and session, v1, 33 kinds,
+  content classes, credentials refused) and `adapters.main_product_experience` (its agent events, invocations,
+  decision records and run events read as events; every type mapped or listed). dclab-core 0.5.0. Review: 14
+  findings, fixed; 18 planted faults caught.
+
 Owner decisions:
 - The main product: its ADR 0008 rejects fine-tuning its assistant on customer data. Whether its sessions may ever
   feed a training set is the owner's call; until then the library's exports there produce nothing.

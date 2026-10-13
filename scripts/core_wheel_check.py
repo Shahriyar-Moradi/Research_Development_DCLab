@@ -49,6 +49,15 @@ out = mp.proposals(brief, findings, solution)
 for name, mapped in out.items():
     if name != "decision_points":
         assert list(mapped["fields"]) == mp.fields_of(name), name
+# 19.1: a main-product row read as an experience event through the installed wheel, and its visit's card
+from dclab_core import experience as xp
+from dclab_core.adapters import main_product_experience as mpx
+cols = mp.recorded()["experience_tables"]["llm_invocations"]
+row = {c: None for c in cols} | {"id": "i1", "workspace_id": "w1", "purpose": "assistant.turn", "cost_micros": 1500, "currency": "EUR",
+                                 "started_at": "2026-10-13T06:00:00+00:00", "status": "succeeded"}
+event = mpx.from_llm_invocation(row)
+card = xp.session_card([event.model_copy(update={"ids": event.ids.model_copy(update={"visit": "v1"})})])
+assert (event.kind, card.model_requests, card.cost) == ("model.request", 1, {"EUR": 0.0015}), (event.kind, card)
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())
@@ -75,6 +84,7 @@ print(json.dumps({
     # an optional extra (pdf: reportlab) is not installed by default and is not a direct dependency
     "direct": sorted(norm(re.match(r"[A-Za-z0-9_.\-]+", r).group(0)) for r in metadata.requires("dclab-core") if "extra ==" not in r),
     "unexpected_distributions": sorted({d.split("==")[0] for d in dists} - closure - {"dclab-core"}),
+    "experience": event.kind,
 }))
 '''
 

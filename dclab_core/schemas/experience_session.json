@@ -1,0 +1,155 @@
+{
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_session.v1.json",
+  "additionalProperties": false,
+  "description": "A sitting, summed up from its events: who, when, on what, how it ended, what it cost.",
+  "properties": {
+    "agent_turns": {
+      "minimum": 0,
+      "title": "Agent Turns",
+      "type": "integer"
+    },
+    "by_kind": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "By Kind",
+      "type": "object"
+    },
+    "conversations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Conversations",
+      "type": "array"
+    },
+    "cost": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Model spend by currency (ISO code).",
+      "title": "Cost",
+      "type": "object"
+    },
+    "ended": {
+      "title": "Ended",
+      "type": "string"
+    },
+    "errors": {
+      "minimum": 0,
+      "title": "Errors",
+      "type": "integer"
+    },
+    "events": {
+      "minimum": 0,
+      "title": "Events",
+      "type": "integer"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The problem kind or pack, when one was set.",
+      "title": "Kind"
+    },
+    "model_requests": {
+      "minimum": 0,
+      "title": "Model Requests",
+      "type": "integer"
+    },
+    "outcome": {
+      "default": "open",
+      "enum": [
+        "built",
+        "ran",
+        "finished",
+        "open"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "person_turns": {
+      "minimum": 0,
+      "title": "Person Turns",
+      "type": "integer"
+    },
+    "problem": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The problem as the person first wrote it (person text).",
+      "title": "Problem"
+    },
+    "projects": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Projects",
+      "type": "array"
+    },
+    "refused": {
+      "description": "Moves, solutions and decisions a check refused.",
+      "minimum": 0,
+      "title": "Refused",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.experience_session.v1",
+      "default": "dclab_core.experience_session.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "started": {
+      "title": "Started",
+      "type": "string"
+    },
+    "user": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "User"
+    },
+    "visit": {
+      "title": "Visit",
+      "type": "string"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visit",
+    "workspace",
+    "started",
+    "ended",
+    "events",
+    "person_turns",
+    "agent_turns",
+    "model_requests",
+    "refused",
+    "errors"
+  ],
+  "title": "ExperienceSession",
+  "type": "object"
+}

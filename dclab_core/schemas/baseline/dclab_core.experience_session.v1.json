@@ -1,0 +1,129 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "agent_turns": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "by_kind": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "conversations": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "cost": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "ended": {
+      "type": "string"
+    },
+    "errors": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "events": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "model_requests": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "outcome": {
+      "default": "open",
+      "enum": [
+        "built",
+        "ran",
+        "finished",
+        "open"
+      ],
+      "type": "string"
+    },
+    "person_turns": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "problem": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "projects": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "refused": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.experience_session.v1",
+      "default": "dclab_core.experience_session.v1",
+      "type": "string"
+    },
+    "started": {
+      "type": "string"
+    },
+    "user": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "visit": {
+      "type": "string"
+    },
+    "workspace": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "visit",
+    "workspace",
+    "started",
+    "ended",
+    "events",
+    "person_turns",
+    "agent_turns",
+    "model_requests",
+    "refused",
+    "errors"
+  ],
+  "type": "object"
+}

@@ -31,7 +31,10 @@
         "primary_metric": 128
       },
       "json_max_bytes": 16384,
-      "json_max_bytes_applies_to": ["constraints", "success_criteria"],
+      "json_max_bytes_applies_to": [
+        "constraints",
+        "success_criteria"
+      ],
       "constraints_structured_keys": {
         "primary_metric_reason": "str",
         "metric_constraints": "list[{metric: str, op: '>=' | '<=', value: float}]",
@@ -41,7 +44,12 @@
         "status": "str: draft | locked (a person locks it)",
         "plan": "UUID | None: an ExperimentPlanProposal whose target_column and primary_metric fill the spec"
       },
-      "task_types": ["binary", "multiclass", "regression", "classification"]
+      "task_types": [
+        "binary",
+        "multiclass",
+        "regression",
+        "classification"
+      ]
     },
     "ProblemProfile": {
       "path": "apps/api/app/engine/modeling/problem_profile.py",
@@ -71,10 +79,44 @@
         "version": "str"
       },
       "nested": {
-        "regression_target": ["count", "missing_count", "mean", "std", "min", "max", "median"],
-        "repeated_entity_candidates[]": ["column", "unique_count", "unique_ratio", "repeated_rows", "max_rows_per_entity", "mean_rows_per_entity", "row_count", "missing_count", "identifier_likelihood"],
-        "time_candidates[]": ["column", "parse_rate", "unique_count", "unique_ratio", "span_seconds", "monotonic_increasing", "name_tokens", "strong_name", "datetime_role"],
-        "geo_coordinate_candidates[]": ["lat_column", "lon_column", "row_count", "lat_in_range_fraction", "lon_in_range_fraction"]
+        "regression_target": [
+          "count",
+          "missing_count",
+          "mean",
+          "std",
+          "min",
+          "max",
+          "median"
+        ],
+        "repeated_entity_candidates[]": [
+          "column",
+          "unique_count",
+          "unique_ratio",
+          "repeated_rows",
+          "max_rows_per_entity",
+          "mean_rows_per_entity",
+          "row_count",
+          "missing_count",
+          "identifier_likelihood"
+        ],
+        "time_candidates[]": [
+          "column",
+          "parse_rate",
+          "unique_count",
+          "unique_ratio",
+          "span_seconds",
+          "monotonic_increasing",
+          "name_tokens",
+          "strong_name",
+          "datetime_role"
+        ],
+        "geo_coordinate_candidates[]": [
+          "lat_column",
+          "lon_column",
+          "row_count",
+          "lat_in_range_fraction",
+          "lon_in_range_fraction"
+        ]
       }
     },
     "MetricPlan": {
@@ -103,7 +145,10 @@
         "evidence": "dict[str, Any]",
         "plan_version": "str"
       },
-      "defaults": {"test_size": 0.2, "random_state": 42}
+      "defaults": {
+        "test_size": 0.2,
+        "random_state": 42
+      }
     },
     "ValidationPlan": {
       "path": "apps/api/app/engine/modeling/validation_planner.py",
@@ -123,7 +168,10 @@
         "evidence": "dict[str, Any]",
         "version": "str"
       },
-      "defaults": {"requested_folds": 5, "random_state": 42}
+      "defaults": {
+        "requested_folds": 5,
+        "random_state": 42
+      }
     },
     "Objective": {
       "path": "apps/api/app/engine/modeling/objective.py",
@@ -157,7 +205,18 @@
         "oof_at_threshold": "dict[str, float]"
       },
       "nested": {
-        "oof_at_threshold": ["tp", "fp", "fn", "tn", "precision", "recall", "specificity", "f1", "accuracy", "balanced_accuracy"]
+        "oof_at_threshold": [
+          "tp",
+          "fp",
+          "fn",
+          "tn",
+          "precision",
+          "recall",
+          "specificity",
+          "f1",
+          "accuracy",
+          "balanced_accuracy"
+        ]
       }
     },
     "ExperimentPlan": {
@@ -196,7 +255,11 @@
         "confidence": "float (0-1)"
       },
       "nested": {
-        "findings[]": ["check", "status", "note"]
+        "findings[]": [
+          "check",
+          "status",
+          "note"
+        ]
       }
     },
     "ExperimentChangeSet": {
@@ -212,105 +275,659 @@
   "vocabularies": {
     "primary_metrics_classification": "binary and multiclass together: a ProblemSpec may say 'classification' before the target is inspected",
     "primary_metrics": {
-      "binary": ["pr_auc", "roc_auc", "f1", "balanced_accuracy", "accuracy", "log_loss", "brier_score"],
-      "multiclass": ["macro_f1", "weighted_f1", "balanced_accuracy", "accuracy", "log_loss", "roc_auc_ovr"],
-      "regression": ["mae", "rmse", "mse", "r2", "median_absolute_error"]
+      "binary": [
+        "pr_auc",
+        "roc_auc",
+        "f1",
+        "balanced_accuracy",
+        "accuracy",
+        "log_loss",
+        "brier_score"
+      ],
+      "multiclass": [
+        "macro_f1",
+        "weighted_f1",
+        "balanced_accuracy",
+        "accuracy",
+        "log_loss",
+        "roc_auc_ovr"
+      ],
+      "regression": [
+        "mae",
+        "rmse",
+        "mse",
+        "r2",
+        "median_absolute_error"
+      ]
     },
     "secondary_metrics": {
-      "binary": ["pr_auc", "roc_auc", "f1", "precision", "recall", "balanced_accuracy", "accuracy", "log_loss", "brier_score"],
-      "multiclass": ["balanced_accuracy", "accuracy", "weighted_f1", "macro_precision", "macro_recall", "log_loss", "roc_auc_ovr"],
-      "regression": ["rmse", "r2", "mse"]
+      "binary": [
+        "pr_auc",
+        "roc_auc",
+        "f1",
+        "precision",
+        "recall",
+        "balanced_accuracy",
+        "accuracy",
+        "log_loss",
+        "brier_score"
+      ],
+      "multiclass": [
+        "balanced_accuracy",
+        "accuracy",
+        "weighted_f1",
+        "macro_precision",
+        "macro_recall",
+        "log_loss",
+        "roc_auc_ovr"
+      ],
+      "regression": [
+        "rmse",
+        "r2",
+        "mse"
+      ]
     },
     "metric_aliases": {
-      "auc": "roc_auc", "roc-auc": "roc_auc", "average_precision": "pr_auc", "pr-auc": "pr_auc", "f1_macro": "macro_f1",
-      "macro-f1": "macro_f1", "f1_weighted": "weighted_f1", "logloss": "log_loss", "brier": "brier_score"
+      "auc": "roc_auc",
+      "roc-auc": "roc_auc",
+      "average_precision": "pr_auc",
+      "pr-auc": "pr_auc",
+      "f1_macro": "macro_f1",
+      "macro-f1": "macro_f1",
+      "f1_weighted": "weighted_f1",
+      "logloss": "log_loss",
+      "brier": "brier_score"
     },
-    "holdout_strategies": ["stratified_random", "random", "group_disjoint", "temporal_future", "unsupported"],
-    "validation_strategies": ["StratifiedKFold", "KFold", "StratifiedGroupKFold", "GroupKFold", "TimeSeriesSplit", "unsupported"],
-    "plan_split_strategies": ["stratified_random", "random", "group_disjoint", "temporal_future"],
+    "holdout_strategies": [
+      "stratified_random",
+      "random",
+      "group_disjoint",
+      "temporal_future",
+      "unsupported"
+    ],
+    "validation_strategies": [
+      "StratifiedKFold",
+      "KFold",
+      "StratifiedGroupKFold",
+      "GroupKFold",
+      "TimeSeriesSplit",
+      "unsupported"
+    ],
+    "plan_split_strategies": [
+      "stratified_random",
+      "random",
+      "group_disjoint",
+      "temporal_future"
+    ],
     "portfolio_families": {
-      "classification": ["logistic_regression", "random_forest", "xgboost", "lightgbm", "catboost"],
-      "regression": ["linear_regression", "random_forest_regressor", "xgboost_regressor", "lightgbm_regressor", "catboost_regressor"]
+      "classification": [
+        "logistic_regression",
+        "random_forest",
+        "xgboost",
+        "lightgbm",
+        "catboost"
+      ],
+      "regression": [
+        "linear_regression",
+        "random_forest_regressor",
+        "xgboost_regressor",
+        "lightgbm_regressor",
+        "catboost_regressor"
+      ]
     },
     "portfolio_source": "apps/api/app/engine/search/generator.py open_ingest_families (each family only when installed)",
-    "dummy_families": ["majority", "mean", "median"],
-    "change_kinds": ["hyperparameter_override", "family_include", "family_exclude", "class_weighting", "threshold_objective", "metric_override", "feature_transform_add", "feature_transform_remove"],
-    "missing_value_transforms": ["impute_median", "impute_most_frequent", "drop_column"],
-    "finding_statuses": ["pass", "warning", "fail", "not_evaluated"],
+    "dummy_families": [
+      "majority",
+      "mean",
+      "median"
+    ],
+    "change_kinds": [
+      "hyperparameter_override",
+      "family_include",
+      "family_exclude",
+      "class_weighting",
+      "threshold_objective",
+      "metric_override",
+      "feature_transform_add",
+      "feature_transform_remove"
+    ],
+    "missing_value_transforms": [
+      "impute_median",
+      "impute_most_frequent",
+      "drop_column"
+    ],
+    "finding_statuses": [
+      "pass",
+      "warning",
+      "fail",
+      "not_evaluated"
+    ],
     "code_pattern": "^[a-z][a-z0-9_]{0,63}$"
   },
   "plan_fields": {
     "path": "apps/api/app/domain/run_plans.py",
     "symbol": "PLAN_FIELDS",
     "fields": {
-      "target.column": ["target_column"],
-      "spec.objective": ["primary_metric"],
-      "split.strategy": ["split"],
-      "training.families_budget": ["families", "max_training_seconds"],
-      "column.missing_value_action": ["missing_values"]
+      "target.column": [
+        "target_column"
+      ],
+      "spec.objective": [
+        "primary_metric"
+      ],
+      "split.strategy": [
+        "split"
+      ],
+      "training.families_budget": [
+        "families",
+        "max_training_seconds"
+      ],
+      "column.missing_value_action": [
+        "missing_values"
+      ]
     }
   },
   "decision_points": {
     "path": "apps/api/app/agents/governance/decision_points.py",
     "symbol": "REGISTRY (every point starts at L0; cap is the highest level code allows)",
     "points": {
-      "target.column": {"stage": "run_target_resolution", "pattern": "ai_before", "ai_kind": "agent:dataset_investigator", "rule_id": "lab_decision_ledger.record_target_selection", "effects": ["proposal:problem_spec"], "evidence_partition": "metadata", "cap": 1},
-      "spec.objective": {"stage": "propose_problem_spec", "pattern": "ai_before", "ai_kind": "agent:experiment_planner", "rule_id": "metric_planner.default_metric", "effects": ["proposal:problem_spec"], "evidence_partition": "metadata", "cap": 1},
-      "column.is_identifier": {"stage": "run_column_roles", "pattern": "cross_check", "ai_kind": "jev:column.is_identifier", "rule_id": "schema_inference.identifier.v1", "effects": ["exclusion"], "evidence_partition": "metadata", "cap": 1},
-      "column.semantic_role": {"stage": "run_column_roles", "pattern": "cross_check", "ai_kind": "jev:column.semantic_role", "rule_id": "split_column_roles.v3", "effects": ["branch_change:feature_transform_add"], "evidence_partition": "metadata", "cap": 2},
-      "column.missing_value_action": {"stage": "run_train_only_decisions", "pattern": "ai_before", "ai_kind": "agent:dataset_investigator", "rule_id": "missing_value_rules.v1", "effects": ["branch_change:feature_transform_add"], "evidence_partition": "train", "cap": 2},
-      "feature.leakage_suspect": {"stage": "run_train_only_decisions", "pattern": "cross_check", "ai_kind": "jev:feature.leakage_suspect", "rule_id": "leakage_auditor.v1", "effects": ["flag"], "evidence_partition": "train", "cap": 1},
-      "split.strategy": {"stage": "run_holdout_lock", "pattern": "ai_before", "ai_kind": "agent:experiment_planner", "rule_id": "holdout_planner.v1", "effects": ["split_plan"], "evidence_partition": "metadata", "cap": 1},
-      "training.families_budget": {"stage": "run_preprocessing_setup", "pattern": "ai_before", "ai_kind": "agent:experiment_planner", "rule_id": "portfolio.v1", "effects": ["search_config"], "evidence_partition": "train", "cap": 2},
-      "experiment.review": {"stage": "agents.run", "pattern": "ai_after", "ai_kind": "agent:experiment_critic", "rule_id": "pipeline_verifier.v1", "effects": ["none"], "evidence_partition": "train", "cap": 1},
-      "improve.next_action": {"stage": "labs.improve", "pattern": "cross_check", "ai_kind": "agent:improvement_hypothesis", "rule_id": "rule_proposer.v1", "effects": ["proposal:experiment_change"], "evidence_partition": "train", "cap": 1},
-      "ops.diagnose": {"stage": "monitoring.drift_window", "pattern": "ai_after", "ai_kind": "agent:dataset_investigator", "rule_id": "drift_finding.v1", "effects": ["notify"], "evidence_partition": "train", "cap": 3},
-      "ops.retrain": {"stage": "ops.agent", "pattern": "ai_before", "ai_kind": "agent:ops", "rule_id": null, "effects": ["job:experiments.run"], "evidence_partition": "metadata", "cap": 2},
-      "ops.release": {"stage": "ops.agent", "pattern": "ai_before", "ai_kind": "agent:ops", "rule_id": "release_gate.v1", "effects": ["proposal:model_release"], "evidence_partition": "train", "cap": 1},
-      "ops.rollback": {"stage": "ops.agent", "pattern": "ai_before", "ai_kind": "agent:ops", "rule_id": "ops.rollback_threshold.v1", "effects": ["proposal:ref_move"], "evidence_partition": "train", "cap": 1},
-      "command.intent_route": {"stage": "assistant.turn", "pattern": "ai_before", "ai_kind": "jev:command.intent_route", "rule_id": null, "effects": ["none"], "evidence_partition": "metadata", "cap": 1},
-      "proposal.completeness": {"stage": "proposal.validated", "pattern": "ai_after", "ai_kind": "jev:proposal.completeness", "rule_id": "validator_verdict", "effects": ["none"], "evidence_partition": "metadata", "cap": 0}
+      "target.column": {
+        "stage": "run_target_resolution",
+        "pattern": "ai_before",
+        "ai_kind": "agent:dataset_investigator",
+        "rule_id": "lab_decision_ledger.record_target_selection",
+        "effects": [
+          "proposal:problem_spec"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 1
+      },
+      "spec.objective": {
+        "stage": "propose_problem_spec",
+        "pattern": "ai_before",
+        "ai_kind": "agent:experiment_planner",
+        "rule_id": "metric_planner.default_metric",
+        "effects": [
+          "proposal:problem_spec"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 1
+      },
+      "column.is_identifier": {
+        "stage": "run_column_roles",
+        "pattern": "cross_check",
+        "ai_kind": "jev:column.is_identifier",
+        "rule_id": "schema_inference.identifier.v1",
+        "effects": [
+          "exclusion"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 1
+      },
+      "column.semantic_role": {
+        "stage": "run_column_roles",
+        "pattern": "cross_check",
+        "ai_kind": "jev:column.semantic_role",
+        "rule_id": "split_column_roles.v3",
+        "effects": [
+          "branch_change:feature_transform_add"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 2
+      },
+      "column.missing_value_action": {
+        "stage": "run_train_only_decisions",
+        "pattern": "ai_before",
+        "ai_kind": "agent:dataset_investigator",
+        "rule_id": "missing_value_rules.v1",
+        "effects": [
+          "branch_change:feature_transform_add"
+        ],
+        "evidence_partition": "train",
+        "cap": 2
+      },
+      "feature.leakage_suspect": {
+        "stage": "run_train_only_decisions",
+        "pattern": "cross_check",
+        "ai_kind": "jev:feature.leakage_suspect",
+        "rule_id": "leakage_auditor.v1",
+        "effects": [
+          "flag"
+        ],
+        "evidence_partition": "train",
+        "cap": 1
+      },
+      "split.strategy": {
+        "stage": "run_holdout_lock",
+        "pattern": "ai_before",
+        "ai_kind": "agent:experiment_planner",
+        "rule_id": "holdout_planner.v1",
+        "effects": [
+          "split_plan"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 1
+      },
+      "training.families_budget": {
+        "stage": "run_preprocessing_setup",
+        "pattern": "ai_before",
+        "ai_kind": "agent:experiment_planner",
+        "rule_id": "portfolio.v1",
+        "effects": [
+          "search_config"
+        ],
+        "evidence_partition": "train",
+        "cap": 2
+      },
+      "experiment.review": {
+        "stage": "agents.run",
+        "pattern": "ai_after",
+        "ai_kind": "agent:experiment_critic",
+        "rule_id": "pipeline_verifier.v1",
+        "effects": [
+          "none"
+        ],
+        "evidence_partition": "train",
+        "cap": 1
+      },
+      "improve.next_action": {
+        "stage": "labs.improve",
+        "pattern": "cross_check",
+        "ai_kind": "agent:improvement_hypothesis",
+        "rule_id": "rule_proposer.v1",
+        "effects": [
+          "proposal:experiment_change"
+        ],
+        "evidence_partition": "train",
+        "cap": 1
+      },
+      "ops.diagnose": {
+        "stage": "monitoring.drift_window",
+        "pattern": "ai_after",
+        "ai_kind": "agent:dataset_investigator",
+        "rule_id": "drift_finding.v1",
+        "effects": [
+          "notify"
+        ],
+        "evidence_partition": "train",
+        "cap": 3
+      },
+      "ops.retrain": {
+        "stage": "ops.agent",
+        "pattern": "ai_before",
+        "ai_kind": "agent:ops",
+        "rule_id": null,
+        "effects": [
+          "job:experiments.run"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 2
+      },
+      "ops.release": {
+        "stage": "ops.agent",
+        "pattern": "ai_before",
+        "ai_kind": "agent:ops",
+        "rule_id": "release_gate.v1",
+        "effects": [
+          "proposal:model_release"
+        ],
+        "evidence_partition": "train",
+        "cap": 1
+      },
+      "ops.rollback": {
+        "stage": "ops.agent",
+        "pattern": "ai_before",
+        "ai_kind": "agent:ops",
+        "rule_id": "ops.rollback_threshold.v1",
+        "effects": [
+          "proposal:ref_move"
+        ],
+        "evidence_partition": "train",
+        "cap": 1
+      },
+      "command.intent_route": {
+        "stage": "assistant.turn",
+        "pattern": "ai_before",
+        "ai_kind": "jev:command.intent_route",
+        "rule_id": null,
+        "effects": [
+          "none"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 1
+      },
+      "proposal.completeness": {
+        "stage": "proposal.validated",
+        "pattern": "ai_after",
+        "ai_kind": "jev:proposal.completeness",
+        "rule_id": "validator_verdict",
+        "effects": [
+          "none"
+        ],
+        "evidence_partition": "metadata",
+        "cap": 0
+      }
     },
-    "lead_tools": ["create_problem_spec", "propose_problem_spec", "record_decision", "request_agent_review", "move_ref", "run_experiment", "branch_experiment", "predict"]
+    "lead_tools": [
+      "create_problem_spec",
+      "propose_problem_spec",
+      "record_decision",
+      "request_agent_review",
+      "move_ref",
+      "run_experiment",
+      "branch_experiment",
+      "predict"
+    ]
   },
   "files_read": [
-    "apps/api/app/services/problem_spec_service.py",
-    "apps/api/app/domain/workspace_identity.py",
-    "apps/api/app/api/v1.py",
-    "apps/api/app/engine/modeling/problem_profile.py",
-    "apps/api/app/engine/modeling/metric_planner.py",
-    "apps/api/app/engine/modeling/holdout_planner.py",
-    "apps/api/app/engine/modeling/validation_planner.py",
-    "apps/api/app/engine/modeling/objective.py",
-    "apps/api/app/engine/modeling/leakage_auditor.py",
-    "apps/api/app/engine/models/registry.py",
-    "apps/api/app/engine/search/generator.py",
-    "apps/api/app/engine/features/contract.py",
-    "apps/api/app/domain/run_plans.py",
-    "apps/api/app/domain/experiment_changes.py",
-    "apps/api/app/domain/operating_points.py",
-    "apps/api/app/agents/governance/decision_points.py",
-    "apps/api/app/agents/classes/experiment_planner.py",
+    "apps/api/app/agents/assistant/service.py",
+    "apps/api/app/agents/classes/common.py",
     "apps/api/app/agents/classes/dataset_investigator.py",
     "apps/api/app/agents/classes/experiment_critic.py",
-    "apps/api/app/agents/classes/common.py",
-    "apps/api/app/agents/gateway/service.py",
+    "apps/api/app/agents/classes/experiment_planner.py",
+    "apps/api/app/agents/gateway/budget.py",
     "apps/api/app/agents/gateway/contract.py",
+    "apps/api/app/agents/gateway/service.py",
+    "apps/api/app/agents/governance/decision_points.py",
+    "apps/api/app/agents/harness/service.py",
     "apps/api/app/agents/prompt_releases.py",
-    "apps/api/app/services/auto_train_service.py",
-    "apps/api/app/services/auto_train/load_profile.py",
-    "apps/api/app/services/auto_train/holdout.py",
-    "apps/api/app/services/auto_train/decisions.py",
-    "apps/api/app/services/auto_train/plan_points.py",
-    "apps/api/app/services/auto_train/decision_points.py",
-    "apps/api/app/services/auto_train/finalize.py",
-    "apps/api/app/services/run_plan_service.py",
-    "apps/api/app/services/decision_point_service.py",
-    "apps/api/app/services/technical_run_report.py",
+    "apps/api/app/api/v1.py",
+    "apps/api/app/db/models.py",
+    "apps/api/app/domain/agent_records.py",
+    "apps/api/app/domain/decision_records.py",
+    "apps/api/app/domain/experiment_changes.py",
+    "apps/api/app/domain/observability.py",
+    "apps/api/app/domain/operating_points.py",
+    "apps/api/app/domain/run_plans.py",
+    "apps/api/app/domain/workspace_identity.py",
+    "apps/api/app/engine/features/contract.py",
+    "apps/api/app/engine/modeling/holdout_planner.py",
+    "apps/api/app/engine/modeling/leakage_auditor.py",
+    "apps/api/app/engine/modeling/metric_planner.py",
+    "apps/api/app/engine/modeling/objective.py",
+    "apps/api/app/engine/modeling/problem_profile.py",
+    "apps/api/app/engine/modeling/validation_planner.py",
+    "apps/api/app/engine/models/registry.py",
     "apps/api/app/engine/reporting/report.py",
-    "apps/web/lib/application/studio-wizard.ts",
+    "apps/api/app/engine/search/generator.py",
+    "apps/api/app/services/auto_train/decision_points.py",
+    "apps/api/app/services/auto_train/decisions.py",
+    "apps/api/app/services/auto_train/finalize.py",
+    "apps/api/app/services/auto_train/holdout.py",
+    "apps/api/app/services/auto_train/load_profile.py",
+    "apps/api/app/services/auto_train/plan_points.py",
+    "apps/api/app/services/auto_train_service.py",
+    "apps/api/app/services/decision_point_service.py",
+    "apps/api/app/services/problem_spec_service.py",
+    "apps/api/app/services/run_plan_service.py",
+    "apps/api/app/services/technical_run_report.py",
+    "apps/api/app/services/workflow_execution_service.py",
     "apps/api/tests/test_benchmark_harness.py",
+    "apps/web/lib/application/studio-wizard.ts",
     "benchmarks/harness/run.py",
     "docs/adr/0007-improve-loop.md"
-  ]
+  ],
+  "experience_tables": {
+    "agent_runs": [
+      "id",
+      "workspace_id",
+      "project_id",
+      "kind",
+      "agent_key",
+      "agent_version",
+      "prompt_release_id",
+      "runtime",
+      "runtime_version",
+      "provider",
+      "model",
+      "purpose",
+      "decision_point_key",
+      "subject_kind",
+      "experiment_id",
+      "dataset_id",
+      "problem_spec_id",
+      "split_plan_id",
+      "model_version_id",
+      "parent_run_id",
+      "context_digest",
+      "policy_digest",
+      "tool_catalog_digest",
+      "data_class",
+      "outcome_scope",
+      "status",
+      "limits",
+      "usage",
+      "held_micros",
+      "cost_micros",
+      "currency",
+      "error_code",
+      "idempotency_key",
+      "idempotency_digest",
+      "created_by_user_id",
+      "created_by_service_token_id",
+      "title",
+      "page_context",
+      "last_activity_at",
+      "started_at",
+      "finished_at",
+      "budget_released_at",
+      "created_at"
+    ],
+    "agent_events": [
+      "id",
+      "workspace_id",
+      "run_id",
+      "seq",
+      "type",
+      "payload",
+      "payload_digest",
+      "llm_invocation_id",
+      "created_at"
+    ],
+    "llm_invocations": [
+      "id",
+      "workspace_id",
+      "workflow_run_id",
+      "experiment_id",
+      "project_id",
+      "agent_run_id",
+      "provider_kind",
+      "purpose",
+      "provider",
+      "model",
+      "mode",
+      "prompt_version",
+      "schema_version",
+      "input_evidence_digest",
+      "redaction_summary",
+      "llm_used",
+      "reason",
+      "status",
+      "validator_verdict",
+      "safe_output",
+      "final_decision",
+      "latency_ms",
+      "input_tokens",
+      "output_tokens",
+      "total_tokens",
+      "estimated_cost",
+      "started_at",
+      "completed_at",
+      "created_at",
+      "prompt_release_id",
+      "cache_hit",
+      "cost_micros",
+      "currency",
+      "data_class",
+      "outcome_scope",
+      "agent_role",
+      "decision_point_key",
+      "refusal_code",
+      "budget_reservation_id",
+      "budget_settled",
+      "provider_request_id",
+      "provider_resolved_model"
+    ],
+    "project_decision_records": [
+      "id",
+      "workspace_id",
+      "project_id",
+      "decision_type",
+      "state",
+      "subject_kind",
+      "problem_spec_id",
+      "dataset_id",
+      "split_plan_id",
+      "feature_set_version_id",
+      "experiment_id",
+      "candidate_id",
+      "model_version_id",
+      "subject_digest",
+      "actor_kind",
+      "actor_user_id",
+      "actor_rule",
+      "actor_agent_run_id",
+      "actor_service_token_id",
+      "rationale",
+      "rationale_untrusted",
+      "facts",
+      "evidence_refs",
+      "details",
+      "schema_version",
+      "policy_version",
+      "supersedes_id",
+      "idempotency_key",
+      "event_at",
+      "recorded_at"
+    ],
+    "ml_run_events": [
+      "id",
+      "workspace_id",
+      "workflow_run_id",
+      "experiment_id",
+      "sequence",
+      "stage",
+      "event_type",
+      "status",
+      "timestamp",
+      "duration_ms",
+      "payload",
+      "created_at"
+    ]
+  },
+  "experience_vocabularies": {
+    "agent_events.type": [
+      "run_started",
+      "context_built",
+      "budget_reserved",
+      "user_message",
+      "llm_call_started",
+      "llm_call_finished",
+      "step_validated",
+      "step_rejected",
+      "tool_call_requested",
+      "tool_call_denied",
+      "tool_call_finished",
+      "proposal_created",
+      "proposal_auto_applied",
+      "assistant_message",
+      "clarification_requested",
+      "budget_exhausted",
+      "budget_settled",
+      "run_finished",
+      "run_failed",
+      "thread_closed",
+      "replay_checked"
+    ],
+    "project_decision_records.decision_type": [
+      "winner_locked",
+      "split_plan_created",
+      "ref_initialized",
+      "problem_spec_locked",
+      "ref_moved",
+      "champion_promoted",
+      "experiment_accepted",
+      "experiment_rejected",
+      "proposal_accepted",
+      "proposal_rejected",
+      "decision_point_resolved",
+      "proposal_reverted",
+      "operating_point_chosen"
+    ],
+    "project_decision_records.actor_kind": [
+      "human",
+      "rule",
+      "agent"
+    ],
+    "ml_run_events.status": [
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "skipped",
+      "started",
+      "fail",
+      "error",
+      "skip",
+      "not_applicable"
+    ],
+    "ml_run_events.rules": {
+      "missing_status": "completed",
+      "intra_stage_prefixes": [
+        "cv_fold_",
+        "candidate_"
+      ],
+      "terminal_stage": "terminal",
+      "terminal_event": "pipeline_terminal",
+      "source": "apps/api/app/services/workflow_execution_service.py: _stage_status, apply_live_stage_from_event"
+    }
+  },
+  "experience_payload_keys": {
+    "user_message": [
+      "message"
+    ],
+    "assistant_message": [
+      "kind",
+      "message",
+      "citations",
+      "llm_used",
+      "fallback",
+      "templated",
+      "actions"
+    ],
+    "tool_call_finished": [
+      "call",
+      "tool",
+      "argument_digest",
+      "ok",
+      "code",
+      "proposal_id",
+      "preview"
+    ],
+    "tool_call_denied": [
+      "call",
+      "tool",
+      "code",
+      "hook"
+    ],
+    "step_rejected": [
+      "call",
+      "reason",
+      "refusal",
+      "reasons"
+    ],
+    "run_failed": [
+      "status",
+      "error_code",
+      "proposal_ids"
+    ],
+    "proposal_created": [
+      "proposal_id",
+      "tool",
+      "type",
+      "status",
+      "code"
+    ],
+    "llm_invocations.currency": "USD (apps/api/app/agents/gateway/budget.py CURRENCY)"
+  },
+  "experience_read_on": "2026-10-13"
 }

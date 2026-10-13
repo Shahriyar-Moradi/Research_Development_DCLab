@@ -374,3 +374,5 @@ CONTRACTS: dict[str, type[Versioned]] = {
     "review": Review,
     "solution_report": SolutionReport,
 }
+
+import dclab_core.experience  # noqa: E402,F401  (registers its contracts in CONTRACTS: every reader sees all of them)

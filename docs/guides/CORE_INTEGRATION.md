@@ -12,12 +12,12 @@ read at that commit; read them again before wiring.
 
 ## What the main product installs
 
-- **The wheel.** `dclab-core` 0.4.0, pinned:
+- **The wheel.** `dclab-core` 0.5.0, pinned:
   `dclab-core @ git+https://github.com/Shahriyar-Moradi/Research_Development_DCLab.git@<tag or commit>#subdirectory=dclab_core`.
   It depends on numpy, pandas, scikit-learn and pydantic (2.10 or later) only, runs on Python 3.10 to 3.13, never
   imports `dclab_rnd`, never calls a model provider, never touches a database or the network. `make core-wheel-check`
   here builds it, installs it in a clean Python 3.12 with only those dependencies and runs a replica end to end
-  (2026-10-13, 0.4.0: passed, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1; the optional pdf extra is not a direct dependency). What changed between versions
+  (2026-10-13, 0.5.0: passed, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1; the optional pdf extra is not a direct dependency). What changed between versions
   is in `dclab_core/CHANGELOG.md`.
 - **The contracts.** `ProblemBrief`, `DataFindings`, `SolutionPlan` (of `Decision`s), `Review`, `SolutionReport`:
   frozen, versioned (`dclab_core.problem_brief.v1`, ...), read only with their version (`Versioned.read`), with JSON
@@ -213,3 +213,13 @@ The main product implements it once over `GatewayService.complete(db, Completion
    `compare.py`'s tolerance, plus the core's replicas (`dclab_core.replicas`: `delivery_fraud`, `ticket_routing`,
    `delivery_time`) with their acceptance decisions, run against the pinned wheel.
 5. **The pin.** The lock file pins the wheel by commit or tag; upgrading it reads `CHANGELOG.md` and reruns 1 to 4.
+
+## Experience: the record of a session (19.1)
+
+The main product adds no table. `dclab_core.adapters.main_product_experience.events(agent_events=..., runs=...,
+invocations=..., decisions=..., run_events=...)` reads its rows (plain dicts with the recorded column names) as
+`ExperienceEvent`s; `dclab_core.experience.timeline`, `session_card` and `redact` then run on them as they do here.
+Where it goes there: a read-only service next to the harness recorder that loads one thread's or one project's rows
+and returns the timeline. What its side of 19.2 adds: the request id stored on `agent_events` and
+`execution_requests` (additive columns), and the auth session id as the visit. Whether any of it is ever exported for
+training is the owner's decision (its ADR 0008); `redact` keeps only what a use allows.

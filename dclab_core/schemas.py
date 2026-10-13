@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import dclab_core.experience  # noqa: F401  (registers the experience contracts)
 from dclab_core.contracts import CONTRACTS
 
 SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"

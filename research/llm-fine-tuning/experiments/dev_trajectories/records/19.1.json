@@ -1,0 +1,216 @@
+{
+  "package": "19.1",
+  "title": "The experience contract: one record of what a person and DCLab did, adoptable by the main product",
+  "date": "2026-10-13",
+  "request": "First, store everything users do in DCLab and everything DCLab does in reply, organized and findable, to improve the system and to train the owner's model; adoptable by the main product.",
+  "spec": "A versioned dclab_core contract for an event and a session: every shared id, a closed vocabulary of kinds, a declared content class per field, credentials never recorded; timeline, redaction and session card as library functions; the main product's own append-only tables read as the same events, with no new table there. Done when every kind round-trips, a field without its class is refused, and a value recorded under a lower class is refused.",
+  "plan": [
+    "Inventory what the studio records (14 mechanisms, no shared session or user id) and read the main product's tables at one commit.",
+    "One event shape with every id, a closed vocabulary, a content class per field, refusals in code and in the JSON Schema.",
+    "Library functions both hosts run: timeline, redact, session card.",
+    "An adapter from the main product's rows, every type mapped or listed with its reason.",
+    "Review, read the main product's real rules where the first version guessed, plant faults."
+  ],
+  "decisions": [
+    {
+      "decision": "The contract is an exchange format; each host keeps its stores.",
+      "why": "The main product's rules forbid a parallel system and it already has append-only agent events, invocations, decisions and run events."
+    },
+    {
+      "decision": "A field's class comes from the vocabulary, and redaction reads the vocabulary, not the event's labels.",
+      "why": "A copied event skips validation; the vocabulary cannot be relabelled."
+    },
+    {
+      "decision": "A tool's arguments and result are cell values; an error's message and a refusal's reason are agent text.",
+      "why": "Each can quote a table's value, and meta is kept by every export."
+    },
+    {
+      "decision": "Spend is kept in its own currency and summed by currency.",
+      "why": "The main product's gateway writes USD; converting would invent a rate."
+    },
+    {
+      "decision": "The main product's stage boundaries follow its own rules, read from its code.",
+      "why": "The first version guessed a status vocabulary and turned every fold into a finished stage."
+    }
+  ],
+  "change": "dclab_core/experience.py (new), dclab_core/adapters/main_product_experience.py (new), dclab_core/adapters/main_product_fields.json (experience tables, vocabularies, payload keys, run rules), dclab_core/contracts.py (registration), dclab_core/schemas.py, dclab_core/schemas/experience_*.json and baselines, dclab_core/CHANGELOG.md, version 0.5.0, docs/guides/CORE_INTEGRATION.md, scripts/core_wheel_check.py, tests/test_core_experience.py.",
+  "findings": [
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Cell values and prose passed as meta, which every export keeps.",
+      "scenario": "A tool result with an e-mail and a salary, an error message quoting a row, a refusal's prose reason: all accepted as meta and kept by a shareable export.",
+      "cause": "Fields that can hold values were declared meta; meta allowed nesting; counts were not type-checked.",
+      "fix": "Tool arguments and results are cell values, messages and reasons agent text; meta is flat scalars; a count is a number.",
+      "test": "test_what_may_not_be_recorded_is_refused"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The credential pattern refused ordinary words and missed real credentials.",
+      "scenario": "'churn-risk-prediction' refused; a postgresql password, JWTs, hf_ and ASIA keys accepted.",
+      "cause": "sk- matched inside words; the list was short.",
+      "fix": "A boundary before each prefix, the common providers, JWTs, bearer in any case, a password in a URL; ids and source scanned too.",
+      "test": "test_credentials_are_refused_and_ordinary_words_are_not"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The main product's costs were always dropped.",
+      "scenario": "Its gateway writes USD; cost_eur was None for every row.",
+      "cause": "A EUR-only field.",
+      "fix": "cost and currency; the card sums by currency.",
+      "test": "test_model_invocations_decisions_and_run_boundaries"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The run-status vocabulary was guessed, and wrongly.",
+      "scenario": "Every cv_fold_ and candidate_ event became a finished stage; 'fail' was dropped.",
+      "cause": "The rules were not read.",
+      "fix": "The main product's _stage_status and live-stage rules, recorded in the fields file.",
+      "test": "same test"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A thread became one conversation per turn.",
+      "scenario": "Each model turn is a lead run under the thread.",
+      "cause": "conversation was the run's own id.",
+      "fix": "A lead run's conversation is its parent thread.",
+      "test": "test_a_thread_reads_as_one_conversation_with_its_person_and_project"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A failed tool call was recorded as ok.",
+      "scenario": "tool_call_finished with ok false.",
+      "cause": "The verdict ignored ok.",
+      "fix": "error with the code; step_rejected's reasons kept.",
+      "test": "same test"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Model requests vanished without the invocation rows.",
+      "scenario": "A thread's events alone: no model request.",
+      "cause": "llm_call_finished always skipped.",
+      "fix": "Skipped only when its invocation row is given.",
+      "test": "same test"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The kinds the main product cannot fill were not listed.",
+      "scenario": "visit, draft, feedback, export kinds silently absent.",
+      "cause": "No list.",
+      "fix": "KINDS_MISSING and TABLES_NOT_READ, with a test that every kind is produced or listed.",
+      "test": "test_every_recorded_type_is_mapped_or_left_out_with_a_reason"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The JSON Schema did not tie fields to classes.",
+      "scenario": "A payload field without its class validated.",
+      "cause": "Only names were constrained.",
+      "fix": "Each field requires its class and each class its field.",
+      "test": "test_the_published_schema_holds_the_vocabulary"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Times without a zone were accepted and broke the timeline.",
+      "scenario": "A naive time beside an aware one: TypeError.",
+      "cause": "No zone check.",
+      "fix": "A zone is required; times are stored in UTC.",
+      "test": "test_times_from_any_zone_are_stored_in_utc_and_order_together"
+    },
+    {
+      "id": "R11",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The session lacked the problem and its kind, and never finished on the main product.",
+      "scenario": "Its last stage is terminal.",
+      "cause": "Studio-only stage name.",
+      "fix": "problem, kind, final or terminal.",
+      "test": "test_the_session_card_sums_one_visit"
+    },
+    {
+      "id": "R12",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The session card was barely tested.",
+      "scenario": "Outcome or errors replaced by constants passed.",
+      "cause": "Only an open session was tested.",
+      "fix": "Built, ran, finished, errors, refused moves and denied tools tested.",
+      "test": "same test"
+    },
+    {
+      "id": "R13",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "redact trusted the event's labels.",
+      "scenario": "A copied event labelled person text as meta kept it.",
+      "cause": "Labels taken from the event.",
+      "fix": "The vocabulary decides.",
+      "test": "test_redaction_keeps_only_the_allowed_classes_and_says_what_it_removed"
+    },
+    {
+      "id": "R14",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The contracts were registered only as a side effect.",
+      "scenario": "A reader of CONTRACTS saw six of eight.",
+      "cause": "Registration in experience only.",
+      "fix": "contracts imports experience at its end.",
+      "test": "test_core_contracts"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "planted faults",
+      "gate": "each of the 18 planted faults in the contract and the adapter fails a test",
+      "result": "18 of 18 caught (8 before the review, 10 after)",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "18 of 18 against 18",
+      "limits": [
+        "The adapter is tested on rows shaped like the main product's, not on its database."
+      ]
+    },
+    {
+      "name": "clean install",
+      "gate": "the wheel installs in a clean Python 3.12 and reads a main-product row into a session card",
+      "result": "make core-wheel-check passed at 0.5.0 with the experience smoke",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "passed",
+      "limits": []
+    }
+  ],
+  "outcome": "The record has one shape both products can read; the studio's writer (19.2) and its emitters (19.3) come next.",
+  "lessons": [
+    "Read the other product's code where a mapping depends on it; a guessed vocabulary is a wrong one.",
+    "Classes must follow what a field can hold, not what it usually holds.",
+    "A pattern for secrets needs its false positives tested as much as its catches.",
+    "Keep amounts in their currency; a conversion is a decision.",
+    "Let the vocabulary, not the record, decide what is shared."
+  ],
+  "risks": [
+    "Values exported as metadata.",
+    "Real text refused as a credential.",
+    "A product's sessions read wrongly.",
+    "Spend lost."
+  ],
+  "commits": []
+}

@@ -4,6 +4,34 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.5.0 (2026-10-13)
+
+Package 19.1: the record of what a person and DCLab did. Two new contracts, at v1; the six earlier ones unchanged.
+
+- `experience` (new): `ExperienceEvent` (`dclab_core.experience_event.v1`): one event with the ids every event shares
+  (workspace, user, visit, conversation, project, run, job, request, model request, parent), `seq`, the actor, a kind
+  from a closed vocabulary (`KINDS`, 33 kinds in 15 namespaces) and a payload whose every field carries its declared
+  content class (meta, count, person text, agent text, model text, cell values). Refused: a field recorded as another
+  class, a field outside the vocabulary, a field without its class, anything nested or long in meta, a count that is
+  not a number, a time without its zone (times are stored in UTC), and anything shaped like a credential in the
+  payload, the ids or the source (API keys of the common providers, JWTs, private keys, bearer tokens, a password in a
+  connection string), without refusing ordinary hyphenated words. A tool's arguments and result are cell values; an
+  error's message and a refusal's reason are agent text. The vocabulary, the classes and the field-class pairing are
+  in the JSON Schema too. `make`, `timeline` (UTC time, then `seq`, each event once), `redact` (the vocabulary's classes
+  decide, never an event's own labels), `session_card` → `ExperienceSession` (`dclab_core.experience_session.v1`:
+  the problem as first written, its kind, turns, model requests, spend by currency, refusals, errors, outcome; the
+  last stage is this studio's `final` or the main product's `terminal`). The contracts register in `CONTRACTS` when
+  `dclab_core.contracts` is imported.
+- `adapters.main_product_experience` (new): the main product's own append-only rows read as events, no new table on
+  its side: `agent_events` with their `agent_runs` (a thread is the conversation, each `lead` run a turn of it; the
+  `message` of a user or assistant message; a tool call that is not ok, or denied, with its code; a validator's
+  reasons), `llm_invocations` (cost in its own currency: its gateway writes USD), `project_decision_records` (an
+  untrusted rationale left out), `ml_run_events` by the main product's own stage rules (a fold or a candidate is a step
+  inside a stage; `terminal` closes the run). Every recorded type is mapped or listed with the reason it is left out;
+  every contract kind is produced or listed in `KINDS_MISSING`; the tables not read are in `TABLES_NOT_READ`; a column
+  not recorded at the read commit fails loudly; the ids it does not store today (a visit, a request) are in
+  `IDS_MISSING`.
+
 ## 0.4.0 (2026-10-13)
 
 Package 16.15: the parts a host needs to run a forecast or a time to event in its own stages, choice and holdout
