@@ -39,7 +39,7 @@ class EntityTables(ProblemKind):
     baselines = ("recency_only",)
     checks = ("PIT-005",)
     reliability = ("cutoffs per row", "rows left out because the horizon passes the data's end", "joins checked for repeats")
-    evidence_track = None
+    evidence_track = "churn-prediction"  # 16.14: the research track whose evidence agents cite for this kind
     stratify = False
     runs_in_engine = False  # a project holds one table: dclab_core.entities runs it as a library
     Fields = EntityTablesFields

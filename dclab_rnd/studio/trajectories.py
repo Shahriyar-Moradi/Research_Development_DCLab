@@ -177,7 +177,22 @@ def records(project: dict[str, Any], projects: Any, sessions: Any, traces: Any) 
     cache: dict[str, dict[str, Any]] = {}
     for run_id in runs:
         out += steps(project, run_id, traces.steps(run_id), cache, vocab)
-    return out
+    kind = problem_kind(project)
+    return [{**r, "problem_kind": kind} for r in out]
+
+
+def problem_kind(project: dict[str, Any]) -> str | None:
+    """The kind the project runs as (16.14: trajectories are filed by kind), or None before it has a solution."""
+    solution = project.get("solution")
+    if not solution:
+        return None
+    try:
+        from dclab_rnd import kinds
+
+        pack = project.get("pack") or ((project.get("draft") or {}).get("pack") or {}).get("key")
+        return kinds.resolve(solution, pack).key
+    except (KeyError, ValueError, TypeError):
+        return None
 
 
 def _inside(path: Path, folder: Path) -> bool:

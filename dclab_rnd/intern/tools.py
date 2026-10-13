@@ -29,7 +29,7 @@ from dclab_rnd.studio import graph as studio_graph
 from dclab_rnd.studio import memory as studio_memory
 from dclab_rnd.studio.store import INDUSTRIES, STAGE_KEYS, ProjectStore
 
-EVIDENCE_TOOLS = ("search_evidence", "get_record", "get_rules", "plan_next_stage", "review_code")
+EVIDENCE_TOOLS = ("search_evidence", "get_record", "get_rules", "plan_next_stage", "review_code", "kind_checks")
 RESULT_CHARS = 6000
 
 

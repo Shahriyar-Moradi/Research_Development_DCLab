@@ -234,12 +234,35 @@ def _audit_frame(X: Any, y: Any, task: str = "auto", blind: bool = False, source
     }
 
 
+def kind_checks(kind: str) -> dict[str, Any]:
+    """A problem kind's checks and evidence (16.14): its parts, the pitfall records it checks, the decisions its acceptance
+    reaches on its replica (from the capability matrix) and the kind's evidence record and research track."""
+    from dclab_rnd import kinds
+    from dclab_rnd.kinds import acceptance
+
+    try:
+        k = kinds.get(kind)
+    except KeyError:
+        return {"error": f"No kind {kind!r}. Known: {', '.join(sorted(x.key for x in kinds.all_kinds()))}."}
+    index = _index()
+    row = next((r for r in acceptance.matrix() if r["kind"] == k.key), {})
+    stored = next((r for r in acceptance.load() if r["kind"] == k.key), {})
+    evidence = [r for r in index.records if r["type"] == "kind" and r["metadata"].get("problem_kind") == k.key]
+    return {"kind": k.key, "title": k.title, "base_task": k.base_task, "runs_in_engine": bool(k.runs_in_engine),
+            "metrics": [m for m, _ in k.metrics], "baselines": list(k.baselines), "reliability": list(k.reliability),
+            "checks": [_brief(index.get(c)) for c in k.checks if index.get(c)],
+            "capability": {"status": row.get("status"), "missing": row.get("missing", []),
+                           "decisions": [{"decision": c["decision"], "ok": c["ok"]} for c in stored.get("checks", [])]},
+            "evidence": [_brief(r) for r in evidence], "track": k.evidence_track,
+            "track_readme": f"research/{k.evidence_track}/README.md" if k.evidence_track else None}
+
+
 TOOLS: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {
     "search_evidence": (search_evidence, {
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "Natural-language question or keywords."},
-            "type": {"type": "string", "enum": ["rule", "workflow", "dataset", "experiment", "leakage_precedent", "pitfall", "finding"]},
+            "type": {"type": "string", "enum": ["rule", "workflow", "dataset", "experiment", "leakage_precedent", "pitfall", "finding", "kind"]},
             "dataset": {"type": "string", "description": "Dataset key, e.g. bank_marketing, hyperack, telco_churn."},
             "stage": {"type": "string", "enum": STAGE_ORDER},
             "task_type": {"type": "string"},
@@ -248,6 +271,8 @@ TOOLS: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {
         "required": ["query"],
     }),
     "get_record": (get_record, {"type": "object", "properties": {"record_id": {"type": "string"}}, "required": ["record_id"]}),
+    "kind_checks": (kind_checks, {"type": "object", "properties": {"kind": {"type": "string", "description": "A problem kind's key, e.g. forecasting, ranking, places."}},
+                                  "required": ["kind"]}),
     "get_rules": (get_rules, {"type": "object", "properties": {"category": {"type": "string"}}}),
     "plan_next_stage": (plan_next_stage, {
         "type": "object",

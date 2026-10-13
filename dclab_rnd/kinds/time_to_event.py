@@ -41,7 +41,7 @@ class TimeToEvent(ProblemKind):
     baselines = ("kaplan_meier",)
     checks = ("PIT-005",)
     reliability = ("censored share", "horizons the follow-up reaches", "survival per group", "columns counted during the follow-up")
-    evidence_track = None  # no research track yet (research/<track>/): nothing for agents to cite
+    evidence_track = "churn-prediction"  # 16.14: the research track whose evidence agents cite for this kind
     stratify = False
     runs_in_engine = False  # the five-stage engine has no censoring yet: dclab_core.survival runs it as a library
     Fields = TimeToEventFields

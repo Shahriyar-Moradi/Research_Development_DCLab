@@ -65,6 +65,7 @@ class TrajectoryExportTests(unittest.TestCase):
         self.assertIn("opted in", json.dumps(self.policy).lower())  # the Policy model page says so
 
     def test_a_record_has_the_state_the_choices_the_move_the_verdict_the_evidence_and_what_followed(self):
+        self.assertTrue(all("problem_kind" in r for r in self.records))  # 16.14: every record is filed by the project's kind
         kinds = {r["kind"] for r in self.records}
         self.assertEqual(kinds, {"move", "step"})  # the validator's transitions and the agent's tool calls
         for r in self.records:

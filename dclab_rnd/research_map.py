@@ -36,31 +36,32 @@ EXPANSION = "evidence/campaigns/expansion_v1"
 PITFALLS = "evidence/campaigns/pitfalls_v1"
 VERIFY = "evidence/campaigns/agent_verification_v1"
 CODES = "evidence/campaigns/category_codes_v1"
+KINDS = "evidence/campaigns/kinds_v1"  # 16.14: each problem kind's decisions on its replica
 
 # Evidence that lives outside a track folder but belongs to it.
 RELATED = {
-    "tabular-classification": {"campaigns": [EXP50, PITFALLS, CODES], "tracks": ["churn-prediction", "tabular-foundation-models", "ml-methodology"]},
-    "churn-prediction": {"campaigns": [PITFALLS], "tracks": ["tabular-classification", "tabular-foundation-models"]},
+    "tabular-classification": {"campaigns": [EXP50, PITFALLS, CODES, KINDS], "tracks": ["churn-prediction", "tabular-foundation-models", "ml-methodology"]},
+    "churn-prediction": {"campaigns": [PITFALLS, KINDS], "tracks": ["tabular-classification", "tabular-foundation-models"]},
     "tabular-foundation-models": {"campaigns": [], "tracks": ["tabular-classification", "churn-prediction"]},
     "llm-fine-tuning": {"campaigns": [EXP50, EXPANSION], "tracks": ["workflow-model", "agentic-ml-copilot", "evaluation-and-trust"]},
     "ml-methodology": {"campaigns": [EXP50, EXPANSION, PITFALLS, VERIFY, CODES], "tracks": ["tabular-classification", "evaluation-and-trust"]},
     "agentic-ml-copilot": {"campaigns": [PITFALLS, VERIFY], "tracks": ["evaluation-and-trust", "llm-fine-tuning", "workflow-actions"]},
     "evaluation-and-trust": {"campaigns": [VERIFY, PITFALLS], "tracks": ["agentic-ml-copilot", "ml-methodology"]},
-    "anomaly-and-fraud-detection": {"campaigns": [EXPANSION, PITFALLS], "tracks": ["tabular-classification"]},
-    "time-series-forecasting": {"campaigns": [EXPANSION], "tracks": ["mlops-and-deployment"]},
-    "nlp-and-text": {"campaigns": [EXPANSION], "tracks": ["llm-fine-tuning"]},
+    "anomaly-and-fraud-detection": {"campaigns": [EXPANSION, PITFALLS, KINDS], "tracks": ["tabular-classification"]},
+    "time-series-forecasting": {"campaigns": [EXPANSION, KINDS], "tracks": ["mlops-and-deployment"]},
+    "nlp-and-text": {"campaigns": [EXPANSION, KINDS], "tracks": ["llm-fine-tuning"]},
     "graph-neural-networks": {"campaigns": [], "tracks": ["temporal-gnn"]},
     "temporal-gnn": {"campaigns": [], "tracks": ["graph-neural-networks", "vision-scene-graphs"]},
     "vision-scene-graphs": {"campaigns": [], "tracks": ["computer-vision", "temporal-gnn", "driving-maps"]},
-    "computer-vision": {"campaigns": [], "tracks": ["vision-scene-graphs"]},
-    "driving-maps": {"campaigns": [], "tracks": ["vision-scene-graphs", "temporal-gnn"]},
+    "computer-vision": {"campaigns": [KINDS], "tracks": ["vision-scene-graphs"]},
+    "driving-maps": {"campaigns": [KINDS], "tracks": ["vision-scene-graphs", "temporal-gnn"]},
     "workflow-model": {"campaigns": [], "tracks": ["llm-fine-tuning", "workflow-actions"]},
     "workflow-actions": {"campaigns": [], "tracks": ["workflow-model", "agentic-ml-copilot"]},
     "cross-industry-workflows": {"campaigns": [], "tracks": ["workflow-model"]},
-    "data-science-foundations": {"campaigns": [EXP50], "tracks": ["tabular-classification", "churn-prediction"]},
+    "data-science-foundations": {"campaigns": [EXP50, KINDS], "tracks": ["tabular-classification", "churn-prediction"]},
     "mlops-and-deployment": {"campaigns": [], "tracks": ["time-series-forecasting", "evaluation-and-trust"]},
-    "recommender-systems": {"campaigns": [], "tracks": []},
-    "causal-inference-and-experimentation": {"campaigns": [], "tracks": []},
+    "recommender-systems": {"campaigns": [KINDS], "tracks": []},
+    "causal-inference-and-experimentation": {"campaigns": [KINDS], "tracks": []},
 }
 EXPANSION_TRACK = {"credit_card_fraud": "anomaly-and-fraud-detection", "bike_sharing_daily": "time-series-forecasting",
                    "ecommerce_clothing_reviews": "nlp-and-text", "letter_recognition": "ml-methodology"}

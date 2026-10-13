@@ -14,6 +14,10 @@ No champion yet. The first measured result recorded in this track becomes the ba
 
 No experiments in this folder yet.
 
+**Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
+
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 0 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+
 ## Notebooks
 
 No notebooks yet.

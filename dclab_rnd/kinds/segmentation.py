@@ -37,7 +37,7 @@ class Segmentation(ProblemKind):
     baselines = ()
     checks = ()
     reliability = ("stability interval per number of segments", "columns no group uses", "density view and its noise share")
-    evidence_track = None  # no research track yet
+    evidence_track = "data-science-foundations"  # 16.14: the research track whose evidence agents cite for this kind
     stratify = False
     runs_in_engine = False  # no target and no holdout: dclab_core.segment runs it as a library
     Fields = SegmentationFields

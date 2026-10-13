@@ -21,7 +21,7 @@ class Places(Regression):
     questions = ("Which columns hold the latitude and the longitude?",
                  "Will the model be used in areas it has seen, or in new ones (a new city, a new district)?")
     reliability = ("blocks of places on each side of the split", "how much a random split flatters", "areas with few rows")
-    evidence_track = None
+    evidence_track = "driving-maps"  # 16.14: the research track whose evidence agents cite for this kind
 
     def applies(self, solution: Any) -> bool:
         return _get(solution, "task") == "regression" and bool(_get(solution, "spatial"))

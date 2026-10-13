@@ -42,7 +42,7 @@ class Streams(ProblemKind):
     baselines = ("isolation_forest", "own_change")
     checks = ("PIT-005",)
     reliability = ("incidents in the holdout period", "units never seen", "false alerts per unit-day")
-    evidence_track = None
+    evidence_track = "anomaly-and-fraud-detection"  # 16.14: the research track whose evidence agents cite for this kind
     stratify = False
     runs_in_engine = False  # windows and incidents, not rows: dclab_core.streams runs it as a library
     Fields = StreamFields

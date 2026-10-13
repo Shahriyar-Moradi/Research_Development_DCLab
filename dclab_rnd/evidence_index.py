@@ -667,6 +667,42 @@ def _pitfall_records(root: Path) -> list[Record]:
     return out
 
 
+def _kind_records(root: Path) -> list[Record]:
+    """Each problem kind's decisions on its replica over several seeds (16.14, campaign kinds_v1): what a careful data
+    scientist decides on that kind of problem, which held and on which seeds, and the kind's research track."""
+    out = []
+    for path in sorted(root.glob("evidence/campaigns/*/results/KND-*.json")):
+        result = _read_json(path)
+        rate = (result.get("evidence") or {}).get("rate") or {}
+
+        def said(d: dict[str, Any]) -> str:
+            if d.get("open"):
+                return f"{d['decision']} (open: not measured yet)"
+            failed = d.get("failed_on_seeds") or []
+            return d["decision"] + (f" (failed on seed {', '.join(map(str, failed))})" if failed else f" (held on all {d['of']} seeds)")
+        decisions = "; ".join(said(d) for d in (result.get("evidence") or {}).get("decisions", []))
+        kept = [c for c in result.get("claims", []) if c.get("kind") in ("fact", "risk")]  # the decisions are listed once, above
+        claims = " ".join(c.get("statement", "") for c in kept)
+        limits = sorted({lim for c in kept for lim in c.get("limitations", [])})
+        about = (f"{result.get('description', '')} Scored by {', '.join(result.get('metrics') or [])}; baselines "
+                 f"{', '.join(result.get('baselines') or []) or 'none'}; reliability: {', '.join(result.get('reliability') or [])}.")
+        out.append(
+            Record(
+                record_id=result["experiment_id"],
+                type="kind",
+                title=f"{result['experiment_id']} · {result['title']}: the decisions on its replica",
+                text=(f"Problem kind {result['problem_kind']} ({result['title']}). {about} {result['question']} Setup: "
+                      f"{result.get('setup_summary', '')} Decisions: {decisions}. Seeds where every decision held: {rate.get('seeds_all_held')} of "
+                      f"{rate.get('seeds')} (95% interval {rate.get('ci95')}). Findings: {claims}"
+                      + (f" Limitations: {' '.join(limits)}" if limits else "")),
+                metadata={"problem_kind": result["problem_kind"], "track": result.get("track"), "campaign": result.get("campaign_id"),
+                          "runs_in_engine": result.get("runs_in_engine")},
+                citations=[path.relative_to(root).as_posix()],
+            )
+        )
+    return out
+
+
 def _category_code_records(root: Path) -> list[Record]:
     """Measured effect of encoding factorized category codes as categories (DCLAB-R11, campaign category_codes_v1)."""
     out = []
@@ -770,6 +806,7 @@ def build_records(root: Path = ROOT) -> list[dict[str, Any]]:
     records += _finding_records(root)
     records += _pitfall_records(root)
     records += _category_code_records(root)
+    records += _kind_records(root)
     seen: set[str] = set()
     unique = []
     for record in records:

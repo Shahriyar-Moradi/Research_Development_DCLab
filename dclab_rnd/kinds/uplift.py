@@ -36,7 +36,7 @@ class Uplift(ProblemKind):
     baselines = ("response_model", "random")
     checks = ()
     reliability = ("randomisation and propensity overlap", "uplift by decile", "the wording the record may use")
-    evidence_track = None  # no research track yet
+    evidence_track = "causal-inference-and-experimentation"  # 16.14: the research track whose evidence agents cite for this kind
     stratify = True
     runs_in_engine = False  # two arms and an effect per row: dclab_core.uplift runs it as a library
     Fields = UpliftFields
