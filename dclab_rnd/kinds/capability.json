@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T02:44:54+00:00",
+ "at": "2026-10-13T03:08:32+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -492,6 +492,45 @@
     }
    ],
    "missing": []
+  },
+  {
+   "kind": "streams",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "no window moves when every reading after a cut is changed",
+     "ok": true,
+     "detail": "4244 windows end before 2025-02-15 00:00:00; changed by the later readings: 0"
+    },
+    {
+     "decision": "training labels are complete and known before the holdout period",
+     "ok": true,
+     "detail": "split by time at 2025-03-05 06:00:00; training labels read until 2025-03-05 06:00:00"
+    },
+    {
+     "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
+     "ok": true,
+     "detail": "incident recall on the validation period"
+    },
+    {
+     "decision": "most incidents are caught, with hours of warning, within the alert budget",
+     "ok": true,
+     "detail": "supervised: 22 of 22 incidents, median 36.0 h before, 0.232 alerts per machine-day (0.013 false)"
+    },
+    {
+     "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
+     "ok": true,
+     "detail": "isolation_forest: 1.0, own_change: 1.0, percentile_rules: 0.955, ecod: 0.909, supervised: 1.0"
+    },
+    {
+     "decision": "machines never seen are scored on the holdout period",
+     "ok": true,
+     "detail": "9 of 9 incidents on 6 unseen machines"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
   }
  ]
 }

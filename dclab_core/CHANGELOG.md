@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8 and 16.10. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8, 16.10 and 16.11. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -83,6 +83,16 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8 and 16.10. The six contracts
   entity group or rows in time come first, with the blocks named as the risk); `validate` refuses a random split while
   F-places stands, and an advisor may not replace the blocks by a random split.
 - `replicas.city_prices` (new): flat prices over a city with a smooth district field.
+- `streams` (new): readings per unit over time and rare incidents (16.11). `windows` (rolling time windows up to each
+  end: mean, spread, last, slope, change against the unit's own level read before the window, none without a baseline;
+  no window across a gap longer than itself), `label_windows` (an incident in the horizon after the end; downtime
+  dropped), `incident_metrics` (incidents caught in their horizon, never before the previous repair ended; lead time;
+  alerts and false alerts per unit-day), and `evaluate`: the holdout line from the windows alone, training labels
+  complete and known (a label delay) before it, every method fitted on the first part of the training period with its
+  threshold set out of sample on the second for an alert budget and chosen there, the holdout read once, unseen machines
+  on the same periods, injected detectors (the studio's percentile rules and ECOD), and a future check that recomputes
+  the windows with every later reading changed.
+- `replicas.machine_sensors` (new): machines with hourly readings, rare failures and the warning signs before them.
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

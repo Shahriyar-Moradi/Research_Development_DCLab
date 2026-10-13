@@ -1,0 +1,54 @@
+{
+ "package": "16.11",
+ "title": "Sequences of events and sensor anomalies",
+ "date": "2026-10-13",
+ "request": "Let DCLab alert before machine failures from streams of sensor readings, judged by the failures it catches, how early, and the alerts it costs.",
+ "spec": "A kind for streams: windows over the stream, features from each window's past, labels that may be sparse or delayed; detectors from 15.5 applied per window and supervised models when labels exist; event-based metrics (detection delay, alerts per day, recall of incidents rather than of rows); splits by time and machine. Done when the replica (machines with planted failures and their warning signs) reports detection delay and incident recall, with no window using the future.",
+ "plan": [
+  "Build windows from each unit's past only, with a change score against the unit's own level.",
+  "Label windows by incidents in the horizon after them; drop the downtime.",
+  "Fit methods early in the training period, set thresholds out of sample for an alert budget, choose there, read the holdout once.",
+  "Score by incident: caught in the horizon, lead time, alerts per unit-day; and on machines never seen.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {"decision": "The leak check recomputes the windows with every later reading changed, instead of reading a window's own bookkeeping.", "why": "The last-read time came from a backward match, so a centred rolling window that read 12 hours ahead still reported nothing read after the end."},
+  {"decision": "Thresholds are set on scores of rows the model never saw.", "why": "In-sample scores set the budget on the rows the model fitted; on new rows the isolation forest alerted 0.308 per machine-day against 0.2."},
+  {"decision": "An incident is scored only when its whole horizon lies in the scored period, and its horizon starts after the previous repair.", "why": "Incidents at the period's edge had their warning cut to 12 hours, and one alert credited two failures."},
+  {"decision": "The holdout line is set from the window ends alone.", "why": "Labelling drops windows in downtime, so the incidents themselves moved the line and every threshold with it."}
+ ],
+ "change": "dclab_core/streams.py, dclab_core/replicas/machine_sensors.py, dclab_rnd/kinds/streams.py, tests/test_core_streams.py, dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "S1", "source": "reviewer", "severity": "leakage", "defect": "The check that no window reads past its end could never fail.", "scenario": "A centred rolling window (12 hours of future) and a shifted feature both reported 0 readings after the end and passed every check.",
+   "cause": "The last-read time came from the matching step, not from what the features read.", "fix": "A future check that recomputes the windows with later readings changed and counts the windows that moved.", "test": "test_no_window_moves_with_the_future_and_labels_end_before_the_holdout",
+   "impact": "A leaking stream model would have been recorded as clean."},
+  {"id": "S2", "source": "reviewer", "severity": "behaviour", "defect": "Every unit's first window had a change score near 1e9.", "scenario": "On seed 0 the 24 largest scores were each machine's first window; they took 24 of the 289 alerts the budget allowed.",
+   "cause": "A baseline of one reading has no spread.", "fix": "A baseline needs a few windows of readings and a spread above a floor; otherwise no score.", "test": "test_window_features_by_hand"},
+  {"id": "S3", "source": "reviewer", "severity": "behaviour", "defect": "The guard counted incidents the readings never matched.", "scenario": "Five incidents for a unit with no readings passed; the classifier fitted one class and alerted on all 2538 holdout windows.",
+   "cause": "Raw incidents were counted.", "fix": "Incidents of the units present, in the fitting period, and both classes required.", "test": "test_too_few_matched_incidents_are_refused"},
+  {"id": "S4", "source": "reviewer", "severity": "behaviour", "defect": "Alert thresholds came from in-sample scores.", "scenario": "The budget of 0.2 alerts per machine-day became 0.34 on unseen machines and 0.308 on validation for the forest.",
+   "cause": "Thresholds were set on the rows the model was fitted on.", "fix": "Thresholds on the validation period, out of sample.", "test": "test_incidents_are_caught_early_within_the_budget"},
+  {"id": "S5", "source": "reviewer", "severity": "behaviour", "defect": "Incidents near a period's edge were scored with a cut-short horizon.", "scenario": "A failure 18 hours into the holdout had 1 of its 8 warning windows in it, capping its lead time at 12 hours.",
+   "cause": "Bounds counted incidents whose horizon crossed the line.", "fix": "Only incidents whose whole horizon lies in the scored period.", "test": ""},
+  {"id": "S6", "source": "reviewer", "severity": "behaviour", "defect": "One alert credited every incident after it, and the replica planted failures during repairs.", "scenario": "Two failures 17 hours apart on M00 shared their windows.",
+   "cause": "No floor at the previous repair; no spacing in the generator.", "fix": "An incident's horizon starts after the previous repair; failures are spaced past warning and repair.", "test": "test_an_alert_before_the_previous_repair_ended_catches_nothing"},
+  {"id": "S7", "source": "reviewer", "severity": "leakage", "defect": "The unseen-machine evaluation was not split by time.", "scenario": "The model trained on the other machines' whole history, after the held machines' windows; training on every unit passed.",
+   "cause": "A machine split only.", "fix": "Unseen machines use the same periods: fitted on the others' training period, read on their holdout period.", "test": ""},
+  {"id": "S8", "source": "reviewer", "severity": "gap", "defect": "Tests missed faults that matter.", "scenario": "Fitting on the holdout, nearest matching of step ends and a forward baseline all passed.",
+   "cause": "A perfect hourly grid with no gaps.", "fix": "Gappy readings, a by-hand baseline, thresholds that the holdout's incidents cannot move, and the budget held on validation.", "test": "test_gappy_readings_never_read_past_an_end; test_thresholds_and_the_choice_do_not_read_the_holdout"},
+  {"id": "S9", "source": "reviewer", "severity": "gap", "defect": "15.5's detectors and delayed labels were missing, and detection delay was named lead time.", "scenario": "Only an isolation forest and an own score ran; a label known three days late was used at once.",
+   "cause": "Scope not stated.", "fix": "Detectors injected (percentile rules, ECOD); a label delay; the delay after onset stated as not measured.", "test": "test_a_delayed_label_is_not_used_before_it_is_known"},
+  {"id": "S10", "source": "reviewer", "severity": "behaviour", "defect": "The kind took over survival briefs.", "scenario": "'Survival analysis of machine failures … with censored machines' was detected as streams.",
+   "cause": "Equal specificity, broken alphabetically.", "fix": "A lower specificity.", "test": "test_detected_by_its_words_and_refused_by_the_engine"}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica (6 decisions); refused by the engine and partial in the matrix.",
+ "lessons": [
+  "Prove a leak check can fail by planting a leak it must catch; bookkeeping of what was read is not proof.",
+  "Set thresholds on rows the model never saw, or the budget means nothing on new data.",
+  "Score an event only where its whole horizon is in the period.",
+  "Fix the holdout line before labelling, so the labels cannot move it."
+ ],
+ "risks": ["Windows reading the future.", "Alert budgets that hold only in sample.", "Incidents counted twice or with cut horizons.", "Labels used before they are known."],
+ "commits": []
+}
