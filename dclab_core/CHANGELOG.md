@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 and 16.4. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -21,6 +21,16 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8 and 16.3. The six contracts are unchanged:
   each series' own error; their coverage and pinball loss are measured on the last origin from the earlier ones, for
   the boosted model and the seasonal naive. `covariate_check` keeps the covariates declared known ahead and those that
   describe a series, keeps the others out, and marks a declared one that moves with the target "to confirm".
+- `survival` (new): time to event with right-censoring (16.4). `kaplan_meier` (also per group; None past the longest
+  follow-up), `censoring_bias` (survival at each horizon honest, with censored rows dropped, and with them counted as
+  events), `duration_check` (columns that move with the duration among rows still going and rows that ended, or are
+  filled only when the event happens), `censoring_check`, and `evaluate`: rows split by start day, training censored
+  at the holdout's first day, a model chosen on the latest training rows, then Kaplan-Meier, Cox (ridge, Breslow) and
+  discrete-time logistic and boosted hazards scored once on the latest starts by C-index, the integrated Brier score
+  and Brier and time-dependent AUC at the horizons the follow-up reaches, weighted by the scored rows' own censoring;
+  the chosen model is also fitted with censored rows dropped and counted as events, to show the bias.
+- `replicas.subscription_lifetimes` (new): signups over two years, Weibull lifetimes, right-censored where the data
+  ends, two columns counted during the follow-up, the true survival and every true lifetime in its facts (for judging).
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

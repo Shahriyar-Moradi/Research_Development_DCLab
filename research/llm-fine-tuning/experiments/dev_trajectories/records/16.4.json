@@ -1,0 +1,94 @@
+{
+ "package": "16.4",
+ "title": "Time to event (censoring)",
+ "date": "2026-10-13",
+ "request": "Let DCLab solve how-long-until problems where many rows have not ended yet: subscriptions that may still cancel, machines that may still fail.",
+ "spec": "A survival kind: a duration and an event flag (censoring), a start moment; Kaplan-Meier and Cox baselines, gradient-boosted survival and discrete-time classification; C-index, integrated Brier score and time-dependent AUC at named horizons; checks for durations measured past the moment and for treating censored rows as events. Done when the replica (subscriptions with right-censoring) is solved, a model that drops censored rows is shown to be biased against the honest one, and survival curves per group are in the final record.",
+ "plan": [
+  "Write the estimators in dclab_core with numpy, pandas and scikit-learn only: Kaplan-Meier, a ridge Cox fit by Newton-Raphson with Breslow ties, and discrete-time hazards on person-period rows.",
+  "Score with censoring: Harrell's C-index, inverse-probability-of-censoring weighted Brier and time-dependent AUC.",
+  "Build a replica where the truth is known: Weibull lifetimes, signups over two years, censored where the data ends, two columns counted during the follow-up.",
+  "Add the kind as a library kind (refused by the engine, partial in the matrix), with acceptance decisions judged against the replica's truth.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {
+   "decision": "Training rows are censored at the holdout's first day, and the rows a model is fitted on at the validation cut.",
+   "why": "A time split by start is not a time split if training rows keep outcomes dated after the holdout begins: a shock in the last months is learned from the future."
+  },
+  {
+   "decision": "The censoring weights come from the scored rows' own censoring.",
+   "why": "The latest starts are censored early and heavily; weights from older rows are about 1 there, and the Brier score came out a third too low with the model order flipped."
+  },
+  {
+   "decision": "A column is counted during the follow-up only if it moves with the duration among rows still going and among rows that ended.",
+   "why": "Among rows still going the duration is the calendar; a column known at signup that trends with the calendar moves with it too, but not among rows that ended."
+  },
+  {
+   "decision": "An export with no row still going is refused.",
+   "why": "With no censored rows the durations of the rows that did end are a biased sample, and the checks for counted columns have nothing to compare."
+  }
+ ],
+ "change": "dclab_core/survival.py (kaplan_meier, censoring_bias, censoring_check, duration_check, Cox, DiscreteTime with read_discrete, c_index in blocks, censoring_weights, brier, integrated_brier, auc_at, censor_at, evaluate), dclab_core/replicas/subscription_lifetimes.py, dclab_rnd/kinds/time_to_event.py, tests/test_core_survival.py, dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "S1", "source": "reviewer", "severity": "leakage", "defect": "Training rows kept outcomes dated after the holdout's first day.",
+   "scenario": "On the replica 1158 training rows had an outcome after the cut; with a planted shock from day 560 (discount customers leaving), the holdout C-index was 0.69 for Cox as built and 0.51 when training was read only up to the cut.",
+   "cause": "The split ordered rows by start but kept every training row's full follow-up.", "fix": "censor_at: training durations stop at the holdout's first day and events after it have not happened; the rows a model is fitted on stop at the validation cut.",
+   "test": "test_training_reads_no_outcome_after_the_holdouts_first_day (a different future for the training rows changes no score)",
+   "impact": "A change in the last months would have been reported as a model's skill."},
+  {"id": "S2", "source": "reviewer", "severity": "behaviour", "defect": "The censoring weights were taken from the training rows and were about 1 on the holdout.",
+   "scenario": "At 90 days the training censoring curve was 1.0 and the holdout's 0.47; the Cox Brier score was reported 0.081 against a true 0.129, and the logistic model looked worse than Kaplan-Meier when it was better.",
+   "cause": "G was fitted on the rows the models were fitted on.", "fix": "G is the Kaplan-Meier of the scored rows' censoring.",
+   "test": "test_the_censoring_weights_recover_the_uncensored_brier_score; test_the_holdout_brier_score_matches_the_true_lifetimes"},
+  {"id": "S3", "source": "reviewer", "severity": "gap", "defect": "Dropping censored rows was never tested on a model.",
+   "scenario": "Fitting every model on the event rows only, or with every row an event, passed every test and the acceptance.",
+   "cause": "The bias was shown only on the curve without covariates, and the holdout was scored where training had no censoring.",
+   "fix": "The chosen model is also fitted the two wrong ways; its mean survival is compared with what the held-out rows show; the acceptance needs a gap of 0.05.",
+   "test": "test_the_chosen_model_fitted_the_wrong_ways_is_biased"},
+  {"id": "S4", "source": "reviewer", "severity": "behaviour", "defect": "The discrete-time survival inside an interval was the previous interval's.",
+   "scenario": "Mean survival at 30 days was 1.000 against Kaplan-Meier's 0.956; at 600 days it was the value at 403.", "cause": "A step read-out of interval ends.",
+   "fix": "A constant hazard inside each interval, continued past the last edge.", "test": "test_the_discrete_read_out_inside_an_interval"},
+  {"id": "S5", "source": "reviewer", "severity": "leakage", "defect": "A column written at the end passed as a feature, and a failed censoring check was ignored.",
+   "scenario": "A cancel_reason filled only for cancellations stayed a feature (C-index 0.93); an export of ended rows only kept months_billed as a feature (C-index 0.94).",
+   "cause": "Only numeric columns among censored rows were tested, and solve did not read the censoring check.",
+   "fix": "A column filled or given a value only for ended rows is written at the end; an export without rows still going is refused.",
+   "test": "test_columns_counted_during_the_follow_up_or_written_at_the_end_are_found; test_an_export_of_ended_rows_only_is_refused"},
+  {"id": "S6", "source": "reviewer", "severity": "behaviour", "defect": "A column known at signup that trends with the calendar was dropped.",
+   "scenario": "A list price rising every month was flagged, because among censored rows the duration is the calendar.", "cause": "Only censored rows were tested.",
+   "fix": "Flag only when the column also moves with the duration among ended rows, with the same sign.", "test": "test_columns_counted_during_the_follow_up_or_written_at_the_end_are_found"},
+  {"id": "S7", "source": "reviewer", "severity": "behaviour", "defect": "The time split sorted text, cut inside a day with timestamps, and crashed on one start value or no events.",
+   "scenario": "Dates as dd/mm/yyyy made the holdout span two years; times of day put one day on both sides; one start value raised IndexError.",
+   "cause": "The start column was not parsed and edge cases were not refused.", "fix": "Parse dates, cut on the day, and raise a clear error when a part is empty or has no event.",
+   "test": "test_the_split_refuses_what_it_cannot_order_and_cuts_between_days"},
+  {"id": "S8", "source": "reviewer", "severity": "behaviour", "defect": "Horizons past the follow-up returned the last known survival.",
+   "scenario": "At 1000 and 5000 days Kaplan-Meier reported 0.101, though the longest duration was 728.", "cause": "The step function was read beyond its data.",
+   "fix": "None past the longest duration followed.", "test": "test_dropping_or_counting_censored_rows_is_biased_and_kaplan_meier_is_not"},
+  {"id": "S9", "source": "reviewer", "severity": "gap", "defect": "The 'holdout read once' acceptance could not fail.",
+   "scenario": "Choosing the model on the holdout still passed: the check only echoed the start column's name.", "cause": "It checked an argument, not the result.",
+   "fix": "It checks the holdout starts after every training row and that the chosen model is the validation's best.", "test": ""},
+  {"id": "S10", "source": "reviewer", "severity": "gap", "defect": "Many estimator faults passed the tests.",
+   "scenario": "A Cox risk set without ties, a tie-free Breslow hazard, a shifted read-out, curves from the holdout, an unnormalised integral and ties counted concordant all passed.",
+   "cause": "No hand-worked examples.", "fix": "Hand-worked tests of Cox with ties (baseline hazard, and the partial likelihood's gradient at the fit), the read-out, Brier, AUC and their integral, and the design.",
+   "test": "EstimatorTest"},
+  {"id": "S11", "source": "reviewer", "severity": "latent", "defect": "The kind was detected for delivery-time questions.",
+   "scenario": "'How long until the order is delivered?' read as time to event.", "cause": "'how long until' alone matched.",
+   "fix": "Only with an ending that can still be to come (cancel, leave, fail, default).", "test": "test_the_kind_is_detected_by_its_words_never_by_a_delivery_or_survival_question"},
+  {"id": "S12", "source": "reviewer", "severity": "gap", "defect": "The kind named an evidence track that does not exist.",
+   "scenario": "/api/kinds advertised research/time-to-event/, which agents could not cite.", "cause": "Named ahead of the track.", "fix": "No track until it exists.", "test": ""}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica (7 decisions); refused by the engine and partial in the matrix until the engine runs it.",
+ "lessons": [
+  "A split by start time still leaks if the training rows keep outcomes dated after the cut: censor them at it.",
+  "Censoring weights belong to the rows being scored; the latest rows are censored differently from the oldest.",
+  "To tell a counted column from a calendar trend, look at the rows that ended too.",
+  "A replica that keeps the true lifetimes lets a test check the score itself, not only the ranking."
+ ],
+ "risks": [
+  "Outcomes after the holdout cut read in training.",
+  "Censored rows dropped or counted as events.",
+  "Columns counted during the follow-up used as if known at the start.",
+  "Scores weighted by the wrong censoring."
+ ],
+ "commits": []
+}
