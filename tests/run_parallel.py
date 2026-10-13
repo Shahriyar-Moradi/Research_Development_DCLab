@@ -256,6 +256,7 @@ def _child(name: str, env: dict, out_path: str, verbose: bool) -> None:
             suite = unittest.defaultTestLoader.discover(str(HERE), pattern=file, top_level_dir=str(HERE))
         result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2 if verbose else 1).run(suite)
         code = 0 if result.wasSuccessful() else 1
+        Path(out_path + ".result").write_text(str(code), encoding="utf-8")  # the verdict, whatever the exit after it
     except BaseException:  # noqa: BLE001 — an import that fails is the file's failure, printed like any other
         import traceback
 
@@ -280,6 +281,14 @@ def _forked(name: str, env: dict, tmp: str, verbose: bool, again: bool = True) -
     except OSError:
         output = ""
     code = process.exitcode
+    try:  # the tests' own verdict, written before the process ended: an exit after it (a library's) is not a failure
+        verdict = int(Path(out + ".result").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        verdict = None
+    if verdict is not None:
+        if code != 0:
+            output += f"\n(the tests {'passed' if verdict == 0 else 'failed'}; the process then ended with code {code})"
+        return verdict, output
     if code is not None and code < 0 and again:
         _KILLED[0] += 1
         retried, more = _forked(name, env, tmp, verbose, again=False)
