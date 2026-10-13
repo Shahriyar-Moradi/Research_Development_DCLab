@@ -36,6 +36,10 @@ def findings_for(store: Any, project: dict[str, Any]) -> tuple[Optional[DataFind
         from . import engine
 
         prepared = engine.prepare(store, project)  # the same table, sample and locked holdout the stages used
+        if hasattr(prepared, "machine"):  # a kind's own machine (16.15) keeps its training rows itself
+            frame = prepared.machine.training_rows()
+            frame = frame.sample(MAX_ROWS, random_state=42) if len(frame) > MAX_ROWS else frame
+            return analyse({"table": frame}, target=target, task=task, train_index=frame.index), "the run's training rows; the holdout is left out"
         y = prepared.bundle.y_train
         if prepared.class_labels:  # multiclass codes back to the class names
             labels = list(prepared.class_labels)

@@ -335,12 +335,11 @@ def censor_at(start_day: np.ndarray, d: np.ndarray, e: np.ndarray, cut_day: floa
     return np.minimum(d, known), np.where(d <= known, e, 0)
 
 
-def evaluate(frame: pd.DataFrame, *, duration: str, event: str, start: str, features: Sequence[str], horizons: Sequence[float],
-             holdout: float = 0.25, validation: float = 0.2, group: Optional[str] = None, days_per_unit: float = 1.0) -> dict[str, Any]:
-    """Rows ordered by their start day: the latest ``holdout`` share held out and read once; a model chosen on the latest
-    ``validation`` share of the training rows (by the integrated Brier score); then every model scored on the holdout
-    against Kaplan-Meier. Training rows are censored at the holdout's first day, and the rows a model is fitted on at the
-    validation cut: no outcome dated after a cut is read before it. ``days_per_unit``: days in one unit of the duration."""
+def split(frame: pd.DataFrame, *, duration: str, event: str, start: str, holdout: float = 0.25, validation: float = 0.2,
+          days_per_unit: float = 1.0) -> dict[str, Any]:
+    """Rows ordered by their start day: the latest ``holdout`` share held out, training rows censored at its first day, and
+    a validation cut inside them (the rows a model is fitted on censored at it). No outcome dated after a cut is read
+    before it. Returns the parts (frames with ``_day`` and ``_start``) and their description."""
     data = frame.copy()
     stamps = pd.to_datetime(data[start], errors="coerce")
     if stamps.isna().any():
@@ -372,56 +371,73 @@ def evaluate(frame: pd.DataFrame, *, duration: str, event: str, start: str, feat
     for name, rows in (("training", train), ("fitting", fit_part)):
         if not rows[event].any():
             raise ValueError(f"no row of the {name} rows ended before its cut: there is nothing to learn when it happens")
+    return {"train": train, "test": test, "fit": fit_part, "val": val_part,
+            "split": {"by": start, "train": int(len(train)), "holdout": int(len(test)), "holdout_from": str(test["_day"].iloc[0].date()),
+                      "train_until": str(train["_day"].iloc[-1].date()), "validation_from": str(val_part["_day"].iloc[0].date()),
+                      "validation_rows": int(len(val_part)), "censored_at_cut": True}}
 
-    def arrays(rows):
-        return rows[duration].to_numpy(float), rows[event].to_numpy(int)
 
-    def score(fit_rows, eval_rows, extra: bool = False):
-        Xf, Xe = _design(fit_rows, [fit_rows, eval_rows], features)
-        df, ef = arrays(fit_rows)
-        de, ee = arrays(eval_rows)
-        G = censoring_weights(de, ee)
-        reach = [h for h in horizons if h < np.quantile(de, 0.9)]  # a horizon the follow-up of the scored rows reaches
-        grid = np.linspace(max(np.quantile(de[ee == 1], 0.05), 1.0), np.quantile(de, 0.8), 20) if (ee == 1).sum() > 5 else np.array([])
-        out, models = {}, {}
-        for name, make in MODELS.items():
-            model = make().fit(Xf, df, ef)
-            models[name] = model
-            risk = model.risk(Xe)
-            row = {"c_index": _r(c_index(de, ee, risk) if name != "kaplan_meier" else 0.5, 4)}
-            if len(grid) > 1:
-                row["integrated_brier"] = _r(integrated_brier(de, ee, model.survival(Xe, grid), grid, G))
-            if reach:
-                S = model.survival(Xe, np.array(reach, dtype=float))
-                row["auc"] = {str(int(h)): _r(auc_at(de, ee, risk, h, G) if name != "kaplan_meier" else 0.5, 4) for h in reach}
-                row["brier"] = {str(int(h)): _r(brier(de, ee, S[:, i], h, G)) for i, h in enumerate(reach)}
-                row["mean_survival"] = {str(int(h)): _r(S[:, i].mean(), 3) for i, h in enumerate(reach)}
-            out[name] = row
-        return out, reach, models, (Xf, df, ef, Xe, de, ee)
+def _score(fit_rows: pd.DataFrame, eval_rows: pd.DataFrame, *, duration: str, event: str, features: Sequence[str], horizons: Sequence[float]):
+    Xf, Xe = _design(fit_rows, [fit_rows, eval_rows], features)
+    df, ef = fit_rows[duration].to_numpy(float), fit_rows[event].to_numpy(int)
+    de, ee = eval_rows[duration].to_numpy(float), eval_rows[event].to_numpy(int)
+    G = censoring_weights(de, ee)
+    reach = [h for h in horizons if h < np.quantile(de, 0.9)]  # a horizon the follow-up of the scored rows reaches
+    grid = np.linspace(max(np.quantile(de[ee == 1], 0.05), 1.0), np.quantile(de, 0.8), 20) if (ee == 1).sum() > 5 else np.array([])
+    out = {}
+    for name, make in MODELS.items():
+        model = make().fit(Xf, df, ef)
+        risk = model.risk(Xe)
+        row = {"c_index": _r(c_index(de, ee, risk) if name != "kaplan_meier" else 0.5, 4)}
+        if len(grid) > 1:
+            row["integrated_brier"] = _r(integrated_brier(de, ee, model.survival(Xe, grid), grid, G))
+        if reach:
+            S = model.survival(Xe, np.array(reach, dtype=float))
+            row["auc"] = {str(int(h)): _r(auc_at(de, ee, risk, h, G) if name != "kaplan_meier" else 0.5, 4) for h in reach}
+            row["brier"] = {str(int(h)): _r(brier(de, ee, S[:, i], h, G)) for i, h in enumerate(reach)}
+            row["mean_survival"] = {str(int(h)): _r(S[:, i].mean(), 3) for i, h in enumerate(reach)}
+        out[name] = row
+    return out, reach, (Xf, df, ef, Xe, de, ee)
 
-    chosen_on, _, _, _ = score(fit_part, val_part)
-    best = min((n for n in chosen_on if n != "kaplan_meier" and chosen_on[n].get("integrated_brier") is not None),
-               key=lambda n: chosen_on[n]["integrated_brier"], default="kaplan_meier")
-    final, reach, _, (Xf, df, ef, Xe, de, ee) = score(train, test)  # the holdout, read once: every model scored, the choice made before
-    # the chosen model fitted the two wrong ways: censored rows dropped, and censored rows counted as events
+
+def choose(parts: dict[str, Any], *, duration: str, event: str, features: Sequence[str], horizons: Sequence[float]) -> dict[str, Any]:
+    """Every model fitted on the first training rows and scored on the validation rows (never the holdout); the chosen
+    one has the lowest integrated Brier score, Kaplan-Meier only when nothing else can be scored."""
+    on_validation, _, _ = _score(parts["fit"], parts["val"], duration=duration, event=event, features=features, horizons=horizons)
+    best = min((n for n in on_validation if n != "kaplan_meier" and on_validation[n].get("integrated_brier") is not None),
+               key=lambda n: on_validation[n]["integrated_brier"], default="kaplan_meier")
+    return {"validation": on_validation, "chosen": best,
+            "chosen_by": "the integrated Brier score on the latest training rows (validation), before the holdout"}
+
+
+def score(parts: dict[str, Any], chosen: str, *, duration: str, event: str, features: Sequence[str], horizons: Sequence[float],
+          group: Optional[str] = None) -> dict[str, Any]:
+    """The holdout, read once: every model fitted on the training rows and scored on the latest starts; the chosen model
+    also fitted with censored rows dropped and counted as events, against what the held-out rows show."""
+    final, reach, (Xf, df, ef, Xe, de, ee) = _score(parts["train"], parts["test"], duration=duration, event=event, features=features, horizons=horizons)
     shortcut_horizons = [h for h in horizons if h <= np.quantile(de, 0.95)]
     observed = _km_at(de, ee, shortcut_horizons)  # what the held-out rows show, honestly
     shortcuts: dict[str, Any] = {}
     for label, (X_, d_, e_) in (("honest", (Xf, df, ef)), ("censored_dropped", (Xf[ef == 1], df[ef == 1], ef[ef == 1])),
                                 ("censored_as_events", (Xf, df, np.ones_like(ef)))):
-        S = MODELS[best]().fit(X_, d_, e_).survival(Xe, np.array(shortcut_horizons, dtype=float)) if shortcut_horizons else np.zeros((len(Xe), 0))
+        S = MODELS[chosen]().fit(X_, d_, e_).survival(Xe, np.array(shortcut_horizons, dtype=float)) if shortcut_horizons else np.zeros((len(Xe), 0))
         shortcuts[label] = {str(int(h)): _r(S[:, i].mean(), 3) for i, h in enumerate(shortcut_horizons)}
     km = final["kaplan_meier"]
-    return {"split": {"by": start, "train": int(len(train)), "holdout": int(len(test)), "holdout_from": str(test["_day"].iloc[0].date()),
-                      "train_until": str(train["_day"].iloc[-1].date()), "validation_from": str(val_part["_day"].iloc[0].date()),
-                      "validation_rows": int(len(val_part)), "censored_at_cut": True},
-            "chosen": best, "chosen_by": "the integrated Brier score on the latest training rows (validation), before the holdout",
-            "validation": chosen_on, "holdout": final, "horizons_reached": [int(h) for h in reach],
+    return {"holdout": final, "horizons_reached": [int(h) for h in reach],
             "beats_kaplan_meier": {n: (s.get("integrated_brier") is not None and km.get("integrated_brier") is not None
                                        and s["integrated_brier"] < km["integrated_brier"]) for n, s in final.items() if n != "kaplan_meier"},
-            "shortcuts": {"model": best, "observed_on_holdout": observed, "mean_survival": shortcuts},
+            "shortcuts": {"model": chosen, "observed_on_holdout": observed, "mean_survival": shortcuts},
             "censoring": censoring_bias(df, ef, horizons),
-            "curves": curves_by_group(train.assign(**{duration: df, event: ef}), duration, event, group, horizons) if group else {}}
+            "curves": curves_by_group(parts["train"].assign(**{duration: df, event: ef}), duration, event, group, horizons) if group else {}}
+
+
+def evaluate(frame: pd.DataFrame, *, duration: str, event: str, start: str, features: Sequence[str], horizons: Sequence[float],
+             holdout: float = 0.25, validation: float = 0.2, group: Optional[str] = None, days_per_unit: float = 1.0) -> dict[str, Any]:
+    """:func:`split`, :func:`choose` on validation, then :func:`score` on the holdout once."""
+    parts = split(frame, duration=duration, event=event, start=start, holdout=holdout, validation=validation, days_per_unit=days_per_unit)
+    picked = choose(parts, duration=duration, event=event, features=features, horizons=horizons)
+    scored = score(parts, picked["chosen"], duration=duration, event=event, features=features, horizons=horizons, group=group)
+    return {"split": parts["split"], **picked, **scored}
 
 
 _trapz = getattr(np, "trapezoid", None) or np.trapz  # numpy 2 renamed it

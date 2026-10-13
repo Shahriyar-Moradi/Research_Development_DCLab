@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T03:33:57+00:00",
+ "at": "2026-10-13T07:09:35+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -50,6 +50,392 @@
      "decision": "the baselines the kind declares are the ones the final stage computes",
      "ok": true,
      "detail": "declared ['majority_class'], computed ['majority_class']"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "entity_tables",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "no event after a row's cutoff is read",
+     "ok": true,
+     "detail": "11205 rows over 9 cutoffs; events read after a cutoff: 0"
+    },
+    {
+     "decision": "entity columns written after the cutoff are kept out",
+     "ok": true,
+     "detail": "last_order_date: on 65% of the rows its date is after the row's cutoff: written later; lifetime_orders: it follows the entity's count of orders over the whole log (correlation 1.00): taken at the end, not at a cutoff"
+    },
+    {
+     "decision": "a join that repeats rows is refused, with the numbers",
+     "ok": true,
+     "detail": "joining addresses by 'customer_id' would turn 11205 rows into 22408: 995 keys appear more than once (one of them 3 times). Aggregate it per 'customer_id' first, or join it as events."
+    },
+    {
+     "decision": "rows whose horizon passes the data's end are left out, not called negative",
+     "ok": true,
+     "detail": "1479 rows at 2025-12-22 left out; the holdout is the latest cutoff whose horizon is known, 2025-11-27"
+    },
+    {
+     "decision": "training targets read nothing at or after the holdout's cutoff; scored once on the latest",
+     "ok": true,
+     "detail": "8253 training rows at 2025-05-31, 2025-06-30, 2025-07-30, 2025-08-29, 2025-09-28, 2025-10-28, their targets read until 2025-11-26 23:57:15; 1476 held out at 2025-11-27"
+    },
+    {
+     "decision": "the window features beat recency alone",
+     "ok": true,
+     "detail": "ROC-AUC 0.9176 against 0.8997 for days since the last order"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "forecasting",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "the backtests never read a target after their origin",
+     "ok": true,
+     "detail": "3 origins, gap 0, last target read: 2025-10-19"
+    },
+    {
+     "decision": "`rain_mm` is kept out: not known at the forecast moment",
+     "ok": true,
+     "detail": "not declared known ahead of the forecast moment: a value for a future date is not known at the moment"
+    },
+    {
+     "decision": "the planned promotion is used: known ahead, as the moment says",
+     "ok": true,
+     "detail": "promotions are planned weeks ahead"
+    },
+    {
+     "decision": "every model is compared with the seasonal naive",
+     "ok": true,
+     "detail": "seasonal naive MASE 1.0386"
+    },
+    {
+     "decision": "the chosen model beats the seasonal naive",
+     "ok": true,
+     "detail": "global_gbm: MASE 0.6773 against 1.0386"
+    },
+    {
+     "decision": "intervals by horizon step, their coverage measured on a later origin",
+     "ok": true,
+     "detail": "7 steps; coverage 0.757 of 0.8 on 2025-10-19"
+    },
+    {
+     "decision": "the engine runs every stage as the forecast machine",
+     "ok": true,
+     "detail": "data: forecasting, leakage: forecasting, features: forecasting, models: forecasting, final: forecasting"
+    },
+    {
+     "decision": "in the engine `rain_mm` is kept out at the leakage stage and the promotion read as known ahead",
+     "ok": true,
+     "detail": "kept out ['rain_mm']; known ahead ['store', 'product', 'on_promotion']"
+    },
+    {
+     "decision": "in the engine the model chosen on validation is the one the holdout scores, once",
+     "ok": true,
+     "detail": "global_gbm, holdout uses 1"
+    },
+    {
+     "decision": "in the engine the chosen model beats the seasonal naive on the holdout, with an interval over series",
+     "ok": true,
+     "detail": "MASE 0.6578 (95% 0.5695 to 0.748) against 0.9923"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "ranking",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "no interaction after the moment is read; the ranker's features end before its training window",
+     "ok": true,
+     "detail": "last read 2025-04-09 23:57:05; the ranker's features until 2025-03-26 23:56:47, its labels 2025-03-27 00:00:00 to 2025-04-09 23:57:05"
+    },
+    {
+     "decision": "`lifetime_sales` is kept out: counted after the moment",
+     "ok": true,
+     "detail": "beyond everything the log knew of an item at the moment, it still follows the counts of event = purchase after the moment (partial correlation 1.00): it was counted later"
+    },
+    {
+     "decision": "no item created after the moment is recommended",
+     "ok": true,
+     "detail": "15 items created after the moment; 0 of them in a list"
+    },
+    {
+     "decision": "every model, the ranker included, is compared with popularity",
+     "ok": true,
+     "detail": "mf: NDCG@10 0.126, popularity: NDCG@10 0.0579, ranker: NDCG@10 0.1053, recent_popularity: NDCG@10 0.0643"
+    },
+    {
+     "decision": "the model chosen before the moment's window beats popularity, its interval above zero",
+     "ok": true,
+     "detail": "ranker (chosen at 2025-03-27 00:00:00): gain 0.0474, 90% interval [0.0304, 0.0637]"
+    },
+    {
+     "decision": "NDCG and recall at k, coverage and novelty, with and without a history",
+     "ok": true,
+     "detail": "coverage 0.551, users with a history 322"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "segmentation",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "the preprocessing is recorded: skewed amounts log-scaled, the identifier left out",
+     "ok": true,
+     "detail": "avg_basket: log(1 + x), because it is skewed and never negative; standardised (mean 3.811, sd 0.7084); customer_id: a different value on most rows: an identifier or free text"
+    },
+    {
+     "decision": "columns no group uses are left out, with the reason",
+     "ok": true,
+     "detail": "region: none of the 5 plausible groupings of the first pass explains more than 0.2% of its spread: no group uses it; signup_week: none of the 5 plausible groupings of the first pass explains more than 0.6% of its spread: no group uses it"
+    },
+    {
+     "decision": "the planted behaviours are recovered, with a stability interval",
+     "ok": true,
+     "detail": "kmeans k=3, stability {'mean': 0.997, 'ci90': [0.994, 1.0]}, agreement with the planted behaviours 0.998"
+    },
+    {
+     "decision": "more segments than planted are rejected for instability, for the chosen method",
+     "ok": true,
+     "detail": "kmeans k=6: the lower end of its 90% stability interval, 0.738 (mean 0.879), is below 0.75: resampled data does not give the same 6 groups; kmeans k=7: the lower end of its 90% stability interval, 0.718 (mean 0.816), is below 0.75: resampled data does not give the same 7 groups"
+    },
+    {
+     "decision": "each segment is described in the data's own columns",
+     "ok": true,
+     "detail": "segment 0 (0.319): orders_per_month, days_since_last_order, channel, avg_basket; segment 1 (0.363): channel, discount_share, orders_per_month, avg_basket; segment 2 (0.317): avg_basket, channel, discount_share, days_since_last_order"
+    },
+    {
+     "decision": "the record says there is no ground truth, and the outcome only describes the segments",
+     "ok": true,
+     "detail": "{'0': 0.317, '1': 0.536, '2': 0.821}"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "time_to_event",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "columns counted during the follow-up are kept out",
+     "ok": true,
+     "detail": "months_billed: it moves with the duration (Spearman 1.00 among rows still going, 1.00 among rows ended): it is counted during the follow-up, not known at the start; tickets_so_far: it moves with the duration (Spearman 0.72 among rows still going, 0.64 among rows ended): it is counted during the follow-up, not known at the start"
+    },
+    {
+     "decision": "censored rows stay censored: dropping them or calling them events is shown to be biased",
+     "ok": true,
+     "detail": "90 days: Kaplan-Meier 0.831, dropped 0.682, as events 0.696, true 0.834; 180 days: Kaplan-Meier 0.646, dropped 0.393, as events 0.425, true 0.642; 365 days: Kaplan-Meier 0.339, dropped 0.074, as events 0.111, true 0.343"
+    },
+    {
+     "decision": "rows split by start day, training censored at the cut, the model chosen before the holdout",
+     "ok": true,
+     "detail": "2252 training rows until 2025-07-13, 748 held out from 2025-07-14; cox chosen on the validation rows"
+    },
+    {
+     "decision": "the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased",
+     "ok": true,
+     "detail": "90: honest 0.831, dropped 0.691, as events 0.695, held-out rows 0.848"
+    },
+    {
+     "decision": "every model compared with Kaplan-Meier, the chosen one beats it",
+     "ok": true,
+     "detail": "cox: integrated Brier 0.0896 against 0.0931"
+    },
+    {
+     "decision": "C-index, integrated Brier and time-dependent AUC where the follow-up reaches",
+     "ok": true,
+     "detail": "C-index 0.6362, AUC {'90': 0.6432}, horizons reached [90]"
+    },
+    {
+     "decision": "survival curves per group in the final record",
+     "ok": true,
+     "detail": "basic: {'90': 0.806, '180': 0.615, '365': 0.305}, plus: {'90': 0.847, '180': 0.631, '365': 0.333}, pro: {'90': 0.875, '180': 0.75, '365': 0.437}"
+    },
+    {
+     "decision": "the engine runs every stage as the survival machine",
+     "ok": true,
+     "detail": "data: time_to_event, leakage: time_to_event, features: time_to_event, models: time_to_event, final: time_to_event"
+    },
+    {
+     "decision": "in the engine the columns counted during the follow-up are kept out at the leakage stage",
+     "ok": true,
+     "detail": "kept out ['months_billed', 'subscriber_id', 'tickets_so_far']"
+    },
+    {
+     "decision": "in the engine the model chosen on validation is the one the holdout scores, once",
+     "ok": true,
+     "detail": "cox, holdout uses 1"
+    },
+    {
+     "decision": "in the engine the chosen model beats Kaplan-Meier on the holdout, and the wrong fits are shown biased",
+     "ok": true,
+     "detail": "integrated Brier 0.0896 against 0.0931"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "uplift",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
+     "ok": true,
+     "detail": "uplift_tree chosen on 3500 validation rows; 6000 held out"
+    },
+    {
+     "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
+     "ok": true,
+     "detail": "100% of uplift_tree's top tenth are app users under 35 (all rows 14%; the response model's top tenth 68%)"
+    },
+    {
+     "decision": "uplift beats random targeting, with an interval",
+     "ok": true,
+     "detail": "uplift_tree: Qini coefficient 0.0107, 90% interval [0.006, 0.0163]; AUUC 0.0109, interval [0.0061, 0.0163]; random 0.0009"
+    },
+    {
+     "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+     "ok": true,
+     "detail": "propensity AUC 0.498; effects: the action was assigned at random, and the columns do not predict who got it"
+    },
+    {
+     "decision": "the observational campaign raises the overlap warning and is never called causal",
+     "ok": true,
+     "detail": "associations, not effects: the action was not assigned at random and the arms do not overlap (1% of rows have a comparable row in the other arm; imbalanced: past_purchases)"
+    },
+    {
+     "decision": "uplift by decile and the Qini curve in the record",
+     "ok": true,
+     "detail": "uplift in the top decile 0.203, the second 0.042"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "streams",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "no window moves when every reading after a cut is changed",
+     "ok": true,
+     "detail": "4244 windows end before 2025-02-15 00:00:00; changed by the later readings: 0"
+    },
+    {
+     "decision": "training labels are complete and known before the holdout period",
+     "ok": true,
+     "detail": "split by time at 2025-03-05 06:00:00; training labels read until 2025-03-05 06:00:00"
+    },
+    {
+     "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
+     "ok": true,
+     "detail": "incident recall on the validation period"
+    },
+    {
+     "decision": "most incidents are caught, with hours of warning, within the alert budget",
+     "ok": true,
+     "detail": "supervised: 22 of 22 incidents, median 36.0 h before, 0.232 alerts per machine-day (0.013 false)"
+    },
+    {
+     "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
+     "ok": true,
+     "detail": "isolation_forest: 1.0, own_change: 1.0, percentile_rules: 0.955, ecod: 0.909, supervised: 1.0"
+    },
+    {
+     "decision": "machines never seen are scored on the holdout period",
+     "ok": true,
+     "detail": "9 of 9 incidents on 6 unseen machines"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "embedded",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "vectors are cached by content: a second pass encodes nothing",
+     "ok": true,
+     "detail": "320 encoded, then 320 read from the cache"
+    },
+    {
+     "decision": "a source stays on one side; the holdout's rows are never fitted",
+     "ok": true,
+     "detail": "images: 16 scenes held out; notes: 12 authors held out"
+    },
+    {
+     "decision": "shots of one scene are near copies a random split spreads, and folds by scene do not",
+     "ok": true,
+     "detail": "threshold 0.9984 (calibrated); random folds 24 pairs, folds by scene 0"
+    },
+    {
+     "decision": "every text pasted again by another author is found, and nothing else",
+     "ok": true,
+     "detail": "12 of 12 copies found, 0 other pairs, threshold 0.9362"
+    },
+    {
+     "decision": "both replicas are solved on whole sources: folds by source at least 0.9, the holdout at least 0.8",
+     "ok": true,
+     "detail": "images roc_auc folds by scene 0.9617, holdout 0.9739; notes folds by author 0.9993, holdout 1.0; 4 near copies straddle the holdout line: its score may be helped by them"
+    },
+    {
+     "decision": "a pretrained local encoder is measured on the replicas",
+     "ok": false,
+     "detail": "measured with baselines only (random-features-64-seed0, hashing-text-2048): no pretrained weights are on this machine, and no model purpose may read workspace texts yet"
+    }
+   ],
+   "missing": [
+    "a pretrained local encoder is measured on the replicas",
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "places",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
+     "ok": true,
+     "detail": "blocks of 7.5 km from lat, lon; holdout: 600 rows from 7 `_spatial_block` groups never seen in training (fold 1 of 5 stratified group folds)"
+    },
+    {
+     "decision": "no block of places is on both sides of the holdout",
+     "ok": true,
+     "detail": "25 training blocks, 7 held out, 0 on both sides"
+    },
+    {
+     "decision": "a random split's optimism against blocks is measured on the training rows",
+     "ok": true,
+     "detail": "r2: random folds 0.8833, blocks 0.7478, optimism 0.1354"
+    },
+    {
+     "decision": "the holdout MAE is below the training median's",
+     "ok": true,
+     "detail": "94509.84664502164 against 155211.66666666666"
+    },
+    {
+     "decision": "the baselines the kind declares are the ones the final stage computes",
+     "ok": true,
+     "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
     }
    ],
    "missing": []
@@ -221,356 +607,6 @@
     }
    ],
    "missing": []
-  },
-  {
-   "kind": "forecasting",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "the backtests never read a target after their origin",
-     "ok": true,
-     "detail": "3 origins, gap 0, last target read: 2025-10-19"
-    },
-    {
-     "decision": "`rain_mm` is kept out: not known at the forecast moment",
-     "ok": true,
-     "detail": "not declared known ahead of the forecast moment: a value for a future date is not known at the moment"
-    },
-    {
-     "decision": "the planned promotion is used: known ahead, as the moment says",
-     "ok": true,
-     "detail": "promotions are planned weeks ahead"
-    },
-    {
-     "decision": "every model is compared with the seasonal naive",
-     "ok": true,
-     "detail": "seasonal naive MASE 1.0386"
-    },
-    {
-     "decision": "the chosen model beats the seasonal naive",
-     "ok": true,
-     "detail": "global_gbm: MASE 0.6773 against 1.0386"
-    },
-    {
-     "decision": "intervals by horizon step, their coverage measured on a later origin",
-     "ok": true,
-     "detail": "7 steps; coverage 0.757 of 0.8 on 2025-10-19"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "time_to_event",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "columns counted during the follow-up are kept out",
-     "ok": true,
-     "detail": "months_billed: it moves with the duration (Spearman 1.00 among rows still going, 1.00 among rows ended): it is counted during the follow-up, not known at the start; tickets_so_far: it moves with the duration (Spearman 0.72 among rows still going, 0.64 among rows ended): it is counted during the follow-up, not known at the start"
-    },
-    {
-     "decision": "censored rows stay censored: dropping them or calling them events is shown to be biased",
-     "ok": true,
-     "detail": "90 days: Kaplan-Meier 0.831, dropped 0.682, as events 0.696, true 0.834; 180 days: Kaplan-Meier 0.646, dropped 0.393, as events 0.425, true 0.642; 365 days: Kaplan-Meier 0.339, dropped 0.074, as events 0.111, true 0.343"
-    },
-    {
-     "decision": "rows split by start day, training censored at the cut, the model chosen before the holdout",
-     "ok": true,
-     "detail": "2252 training rows until 2025-07-13, 748 held out from 2025-07-14; cox chosen on the validation rows"
-    },
-    {
-     "decision": "the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased",
-     "ok": true,
-     "detail": "90: honest 0.831, dropped 0.691, as events 0.695, held-out rows 0.848"
-    },
-    {
-     "decision": "every model compared with Kaplan-Meier, the chosen one beats it",
-     "ok": true,
-     "detail": "cox: integrated Brier 0.0896 against 0.0931"
-    },
-    {
-     "decision": "C-index, integrated Brier and time-dependent AUC where the follow-up reaches",
-     "ok": true,
-     "detail": "C-index 0.6362, AUC {'90': 0.6432}, horizons reached [90]"
-    },
-    {
-     "decision": "survival curves per group in the final record",
-     "ok": true,
-     "detail": "basic: {'90': 0.806, '180': 0.615, '365': 0.305}, plus: {'90': 0.847, '180': 0.631, '365': 0.333}, pro: {'90': 0.875, '180': 0.75, '365': 0.437}"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "ranking",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "no interaction after the moment is read; the ranker's features end before its training window",
-     "ok": true,
-     "detail": "last read 2025-04-09 23:57:05; the ranker's features until 2025-03-26 23:56:47, its labels 2025-03-27 00:00:00 to 2025-04-09 23:57:05"
-    },
-    {
-     "decision": "`lifetime_sales` is kept out: counted after the moment",
-     "ok": true,
-     "detail": "beyond everything the log knew of an item at the moment, it still follows the counts of event = purchase after the moment (partial correlation 1.00): it was counted later"
-    },
-    {
-     "decision": "no item created after the moment is recommended",
-     "ok": true,
-     "detail": "15 items created after the moment; 0 of them in a list"
-    },
-    {
-     "decision": "every model, the ranker included, is compared with popularity",
-     "ok": true,
-     "detail": "mf: NDCG@10 0.126, popularity: NDCG@10 0.0579, ranker: NDCG@10 0.1053, recent_popularity: NDCG@10 0.0643"
-    },
-    {
-     "decision": "the model chosen before the moment's window beats popularity, its interval above zero",
-     "ok": true,
-     "detail": "ranker (chosen at 2025-03-27 00:00:00): gain 0.0474, 90% interval [0.0304, 0.0637]"
-    },
-    {
-     "decision": "NDCG and recall at k, coverage and novelty, with and without a history",
-     "ok": true,
-     "detail": "coverage 0.551, users with a history 322"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "segmentation",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "the preprocessing is recorded: skewed amounts log-scaled, the identifier left out",
-     "ok": true,
-     "detail": "avg_basket: log(1 + x), because it is skewed and never negative; standardised (mean 3.811, sd 0.7084); customer_id: a different value on most rows: an identifier or free text"
-    },
-    {
-     "decision": "columns no group uses are left out, with the reason",
-     "ok": true,
-     "detail": "region: none of the 5 plausible groupings of the first pass explains more than 0.2% of its spread: no group uses it; signup_week: none of the 5 plausible groupings of the first pass explains more than 0.6% of its spread: no group uses it"
-    },
-    {
-     "decision": "the planted behaviours are recovered, with a stability interval",
-     "ok": true,
-     "detail": "kmeans k=3, stability {'mean': 0.997, 'ci90': [0.994, 1.0]}, agreement with the planted behaviours 0.998"
-    },
-    {
-     "decision": "more segments than planted are rejected for instability, for the chosen method",
-     "ok": true,
-     "detail": "kmeans k=6: the lower end of its 90% stability interval, 0.738 (mean 0.879), is below 0.75: resampled data does not give the same 6 groups; kmeans k=7: the lower end of its 90% stability interval, 0.718 (mean 0.816), is below 0.75: resampled data does not give the same 7 groups"
-    },
-    {
-     "decision": "each segment is described in the data's own columns",
-     "ok": true,
-     "detail": "segment 0 (0.319): orders_per_month, days_since_last_order, channel, avg_basket; segment 1 (0.363): channel, discount_share, orders_per_month, avg_basket; segment 2 (0.317): avg_basket, channel, discount_share, days_since_last_order"
-    },
-    {
-     "decision": "the record says there is no ground truth, and the outcome only describes the segments",
-     "ok": true,
-     "detail": "{'0': 0.317, '1': 0.536, '2': 0.821}"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "uplift",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
-     "ok": true,
-     "detail": "uplift_tree chosen on 3500 validation rows; 6000 held out"
-    },
-    {
-     "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
-     "ok": true,
-     "detail": "100% of uplift_tree's top tenth are app users under 35 (all rows 14%; the response model's top tenth 68%)"
-    },
-    {
-     "decision": "uplift beats random targeting, with an interval",
-     "ok": true,
-     "detail": "uplift_tree: Qini coefficient 0.0107, 90% interval [0.006, 0.0163]; AUUC 0.0109, interval [0.0061, 0.0163]; random 0.0009"
-    },
-    {
-     "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
-     "ok": true,
-     "detail": "propensity AUC 0.498; effects: the action was assigned at random, and the columns do not predict who got it"
-    },
-    {
-     "decision": "the observational campaign raises the overlap warning and is never called causal",
-     "ok": true,
-     "detail": "associations, not effects: the action was not assigned at random and the arms do not overlap (1% of rows have a comparable row in the other arm; imbalanced: past_purchases)"
-    },
-    {
-     "decision": "uplift by decile and the Qini curve in the record",
-     "ok": true,
-     "detail": "uplift in the top decile 0.203, the second 0.042"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "entity_tables",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "no event after a row's cutoff is read",
-     "ok": true,
-     "detail": "11205 rows over 9 cutoffs; events read after a cutoff: 0"
-    },
-    {
-     "decision": "entity columns written after the cutoff are kept out",
-     "ok": true,
-     "detail": "last_order_date: on 65% of the rows its date is after the row's cutoff: written later; lifetime_orders: it follows the entity's count of orders over the whole log (correlation 1.00): taken at the end, not at a cutoff"
-    },
-    {
-     "decision": "a join that repeats rows is refused, with the numbers",
-     "ok": true,
-     "detail": "joining addresses by 'customer_id' would turn 11205 rows into 22408: 995 keys appear more than once (one of them 3 times). Aggregate it per 'customer_id' first, or join it as events."
-    },
-    {
-     "decision": "rows whose horizon passes the data's end are left out, not called negative",
-     "ok": true,
-     "detail": "1479 rows at 2025-12-22 left out; the holdout is the latest cutoff whose horizon is known, 2025-11-27"
-    },
-    {
-     "decision": "training targets read nothing at or after the holdout's cutoff; scored once on the latest",
-     "ok": true,
-     "detail": "8253 training rows at 2025-05-31, 2025-06-30, 2025-07-30, 2025-08-29, 2025-09-28, 2025-10-28, their targets read until 2025-11-26 23:57:15; 1476 held out at 2025-11-27"
-    },
-    {
-     "decision": "the window features beat recency alone",
-     "ok": true,
-     "detail": "ROC-AUC 0.9176 against 0.8997 for days since the last order"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "places",
-   "status": "supported",
-   "checks": [
-    {
-     "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
-     "ok": true,
-     "detail": "blocks of 7.5 km from lat, lon; holdout: 600 rows from 7 `_spatial_block` groups never seen in training (fold 1 of 5 stratified group folds)"
-    },
-    {
-     "decision": "no block of places is on both sides of the holdout",
-     "ok": true,
-     "detail": "25 training blocks, 7 held out, 0 on both sides"
-    },
-    {
-     "decision": "a random split's optimism against blocks is measured on the training rows",
-     "ok": true,
-     "detail": "r2: random folds 0.8833, blocks 0.7478, optimism 0.1354"
-    },
-    {
-     "decision": "the holdout MAE is below the training median's",
-     "ok": true,
-     "detail": "94509.84664502164 against 155211.66666666666"
-    },
-    {
-     "decision": "the baselines the kind declares are the ones the final stage computes",
-     "ok": true,
-     "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
-    }
-   ],
-   "missing": []
-  },
-  {
-   "kind": "streams",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "no window moves when every reading after a cut is changed",
-     "ok": true,
-     "detail": "4244 windows end before 2025-02-15 00:00:00; changed by the later readings: 0"
-    },
-    {
-     "decision": "training labels are complete and known before the holdout period",
-     "ok": true,
-     "detail": "split by time at 2025-03-05 06:00:00; training labels read until 2025-03-05 06:00:00"
-    },
-    {
-     "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
-     "ok": true,
-     "detail": "incident recall on the validation period"
-    },
-    {
-     "decision": "most incidents are caught, with hours of warning, within the alert budget",
-     "ok": true,
-     "detail": "supervised: 22 of 22 incidents, median 36.0 h before, 0.232 alerts per machine-day (0.013 false)"
-    },
-    {
-     "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
-     "ok": true,
-     "detail": "isolation_forest: 1.0, own_change: 1.0, percentile_rules: 0.955, ecod: 0.909, supervised: 1.0"
-    },
-    {
-     "decision": "machines never seen are scored on the holdout period",
-     "ok": true,
-     "detail": "9 of 9 incidents on 6 unseen machines"
-    }
-   ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
-  },
-  {
-   "kind": "embedded",
-   "status": "partial",
-   "checks": [
-    {
-     "decision": "vectors are cached by content: a second pass encodes nothing",
-     "ok": true,
-     "detail": "320 encoded, then 320 read from the cache"
-    },
-    {
-     "decision": "a source stays on one side; the holdout's rows are never fitted",
-     "ok": true,
-     "detail": "images: 16 scenes held out; notes: 12 authors held out"
-    },
-    {
-     "decision": "shots of one scene are near copies a random split spreads, and folds by scene do not",
-     "ok": true,
-     "detail": "threshold 0.9984 (calibrated); random folds 24 pairs, folds by scene 0"
-    },
-    {
-     "decision": "every text pasted again by another author is found, and nothing else",
-     "ok": true,
-     "detail": "12 of 12 copies found, 0 other pairs, threshold 0.9362"
-    },
-    {
-     "decision": "both replicas are solved on whole sources: folds by source at least 0.9, the holdout at least 0.8",
-     "ok": true,
-     "detail": "images roc_auc folds by scene 0.9617, holdout 0.9739; notes folds by author 0.9993, holdout 1.0; 4 near copies straddle the holdout line: its score may be helped by them"
-    },
-    {
-     "decision": "a pretrained local encoder is measured on the replicas",
-     "ok": false,
-     "detail": "measured with baselines only (random-features-64-seed0, hashing-text-2048): no pretrained weights are on this machine, and no model purpose may read workspace texts yet"
-    }
-   ],
-   "missing": [
-    "a pretrained local encoder is measured on the replicas",
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
   }
  ]
 }

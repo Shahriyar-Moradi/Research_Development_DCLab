@@ -35,6 +35,7 @@ LAGS = (1, 7, 14)
 WINDOWS = (7, 28)
 MIN_CLASSICAL = 56  # rows a series needs for its own model
 TRACKS = 0.3  # |correlation| of day-over-day changes above which a column moves with the target
+SUMMARISES = 0.9  # |correlation| across series above which a series attribute looks like a summary of the target
 
 
 def _r(x: Any, digits: int = 4) -> Optional[float]:
@@ -55,10 +56,22 @@ def _tracking(frame: pd.DataFrame, series: str, time: str, target: str, column: 
     return float(diffs[column].corr(diffs[target]))
 
 
+def _level_tracking(frame: pd.DataFrame, series: str, target: str, column: str) -> float:
+    """How closely a column that is constant within each series follows each series' mean of the target, across series."""
+    if not pd.api.types.is_numeric_dtype(frame[column]):
+        return 0.0
+    per = frame.groupby(series).agg(value=(column, "first"), level=(target, "mean")).dropna()
+    if len(per) < 5 or not per["value"].std() > 0 or not per["level"].std() > 0:
+        return 0.0
+    return float(per["value"].corr(per["level"]))
+
+
 def covariate_check(frame: pd.DataFrame, *, series: str, time: str, target: str, known_ahead: Sequence[str] = ()) -> dict[str, Any]:
     """Which covariates the forecast may use: ``kept`` (declared known ahead, or describing the series), ``kept_out``
     (everything else: a value for a future date is not known at the moment), and ``to_confirm`` (declared, but its
-    day-to-day changes move with the target's, as a value measured on the day does). Each with its reason."""
+    day-to-day changes move with the target's, as a value measured on the day does; or constant in each series but
+    following the series' mean of the target, kept out until declared). Each with its reason. Pass the training rows
+    only: the check reads the target."""
     out: dict[str, Any] = {"kept": [], "kept_out": [], "to_confirm": [], "why": {}}
     for column in [c for c in frame.columns if c not in (series, time, target)]:
         if column in known_ahead:
@@ -72,6 +85,14 @@ def covariate_check(frame: pd.DataFrame, *, series: str, time: str, target: str,
                 out["why"][column] = "declared known ahead of the forecast moment"
             continue
         if frame.groupby(series)[column].nunique(dropna=False).max() <= 1:
+            level = _level_tracking(frame, series, target, column)
+            if abs(level) >= SUMMARISES:  # a series attribute this close to the series' own level may be computed from the target
+                out["kept_out"].append(column)
+                out["to_confirm"].append(column)
+                out["why"][column] = (f"the same on every row of its series, but it follows each series' mean of the target (correlation "
+                                      f"{level:.2f} across series), as a summary computed from the target, perhaps over future dates, does: "
+                                      "kept out until it is declared known ahead")
+                continue
             out["kept"].append(column)
             out["why"][column] = "the same on every row of its series: it describes the series, so it is known ahead"
             continue
@@ -253,7 +274,10 @@ def backtest(frame: pd.DataFrame, *, series: str, time: str, target: str, horizo
                         "forecasts": len(rows)}
         if name in measured:
             scores[name].update({"pinball": measured[name]["pinball"], "interval_coverage": measured[name]["coverage"]})
-    best = min((n for n in scores if n != "seasonal_naive"), key=lambda n: scores[n]["mase"] if scores[n]["mase"] is not None else np.inf, default=None)
+    every = scores.get("seasonal_naive", {}).get("forecasts")
+    for name in scores:  # a model that skips series (too short for its own model) is not compared on the same forecasts
+        scores[name]["covers_every_series"] = every is None or scores[name]["forecasts"] >= every
+    best = min((n for n in scores if n != "seasonal_naive" and scores[n]["covers_every_series"]), key=lambda n: scores[n]["mase"] if scores[n]["mase"] is not None else np.inf, default=None)
     return {"horizon": horizon, "gap": gap, "season": season, "origins": [str(pd.Timestamp(dates[c - 1]).date()) for c in cuts],
             "known_ahead": known, "scores": scores, "best": best,
             "beats_seasonal_naive": {n: (s["mase"] is not None and scores.get("seasonal_naive", {}).get("mase") is not None
@@ -263,3 +287,26 @@ def backtest(frame: pd.DataFrame, *, series: str, time: str, target: str, horizo
                           "from": "the global model's backtest residuals, scaled per series", "measured": measured},
             "target_seen_until": seen_until, "future_seen": [o for o, d in seen_until.items() if d > o],
             "per_origin": {n: r for n, r in results.items()}}
+
+
+def holdout_origin(frame: pd.DataFrame, *, time: str, horizon: int, gap: int = 0) -> pd.Timestamp:
+    """The forecast moment of the holdout: the last origin, whose ``horizon`` dates after the ``gap`` end the data."""
+    dates = sorted(pd.to_datetime(frame[time]).unique())
+    if len(dates) < horizon + gap + 2:
+        raise ValueError(f"{len(dates)} dates: too few for a horizon of {horizon} after a gap of {gap}")
+    return pd.Timestamp(dates[len(dates) - horizon - gap - 1])
+
+
+def origin_scores(result: dict[str, Any], origin: str, series: Optional[Sequence[str]] = None) -> dict[str, dict[str, Any]]:
+    """Each model's scores at one origin of a backtest (MASE, sMAPE, MAE over its series), and its MASE per series;
+    with ``series``, over those series only, so models are compared on the same forecasts."""
+    out = {}
+    for name, rows in result["per_origin"].items():
+        mine = [r for r in rows if r["origin"] == origin and (series is None or r["series"] in series)]
+        if not mine:
+            continue
+        ratios = [r["mae"] / r["scale"] for r in mine if r["scale"] and np.isfinite(r["scale"])]
+        out[name] = {"mase": _r(np.mean(ratios)) if ratios else None, "smape": _r(np.mean([r["smape"] for r in mine])),
+                     "mae": _r(np.mean([r["mae"] for r in mine])), "forecasts": len(mine), "mase_by_series": [_r(x) for x in ratios],
+                     "series": sorted(r["series"] for r in mine)}
+    return out

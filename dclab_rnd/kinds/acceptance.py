@@ -143,11 +143,24 @@ def build(case: Case, root: Path) -> tuple[Any, str]:
     return store, project["id"]
 
 
-def run(kind: Any, seed: int = 0) -> dict[str, Any]:
-    """One kind's acceptance: {"kind", "status", "checks", "missing", "seconds"}."""
+def engine_run(case: Case) -> Run:
+    """The case as a project, every stage run by the engine with no model asked anything (a replica's records stay on the
+    machine), and the finished records."""
     from dclab_rnd.expansion import runner
+    from dclab_rnd.models.gateway import private_scope
     from dclab_rnd.studio import engine
 
+    with tempfile.TemporaryDirectory() as tmp:
+        store, project_id = build(case, Path(tmp))
+        with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
+            engine.run_all(store, project_id)
+        records = {stage: store.read_stage(project_id, stage) for stage in engine.STAGE_KEYS}
+        project = store.get(project_id)
+        return Run(case, project["solution"], records, project.get("labels") or {})
+
+
+def run(kind: Any, seed: int = 0) -> dict[str, Any]:
+    """One kind's acceptance: {"kind", "status", "checks", "missing", "seconds"}."""
     case = kind.case(seed)
     if case is None:
         return {"kind": kind.key, "status": "partial", "checks": [], "missing": ["a replica case and its acceptance decisions"],
@@ -156,23 +169,16 @@ def run(kind: Any, seed: int = 0) -> dict[str, Any]:
     own = kind.solve(case)  # a kind with its own machine (16.3 onward) solves its case itself
     if own is not None:
         checks = kind.accept(own)
+        if kind.own_machine() is not None:  # 16.15: and the engine runs the same case, stage by stage, under its gates
+            checks += kind.accept_engine(engine_run(case))
         missing = [c["decision"] for c in checks if not c["ok"]] + ([] if kind.runs_in_engine else [ENGINE_MISSING])
         return {"kind": kind.key, "status": "supported" if checks and not missing else "partial", "checks": checks,
                 "missing": missing, "seconds": round(time.perf_counter() - started, 1)}
-    with tempfile.TemporaryDirectory() as tmp:
-        store, project_id = build(case, Path(tmp))
-        from dclab_rnd.models.gateway import private_scope
-
-        # no model is asked anything: not the critic, not the stage notes (a replica's records stay on the machine)
-        with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
-            engine.run_all(store, project_id)
-        records = {stage: store.read_stage(project_id, stage) for stage in engine.STAGE_KEYS}
-        project = store.get(project_id)
-        done = Run(case, project["solution"], records, project.get("labels") or {})
-        checks = kind.accept(done)
-        computed = set((done.evidence("final").get("baselines") or {}).keys())
-        checks.append(check("the baselines the kind declares are the ones the final stage computes", set(kind.baselines) <= computed,
-                            f"declared {sorted(kind.baselines)}, computed {sorted(computed)}"))
+    done = engine_run(case)
+    checks = kind.accept(done)
+    computed = set((done.evidence("final").get("baselines") or {}).keys())
+    checks.append(check("the baselines the kind declares are the ones the final stage computes", set(kind.baselines) <= computed,
+                        f"declared {sorted(kind.baselines)}, computed {sorted(computed)}"))
     missing = [c["decision"] for c in checks if not c["ok"]]
     return {"kind": kind.key, "status": "supported" if checks and not missing else "partial", "checks": checks,
             "missing": missing, "seconds": round(time.perf_counter() - started, 1)}

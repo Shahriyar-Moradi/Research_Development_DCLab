@@ -99,6 +99,21 @@ class Prepared:
     def metric(self) -> str:
         return self.bundle.spec.primary_metric
 
+    @property
+    def task_type(self) -> str:
+        return self.bundle.task_type
+
+    def holdout_policy(self) -> str:
+        return self.bundle.spec.holdout_policy()
+
+    @property
+    def cv_description(self) -> str:
+        return self.bundle.cv_description
+
+    @property
+    def holdout_description(self) -> str:
+        return self.bundle.holdout_description
+
 
 def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     """Load the table, apply the solution, lock the holdout and register the feature recipes."""
@@ -106,6 +121,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         raise ValueError("The project needs data and a solution first")
     solution = Solution(**project["solution"])
     kind = solution.problem_kind(pack_of(project))
+    if kind.own_machine() is not None:  # 16.15: a kind with its own machine runs it under the same stages and gates
+        from .machine import prepare as prepare_machine
+
+        return prepare_machine(store, project, solution, kind)
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared)
            + str(project.get("pack")) + _hash(project.get("labels")) + _hash(project.get("feature_programs")))  # each changes what runs
@@ -1095,7 +1114,18 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
     clock = time.perf_counter()
     try:
         decision: dict[str, Any] | None = None
-        if stage == "data":
+        from .machine import MachinePrepared
+
+        if isinstance(p, MachinePrepared):  # 16.15: the kind's machine, stage by stage
+            previous = {k: store.read_stage(project_id, k) for k in STAGE_KEYS[:STAGE_KEYS.index(stage)]}
+            if stage == "final":
+                project["holdout_uses"] = int(project.get("holdout_uses", 0)) + 1
+            evidence, claims, summary, decision = p.machine.run(stage, eid, previous)
+            if stage == "final":
+                evidence["holdout_uses_in_this_project"] = project["holdout_uses"]
+                if reuse_reason:
+                    evidence["holdout_reuse_reason"] = str(reuse_reason)[:500]
+        elif stage == "data":
             evidence, claims, summary = stage_data(p, eid)
         elif stage == "leakage":
             evidence, claims, summary = stage_leakage(p, eid)
@@ -1127,16 +1157,18 @@ def _execute_stage(store: ProjectStore, project_id: str, stage: str, project: di
         record = {
             "stage": stage, "kind": meta["kind"], "title": meta["title"], "workflow": meta["workflow"], "question": meta["question"],
             "experiment_id": eid, "status": "completed", "started_at": project["stages"][stage]["started"], "completed_at": _now(),
-            "elapsed_seconds": float(elapsed), "task": p.task, "task_type": p.bundle.task_type, "primary_metric": p.metric,
-            "decision_time_rule": p.solution.prediction_moment, "holdout_policy": p.bundle.spec.holdout_policy(),
+            "elapsed_seconds": float(elapsed), "task": p.task, "task_type": p.task_type, "primary_metric": p.metric,
+            "decision_time_rule": p.solution.prediction_moment, "holdout_policy": p.holdout_policy(),
             "setup_summary": summary, "evidence": evidence, "claims": claims, "decision": decision,
             "labels": {"coverage": p.solution.labels, "provenance": p.solution.label_provenance,
                        "file": (project.get("labels") or {}).get("filename")},
             "provenance": {"data_sha256": project["data"]["sha256"], "filename": project["data"]["filename"], "sampling": p.sampling,
-                           "cv": p.bundle.cv_description, "holdout": p.bundle.holdout_description, "random_state": ds.RANDOM_STATE},
+                           "cv": p.cv_description, "holdout": p.holdout_description, "random_state": ds.RANDOM_STATE},
         }
+        if isinstance(p, MachinePrepared):
+            record["machine"] = p.kind.key  # readers that need the tabular stages' fields know they are not here
         record = rn._jsonable(record)
-        record["notes"] = agent.narrate(stage, record, p.solution.model_dump(), p.bundle.task_type, project_id)
+        record["notes"] = agent.narrate(stage, record, p.solution.model_dump(), p.task_type, project_id)
         explanation = agent.explain_stage(record, project_id)  # a model's words from the record, checked by code (A3.3)
         if explanation:
             record["explanation"] = explanation

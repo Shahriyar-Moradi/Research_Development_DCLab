@@ -67,8 +67,10 @@ class PackTest(unittest.TestCase):
         cards = {p["key"]: p for p in pack.cards(supported)}
         self.assertEqual(cards["imbalanced"]["maturity"], "Supported")
         self.assertEqual(cards["tabular"]["maturity"], "Supported")  # binary, multiclass and regression all pass
-        self.assertEqual(cards["timeseries"]["maturity"], "Partial")  # forecasting passes as a library; the engine cannot run it yet
-        self.assertIn("engine does not run it yet", " ".join(cards["timeseries"]["capability"]["missing"]))
+        self.assertEqual(cards["timeseries"]["maturity"], "Supported")  # 16.15: the engine runs forecasting's machine
+        library_only = {"kind": "ranking", "status": "supported", "missing": [], "checks": [{"decision": "d", "ok": True}]}
+        row = {r["kind"]: r for r in acceptance.matrix([library_only])}["ranking"]
+        self.assertIn("engine does not run it yet", " ".join(row["missing"]))  # a kind the engine does not run yet stays partial
         self.assertEqual(cards["scenegraph"]["maturity"], "Not built")  # no kind yet
         self.assertTrue(cards["scenegraph"]["capability"]["missing"])
         one_fails = [r if r["kind"] != "regression" else {**r, "status": "partial", "missing": ["MAE below the median"],

@@ -203,13 +203,15 @@ class KindTest(unittest.TestCase):
         self.assertIn("refused", run)
         self.assertFalse(any(c["ok"] for c in kind.accept(run)))
 
-    def test_the_engine_refuses_the_kind_until_it_runs_it(self):
+    def test_the_engine_runs_the_kind_with_its_duration_as_the_target(self):
         from dclab_rnd.studio.solution import Solution
 
-        with self.assertRaises(ValueError):
-            Solution(target="days_subscribed", task="regression", prediction_moment="At signup", kind="time_to_event",
-                     kind_fields={"duration_column": "days_subscribed", "event_column": "cancelled", "start_column": "signup_date"})
-
+        fields = {"duration_column": "days_subscribed", "event_column": "cancelled", "start_column": "signup_date"}
+        solution = Solution(target="days_subscribed", task="regression", prediction_moment="At signup, before any billing", kind="time_to_event", kind_fields=fields)
+        self.assertEqual(solution.problem_kind().key, "time_to_event")  # 16.15: the engine runs its machine
+        with self.assertRaises(ValueError) as refused:
+            Solution(target="age", task="regression", prediction_moment="At signup, before any billing", kind="time_to_event", kind_fields=fields)
+        self.assertIn("is its duration column", str(refused.exception))  # refused for the kind's rule, not another field
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,24 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.4.0 (2026-10-13)
+
+Package 16.15: the parts a host needs to run a forecast or a time to event in its own stages, choice and holdout
+apart. The six contracts are unchanged: all still at v1.
+
+- `forecast.holdout_origin` (new): the last origin, whose horizon dates after the gap end the data: the holdout a host
+  locks first. `forecast.origin_scores` (new): each model's scores at one origin, optionally over given series only, so
+  models are compared on the same forecasts; each with its MASE per series and the series it forecast.
+- `forecast.backtest` changed: each score says whether the model forecast every series the seasonal naive did
+  (`covers_every_series`); `best` is chosen only among those, as a model that skips the short series is scored on fewer
+  forecasts.
+- `forecast.covariate_check` changed: a numeric column the same on every row of a series that follows each series'
+  mean of the target (|correlation| at least 0.9 across series) is kept out and listed to confirm, as a summary
+  computed from the target, perhaps over future dates, would be; declared known ahead, it is kept. Pass training rows.
+- `survival.split`, `survival.choose` and `survival.score` (new): `evaluate` in three steps, so the holdout is split
+  first, the model chosen on the validation cut, and the holdout scored once afterwards. `evaluate` composes them and
+  returns what it returned before.
+
 ## 0.3.0 (2026-10-13)
 
 Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3 to 16.8 and 16.10 to 16.12. The six contracts are unchanged: all still at v1.

@@ -164,6 +164,23 @@ class ProblemKind:
     # `make kinds-check` fails only on a decision outside them
     open_decisions: tuple[str, ...] = ()
 
+    def own_machine(self) -> Any:
+        """A kind whose problem the five tabular stages' code cannot run returns its machine class
+        (``studio.machine.Machine``); the engine then runs it under the same graph, gates and records (16.15)."""
+        return None
+
+    def check_solution(self, solution: Any) -> None:
+        """Raise ValueError when a solution declaring this kind lacks what its machine needs (called by Solution)."""
+        return None
+
+    def accept_engine(self, run: Any) -> list[dict[str, Any]]:
+        """For a kind with its own machine: the decisions checked on the engine's records of the same case (16.15)."""
+        return []
+
+    def columns_of(self, solution: Any) -> list[str]:
+        """The columns the kind's own fields name (checked against the table before a machine runs)."""
+        return []
+
     def solve(self, case: Any) -> Any:
         """A kind with its own machine (forecasting, survival, ranking…) solves its case here and returns what ``accept``
         reads; None (the default) means the five-stage engine solves it."""

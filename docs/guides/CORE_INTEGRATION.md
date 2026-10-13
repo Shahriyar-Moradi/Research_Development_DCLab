@@ -12,12 +12,12 @@ read at that commit; read them again before wiring.
 
 ## What the main product installs
 
-- **The wheel.** `dclab-core` 0.3.0, pinned:
+- **The wheel.** `dclab-core` 0.4.0, pinned:
   `dclab-core @ git+https://github.com/Shahriyar-Moradi/Research_Development_DCLab.git@<tag or commit>#subdirectory=dclab_core`.
   It depends on numpy, pandas, scikit-learn and pydantic (2.10 or later) only, runs on Python 3.10 to 3.13, never
   imports `dclab_rnd`, never calls a model provider, never touches a database or the network. `make core-wheel-check`
   here builds it, installs it in a clean Python 3.12 with only those dependencies and runs a replica end to end
-  (2026-10-13, 0.3.0: passed, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1; the optional pdf extra is not a direct dependency). What changed between versions
+  (2026-10-13, 0.4.0: passed, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, pydantic 2.14.1; the optional pdf extra is not a direct dependency). What changed between versions
   is in `dclab_core/CHANGELOG.md`.
 - **The contracts.** `ProblemBrief`, `DataFindings`, `SolutionPlan` (of `Decision`s), `Review`, `SolutionReport`:
   frozen, versioned (`dclab_core.problem_brief.v1`, ...), read only with their version (`Versioned.read`), with JSON

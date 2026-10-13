@@ -1,0 +1,228 @@
+{
+  "package": "16.15",
+  "title": "The engine runs the library kinds (phase A: forecasting and time to event)",
+  "date": "2026-10-13",
+  "request": "Let the engine run the library kinds: a forecast or a time to event made in the notebook goes through the same stages, graph and gates as a tabular project, instead of being refused.",
+  "spec": "A kind brings its own machine; the engine runs it per stage with the same record shape. The holdout is locked by the kind's rule in the data stage, the choice is made on validation, the holdout is read once in the final stage after the graph's holdout gate; a reuse needs a person's reason. Exports refuse until built for the kind; the shared readers read the records. Done when changing only the holdout's targets leaves every stage before the final identical and changes the final.",
+  "plan": [
+    "Add hooks to ProblemKind: own_machine, columns_of, check_solution, accept_engine.",
+    "Write a Machine base with the shared record fields per stage, kept in the kinds package to avoid a circular import.",
+    "Split the libraries so a host can choose on validation and score the holdout later: forecast.holdout_origin and origin_scores; survival.split, choose, score.",
+    "Dispatch in engine.prepare and _execute_stage; give Prepared the properties the record builder reads, so both paths build records the same way.",
+    "Run each kind's acceptance in the engine as well as in the library; the matrix marks the kind supported only when both pass.",
+    "Review, plant faults, fix, and record."
+  ],
+  "decisions": [
+    {
+      "decision": "The holdout of a forecast is the last horizon dates of every series; validation is three rolling origins strictly before it.",
+      "why": "A forecast is judged on the future it would face; the origins before it are the only honest place to choose."
+    },
+    {
+      "decision": "A forecast model that skips series is never chosen over models that forecast every series.",
+      "why": "The per-series model forecasts only long series, which are easier; ranking it on fewer forecasts favoured it unfairly."
+    },
+    {
+      "decision": "A series attribute that follows each series' mean of the target (|correlation| >= 0.9 across series) is kept out until declared known ahead.",
+      "why": "A summary computed over the whole table, future dates included, looks exactly like a harmless series attribute."
+    },
+    {
+      "decision": "The final stage refuses when the holdout it would read is not the one the data stage locked.",
+      "why": "The machine recomputes its split from the table; a lock must be checked, not assumed."
+    },
+    {
+      "decision": "Censoring is reported from the training rows, censored at the holdout's day.",
+      "why": "The share of the whole table's rows that ended includes the holdout's outcomes."
+    },
+    {
+      "decision": "A solution names only the metric its machine judges by.",
+      "why": "A metric the machine ignores would be shown to the person as the one that chose the model."
+    },
+    {
+      "decision": "The proposal made before the project still reads the whole table; the test holds the solution fixed, and the issue is filed as its own task.",
+      "why": "It is the person's draft for every kind, not this package's machine; changing it needs its own measurement."
+    }
+  ],
+  "change": "dclab_core/forecast.py, dclab_core/survival.py, dclab_core/CHANGELOG.md and version 0.4.0; dclab_rnd/kinds/base.py, machine.py (new), forecasting.py, time_to_event.py, acceptance.py, capability.json; dclab_rnd/studio/machine.py (new), engine.py, agent.py, solution.py, service.py, sft.py, solution_report.py; tests/test_engine_machines.py (new), test_core_forecast.py, test_core_survival.py, test_kind_matrix.py; the playbook's 16.15 row and section.",
+  "findings": [
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "gap",
+      "defect": "An old test asserting the engine refuses time to event passed for another reason.",
+      "scenario": "Its prediction moment, 'At signup', is shorter than the 12 characters a moment needs: the Solution was refused before the kind was asked.",
+      "cause": "The test checked that a ValueError was raised, not which one.",
+      "fix": "The moment is lengthened and every refusal test asserts its reason.",
+      "test": "tests/test_core_survival.py and SolutionTest in tests/test_engine_machines.py"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "latent",
+      "defect": "A kind module importing the studio's machine caused a circular import.",
+      "scenario": "kinds -> studio.machine -> solution -> kinds.",
+      "cause": "The base class lived in the studio.",
+      "fix": "Machine moved to dclab_rnd/kinds/machine.py; the studio re-exports it.",
+      "test": "import of every kind"
+    },
+    {
+      "id": "S3",
+      "source": "self",
+      "severity": "leakage",
+      "defect": "The data stage reported the censored share of the whole table.",
+      "scenario": "Flipping the holdout's events changed the data stage's evidence.",
+      "cause": "censoring_check read every row's event flag.",
+      "fix": "The flag's form is checked on the whole column; the share is reported from the training rows.",
+      "test": "TheHoldoutReachesOnlyTheFinalTest.test_time_to_event"
+    },
+    {
+      "id": "S4",
+      "source": "self",
+      "severity": "leakage",
+      "defect": "The proposal reads the whole table before the project exists.",
+      "scenario": "Changing only the holdout's durations dropped months_billed from the proposed forbidden columns.",
+      "cause": "propose and its plan read every row: a person's draft, made for every kind before any split.",
+      "fix": "Out of this package: the test holds the solution fixed; a task is filed to measure and fix it.",
+      "test": "stated; spawned task"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "No test could catch the holdout reaching model choice or the leakage checks.",
+      "scenario": "Four planted faults (forecast models and leakage on the whole table; survival validated on the holdout; survival leakage on train and holdout) passed every test.",
+      "cause": "The check o <= holdout_origin passed when the last validation origin was the holdout origin itself.",
+      "fix": "Strictly before; and a test changes only the holdout's targets and requires every earlier stage to be identical.",
+      "test": "TheHoldoutReachesOnlyTheFinalTest; planted faults re-run"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The service export crashed instead of refusing.",
+      "scenario": "Approving the final stage of a survival project and exporting: AttributeError, a 500.",
+      "cause": "The bundle was read before the kind's export flag.",
+      "fix": "The flag is checked first.",
+      "test": "test_the_service_export_refuses_and_the_sft_examples_and_the_report_read_the_records"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The SFT examples crashed on a machine's leakage record.",
+      "scenario": "A survival project with forbidden columns: KeyError policy_rationale; the workspace export aborted.",
+      "cause": "The example reads the tabular leakage measurement.",
+      "fix": "That example is skipped for a machine's record.",
+      "test": "same test"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Forecast models were ranked on different sets of series.",
+      "scenario": "Half the series cut to 45 days: per_series scored 0.728 on 30 forecasts, the global model 0.790 on 60, and per_series was chosen.",
+      "cause": "per_series forecasts only long series; means were compared directly.",
+      "fix": "covers_every_series; only such models may be chosen; baselines on the holdout are scored on the chosen model's series.",
+      "test": "test_a_model_that_skips_short_series_is_not_chosen_on_fewer_forecasts"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "A series-constant column was kept without a look at the target.",
+      "scenario": "series_mean_units, a mean over every date, was kept as 'describes the series' and fed to the model.",
+      "cause": "covariate_check kept any column constant within a series.",
+      "fix": "Kept out to confirm when it follows each series' mean of the target.",
+      "test": "test_a_series_attribute_that_follows_the_series_level_of_the_target_is_kept_out_to_confirm"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "A reused holdout was not flagged for machine kinds.",
+      "scenario": "A reuse with a reason gave a second final record with no warning.",
+      "cause": "The machine branch returned only the machine's own notes.",
+      "fix": "The holdout-uses note and the not-production-approved note are shared by both branches.",
+      "test": "test_the_survival_machine_runs_every_stage"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "leakage",
+      "defect": "The solution report's findings read the holdout rows for machine kinds.",
+      "scenario": "analyse=True fell back to a seeded 80% of the table.",
+      "cause": "The report read the tabular bundle.",
+      "fix": "Machines expose training_rows; the report uses them.",
+      "test": "same export test"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Solution checks had gaps.",
+      "scenario": "Duration, event and start all the same column; time column equal to the target; a metric the machine ignores.",
+      "cause": "check_solution checked only one rule per kind.",
+      "fix": "Distinct columns, the time column not the target, only the machine's metric.",
+      "test": "SolutionTest"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The locked holdout was not actually locked.",
+      "scenario": "The machine recomputes its split each stage; a changed table would give the final another holdout.",
+      "cause": "Nothing compared the final's holdout with the data stage's.",
+      "fix": "The final refuses a holdout that moved.",
+      "test": "test_the_final_stage_refuses_a_holdout_that_moved_since_it_was_locked"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "New dclab_core functions were not in the changelog.",
+      "scenario": "A host reading the changelog would miss them.",
+      "cause": "The library was changed without its version.",
+      "fix": "0.4.0 with each change described.",
+      "test": "make core-wheel-check"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "acceptance in the engine",
+      "gate": "every decision of each kind's replica holds in the library and in the engine",
+      "result": "forecasting 10 of 10, time to event 11 of 11; the Time series pack is Supported",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "10 of 10 and 11 of 11 against every decision",
+      "limits": [
+        "One seed of each replica; invented data, not a person's table."
+      ]
+    },
+    {
+      "name": "planted faults caught by the holdout test",
+      "gate": "each of the 4 planted routes from the holdout to an earlier stage fails the test",
+      "result": "4 of 4 caught after the fixes; 0 of 4 before them",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "4 of 4 against 4",
+      "limits": [
+        "Only the routes planted; the proposal made before the project is outside the test."
+      ]
+    }
+  ],
+  "outcome": "Forecasting and time to event run in the engine; the other library kinds stay partial until their machines are built (phases B and C).",
+  "lessons": [
+    "Assert why something is refused, not only that it is: a refusal for another reason hides the rule.",
+    "A strict inequality is the test of 'before'; <= let the holdout origin pass as a validation origin.",
+    "Change only the holdout and require everything before the final to stay the same: one test catches every route a holdout can take.",
+    "Compare models on the same forecasts: a model that skips the hard cases looks better.",
+    "A recomputed split is a promise until something checks it against the lock.",
+    "Read every shared reader's assumptions when a record changes shape: export, SFT and report each read tabular fields."
+  ],
+  "risks": [
+    "The holdout's targets choosing the model.",
+    "A summary of the future fed as a series attribute.",
+    "A crash instead of a refusal on export.",
+    "A reused holdout presented as honest."
+  ],
+  "commits": []
+}

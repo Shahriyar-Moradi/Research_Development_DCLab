@@ -72,7 +72,26 @@ def _fmt(value: Any, digits: int = 4) -> str:
 # ---------------------------------------------------------------------- notes per stage
 
 
+def _holdout_uses_note(ev: dict[str, Any]) -> dict[str, Any]:
+    uses = ev.get("holdout_uses_in_this_project", 1)
+    return _note("high" if uses > 1 else "info", "The holdout has now been used " + ("once" if uses == 1 else f"{uses} times"),
+                 "Every extra look at the holdout turns it into another validation set and its score into an optimistic one. Change the model only with new data or a fresh split."
+                 if uses > 1 else "This is the honest number. Changing the model after seeing it would make the next score optimistic.",
+                 ["DCLAB-R17", "PIT-006", "DCLAB-R22"])
+
+
+def _not_production_note() -> dict[str, Any]:
+    return _note("info", "Not production-approved", "Benchmark evidence proves the method, not deployment readiness: source lineage, monitoring and a fresh confirmation are still required.",
+                 ["DCLAB-R22", "DCLAB-R21" if _exists("DCLAB-R21") else "DCLAB-R22"])
+
+
 def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_type: str, project_id: str | None = None) -> list[dict[str, Any]]:
+    if record.get("machine"):  # 16.15: a kind's machine writes its own notes; the tabular stages' fields are not there
+        notes = [_note(n.get("level", "info"), n["title"], n["text"], list(n.get("proof") or ["DCLAB-R17"]), n.get("action"))
+                 for n in record["evidence"].get("notes_for_person") or []]
+        if stage == "final":  # the holdout's uses and the production warning hold for every kind
+            notes += [_holdout_uses_note(record["evidence"]), _not_production_note()]
+        return notes
     ev = record["evidence"]
     rules = STAGE_RULES[stage]
     notes: list[dict[str, Any]] = []
@@ -179,20 +198,14 @@ def narrate(stage: str, record: dict[str, Any], solution: dict[str, Any], task_t
                            f"The 95% interval on the holdout is {_fmt(ci.get('low'))}–{_fmt(ci.get('high'))} ({ci.get('method')}). "
                            + ("The holdout is noticeably worse than CV: expect production to look like the holdout, not the CV." if gap < -0.02 else "CV and holdout agree within the interval."),
                            ["DCLAB-R17", "DCLAB-R18"]))
-        notes.append(_note("high" if ev.get("holdout_uses_in_this_project", 1) > 1 else "info",
-                           "The holdout has now been used " + ("once" if ev.get("holdout_uses_in_this_project", 1) == 1 else f"{ev['holdout_uses_in_this_project']} times"),
-                           "Every extra look at the holdout turns it into another validation set and its score into an optimistic one. Change the model only with new data or a fresh split."
-                           if ev.get("holdout_uses_in_this_project", 1) > 1 else
-                           "This is the honest number. Changing the model after seeing it would make the next score optimistic.",
-                           ["DCLAB-R17", "PIT-006", "DCLAB-R22"]))
+        notes.append(_holdout_uses_note(ev))
         if "calibration_bins" in ev:
             worst = max(ev["calibration_bins"], key=lambda b: abs(b["predicted"] - b["observed"]), default=None)
             if worst and abs(worst["predicted"] - worst["observed"]) > 0.15:
                 notes.append(_note("warning", "Probabilities are miscalibrated in at least one range",
                                    f"In the {worst['lower']:.1f}–{worst['upper']:.1f} bin the model predicts {worst['predicted']:.2f} but {worst['observed']:.2f} of rows are positive. Use thresholds from the table, not the raw probability.",
                                    ["DCLAB-R18", "WF-09"]))
-        notes.append(_note("info", "Not production-approved", "Benchmark evidence proves the method, not deployment readiness: source lineage, monitoring and a fresh confirmation are still required.",
-                           ["DCLAB-R22", "DCLAB-R21" if _exists("DCLAB-R21") else "DCLAB-R22"]))
+        notes.append(_not_production_note())
     fillers = 0
     for rid in rules:
         if not any(rid in n["proof"] for n in notes) and fillers < 2:

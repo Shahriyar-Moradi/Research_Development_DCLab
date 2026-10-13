@@ -89,7 +89,7 @@ def examples_from_project(project: dict[str, Any], records: dict[str, dict[str, 
                     "metadata": {"source": "notebook_project", "project_id": project["id"], "stage": stage, "task": record["task"], "task_type": record["task_type"],
                                  "primary_metric": record["primary_metric"], "cited": proof, "experiment_id": record["experiment_id"]}})
     leakage = records.get("leakage")
-    if leakage:
+    if leakage and not leakage.get("machine"):  # a kind's own machine measures no lift from its forbidden columns (16.15)
         ev = leakage["evidence"]
         forbidden = project["solution"].get("forbidden", [])
         if forbidden:

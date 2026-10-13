@@ -78,6 +78,32 @@ class BacktestTest(unittest.TestCase):
         self.assertIn("rain_mm", mistaken["to_confirm"])
         self.assertIn("confirm", mistaken["why"]["rain_mm"])
 
+    def test_a_series_attribute_that_follows_the_series_level_of_the_target_is_kept_out_to_confirm(self):
+        frame = store_demand.generate(1, stores=3, products=3, days=120).sales
+        planted = frame.assign(series_mean_units=frame.groupby("series")["units"].transform("mean"))  # over every date: a leak
+        out = forecast.covariate_check(planted, series="series", time="date", target="units")
+        self.assertIn("series_mean_units", out["kept_out"])
+        self.assertIn("series_mean_units", out["to_confirm"])
+        self.assertIn("follows each series' mean of the target", out["why"]["series_mean_units"])
+        self.assertTrue({"store", "product"} <= set(out["kept"]))  # text attributes describe the series and stay
+        declared = forecast.covariate_check(planted, series="series", time="date", target="units", known_ahead=["series_mean_units"])
+        self.assertIn("series_mean_units", declared["kept"])  # the person may declare it, as for any covariate
+
+    def test_a_model_that_skips_short_series_is_not_chosen_on_fewer_forecasts(self):
+        frame = store_demand.generate(2, stores=2, products=5, days=160).sales
+        names = sorted(frame["series"].unique())
+        start = pd.to_datetime(frame["date"]).max() - pd.Timedelta(days=44)
+        short = frame[~frame["series"].isin(names[:5]) | (pd.to_datetime(frame["date"]) >= start)]  # half the series 45 days long
+        r = forecast.backtest(short, **ARGS)
+        self.assertLess(r["scores"]["per_series"]["forecasts"], r["scores"]["seasonal_naive"]["forecasts"])
+        self.assertFalse(r["scores"]["per_series"]["covers_every_series"])
+        self.assertTrue(r["scores"]["global_gbm"]["covers_every_series"])
+        self.assertNotEqual(r["best"], "per_series")
+        last = r["origins"][-1]
+        mine = forecast.origin_scores(r, last)["global_gbm"]
+        same = forecast.origin_scores(r, last, series=mine["series"])
+        self.assertEqual(same["seasonal_naive"]["series"], mine["series"])  # baselines on the same series
+
     def test_a_text_covariate_known_ahead_is_coded_from_the_training_rows(self):
         frame = self.frame.copy()
         frame["holiday"] = np.where(pd.to_datetime(frame["date"]).dt.dayofweek == 6, "sun", "none")
@@ -113,19 +139,17 @@ class KindTest(unittest.TestCase):
         self.assertIn("rain_mm", run["covariates"]["to_confirm"])  # …and shown to confirm
         self.assertFalse(all(c["ok"] for c in kind.accept(run)))  # the acceptance can fail
 
-    def test_the_engine_refuses_the_kind_until_it_runs_it_and_the_matrix_says_partial(self):
+    def test_the_engine_runs_the_kind_and_the_matrix_says_supported_when_its_decisions_hold(self):
         from dclab_rnd.kinds import acceptance
         from dclab_rnd.studio.solution import Solution
 
-        with self.assertRaises(ValueError) as refused:
-            Solution(target="units", task="regression", prediction_moment="Each Sunday for the week ahead", kind="forecasting",
-                     kind_fields={"series_column": "series", "horizon": 7})
-        self.assertIn("does not run", str(refused.exception))
+        solution = Solution(target="units", task="regression", prediction_moment="Each Sunday for the week ahead", kind="forecasting",
+                            time_column="date", kind_fields={"series_column": "series", "horizon": 7})
+        self.assertTrue(self.kinds.get("forecasting").runs_in_engine)  # 16.15: the engine runs its machine
+        self.assertEqual(solution.problem_kind().key, "forecasting")
         passing = {"kind": "forecasting", "status": "supported", "missing": [], "checks": [{"decision": "d", "ok": True}]}
         row = {r["kind"]: r for r in acceptance.matrix([passing])}["forecasting"]
-        self.assertEqual(row["status"], "partial")
-        self.assertIn("engine does not run it yet", " ".join(row["missing"]))
-
+        self.assertEqual(row["status"], "supported")
 
 if __name__ == "__main__":
     unittest.main()
