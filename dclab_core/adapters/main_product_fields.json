@@ -664,7 +664,11 @@
     "apps/api/tests/test_benchmark_harness.py",
     "apps/web/lib/application/studio-wizard.ts",
     "benchmarks/harness/run.py",
-    "docs/adr/0007-improve-loop.md"
+    "docs/adr/0007-improve-loop.md",
+    "apps/api/app/agents/semantic/releases.py",
+    "apps/api/app/agents/semantic/policy.py",
+    "apps/api/app/agents/semantic/typesafe_jev.py",
+    "apps/api/app/agents/semantic/port.py"
   ],
   "experience_tables": {
     "agent_runs": [
@@ -864,6 +868,42 @@
       "failure_code",
       "failure_reason",
       "created_at"
+    ],
+    "semantic_decision_answers": [
+      "id",
+      "workspace_id",
+      "project_id",
+      "experiment_id",
+      "dataset_id",
+      "llm_invocation_id",
+      "agent_run_id",
+      "decision_point_key",
+      "purpose",
+      "release_version",
+      "model_id",
+      "question_key",
+      "question_digest",
+      "data_class",
+      "evidence_partition",
+      "primitive",
+      "answer",
+      "probabilities",
+      "confidence",
+      "in_acting_band",
+      "rule_answer",
+      "agreement",
+      "level",
+      "policy_outcome",
+      "value_used",
+      "cache_hit",
+      "latency_ms",
+      "ground_truth",
+      "labeled_by_user_id",
+      "labeled_at",
+      "label_source",
+      "labels_version",
+      "supersedes_label_id",
+      "created_at"
     ]
   },
   "experience_vocabularies": {
@@ -949,7 +989,119 @@
       "lead",
       "specialist",
       "ops"
-    ]
+    ],
+    "semantic_decision_answers.primitive": [
+      "noul",
+      "choice",
+      "score"
+    ],
+    "semantic_decision_answers.agreement": [
+      "agree",
+      "disagree",
+      "abstain",
+      "unavailable"
+    ],
+    "semantic_decision_answers.policy_outcome": [
+      "rule",
+      "ai",
+      "review",
+      "human"
+    ],
+    "semantic_decision_answers.label_source": [
+      "blind",
+      "benchmark",
+      "user_decision_exposed"
+    ],
+    "semantic_decision_answers.level": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "jev.purposes": [
+      "column.is_identifier",
+      "column.semantic_role",
+      "feature.leakage_suspect",
+      "command.intent_route",
+      "proposal.completeness"
+    ],
+    "jev.bands": {
+      "dtype": [
+        "integer",
+        "float",
+        "boolean",
+        "datetime",
+        "string",
+        "categorical",
+        "other"
+      ],
+      "ratio": [
+        "none",
+        "under_1pct",
+        "from_1_to_10pct",
+        "from_10_to_50pct",
+        "from_50_to_90pct",
+        "from_90_to_99pct",
+        "over_99pct",
+        "all"
+      ],
+      "cardinality": [
+        "constant",
+        "binary",
+        "low",
+        "medium",
+        "high",
+        "very_high"
+      ],
+      "value_pattern": [
+        "digits",
+        "mixed",
+        "date_like",
+        "long_text",
+        "short_text",
+        "not_text"
+      ],
+      "task": [
+        "binary_classification",
+        "multiclass_classification",
+        "regression"
+      ],
+      "role": [
+        "numeric",
+        "categorical_code",
+        "identifier",
+        "datetime",
+        "free_text",
+        "other"
+      ],
+      "availability": [
+        "before_prediction",
+        "after_outcome",
+        "unknown"
+      ],
+      "count": [
+        "none",
+        "one",
+        "several"
+      ]
+    },
+    "jev.acting_bands": {
+      "column.is_identifier": {
+        "yes_at": 0.9,
+        "no_at": 0.1
+      },
+      "feature.leakage_suspect": {
+        "yes_at": 0.9,
+        "no_at": null
+      },
+      "column.semantic_role": {
+        "confidence_at": 0.8
+      },
+      "command.intent_route": {
+        "confidence_at": 0.8
+      },
+      "proposal.completeness": {}
+    }
   },
   "experience_payload_keys": {
     "user_message": [
@@ -1000,5 +1152,6 @@
     "llm_invocations.currency": "USD (apps/api/app/agents/gateway/budget.py CURRENCY)"
   },
   "experience_read_on": "2026-10-13",
-  "lineage_read_on": "2026-10-14 (experiments and pipeline_stage_runs from apps/api/app/db/models.py; agent_runs statuses and kinds from apps/api/app/domain/agent_records.py)"
+  "lineage_read_on": "2026-10-14 (experiments and pipeline_stage_runs from apps/api/app/db/models.py; agent_runs statuses and kinds from apps/api/app/domain/agent_records.py)",
+  "ledger_read_on": "2026-10-14 (semantic_decision_answers from apps/api/app/db/models.py; vocabularies from apps/api/app/domain/agent_records.py; Jev's bands and acting bands from apps/api/app/agents/semantic/releases.py, its raw answer {value} from semantic/policy.py and typesafe_jev.py)"
 }

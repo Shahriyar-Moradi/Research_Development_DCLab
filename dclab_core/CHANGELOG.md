@@ -4,6 +4,31 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.8.0 (2026-10-14)
+
+Package 19.6: the decision ledger. Two new contracts at v1; the others unchanged.
+
+- `ledger` (new): `DecisionRecord` (`dclab_core.decision_record.v1`): one decision at a point of one shared vocabulary
+  (`POINTS`: 45 points: 28 technical (what a data scientist decides) and 17 workflow (what steers solving, the main product's
+  ops points among them), each naming the
+  main product's governed point, Jev's purpose and the solution plan's key where it has them), about a subject (a
+  column, a project, a draft, a conversation, the workflow, a proposal), in a **state** that holds no table value (only
+  `STATE_FIELDS`, each a band from a closed set, Jev's own where Jev has the field, a name, name tokens, a flag, a
+  count, a ratio, a measure or a code; anything else refused), with its options, every answer (rule, model role,
+  classifier, person: value, the model's raw answer, confidence, reason, source; each checked against its point's answer
+  shape, as are the options and the value used, so none carries a row's text), the value used, who it came from, whether
+  it was held for review, the level (L0 to L3; a model's answer is used only from L2), the evidence partition and its ids;
+  `agreement()` and `policy_outcome` as the main product says them. `DecisionLabel`
+  (`dclab_core.decision_label.v1`): the right value from one source (benchmark, blind with its sampling weight,
+  measured, user_decision_exposed), who and when, what it supersedes, its evidence; a blind label carries its sampling
+  weight, or says where its source keeps it (`weight_note`), never an invented one.
+- `adapters.main_product_ledger` (new): `from_semantic_answer` (a `semantic_decision_answers` row as a record and,
+  a label row a label of the decision at the root of its chain, never a second decision; Jev's raw answer banded with
+  each purpose's acting band, a leakage rule's words read as a flag, an unavailable answer as none, a score never in
+  band), `to_semantic_answer` (a record back as that row's content, every recorded row shape unchanged),
+  `from_decision_record` (`project_decision_records` at their points, the value from the facts each service writes,
+  a rejected or proposed row as such; the types that are not decisions with options listed with why). Columns checked against the lists read at the recorded commit.
+
 ## 0.7.0 (2026-10-14)
 
 Package 19.5: lineage. One new contract at v1 and the event contract at v2; the others unchanged.

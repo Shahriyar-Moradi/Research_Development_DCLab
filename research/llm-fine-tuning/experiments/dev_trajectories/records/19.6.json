@@ -1,0 +1,197 @@
+{
+ "package": "19.6",
+ "title": "The decision record contract: one ledger of decisions of both kinds, with a state that never holds a table value, every answer, and labels from four sources",
+ "date": "2026-10-14",
+ "request": "The owner asked for every decision and step to be stored as training data for decision models of any kind (open-source fine-tuned, classical, hosted like Jev), in two uses: for data scientists and inside DCLab's workflow.",
+ "spec": "DecisionRecord v1 (point from one shared vocabulary, subject, state in bands, options, every answer, value used, level, ids) and DecisionLabel v1 (value, source benchmark/blind/user_decision_exposed/measured, who and when, supersedes, evidence) in dclab_core; adapters reading the main product's semantic_decision_answers and project_decision_records. Done when three kinds of decision round-trip, a state carrying a cell value is refused, and a main-product row becomes a record and back.",
+ "plan": [
+  "Read the main product's Jev at the recorded commit: its bands, its purposes, its acting bands, its answer row and its decision records.",
+  "One vocabulary of points (technical and workflow), each naming the main product's governed point, Jev's purpose and the plan's key.",
+  "A state of declared fields only (Jev's bands where Jev has the field); answers, options and labels checked against the point's answer shape.",
+  "Adapters both ways for Jev's rows; decision records at their points from the facts their services write.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "The state is a closed vocabulary of typed fields, not free metadata.",
+   "why": "It is what a decision model trains on: anything open could carry a row's value; Jev's own bands are reused so a model trained here answers there on the same inputs."
+  },
+  {
+   "decision": "Names are allowed in the state as stored.",
+   "why": "A column's name is what Jev sends too (as untrusted text); refusing names would make the identifier and leakage points unanswerable. Counts and measures can only be aggregates by the caller's discipline: stated as a limit."
+  },
+  {
+   "decision": "A label row of the main product labels the decision at the root of its chain; it is never a second decision.",
+   "why": "Its check constraint makes every label row supersede the row before it; reading it as a record duplicated decisions and pointed labels at ids that never existed."
+  },
+  {
+   "decision": "A blind label read from the main product has no weight, only a note.",
+   "why": "Its sampling probability is kept with the draw, not on the row; an invented weight of 1 would bias every estimate built on it."
+  },
+  {
+   "decision": "The split strategy is a code, not a closed choice.",
+   "why": "Each host names its strategies (group_disjoint there, time_group here)."
+  },
+  {
+   "decision": "spec.objective maps to the metric point, and the main product's four ops points join the vocabulary.",
+   "why": "Its objective is the primary metric with constraints; one shared vocabulary must hold every governed point."
+  }
+ ],
+ "change": "dclab_core/ledger.py (new: POINTS, STATE_FIELDS, check_state, answer_problem, DecisionRecord, DecisionLabel), adapters/main_product_ledger.py (new), contracts.py, main_product_fields.json (semantic_decision_answers, vocabularies, Jev's bands and acting bands), schemas and baselines, CHANGELOG and 0.8.0, scripts/core_wheel_check.py; tests/test_ledger.py (new); CORE_INTEGRATION.md, CLAUDE.md, the plan and the roadmap.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The point vocabulary could not hold a problem decided on a draft here and on a project there.",
+   "scenario": "problem.ready from the main product's problem_spec_locked has a project subject.",
+   "cause": "One subject kind per point.",
+   "fix": "A point names the subject kinds it accepts.",
+   "test": "test_project_decisions_take_their_value_from_their_facts"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Split decisions from the main product were refused.",
+   "scenario": "holdout_strategy group_disjoint is not one of five choices.",
+   "cause": "The strategies were a closed choice of this studio's names.",
+   "fix": "The split point answers a code.",
+   "test": "test_project_decisions_take_their_value_from_their_facts"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Leakage agreement was computed wrong.",
+   "scenario": "A rule answer exclude with Jev at 0.95 came back as disagree, the row said agree.",
+   "cause": "The main product reads a leakage rule's words as a flag.",
+   "fix": "Read the rule's value as a flag, keep its words as raw, write them back.",
+   "test": "test_every_row_shape_goes_back_unchanged"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An unavailable Jev answer came back as an abstention.",
+   "scenario": "answer {} with agreement unavailable.",
+   "cause": "A model answer was always added.",
+   "fix": "No model answer when the row has none.",
+   "test": "test_every_row_shape_goes_back_unchanged"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A score was treated as in band.",
+   "scenario": "proposal.completeness came back in band and disagreeing.",
+   "cause": "Banding returned a score's value.",
+   "fix": "A score is never in band; its level stays as raw.",
+   "test": "test_every_row_shape_goes_back_unchanged"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The policy outcome was lost on the way back.",
+   "scenario": "A review row and a classifier's answer both came back as rule.",
+   "cause": "used had no review and the outcome map defaulted to rule.",
+   "fix": "A review flag on the record; policy_outcome derived; unknown outcomes refused.",
+   "test": "test_a_decision_model_trained_here_answers_as_ai"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Label rows became duplicate decisions with labels pointing nowhere.",
+   "scenario": "A version-1 label produced a second record and supersedes a label id that never existed.",
+   "cause": "Label rows were read like answer rows.",
+   "fix": "A label row is a label of its chain's root; it supersedes only labels; a longer chain needs its rows.",
+   "test": "test_a_label_row_labels_its_decision_and_supersedes_only_labels"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Cell values could enter a record outside the state.",
+   "scenario": "Options and the value used accepted a person's name and 5000 characters.",
+   "cause": "Only the state was checked.",
+   "fix": "Every answer, option and label checked against its point's answer shape.",
+   "test": "test_answers_and_options_hold_no_row_text"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Decision-record values were invented.",
+   "scenario": "A split and an operating point got value_used accepted; a rejected promotion read as yes.",
+   "cause": "The adapter read a details.value no service writes, then the row's state.",
+   "fix": "Values from the facts each service writes; yes/no from type and state; none otherwise.",
+   "test": "test_project_decisions_take_their_value_from_their_facts"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A blind label's weight was invented.",
+   "scenario": "Every main-product blind label weighed 1.",
+   "cause": "The row has no weight column.",
+   "fix": "weight_note instead of a weight.",
+   "test": "test_a_label_row_labels_its_decision_and_supersedes_only_labels"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The vocabulary missed governed points and mapped one wrongly.",
+   "scenario": "spec.objective was the family; the four ops points had no point.",
+   "cause": "Only one direction was tested.",
+   "fix": "Map spec.objective to the metric; add ops points; test both directions.",
+   "test": "test_the_points_name_the_main_products_and_jevs"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A model's answer could be used at level 0.",
+   "scenario": "A record at level 0 used a classifier: a row the main product never writes.",
+   "cause": "No check tied the level to the value used.",
+   "fix": "A model's answer is used only from level 2.",
+   "test": "test_a_decision_model_trained_here_answers_as_ai"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted faults",
+   "gate": "each planted fault in the contract and the adapter fails a test",
+   "result": "16 of 16 caught",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 16 against 16",
+   "limits": [
+    "Only the faults planted."
+   ]
+  },
+  {
+   "name": "main-product row shapes",
+   "gate": "every recorded row shape comes back unchanged",
+   "result": "identifier, leakage with the rule's words, unavailable, score, review and ai rows came back column for column",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "all shapes",
+   "limits": [
+    "Rows built from the recorded columns, not read from a live database."
+   ]
+  }
+ ],
+ "outcome": "One ledger holds decisions of both kinds from either host, in a state a decision model can train on without ever seeing a table's value, with labels that never invent what their source did not record.",
+ "lessons": [
+  "Read the other host's writer, not only its schema: the values lived in facts, the weights with the draw, and the label rows in chains.",
+  "Check every field a record carries against what its point can answer, not only the obvious one."
+ ],
+ "risks": [
+  "Counts and measures are aggregates by the caller's discipline.",
+  "A main-product answer's state is only a digest there until its side builds the bands."
+ ],
+ "commits": []
+}

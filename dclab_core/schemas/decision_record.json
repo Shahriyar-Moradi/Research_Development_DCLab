@@ -1,0 +1,361 @@
+{
+  "$defs": {
+    "Answer": {
+      "additionalProperties": false,
+      "description": "One answerer's answer: who (a rule's id, a model role and its model, a classifier, a person's role), what, how sure.",
+      "properties": {
+        "answerer": {
+          "description": "The rule's id, the model's id, the person's role.",
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Answerer",
+          "type": "string"
+        },
+        "by": {
+          "enum": [
+            "rule",
+            "model_role",
+            "classifier",
+            "person"
+          ],
+          "title": "By",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A model's answer as it gave it, before its acting band: a probability for a yes/no point, a label for a choice (kept so a row read from the main product goes back unchanged).",
+          "title": "Raw"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Its stated reason (a rule's words or a model's): advisory.",
+          "title": "Reason"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where it came from: a prompt's hash, a release, a request id.",
+          "title": "Source"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The answer in the point's vocabulary; None when a model abstained (outside its acting band).",
+          "title": "Value"
+        }
+      },
+      "required": [
+        "by",
+        "answerer",
+        "value"
+      ],
+      "title": "Answer",
+      "type": "object"
+    },
+    "Subject": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "description": "What it is about: a column's name, a project's id, a move.",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "column",
+            "project",
+            "draft",
+            "conversation",
+            "workflow",
+            "proposal"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "key"
+      ],
+      "title": "Subject",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_record.v1.json",
+  "additionalProperties": false,
+  "description": "One decision: its point, its subject, the state it was made in, its options, every answer, and what was used.",
+  "properties": {
+    "answers": {
+      "items": {
+        "$ref": "#/$defs/Answer"
+      },
+      "maxItems": 20,
+      "title": "Answers",
+      "type": "array"
+    },
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "conversation": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Conversation"
+    },
+    "dataset": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dataset"
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Draft"
+    },
+    "evidence_partition": {
+      "anyOf": [
+        {
+          "enum": [
+            "metadata",
+            "train"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "What the state was read from.",
+      "title": "Evidence Partition"
+    },
+    "experiment": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Experiment"
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9_.:-]{6,80}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "level": {
+      "default": 0,
+      "description": "How far a model may act here: 0 shadow, 1 flag, 2 act with a check, 3 act.",
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Level",
+      "type": "integer"
+    },
+    "options": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Options",
+      "type": "array"
+    },
+    "point": {
+      "title": "Point",
+      "type": "string"
+    },
+    "project": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project"
+    },
+    "review": {
+      "default": false,
+      "description": "Held for a person: the answers disagreed at a level that may not act alone.",
+      "title": "Review",
+      "type": "boolean"
+    },
+    "run": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Run"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_record.v1",
+      "default": "dclab_core.decision_record.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "additionalProperties": true,
+      "title": "State",
+      "type": "object"
+    },
+    "subject": {
+      "$ref": "#/$defs/Subject"
+    },
+    "used": {
+      "default": "none",
+      "enum": [
+        "rule",
+        "model_role",
+        "classifier",
+        "person",
+        "none"
+      ],
+      "title": "Used",
+      "type": "string"
+    },
+    "value_used": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Value Used"
+    },
+    "workspace": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workspace"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "point",
+    "subject",
+    "at"
+  ],
+  "title": "DecisionRecord",
+  "type": "object"
+}

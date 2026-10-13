@@ -69,6 +69,15 @@ run = mpl.from_experiment({c: None for c in xcols} | {"id": "e1", "workspace_id"
                                                      "started_at": "2026-10-14T08:00:00+00:00", "result": {"mae": 3.2}})
 ev = mpx.from_run_record(run)
 assert (run.outputs.numbers, ev.kind, ev.schema_version) == ({"mae": 3.2}, "run.recorded", "dclab_core.experience_event.v2"), (run, ev)
+# 19.6: a Jev answer row read as a decision record, banded, and back
+from dclab_core.adapters import main_product_ledger as mpd
+scols = mp.recorded()["experience_tables"]["semantic_decision_answers"]
+row = {c: None for c in scols} | {"id": "a1", "workspace_id": "w1", "purpose": "column.is_identifier", "decision_point_key": "column.is_identifier",
+                                  "release_version": "1", "model_id": "jev", "question_key": "order_id", "answer": {"value": 0.95}, "confidence": 0.95,
+                                  "rule_answer": {"value": True}, "agreement": "agree", "level": 0, "policy_outcome": "rule", "value_used": {"value": True},
+                                  "created_at": "2026-10-14T08:00:00+00:00"}
+rec, _ = mpd.from_semantic_answer(row)
+assert (rec.agreement(), mpd.to_semantic_answer(rec, "jev", "1", "d" * 64)["answer"]) == ("agree", {"value": 0.95}), rec
 def norm(name):
     return re.sub(r"[-_.]+", "-", name).lower()
 dists = sorted(f"{norm(d.metadata['Name'])}=={d.version}" for d in metadata.distributions())
@@ -97,6 +106,7 @@ print(json.dumps({
     "unexpected_distributions": sorted({d.split("==")[0] for d in dists} - closure - {"dclab-core"}),
     "experience": event.kind,
     "lineage": run.fingerprint,
+    "ledger": rec.point,
 }))
 '''
 

@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "planted_truth",
+            "apparent_lift",
+            "optimism_gap",
+            "tuning_gain",
+            "ladder",
+            "holdout_vs_cv",
+            "review",
+            "override"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "ref": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What it cites: a planted case's id, a record path.",
+          "title": "Ref"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_label.v1.json",
+  "additionalProperties": false,
+  "description": "What the right value of a decision was, from one source; a new label supersedes an older one, never edits it.",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "string"
+    },
+    "by": {
+      "description": "Who or what: a replica's name, a reviewer's role, a measurement.",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "By",
+      "type": "string"
+    },
+    "evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Evidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "id": {
+      "pattern": "^[A-Za-z0-9_.:-]{6,80}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "point": {
+      "title": "Point",
+      "type": "string"
+    },
+    "record": {
+      "description": "The decision record it labels.",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Record",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_label.v1",
+      "default": "dclab_core.decision_label.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "benchmark",
+        "blind",
+        "measured",
+        "user_decision_exposed"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Value"
+    },
+    "weight": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A blind label's sampling weight (1 / its probability of being drawn).",
+      "title": "Weight"
+    },
+    "weight_note": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why a blind label has no weight here: its source keeps the sampling probability elsewhere. An estimate must not use it unweighted.",
+      "title": "Weight Note"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "record",
+    "point",
+    "value",
+    "source",
+    "by",
+    "at"
+  ],
+  "title": "DecisionLabel",
+  "type": "object"
+}

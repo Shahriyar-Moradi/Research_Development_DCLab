@@ -128,6 +128,11 @@ person's overrides.
   `semantic_decision_answers` and `project_decision_records` rows read as records and labels, field by field.
 - **Done when:** a column's identifier decision, a split decision and a person's override round-trip; a state field
   carrying a cell value is refused; a main-product row becomes a record and back.
+- **Status: done (2026-10-14).** `dclab_core/ledger.py` (dclab-core 0.8.0: 45 points, `STATE_FIELDS` with Jev's bands
+  read at the recorded commit, records, labels), `adapters/main_product_ledger.py` (semantic answers both ways, decision
+  records at their points). Left open: the studio writes no record yet (19.7); the precedence of labels and
+  "an exposed label may demote, never promote" (19.8); a main-product answer's state (only its digest is stored there)
+  and a blind label's sampling weight (kept with its draw there).
 
 ### 19.7 Capture every decision
 - **Delivers:** each of the ~30 decision points of the inventory writes a decision record where it decides, with its

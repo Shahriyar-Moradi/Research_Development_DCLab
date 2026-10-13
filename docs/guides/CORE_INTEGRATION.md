@@ -244,3 +244,14 @@ there: the technical run report (`services/technical_run_report.py`) can cite, f
 `RunRecord.fingerprint`; a rerun of an experiment is checked with `lineage.compare` (same inputs, same code, same
 number). What it cannot fill from these tables is listed in `INPUTS_MISSING` (the dataset version's hash, the problem
 spec's lock), never guessed.
+
+## The decision ledger (19.6)
+
+`dclab_core.ledger.DecisionRecord` is one decision at a point (`POINTS`: the main product's governed points and Jev's
+purposes among them), in a state of bands with no table value, with every answer and the value used;
+`DecisionLabel` says what was right (benchmark, blind, measured, user_decision_exposed). The main product adds no
+table: `adapters.main_product_ledger.from_semantic_answer(row)` reads a `semantic_decision_answers` row as a record and
+its label, and `to_semantic_answer(record, ...)` writes a record back as that row's content, so a decision model
+trained in this studio (Part 11) answers there through the same columns, as another answerer beside Jev, shadow first
+and promoted only through its own R3 gates. `from_decision_record` reads `project_decision_records` at their points.
+What its side adds for 19.7: the state itself (the bands its caller already builds for Jev, kept beside the digest).
