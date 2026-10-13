@@ -1,0 +1,346 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-001",
+ "kind": "kind_acceptance",
+ "problem_kind": "binary",
+ "title": "Binary classification",
+ "description": "A yes or no for each row: churn, default, acceptance.",
+ "metrics": [
+  "ROC-AUC (ranking quality, balanced classes)",
+  "Average precision (rare positives)",
+  "Recall at the review budget (the share of cases found when the team reviews its budget)"
+ ],
+ "baselines": [
+  "majority_class"
+ ],
+ "reliability": [
+  "calibration",
+  "subgroup gaps",
+  "drift by time"
+ ],
+ "track": "tabular-classification",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a binary classification problem (A yes or no for each row: churn, default, acceptance), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The binary classification kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "`subscriber_id` is kept out of the model (an identifier)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the holdout is the latest signups",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "scored by ROC-AUC (cancellations are not rare)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the baselines the kind declares are the ones the final stage computes",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 21,
+   "of": 21,
+   "share": 1.0,
+   "ci95_checks": [
+    0.845,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`subscriber_id` is kept out of the model (an identifier)",
+      "ok": true,
+      "detail": "its role: identifier"
+     },
+     {
+      "decision": "the holdout is the latest signups",
+      "ok": true,
+      "detail": "last 600 of 3000 rows by `signup_time`"
+     },
+     {
+      "decision": "scored by ROC-AUC (cancellations are not rare)",
+      "ok": true,
+      "detail": "roc_auc"
+     },
+     {
+      "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+      "ok": true,
+      "detail": "apparent lift 0.34356039289356244"
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+      "ok": true,
+      "detail": "0.7463216641298832 against 0.5"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`subscriber_id` is kept out of the model (an identifier)",
+      "ok": true,
+      "detail": "its role: identifier"
+     },
+     {
+      "decision": "the holdout is the latest signups",
+      "ok": true,
+      "detail": "last 600 of 3000 rows by `signup_time`"
+     },
+     {
+      "decision": "scored by ROC-AUC (cancellations are not rare)",
+      "ok": true,
+      "detail": "roc_auc"
+     },
+     {
+      "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+      "ok": true,
+      "detail": "apparent lift 0.3118883673151426"
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+      "ok": true,
+      "detail": "0.7220755468369741 against 0.5"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`final_refund_amount` is kept out of the model (paid only after a cancellation)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`subscriber_id` is kept out of the model (an identifier)",
+      "ok": true,
+      "detail": "its role: identifier"
+     },
+     {
+      "decision": "the holdout is the latest signups",
+      "ok": true,
+      "detail": "last 600 of 3000 rows by `signup_time`"
+     },
+     {
+      "decision": "scored by ROC-AUC (cancellations are not rare)",
+      "ok": true,
+      "detail": "roc_auc"
+     },
+     {
+      "decision": "the leakage audit measures how much the refund would have inflated the score (by more than 0.1)",
+      "ok": true,
+      "detail": "apparent lift 0.3313248927244391"
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.65 and 0.1 above chance",
+      "ok": true,
+      "detail": "0.6929824561403509 against 0.5"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-001-C1",
+   "kind": "fact",
+   "statement": "Binary classification: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 21 of 21 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C2",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: `final_refund_amount` is kept out of the model (paid only after a cancellation).",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C3",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: `subscriber_id` is kept out of the model (an identifier).",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C4",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: the holdout is the latest signups.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C5",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: scored by ROC-AUC (cancellations are not rare).",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C6",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: the leakage audit measures how much the refund would have inflated the score (by more than 0.1).",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C7",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: the holdout ROC-AUC is at least 0.65 and 0.1 above chance.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-001-C8",
+   "kind": "recommendation",
+   "statement": "On a binary classification problem: the baselines the kind declares are the ones the final stage computes.",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:20:11+00:00",
+ "completed_at": "2026-10-13T04:20:14+00:00",
+ "elapsed_seconds": 3.1,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

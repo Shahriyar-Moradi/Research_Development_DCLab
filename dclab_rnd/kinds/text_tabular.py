@@ -20,6 +20,7 @@ class TextTabular(Binary):
     baselines = ("majority_class",)
     reliability = ("calibration", "text written after the outcome", "drift in vocabulary")
     evidence_track = "nlp-and-text"
+    aliases = ('text and tabular', 'free text with numbers', 'review text', 'text features')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     export = {"notebook": True, "service": False,
               "why": "a text project's vocabulary is learned from its rows: its service export is not built yet"}
 

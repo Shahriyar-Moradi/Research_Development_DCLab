@@ -23,6 +23,7 @@ class Binary(ProblemKind):
     checks = ("PIT-001", "PIT-002", "PIT-004", "PIT-005", "PIT-006")
     reliability = ("calibration", "subgroup gaps", "drift by time")
     evidence_track = "tabular-classification"
+    aliases = ('binary classification', 'yes or no prediction', 'churn classifier', 'customer table')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     models_text = True  # text columns turn a binary kind into the text machine
 
     def default_metric(self, solution: Any, positive_rate: float | None, pack: dict[str, Any] | None = None) -> str:

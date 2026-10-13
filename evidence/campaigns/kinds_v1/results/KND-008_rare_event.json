@@ -1,0 +1,416 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-008",
+ "kind": "kind_acceptance",
+ "problem_kind": "rare_event",
+ "title": "Rare events and fraud",
+ "description": "Rare positives: average precision, recall at the review budget, rules, anomaly detectors and PU learning.",
+ "metrics": [
+  "Average precision (rare positives)",
+  "Recall at the review budget (the share of cases found when the team reviews its budget)",
+  "ROC-AUC (ranking quality, balanced classes)"
+ ],
+ "baselines": [
+  "majority_class"
+ ],
+ "reliability": [
+  "precision at the budget as a lower bound when labels are partial",
+  "entities on both sides of the split",
+  "drift by time"
+ ],
+ "track": "anomaly-and-fraud-detection",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a rare events and fraud problem (Rare positives: average precision, recall at the review budget, rules, anomaly detectors and PU learning), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The rare events and fraud kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "the label file is joined on the order, never on a coarser key",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "labels from a sample are partial: an unlabelled ride is unknown",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "behaviour features are chosen over the raw columns",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "folds are grouped by biker",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "rules, anomaly detectors and PU bagging are screened",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the holdout average precision is above 0.35 and 20 times chance",
+    "held": 2,
+    "of": 3,
+    "failed_on_seeds": [
+     1
+    ],
+    "open": false
+   },
+   {
+    "decision": "recall at the budget beats reviewing at random",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "precision is reported as a lower bound",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the baselines the kind declares are the ones the final stage computes",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 26,
+   "of": 27,
+   "share": 0.963,
+   "ci95_checks": [
+    0.817,
+    0.993
+   ],
+   "seeds_all_held": 2,
+   "seeds": 3,
+   "ci95": [
+    0.208,
+    0.939
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "the label file is joined on the order, never on a coarser key",
+      "ok": true,
+      "detail": "joined on ['order_id']"
+     },
+     {
+      "decision": "labels from a sample are partial: an unlabelled ride is unknown",
+      "ok": true,
+      "detail": "partial"
+     },
+     {
+      "decision": "behaviour features are chosen over the raw columns",
+      "ok": true,
+      "detail": "entity_behaviour"
+     },
+     {
+      "decision": "folds are grouped by biker",
+      "ok": true,
+      "detail": "StratifiedGroupKFold(3) by `biker_id` on training rows"
+     },
+     {
+      "decision": "rules, anomaly detectors and PU bagging are screened",
+      "ok": true,
+      "detail": "ecod, extra_trees, hist_gradient_boosting, isolation_forest, lightgbm, logistic_regression, percentile_rules, pu_bagging, xgboost"
+     },
+     {
+      "decision": "the holdout average precision is above 0.35 and 20 times chance",
+      "ok": true,
+      "detail": "0.5689178120761622 against 0.00582039911308204"
+     },
+     {
+      "decision": "recall at the budget beats reviewing at random",
+      "ok": true,
+      "detail": "0.6190476190476191"
+     },
+     {
+      "decision": "precision is reported as a lower bound",
+      "ok": true,
+      "detail": "The labels are partial (known_frauds.csv: 103 of 108 label rows found in the table, joined on order_id (103 rows marked)"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "the label file is joined on the order, never on a coarser key",
+      "ok": true,
+      "detail": "joined on ['order_id']"
+     },
+     {
+      "decision": "labels from a sample are partial: an unlabelled ride is unknown",
+      "ok": true,
+      "detail": "partial"
+     },
+     {
+      "decision": "behaviour features are chosen over the raw columns",
+      "ok": true,
+      "detail": "entity_behaviour"
+     },
+     {
+      "decision": "folds are grouped by biker",
+      "ok": true,
+      "detail": "StratifiedGroupKFold(3) by `biker_id` on training rows"
+     },
+     {
+      "decision": "rules, anomaly detectors and PU bagging are screened",
+      "ok": true,
+      "detail": "ecod, extra_trees, hist_gradient_boosting, isolation_forest, lightgbm, logistic_regression, percentile_rules, pu_bagging, xgboost"
+     },
+     {
+      "decision": "the holdout average precision is above 0.35 and 20 times chance",
+      "ok": false,
+      "detail": "0.10935782831242055 against 0.003979185797367615"
+     },
+     {
+      "decision": "recall at the budget beats reviewing at random",
+      "ok": true,
+      "detail": "0.3076923076923077"
+     },
+     {
+      "decision": "precision is reported as a lower bound",
+      "ok": true,
+      "detail": "The labels are partial (known_frauds.csv: 91 of 96 label rows found in the table, joined on order_id (91 rows marked); a"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": [
+     "the holdout average precision is above 0.35 and 20 times chance"
+    ]
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "the label file is joined on the order, never on a coarser key",
+      "ok": true,
+      "detail": "joined on ['order_id']"
+     },
+     {
+      "decision": "labels from a sample are partial: an unlabelled ride is unknown",
+      "ok": true,
+      "detail": "partial"
+     },
+     {
+      "decision": "behaviour features are chosen over the raw columns",
+      "ok": true,
+      "detail": "entity_behaviour"
+     },
+     {
+      "decision": "folds are grouped by biker",
+      "ok": true,
+      "detail": "StratifiedGroupKFold(3) by `biker_id` on training rows"
+     },
+     {
+      "decision": "rules, anomaly detectors and PU bagging are screened",
+      "ok": true,
+      "detail": "ecod, extra_trees, hist_gradient_boosting, isolation_forest, lightgbm, logistic_regression, percentile_rules, pu_bagging, xgboost"
+     },
+     {
+      "decision": "the holdout average precision is above 0.35 and 20 times chance",
+      "ok": true,
+      "detail": "0.5168195410767558 against 0.00804769001490313"
+     },
+     {
+      "decision": "recall at the budget beats reviewing at random",
+      "ok": true,
+      "detail": "0.2962962962962963"
+     },
+     {
+      "decision": "precision is reported as a lower bound",
+      "ok": true,
+      "detail": "The labels are partial (known_frauds.csv: 89 of 94 label rows found in the table, joined on order_id (89 rows marked); a"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-008-C1",
+   "kind": "fact",
+   "statement": "Rare events and fraud: on 2 of 3 seeds every decision held (95% interval over seeds [0.208, 0.939]); 26 of 27 decision checks held; failed: the holdout average precision is above 0.35 and 20 times chance (seed 1).",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C2",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: the label file is joined on the order, never on a coarser key.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C3",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: labels from a sample are partial: an unlabelled ride is unknown.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C4",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: behaviour features are chosen over the raw columns.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C5",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: folds are grouped by biker.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C6",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: rules, anomaly detectors and PU bagging are screened.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C7",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: recall at the budget beats reviewing at random.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C8",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: precision is reported as a lower bound.",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C9",
+   "kind": "recommendation",
+   "statement": "On a rare events and fraud problem: the baselines the kind declares are the ones the final stage computes.",
+   "evidence": [
+    "evidence.decisions.7"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-008-C10",
+   "kind": "risk",
+   "statement": "On a rare events and fraud problem this decision failed on seed 1 of 3: the holdout average precision is above 0.35 and 20 times chance.",
+   "evidence": [
+    "evidence.decisions"
+   ],
+   "limitations": [
+    "Seen on an invented replica; the seed's details are in evidence.seeds."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:15:18+00:00",
+ "completed_at": "2026-10-13T04:16:36+00:00",
+ "elapsed_seconds": 78.2,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

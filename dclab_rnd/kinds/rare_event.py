@@ -29,6 +29,7 @@ class RareEvent(Binary):
     reliability = ("precision at the budget as a lower bound when labels are partial", "entities on both sides of the split",
                    "drift by time")
     evidence_track = "anomaly-and-fraud-detection"
+    aliases = ('fraud detection', 'imbalanced classification', 'rare positives', 'anomaly detection')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     pack_defaults = {"metric": "average_precision", "rare_event": True}
 
     def default_metric(self, solution: Any, positive_rate: float | None, pack: dict[str, Any] | None = None) -> str:

@@ -42,6 +42,7 @@ class TimeToEvent(ProblemKind):
     checks = ("PIT-005",)
     reliability = ("censored share", "horizons the follow-up reaches", "survival per group", "columns counted during the follow-up")
     evidence_track = "churn-prediction"  # 16.14: the research track whose evidence agents cite for this kind
+    aliases = ('survival analysis', 'churn timing', 'censoring', 'time until cancellation')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
     runs_in_engine = False  # the five-stage engine has no censoring yet: dclab_core.survival runs it as a library
     Fields = TimeToEventFields

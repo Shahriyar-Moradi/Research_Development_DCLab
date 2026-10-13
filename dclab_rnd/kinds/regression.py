@@ -24,6 +24,7 @@ class Regression(ProblemKind):
     checks = ("PIT-001", "PIT-002", "PIT-004", "PIT-005", "PIT-006")
     reliability = ("errors by size of the target", "drift by time", "capped or censored targets")
     evidence_track = "time-series-forecasting"
+    aliases = ('regression', 'predicting a number', 'delivery time', 'minutes')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
 
     def target(self, frame: pd.DataFrame, solution: Any) -> tuple[pd.Series, list[str] | None]:

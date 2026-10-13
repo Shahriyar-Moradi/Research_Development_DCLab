@@ -1,0 +1,354 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-013",
+ "kind": "kind_acceptance",
+ "problem_kind": "time_to_event",
+ "title": "Time to event",
+ "description": "How long until something happens (a cancellation, a failure), when for some rows it has not happened yet.",
+ "metrics": [
+  "Concordance (C-index)",
+  "Integrated Brier score (censoring-weighted)",
+  "Time-dependent AUC at a horizon"
+ ],
+ "baselines": [
+  "kaplan_meier"
+ ],
+ "reliability": [
+  "censored share",
+  "horizons the follow-up reaches",
+  "survival per group",
+  "columns counted during the follow-up"
+ ],
+ "track": "churn-prediction",
+ "runs_in_engine": false,
+ "question": "Which decisions does DCLab reach on a time to event problem (How long until something happens (a cancellation, a failure), when for some rows it has not happened yet), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The time to event kind's replica on seeds 0, 1, 2, brought as a person would; its own machine in dclab_core solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "columns counted during the follow-up are kept out",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "censored rows stay censored: dropping them or calling them events is shown to be biased",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "rows split by start day, training censored at the cut, the model chosen before the holdout",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "every model compared with Kaplan-Meier, the chosen one beats it",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "C-index, integrated Brier and time-dependent AUC where the follow-up reaches",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "survival curves per group in the final record",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 21,
+   "of": 21,
+   "share": 1.0,
+   "ci95_checks": [
+    0.845,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "columns counted during the follow-up are kept out",
+      "ok": true,
+      "detail": "months_billed: it moves with the duration (Spearman 1.00 among rows still going, 1.00 among rows ended): it is counted during the follow-up, not known at the start; tickets_so_far: it moves with the duration (Spearman 0.72 among rows still going, 0.64 among rows ended): it is counted during the follow-up, not known at the start"
+     },
+     {
+      "decision": "censored rows stay censored: dropping them or calling them events is shown to be biased",
+      "ok": true,
+      "detail": "90 days: Kaplan-Meier 0.831, dropped 0.682, as events 0.696, true 0.834; 180 days: Kaplan-Meier 0.646, dropped 0.393, as events 0.425, true 0.642; 365 days: Kaplan-Meier 0.339, dropped 0.074, as events 0.111, true 0.343"
+     },
+     {
+      "decision": "rows split by start day, training censored at the cut, the model chosen before the holdout",
+      "ok": true,
+      "detail": "2252 training rows until 2025-07-13, 748 held out from 2025-07-14; cox chosen on the validation rows"
+     },
+     {
+      "decision": "the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased",
+      "ok": true,
+      "detail": "90: honest 0.831, dropped 0.691, as events 0.695, held-out rows 0.848"
+     },
+     {
+      "decision": "every model compared with Kaplan-Meier, the chosen one beats it",
+      "ok": true,
+      "detail": "cox: integrated Brier 0.0896 against 0.0931"
+     },
+     {
+      "decision": "C-index, integrated Brier and time-dependent AUC where the follow-up reaches",
+      "ok": true,
+      "detail": "C-index 0.6362, AUC {'90': 0.6432}, horizons reached [90]"
+     },
+     {
+      "decision": "survival curves per group in the final record",
+      "ok": true,
+      "detail": "basic: {'90': 0.806, '180': 0.615, '365': 0.305}, plus: {'90': 0.847, '180': 0.631, '365': 0.333}, pro: {'90': 0.875, '180': 0.75, '365': 0.437}"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   },
+   {
+    "seed": 1,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "columns counted during the follow-up are kept out",
+      "ok": true,
+      "detail": "months_billed: it moves with the duration (Spearman 1.00 among rows still going, 1.00 among rows ended): it is counted during the follow-up, not known at the start; tickets_so_far: it moves with the duration (Spearman 0.71 among rows still going, 0.65 among rows ended): it is counted during the follow-up, not known at the start"
+     },
+     {
+      "decision": "censored rows stay censored: dropping them or calling them events is shown to be biased",
+      "ok": true,
+      "detail": "90 days: Kaplan-Meier 0.835, dropped 0.686, as events 0.704, true 0.825; 180 days: Kaplan-Meier 0.646, dropped 0.387, as events 0.439, true 0.645; 365 days: Kaplan-Meier 0.347, dropped 0.061, as events 0.119, true 0.36"
+     },
+     {
+      "decision": "rows split by start day, training censored at the cut, the model chosen before the holdout",
+      "ok": true,
+      "detail": "2250 training rows until 2025-07-09, 750 held out from 2025-07-10; cox chosen on the validation rows"
+     },
+     {
+      "decision": "the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased",
+      "ok": true,
+      "detail": "90: honest 0.836, dropped 0.701, as events 0.705, held-out rows 0.801"
+     },
+     {
+      "decision": "every model compared with Kaplan-Meier, the chosen one beats it",
+      "ok": true,
+      "detail": "cox: integrated Brier 0.1044 against 0.1106"
+     },
+     {
+      "decision": "C-index, integrated Brier and time-dependent AUC where the follow-up reaches",
+      "ok": true,
+      "detail": "C-index 0.6609, AUC {'90': 0.6876}, horizons reached [90]"
+     },
+     {
+      "decision": "survival curves per group in the final record",
+      "ok": true,
+      "detail": "basic: {'90': 0.803, '180': 0.613, '365': 0.303}, plus: {'90': 0.853, '180': 0.648, '365': 0.35}, pro: {'90': 0.891, '180': 0.725, '365': 0.458}"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   },
+   {
+    "seed": 2,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "columns counted during the follow-up are kept out",
+      "ok": true,
+      "detail": "months_billed: it moves with the duration (Spearman 1.00 among rows still going, 1.00 among rows ended): it is counted during the follow-up, not known at the start; tickets_so_far: it moves with the duration (Spearman 0.72 among rows still going, 0.64 among rows ended): it is counted during the follow-up, not known at the start"
+     },
+     {
+      "decision": "censored rows stay censored: dropping them or calling them events is shown to be biased",
+      "ok": true,
+      "detail": "90 days: Kaplan-Meier 0.809, dropped 0.644, as events 0.688, true 0.816; 180 days: Kaplan-Meier 0.611, dropped 0.337, as events 0.414, true 0.625; 365 days: Kaplan-Meier 0.34, dropped 0.051, as events 0.119, true 0.352"
+     },
+     {
+      "decision": "rows split by start day, training censored at the cut, the model chosen before the holdout",
+      "ok": true,
+      "detail": "2253 training rows until 2025-07-09, 747 held out from 2025-07-10; cox chosen on the validation rows"
+     },
+     {
+      "decision": "the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased",
+      "ok": true,
+      "detail": "90: honest 0.808, dropped 0.655, as events 0.687, held-out rows 0.824"
+     },
+     {
+      "decision": "every model compared with Kaplan-Meier, the chosen one beats it",
+      "ok": true,
+      "detail": "cox: integrated Brier 0.1015 against 0.1067"
+     },
+     {
+      "decision": "C-index, integrated Brier and time-dependent AUC where the follow-up reaches",
+      "ok": true,
+      "detail": "C-index 0.6559, AUC {'90': 0.6493}, horizons reached [90]"
+     },
+     {
+      "decision": "survival curves per group in the final record",
+      "ok": true,
+      "detail": "basic: {'90': 0.786, '180': 0.574, '365': 0.278}, plus: {'90': 0.808, '180': 0.604, '365': 0.347}, pro: {'90': 0.867, '180': 0.71, '365': 0.488}"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-013-C1",
+   "kind": "fact",
+   "statement": "Time to event: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 21 of 21 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one.",
+    "The engine does not run this kind yet: it runs as a library (dclab_core)."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C2",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: columns counted during the follow-up are kept out.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C3",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: censored rows stay censored: dropping them or calling them events is shown to be biased.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C4",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: rows split by start day, training censored at the cut, the model chosen before the holdout.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C5",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: the chosen model fitted with censored rows dropped, or counted as events, is shown to be biased.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C6",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: every model compared with Kaplan-Meier, the chosen one beats it.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C7",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: C-index, integrated Brier and time-dependent AUC where the follow-up reaches.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-013-C8",
+   "kind": "recommendation",
+   "statement": "On a time to event problem: survival curves per group in the final record.",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:17:56+00:00",
+ "completed_at": "2026-10-13T04:17:59+00:00",
+ "elapsed_seconds": 2.1,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

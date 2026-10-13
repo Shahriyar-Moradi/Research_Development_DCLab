@@ -1,0 +1,279 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-006",
+ "kind": "kind_acceptance",
+ "problem_kind": "places",
+ "title": "Places: values over a map",
+ "description": "A value at a place (a price, a demand) where nearby places are alike: tested on areas the model has not seen.",
+ "metrics": [
+  "Mean absolute error"
+ ],
+ "baselines": [
+  "training_mean",
+  "training_median"
+ ],
+ "reliability": [
+  "blocks of places on each side of the split",
+  "how much a random split flatters",
+  "areas with few rows"
+ ],
+ "track": "driving-maps",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a places: values over a map problem (A value at a place (a price, a demand) where nearby places are alike: tested on areas the model has not seen), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The places: values over a map kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "no block of places is on both sides of the holdout",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a random split's optimism against blocks is measured on the training rows",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the holdout MAE is below the training median's",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the baselines the kind declares are the ones the final stage computes",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 15,
+   "of": 15,
+   "share": 1.0,
+   "ci95_checks": [
+    0.796,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
+      "ok": true,
+      "detail": "blocks of 7.5 km from lat, lon; holdout: 600 rows from 7 `_spatial_block` groups never seen in training (fold 1 of 5 stratified group folds)"
+     },
+     {
+      "decision": "no block of places is on both sides of the holdout",
+      "ok": true,
+      "detail": "25 training blocks, 7 held out, 0 on both sides"
+     },
+     {
+      "decision": "a random split's optimism against blocks is measured on the training rows",
+      "ok": true,
+      "detail": "r2: random folds 0.8833, blocks 0.7478, optimism 0.1354"
+     },
+     {
+      "decision": "the holdout MAE is below the training median's",
+      "ok": true,
+      "detail": "94509.84664502164 against 155211.66666666666"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
+      "ok": true,
+      "detail": "blocks of 10.0 km from lat, lon; holdout: 756 rows from 1 `_spatial_block` groups never seen in training (fold 1 of 5 stratified group folds)"
+     },
+     {
+      "decision": "no block of places is on both sides of the holdout",
+      "ok": true,
+      "detail": "21 training blocks, 1 held out, 0 on both sides"
+     },
+     {
+      "decision": "a random split's optimism against blocks is measured on the training rows",
+      "ok": true,
+      "detail": "r2: random folds 0.9007, blocks 0.6921, optimism 0.2086"
+     },
+     {
+      "decision": "the holdout MAE is below the training median's",
+      "ok": true,
+      "detail": "167392.09046244758 against 327538.3597883598"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "the plan finds that nearby flats are alike and the engine splits by blocks of places",
+      "ok": true,
+      "detail": "blocks of 8.0 km from lat, lon; holdout: 596 rows from 3 `_spatial_block` groups never seen in training (fold 1 of 5 stratified group folds)"
+     },
+     {
+      "decision": "no block of places is on both sides of the holdout",
+      "ok": true,
+      "detail": "22 training blocks, 3 held out, 0 on both sides"
+     },
+     {
+      "decision": "a random split's optimism against blocks is measured on the training rows",
+      "ok": true,
+      "detail": "r2: random folds 0.8916, blocks 0.7715, optimism 0.1201"
+     },
+     {
+      "decision": "the holdout MAE is below the training median's",
+      "ok": true,
+      "detail": "135406.0682326622 against 332201.3422818792"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-006-C1",
+   "kind": "fact",
+   "statement": "Places: values over a map: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 15 of 15 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-006-C2",
+   "kind": "recommendation",
+   "statement": "On a places: values over a map problem: the plan finds that nearby flats are alike and the engine splits by blocks of places.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-006-C3",
+   "kind": "recommendation",
+   "statement": "On a places: values over a map problem: no block of places is on both sides of the holdout.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-006-C4",
+   "kind": "recommendation",
+   "statement": "On a places: values over a map problem: a random split's optimism against blocks is measured on the training rows.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-006-C5",
+   "kind": "recommendation",
+   "statement": "On a places: values over a map problem: the holdout MAE is below the training median's.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-006-C6",
+   "kind": "recommendation",
+   "statement": "On a places: values over a map problem: the baselines the kind declares are the ones the final stage computes.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:19:12+00:00",
+ "completed_at": "2026-10-13T04:20:03+00:00",
+ "elapsed_seconds": 50.6,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

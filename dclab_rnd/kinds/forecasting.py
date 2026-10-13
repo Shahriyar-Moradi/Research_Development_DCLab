@@ -63,6 +63,7 @@ class Forecasting(ProblemKind):
     checks = ("PIT-005", "PIT-006")
     reliability = ("errors by horizon step", "intervals from backtest residuals", "short series", "covariates known ahead")
     evidence_track = "time-series-forecasting"
+    aliases = ('time series forecasting', 'demand forecast', 'sales forecast', 'backtesting')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
     runs_in_engine = False  # the five-stage engine has no rolling origins yet: dclab_core.forecast runs it as a library
     Fields = ForecastFields

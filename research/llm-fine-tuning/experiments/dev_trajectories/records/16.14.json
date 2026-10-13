@@ -1,0 +1,167 @@
+{
+ "package": "16.14",
+ "title": "Agents and evidence per kind",
+ "date": "2026-10-13",
+ "request": "Let agents answer a method question about any problem kind from that kind's own measured evidence, and let the intern read a kind's checks.",
+ "spec": "Each kind has a research track with a first campaign, its pitfalls measured, its traps in the benchmark, and its tools in the registry; lessons are filed by kind; SFT trajectories carry the kind, and no kind's sealed cases ever enter a training set. Done when for each supported kind an agent asked a method question cites that kind's evidence, and the benchmark reports results per kind with intervals.",
+ "plan": [
+  "Point every kind at a research track that exists.",
+  "Run each kind's acceptance on three seeds as a first campaign and store it as evidence with intervals.",
+  "Index the results as a new record type and give the intern a read-only tool for a kind's checks.",
+  "Test with method questions in a person's own words, one per kind.",
+  "Review, fix, and state what stays open."
+ ],
+ "decisions": [
+  {
+   "decision": "The campaign never overwrites a result and runs only from committed code.",
+   "why": "Rewriting KND files broke the immutable-results rule, renumbering by sorted keys reused ids, and the first run recorded a commit that did not hold the code."
+  },
+  {
+   "decision": "The interval is over seeds, not over decision checks.",
+   "why": "Checks on one seed share its data; pooling 21 checks gave [0.845, 1.0] where three seeds honestly give about [0.44, 1.0]."
+  },
+  {
+   "decision": "Decisions waiting on the owner are listed as open, never as failures.",
+   "why": "The missing pretrained encoder failed on every seed by construction and was reported as 'did not always hold'."
+  },
+  {
+   "decision": "The test's questions are in a person's words, frozen, for all fourteen kinds.",
+   "why": "Questions that reused the records' phrases passed for nine kinds while 11 of 29 paraphrases missed."
+  }
+ ],
+ "change": "dclab_rnd/kinds/campaign.py, dclab_rnd/evidence_index.py (_kind_records), dclab_rnd/research_map.py (kinds_v1 linked), dclab_rnd/kinds/*.py (evidence_track), dclab_rnd/tools.py and intern/tools.py (kind_checks), dclab_rnd/studio/trajectories.py (problem_kind), evidence/campaigns/kinds_v1 (README, manifest, KND results), tests/test_kinds_evidence.py, tests/test_agents_runtime.py, tests/test_trajectories.py.",
+ "findings": [
+  {
+   "id": "V1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An existing test counted the project's tools.",
+   "scenario": "test_agents_runtime asserted 24 project tools; with kind_checks there are 25.",
+   "cause": "The count was not updated.",
+   "fix": "25, with the package named.",
+   "test": "test_every_tool_is_registered_once_and_well_formed"
+  },
+  {
+   "id": "V2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The method-question test was narrow and fitted the records' wording.",
+   "scenario": "Nine kinds, questions reusing record phrases; 11 of 29 paraphrases missed (a recommender test offline, spatial cross validation, image splits).",
+   "cause": "Questions written from the records.",
+   "fix": "Fourteen kinds, questions in a person's words, a second held-out set, the kinds' plain names (aliases) in their records, and one question asked through the registry tool the intern calls.",
+   "test": "test_a_method_question_about_a_kind_cites_that_kinds_evidence"
+  },
+  {
+   "id": "V3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The benchmark does not report results per kind.",
+   "scenario": "The KND campaign stood in for it, though it is not the sealed benchmark.",
+   "cause": "Scope.",
+   "fix": "Stated as open: no benchmark case is filed by kind yet.",
+   "test": ""
+  },
+  {
+   "id": "V4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Pitfalls per kind, traps in a new benchmark version and lessons by kind were not built.",
+   "scenario": "No new PIT record, benchmark version or lesson field.",
+   "cause": "Scope.",
+   "fix": "Stated as open in the playbook and here.",
+   "test": ""
+  },
+  {
+   "id": "V5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The campaign overwrote results and renumbered kinds.",
+   "scenario": "A rerun rewrote KND-004 in place; a new kind sorting first would turn binary into KND-002 beside the old KND-002.",
+   "cause": "Ids from sorted keys; no existence check.",
+   "fix": "New ids after the highest on disk; a refusal to overwrite.",
+   "test": ""
+  },
+  {
+   "id": "V6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The provenance named a commit that did not hold the code.",
+   "scenario": "All results said ae8835a while campaign.py was untracked.",
+   "cause": "A bare commit id.",
+   "fix": "Full provenance plus whether the code that runs was committed; the campaign refuses otherwise and ran from bec23cb.",
+   "test": "test_every_kind_names_a_track_that_exists_and_has_its_campaign"
+  },
+  {
+   "id": "V7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Claims overstated what was measured.",
+   "scenario": "A pooled interval over correlated checks; the encoder gap counted as a failure; 'held on every seed' on records with failures.",
+   "cause": "Checks treated as independent; limitations merged from every claim.",
+   "fix": "An interval over seeds, open decisions apart, failed seeds named, limitations from fact and risk claims only.",
+   "test": "test_every_kind_names_a_track_that_exists_and_has_its_campaign"
+  },
+  {
+   "id": "V8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Research indexes would go stale and linked a missing README.",
+   "scenario": "INDEX.md counted 0 results and linked a README that did not exist.",
+   "cause": "Untracked results and no README.",
+   "fix": "README and manifest; results committed before the indexes are rebuilt.",
+   "test": ""
+  },
+  {
+   "id": "V9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Evidence search lost a rule answer.",
+   "scenario": "'How many times can the final holdout be used?' lost DCLAB-R17 from its top five to kind records about holdouts (recall 0.700 to 0.692).",
+   "cause": "Kind records speak of holdouts often.",
+   "fix": "Measured and stated (RET result); a score weight tuned on the same questions was not applied.",
+   "test": ""
+  },
+  {
+   "id": "V10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The trajectory change was untested.",
+   "scenario": "Reverting problem_kind on the records failed no test.",
+   "cause": "Only the helper was tested.",
+   "fix": "The export test requires the field on every record.",
+   "test": "test_a_record_has_the_state_the_choices_the_move_the_verdict_the_evidence_and_what_followed"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "method questions cite the kind's own record (top five of keyword search)",
+   "gate": "each of the 14 kinds, one question in a person's words, and a second set written before the aliases were measured; at least 12 of 14 per set must cite the kind's own record in the top five",
+   "fixed_before_run": false,
+   "result": "Without aliases 9 of 14 worded questions; with the kinds' aliases 13 of 14 on the worded set (rare events missed: the fraud experiments rank first) and 13 of 14 on the held-out set (ranking missed). Evidence search recall at five on the 60 questions 0.692 against 0.700 before (RET-003).",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "The bar of at least 12 of 14 per set holds; the aliases were chosen knowing the first set, so the held-out set is the fairer reading.",
+   "limits": [
+    "Keyword search only; the neural retrieval was not measured with the kind records.",
+    "One question per kind per set."
+   ],
+   "next": "Measure with the embedding retrieval once its vectors are rebuilt; add more questions per kind."
+  }
+ ],
+ "outcome": "Built: every kind has a track, a first campaign with intervals over seeds, an evidence record agents cite, and a checks tool; the benchmark by kind, pitfalls by kind, traps in a new benchmark and lessons by kind remain open.",
+ "lessons": [
+  "A result is immutable and names the code that made it: refuse to run from uncommitted code.",
+  "Intervals over correlated checks are too narrow: count the independent units.",
+  "A test of retrieval must use words a person would type, not the record's own.",
+  "Adding evidence can crowd out older evidence: measure retrieval before and after."
+ ],
+ "risks": [
+  "Evidence rewritten in place.",
+  "Overstated intervals.",
+  "A campaign standing in for a benchmark.",
+  "Retrieval losing canonical answers."
+ ],
+ "commits": [
+  "bec23cb"
+ ]
+}

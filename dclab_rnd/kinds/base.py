@@ -65,6 +65,7 @@ class ProblemKind:
     checks: ClassVar[tuple[str, ...]] = ()          # pitfalls of this kind (dclab_rnd.pitfalls ids) for audit and copilot
     reliability: ClassVar[tuple[str, ...]] = ()     # what the final stage must challenge
     evidence_track: ClassVar[str | None] = None     # research/<track>/ whose claims agents may cite
+    aliases: ClassVar[tuple[str, ...]] = ()           # the names this kind of problem goes by (16.14: in its evidence record)
     export: ClassVar[dict[str, Any]] = {"notebook": True, "service": True}
     stratify: ClassVar[bool] = True                 # class strata in random and grouped splits
     models_text: ClassVar[bool] = False             # free-text columns become features (a text kind)

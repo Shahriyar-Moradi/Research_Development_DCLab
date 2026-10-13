@@ -26,7 +26,7 @@ Best result of each churn study; development CV, not independent confirmation.
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 0 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 14 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 

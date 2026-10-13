@@ -40,6 +40,7 @@ class EntityTables(ProblemKind):
     checks = ("PIT-005",)
     reliability = ("cutoffs per row", "rows left out because the horizon passes the data's end", "joins checked for repeats")
     evidence_track = "churn-prediction"  # 16.14: the research track whose evidence agents cite for this kind
+    aliases = ('relational tables', 'feature aggregation per customer', 'transactions per customer', 'point-in-time features')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
     runs_in_engine = False  # a project holds one table: dclab_core.entities runs it as a library
     Fields = EntityTablesFields

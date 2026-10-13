@@ -667,6 +667,16 @@ def _pitfall_records(root: Path) -> list[Record]:
     return out
 
 
+def _kind_aliases() -> dict[str, tuple[str, ...]]:
+    """The names each kind of problem goes by, from the kinds' own declarations (empty without the studio's packages)."""
+    try:
+        from dclab_rnd import kinds
+
+        return {k.key: tuple(k.aliases) for k in kinds.all_kinds()}
+    except Exception:  # noqa: BLE001 - an index built without the studio's packages keeps the records without aliases
+        return {}
+
+
 def _kind_records(root: Path) -> list[Record]:
     """Each problem kind's decisions on its replica over several seeds (16.14, campaign kinds_v1): what a careful data
     scientist decides on that kind of problem, which held and on which seeds, and the kind's research track."""
@@ -684,7 +694,8 @@ def _kind_records(root: Path) -> list[Record]:
         kept = [c for c in result.get("claims", []) if c.get("kind") in ("fact", "risk")]  # the decisions are listed once, above
         claims = " ".join(c.get("statement", "") for c in kept)
         limits = sorted({lim for c in kept for lim in c.get("limitations", [])})
-        about = (f"{result.get('description', '')} Scored by {', '.join(result.get('metrics') or [])}; baselines "
+        named = _kind_aliases().get(result["problem_kind"], ())
+        about = (f"{result.get('description', '')} Also called: {', '.join(named)}. Scored by {', '.join(result.get('metrics') or [])}; baselines "
                  f"{', '.join(result.get('baselines') or []) or 'none'}; reliability: {', '.join(result.get('reliability') or [])}.")
         out.append(
             Record(

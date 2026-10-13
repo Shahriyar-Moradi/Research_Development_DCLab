@@ -1,0 +1,320 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-014",
+ "kind": "kind_acceptance",
+ "problem_kind": "uplift",
+ "title": "Uplift: who responds to an action",
+ "description": "Who changes because of an action (an offer, a call), so the action goes where it makes a difference.",
+ "metrics": [
+  "Qini coefficient",
+  "Area under the uplift curve"
+ ],
+ "baselines": [
+  "response_model",
+  "random"
+ ],
+ "reliability": [
+  "randomisation and propensity overlap",
+  "uplift by decile",
+  "the wording the record may use"
+ ],
+ "track": "causal-inference-and-experimentation",
+ "runs_in_engine": false,
+ "question": "Which decisions does DCLab reach on a uplift: who responds to an action problem (Who changes because of an action (an offer, a call), so the action goes where it makes a difference), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The uplift: who responds to an action kind's replica on seeds 0, 1, 2, brought as a person would; its own machine in dclab_core solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "uplift beats random targeting, with an interval",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the observational campaign raises the overlap warning and is never called causal",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "uplift by decile and the Qini curve in the record",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 18,
+   "of": 18,
+   "share": 1.0,
+   "ci95_checks": [
+    0.824,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
+      "ok": true,
+      "detail": "uplift_tree chosen on 3500 validation rows; 6000 held out"
+     },
+     {
+      "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
+      "ok": true,
+      "detail": "100% of uplift_tree's top tenth are app users under 35 (all rows 14%; the response model's top tenth 68%)"
+     },
+     {
+      "decision": "uplift beats random targeting, with an interval",
+      "ok": true,
+      "detail": "uplift_tree: Qini coefficient 0.0107, 90% interval [0.006, 0.0163]; AUUC 0.0109, interval [0.0061, 0.0163]; random 0.0009"
+     },
+     {
+      "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+      "ok": true,
+      "detail": "propensity AUC 0.498; effects: the action was assigned at random, and the columns do not predict who got it"
+     },
+     {
+      "decision": "the observational campaign raises the overlap warning and is never called causal",
+      "ok": true,
+      "detail": "associations, not effects: the action was not assigned at random and the arms do not overlap (1% of rows have a comparable row in the other arm; imbalanced: past_purchases)"
+     },
+     {
+      "decision": "uplift by decile and the Qini curve in the record",
+      "ok": true,
+      "detail": "uplift in the top decile 0.203, the second 0.042"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   },
+   {
+    "seed": 1,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
+      "ok": true,
+      "detail": "x_learner chosen on 3500 validation rows; 6000 held out"
+     },
+     {
+      "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
+      "ok": true,
+      "detail": "92% of x_learner's top tenth are app users under 35 (all rows 13%; the response model's top tenth 50%)"
+     },
+     {
+      "decision": "uplift beats random targeting, with an interval",
+      "ok": true,
+      "detail": "x_learner: Qini coefficient 0.0131, 90% interval [0.008, 0.0182]; AUUC 0.0135, interval [0.0085, 0.0189]; random -0.0016"
+     },
+     {
+      "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+      "ok": true,
+      "detail": "propensity AUC 0.505; effects: the action was assigned at random, and the columns do not predict who got it"
+     },
+     {
+      "decision": "the observational campaign raises the overlap warning and is never called causal",
+      "ok": true,
+      "detail": "associations, not effects: the action was not assigned at random and the arms do not overlap (1% of rows have a comparable row in the other arm; imbalanced: past_purchases)"
+     },
+     {
+      "decision": "uplift by decile and the Qini curve in the record",
+      "ok": true,
+      "detail": "uplift in the top decile 0.192, the second 0.112"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   },
+   {
+    "seed": 2,
+    "status": "partial",
+    "checks": [
+     {
+      "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
+      "ok": true,
+      "detail": "x_learner chosen on 3500 validation rows; 6000 held out"
+     },
+     {
+      "decision": "the responsive segment is recovered: the top tenth by predicted uplift is mostly in it",
+      "ok": true,
+      "detail": "100% of x_learner's top tenth are app users under 35 (all rows 13%; the response model's top tenth 56%)"
+     },
+     {
+      "decision": "uplift beats random targeting, with an interval",
+      "ok": true,
+      "detail": "x_learner: Qini coefficient 0.0093, 90% interval [0.0045, 0.0153]; AUUC 0.0093, interval [0.0045, 0.0152]; random 0.0015"
+     },
+     {
+      "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+      "ok": true,
+      "detail": "propensity AUC 0.503; effects: the action was assigned at random, and the columns do not predict who got it"
+     },
+     {
+      "decision": "the observational campaign raises the overlap warning and is never called causal",
+      "ok": true,
+      "detail": "associations, not effects: the action was not assigned at random and the arms do not overlap (1% of rows have a comparable row in the other arm; imbalanced: past_purchases)"
+     },
+     {
+      "decision": "uplift by decile and the Qini curve in the record",
+      "ok": true,
+      "detail": "uplift in the top decile 0.137, the second 0.085"
+     }
+    ],
+    "missing": [
+     "the engine does not run it yet: it runs as a library (dclab_core) only"
+    ]
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-014-C1",
+   "kind": "fact",
+   "statement": "Uplift: who responds to an action: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 18 of 18 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one.",
+    "The engine does not run this kind yet: it runs as a library (dclab_core)."
+   ]
+  },
+  {
+   "claim_id": "KND-014-C2",
+   "kind": "recommendation",
+   "statement": "On a uplift: who responds to an action problem: the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-014-C3",
+   "kind": "recommendation",
+   "statement": "On a uplift: who responds to an action problem: the responsive segment is recovered: the top tenth by predicted uplift is mostly in it.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-014-C4",
+   "kind": "recommendation",
+   "statement": "On a uplift: who responds to an action problem: uplift beats random targeting, with an interval.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-014-C5",
+   "kind": "recommendation",
+   "statement": "On a uplift: who responds to an action problem: the randomised campaign may speak of effects: the columns do not predict who got the offer.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-014-C6",
+   "kind": "recommendation",
+   "statement": "On a uplift: who responds to an action problem: the observational campaign raises the overlap warning and is never called causal.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-014-C7",
+   "kind": "recommendation",
+   "statement": "On a uplift: who responds to an action problem: uplift by decile and the Qini curve in the record.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:17:59+00:00",
+ "completed_at": "2026-10-13T04:18:57+00:00",
+ "elapsed_seconds": 58.6,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

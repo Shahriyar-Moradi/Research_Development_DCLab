@@ -1,0 +1,379 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-012",
+ "kind": "kind_acceptance",
+ "problem_kind": "text_tabular",
+ "title": "Text + tabular (binary)",
+ "description": "A yes or no from free text and the structured fields that come with it.",
+ "metrics": [
+  "ROC-AUC (ranking quality, balanced classes)",
+  "Average precision (rare positives)",
+  "Recall at the review budget (the share of cases found when the team reviews its budget)"
+ ],
+ "baselines": [
+  "majority_class"
+ ],
+ "reliability": [
+  "calibration",
+  "text written after the outcome",
+  "drift in vocabulary"
+ ],
+ "track": "nlp-and-text",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a text + tabular (binary) problem (A yes or no from free text and the structured fields that come with it), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The text + tabular (binary) kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "`shop_reply` is kept out of the model (written after the review)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "`review_id` is kept out of the model (an identifier)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the review text is modelled",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "a text recipe is chosen over the structured fields alone",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the chosen recipe beats the structured fields by 0.1 training-CV",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the holdout ROC-AUC is at least 0.8",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "no copy of the label is left (holdout ROC-AUC below 0.99)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the baselines the kind declares are the ones the final stage computes",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 24,
+   "of": 24,
+   "share": 1.0,
+   "ci95_checks": [
+    0.862,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`shop_reply` is kept out of the model (written after the review)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`review_id` is kept out of the model (an identifier)",
+      "ok": true,
+      "detail": "its role: identifier"
+     },
+     {
+      "decision": "the review text is modelled",
+      "ok": true,
+      "detail": "its role: text"
+     },
+     {
+      "decision": "a text recipe is chosen over the structured fields alone",
+      "ok": true,
+      "detail": "tfidf_word"
+     },
+     {
+      "decision": "the chosen recipe beats the structured fields by 0.1 training-CV",
+      "ok": true,
+      "detail": "0.8008313105319611 against 0.5292315852003646"
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.8",
+      "ok": true,
+      "detail": "0.8685767879316265"
+     },
+     {
+      "decision": "no copy of the label is left (holdout ROC-AUC below 0.99)",
+      "ok": true,
+      "detail": "0.8685767879316265"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`shop_reply` is kept out of the model (written after the review)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`review_id` is kept out of the model (an identifier)",
+      "ok": true,
+      "detail": "its role: identifier"
+     },
+     {
+      "decision": "the review text is modelled",
+      "ok": true,
+      "detail": "its role: text"
+     },
+     {
+      "decision": "a text recipe is chosen over the structured fields alone",
+      "ok": true,
+      "detail": "tfidf_word"
+     },
+     {
+      "decision": "the chosen recipe beats the structured fields by 0.1 training-CV",
+      "ok": true,
+      "detail": "0.8300676191966351 against 0.5044329022293881"
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.8",
+      "ok": true,
+      "detail": "0.8773324203369935"
+     },
+     {
+      "decision": "no copy of the label is left (holdout ROC-AUC below 0.99)",
+      "ok": true,
+      "detail": "0.8773324203369935"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`shop_reply` is kept out of the model (written after the review)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`review_id` is kept out of the model (an identifier)",
+      "ok": true,
+      "detail": "its role: identifier"
+     },
+     {
+      "decision": "the review text is modelled",
+      "ok": true,
+      "detail": "its role: text"
+     },
+     {
+      "decision": "a text recipe is chosen over the structured fields alone",
+      "ok": true,
+      "detail": "tfidf_word"
+     },
+     {
+      "decision": "the chosen recipe beats the structured fields by 0.1 training-CV",
+      "ok": true,
+      "detail": "0.8065761984650544 against 0.46971325906970246"
+     },
+     {
+      "decision": "the holdout ROC-AUC is at least 0.8",
+      "ok": true,
+      "detail": "0.9140549393285193"
+     },
+     {
+      "decision": "no copy of the label is left (holdout ROC-AUC below 0.99)",
+      "ok": true,
+      "detail": "0.9140549393285193"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['majority_class'], computed ['majority_class']"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-012-C1",
+   "kind": "fact",
+   "statement": "Text + tabular (binary): on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 24 of 24 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C2",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: `shop_reply` is kept out of the model (written after the review).",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C3",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: `review_id` is kept out of the model (an identifier).",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C4",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: the review text is modelled.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C5",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: a text recipe is chosen over the structured fields alone.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C6",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: the chosen recipe beats the structured fields by 0.1 training-CV.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C7",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: the holdout ROC-AUC is at least 0.8.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C8",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: no copy of the label is left (holdout ROC-AUC below 0.99).",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-012-C9",
+   "kind": "recommendation",
+   "statement": "On a text + tabular (binary) problem: the baselines the kind declares are the ones the final stage computes.",
+   "evidence": [
+    "evidence.decisions.7"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:20:03+00:00",
+ "completed_at": "2026-10-13T04:20:10+00:00",
+ "elapsed_seconds": 7.7,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

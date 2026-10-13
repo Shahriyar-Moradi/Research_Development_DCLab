@@ -38,6 +38,7 @@ class Embedded(ProblemKind):
     checks = ()
     reliability = ("near copies across the split", "sources per side", "whether the encoder is pretrained")
     evidence_track = "computer-vision"  # 16.14: the research track whose evidence agents cite for this kind
+    aliases = ('image classification', 'computer vision', 'document classification', 'duplicate photos')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
     runs_in_engine = False  # items, not table cells: dclab_core.embeddings runs it as a library
     open_decisions = ("a pretrained local encoder is measured on the replicas",)  # needs weights on this machine: the owner's download

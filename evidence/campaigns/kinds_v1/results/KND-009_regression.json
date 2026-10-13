@@ -1,0 +1,312 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-009",
+ "kind": "kind_acceptance",
+ "problem_kind": "regression",
+ "title": "Regression",
+ "description": "A number for each row: a delivery time, a price, a count.",
+ "metrics": [
+  "Mean absolute error"
+ ],
+ "baselines": [
+  "training_mean",
+  "training_median"
+ ],
+ "reliability": [
+  "errors by size of the target",
+  "drift by time",
+  "capped or censored targets"
+ ],
+ "track": "time-series-forecasting",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a regression problem (A number for each row: a delivery time, a price, a count), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The regression kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "`delivered_at` is kept out of the model (the target can be recomputed from it)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "`courier_rating` is kept out of the model (given after the delivery)",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "scored by mean absolute error",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the holdout MAE is at most 0.9 times the training median's",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the cap at 60 minutes is found on the training rows and its errors called censored",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the baselines the kind declares are the ones the final stage computes",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 18,
+   "of": 18,
+   "share": 1.0,
+   "ci95_checks": [
+    0.824,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`delivered_at` is kept out of the model (the target can be recomputed from it)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`courier_rating` is kept out of the model (given after the delivery)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "scored by mean absolute error",
+      "ok": true,
+      "detail": "mae"
+     },
+     {
+      "decision": "the holdout MAE is at most 0.9 times the training median's",
+      "ok": true,
+      "detail": "8.463764920081084 against 10.126000000000001"
+     },
+     {
+      "decision": "the cap at 60 minutes is found on the training rows and its errors called censored",
+      "ok": true,
+      "detail": "{\"cap\": 60.0, \"holdout_rows_at_cap\": 35, \"mae_at_cap\": 29.5277, \"mae_below_cap\": 7.1589, \"note\": \"values at the cap are censored: their error is a lower bound\"}"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`delivered_at` is kept out of the model (the target can be recomputed from it)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`courier_rating` is kept out of the model (given after the delivery)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "scored by mean absolute error",
+      "ok": true,
+      "detail": "mae"
+     },
+     {
+      "decision": "the holdout MAE is at most 0.9 times the training median's",
+      "ok": true,
+      "detail": "8.142116107304892 against 9.816"
+     },
+     {
+      "decision": "the cap at 60 minutes is found on the training rows and its errors called censored",
+      "ok": true,
+      "detail": "{\"cap\": 60.0, \"holdout_rows_at_cap\": 40, \"mae_at_cap\": 25.5302, \"mae_below_cap\": 6.9001, \"note\": \"values at the cap are censored: their error is a lower bound\"}"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "`delivered_at` is kept out of the model (the target can be recomputed from it)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "`courier_rating` is kept out of the model (given after the delivery)",
+      "ok": true,
+      "detail": "its role: blocked"
+     },
+     {
+      "decision": "scored by mean absolute error",
+      "ok": true,
+      "detail": "mae"
+     },
+     {
+      "decision": "the holdout MAE is at most 0.9 times the training median's",
+      "ok": true,
+      "detail": "9.22122127087911 against 10.770499999999998"
+     },
+     {
+      "decision": "the cap at 60 minutes is found on the training rows and its errors called censored",
+      "ok": true,
+      "detail": "{\"cap\": 60.0, \"holdout_rows_at_cap\": 41, \"mae_at_cap\": 28.1545, \"mae_below_cap\": 7.8326, \"note\": \"values at the cap are censored: their error is a lower bound\"}"
+     },
+     {
+      "decision": "the baselines the kind declares are the ones the final stage computes",
+      "ok": true,
+      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-009-C1",
+   "kind": "fact",
+   "statement": "Regression: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 18 of 18 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-009-C2",
+   "kind": "recommendation",
+   "statement": "On a regression problem: `delivered_at` is kept out of the model (the target can be recomputed from it).",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-009-C3",
+   "kind": "recommendation",
+   "statement": "On a regression problem: `courier_rating` is kept out of the model (given after the delivery).",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-009-C4",
+   "kind": "recommendation",
+   "statement": "On a regression problem: scored by mean absolute error.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-009-C5",
+   "kind": "recommendation",
+   "statement": "On a regression problem: the holdout MAE is at most 0.9 times the training median's.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-009-C6",
+   "kind": "recommendation",
+   "statement": "On a regression problem: the cap at 60 minutes is found on the training rows and its errors called censored.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-009-C7",
+   "kind": "recommendation",
+   "statement": "On a regression problem: the baselines the kind declares are the ones the final stage computes.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-13T04:20:28+00:00",
+ "completed_at": "2026-10-13T04:20:31+00:00",
+ "elapsed_seconds": 3.3,
+ "provenance": {
+  "git_commit": "bec23cb11c267858aeff20faf398af155c042c47",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/Users/shahriar/Desktop/Desktop/Work/MyStartUp/R&D/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}

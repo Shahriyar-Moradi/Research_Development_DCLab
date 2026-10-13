@@ -46,6 +46,7 @@ class Ranking(ProblemKind):
     checks = ("PIT-005",)
     reliability = ("users with and without a history", "coverage and novelty", "items created after the moment")
     evidence_track = "recommender-systems"
+    aliases = ('recommender systems', 'recommendations', 'learning to rank', 'top-k lists', 'offline evaluation')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
     runs_in_engine = False  # the five-stage engine scores rows, not lists: dclab_core.ranking runs it as a library
     Fields = RankingFields

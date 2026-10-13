@@ -38,6 +38,7 @@ class Segmentation(ProblemKind):
     checks = ()
     reliability = ("stability interval per number of segments", "columns no group uses", "density view and its noise share")
     evidence_track = "data-science-foundations"  # 16.14: the research track whose evidence agents cite for this kind
+    aliases = ('clustering', 'customer segments', 'personas', 'unsupervised grouping')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     stratify = False
     runs_in_engine = False  # no target and no holdout: dclab_core.segment runs it as a library
     Fields = SegmentationFields
