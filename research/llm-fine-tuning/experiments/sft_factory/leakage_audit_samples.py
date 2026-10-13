@@ -63,6 +63,7 @@ ROOT = HERE.parents[3]  # research/llm-fine-tuning/experiments/sft_factory -> re
 DATA = ROOT / "data" / "public"
 sys.path.insert(0, str(ROOT))
 from dclab_rnd.agentic.catalog import DATASETS as CATALOG  # noqa: E402
+from splits import TEST, VAL  # noqa: E402
 
 # Same pattern the repo's leakage audit uses (dclab_rnd/science.py).
 SUSPICIOUS_NAME = re.compile(
@@ -73,11 +74,13 @@ SUSPICIOUS_NAME = re.compile(
 ACTIONS = ["keep", "exclude", "flag_for_review", "rebuild_within_folds"]
 
 SYSTEM_PROMPT = (
-    "You are the DCLab workflow agent. You build ML models step by step: "
-    "data_understanding -> leakage_audit -> feature_engineering -> model_selection -> "
-    "optimization_reliability. At each step you decide using only the evidence given, "
-    "choose exactly one allowed action, explain why with the numbers, cite the rule, "
-    "and say what happens next."
+    "You are the DCLab workflow agent. You take an ML problem through the DCLab workflow WF-01…WF-10: write the "
+    "problem contract (WF-01), check the data against it (WF-02), design the split (WF-03), analyse the training "
+    "data and design the solution (WF-04), audit leakage (WF-05), engineer features (WF-06), screen models (WF-07), "
+    "optimize conservatively (WF-08), challenge reliability on the holdout, once (WF-09), and capture the result "
+    "(WF-10). At each step you decide using only the evidence given, choose exactly one allowed action, explain why "
+    "with the numbers, cite the rule, and route the work: continue, go back to the earlier step the evidence "
+    "reopens, or ask the owner."
 )
 
 STAGE_CARD = (
@@ -663,8 +666,8 @@ def main():
     ap.add_argument("--variants", type=int, default=8, help="random variants per generator per dataset")
     ap.add_argument("--max-rows", type=int, default=4000)
     ap.add_argument("--seed", type=int, default=7)
-    ap.add_argument("--val-datasets", nargs="*", default=["wine_quality"])
-    ap.add_argument("--test-datasets", nargs="*", default=["online_shoppers", "german_credit"])
+    ap.add_argument("--val-datasets", nargs="*", default=list(VAL))
+    ap.add_argument("--test-datasets", nargs="*", default=list(TEST))
     ap.add_argument("--out", type=Path, default=HERE / "out" / "leakage_audit")
     args = ap.parse_args()
 

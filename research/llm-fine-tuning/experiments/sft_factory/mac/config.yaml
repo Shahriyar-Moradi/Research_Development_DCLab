@@ -1,0 +1,30 @@
+# Training settings for the M1 Max (64 GB, 59 GB given to training). Paths are relative to sft_factory/.
+# Change `model` to the folder you converted (8-bit or bf16, see RUNBOOK.md step 2).
+
+model: models/qwen35-9b-8bit
+adapter_path: adapters/dclab-qwen35-9b
+data: out/mix
+
+lora:
+  rank: 16          # enough for formats and rules; higher learns a little more and forgets more coding
+  scale: 2.0        # = alpha / rank with alpha 32
+  dropout: 0.05
+  num_layers: -1    # every layer
+
+epochs: 3            # the best checkpoint is usually epoch 2 or 3; eval_mlx.py --pick chooses
+learning_rate: 1.0e-4
+warmup_share: 0.05
+min_lr_share: 0.1    # cosine decay ends at 10% of the peak learning rate
+weight_decay: 0.0
+grad_accumulation: 8 # batch 1, effective batch 8
+max_seq_length: 16384  # items longer than this are skipped (never cut); check the count in the first log line
+grad_checkpoint: true
+chunked_gated_delta: true  # Qwen3.5's linear attention trains chunk by chunk (needed for long items)
+
+save_every: 100      # optimizer steps between resumable checkpoints
+eval_every: 200
+eval_items: 120
+seed: 7
+
+wired_limit_gb: 56   # keep about 3 GB of your 59 for macOS
+cache_limit_gb: 4

@@ -1,17 +1,21 @@
 {
   "total": 1059,
   "splits": {
-    "train": 738,
-    "val": 105,
+    "train": 631,
+    "val": 212,
     "test": 216
   },
   "split_datasets": {
     "val": [
-      "wine_quality"
+      "wine_quality",
+      "heart_disease",
+      "delivery_time"
     ],
     "test": [
       "online_shoppers",
-      "german_credit"
+      "german_credit",
+      "product_reviews",
+      "city_prices"
     ]
   },
   "by_action": {
@@ -39,16 +43,16 @@
   },
   "by_action_per_split": {
     "train": {
-      "exclude": 328,
-      "keep": 252,
-      "flag_for_review": 104,
-      "rebuild_within_folds": 54
+      "keep": 216,
+      "flag_for_review": 88,
+      "exclude": 281,
+      "rebuild_within_folds": 46
     },
     "val": {
-      "keep": 36,
-      "exclude": 46,
-      "flag_for_review": 16,
-      "rebuild_within_folds": 7
+      "keep": 72,
+      "exclude": 93,
+      "flag_for_review": 32,
+      "rebuild_within_folds": 15
     },
     "test": {
       "keep": 72,

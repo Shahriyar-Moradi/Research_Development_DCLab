@@ -1,20 +1,20 @@
 {
   "stage": "data_analysis",
   "splits": {
-    "train": 132,
-    "val": 9,
+    "train": 104,
+    "val": 37,
     "test": 56
   },
   "by_scenario": {
-    "delivery_time": 18,
-    "subscription_churn": 19,
-    "spambase": 12,
-    "adult": 9,
     "ticket_routing": 16,
-    "mushroom": 12,
-    "store_demand": 15,
     "bank_marketing": 11,
+    "store_demand": 15,
+    "subscription_churn": 19,
+    "mushroom": 12,
+    "adult": 9,
+    "spambase": 12,
     "credit_default": 10,
+    "delivery_time": 18,
     "heart_disease": 10,
     "wine_quality": 9,
     "city_prices": 15,
@@ -24,9 +24,11 @@
   },
   "split_by_scenario": {
     "wine_quality": "val",
-    "product_reviews": "test",
-    "city_prices": "test",
+    "heart_disease": "val",
+    "delivery_time": "val",
     "online_shoppers": "test",
-    "german_credit": "test"
+    "german_credit": "test",
+    "product_reviews": "test",
+    "city_prices": "test"
   }
 }

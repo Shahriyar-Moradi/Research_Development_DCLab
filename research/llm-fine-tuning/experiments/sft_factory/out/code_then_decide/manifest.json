@@ -1,0 +1,33 @@
+{
+  "stage": "code_then_decide",
+  "splits": {
+    "train": 96,
+    "val": 34,
+    "test": 33
+  },
+  "by_action": {
+    "calibrate_sigmoid": 6,
+    "investigate_gap_without_shift": 9,
+    "keep_uncalibrated": 29,
+    "random_forest": 23,
+    "keep_raw": 28,
+    "accept_result": 18,
+    "proceed": 5,
+    "adopt_log_transforms": 4,
+    "logistic_regression": 6,
+    "hist_gradient_boosting": 11,
+    "investigate_distribution_shift": 11,
+    "calibrate_isotonic": 5,
+    "deduplicate_before_split": 3,
+    "small_data_protocol": 2,
+    "adopt_ratios": 2,
+    "adopt_interactions": 1
+  },
+  "by_generator": {
+    "code_calibration": 40,
+    "code_holdout": 38,
+    "code_screen": 40,
+    "code_feature_ladder": 35,
+    "code_presplit": 10
+  }
+}

@@ -1,31 +1,31 @@
 {
   "stage": "optimization_reliability",
-  "total": 307,
+  "total": 462,
   "splits": {
-    "train": 211,
-    "val": 32,
-    "test": 64
+    "train": 270,
+    "val": 96,
+    "test": 96
   },
   "by_action": {
-    "keep_uncalibrated": 108,
-    "calibrate_isotonic": 14,
-    "calibrate_sigmoid": 38,
-    "accept_result": 78,
-    "investigate_distribution_shift": 56,
-    "investigate_gap_without_shift": 13
+    "keep_uncalibrated": 153,
+    "calibrate_isotonic": 24,
+    "calibrate_sigmoid": 63,
+    "accept_result": 104,
+    "investigate_distribution_shift": 79,
+    "investigate_gap_without_shift": 39
   },
   "by_generator": {
-    "opt_calibration_logistic_regression": 30,
-    "opt_calibration_random_forest": 30,
-    "opt_calibration_extra_trees": 30,
-    "opt_calibration_hist_gradient_boosting": 30,
-    "opt_calibration_logistic_regression_balanced_weights": 20,
-    "opt_calibration_random_forest_balanced_weights": 20,
-    "opt_holdout_random": 80,
-    "opt_holdout_shifted": 67
+    "opt_calibration_logistic_regression": 40,
+    "opt_calibration_random_forest": 40,
+    "opt_calibration_extra_trees": 40,
+    "opt_calibration_hist_gradient_boosting": 40,
+    "opt_calibration_logistic_regression_balanced_weights": 40,
+    "opt_calibration_random_forest_balanced_weights": 40,
+    "opt_holdout_random": 120,
+    "opt_holdout_shifted": 102
   },
   "dropped_by_checker": {
-    "holdout_one_class": 7
+    "holdout_one_class": 8
   },
-  "seconds": 904
+  "seconds": 1278
 }

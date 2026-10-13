@@ -5,13 +5,15 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ORDER = ["problem_understanding", "contract_check", "data_analysis", "solution_design", "connected_problem_to_plan",
-         "end_to_end", "data_understanding", "leakage_audit", "feature_engineering", "model_selection", "optimization_reliability"]
+         "end_to_end", "data_understanding", "leakage_audit", "feature_engineering", "model_selection", "optimization_reliability",
+         "code_then_decide", "code_review"]
 
 rows = [json.loads(l) for l in open(HERE / "out" / "all_stages" / "train.jsonl", encoding="utf-8")]
 report = json.loads((HERE / "out" / "all_stages" / "report.json").read_text())
 picked = {}
 for r in rows:
-    k = (r["metadata"]["stage"], r["metadata"]["action"])
+    k = (r["metadata"]["stage"], r["metadata"]["action"] if r["metadata"]["stage"] != "end_to_end"
+         else f"end_to_end ({r['metadata'].get('variant')}, stops at {r['metadata'].get('stopped_at')})")
     picked.setdefault(k, r)
 
 totals = Counter(r["metadata"]["stage"] for r in rows)

@@ -52,6 +52,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from leakage_audit_samples import CATALOG, HERE, SYSTEM_PROMPT, TARGETS, load, univariate_auc
+from splits import TEST, VAL
 
 # ----------------------------------------------------------------------------
 # Shared helpers
@@ -159,7 +160,7 @@ def simulated_target(X, rng, kind, return_cols=False):
 DU_ACTIONS = ["proceed", "deduplicate_before_split", "use_imbalance_aware_evaluation",
               "impute_within_folds", "small_data_protocol"]
 DU_CARD = (
-    "Data understanding: profile the dataset and decide the first action before any split or model. "
+    "Data understanding, before the split: profile the whole table and decide the first action before any split or model. "
     "Thresholds: duplicate rows above 1% | minority class below 10% | any column missing above 5% | "
     "fewer than 500 rows or fewer than 20 rows per feature."
 )
@@ -209,7 +210,7 @@ def du_why(action, p, kind):
     if action == "proceed":
         return (f"No threshold is crossed: duplicates {p['dup']:.1%}, minority class {p['minority']:.1%}, highest missing "
                 f"rate {p['max_missing']:.1%}, {p['rows']:,} rows ({p['rows_per_feature']:.1f} per feature). The data is "
-                f"ready for the leakage audit.")
+                f"ready for the split and the training-only analysis.")
     if action == "deduplicate_before_split":
         return (f"{p['dup']:.1%} of rows are exact duplicates, above the 1% threshold. If they are split randomly, copies "
                 f"of the same row land in both training and test folds, so the test score partly measures memory. "
@@ -236,11 +237,11 @@ DU_RULES = {
     "small_data_protocol": "DCLAB-R16 (paired, stable comparisons) and DCLAB-R13 (start from a transparent baseline)",
 }
 DU_NEXT = {
-    "proceed": "Write the profile to the decision ledger and start the leakage audit.",
-    "deduplicate_before_split": "Deduplicate (or define groups), re-profile, then start the leakage audit.",
-    "use_imbalance_aware_evaluation": "Fix the evaluation plan (stratified folds, PR-AUC, cost-based threshold) before the leakage audit.",
-    "impute_within_folds": "Add in-fold imputation and missing indicators to the pipeline, then start the leakage audit.",
-    "small_data_protocol": "Switch to repeated stratified CV with a linear baseline, then start the leakage audit.",
+    "proceed": "Write the profile to the decision ledger, design the split, then profile the training partition.",
+    "deduplicate_before_split": "Deduplicate (or define groups) before the split, re-profile, then profile the training partition.",
+    "use_imbalance_aware_evaluation": "Build the split and evaluation plan around the imbalance (stratified folds, PR-AUC, cost-based threshold), then profile the training partition.",
+    "impute_within_folds": "Plan in-fold imputation with missing indicators, design the split, then profile the training partition.",
+    "small_data_protocol": "Use repeated stratified CV with a linear baseline as the split design, then profile the training partition.",
 }
 
 
@@ -562,7 +563,7 @@ def cal_decide(st, model, train_rows):
 
 HOLDOUT_NEXT = {
     "accept_result": "Report CV and holdout together with uncertainty, and do not tune anything on the holdout.",
-    "investigate_distribution_shift": "Do not tune on the holdout. Slice results by the shifted feature, document the gap, and decide with the data owner.",
+    "investigate_distribution_shift": "Do not tune on the holdout. Slice results by the shifted feature, document the gap, and redesign the split so training and test reflect that shift (by time or by the shifted group); the spent holdout is reported, never reused.",
     "investigate_gap_without_shift": "Do not tune on the holdout. Put a bootstrap interval on the holdout score, review which earlier choices were made on CV, and report both numbers with the explanation.",
 }
 
@@ -683,8 +684,8 @@ def main():
     ap.add_argument("--datasets", nargs="*", default=list(TARGETS))
     ap.add_argument("--variants", type=int, default=12)
     ap.add_argument("--seed", type=int, default=11)
-    ap.add_argument("--val-datasets", nargs="*", default=["wine_quality"])
-    ap.add_argument("--test-datasets", nargs="*", default=["online_shoppers", "german_credit"])
+    ap.add_argument("--val-datasets", nargs="*", default=list(VAL))
+    ap.add_argument("--test-datasets", nargs="*", default=list(TEST))
     ap.add_argument("--out", type=Path, default=HERE / "out")
     args = ap.parse_args()
     split_of = {**{k: "val" for k in args.val_datasets}, **{k: "test" for k in args.test_datasets}}

@@ -1,0 +1,62 @@
+{
+  "dropped": {
+    "number_not_in_input": 3,
+    "task_not_applicable": 4,
+    "duplicate": 30
+  },
+  "number_examples": [
+    {
+      "dataset": "adult",
+      "task": "feature_ladder",
+      "numbers": [
+        "-0.0001"
+      ]
+    },
+    {
+      "dataset": "german_credit",
+      "task": "holdout",
+      "numbers": [
+        "0.0329"
+      ]
+    },
+    {
+      "dataset": "mushroom",
+      "task": "holdout",
+      "numbers": [
+        "-0.0000"
+      ]
+    }
+  ],
+  "stages": {
+    "code_then_decide": {
+      "train": 96,
+      "val": 34,
+      "test": 33
+    },
+    "code_review": {
+      "train": 172,
+      "val": 56,
+      "test": 56
+    }
+  },
+  "by_action": {
+    "proceed": 20,
+    "keep_raw": 28,
+    "random_forest": 23,
+    "keep_uncalibrated": 29,
+    "investigate_distribution_shift": 11,
+    "fix_leak": 142,
+    "no_issue": 142,
+    "adopt_ratios": 2,
+    "calibrate_sigmoid": 6,
+    "investigate_gap_without_shift": 9,
+    "accept_result": 18,
+    "small_data_protocol": 8,
+    "logistic_regression": 6,
+    "adopt_log_transforms": 4,
+    "calibrate_isotonic": 5,
+    "hist_gradient_boosting": 11,
+    "deduplicate_before_split": 12,
+    "adopt_interactions": 1
+  }
+}

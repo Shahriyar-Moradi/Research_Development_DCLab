@@ -25,15 +25,19 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from workflow_map import annotate
+
 OUT = Path(__file__).resolve().parent / "out"
 STAGES = ["problem_understanding", "contract_check", "data_analysis", "solution_design", "connected_problem_to_plan",
           "end_to_end", "data_understanding", "leakage_audit", "feature_engineering", "feature_engineering_balance",
-          "model_selection", "optimization_reliability"]
+          "model_selection", "optimization_reliability", "code_then_decide", "code_review"]
+MULTI_TURN = {"connected_problem_to_plan", "end_to_end", "code_then_decide"}
 # Stages whose answers are JSON contracts (problem_to_plan_samples.py). Their generator already validates them
 # against dclab_core's contracts, quote rules, plan.validate and a stricter number check; here they must parse.
 JSON_STAGES = {"problem_understanding", "contract_check", "data_analysis", "solution_design", "connected_problem_to_plan"}
-# end_to_end mixes both formats: JSON turns must parse, DECISION turns must pick an action their own turn allows.
-# Its generator already checks every number of every turn against everything before it.
+# Multi-turn samples mix formats: JSON turns must parse, code turns must compile, DECISION turns must pick an action
+# their own turn allows. Their generators already check every number of every turn against everything before it.
+# Every answer must carry its route (workflow_map), except a code turn and the final report.
 NUM = re.compile(r"[+-]?\d[\d,]*\.\d+%?|[+-]?\d+/5")
 
 
@@ -45,23 +49,36 @@ def load(stage, split):
 def check_turns(sample):
     problems, msgs = [], sample["messages"]
     for i, m in enumerate(msgs):
+        if m["role"] == "user" and not m["content"].startswith("WORKFLOW STEP: WF-"):
+            problems.append(f"turn_{i}_no_step_header")
         if m["role"] != "assistant":
             continue
-        if m["content"].startswith("DECISION:"):
-            decision = re.search(r"DECISION: (\S+)", m["content"]).group(1)
+        c = m["content"]
+        if c.startswith("DECISION:"):
+            decision = re.search(r"DECISION: (\S+)", c).group(1)
             allowed = re.search(r"ALLOWED ACTIONS: (.*)", msgs[i - 1]["content"]).group(1).split(" | ")
             if decision not in allowed:
                 problems.append(f"turn_{i}_decision_not_allowed")
+            if not re.search(r"\nNEXT: \[(continue|back|ask_owner) → WF-\d\d\]", c):
+                problems.append(f"turn_{i}_missing_route")
+        elif c.startswith("```python"):
+            try:
+                compile(c.split("```python\n", 1)[1].rsplit("```", 1)[0], "<sample>", "exec")
+            except SyntaxError:
+                problems.append(f"turn_{i}_code_does_not_compile")
         else:
             try:
-                json.loads(m["content"])
+                obj = json.loads(c)
             except json.JSONDecodeError:
                 problems.append(f"turn_{i}_not_json")
+                continue
+            if "route" not in obj and obj.get("status") != "complete":
+                problems.append(f"turn_{i}_missing_route")
     return problems
 
 
 def check(sample):
-    if sample["metadata"].get("stage") == "end_to_end":
+    if sample["metadata"].get("stage") in MULTI_TURN or sample["metadata"].get("stage") in JSON_STAGES:
         return check_turns(sample)
     if sample["metadata"].get("stage") in JSON_STAGES:
         problems = []
@@ -76,13 +93,14 @@ def check(sample):
     ans = sample["messages"][2]["content"]
     decision = re.search(r"DECISION: (\S+)", ans).group(1)
     allowed = re.search(r"ALLOWED ACTIONS: (.*)", user).group(1).split(" | ")
-    why = ans.split("WHY:")[1].split("RULE:")[0]
+    why = ans.split("WHY:")[1].split("FIX:")[0].split("RULE:")[0]
     problems = []
     if decision not in allowed:
         problems.append("decision_not_allowed")
     missing = [n for n in NUM.findall(why) if n.lstrip("+") not in user and n not in user]
     if missing:
         problems.append(f"number_not_in_input:{missing[:3]}")
+    problems += [p for p in check_turns(sample) if "missing_route" in p or "no_step_header" in p]
     evidence = user.split("ALLOWED ACTIONS:")[0].split("\n\n", 2)[-1]
     stage = sample["metadata"]["stage"] if "stage" in sample["metadata"] else "leakage_audit"
     if stage != "model_selection" and decision in evidence:
@@ -100,6 +118,7 @@ def main():
         for split in merged:
             for s in load(stage, split):
                 s["metadata"].setdefault("stage", stage)
+                s = annotate(s)  # the unified workflow: step header and route (workflow_map)
                 h = hashlib.sha256(json.dumps(s["messages"][1:], ensure_ascii=False).encode()).hexdigest()  # whole conversation
                 if h in seen:
                     stats["duplicate"] += 1

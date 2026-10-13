@@ -1,0 +1,22 @@
+{
+  "stage": "code_review",
+  "splits": {
+    "train": 172,
+    "val": 56,
+    "test": 56
+  },
+  "by_action": {
+    "no_issue": 142,
+    "fix_leak": 142
+  },
+  "by_generator": {
+    "review_dedupe_after_split": 40,
+    "review_oversample_before_cv": 40,
+    "review_imputer_before_cv": 40,
+    "review_scaler_before_cv": 40,
+    "review_tuned_on_test": 40,
+    "review_selection_before_cv": 40,
+    "review_target_encoding_all_rows": 40,
+    "review_random_split_on_time": 4
+  }
+}

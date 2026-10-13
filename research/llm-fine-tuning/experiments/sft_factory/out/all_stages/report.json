@@ -1,8 +1,8 @@
 {
   "problem_understanding": {
     "samples": 266,
-    "train": 184,
-    "val": 13,
+    "train": 148,
+    "val": 49,
     "test": 69,
     "rejected": 0,
     "duplicates": 0,
@@ -14,8 +14,8 @@
   },
   "contract_check": {
     "samples": 393,
-    "train": 279,
-    "val": 20,
+    "train": 226,
+    "val": 73,
     "test": 94,
     "rejected": 0,
     "duplicates": 0,
@@ -29,8 +29,8 @@
   },
   "data_analysis": {
     "samples": 197,
-    "train": 132,
-    "val": 9,
+    "train": 104,
+    "val": 37,
     "test": 56,
     "rejected": 0,
     "duplicates": 0,
@@ -42,8 +42,8 @@
   },
   "solution_design": {
     "samples": 197,
-    "train": 132,
-    "val": 9,
+    "train": 104,
+    "val": 37,
     "test": 56,
     "rejected": 0,
     "duplicates": 0,
@@ -55,8 +55,8 @@
   },
   "connected_problem_to_plan": {
     "samples": 201,
-    "train": 134,
-    "val": 11,
+    "train": 106,
+    "val": 39,
     "test": 56,
     "rejected": 0,
     "duplicates": 0,
@@ -67,39 +67,39 @@
     "rejection_examples": []
   },
   "end_to_end": {
-    "samples": 96,
+    "samples": 109,
     "train": 69,
-    "val": 9,
-    "test": 18,
+    "val": 20,
+    "test": 20,
     "rejected": 0,
     "duplicates": 0,
     "by_decision": {
-      "end_to_end": 96
+      "end_to_end": 109
     },
     "largest_decision_share": 1.0,
     "rejection_examples": []
   },
   "data_understanding": {
-    "samples": 640,
-    "train": 431,
-    "val": 80,
-    "test": 129,
+    "samples": 951,
+    "train": 628,
+    "val": 135,
+    "test": 188,
     "rejected": 0,
     "duplicates": 0,
     "by_decision": {
-      "small_data_protocol": 154,
-      "deduplicate_before_split": 142,
-      "use_imbalance_aware_evaluation": 123,
-      "proceed": 113,
-      "impute_within_folds": 108
+      "small_data_protocol": 227,
+      "deduplicate_before_split": 211,
+      "use_imbalance_aware_evaluation": 181,
+      "proceed": 169,
+      "impute_within_folds": 163
     },
-    "largest_decision_share": 0.241,
+    "largest_decision_share": 0.239,
     "rejection_examples": []
   },
   "leakage_audit": {
     "samples": 1059,
-    "train": 738,
-    "val": 105,
+    "train": 631,
+    "val": 212,
     "test": 216,
     "rejected": 0,
     "duplicates": 0,
@@ -113,75 +113,117 @@
     "rejection_examples": []
   },
   "feature_engineering": {
-    "samples": 154,
-    "train": 106,
-    "val": 16,
-    "test": 32,
+    "samples": 230,
+    "train": 134,
+    "val": 48,
+    "test": 48,
     "rejected": 0,
     "duplicates": 0,
     "by_decision": {
-      "keep_raw": 116,
-      "adopt_interactions": 19,
-      "adopt_log_transforms": 14,
-      "adopt_ratios": 5
+      "keep_raw": 161,
+      "adopt_interactions": 51,
+      "adopt_log_transforms": 16,
+      "adopt_ratios": 2
     },
-    "largest_decision_share": 0.753,
+    "largest_decision_share": 0.7,
     "rejection_examples": []
   },
   "feature_engineering_balance": {
-    "samples": 90,
-    "train": 63,
-    "val": 9,
-    "test": 18,
+    "samples": 240,
+    "train": 144,
+    "val": 48,
+    "test": 48,
     "rejected": 0,
     "duplicates": 0,
     "by_decision": {
-      "keep_raw": 54,
-      "adopt_interactions": 25,
-      "adopt_log_transforms": 9,
-      "adopt_ratios": 2
+      "keep_raw": 144,
+      "adopt_interactions": 66,
+      "adopt_log_transforms": 15,
+      "adopt_ratios": 15
     },
     "largest_decision_share": 0.6,
     "rejection_examples": []
   },
   "model_selection": {
-    "samples": 160,
-    "train": 112,
-    "val": 16,
-    "test": 32,
+    "samples": 240,
+    "train": 144,
+    "val": 48,
+    "test": 48,
     "rejected": 0,
     "duplicates": 0,
     "by_decision": {
-      "hist_gradient_boosting": 45,
-      "extra_trees": 44,
-      "random_forest": 42,
-      "logistic_regression": 29
+      "hist_gradient_boosting": 72,
+      "random_forest": 67,
+      "extra_trees": 57,
+      "logistic_regression": 44
     },
-    "largest_decision_share": 0.281,
+    "largest_decision_share": 0.3,
     "rejection_examples": []
   },
   "optimization_reliability": {
-    "samples": 307,
-    "train": 211,
-    "val": 32,
-    "test": 64,
+    "samples": 462,
+    "train": 270,
+    "val": 96,
+    "test": 96,
     "rejected": 0,
     "duplicates": 0,
     "by_decision": {
-      "keep_uncalibrated": 108,
-      "accept_result": 78,
-      "investigate_distribution_shift": 56,
-      "calibrate_sigmoid": 38,
-      "calibrate_isotonic": 14,
-      "investigate_gap_without_shift": 13
+      "keep_uncalibrated": 153,
+      "accept_result": 104,
+      "investigate_distribution_shift": 79,
+      "calibrate_sigmoid": 63,
+      "investigate_gap_without_shift": 39,
+      "calibrate_isotonic": 24
     },
-    "largest_decision_share": 0.352,
+    "largest_decision_share": 0.331,
+    "rejection_examples": []
+  },
+  "code_then_decide": {
+    "samples": 163,
+    "train": 96,
+    "val": 34,
+    "test": 33,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "keep_uncalibrated": 29,
+      "keep_raw": 28,
+      "random_forest": 23,
+      "accept_result": 18,
+      "hist_gradient_boosting": 11,
+      "investigate_distribution_shift": 11,
+      "investigate_gap_without_shift": 9,
+      "calibrate_sigmoid": 6,
+      "logistic_regression": 6,
+      "proceed": 5,
+      "calibrate_isotonic": 5,
+      "adopt_log_transforms": 4,
+      "deduplicate_before_split": 3,
+      "small_data_protocol": 2,
+      "adopt_ratios": 2,
+      "adopt_interactions": 1
+    },
+    "largest_decision_share": 0.178,
+    "rejection_examples": []
+  },
+  "code_review": {
+    "samples": 284,
+    "train": 172,
+    "val": 56,
+    "test": 56,
+    "rejected": 0,
+    "duplicates": 0,
+    "by_decision": {
+      "no_issue": 142,
+      "fix_leak": 142
+    },
+    "largest_decision_share": 0.5,
     "rejection_examples": []
   },
   "datasets_in_more_than_one_split": [],
   "totals": {
-    "train": 2591,
-    "val": 329,
-    "test": 840
+    "train": 2976,
+    "val": 932,
+    "test": 1084
   }
 }

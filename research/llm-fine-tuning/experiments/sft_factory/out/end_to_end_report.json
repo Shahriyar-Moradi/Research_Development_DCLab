@@ -1,167 +1,71 @@
 {
   "dropped": {
-    "metric_not_roc_auc": 52,
-    "number_not_in_input": 16
+    "metric_not_roc_auc": 34,
+    "duplicate": 1
   },
   "decisions": {
     "recipe": {
-      "keep_raw": 90,
-      "adopt_log_transforms": 3,
-      "adopt_ratios": 3
+      "keep_raw": 110
     },
     "model": {
-      "logistic_regression": 21,
-      "random_forest": 60,
-      "hist_gradient_boosting": 15
+      "logistic_regression": 28,
+      "random_forest": 69,
+      "hist_gradient_boosting": 13
     },
     "calibration": {
-      "keep_uncalibrated": 72,
-      "calibrate_isotonic": 18,
-      "calibrate_sigmoid": 6
+      "keep_uncalibrated": 98,
+      "calibrate_sigmoid": 6,
+      "calibrate_isotonic": 6
     },
     "holdout": {
-      "accept_result": 60,
-      "investigate_gap_without_shift": 27,
-      "investigate_distribution_shift": 9
+      "accept_result": 76,
+      "investigate_gap_without_shift": 30,
+      "investigate_distribution_shift": 4
+    },
+    "presplit": {
+      "impute_within_folds": 10,
+      "proceed": 60,
+      "small_data_protocol": 20,
+      "deduplicate_before_split": 20
     }
   },
-  "max_benchmark_similarity": 0.307,
-  "number_examples": [
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    },
-    {
-      "scenario": "breast_cancer",
-      "seed": 3,
-      "numbers": [
-        "0.914"
-      ]
-    }
-  ],
+  "max_benchmark_similarity": 0.34,
+  "routes": {
+    "continue": 1096,
+    "none": 106,
+    "back": 35
+  },
+  "variants": {
+    "clean": 99,
+    "labels_missing": 11
+  },
+  "stopped_at": {
+    "WF-10": 106,
+    "WF-09": 4
+  },
+  "with_revisits": 29,
   "splits": {
     "train": 69,
-    "val": 9,
-    "test": 18
+    "val": 20,
+    "test": 20
   },
   "by_scenario": {
-    "subscription_churn": 9,
-    "adult": 9,
-    "bank_marketing": 9,
-    "breast_cancer": 6,
-    "credit_default": 9,
-    "german_credit": 9,
-    "heart_disease": 9,
-    "mushroom": 9,
-    "online_shoppers": 9,
-    "spambase": 9,
-    "wine_quality": 9
+    "subscription_churn": 10,
+    "adult": 10,
+    "bank_marketing": 10,
+    "breast_cancer": 10,
+    "credit_default": 10,
+    "german_credit": 10,
+    "heart_disease": 10,
+    "mushroom": 10,
+    "online_shoppers": 10,
+    "spambase": 10,
+    "wine_quality": 10
   },
   "length": {
-    "chars_median": 22852,
-    "chars_max": 46105,
-    "approx_tokens_median": 6529,
-    "approx_tokens_max": 13172
+    "chars_median": 26074,
+    "chars_max": 47336,
+    "approx_tokens_median": 7449,
+    "approx_tokens_max": 13524
   }
 }

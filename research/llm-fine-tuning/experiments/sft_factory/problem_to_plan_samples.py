@@ -284,8 +284,7 @@ for _k, (_tgt, _unit, _ctx, _goal, _act, _ts, _mom, _con) in PUBLIC.items():
         constraints=[_con] if _con else [],
     )
 
-SPLIT_OF = {"wine_quality": "val", "product_reviews": "test", "city_prices": "test",
-            "online_shoppers": "test", "german_credit": "test"}
+from splits import SPLIT_OF  # noqa: E402  (one split map for every generator)
 
 
 # ----------------------------------------------------------------------------------------------- the contract
@@ -412,18 +411,18 @@ def training_index(df, spec, rng):
 
 
 def workflow(plan: SolutionPlan) -> list[dict]:
+    """Each plan decision placed on the WF-01…WF-10 step that carries it, with the two gates. Compact on purpose:
+    the steps' fixed rules are the workflow's, not the plan's, so the plan does not repeat them."""
     by_step = defaultdict(list)
     for d in plan.decisions:
         by_step[DECISION_STEP.get(d.key, "WF-01")].append(d.key)
     steps = []
     for node in G.NODES:
-        item = {"step": f"{node['id']} {node['name']}", "rules": node["rules"]}
+        item = {"step": f"{node['id']} {node['name']}"}
         if by_step.get(node["id"]):
             item["decisions"] = by_step[node["id"]]
-        if node["id"] in STEP_DOES:
-            item["does"] = STEP_DOES[node["id"]]
         if node["id"] in GATE_AT:
-            item["gate"] = G.GATES[GATE_AT[node["id"]]]
+            item["gate"] = GATE_AT[node["id"]]
         steps.append(item)
     return steps
 
