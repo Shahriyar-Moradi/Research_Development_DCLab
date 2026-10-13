@@ -1,0 +1,113 @@
+{
+ "package": "tooling-fast-gates",
+ "title": "Faster gates: tests forked from preloaded libraries, memory pressure as the limit, the gates' parts side by side, a per-package gate and a gate on a commit in its own worktree",
+ "date": "2026-10-14",
+ "request": "The owner found check-all too slow and asked to make the process as fast as possible, using up to 90% of the Mac (8 GB, 8 cores), swap up to 6 GB, yellow memory pressure accepted, only red not.",
+ "spec": "Cut the time from a finished package to its pushed commit without weakening what the gate proves: every test still runs where it can be affected, PostgreSQL wherever storage behaviour matters, the flows when product code changed, and the whole of check-all at a milestone's end.",
+ "plan": [
+  "Measure where the time goes: 125 files, 8 cores, 8 GB; 111 files waited for memory; two passes of the whole suite in sequence.",
+  "Fork every test file from one process that has imported the heavy libraries once.",
+  "Start files by macOS's own memory pressure (green and yellow), not by free memory; two workers more than the cores.",
+  "Run rd-gates, the agent tests and the flows beside the suite; a per-package gate (affected files, PostgreSQL on the files that check it); a gate on a commit in its own worktree.",
+  "Keep what measured faster, revert what measured slower."
+ ],
+ "decisions": [
+  {
+   "decision": "Fork the files from a preloaded forkserver, the project's own modules imported in each child.",
+   "why": "Each fresh interpreter loaded pandas, scikit-learn, LightGBM and XGBoost again (about 1 GB and seconds each); forked children shared those pages (140 to 200 MB each). The project's modules read the environment at import, so they are not preloaded."
+  },
+  {
+   "decision": "Memory pressure decides when a file starts: green or yellow, never red.",
+   "why": "The owner's rule; free memory undercounts what macOS can compress and swap without slowing down."
+  },
+  {
+   "decision": "Do not split files below 150 s.",
+   "why": "Splitting 87 files repeated their setup: 274 s against 248 s unsplit; the suite is bound by its CPU time (about 2,400 s on 8 cores)."
+  },
+  {
+   "decision": "The import graph chooses the files, but central modules reach most of them.",
+   "why": "The session recorder and the contracts' base are imported almost everywhere: most changes reach 110 of 125 files; the saving is in the PostgreSQL pass (30 files that check it) and the flows."
+  },
+  {
+   "decision": "check-all closes a milestone; check-quick gates a package; check-commit runs a gate on a commit in its own worktree.",
+   "why": "Work goes on while the gate runs; a push waits for it."
+  }
+ ],
+ "change": "tests/run_parallel.py (forkserver with preloaded libraries, the pressure guard, splitting the slowest files, a unit the system kills runs once more), scripts/affected_tests.py (new: changed files to test files through the imports; --pg, --e2e), Makefile (check-quick, check-quick-tests, check-commit; check-all runs its independent parts beside the suite), CLAUDE.md and the dclab-package skill.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Pushing to 90% of memory by free-memory arithmetic was slower.",
+   "scenario": "Starting files until 10% was free: 377 s against 328 s.",
+   "cause": "macOS compresses memory before it swaps, and the guard counted free memory only.",
+   "fix": "Use the pressure level instead (green and yellow start, red waits).",
+   "test": "the suite's wall time: 248 s"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "A file whose tests all passed was reported failed.",
+   "scenario": "test_staging_check printed OK; the process ended with a signal under load.",
+   "cause": "The system can end a process under memory pressure; its exit code was read as a failure.",
+   "fix": "A unit ended by a signal runs once more, and the output says so.",
+   "test": "the next full run: OK"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Every recent package would have run everything.",
+   "scenario": "The import graph reached the whole suite from any change to the server or the contracts.",
+   "cause": "Those were listed as foundations; the graph already follows their imports.",
+   "fix": "Foundations only for what no import shows (storage, settings, the runner, requirements).",
+   "test": "affected_tests on 62fa0d6: 114 files, not ALL"
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "My Makefile edit broke an f-string with nested quotes.",
+   "scenario": "SyntaxError in run_parallel.py.",
+   "cause": "A sed substitution inside an f-string.",
+   "fix": "Edit the line in Python, not with sed.",
+   "test": "the runner parses"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "whole suite on files",
+   "gate": "faster than 479 s with every test passing",
+   "result": "479 s fresh interpreters; 328 s forked; 248 s forked with the pressure guard and 10 workers",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "248 s against 479 s",
+   "limits": [
+    "One machine; runs vary from one to the next."
+   ]
+  },
+  {
+   "name": "check-all",
+   "gate": "faster than about 19 minutes, passing",
+   "result": "645 s with the parts side by side (before the pressure guard)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "645 s against about 19 minutes",
+   "limits": [
+    "Measured before the pressure guard and the extra workers."
+   ]
+  }
+ ],
+ "outcome": "A package's gate takes about five minutes and runs in its own worktree while work goes on; the whole suite runs in about half its old time.",
+ "lessons": [
+  "Measure before tuning: the limit moved from memory to the CPU after forking, and more memory made it slower.",
+  "A process the system kills is not a failing test: say so and run it again."
+ ],
+ "risks": [
+  "Forking after preloading assumes the libraries start no threads at import (one-thread settings are set first).",
+  "Two gates at once would share the per-worker test databases: one gate at a time."
+ ],
+ "commits": []
+}

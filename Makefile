@@ -1,4 +1,4 @@
-.PHONY: benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all core-schemas core-wheel-check
+.PHONY: benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -207,11 +207,39 @@ test-pg:  ## the whole suite on PostgreSQL, in parallel: needs the local databas
 test test-serial rd-check test-pg product-e2e check-all: export DCLAB_NO_LIVE_MODELS = 1
 browser-test: export DCLAB_NO_LIVE_MODELS = 1
 
-check-all:  ## the gate for every package: rd-check on files, the suite on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows
-	$(MAKE) rd-check
-	$(MAKE) test-pg
-	@if [ -x $(AGENT_PYTHON) ]; then $(TEST_TMP) $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi
-	$(MAKE) product-e2e
+check-all:  ## the gate closing a milestone: rd-check's gates, the suite on files, then on PostgreSQL, the campaign agent's tests (agent env) and the end-to-end flows; what does not need the suite runs beside it
+	@out=$$(mktemp -d); \
+	( $(MAKE) rd-gates > $$out/gates.log 2>&1; echo $$? > $$out/gates.rc ) & \
+	( { if [ -x $(AGENT_PYTHON) ]; then $(TEST_TMP) $(AGENT_PYTHON) -m pytest tests/test_agentic.py -q; else echo "skipped: the campaign tests need $(AGENT_PYTHON)"; fi; } > $$out/agent.log 2>&1; a=$$?; \
+	  $(MAKE) product-e2e > $$out/e2e.log 2>&1; e=$$?; echo $$(( a || e )) > $$out/side.rc ) & \
+	$(TEST_TMP) $(RUN_TESTS); t=$$?; \
+	$(MAKE) test-pg; g=$$?; \
+	wait; echo "--- rd-check's gates"; cat $$out/gates.log; echo "--- the campaign agent's tests"; cat $$out/agent.log; echo "--- the end-to-end flows"; cat $$out/e2e.log; \
+	r=$$(( t || g || $$(cat $$out/gates.rc) || $$(cat $$out/side.rc) )); rm -rf $$out; \
+	if [ $$r = 0 ]; then echo "check-all: passed"; else echo "check-all: FAILED (files $$t, PostgreSQL $$g; the gates and flows above)"; fi; exit $$r
+
+check-quick:  ## the gate for a package, fast: rd-check's gates and the flows (when product code changed) beside the affected tests on files, then the PostgreSQL pass on the files that check it (all when storage changed); check-all closes each milestone
+	@out=$$(mktemp -d); \
+	( $(MAKE) rd-gates > $$out/gates.log 2>&1; echo $$? > $$out/gates.rc ) & \
+	( if [ "$$($(PYTHON) scripts/affected_tests.py --e2e --base $(or $(BASE),HEAD))" = yes ]; then $(MAKE) product-e2e; else echo "flows: not reached by the change"; fi > $$out/e2e.log 2>&1; echo $$? > $$out/e2e.rc ) & \
+	$(MAKE) check-quick-tests; t=$$?; wait; echo "--- rd-check's gates"; cat $$out/gates.log; echo "--- the end-to-end flows"; cat $$out/e2e.log; \
+	r=$$(( t || $$(cat $$out/gates.rc) || $$(cat $$out/e2e.rc) )); rm -rf $$out; \
+	if [ $$r = 0 ]; then echo "check-quick: passed"; else echo "check-quick: FAILED"; fi; exit $$r
+
+check-commit:  ## a gate on the last commit in its own worktree, so work goes on in this one: GATE=check-quick (default) or check-all; the changes since origin/main (BASE=)
+	@dir=$$(cd "$${TMPDIR:-/tmp}" && pwd -P)/dclab-check-$$(git rev-parse --short HEAD); rm -rf "$$dir"; git worktree prune; \
+	git worktree add --detach "$$dir" HEAD >/dev/null && cp tests/.timings*.json "$$dir/tests/" 2>/dev/null; \
+	for v in .venv .venv-agent; do [ -e "$$v" ] && ln -s "$$PWD/$$v" "$$dir/$$v"; done; \
+	( cd "$$dir" && $(MAKE) $(or $(GATE),check-quick) BASE=$(or $(BASE),origin/main) ); r=$$?; \
+	git worktree remove --force "$$dir"; echo "check-commit ($(or $(GATE),check-quick)) on $$(git rev-parse --short HEAD): $$( [ $$r = 0 ] && echo passed || echo FAILED )"; exit $$r
+
+check-quick-tests:  ## check-quick's tests: the affected files, then the PostgreSQL pass
+	@files=$$($(PYTHON) scripts/affected_tests.py --base $(or $(BASE),HEAD)); echo "files: $$(echo $$files | wc -w | tr -d ' ') test files ($$( [ "$$files" = ALL ] && echo all || echo affected))"; \
+	if [ "$$files" = ALL ]; then $(TEST_TMP) $(RUN_TESTS); else $(TEST_TMP) $(RUN_TESTS) $$files; fi
+	@pg=$$($(PYTHON) scripts/affected_tests.py --pg --base $(or $(BASE),HEAD)); echo "PostgreSQL: $$( [ "$$pg" = ALL ] && echo every file || echo "$$(echo $$pg | wc -w | tr -d ' ') files that check it")"; \
+	DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(PYTHON) -m dclab_rnd.storage upgrade >/dev/null; \
+	if [ "$$pg" = ALL ]; then $(TEST_TMP) DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(RUN_TESTS) --pg; \
+	elif [ -n "$$pg" ]; then $(TEST_TMP) DCLAB_DATABASE_URL=$${DCLAB_TEST_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_test} $(RUN_TESTS) --pg $$pg; fi
 
 model-paths:  ## every path that uses a model, once, against a real model on made-up data (8.1): ARGS="--ollama qwen2.5-coder:1.5b" (free, local) or ARGS="--configured --cap-eur 2" (costs money)
 	$(PYTHON) scripts/model_paths.py $(or $(ARGS),--ollama qwen2.5-coder:1.5b)

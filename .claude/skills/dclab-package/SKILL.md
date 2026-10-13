@@ -1,6 +1,6 @@
 ---
 name: dclab-package
-description: Build one package of the DCLab plan (docs/guides/PRODUCT_BUILD_PLAYBOOK.md or AGENTIC_FOUNDATION_PLAN.md) end to end - failing test, implementation, make check-all, adversarial review, commit. Use when asked to build, continue or finish a numbered package such as A1.2, A2.1 or 9.3.
+description: Build one package of the DCLab plan (docs/guides/PRODUCT_BUILD_PLAYBOOK.md or AGENTIC_FOUNDATION_PLAN.md) end to end - failing test, implementation, make check-quick, adversarial review, commit. Use when asked to build, continue or finish a numbered package such as A1.2, A2.1 or 9.3.
 ---
 # Build one DCLab package
 
@@ -11,10 +11,12 @@ Package: $ARGUMENTS
 2. **Check first.** Run the package's "Done when" checks. If they already pass, report that and stop.
 3. **Write the test first** for the main behaviour and one failure path; run it and see it fail.
 4. **Implement** the smallest change that meets the package. Reuse what exists. No UI change unless the package says so.
-5. **Verify** with `make check-all` (rd-check on files, the suite on PostgreSQL, the end-to-end flows). Read the
+5. **Verify** with `make check-quick` (rd-gates, the affected tests, PostgreSQL where it matters, the flows when product code
+   changed); `make check-all` closes a milestone or follows a storage change. Commit locally and run `make check-commit` to
+   keep working while the gate runs; push when it passes. Read the
    output; fix the cause of any failure, never weaken a test.
 6. **Review**: run the `dclab-reviewer` subagent on the diff with the package id. Fix correctness findings,
-   re-run `make check-all`. Ignore style-only findings.
+   re-run the gate. Ignore style-only findings.
 7. **Record**: mark the package done in its plan's status table, with what was left open. Write its development
    trajectory for the owner's SFT (`research/llm-fine-tuning/experiments/dev_trajectories/records/<package>.json`, schema
    `Trajectory` in `dclab_rnd/devlog.py`): the request, the plan, decisions with why, every finding (reviewer, test,

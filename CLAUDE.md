@@ -24,7 +24,9 @@ The research arm of DCLab. It measures how to build ML models that are *right* (
 ```bash
 make help        # every target
 make rd-check    # tests + evidence validation + freshness of all generated files (~2 min); must pass before committing
-make check-all   # the gate for a plan package: rd-check, the suite on PostgreSQL (test-pg) and the end-to-end flows (~7 min; longer when the machine is short of memory)
+make check-quick # the gate for a package: rd-gates and the flows (when product code changed) beside the affected tests, then PostgreSQL on the files that check it (all when storage changed); ~5 min
+make check-commit # a gate (GATE=check-quick|check-all) on the last commit in its own worktree, so work goes on meanwhile; push when it passes
+make check-all   # the gate closing a milestone (and any storage change): rd-gates, the suite on files and on PostgreSQL, the agent tests and the flows; ~10 min
 make test        # the suite in parallel (tests/run_parallel.py; JOBS=N to choose, make test-serial for one process)
 make rd-sync     # rebuild the registry and knowledge base after new results
 make knowledge   # rebuild the evidence index and SFT v3 corpus after new results
@@ -62,7 +64,7 @@ Environments: `.venv` from `requirements/base.txt` (ML work); `.venv-agent` (Pyt
 The product and its foundation are built package by package from `docs/guides/PRODUCT_BUILD_PLAYBOOK.md` and
 `docs/guides/AGENTIC_FOUNDATION_PLAN.md`. Use the `dclab-package` skill for one package and the `dclab-reviewer`
 subagent to review its diff before committing. Every package also gets its development-trajectory record (`dev_trajectories/records/<package>.json`, the reviewer's findings and the fixes included) and `make sft-dev`, in the same commit. When compacting, keep the package in progress, the files changed and
-the last `make check-all` result.
+the last gate's result (`make check-quick` per package, `make check-all` at a milestone's end).
 
 ## Gotchas
 
@@ -73,7 +75,7 @@ the last `make check-all` result.
 - Every agent tool is registered once in `dclab_rnd.agents` (`default_registry()`): scope "project" for the intern and `/mcp`, "draft" for the Home agent, "session" for the intern's plan and report, "campaign" for the research campaign's experiment. Never keep a private tool list. A write tool declares its move and runs only through its scope's guard (the graph validator for projects). The Home agent and the intern run on `agents.run()`; the campaign's LangGraph phases are traced and its experiment goes through the registry.
 - Local PostgreSQL is 16 on port 5432 (as in CI, the containers and the cloud code), shared with the owner's other project; `dclab_dev` and `dclab_test` live there. The old 15 cluster (`/opt/homebrew/var/postgresql@15`) is kept but not started: two servers on 5432 fought after a reboot.
 - `.venv-agent` has no pandas, so the studio tests skip there; run the suite with `.venv`.
-- The suite runs in parallel: one process per test file, each with its own TMPDIR and, for PostgreSQL, its own database `dclab_test_p<N>` (`tests/run_parallel.py`). A test must not depend on another file having run; a failing file's output is printed whole.
+- The suite runs in parallel, each file forked from a server that preloaded the heavy libraries (`--no-fork` for fresh interpreters); files start while macOS memory pressure is not red (the owner's rule), and the slowest files split into units: one process per test file, each with its own TMPDIR and, for PostgreSQL, its own database `dclab_test_p<N>` (`tests/run_parallel.py`). A test must not depend on another file having run; a failing file's output is printed whole.
 
 ## Git
 
