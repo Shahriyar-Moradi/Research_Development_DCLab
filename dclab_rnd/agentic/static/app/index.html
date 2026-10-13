@@ -2004,6 +2004,37 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-foot bar" id="audit-foot" hidden><span id="audit-range"></span><span data-style="flex:1"></span><button type="button" class="btn sm" id="audit-newer">Newer</button><button type="button" class="btn sm" id="audit-older">Older</button></div>
     </div>
   </div>
+  <div class="pane" data-pane="sessions" data-label="Sessions">
+    <div class="stats" id="sess-stats">
+      <div class="stat"><span class="v">—</span><span class="l">sessions recorded</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">refused by a check</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">errors</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">model spend</span></div>
+    </div>
+    <div class="panel" data-f="admin.sessions">
+      <div class="panel-head"><div class="panel-title"><h2>Sessions</h2><span class="sub" id="sess-sub">Every visit on the record: who, when, the problem, how it ended. Only the owner reads it.</span></div></div>
+      <form class="row panel-body" id="sess-find" data-style="flex-wrap:wrap;gap:8px">
+        <label class="sr-only" for="sess-kind">Kind of event</label><select id="sess-kind" data-style="width:auto"><option value="">Any event</option><option value="refused">Refused by a check</option><option value="errors">Errors</option></select>
+        <label class="sr-only" for="sess-project">Project</label><select id="sess-project" data-style="width:auto"><option value="">Any project</option></select>
+        <label class="sr-only" for="sess-person">Person</label><select id="sess-person" data-style="width:auto" hidden><option value="">Anyone</option></select>
+        <label class="sr-only" for="sess-draft">Draft</label><input id="sess-draft" type="search" maxlength="80" placeholder="Draft id" data-style="width:120px">
+        <label class="sr-only" for="sess-text">Words</label><input id="sess-text" type="search" maxlength="200" placeholder="Words people or agents wrote" data-style="width:220px">
+        <label class="sr-only" for="sess-code">Code</label><input id="sess-code" type="search" maxlength="80" placeholder="Error code or rule" data-style="width:150px">
+        <label class="sr-only" for="sess-since">From</label><input id="sess-since" type="date" data-style="width:auto">
+        <label class="sr-only" for="sess-until">To</label><input id="sess-until" type="date" data-style="width:auto">
+        <button type="submit" class="btn sm primary">Find</button><button type="button" class="btn sm" id="sess-clear" hidden>Clear</button>
+      </form>
+      <div class="panel-body small muted" id="sess-found" hidden></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>When</th><th>Who</th><th>Problem</th><th>Outcome</th><th>Checks</th><th>Spend</th></tr></thead><tbody id="sess-body">
+        <tr><td colspan="6"><div class="empty">Sessions appear here once the server records them.</div></td></tr>
+      </tbody></table></div>
+    </div>
+    <div class="panel" id="sess-one" hidden>
+      <div class="panel-head"><div class="panel-title"><h2 id="sess-one-title">A session</h2><span class="sub" id="sess-one-sub"></span></div>
+        <div class="row"><label class="switch"><input type="checkbox" id="sess-model-text"><span class="track"></span><span class="small">Prompts and replies</span></label><button type="button" class="btn sm" id="sess-close">Close</button></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Time</th><th>Who</th><th>What</th></tr></thead><tbody id="sess-timeline"></tbody></table></div>
+    </div>
+  </div>
 </section>
 <section class="view" id="view-blueprint" hidden>
   <header class="vh">

@@ -1,0 +1,178 @@
+{
+ "package": "19.4",
+ "title": "Sessions: the timeline and the finder — the record of every visit searched, read on the Admin page and on the command line, by the owner only",
+ "date": "2026-10-13",
+ "request": "The owner asked for everything that happens in DCLab to be stored in an organized, structured way that is clean and clear to find and understand; milestone A starts with finding and reading sessions.",
+ "spec": "An Admin page Sessions (the latest visits: who, when, the problem and its family, outcome, spend, refusals, errors), a search by person, project, draft, kind of event, words, an error code and a date range, and a visit's timeline with links to its draft, project and jobs; GET /api/experience/sessions, /sessions/{visit}, /search; only the owner reads them. Done when 'every session where a build was refused' and 'every visit that touched project P' are one search each, on the page and on the command line.",
+ "plan": [
+  "Give both logs (files and PostgreSQL) the same filters: person, kinds, a UTC window with the end excluded, many visits at once.",
+  "A finder over them: kinds, families and two groups (refused, errors) matching the session card; words only in what people and agents wrote; whole codes.",
+  "What a page shows: cell values never, model text only on request, people by name never by e-mail.",
+  "Three routes behind a new owner-only permission; the Admin tab with stat cards, a search bar, the list and a timeline.",
+  "The same search on the command line; review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "A new permission 'timelines' held by the owner only, rather than reusing 'admin'.",
+   "why": "The plan says owner and admin roles read timelines (proposed); 'admin' means changing settings and its refusal says so. A separate name lets the owner widen it later without widening settings."
+  },
+  {
+   "decision": "Words are searched in meta, person text and agent text; never in model text or a tool's values.",
+   "why": "A search must not become a way to read what the page hides: prompts are kept only when the workspace keeps them, and a tool's arguments can hold a table's values."
+  },
+  {
+   "decision": "A code matches whole (case-insensitive), not as a part.",
+   "why": "DCLAB-R1 must not find DCLAB-R17; a planted fault showed no test held this."
+  },
+  {
+   "decision": "The page's dates are the viewer's local days, sent as UTC times with the offset written out.",
+   "why": "The page shows local times; a bare date was read as a UTC day, so evening events in the Americas and early-morning ones in Tehran fell on the wrong day."
+  },
+  {
+   "decision": "Refusals are filtered inside the read (SQL on PostgreSQL), not after it.",
+   "why": "The 'refused' group reads every move and tool call; filtering afterwards let thousands of allowed moves fill the read's limit and hide older refusals."
+  },
+  {
+   "decision": "Error messages stay visible to the owner, as the contract classes them (agent text).",
+   "why": "They are what explains a failed session; the contract notes a message may quote a value, and retention and redaction for export come with 19.10."
+  }
+ ],
+ "change": "dclab_rnd/experience/__init__.py (read: until, user, kinds, visits, refused_only; _utc for every time given; refused(); cards() from one read), experience/finder.py (new), experience/__main__.py (search; show and search redact like the page; --model-text), agentic/pages/sessions.py (new: the three routes), agentic/pages/__init__.py and server.py (the log in the pages' context), accounts/guard.py and roles.py (timelines), web views admin.html (Sessions tab), home.html (a draft opened from another page), compute.html (a job opened from another page), Makefile (session-search), tests/test_experience_finder.py (new), CLAUDE.md, the capture plan and the roadmap.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The session card's family was an object, shown as {} on the page.",
+   "scenario": "The owner's 'Recording check' session in the browser: the API returned family: {}.",
+   "cause": "The problem card's family is a fact with a value and its source; the route passed the fact.",
+   "fix": "Pass the fact's value.",
+   "test": "test_a_draft_names_its_family"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "latent",
+   "defect": "A code search matched any code containing the words.",
+   "scenario": "Planted fault: a substring match passed every test.",
+   "cause": "No test searched for a code that is part of another.",
+   "fix": "A test that DCLAB-R1 does not find DCLAB-R17.",
+   "test": "test_words_codes_families_and_dates"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The command-line search and show printed a tool's arguments (cell values) and prompts by default.",
+   "scenario": "A tool call with a customer's name in its arguments: `make session-search ARGS='--kind tool'` printed it; --kind model printed the prompt.",
+   "cause": "The text output printed raw events; only the JSON output went through the page's view.",
+   "fix": "Both commands redact to what the page shows; --model-text adds prompts for show.",
+   "test": "test_the_command_line_shows_no_values_and_no_prompts"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The page's date range used UTC days while showing local times.",
+   "scenario": "An event at 23:59 on the 13th in UTC-5 was not found by From = To = the 13th; in Tehran events before 03:30 fell on the previous day.",
+   "cause": "A bare date was sent and read as UTC midnight.",
+   "fix": "The page sends local midnight as a UTC time with +00:00 (Python 3.10 cannot read a trailing Z; the server now accepts one too).",
+   "test": "test_a_person_and_a_local_day"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The page could not search by person or by draft.",
+   "scenario": "The plan's search names a person and a draft; only the API and command line had them.",
+   "cause": "The form was built from the audit tab's filters.",
+   "fix": "A person select (shown with accounts on, names only) and a draft field.",
+   "test": "test_a_person_and_a_local_day (the filter); the page checked in the browser"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The timeline linked projects only.",
+   "scenario": "The plan asks for links to the draft, the project and the jobs.",
+   "cause": "Home and Compute open a draft or a job only from their own lists.",
+   "fix": "A draft link opens it on Home and a job link selects it on Compute & jobs (a request through DC.state read by each page's enter).",
+   "test": "checked in the browser: the draft link resumes the draft on Home"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A date out of range gave a server error.",
+   "scenario": "since=9999-12-31T23:00:00-05:00 raised OverflowError: 500, and a traceback on the command line.",
+   "cause": "Validation parsed the date but did not convert it to UTC.",
+   "fix": "One parser (_utc) raises ValueError for both; the route answers 422.",
+   "test": "test_dates_that_are_not_times, test_bad_queries"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Refusals could be crowded out of a search by allowed moves.",
+   "scenario": "30 allowed moves after a refusal with a read limit of 20: no refusal found.",
+   "cause": "The refused test ran after a limited read of every move and tool call.",
+   "fix": "refused_only inside the read: SQL on PostgreSQL, the same rule on files.",
+   "test": "test_refusals_are_not_crowded_out_by_allowed_moves"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "One read of the log per visit to build cards, and a long visit's card silently missed its first events.",
+   "scenario": "50 visits: 50 reads, each globbing every file; a visit over 5,000 events lost its draft.created.",
+   "cause": "Cards were built visit by visit with the default limit.",
+   "fix": "cards() reads all visits at once; a timeline reads up to 20,000 events and says when it was cut.",
+   "test": "test_a_long_visit_says_it_was_cut"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "No test went through the app as a non-owner.",
+   "scenario": "The mapping was tested but not the route's own refusal.",
+   "cause": "Accounts are off in tests.",
+   "fix": "A reviewer principal patched into the guard: every route answers 403.",
+   "test": "test_only_the_owner_reads_timelines"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted faults",
+   "gate": "each planted fault in the finder, the logs, the routes and the roles fails a test on its backend",
+   "result": "12 of 12 caught after adding the whole-code test (11 of 12 before)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "12 of 12 against 12",
+   "limits": [
+    "Only the faults planted; the page's script has no automated test here (browser-test not run)."
+   ]
+  },
+  {
+   "name": "page in the browser",
+   "gate": "the owner's dev workspace reads as what happened: search, timeline, links, 375 px without sideways scroll, no console error",
+   "result": "search by kind, words and today's local day found the recorded session; its timeline and the draft link work; no horizontal scroll at 375 px",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "all checks",
+   "limits": [
+    "One recorded session in the dev workspace."
+   ]
+  }
+ ],
+ "outcome": "Every visit is found and read: one search answers 'which sessions were refused' or 'what touched this project', on the Admin page and with make session-search, showing what people and agents wrote and never a table's values.",
+ "lessons": [
+  "A page that shows local times must send local days; a bare date is UTC on the server.",
+  "Two outputs of one command (text and JSON) must go through the same redaction, or the plainer one leaks.",
+  "Filter before a limit, not after: a limited read followed by a filter hides what is rare."
+ ],
+ "risks": [
+  "Who else reads timelines is still the owner's decision.",
+  "A search reads the newest 20,000 events and says so; older ones need a date range."
+ ],
+ "commits": []
+}

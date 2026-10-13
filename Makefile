@@ -1,4 +1,4 @@
-.PHONY: benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all core-schemas core-wheel-check
+.PHONY: benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all core-schemas core-wheel-check
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -96,6 +96,9 @@ sessions:  ## the latest visits in the development workspace's record (19.2), as
 
 session:  ## one session's timeline: VISIT=v… (from make sessions), or DRAFT=<draft id>, or PROJECT=<project id>
 	DCLAB_DATABASE_URL=$${DCLAB_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_dev} $(PYTHON) -m dclab_rnd.experience show $(VISIT) $(if $(DRAFT),--draft $(DRAFT)) $(if $(PROJECT),--project $(PROJECT)) $(ARGS)
+
+session-search:  ## find events and their sessions (19.4): ARGS="--kind refused", "--project ID", "--text words", "--code DCLAB-R17", "--since 2026-10-13"
+	DCLAB_DATABASE_URL=$${DCLAB_DATABASE_URL:-postgresql+psycopg://$$USER@/dclab_dev} $(PYTHON) -m dclab_rnd.experience search $(ARGS)
 
 db-reset:  ## a clean development database (drops and recreates dclab_dev; needs CONFIRM=yes)
 	$(PYTHON) scripts/dev.py db-reset $(if $(filter yes,$(CONFIRM)),--yes,)

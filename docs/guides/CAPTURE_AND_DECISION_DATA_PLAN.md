@@ -94,6 +94,11 @@ person's overrides.
   Only owner and admin roles read timelines (proposed; the owner may change it).
 - **Done when:** finding "every session where a build was refused" or "every visit that touched project P" is one
   search, and the owner's morning reads as what happened, on the page and on the command line.
+- **Status: done (2026-10-13).** `dclab_rnd/experience/finder.py` (kinds, families, the groups `refused` and
+  `errors`; words in what people and agents wrote; whole codes; a UTC window, `until` excluded),
+  `agentic/pages/sessions.py` (the three routes, the owner only: the `timelines` permission), the Admin page's
+  Sessions tab, `make session-search`. Left open: who else reads timelines (the owner's answer); a search reads the
+  newest 20,000 events and says when it stopped there.
 
 ### 19.5 Workflow runs: lineage of every processing step
 - **Delivers:** every stage run, pipeline job and agent run as a **run record** in the log: its inputs (the table's

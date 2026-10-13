@@ -8,6 +8,7 @@ is the agent, not a person's role.
     approve_gate   approve a gate: the solution sign-off, opening the holdout
     review         accept or reject a workspace lesson; move a model purpose to another tier
     admin          gate switches, the training opt-in, members and their roles
+    timelines      read the record of every session: what people wrote, what the agents answered (19.4)
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ PERMISSIONS: dict[str, frozenset[str]] = {
     "approve_gate": frozenset({"owner", "reviewer"}),
     "review": frozenset({"owner", "reviewer"}),
     "admin": frozenset({"owner"}),
+    "timelines": frozenset({"owner"}),  # the owner's proposal (2026-10-13): owner and admin, which is the owner here
 }
 
 

@@ -1,9 +1,13 @@
-"""Find a session in the workspace's record (19.2; the Admin page and search come with 19.4).
+"""Find a session in the workspace's record (19.2, 19.4; the Admin page's Sessions tab reads the same).
 
     python -m dclab_rnd.experience sessions [--limit 20]           the latest visits: who, when, the problem, how it ended
     python -m dclab_rnd.experience show VISIT                      one visit's timeline, as it happened
     python -m dclab_rnd.experience show --project PROJECT_ID       everything that happened to a project
     python -m dclab_rnd.experience show --draft DRAFT_ID           a Home conversation, from its first sentence
+                                                                   (a table's values never; --model-text adds prompts)
+    python -m dclab_rnd.experience search --kind refused           events and their visits: --kind (a kind, a family,
+                                                                   refused, errors), --project, --draft, --person,
+                                                                   --text, --code, --since, --until (until excluded)
 
 The workspace is DCLAB_AGENT_HOME's (the server's own), on PostgreSQL when DCLAB_DATABASE_URL is set.
 """
@@ -15,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import lines, open_log, sessions
+from . import contract, finder, lines, open_log, sessions
 
 
 def _log():
@@ -38,6 +42,12 @@ def main(argv: list[str] | None = None) -> int:
     show.add_argument("--project")
     show.add_argument("--draft")
     show.add_argument("--json", action="store_true")
+    show.add_argument("--model-text", action="store_true", help="also the prompts and replies the workspace kept")
+    find = sub.add_parser("search")
+    for name in ("kind", "project", "draft", "person", "text", "code", "since", "until"):
+        find.add_argument(f"--{name}")
+    find.add_argument("--limit", type=int, default=50)
+    find.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     from ..storage import db
 
@@ -63,9 +73,31 @@ def main(argv: list[str] | None = None) -> int:
             if c.problem:
                 print(f"    {c.problem[:110]}")
         return 0
+    if args.command == "search":
+        query = {k: getattr(args, k) for k in ("kind", "project", "draft", "person", "text", "code", "since", "until")}
+        if not any(query.values()):
+            parser.error("name at least one of --kind, --project, --draft, --person, --text, --code, --since, --until")
+        try:
+            found = finder.search(log, **query, limit=args.limit)
+        except ValueError as exc:  # an unknown kind, a date that is not one
+            parser.error(str(exc))
+        if args.json:
+            print(json.dumps({**found, "events": [finder.view(e) for e in found["events"]],
+                              "sessions": [json.loads(c.model_dump_json()) for c in found["sessions"]]}, indent=2, ensure_ascii=False))
+            return 0
+        more = f" (read the newest {found['scanned']} events only)" if found["capped"] else ""
+        print(f"{found['total']} matching events in {found['visits']} sessions{more}")
+        for c in found["sessions"]:
+            print(f"{c.visit}  {c.started[:16]}  {c.outcome:<8} refused {c.refused}  errors {c.errors}  {(c.problem or '')[:80]}")
+        print()
+        shown = [contract.redact(e, finder.SHOWN) for e in reversed(found["events"])]  # what the page shows: no values, no prompts
+        print("\n".join(lines(shown)) or "No events.")
+        return 0
     if not (args.visit or args.project or args.draft):
         parser.error("name a visit, --project or --draft")
     events = log.read(visit=args.visit, project=args.project, conversation=args.draft)
+    allowed = finder.SHOWN + (("model_text",) if args.model_text else ())  # a table's values never; prompts on request
+    events = [contract.redact(e, allowed) for e in events]
     if args.json:
         print(json.dumps([json.loads(e.model_dump_json()) for e in events], indent=2, ensure_ascii=False))
     else:

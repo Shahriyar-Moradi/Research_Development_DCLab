@@ -42,6 +42,10 @@ SPECIAL = {
     ("POST", "/api/workspace/members"): "admin",
     ("PATCH", "/api/workspace/members/{user_id}"): "admin",
     ("DELETE", "/api/workspace/members/{user_id}"): "admin",
+    # the record of every session: what people wrote and what the agents answered (19.4; the owner's, proposed)
+    ("GET", "/api/experience/sessions"): "timelines",
+    ("GET", "/api/experience/sessions/{visit}"): "timelines",
+    ("GET", "/api/experience/search"): "timelines",
 }
 
 
@@ -74,7 +78,8 @@ def require(*needed: str):
 
 
 ROUTE_WORDS = {"read": "read this workspace", "write": "change this workspace", "approve_stage": "approve a stage",
-               "approve_gate": "approve a gate", "review": "review this", "admin": "change this setting"}
+               "approve_gate": "approve a gate", "review": "review this", "admin": "change this setting",
+               "timelines": "read the sessions' record"}
 
 
 # ---------------------------------------------------------------------- identifying a request

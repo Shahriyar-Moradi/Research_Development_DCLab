@@ -414,7 +414,9 @@ DC.view('home', {
   },
   enter(el) {
     DC.markSample(false);
-    try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
+    const asked = DC.state.resumeDraft;  // a draft opened from another page (Admin · Sessions)
+    if (asked) { DC.state.resumeDraft = null; this.resume(asked); }
+    else try { const id = localStorage.getItem('dclab-home-draft'); if (id && !(document.querySelector('#home-thread') || {}).childElementCount) this.resume(id); } catch (e) { /* storage blocked */ }
     return Promise.all([this.loadWorkspace(), this.loadActivity()]);  // the page's own load: Loading… and a failed read are shown (13.1)
   },
 });

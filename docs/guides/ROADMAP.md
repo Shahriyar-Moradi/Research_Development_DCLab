@@ -71,4 +71,4 @@ A ──► B ──► (training data can leave the workspace)
 
 ## Status
 
-Each milestone's status is kept here as it moves: **A — next.**
+Each milestone's status is kept here as it moves: **A — in progress** (19.4 done).

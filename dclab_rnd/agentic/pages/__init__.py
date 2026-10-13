@@ -7,6 +7,7 @@ Each module here serves one group of pages and exposes ``register(app, ctx)``:
 - ``learn``     Policy model and Domain packs (SFT corpus, project-derived examples, packs)
 - ``platform``  Integrations and Admin (MCP tools, connectors, routes, policies, audit log)
 - ``evidence``  Evidence library (the live evidence index, and answers checked against it)
+- ``sessions``  the Admin page's Sessions: the record of every visit, its timeline and a search (package 19.4)
 
 ``ctx`` carries the server's stores so a module never builds its own. A module that is
 missing is skipped, so groups can land one at a time.
@@ -18,7 +19,7 @@ import importlib
 from dataclasses import dataclass, field
 from typing import Any
 
-MODULES = ("ops", "lab", "learn", "platform", "evidence")
+MODULES = ("ops", "lab", "learn", "platform", "evidence", "sessions")
 
 
 @dataclass
@@ -33,6 +34,7 @@ class Context:
     models: Any = None                                # dclab_rnd.models.Gateway: every model request goes through it
     job_store: Any = None                             # jobs.Jobs: what Stop and Retry act on (package 10.3)
     audit: Any = None                                 # audit.AuditLog: the workspace's audit trail (package 10.4)
+    experience: Any = None                            # experience.ExperienceLog: the record of every session (19.2, 19.4)
 
 
 def register_all(app, ctx: Context) -> list[str]:

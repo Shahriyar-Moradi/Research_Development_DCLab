@@ -243,6 +243,9 @@
     evidenceLibrary: ["GET", "/evidence", [], []],
     evidenceAsk: ["POST", "/evidence/ask", [], []],
     evidenceRecord: ["GET", "/evidence/{record_id}", ["record_id"], []],
+    experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit"]],
+    experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
+    experienceSession: ["GET", "/experience/sessions/{visit}", ["visit"], ["model_text"]],
     internStatus: ["GET", "/intern", [], []],
     internList: ["GET", "/intern/sessions", [], []],
     internStart: ["POST", "/intern/sessions", [], ["wait"]],
@@ -534,6 +537,25 @@
   client.evidenceRecord = (...args) => call('evidenceRecord', args);
   client.path.evidenceRecord = (...args) => build('evidenceRecord', args).path;
   client.href.evidenceRecord = (...args) => '/api' + build('evidenceRecord', args).path;
+  /** GET /api/experience/search: Experience Search
+   *  @param {{query?: {person?: *, project?: *, draft?: *, kind?: *, text?: *, code?: *, since?: *, until?: *, limit?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.experienceSearch = (...args) => call('experienceSearch', args);
+  client.path.experienceSearch = (...args) => build('experienceSearch', args).path;
+  client.href.experienceSearch = (...args) => '/api' + build('experienceSearch', args).path;
+  /** GET /api/experience/sessions: Experience Sessions
+   *  @param {{query?: {limit?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.experienceSessions = (...args) => call('experienceSessions', args);
+  client.path.experienceSessions = (...args) => build('experienceSessions', args).path;
+  client.href.experienceSessions = (...args) => '/api' + build('experienceSessions', args).path;
+  /** GET /api/experience/sessions/{visit}: Experience Session
+   *  @param {string} visit
+   *  @param {{query?: {model_text?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.experienceSession = (...args) => call('experienceSession', args);
+  client.path.experienceSession = (...args) => build('experienceSession', args).path;
+  client.href.experienceSession = (...args) => '/api' + build('experienceSession', args).path;
   /** GET /api/intern: Intern Status
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<InternStatus>} */

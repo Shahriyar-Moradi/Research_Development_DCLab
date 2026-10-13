@@ -73,7 +73,7 @@ DC.view('compute', {
      reproducibility record. Model spend comes from the gateway's usage log; sandboxes / GPU jobs are not switched on; the page says so. */
   init(el) {
     const { $, $$, esc, api, toast } = DC;
-    const S = { data: null, sel: null, sig: '', stop: null };
+    const S = this.S = { data: null, sel: null, sig: '', stop: null };
     const KIND = { stage: 'Stage run', intern: 'Intern session', data: 'Data pipeline', research: 'Research run' };
     const PILL = { running: 'accent', queued: 'outline', done: 'ok', failed: 'bad' };
     const pillCls = j => (j.label === 'interrupted' || j.label === 'budget used up' || j.label === 'paused' ? 'warn' : PILL[j.status] || '');
@@ -249,6 +249,7 @@ DC.view('compute', {
     };
   },
   enter() {
+    if (DC.state.jobId) { this.S.sel = DC.state.jobId; this.S.sig = ''; DC.state.jobId = null; }  // a job opened from another page
     return this.watch();
   },
 });

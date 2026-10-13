@@ -110,7 +110,9 @@ class ExperienceLog(Protocol):
 
     def append(self, events: list[contract.ExperienceEvent]) -> None: ...
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
-             since: str | None = None, limit: int = 5000) -> list[contract.ExperienceEvent]: ...
+             since: str | None = None, until: str | None = None, user: str | None = None,
+             kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
+             limit: int = 5000) -> list[contract.ExperienceEvent]: ...  # the newest ``limit``
     def visits(self, limit: int = 50) -> list[str]: ...  # newest first
 
 
@@ -155,16 +157,21 @@ class FileLog:
         return sorted(self.root.glob("*/*/*/*.jsonl")) if self.root.exists() else []
 
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
-             since: str | None = None, limit: int = 5000) -> list[contract.ExperienceEvent]:
-        files = [f for f in self._files() if visit is None or f.stem == visit]
+             since: str | None = None, until: str | None = None, user: str | None = None,
+             kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
+             limit: int = 5000) -> list[contract.ExperienceEvent]:
+        q = _Query(visit, project, conversation, since, until, user, kinds, refused_only)
+        among = frozenset(visits) if visits is not None else None
         out = []
-        for path in files:
+        for path in self._files():
+            if (visit is not None and path.stem != visit) or (among is not None and path.stem not in among) or not q.day_may_match(path):
+                continue
             for line in path.read_text(encoding="utf-8").splitlines():
                 try:
                     event = contract.ExperienceEvent.read(line)
                 except Exception:  # noqa: BLE001 - a line cut by a crash mid-write: the rest stands
                     continue
-                if _matches(event, visit, project, conversation, since):
+                if q.matches(event):
                     out.append(event)
         return contract.timeline(out)[-limit:]
 
@@ -176,10 +183,53 @@ class FileLog:
         return sorted(latest, key=lambda v: -latest[v])[:limit]
 
 
-def _matches(event: contract.ExperienceEvent, visit, project, conversation, since) -> bool:
-    return ((visit is None or event.ids.visit == visit) and (project is None or event.ids.project == project)
-            and (conversation is None or event.ids.conversation == conversation)
-            and (since is None or datetime.fromisoformat(event.at) >= datetime.fromisoformat(since)))
+def _utc(text: str) -> str:
+    """A time as the log stores it: UTC ISO text of one width (a time without a zone is taken as UTC; a trailing Z is
+    UTC too). A text that is not a time, or a time UTC cannot hold, raises ValueError."""
+    try:
+        moment = datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(f"not a time: {text!r}") from exc
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    try:
+        return moment.astimezone(timezone.utc).isoformat(timespec="microseconds")
+    except OverflowError as exc:  # year 1 or 9999 with an offset
+        raise ValueError(f"a time out of range: {text!r}") from exc
+
+
+# A check said no: these kinds always, a move only when refused, a tool call only when denied (the session card's count).
+REFUSED_KINDS = ("draft.refused", "solution.refused", "decision.refused")
+
+
+def refused(event: Any) -> bool:
+    if event.kind == "graph.move":
+        return event.payload.get("allowed") is False
+    if event.kind == "tool.call":
+        return event.payload.get("verdict") == "denied"
+    return event.kind in REFUSED_KINDS
+
+
+class _Query:
+    """What a reading asks for: ids that must be equal, a time window (``until`` excluded), kinds."""
+
+    def __init__(self, visit, project, conversation, since, until, user, kinds, refused_only=False):
+        self.ids = {"visit": visit, "project": project, "conversation": conversation, "user": user}
+        self.refused_only = refused_only
+        self.since = _utc(since) if since else None
+        self.until = _utc(until) if until else None
+        self.kinds = frozenset(kinds) if kinds is not None else None
+
+    def day_may_match(self, path: Path) -> bool:
+        """A file holds one UTC day (``YYYY/MM/DD/<visit>.jsonl``): the days outside the window are not opened."""
+        day = f"{path.parent.parent.parent.name}-{path.parent.parent.name}-{path.parent.name}"
+        return (self.since is None or day >= self.since[:10]) and (self.until is None or day <= self.until[:10])
+
+    def matches(self, event: contract.ExperienceEvent) -> bool:
+        at = _utc(event.at)
+        return (all(want is None or getattr(event.ids, name) == want for name, want in self.ids.items())
+                and (self.kinds is None or event.kind in self.kinds) and (not self.refused_only or refused(event))
+                and (self.since is None or at >= self.since) and (self.until is None or at < self.until))
 
 
 class PgLog:
@@ -203,17 +253,30 @@ class PgLog:
             c.execute(sa.insert(t), rows)
 
     def read(self, *, visit: str | None = None, project: str | None = None, conversation: str | None = None,
-             since: str | None = None, limit: int = 5000) -> list[contract.ExperienceEvent]:
+             since: str | None = None, until: str | None = None, user: str | None = None,
+             kinds: Iterable[str] | None = None, visits: Iterable[str] | None = None, refused_only: bool = False,
+             limit: int = 5000) -> list[contract.ExperienceEvent]:
         import sqlalchemy as sa
 
         from ..storage.models import experience_event as t
 
         q = sa.select(t.c.doc).where(t.c.workspace_id == self.workspace)
-        for column, value in ((t.c.visit, visit), (t.c.project_id, project), (t.c.conversation, conversation)):
+        for column, value in ((t.c.visit, visit), (t.c.project_id, project), (t.c.conversation, conversation), (t.c.user_id, user)):
             if value is not None:
                 q = q.where(column == value)
+        if kinds is not None:
+            q = q.where(t.c.kind.in_(sorted(set(kinds))))
+        if visits is not None:
+            q = q.where(t.c.visit.in_(sorted(set(visits))))
+        if refused_only:  # in the query, so allowed moves never crowd refusals out of a limited read
+            payload = t.c.doc["payload"]
+            q = q.where(sa.or_(t.c.kind.in_(REFUSED_KINDS),
+                               sa.and_(t.c.kind == "graph.move", payload["allowed"].as_boolean().is_(False)),
+                               sa.and_(t.c.kind == "tool.call", payload["verdict"].as_string() == "denied")))
         if since is not None:  # times are stored as UTC ISO text of one width, so text order is time order
-            q = q.where(t.c.at >= datetime.fromisoformat(since).astimezone(timezone.utc).isoformat(timespec="microseconds"))
+            q = q.where(t.c.at >= _utc(since))
+        if until is not None:
+            q = q.where(t.c.at < _utc(until))
         q = q.order_by(t.c.at.desc(), t.c.seq.desc()).limit(limit)
         with self.engine.connect() as c:
             docs = [r[0] for r in c.execute(q)]
@@ -305,14 +368,23 @@ def last_model_request() -> Optional[str]:
     return _LAST_MODEL_REQUEST.get()
 
 
+VISIT_EVENTS = 5000  # the events a card reads per visit; a longer visit's card says so (``cut``)
+
+
+def cards(log: ExperienceLog, visits: list[str]) -> list[contract.ExperienceSession]:
+    """The cards of these visits in this order, from one read of the log."""
+    if not visits:
+        return []
+    by_visit: dict[str, list] = {v: [] for v in visits}
+    for event in log.read(visits=visits, limit=VISIT_EVENTS * len(visits)):
+        if event.ids.visit in by_visit:
+            by_visit[event.ids.visit].append(event)
+    return [contract.session_card(by_visit[v]) for v in visits if by_visit[v]]
+
+
 def sessions(log: ExperienceLog, limit: int = 50) -> list[contract.ExperienceSession]:
     """The cards of the latest visits, newest first."""
-    out = []
-    for visit in log.visits(limit):
-        events = log.read(visit=visit)
-        if events:
-            out.append(contract.session_card(events))
-    return out
+    return cards(log, log.visits(limit))
 
 
 def lines(events: Iterable[contract.ExperienceEvent]) -> list[str]:

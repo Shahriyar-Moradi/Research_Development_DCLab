@@ -41,6 +41,10 @@ DC.view('admin', {
     el.addEventListener('click', e => {
       const op = e.target.closest('[data-open-project]');
       if (op) { DC.state.projectId = op.dataset.openProject; DC.state.project = 'p:' + op.dataset.openProject; DC.currentProject.clear(); }
+      const rd = e.target.closest('[data-resume-draft]');
+      if (rd) DC.state.resumeDraft = rd.dataset.resumeDraft;  // Home opens it (its enter)
+      const oj = e.target.closest('[data-open-job]');
+      if (oj) DC.state.jobId = oj.dataset.openJob;              // Compute & jobs selects it (its enter)
     });
     /* A6.4: shadow and serving changes go to POST /api/models/routing; the answer is the new summary */
     const route = (body, headers) => DC.client.changeRouting({ body, headers: headers || {} })
@@ -72,9 +76,24 @@ DC.view('admin', {
     $('#audit-newer', el).addEventListener('click', () => { S.offset = Math.max(0, S.offset - S.limit); this.loadAudit(el); });
     ['kind', 'status', 'actor', 'project'].forEach(f => $(`#audit-${f}`, el).addEventListener('change', e => { S[f] = e.target.value; S.offset = 0; this.loadAudit(el); }));
     DC.client.listProjects().then(list => {
-      $('#audit-project', el).insertAdjacentHTML('beforeend', list.map(p => `<option value="${DC.esc(p.id)}">${DC.esc(p.name || p.id)}</option>`).join(''));
-    }).catch(() => { /* the filter keeps "Every project" */ });
+      const options = list.map(p => `<option value="${DC.esc(p.id)}">${DC.esc(p.name || p.id)}</option>`).join('');
+      $('#audit-project', el).insertAdjacentHTML('beforeend', options);
+      $('#sess-project', el).insertAdjacentHTML('beforeend', options);
+    }).catch(() => { /* the filters keep "Every project" */ });
     $('#audit-older', el).addEventListener('click', () => { S.offset += S.limit; this.loadAudit(el); });
+    /* 19.4: the record of every session. Find narrows the list; a row opens its timeline below. */
+    $('#sess-find', el).addEventListener('submit', e => { e.preventDefault(); this.loadSessions(el); });
+    $('#sess-clear', el).addEventListener('click', () => { $('#sess-find', el).reset(); this.loadSessions(el); });
+    $('#sess-close', el).addEventListener('click', () => { $('#sess-one', el).hidden = true; S.visit = null; });
+    $('#sess-model-text', el).addEventListener('change', () => { if (S.visit) this.openSession(el, S.visit); });
+    $('#sess-body', el).addEventListener('click', e => {
+      const row = e.target.closest('[data-visit]');
+      if (row && !e.target.closest('a')) this.openSession(el, row.dataset.visit);
+    });
+    $('#sess-body', el).addEventListener('keydown', e => {
+      const row = e.target.closest('[data-visit]');
+      if (row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); this.openSession(el, row.dataset.visit); }
+    });
     /* Members and API tokens (package 10.2, part C) */
     $('#member-add', el).addEventListener('submit', async e => {
       e.preventDefault();
@@ -129,7 +148,136 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el)]);
+    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el)]);
+  },
+
+  sessQuery(el) {
+    const { $ } = DC;
+    const q = {};
+    const v = id => $(id, el).value.trim();
+    if (v('#sess-kind')) q.kind = v('#sess-kind');
+    if (v('#sess-project')) q.project = v('#sess-project');
+    if (v('#sess-person')) q.person = v('#sess-person');
+    if (v('#sess-draft')) q.draft = v('#sess-draft');
+    if (v('#sess-text')) q.text = v('#sess-text');
+    if (v('#sess-code')) q.code = v('#sess-code');
+    // the days are the viewer's own (the times shown are local): local midnight, sent in UTC with its offset written out
+    const midnight = (day, plus) => { const d = new Date(day + 'T00:00:00'); d.setDate(d.getDate() + plus); return d.toISOString().replace('Z', '+00:00'); };
+    if (v('#sess-since')) q.since = midnight(v('#sess-since'), 0);
+    if (v('#sess-until')) q.until = midnight(v('#sess-until'), 1);  // the last day included
+    return q;
+  },
+
+  async loadSessions(el) {
+    const { $, esc } = DC;
+    const q = this.sessQuery(el);
+    const searching = Object.keys(q).length > 0;
+    const body = $('#sess-body', el);
+    DC.states.loading(body, { cols: 6 });
+    let r, found = null;
+    try {
+      if (searching) { found = await DC.client.experienceSearch({ query: { ...q, limit: 100 }, quiet: true }); }
+      r = await DC.client.experienceSessions({ query: { limit: 50 }, quiet: true });
+    } catch (e) { DC.states.failed(body, e, { retry: () => this.loadSessions(el), cols: 6 }); return; }
+    if (!this.S.sessKinds) {
+      this.S.sessKinds = true;
+      const fam = r.families.map(f => `<option value="${esc(f)}">Any ${esc(f)} event</option>`).join('');
+      const kinds = r.kinds.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
+      $('#sess-kind', el).insertAdjacentHTML('beforeend', `<optgroup label="Families">${fam}</optgroup><optgroup label="Kinds">${kinds}</optgroup>`);
+      DC.config().then(cfg => (cfg.auth || {}).mode === 'none' || !(cfg.auth || {}).signed_in ? [] : DC.client.members({ quiet: true })).then(m => {
+        const people = (m && (m.items || m.members)) || (Array.isArray(m) ? m : []);
+        const named = people.filter(p => p.user_id || p.id);
+        if (!named.length) return;  // one local owner: nobody to choose
+        $('#sess-person', el).insertAdjacentHTML('beforeend', named.map(p => `<option value="${esc(p.user_id || p.id)}">${esc(p.name || 'A member')}</option>`).join(''));
+        $('#sess-person', el).hidden = false;
+      }).catch(() => { /* accounts off */ });
+    }
+    const t = r.totals;
+    const eur = Object.entries(t.cost).map(([c, v]) => (c === 'EUR' ? '€' : c + ' ') + Number(v).toFixed(4)).join(' · ') || '€0';
+    $('#sess-stats', el).innerHTML = [[t.sessions, `latest session${t.sessions === 1 ? '' : 's'} · ${t.built} built or ran`], [t.refused, 'refused by a check'], [t.errors, 'errors'], [eur, 'model spend in them']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
+    $('#sess-clear', el).hidden = !searching;
+    const foundBox = $('#sess-found', el);
+    foundBox.hidden = !searching;
+    if (found) {
+      foundBox.innerHTML = `<b>${found.total}</b> matching event${found.total === 1 ? '' : 's'} in <b>${found.visits}</b> session${found.visits === 1 ? '' : 's'}${found.capped ? ` · read the newest ${found.scanned.toLocaleString()} events only: narrow the dates to see older ones` : ''}.`
+        + (found.events.length ? `<div class="stack tight" data-style="margin-top:8px">${found.events.slice(0, 12).map(e => `<div class="row"><span class="mono xs">${esc(this.when(e.at))}</span> ${this.what(e)}</div>`).join('')}</div>` : '');
+    }
+    const cards = found ? found.sessions : r.items;
+    if (!cards.length) {
+      DC.states.empty(body, searching ? 'No session matches.' : r.recording ? 'Nothing recorded yet: a session appears with its first action (a draft, an upload, a run).' : 'This server keeps no record of sessions.', { cols: 6 });
+      return;
+    }
+    const outcome = { open: '<span class="pill outline">open</span>', built: '<span class="pill">built</span>', ran: '<span class="pill">ran</span>', finished: '<span class="pill ok">finished</span>' };
+    body.innerHTML = cards.map(c => {
+      const spend = Object.entries(c.cost).map(([k, v]) => (k === 'EUR' ? '€' : k + ' ') + Number(v).toFixed(4)).join(' · ') || '—';
+      const problem = c.problem ? esc(c.problem.length > 90 ? c.problem.slice(0, 90) + '…' : c.problem) : '<span class="muted">no problem written</span>';
+      const fam = c.family ? ` <span class="pill outline">${esc(c.family.replace(/_/g, ' '))}</span>` : c.kind ? ` <span class="pill outline">${esc(c.kind)}</span>` : '';
+      const checks = `${c.refused ? `<span class="pill warn">${c.refused} refused</span> ` : ''}${c.errors ? `<span class="pill bad">${c.errors} error${c.errors === 1 ? '' : 's'}</span>` : ''}` || '<span class="muted">—</span>';
+      return `<tr data-visit="${esc(c.visit)}" tabindex="0" data-style="cursor:pointer"><td class="mono small" data-style="white-space:nowrap">${esc(this.when(c.started))}</td><td>${esc(c.who || 'A member')}</td><td class="small">${problem}${fam}<div class="xs muted">${c.events} events · ${c.person_turns} messages from people · ${c.agent_turns} answers from agents</div></td><td>${outcome[c.outcome] || esc(c.outcome)}</td><td>${checks}</td><td class="mono small">${esc(spend)}</td></tr>`;
+    }).join('');
+    DC.hydrate(el);
+  },
+
+  when(s) { const t = new Date(s); return isNaN(t) ? String(s || '') : t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); },
+
+  what(e) {
+    const { esc } = DC;
+    const p = e.payload || {};
+    const code = v => v == null || v === '' ? '' : `<code>${esc(Array.isArray(v) ? v.join(', ') : String(v))}</code>`;
+    const quote = v => v ? `<div class="xs muted">${esc(String(v).length > 400 ? String(v).slice(0, 400) + '…' : String(v))}</div>` : '';
+    const no = '<span class="pill bad">refused</span>';
+    const words = {
+      'visit.started': () => 'Opened DCLab' + (p.surface ? ' · ' + esc(p.surface) : ''),
+      'chat.person': () => 'Wrote' + quote(p.text),
+      'chat.agent': () => 'Answered' + (p.question_field ? ' · asked about ' + code(p.question_field) : '') + quote(p.text),
+      'draft.created': () => 'Started a draft' + (p.pack ? ' · ' + code(p.pack) : '') + quote(p.problem),
+      'draft.edited': () => 'Changed ' + code(p.field) + (p.after != null ? ' to ' + code(p.after) : ''),
+      'draft.built': () => 'Built the project ' + code(p.project),
+      'draft.refused': () => `Build ${no} ${code(p.rule)}` + quote(p.reason),
+      'data.uploaded': () => 'Brought a table ' + code(p.name) + (p.rows != null ? ` · ${Number(p.rows).toLocaleString()} rows` : ''),
+      'solution.saved': () => 'Saved the solution · target ' + code(p.target) + (p.task ? ' · ' + code(p.task) : ''),
+      'solution.refused': () => `Solution ${no} ${code(p.rule)}` + quote(p.reason),
+      'stage.started': () => 'Started stage ' + code(p.stage),
+      'stage.finished': () => 'Finished stage ' + code(p.stage) + (p.metric ? ` · ${esc(p.metric)} ${p.value != null ? Number(p.value).toFixed(3) : ''}` : ''),
+      'stage.failed': () => `Stage ${code(p.stage)} <span class="pill bad">failed</span> ${code(p.code)}` + quote(p.error),
+      'graph.move': () => `Move ${code(p.move)}${p.allowed === false ? ' ' + no + ' ' + code(p.rules) : ''}`,
+      'agent.step': () => `${esc(p.agent || 'Agent')} step ${p.n ?? ''}${p.tool ? ' · ' + code(p.tool) : ''}` + quote(p.reply),
+      'tool.call': () => `Tool ${code(p.tool)}${p.verdict === 'denied' ? ' ' + no : ''}${p.code ? ' ' + code(p.code) : ''}`,
+      'model.request': () => `Model ${code(p.purpose)} · ${esc(p.model || '')}${p.cost != null ? ` · ${(p.currency || '').toUpperCase() === 'EUR' ? '€' : esc(p.currency || '') + ' '}${Number(p.cost).toFixed(5)}` : ''}` + quote(p.prompt) + quote(p.reply),
+      'decision.overridden': () => `Overrode ${code(p.point)}: ${code(p.proposed)} → ${code(p.chosen)}` + quote(p.reason),
+      'decision.refused': () => `Decision ${code(p.point)} ${no} ${code(p.rule)}` + quote(p.reason),
+      'job.started': () => 'Job started ' + code(p.kind),
+      'job.stopped': () => 'Job ' + code(p.kind) + ' ended ' + code(p.status),
+      'error.raised': () => `<span class="pill bad">error</span> ${code(p.code)} at ${code(p.where)}` + quote(p.message),
+    }[e.kind];
+    if (words) return words();
+    const rest = Object.entries(p).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${esc(k)} ${code(typeof v === 'object' ? JSON.stringify(v) : v)}`).join(' · ');
+    return `${esc(e.kind)}${rest ? ' · ' + rest : ''}`;
+  },
+
+  async openSession(el, visit) {
+    const { $, esc } = DC;
+    this.S.visit = visit;
+    const box = $('#sess-one', el), body = $('#sess-timeline', el);
+    box.hidden = false;
+    DC.states.loading(body, { cols: 3 });
+    let r;
+    try { r = await DC.client.experienceSession(visit, { query: { model_text: $('#sess-model-text', el).checked }, quiet: true }); }
+    catch (e) { DC.states.failed(body, e, { retry: () => this.openSession(el, visit), cols: 3 }); return; }
+    if (this.S.visit !== visit) return;
+    const c = r.session;
+    $('#sess-one-title', el).textContent = c.problem ? (c.problem.length > 70 ? c.problem.slice(0, 70) + '…' : c.problem) : 'A session';
+    const drafts = r.drafts || {};
+    const links = [...c.projects.map(p => `<a href="#project" data-open-project="${esc(p)}">${esc((c.project_names || {})[p] || p)}</a>`),
+      ...c.conversations.map(d => drafts[d] ? `<a href="#home" data-resume-draft="${esc(d)}">draft ${esc(d)}</a>` : `<span class="mono xs" title="An intern session">${esc(d)}</span>`)].join(' · ');
+    $('#sess-one-sub', el).innerHTML = `${esc(c.who || '')} · ${esc(this.when(c.started))} to ${esc(this.when(c.ended))} · ${c.events} events${links ? ' · ' + links : ''}`;
+    const who = { person: 'Person', agent: 'Agent', model: 'Model', system: 'DCLab' };
+    const job = e => e.ids.job ? ` <a class="xs" href="#compute" data-open-job="${esc(e.ids.job)}">job</a>` : '';
+    body.innerHTML = (r.cut ? `<tr><td colspan="3"><div class="callout warn small">A long session: the newest ${r.events.length.toLocaleString()} events are shown.</div></td></tr>` : '')
+      + r.events.map(e => `<tr><td class="mono small" data-style="white-space:nowrap">${esc(this.when(e.at))}</td><td>${esc(who[e.actor] || e.actor)}</td><td class="small">${this.what(e)}${job(e)}</td></tr>`).join('');
+    DC.hydrate(el);
+    box.scrollIntoView({ block: 'nearest' });
   },
 
   async loadPolicies(el) {
