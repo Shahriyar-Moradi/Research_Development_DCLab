@@ -39,6 +39,18 @@ def main(argv: list[str] | None = None) -> int:
     show.add_argument("--draft")
     show.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
+    from ..storage import db
+
+    if db.database_url(required=False):  # the record lives in the database: say plainly when it cannot be read yet
+        problem = db.reachable()
+        if problem:
+            print(f"The database did not answer ({problem}). Is PostgreSQL running? `make dev` checks it.", file=sys.stderr)
+            return 2
+        at, newest = db.current(), db.head()
+        if at != newest:
+            print(f"The database's schema is at {at or 'nothing'}; the record needs {newest}. Run `make dev` once (it migrates), "
+                  "or: .venv/bin/python -m dclab_rnd.storage upgrade", file=sys.stderr)
+            return 2
     log = _log()
     if args.command == "sessions":
         cards = sessions(log, args.limit)
