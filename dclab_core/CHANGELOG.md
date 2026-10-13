@@ -6,7 +6,7 @@ only with its version, and its frozen schema is in `schemas/baseline/`. A host p
 
 ## 0.3.0 (2026-10-13)
 
-Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3, 16.4 and 16.5. The six contracts are unchanged: all still at v1.
+Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3, 16.4, 16.5 and 16.6. The six contracts are unchanged: all still at v1.
 
 - `decide` (new): decisions on top of a model. `review_budget` chooses the share of rows to review from the value of
   a case found and the cost of a review, on out-of-fold scores, with a bootstrap interval over rows or entities, read
@@ -41,6 +41,17 @@ Packages 16.2, 16.9, 15.9, 18.7, 18.8, 16.3, 16.4 and 16.5. The six contracts ar
   or log scale) and the items created after it. `choose` never picks the popularity baseline. Relevant events may be a set.
 - `replicas.shop_interactions` (new): a shop's views and purchases with category tastes, items arriving later, and an
   item column of lifetime sales.
+- `segment` (new): groups in a table with no outcome (16.6). `prepare` records every preprocessing choice (log scale
+  for skewed positive numbers, median fills, standardising, one-hot scaled by 1/sqrt(levels) with a missing level,
+  identifiers and constants left out); `segment` refits k-means and a regularised diagonal Gaussian mixture on bootstrap
+  resamples for each k, keeps a k only when its stability (adjusted Rand against the full fit, the lower end of a 90%
+  interval) holds and its silhouette rises above the one the same method reaches on data with no groups (one Gaussian
+  with the data's spread, a flat box over its ranges), chooses by silhouette, leaves out columns no plausible grouping
+  of a first pass uses and searches again, adds an HDBSCAN density view, profiles each segment in the data's columns,
+  describes it with a named outcome (numbers or two levels in words; never used to form it), and states that there is
+  no ground truth.
+- `replicas.customer_behaviours` (new): three planted buying behaviours, a tenth of customers following none, two
+  columns that carry no behaviour, the planted labels and a later outcome in its facts (for judging).
 - `replicas.store_demand` (new): daily units per store and product, a planned promotion known ahead, the day's rain not.
 - `replicas`: `subscription_churn` (binary), `product_reviews` (text + tabular) (16.2), and `ride_pricing` (fees
   offered to couriers, varied or set by a formula, with the true best multiple) (16.9).

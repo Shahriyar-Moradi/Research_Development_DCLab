@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T00:54:13+00:00",
+ "at": "2026-10-13T01:15:18+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -338,6 +338,45 @@
      "decision": "NDCG and recall at k, coverage and novelty, with and without a history",
      "ok": true,
      "detail": "coverage 0.551, users with a history 322"
+    }
+   ],
+   "missing": [
+    "the engine does not run it yet: it runs as a library (dclab_core) only"
+   ]
+  },
+  {
+   "kind": "segmentation",
+   "status": "partial",
+   "checks": [
+    {
+     "decision": "the preprocessing is recorded: skewed amounts log-scaled, the identifier left out",
+     "ok": true,
+     "detail": "avg_basket: log(1 + x), because it is skewed and never negative; standardised (mean 3.811, sd 0.7084); customer_id: a different value on most rows: an identifier or free text"
+    },
+    {
+     "decision": "columns no group uses are left out, with the reason",
+     "ok": true,
+     "detail": "region: none of the 5 plausible groupings of the first pass explains more than 0.2% of its spread: no group uses it; signup_week: none of the 5 plausible groupings of the first pass explains more than 0.6% of its spread: no group uses it"
+    },
+    {
+     "decision": "the planted behaviours are recovered, with a stability interval",
+     "ok": true,
+     "detail": "kmeans k=3, stability {'mean': 0.997, 'ci90': [0.994, 1.0]}, agreement with the planted behaviours 0.998"
+    },
+    {
+     "decision": "more segments than planted are rejected for instability, for the chosen method",
+     "ok": true,
+     "detail": "kmeans k=6: the lower end of its 90% stability interval, 0.738 (mean 0.879), is below 0.75: resampled data does not give the same 6 groups; kmeans k=7: the lower end of its 90% stability interval, 0.718 (mean 0.816), is below 0.75: resampled data does not give the same 7 groups"
+    },
+    {
+     "decision": "each segment is described in the data's own columns",
+     "ok": true,
+     "detail": "segment 0 (0.319): orders_per_month, days_since_last_order, channel, avg_basket; segment 1 (0.363): channel, discount_share, orders_per_month, avg_basket; segment 2 (0.317): avg_basket, channel, discount_share, days_since_last_order"
+    },
+    {
+     "decision": "the record says there is no ground truth, and the outcome only describes the segments",
+     "ok": true,
+     "detail": "{'0': 0.317, '1': 0.536, '2': 0.821}"
     }
    ],
    "missing": [

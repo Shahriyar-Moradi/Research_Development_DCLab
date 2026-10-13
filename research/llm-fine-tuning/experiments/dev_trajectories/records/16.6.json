@@ -1,0 +1,83 @@
+{
+ "package": "16.6",
+ "title": "Segmentation (no target)",
+ "date": "2026-10-13",
+ "request": "Let DCLab group customers that behave alike when there is no outcome to predict, and say honestly what such groups are worth.",
+ "spec": "A segmentation kind: scaling and encoding choices recorded; k-means, Gaussian mixtures and HDBSCAN; the number of segments chosen by stability (bootstrap agreement) and silhouette, not by one run; each segment described in the data's own columns; an honest statement that no ground truth exists, and an optional check against a business outcome if one is named. Done when the replica (customers with three planted behaviours and noise) is recovered with stability intervals, and a too-high number of segments is rejected for instability.",
+ "plan": [
+  "Record every preprocessing choice: scale, logs, one-hot weights, what is left out and why.",
+  "For each k and method, refit on bootstrap resamples and measure agreement with the full fit; keep a k only when the interval's lower end holds.",
+  "Require separation beyond what the same method finds on data with no groups, so a stable split of a flat table is not called segments.",
+  "Leave out columns no plausible grouping uses, then search again; profile each segment in the data's own columns.",
+  "Review, fix, and show each test fails on the fault it guards."
+ ],
+ "decisions": [
+  {
+   "decision": "Stability is necessary but not enough: a k must also be better separated than on data with no groups.",
+   "why": "k-means splits a flat square into four quadrants stably every time; stable is not the same as grouped."
+  },
+  {
+   "decision": "The null is a Gaussian with the data's spread and a flat box over its ranges, not the columns shuffled.",
+   "why": "Shuffling keeps each column's shape, so groups that live in one column's two humps looked like no groups at all."
+  },
+  {
+   "decision": "A column is left out only when no plausible grouping (stable, separated, near the best silhouette) uses it.",
+   "why": "Judging columns by the first choice alone, usually k=2, dropped the column that tells the two smaller groups apart; judging by every grouping kept a noise column a fine split had sliced."
+  },
+  {
+   "decision": "The record states there is no ground truth, and a named outcome only describes the segments.",
+   "why": "A segmentation that predicts an outcome well is a different problem; the outcome never forms the groups."
+  }
+ ],
+ "change": "dclab_core/segment.py (prepare, stability, profiles, segment with two passes, _null_silhouette, _search, _report), dclab_core/replicas/customer_behaviours.py, dclab_rnd/kinds/segmentation.py, tests/test_core_segment.py, dclab_core/CHANGELOG.md, dclab_rnd/kinds/capability.json.",
+ "findings": [
+  {"id": "G1", "source": "reviewer", "severity": "behaviour", "defect": "The shuffled-columns null called real groups in one column 'no groups'.",
+   "scenario": "900 rows with x from two humps and two noise columns: k=2 perfectly stable, silhouette 0.351 against 0.353 shuffled, so nothing was chosen; a one-column table could never be segmented.",
+   "cause": "Shuffling keeps each column's marginal, so it tests dependence between columns, not groups.",
+   "fix": "The null is the best silhouette on a Gaussian with the data's spread and on a flat box over its ranges.",
+   "test": "test_data_without_groups_gets_no_segments_and_one_column_with_two_humps_does"},
+  {"id": "G2", "source": "reviewer", "severity": "behaviour", "defect": "Column pruning dropped a column only a finer grouping used.",
+   "scenario": "Groups A (half), B and C: four columns split A from B and C, z splits B from C; the first pass chose k=2, z explained 0.1% under it and was dropped as unused, the final answer k=2 (agreement 0.73).",
+   "cause": "Columns were judged under the first chosen grouping only.", "fix": "A column is dropped only when no plausible grouping (stable, separated, within 0.05 of the best silhouette) uses it.",
+   "test": "test_a_column_that_only_a_finer_grouping_uses_is_kept"},
+  {"id": "G3", "source": "reviewer", "severity": "behaviour", "defect": "The diagonal Gaussian mixture collapsed on one-hot columns.",
+   "scenario": "On replica seeds 1 to 3 the mixture at k=3 had stability lower ends 0.30 to 0.57 and the record blamed the data.",
+   "cause": "Binary dimensions drove a component's variance to zero.", "fix": "reg_covar 0.05 on the standardised data.",
+   "test": "test_the_planted_behaviours_are_recovered_and_too_many_rejected (mixture k=3 stable)"},
+  {"id": "G4", "source": "reviewer", "severity": "gap", "defect": "The 'too many segments rejected' check could not catch a broken k-means stability gate.",
+   "scenario": "With k-means always marked stable, every test and the acceptance still passed: the mixture's instability supplied the rejected k.",
+   "cause": "The check accepted any method's rejection.", "fix": "It requires a rejected k above the planted number for the chosen method.",
+   "test": "test_the_planted_behaviours_are_recovered_and_too_many_rejected"},
+  {"id": "G5", "source": "reviewer", "severity": "behaviour", "defect": "The rejection reason stated the mean as below the bar.",
+   "scenario": "'stability 0.879 (90% interval [0.738, 0.949]) below 0.75' was published though 0.879 is above 0.75.", "cause": "The wording named the mean.",
+   "fix": "It names the interval's lower end.", "test": "test_the_planted_behaviours_are_recovered_and_too_many_rejected"},
+  {"id": "G6", "source": "reviewer", "severity": "behaviour", "defect": "Prediction briefs were detected as segmentation.",
+   "scenario": "'Predict which customers will churn next month, reported per customer segment' became segmentation, which the Solution then refuses.",
+   "cause": "Bare words 'segment' and 'cluster'.", "fix": "Narrower words and no detection when the brief asks to predict, forecast or estimate.",
+   "test": "test_detected_by_its_words_and_refused_by_the_engine"},
+  {"id": "G7", "source": "reviewer", "severity": "behaviour", "defect": "A text or misspelt outcome failed silently.",
+   "scenario": "renewed as yes/no gave every segment a rate of None and 0 rows; outcome='renewal' dropped the section without a word.",
+   "cause": "to_numeric coerced the words to missing; a missing column was skipped.", "fix": "Two levels in words are mapped and said; otherwise the record says why the outcome cannot describe the segments.",
+   "test": "test_small_tables_text_outcomes_and_missing_values_are_handled_and_said"},
+  {"id": "G8", "source": "reviewer", "severity": "behaviour", "defect": "Tables under 15 rows crashed at the density view.", "scenario": "An 8-row table raised from HDBSCAN after the whole search.",
+   "cause": "min_cluster_size 15.", "fix": "The density view is skipped below 30 rows.", "test": "test_small_tables_text_outcomes_and_missing_values_are_handled_and_said"},
+  {"id": "G9", "source": "reviewer", "severity": "gap", "defect": "The preprocessing record missed choices.", "scenario": "Median fills and a missing level were not recorded; an integer identifier was standardised and used.",
+   "cause": "Only text columns were tested for identifiers.", "fix": "Fills and the missing level are recorded; an integer unique on every row is an identifier.",
+   "test": "test_small_tables_text_outcomes_and_missing_values_are_handled_and_said"}
+ ],
+ "measurements": [],
+ "outcome": "Built as a library and accepted on the replica (6 decisions, seeds 0 to 3); refused by the engine and partial in the matrix until the engine runs it.",
+ "lessons": [
+  "Stable is not the same as grouped: compare with data that has no groups.",
+  "A null that keeps each column's shape tests dependence, not grouping.",
+  "Judge a column by every plausible grouping, not the first choice, and not the finest split.",
+  "A check another part of the system can satisfy is not a check of the part you meant."
+ ],
+ "risks": [
+  "Segments reported in data with no groups.",
+  "A real signal column dropped as noise.",
+  "An outcome used to form the segments.",
+  "Segments presented as if they had a ground truth."
+ ],
+ "commits": []
+}
