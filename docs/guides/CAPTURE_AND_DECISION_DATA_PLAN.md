@@ -9,6 +9,16 @@ data for them as we can, under the hood. **A decision model is any model** (the 
 fine-tuned for it (Laya, Qwen, Llama, Mistral, Phi or any other), a classical classifier, or a hosted typed-judgment
 model like the main product's Jev. Jev is one example, not the target: the data and the interface are model-neutral.
 
+**Two uses** (the owner, same day), and the ledger records the decisions of both:
+1. **For data scientists and ML engineers** — the *technical* decisions of building a model, answered with a
+   confidence and the evidence behind it, wherever they work (the notebook, the companion, the API, an MCP tool): is
+   this column an identifier, a code, a date, free text; does it leak the outcome; which split; which metric; which
+   feature recipe; which model families; accept this tuning; which threshold.
+2. **Inside DCLab's workflow** — the *workflow* decisions that steer solving a problem: which family the problem is;
+   which question to ask next and when the problem is ready to build; which workflow template and which steps; which
+   step comes next, and when to go back (a leak sends the solution back, a model screen sends the features back); which
+   tool an agent calls; which experiment to try next and when to stop; when a person must be asked.
+
 This plan replaces Part 8 of `EXPERIENCE_AND_WORKFLOWS_PLAN.md` from 19.4 on, and adds Part 11 (decision models).
 19.1 (the event contract), 19.2 and 19.3 (the studio's log, every writer emitting) are done and stay as they are.
 
@@ -114,8 +124,11 @@ person's overrides.
   category code; the cases table; the label join key; cleaning steps; findings), leakage (each column's audit flag,
   the moment rule, the reviewer model, the measured lift), split (strategy, folds, sampling, holdout reuse), features
   (recipe), models (family, review rounds, the critic), tuning, metric, threshold, stage approvals and overrides,
-  report claims kept or dropped, lessons, the intern's tool choices. A test lists the decision points and fails when
-  one decides without a record.
+  report claims kept or dropped, lessons; and the **workflow decisions** (the second use): the problem's family and
+  readiness, the next question asked or skipped, the workflow template and its steps, each move on the workflow graph
+  (allowed, refused, waiting for a person) with the state it saw and the moves it had, each revisit, each tool an agent
+  chose among the tools it was offered, each experiment chosen among the catalogue, each stop or go-on. A test lists
+  the decision points of both kinds and fails when one decides without a record.
 - **Done when:** one project, from Home to its report, leaves a record for every decision it made, each with its
   state and its answers, and the list of points is complete by the test.
 
@@ -245,6 +258,26 @@ by the same gates; the ledger feeds all of them, each in its own training format
   fallback when a model abstains or fails, and demotion when its accuracy on new labels falls below its bar.
 - **Done when:** switching a point's model is one audited change, and a demoted model falls back to the rule.
 
+### 22.8 Decision models for data scientists (the first use)
+- **Delivers:** the technical decision points as something a data scientist asks while they work: in the notebook
+  companion and the copilot review ("this column looks like an identifier: 0.97, because …"), as an API and an MCP
+  tool (`decide(point, state)`), and in the project page beside each stage's choice; each answer with its confidence,
+  the answerer that gave it, the evidence records it rests on, and the rule's answer beside it; a disagreement is shown,
+  never hidden, and the person's choice becomes a label.
+- **Done when:** on the replicas, asking each technical point through the API, the MCP tool and the companion gives
+  the same answer with its confidence and evidence, and a person's override is recorded as a label.
+
+### 22.9 Decision models inside the workflow (the second use)
+- **Delivers:** the workflow's own choices made with decision models where they passed their gates: the coordinator
+  (21.2) asks which question next, whether the problem is ready, which step comes next and when to go back; the
+  solution workflow (20.6) asks which template and steps fit; the review rounds ask which experiment next and when to
+  stop; an agent's tool choice is checked against the model's. Every such answer goes through the validator first (a
+  model never moves the graph on its own), the rule answers when the model abstains or fails, and each workflow
+  decision is judged on the conversation suite (20.10) against the rules.
+- **Done when:** on the conversation suite, the workflow with decision models reaches the right card, workflow and
+  holdout number at least as often as with the rules, with no move the validator refuses, and each model's
+  contribution is measured on its own.
+
 ### 22.7 Adoption by the main product
 - **Delivers:** the classifiers as a DCLab ModelType answerer in the main product's harness (its design's own path for
   custom decision models): the same purposes and state, rows shaped like `semantic_decision_answers`, R3 runs on its
@@ -269,12 +302,13 @@ by the same gates; the ledger feeds all of them, each in its own training format
 ## Order and time
 
 Order: 19.4 → 19.5 → 19.6 → 19.7 → 19.8 → 19.9 → 19.10 → 19.11 → 19.12 → 19.13, then 22.0 → 22.1 → 22.2 → 22.3 →
-22.4 → 22.5 → 22.6 → 22.7. Part 11 needs 19.6–19.8 (the ledger and its labels) and 19.10 (consent) before 22.4–22.7; 22.0–22.3 can
+22.4 → 22.5 → 22.6 → 22.8 → 22.9 → 22.7. 22.9 needs the coordinator (21.2) and the solution workflow (20.6) of
+`EXPERIENCE_AND_WORKFLOWS_PLAN.md`. Part 11 needs 19.6–19.8 (the ledger and its labels) and 19.10 (consent) before 22.4–22.7; 22.0–22.3 can
 start right after 19.8, on generated data that needs no consent.
 
 Estimate at the pace of 2026-10-13 (each package built, tested, reviewed, fixed and committed): Part 8, ten packages,
 about 30–36 working hours; Part 11, eight packages, about 26–32 working hours (22.5's fine-tuning runs are GPU time,
-not counted). Live model use: none in Part 8; Part 11 compares models offline.
+not counted), plus 22.8 and 22.9, about 8–10 hours. Live model use: none in Part 8; Part 11 compares models offline.
 
 Owner decisions still open: retention per class; who reads timelines and decisions (proposed: owner and admin roles);
 whether blind labelling is done by the owner, reviewers, or both; a GPU for 22.5, and which open-source models to
