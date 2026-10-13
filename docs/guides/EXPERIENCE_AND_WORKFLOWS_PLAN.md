@@ -317,6 +317,15 @@ file), then 19.1 → 19.2 → 19.3 → 19.4 → 19.5 → 19.6 → 19.7 → 19.8,
 20.2 → 21.4 → 20.5 → 20.6 → 20.7 → 20.8 → 20.9 → 20.10 → 21.5. The failure detectors (19.5) and the problem card's readiness rule (20.1) are the two fastest
 answers to the owner's morning; 20.1's readiness rule may be pulled forward as a guard while Part 8 is built.
 
+Status:
+- **20.0 the guard: done (2026-10-13).** No outcome is guessed anywhere (wizard, page, chat options, intern): the
+  person names it, or the table names it (`target`, `label`, `outcome`); a key, a constant, a row number, a counter or
+  free text is refused by the graph's `set_solution` check and by the draft's wizard; a list of known cases (every row
+  in one state, a kind of case, a key per row, no outcome of its own) is recognised, pointed at the table in the
+  workspace it labels, and not built alone unless the person names an outcome; the model may ask any open field of its
+  draft once the outcome is raised. The owner's morning replayed on the replica (`tests/test_morning_guard.py`).
+  Judgment suite unchanged (AEV-020 = AEV-019). Review: 10 findings, fixed; 12 planted faults caught.
+
 Owner decisions:
 - The main product: its ADR 0008 rejects fine-tuning its assistant on customer data. Whether its sessions may ever
   feed a training set is the owner's call; until then the library's exports there produce nothing.

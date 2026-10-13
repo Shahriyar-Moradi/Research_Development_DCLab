@@ -139,6 +139,12 @@ class Intern:
             return f"the budget of {session['budget']['max_minutes']} minutes is used up"
         return None
 
+    def _named_outcome(self, project_id: str, task: str) -> str | None:
+        """The outcome the person named in their request, or the table names as its own; never the first candidate."""
+        from dclab_rnd.studio.data import named_outcome
+
+        return named_outcome((self.toolbox.projects.get(project_id).get("data") or {}).get("profile") or {}, task)
+
     def _step(self, session: dict[str, Any], tool: str, arguments: dict[str, Any], started: float) -> Any:
         checkpoint()  # a stop asked for on the Compute page takes effect before the next tool call (package 10.3)
         if self.tracer is not None:
@@ -266,10 +272,13 @@ class Intern:
             return
         if not described.get("solution"):
             suggestion = described.get("suggestion") or {}
-            target = suggestion.get("target") or (described["target_candidates"][0] if described["target_candidates"] else None)
+            # never the first candidate: the outcome is the person's to name (2026-10-13), in their request or as the table's own
+            target = suggestion.get("target") or self._named_outcome(pid, session["task"])
             if not target:
                 session["status"] = "completed"
-                session["final"] = "I could not find a target column. Set the solution in the notebook and hand the project back to me."
+                session["final"] = ("Name the outcome column first: DCLab does not pick it for you. "
+                                    + (f"Likely outcomes: {', '.join(described['target_candidates'][:5])}. " if described.get("target_candidates") else "")
+                                    + "Set the solution in the notebook and hand the project back to me.")
                 return
             proposal = self._step(session, "propose_solution", {"project_id": pid, "target": target, **({"task": suggestion["task"]} if suggestion.get("task") else {})}, started)
             if "error" in proposal:

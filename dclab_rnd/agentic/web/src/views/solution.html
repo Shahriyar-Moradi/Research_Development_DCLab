@@ -601,7 +601,7 @@ DC.view('solution', {
       const idCands = new Set([...ids, ...(((p.data || {}).profile || {}).id_candidates || [])]);
       return `<div class="stack">
         <div class="callout warn"><span class="ic">${DC.icon('alert')}</span><span>Saving a changed solution clears the stage results that depend on it. The graph checks the move; the log keeps the earlier version.</span></div>
-        <div class="field"><label for="es-target">Target</label><select id="es-target">${cols.map(c => `<option ${c === sol.target ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+        <div class="field"><label for="es-target">Target</label><select id="es-target"><option value="">choose the outcome column</option>${cols.map(c => `<option ${c === sol.target ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
         <div class="field"><label for="es-moment">Prediction moment</label><textarea id="es-moment" rows="2">${esc(sol.prediction_moment || '')}</textarea></div>
         <div class="field"><span class="label">Forbidden columns</span>${flagged.map(f => `<label class="check"><input type="checkbox" data-es-forbid="${esc(f.column)}" data-reason="${esc(f.reason || '')}" ${forb.has(f.column) ? 'checked' : ''}><span><code>${esc(f.column)}</code> <span class="muted small">${esc(f.reason || '')}</span></span></label>`).join('') || '<span class="muted small">None flagged.</span>'}
           <div class="row"><button type="button" class="btn sm" data-es-audit="1">Audit the columns again</button></div></div>

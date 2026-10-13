@@ -79,11 +79,15 @@ def rank_targets(profile: dict[str, Any], problem: str) -> list[str]:
     """
     candidates = [str(c) for c in profile.get("target_candidates") or []]
     words = _stems(problem)
-    eligible = [c for c in profile.get("columns") or [] if c.get("kind") != "text" and (c.get("unique") or 0) >= 2 and not c.get("id_like")]
+    from ..studio.data import proposable_target
+
+    eligible = [c for c in profile.get("columns") or [] if proposable_target(c)]  # never a key, a constant or a row number
     named = [c for c in eligible if _stems(c.get("name", "")) & words]
     named.sort(key=lambda c: (-int(bool(c.get("target_name_like"))), -int(bool(c.get("low_cardinality")))))
     first = [str(c["name"]) for c in named]
-    return (first + [c for c in candidates if c not in first])[:max(8, len(candidates))]
+    allowed = {str(c.get("name")) for c in eligible}
+    described = {str(c.get("name")) for c in profile.get("columns") or []}  # a stored profile without its columns keeps its list
+    return (first + [c for c in candidates if c not in first and (c in allowed or c not in described)])[:max(8, len(candidates))]
 
 
 def moment_options(pack: str | None) -> list[str]:
@@ -288,6 +292,19 @@ class HomeAgent:
                     + (f"; {marked['not_found']} are not in the table" if marked.get("not_found") else "")
                     + (f"; refused keys: {', '.join('+'.join(r['key']) for r in marked.get('refused', [])[:2])}" if marked.get("refused") else "")
                     + ". The marked rows are the cases the model learns from.")
+        cases = analysis.get("cases_table") or {}
+        if cases and asset.get("kind") != "labels":  # a list of known cases alone: say what it is and what is missing
+            # names and counts only: this text goes into the model's history, where no cell value may go
+            why = ([f"`{k}` is the same on every row" for k in cases["same_on_every_row"]]
+                   + [f"`{k}` names the kind of case ({len(v)} kinds)" for k, v in cases["case_kinds"].items()]
+                   + [f"`{cases['keys'][0]}` is different on every row"])
+            text += (" This file looks like a list of known cases, not the table to learn from: " + "; ".join(why) + ". On its own"
+                     " every row is a case, so there is nothing to tell the cases from. Add the table these cases belong to (with "
+                     f"`{cases['keys'][0]}`) to this draft, and DCLab will join them: the cases become the labels.")
+            for t in cases.get("tables") or []:
+                text += (f" Another of your drafts has {t['asset']} ({t['rows']:,} rows), where {t['matched']} of these "
+                         f"{t['of']} `{t['key']}` values appear: it is probably that table.")
+                break
         self.say(draft_id, text, kind="analysis", asset=asset.get("id"))
         if (draft.get("pack") or {}).get("source") != "user":
             det = packs.detect(draft["problem"], analysis)
@@ -731,11 +748,20 @@ class DraftGuard:
                     return {"error": "The quote is not in the user's words; copy whole words exactly from the problem or their messages."}
                 if not plans.supports(arguments["quote"], arguments.get("value")):
                     return {"error": "The value does not say what the quote says; record what the user's words mean."}
-        if tool.move == "ask" and arguments.get("field") in plans.FIELDS:
-            question = agent.next_question(agent.store.get(draft_id))
-            if question is None or question[0] != arguments["field"]:
+        if tool.move == "ask" and arguments.get("field") in plans.ALL_FIELDS:
+            # The outcome comes first; after it, the plan's order is a suggestion: the model may ask any field still open
+            # when it judges it more useful now (its questions about which anomalies mattered and what is done with a
+            # flag were refused for the order once, and the outcome was never settled). The outcome may be asked again
+            # while it is open; a field already known is not.
+            draft = agent.store.get(draft_id)
+            field = arguments["field"]
+            plan = plans.refresh(draft)
+            outcome_raised = plan["target"]["status"] != "unknown" or any(q["field"] == "target" for q in draft.get("questions") or [])
+            usable = field in plans.fields_for(draft) or field in plans.FIELDS
+            if not usable or plan.get(field, {}).get("status") != "unknown" or (field != "target" and not outcome_raised):
+                question = agent.next_question(draft)
                 nxt = f"ask about {question[0]} next" if question else "nothing in the plan is open; summarise instead"
-                return {"error": f"The plan does not ask about {arguments['field']} now: {nxt}."}
+                return {"error": f"{field} is not open in this draft's plan: {nxt}."}
         if tool.move == "set_pack":
             if arguments.get("key") not in packs.KEYS:
                 return {"error": f"Unknown pack {str(arguments.get('key'))[:40]!r}. Packs: {', '.join(packs.KEYS)}."}

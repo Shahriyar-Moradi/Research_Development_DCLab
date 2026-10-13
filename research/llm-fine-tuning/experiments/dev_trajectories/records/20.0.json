@@ -1,0 +1,244 @@
+{
+  "package": "20.0",
+  "title": "The guard against the owner's morning: no guessed outcome, a list of cases recognised",
+  "date": "2026-10-13",
+  "request": "The owner tested anomaly detection on the product and it did not understand the problem: the target was customer_id, not the fake deliveries. Double-check, find the cause, and make DCLab stop building the wrong thing.",
+  "spec": "An identifier, a constant, a row number, a counter or free text is never an outcome; nothing picks the outcome for the person (not the wizard, the page, the chat's options or the intern); a table that is a list of known cases is recognised, pointed at the table it labels, and not built alone; the model may ask any open field of its draft once the outcome is raised. Done when the owner's morning, replayed on the invented delivery-fraud replica, cannot end in a project on a key, and a real labelled table named fraud still builds.",
+  "plan": [
+    "Read the records of the owner's morning (structure and the agent's words only, nothing from the data into the repository).",
+    "Trace where customer_id came from: the profile's ranking, the wizard's fallback, the page's preselection.",
+    "Put one rule in the graph's set_solution check so every path gets it; mirror it in the draft's wizard.",
+    "Recognise a list of cases by its shape, look for the table it labels in the workspace's other drafts.",
+    "Let the model ask what it judges useful, inside the outcome-first rule.",
+    "Review, plant every fault, fix the tests that could not fail."
+  ],
+  "decisions": [
+    {
+      "decision": "The outcome is never guessed; the person or the chat names it.",
+      "why": "A column picked for having few values became the target and five stages ran on it without objection."
+    },
+    {
+      "decision": "Numbers different on every row are refused only when they count 1, 2, 3, are named as a key, or are text.",
+      "why": "Whole-number salaries and prices are as distinct as keys and are real regression targets."
+    },
+    {
+      "decision": "A list of cases needs every row in one state; its file name alone is not enough, and a column that reads as an outcome makes it a table to learn from.",
+      "why": "A labelled transactions table named fraud was refused as a list of cases."
+    },
+    {
+      "decision": "Messages that reach the model's history carry names and counts, not values.",
+      "why": "The Home agent's contract sends no cell value to a model."
+    },
+    {
+      "decision": "The outcome comes first; after it the plan's order is a suggestion.",
+      "why": "The model's own questions (which anomalies matter, what is done with a flag) were refused for the order that morning."
+    },
+    {
+      "decision": "Naming an outcome lets a person build a list of cases if they mean to.",
+      "why": "The guard refuses guesses, not a person's choice."
+    }
+  ],
+  "change": "dclab_rnd/studio/data.py (target_refusal, proposable_target, key_named, sequence_like), dclab_rnd/studio/graph.py (Target can be an outcome), dclab_rnd/studio/labels.py (cases_table, tables_it_labels), dclab_rnd/draft/pipeline.py, dclab_rnd/draft/chat.py (rank_targets, the cases message, the ask guard), dclab_rnd/draft/api.py (proposal, draft solution, BuildRefused), dclab_rnd/intern/loop.py, dclab_rnd/agentic/web/src/views/new.html and solution.html, tests/test_morning_guard.py.",
+  "findings": [
+    {
+      "id": "M1",
+      "source": "owner",
+      "severity": "behaviour",
+      "defect": "A list of known frauds was built into a project whose target was customer_id.",
+      "scenario": "The owner's two challenge files in two drafts; the frauds' draft built with target customer_id (3 values), task multiclass, all stages completed.",
+      "cause": "Candidates ranked few values first; the wizard and the page took the first candidate; nothing refused a key; nothing recognised a list of cases.",
+      "fix": "No guessed outcome anywhere; one refusal rule in the graph; the list of cases recognised and pointed at the orders.",
+      "test": "TheMorningTest"
+    },
+    {
+      "id": "M2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "The model's right questions were refused by the fixed order.",
+      "scenario": "Asked what kind of unusual case and what is done with a flag: 'The plan does not ask about target now'.",
+      "cause": "The guard required the plan's next field.",
+      "fix": "Any open field of the draft once the outcome is raised.",
+      "test": "TheModelMayAskAnyOpenFieldTest"
+    },
+    {
+      "id": "S1",
+      "source": "self",
+      "severity": "gap",
+      "defect": "A key repeated by multi-drop orders passed the key rule.",
+      "scenario": "order_id with 98 % distinct values was allowed as a target by the graph.",
+      "cause": "The rule needed 98 % distinct.",
+      "fix": "A key-named column over half distinct is a key.",
+      "test": "test_a_key_saved_as_the_solution_is_refused_by_the_graph"
+    },
+    {
+      "id": "S2",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "A synthetic card-fraud table was refused as a list of cases.",
+      "scenario": "Its name said fraud, it had an id and a category column.",
+      "cause": "The detection was too loose.",
+      "fix": "Every row in one state is required; no outcome-like column.",
+      "test": "test_draft_flow test_synthetic_data_is_labelled"
+    },
+    {
+      "id": "S3",
+      "source": "self",
+      "severity": "gap",
+      "defect": "Two tests could not fail.",
+      "scenario": "The order test passed under the old rule; labels was not a guarded field.",
+      "cause": "The test asked a field outside the guard.",
+      "fix": "The morning's own refused question (action) is replayed.",
+      "test": "planted faults"
+    },
+    {
+      "id": "S4",
+      "source": "self",
+      "severity": "behaviour",
+      "defect": "Without its first-candidate guess, the intern's standard plan stopped on a table whose column is named target.",
+      "scenario": "The judgment suite's standard policy: 0 of 13 leaks, no valid moves.",
+      "cause": "Removing the guess removed the table's own declaration with it.",
+      "fix": "named_outcome: a column the person named in their request, or one the table names as its outcome (target, label, outcome); a key is never named.",
+      "test": "test_an_outcome_is_taken_only_when_a_person_or_the_table_names_it; AEV-020 equal to AEV-019"
+    },
+    {
+      "id": "R1",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The chat still offered key columns as likely outcomes.",
+      "scenario": "delivery_id and biker_id were the question's first options.",
+      "cause": "rank_targets used its own looser filter.",
+      "fix": "One proposable_target rule for the profile, the chat and the page.",
+      "test": "test_the_chat_never_offers_a_key_named_column"
+    },
+    {
+      "id": "R2",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Whole-number regression targets were refused as keys.",
+      "scenario": "salary and rounded price: 'is a key, not an outcome'.",
+      "cause": "Any 98 % distinct integer column was id-like.",
+      "fix": "Refused only as a counter, a key name, or text.",
+      "test": "test_whole_number_amounts_and_binary_names_ending_in_id_stay_outcomes_and_text_does_not"
+    },
+    {
+      "id": "R3",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A labelled table named fraud could never be built.",
+      "scenario": "fraud_transactions.csv with chargeback 0/1 and transaction_type: refused, no override.",
+      "cause": "File name enough; outcome exemption by name only.",
+      "fix": "Every row in one state required; a two-valued outcome-like column exempts; naming an outcome overrides.",
+      "test": "test_a_labelled_table_named_fraud_is_a_table_to_learn_from, test_naming_an_outcome_lets_the_person_build_what_they_chose"
+    },
+    {
+      "id": "R4",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "fraud_reason escaped the detection.",
+      "scenario": "The cases' reason column renamed fraud_reason counted as the outcome.",
+      "cause": "Outcome by target-like name.",
+      "fix": "A kind of case is never the outcome.",
+      "test": "test_a_kind_of_case_named_with_fraud_is_still_a_kind_not_an_outcome"
+    },
+    {
+      "id": "R5",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "Cell values reached the model's history.",
+      "scenario": "final_status = DELIVERED and the kinds of case were in the analysis message.",
+      "cause": "The message quoted values.",
+      "fix": "Names and counts only; no other draft's problem text.",
+      "test": "the message test"
+    },
+    {
+      "id": "R6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The intern still picked the first candidate.",
+      "scenario": "A project with data and no suggestion handed to the intern.",
+      "cause": "Its standard plan fell back to target_candidates[0].",
+      "fix": "It asks the person to name the outcome.",
+      "test": "intern loop"
+    },
+    {
+      "id": "R7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The project's solution editor selected the first column.",
+      "scenario": "Edit the solution on a project without one: cols[0] preselected and saved.",
+      "cause": "No blank option.",
+      "fix": "A blank 'choose the outcome column' option.",
+      "test": "solution.html"
+    },
+    {
+      "id": "R8",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "Binary outcomes ending in id were no longer offered.",
+      "scenario": "is_paid, valid, covid matched the wide key pattern.",
+      "cause": "ID_NAMES is wide.",
+      "fix": "A strict key_named pattern for this rule.",
+      "test": "same test as R2"
+    },
+    {
+      "id": "R9",
+      "source": "reviewer",
+      "severity": "latent",
+      "defect": "The search for the labelled table could name a stale file or fail the upload.",
+      "scenario": "Every table of a draft is cleaned into one file; a database error fell into the pipeline's catch-all.",
+      "cause": "All assets read; no guard.",
+      "fix": "Each draft's active table only; any error returns nothing.",
+      "test": "labels.py"
+    },
+    {
+      "id": "R10",
+      "source": "reviewer",
+      "severity": "gap",
+      "defect": "The relaxed guard accepted another pack's fields.",
+      "scenario": "A generic draft asked about an alert budget.",
+      "cause": "Any field in ALL_FIELDS passed.",
+      "fix": "Only the draft's own or the generic fields.",
+      "test": "test_the_outcome_comes_first_and_a_field_this_draft_does_not_use_is_not_asked"
+    }
+  ],
+  "measurements": [
+    {
+      "name": "planted faults",
+      "gate": "each of the 12 planted faults in the guard fails a test",
+      "result": "12 of 12 caught after strengthening 3 tests that first could not fail",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "12 of 12 against 12",
+      "limits": [
+        "Only the faults planted; the browser does not run the page change."
+      ]
+    },
+    {
+      "name": "scripted judgment suite after the guard",
+      "gate": "every policy's scorecard equal to AEV-019's",
+      "result": "AEV-020: standard 1/13 leaks, 1/20 false alarms; audit 11/13, 3/20; bad 0/13, unsafe refused 20/20: equal",
+      "verdict": "pass",
+      "cost_eur": 0.0,
+      "against_gate": "equal on all three policies",
+      "limits": [
+        "Scripted policies on planted traps only."
+      ]
+    }
+  ],
+  "outcome": "The morning cannot repeat: no outcome is guessed, a key cannot be one, a list of cases is recognised and pointed at its table; a person's choice still stands.",
+  "lessons": [
+    "Read the session's records before guessing: the cause was the rules, not the model.",
+    "One rule in the check every path passes; every surface that offers choices uses the same rule.",
+    "A guard that refuses real targets is a new bug: plant the legitimate cases next to the bad ones.",
+    "Detect a shape by what it lacks as well as what it has: a list of cases has no outcome of its own.",
+    "A test that passes under the old code proves nothing: plant the old rule back.",
+    "Text the model reads must keep the model's data contract."
+  ],
+  "risks": [
+    "A model trained on a key.",
+    "Real targets refused.",
+    "Cell values in a prompt.",
+    "A list of cases built alone."
+  ],
+  "commits": []
+}

@@ -242,7 +242,13 @@ def _run_stage(project: dict[str, Any], actor: str, frm: str | None, args: dict[
 
 
 def _set_solution(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    from .data import target_refusal
+
     checks = [_check("Data", bool(project.get("data")), "Attach a table before writing the solution.")]
+    if args.get("target") and project.get("data"):  # an identifier, a constant or a row number is never the outcome
+        profiled = {c.get("name"): c for c in ((project["data"].get("profile") or {}).get("columns") or [])}
+        refused = target_refusal(profiled.get(args["target"]))
+        checks.append(_check("Target can be an outcome", refused is None, refused or ""))
     side = []
     ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
     if ran:

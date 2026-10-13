@@ -11,11 +11,16 @@ file, and they are stated as a limit.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any, Optional
 
 import pandas as pd
 
+CASE_WORDS = re.compile(r"(reason|type|kind|fraud|case|abuse|anomal|scam|fake)", re.I)
+FILE_WORDS = re.compile(r"(fraud|label|case|known|positive|confirm|abuse|anomal|scam|fake|flagged)", re.I)
+BOOLEAN_VALUES = {"0", "1", "0.0", "1.0", "true", "false", "yes", "no", "y", "n", "t", "f"}
+STATUS_WORDS = re.compile(r"(status|state|result|outcome|flag|stage)", re.I)
 INFLATION = 1.5  # a key that marks more than this many table rows per label row is refused (multi-drop orders reach ~1.1)
 
 
@@ -89,3 +94,59 @@ def apply(store, project: dict[str, Any], frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
     out[info["target"]] = mark(frame, labels, list(info["key"]))
     return out
+
+
+def cases_table(profile: dict[str, Any], filename: str = "") -> Optional[dict[str, Any]]:
+    """Whether a table is a list of known cases rather than the table to learn from: a key different on every row and
+    named as a key, a column naming the kind of case (a reason, a type), and every row in the same state, or a file name
+    that says so. Read from the profile only (names and counts). Such a file is the labels of another table; alone, it
+    holds no row that is not a case, so there is nothing to tell the cases from."""
+    columns = profile.get("columns") or []
+    keys = [c["name"] for c in columns if c.get("id_like") and c.get("name_id_like")]
+    kinds = {c["name"]: c.get("preview", [])[:5] for c in columns
+             if c.get("kind") == "categorical" and 2 <= (c.get("unique") or 0) <= 20 and CASE_WORDS.search(str(c["name"]))}
+    same = {c["name"]: (c.get("preview") or [None])[0] for c in columns if (c.get("unique") or 0) == 1 and STATUS_WORDS.search(str(c["name"]))}
+    named = bool(FILE_WORDS.search(Path(str(filename)).stem))
+    # a two-valued column besides the kinds of case that reads as an outcome (chargeback 0/1, is_fraud yes/no) is the
+    # table's own outcome: a table to learn from; a two-valued attribute (box or no box) is not
+    outcome = [c["name"] for c in columns if (c.get("unique") or 0) == 2 and c["name"] not in kinds
+               and (c.get("target_name_like") or {str(v).strip().lower() for v in c.get("preview") or []} <= BOOLEAN_VALUES)]
+    if outcome or not keys or not kinds or not same:  # every row in one state: the file's name alone is not enough
+        return None
+    return {"keys": keys, "case_kinds": kinds, "same_on_every_row": same, "file_name_says_so": named, "rows": int(profile.get("rows") or 0)}
+
+
+def tables_it_labels(drafts: Any, draft_id: str, cases: pd.DataFrame, keys: list[str], limit: int = 3) -> list[dict[str, Any]]:
+    """Tables in the workspace's other drafts that a file of cases could label: each ready table holding one of its key
+    columns, with how many of the cases' keys it contains. Only the key column is read."""
+    try:
+        return _tables_it_labels(drafts, draft_id, cases, keys, limit)
+    except Exception:  # noqa: BLE001 - a hint only: the upload of the cases never fails for it
+        return []
+
+
+def _tables_it_labels(drafts: Any, draft_id: str, cases: pd.DataFrame, keys: list[str], limit: int) -> list[dict[str, Any]]:
+    found = []
+    for other in drafts.list(limit=50):
+        if other.get("id") == draft_id:
+            continue
+        try:
+            full = drafts.get(other["id"])
+        except KeyError:
+            continue
+        # the draft's active table only: every table of a draft is cleaned into the same file, the newest one
+        for asset in [a for a in full.get("assets") or [] if a.get("id") == full.get("active_asset")]:
+            if asset.get("status") != "ready" or asset.get("kind") == "labels" or not asset.get("clean_file"):
+                continue
+            path = drafts.data_dir(other["id"]) / asset["clean_file"]
+            for key in keys:
+                try:
+                    values = pd.read_parquet(path, columns=[key])[key]
+                except Exception:  # noqa: BLE001 - a table without this column is not a match
+                    continue
+                wanted = cases[key].dropna().astype(str)
+                matched = int(wanted.isin(set(values.dropna().astype(str))).sum())
+                if matched:
+                    found.append({"draft_id": other["id"], "asset": asset.get("name"),
+                                  "rows": int(len(values)), "key": key, "matched": matched, "of": int(len(wanted))})
+    return sorted(found, key=lambda f: -f["matched"] / max(f["of"], 1))[:limit]

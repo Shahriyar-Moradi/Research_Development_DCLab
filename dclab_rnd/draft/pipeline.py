@@ -153,6 +153,13 @@ def run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=None
         report["profile"]["target_candidates"] = rank_targets(report["profile"], draft.get("problem") or "")
         if labels_summary is not None:
             report["labels"] = labels_summary
+        elif role is None:  # alone, a list of known cases is the labels of a table not here yet
+            from ..studio import labels as label_review
+
+            cases = label_review.cases_table(report["profile"], asset.get("name") or "")
+            if cases is not None:
+                cases["tables"] = label_review.tables_it_labels(store, draft_id, frame, cases["keys"])
+                report["cases_table"] = cases
         checkpoint()
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)

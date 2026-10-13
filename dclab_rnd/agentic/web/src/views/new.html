@@ -335,9 +335,13 @@ DC.view('new', {
       const cols = columns().map(c => c.name);
       const u = W.draft.understanding || {}, sol = W.draft.solution, cands = ((W.draft.analysis || {}).profile || {}).target_candidates || [];
       const own = (((W.draft.assets || []).find(a => a.id === W.draft.active_asset) || {}).suggestion || {}).target;  // a sample or a synthetic table knows its outcome
-      const pick = sol ? sol.target : cols.includes(u.target) ? u.target : cols.includes(own) ? own : cands[0] || '';
+      // never the profile's first candidate: the outcome is what the person or the chat named (a guess picked customer_id once)
+      const pick = sol ? sol.target : cols.includes(u.target) ? u.target : cols.includes(own) ? own : '';
       if (W.proposalFor !== W.draft.id) { W.proposal = null; W.proposalFor = W.draft.id; }  // never show another draft's audit
-      $('#wz-target', el).innerHTML = '<option value="">choose the outcome column</option>' + cols.map(c => `<option ${c === pick ? 'selected' : ''}>${esc(c)}</option>`).join('');
+      const likely = cands.filter(c => cols.includes(c)), rest = cols.filter(c => !likely.includes(c));  // likely outcomes first, none chosen
+      $('#wz-target', el).innerHTML = '<option value="">choose the outcome column</option>'
+        + (likely.length ? `<optgroup label="Likely outcomes">${likely.map(c => `<option ${c === pick ? 'selected' : ''}>${esc(c)}</option>`).join('')}</optgroup><optgroup label="Other columns">` : '')
+        + rest.map(c => `<option ${c === pick ? 'selected' : ''}>${esc(c)}</option>`).join('') + (likely.length ? '</optgroup>' : '');
       if (sol) { W.proposal = W.draft.proposal || W.proposal; drawSheet(sol); }
       else if (pick) propose(false);
       else $('#wz-sheet', el).innerHTML = '<div class="empty">Choose the outcome column, then DCLab audits every other column against the prediction moment.</div>';

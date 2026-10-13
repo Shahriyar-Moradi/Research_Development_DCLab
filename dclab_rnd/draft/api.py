@@ -200,11 +200,17 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         body = dump(payload)
         frame, asset = clean_frame(draft)
         profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
-        # the target the caller names, else what the chat established, the sample's own, or the profile's first candidate
-        hinted = [(draft.get("understanding") or {}).get("target"), (asset.get("suggestion") or {}).get("target"), *(profile.get("target_candidates") or [])[:1]]
+        # the target the caller names, else what the chat established or the sample's own; never a guess from the profile's
+        # ranking: a column chosen because it has few values became the outcome once (customer_id, 2026-10-13)
+        hinted = [(draft.get("understanding") or {}).get("target"), (asset.get("suggestion") or {}).get("target"),
+                  studio_data.named_outcome(profile, " ".join(m.get("text", "") for m in draft.get("messages") or [] if m.get("role") == "user")
+                                            + " " + str(draft.get("problem") or ""))]
         target = str(body["target"]) if body.get("target") else next((str(t) for t in hinted if t and str(t) in frame.columns), "")
         if not target:
-            raise HTTPException(422, "Name the target column")
+            raise HTTPException(422, "Choose the outcome column: DCLab does not pick it for you")
+        refused = studio_data.target_refusal(next((c for c in profile.get("columns") or [] if c.get("name") == target), None))
+        if refused:
+            raise HTTPException(422, refused)
         hint = asset.get("suggestion") or {}
         try:  # a studied sample's time column orders the rows the proposal reads, as it will order the run's split
             proposal = await asyncio.to_thread(studio_solution.propose, frame, profile, target, body.get("task"),
@@ -244,6 +250,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         try:
             solution = studio_solution.Solution(**dump(payload))
             solution.check_columns([str(c) for c in frame.columns])
+            profile = (draft.get("analysis") or {}).get("profile") or studio_data.profile_table(frame)
+            refused = studio_data.target_refusal(next((c for c in profile.get("columns") or [] if c.get("name") == solution.target), None))
+            if refused:  # the same rule as the project's set_solution check
+                raise ValueError(refused)
         except ValidationError as exc:
             raise HTTPException(422, "; ".join(e["msg"].removeprefix("Value error, ") for e in exc.errors())) from None
         except ValueError as exc:
@@ -532,7 +542,10 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
                 return projects.get(draft["project_id"])
             except KeyError:
                 pass
-        return await asyncio.to_thread(build_project, drafts, projects, draft_id)
+        try:
+            return await asyncio.to_thread(build_project, drafts, projects, draft_id)
+        except BuildRefused as exc:
+            raise HTTPException(409, str(exc)) from None
 
     app.include_router(router)
 
@@ -592,11 +605,23 @@ def _budget_share(answer: Any, projects, project: dict[str, Any]) -> float | Non
     return round(share, 6) if share else None
 
 
+class BuildRefused(ValueError):
+    """The draft cannot become a project yet; the message says what is missing."""
+
+
 def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
-    """Create the project from the draft: its name and goal, the cleaned table, and what the chat established."""
+    """Create the project from the draft: its name and goal, the cleaned table, and what the chat established. Refused
+    while the draft holds only a list of known cases (every row a case: nothing to tell them from)."""
     from ..studio import data as studio_data
 
     draft = drafts.get(draft_id)
+    cases = (draft.get("analysis") or {}).get("cases_table") or {}
+    columns = {c.get("name") for c in ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or []}
+    named = (draft.get("solution") or {}).get("target") or ((draft.get("understanding") or {}).get("target") if
+                                                              (draft.get("understanding") or {}).get("target") in columns else None)
+    if cases and plans.label_asset(draft) is None and not named:  # the morning of 2026-10-13: the cases' file alone became a project
+        raise BuildRefused("This draft holds only a list of known cases: add the table they belong to (with "
+                           f"{', '.join(cases['keys'][:2])}), and its cases become the labels")
     u = draft.get("understanding") or {}
     name = (u.get("target") or draft["problem"])[:60].strip().rstrip(".") or "New project"
     project = projects.create(name[:1].upper() + name[1:], "general", draft["problem"])

@@ -90,18 +90,22 @@ def profile_table(frame: pd.DataFrame) -> dict[str, Any]:
         unique_ratio = float(unique / max(len(non_null), 1))
         preview = [str(v)[:40] for v in non_null.unique()[:MAX_PREVIEW_VALUES]]
         id_like = bool(unique_ratio >= 0.98 and len(non_null) > 20 and (kind != "numeric" or (pd.to_numeric(non_null, errors="coerce") % 1 == 0).all()))
+        numbers = pd.to_numeric(non_null, errors="coerce") if kind == "numeric" and id_like else None
+        sequence_like = bool(numbers is not None and numbers.notna().all() and unique
+                             and float(numbers.max() - numbers.min() + 1) <= 1.05 * unique)  # 1, 2, 3, …: a counter, not an amount
         columns.append({
             "name": str(name), "kind": kind, "dtype": str(series.dtype),
             "missing_rate": float(series.isna().mean()), "unique": unique, "unique_ratio": unique_ratio,
             "preview": preview,
             "id_like": id_like and kind not in ("datetime", "text"), "name_id_like": bool(ID_NAMES.search(str(name))) and kind not in ("datetime", "text"),
+            "sequence_like": sequence_like,
             "time_like": kind == "datetime" or (bool(TIME_NAMES.search(str(name))) and kind == "numeric"),
             "text_like": kind == "text",
             "target_name_like": bool(TARGET_NAMES.search(str(name))),
             "low_cardinality": unique <= 20,
         })
-    targets = sorted(
-        [c for c in columns if c["kind"] != "text" and c["unique"] >= 2 and not c["id_like"]],
+    targets = sorted(  # a column named as a key (customer_id, order_no) is never proposed: a person may still name it
+        [c for c in columns if proposable_target(c)],
         key=lambda c: (-int(c["target_name_like"]), -int(c["low_cardinality"] and c["kind"] != "datetime"), c["missing_rate"]),
     )
     return {
@@ -113,6 +117,60 @@ def profile_table(frame: pd.DataFrame) -> dict[str, Any]:
         "id_candidates": [c["name"] for c in columns if c["id_like"] or c["name_id_like"]],
         "text_candidates": [c["name"] for c in columns if c["text_like"]],
     }
+
+
+ROW_NUMBER_NAMES = re.compile(r"^(unnamed:?\s*\d+|index|level_\d+|row(_?(id|no|number|num))?)$", re.I)
+# a key's name: customer_id, order_request_id, customerId, uuid, order_no; not is_paid, valid or covid (ID_NAMES is wider)
+KEY_NAMES = re.compile(r"((^|[_\s.-])(id|ids|uuid|guid|key|no|nr|number|ref|code)$|^(id|uuid|guid)([_\s.-]|$))", re.I)
+CAMEL_KEY = re.compile(r"[a-z0-9](Id|ID|Uuid|UUID|Key|No)$")
+
+
+def key_named(name: Any) -> bool:
+    return bool(KEY_NAMES.search(str(name)) or CAMEL_KEY.search(str(name)))
+
+
+def proposable_target(column: dict[str, Any]) -> bool:
+    """Whether DCLab may offer a column as a likely outcome: allowed (:func:`target_refusal`), not text, and not named as a
+    key. A key-named column with few values (customer_id with 3) is never offered; a person may still name it."""
+    return target_refusal(column) is None and column.get("kind") != "text" and not key_named(column.get("name", ""))
+
+
+OUTCOME_NAMES = re.compile(r"^(target|label|labels|outcome|y|class|is_case)$", re.I)
+
+
+def named_outcome(profile: dict[str, Any], text: str = "") -> str | None:
+    """The outcome a person named, never a guess: a column whose name appears as whole words in what they wrote, else a
+    column the table itself names as its outcome (``target``, ``label``, ``outcome``). Only allowed columns; None when
+    nothing is named, and then DCLab asks."""
+    columns = [c for c in profile.get("columns") or [] if target_refusal(c) is None and c.get("kind") != "text"]
+    words = f" {re.sub(r'[^a-z0-9_]+', ' ', str(text).lower())} "
+    said = [c["name"] for c in columns if f" {str(c['name']).lower()} " in words]
+    if len(said) == 1:
+        return said[0]
+    own = [c["name"] for c in columns if OUTCOME_NAMES.match(str(c["name"]))]
+    return own[0] if len(own) == 1 else None
+
+
+def target_refusal(column: dict[str, Any] | None) -> str | None:
+    """Why a profiled column can never be the outcome, or None: a value the same on every row, a key different on every
+    row, a saved row number, or free text. Read from the profile only: names and counts, no relation to anything."""
+    if not column:
+        return None
+    name = column.get("name", "")
+    if (column.get("unique") or 0) < 2:
+        return f"`{name}` has one value on every row: there is nothing to predict"
+    if ROW_NUMBER_NAMES.match(str(name)):
+        return f"`{name}` is a saved row number: its order is how the file was written, not an outcome"
+    keyish = key_named(name)
+    # different on almost every row: a key when it is text, named as a key, or counts 1, 2, 3, …; whole-number amounts
+    # (salary, price) are as distinct and stay allowed
+    if column.get("id_like") and (column.get("kind") != "numeric" or keyish or column.get("sequence_like")):
+        return f"`{name}` is different on almost every row ({column.get('unique_ratio', 0):.0%} unique): it is a key, not an outcome"
+    if keyish and (column.get("unique_ratio") or 0) > 0.5:  # an order id repeated by multi-drop orders
+        return f"`{name}` is named as a key and {column.get('unique_ratio', 0):.0%} of its values are distinct: it is a key, not an outcome"
+    if column.get("kind") == "text":
+        return f"`{name}` is free text: name the outcome it describes as its own column"
+    return None
 
 
 def detect_task(frame: pd.DataFrame, target: str) -> dict[str, Any]:
