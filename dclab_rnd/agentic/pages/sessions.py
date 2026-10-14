@@ -102,10 +102,13 @@ def latest(ctx, limit: int) -> dict[str, Any]:
     from ... import experience
 
     log = _log(ctx)
-    cards = experience.sessions(log, limit) if log is not None else []
+    visits = log.visits(limit) if log is not None else []
+    events = experience.visit_events(log, visits) if log is not None else {}
+    cards = [experience.contract.session_card(events[v]) for v in visits if events.get(v)]
     names = _names(ctx, cards)
-    items = [_card(c, names) for c in cards]
+    items = [{**_card(c, names), "flags": [f.model_dump() for f in experience.flags(events[c.visit])]} for c in cards]
     totals = {"sessions": len(items), "refused": sum(c.refused for c in cards), "errors": sum(c.errors for c in cards),
+              "flagged": sum(1 for i in items if i["flags"]),
               "built": sum(c.outcome != "open" for c in cards), "cost": {}}
     for c in cards:
         for currency, value in c.cost.items():
@@ -131,7 +134,10 @@ def one(ctx, visit: str, model_text: bool) -> dict[str, Any]:
     events = events[-TIMELINE:]  # the newest: a longer visit says it was cut, and from where
     card = contract.session_card(events)
     names = _names(ctx, [card])
-    return {"session": _card(card, names), "events": [finder.view(e, model_text) for e in events], "cut": cut,
+    from ... import experience
+
+    return {"session": {**_card(card, names), "flags": [f.model_dump() for f in experience.flags(events)]},
+            "events": [finder.view(e, model_text) for e in events], "cut": cut,
             "model_text": model_text, "projects": names["projects"], "drafts": names["drafts"]}
 
 

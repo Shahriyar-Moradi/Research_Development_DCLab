@@ -114,15 +114,21 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     log = _log()
     if args.command == "sessions":
-        cards = sessions(log, args.limit)
+        from . import flags, visit_events
+
+        visits = log.visits(args.limit)
+        events = visit_events(log, visits)
+        cards = [(contract.session_card(events[v]), flags(events[v])) for v in visits if events.get(v)]
         if args.json:
-            print(json.dumps([json.loads(c.model_dump_json()) for c in cards], indent=2, ensure_ascii=False))
+            print(json.dumps([{**json.loads(c.model_dump_json()), "flags": [f.model_dump() for f in found]} for c, found in cards], indent=2, ensure_ascii=False))
             return 0
-        for c in cards:
+        for c, found in cards:
             cost = ", ".join(f"{v:.4f} {k}" for k, v in c.cost.items()) or "no model spend"
             print(f"{c.visit}  {c.started[:16]} → {c.ended[11:16]}  {c.outcome:<8} {c.events:>4} events  refused {c.refused}  errors {c.errors}  {cost}")
             if c.problem:
                 print(f"    {c.problem[:110]}")
+            for f in found:  # 19.9: what the failure detectors found
+                print(f"    ! {f.detector} ({f.severity}): {f.message}")
         return 0
     if args.command == "search":
         query = {k: getattr(args, k) for k in ("kind", "project", "draft", "person", "text", "code", "since", "until")}

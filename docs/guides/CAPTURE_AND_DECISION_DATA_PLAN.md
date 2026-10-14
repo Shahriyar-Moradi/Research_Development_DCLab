@@ -186,6 +186,12 @@ person's overrides.
   result), each a flag on the session card.
 - **Done when:** the owner's morning is flagged by two detectors, and each detector has a session it must flag and
   one it must not.
+- **Status: done (2026-10-14).** `dclab_core/signals.py` (dclab-core 0.10.0: nine detectors, each with a session it
+  flags and one it must not; the morning is flagged by three), flags on the Sessions page's cards and timelines and in
+  `make sessions`; `POST /api/feedback` (every role; "wrong" on a yes/no decision is a correction label, once per person, only from
+  those who may change or review the work; the near misses of Home's normal flow are tested as must-not cases), thumbs on the
+  Home agent's answers; corrections from saved solutions and overrides are the ledger's exposed labels (19.8). Left
+  open: feedback on proposals and decisions in the page (the route takes them), report read and export as outcomes.
 
 ### 19.10 Consent, redaction, retention, deletion
 - **Delivers:** the switches the owner decided: use for improving DCLab, use for training, each off by default, per

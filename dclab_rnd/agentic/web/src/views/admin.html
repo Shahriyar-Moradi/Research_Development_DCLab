@@ -146,7 +146,7 @@
     <div class="stats" id="sess-stats">
       <div class="stat"><span class="v">—</span><span class="l">sessions recorded</span></div>
       <div class="stat"><span class="v">—</span><span class="l">refused by a check</span></div>
-      <div class="stat"><span class="v">—</span><span class="l">errors</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">flagged</span></div>
       <div class="stat"><span class="v">—</span><span class="l">model spend</span></div>
     </div>
     <div class="panel" data-f="admin.sessions">
@@ -406,7 +406,7 @@ DC.view('admin', {
     }
     const t = r.totals;
     const eur = Object.entries(t.cost).map(([c, v]) => (c === 'EUR' ? '€' : c + ' ') + Number(v).toFixed(4)).join(' · ') || '€0';
-    $('#sess-stats', el).innerHTML = [[t.sessions, `latest session${t.sessions === 1 ? '' : 's'} · ${t.built} built or ran`], [t.refused, 'refused by a check'], [t.errors, 'errors'], [eur, 'model spend in them']]
+    $('#sess-stats', el).innerHTML = [[t.sessions, `latest session${t.sessions === 1 ? '' : 's'} · ${t.built} built or ran`], [t.flagged || 0, 'flagged by a failure detector'], [t.refused, `refused by a check · ${t.errors || 0} error${t.errors === 1 ? '' : 's'}`], [eur, 'model spend in them']]
       .map(([v, l]) => `<div class="stat"><span class="v">${esc(String(v))}</span><span class="l">${esc(l)}</span></div>`).join('');
     $('#sess-clear', el).hidden = !searching;
     const foundBox = $('#sess-found', el);
@@ -425,7 +425,8 @@ DC.view('admin', {
       const spend = Object.entries(c.cost).map(([k, v]) => (k === 'EUR' ? '€' : k + ' ') + Number(v).toFixed(4)).join(' · ') || '—';
       const problem = c.problem ? esc(c.problem.length > 90 ? c.problem.slice(0, 90) + '…' : c.problem) : '<span class="muted">no problem written</span>';
       const fam = c.family ? ` <span class="pill outline">${esc(c.family.replace(/_/g, ' '))}</span>` : c.kind ? ` <span class="pill outline">${esc(c.kind)}</span>` : '';
-      const checks = `${c.refused ? `<span class="pill warn">${c.refused} refused</span> ` : ''}${c.errors ? `<span class="pill bad">${c.errors} error${c.errors === 1 ? '' : 's'}</span>` : ''}` || '<span class="muted">—</span>';
+      const flagged = (c.flags || []).length ? `<span class="pill bad" title="${esc(c.flags.map(f => f.message).join(' · '))}">${c.flags.length} flag${c.flags.length === 1 ? '' : 's'}</span> ` : '';
+      const checks = `${flagged}${c.refused ? `<span class="pill warn">${c.refused} refused</span> ` : ''}${c.errors ? `<span class="pill bad">${c.errors} error${c.errors === 1 ? '' : 's'}</span>` : ''}` || '<span class="muted">—</span>';
       return `<tr data-visit="${esc(c.visit)}" tabindex="0" data-style="cursor:pointer"><td class="mono small" data-style="white-space:nowrap">${esc(this.when(c.started))}</td><td>${esc(c.who || 'A member')}</td><td class="small">${problem}${fam}<div class="xs muted">${c.events} events · ${c.person_turns} messages from people · ${c.agent_turns} answers from agents</div></td><td>${outcome[c.outcome] || esc(c.outcome)}</td><td>${checks}</td><td class="mono small">${esc(spend)}</td></tr>`;
     }).join('');
     DC.hydrate(el);
@@ -486,7 +487,8 @@ DC.view('admin', {
     $('#sess-one-sub', el).innerHTML = `${esc(c.who || '')} · ${esc(this.when(c.started))} to ${esc(this.when(c.ended))} · ${c.events} events${links ? ' · ' + links : ''}`;
     const who = { person: 'Person', agent: 'Agent', model: 'Model', system: 'DCLab' };
     const job = e => e.ids.job ? ` <a class="xs" href="#compute" data-open-job="${esc(e.ids.job)}">job</a>` : '';
-    body.innerHTML = (r.cut ? `<tr><td colspan="3"><div class="callout warn small">A long session: the newest ${r.events.length.toLocaleString()} events are shown.</div></td></tr>` : '')
+    const flagged = (c.flags || []).map(f => `<tr><td colspan="3"><div class="callout ${f.severity === 'high' ? 'bad' : 'warn'} small"><b>${esc(f.detector.replace(/_/g, ' '))}</b>: ${esc(f.message)}</div></td></tr>`).join('');
+    body.innerHTML = flagged + (r.cut ? `<tr><td colspan="3"><div class="callout warn small">A long session: the newest ${r.events.length.toLocaleString()} events are shown.</div></td></tr>` : '')
       + r.events.map(e => `<tr><td class="mono small" data-style="white-space:nowrap">${esc(this.when(e.at))}</td><td>${esc(who[e.actor] || e.actor)}</td><td class="small">${this.what(e)}${job(e)}</td></tr>`).join('');
     DC.hydrate(el);
     box.scrollIntoView({ block: 'nearest' });

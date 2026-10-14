@@ -50,6 +50,8 @@ SPECIAL = {
     ("GET", "/api/ledger/summary"): "review",
     ("GET", "/api/ledger/blind/next"): "review",
     ("POST", "/api/ledger/blind/{record_id}"): "review",
+    # feedback on an answer, a proposal or a decision (19.9): every role may say what helped
+    ("POST", "/api/feedback"): "read",
 }
 
 

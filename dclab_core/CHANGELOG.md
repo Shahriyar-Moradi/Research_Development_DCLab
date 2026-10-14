@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.10.0 (2026-10-14)
+
+Package 19.9: signals of quality. A new module; no contract changes shape.
+
+- `signals` (new): failure detectors over one session's events, each a `Flag` (detector, severity, the events that
+  show it, plain words): an outcome the analysis called an identifier (or, with no analysis, named like a key: medium),
+  a build while a blocking question of its conversation had no answer, a draft's latest words that say anomaly (any
+  task) or rare events (a plain multiclass or regression) against the solution saved for it, the problem rewritten or
+  a message sent again before a new question, an error, model spend with nothing built, run, exported or answered, a
+  build refused again, the same question (field and options) asked again, a draft left unbuilt. `detect(events, only=)`; `DETECTORS`. The main product runs them on its own sessions
+  (read with `adapters.main_product_experience`).
+
 ## 0.9.0 (2026-10-14)
 
 Package 19.8: which label counts, and blind labels. New functions; no contract changes shape.

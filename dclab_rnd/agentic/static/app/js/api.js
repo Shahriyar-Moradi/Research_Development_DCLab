@@ -246,6 +246,7 @@
     experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit"]],
     experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
     experienceSession: ["GET", "/experience/sessions/{visit}", ["visit"], ["model_text"]],
+    giveFeedback: ["POST", "/feedback", [], []],
     internStatus: ["GET", "/intern", [], []],
     internList: ["GET", "/intern/sessions", [], []],
     internStart: ["POST", "/intern/sessions", [], ["wait"]],
@@ -560,6 +561,11 @@
   client.experienceSession = (...args) => call('experienceSession', args);
   client.path.experienceSession = (...args) => build('experienceSession', args).path;
   client.href.experienceSession = (...args) => '/api' + build('experienceSession', args).path;
+  /** POST /api/feedback: Give Feedback
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.giveFeedback = (...args) => call('giveFeedback', args);
+  client.path.giveFeedback = (...args) => build('giveFeedback', args).path;
   /** GET /api/intern: Intern Status
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<InternStatus>} */

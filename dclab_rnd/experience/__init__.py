@@ -385,15 +385,29 @@ def last_model_request() -> Optional[str]:
 VISIT_EVENTS = 5000  # the events a card reads per visit; a longer visit's card says so (``cut``)
 
 
+def visit_events(log: ExperienceLog, visits: list[str]) -> dict[str, list]:
+    """Each visit's events, from one read of the log."""
+    by_visit: dict[str, list] = {v: [] for v in visits}
+    if visits:
+        for event in log.read(visits=visits, limit=VISIT_EVENTS * len(visits)):
+            if event.ids.visit in by_visit:
+                by_visit[event.ids.visit].append(event)
+    return by_visit
+
+
 def cards(log: ExperienceLog, visits: list[str]) -> list[contract.ExperienceSession]:
     """The cards of these visits in this order, from one read of the log."""
-    if not visits:
-        return []
-    by_visit: dict[str, list] = {v: [] for v in visits}
-    for event in log.read(visits=visits, limit=VISIT_EVENTS * len(visits)):
-        if event.ids.visit in by_visit:
-            by_visit[event.ids.visit].append(event)
+    by_visit = visit_events(log, visits)
     return [contract.session_card(by_visit[v]) for v in visits if by_visit[v]]
+
+
+def flags(events: list) -> list:
+    """What the failure detectors find in one visit (19.9); none when the solving core cannot load."""
+    try:
+        from dclab_core import signals
+    except ImportError:
+        return []
+    return signals.detect(events)
 
 
 def sessions(log: ExperienceLog, limit: int = 50) -> list[contract.ExperienceSession]:

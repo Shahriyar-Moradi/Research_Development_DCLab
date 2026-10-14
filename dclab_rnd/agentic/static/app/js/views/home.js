@@ -125,6 +125,12 @@ DC.view('home', {
       if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
       const op = e.target.closest('[data-open-project]');
       if (op) { DC.state.projectId = op.dataset.openProject; }
+      const rated = e.target.closest('[data-rate]');
+      if (rated && S.draft) {
+        rated.parentElement.querySelectorAll('[data-rate]').forEach(b => { b.disabled = true; });
+        try { await DC.client.giveFeedback({ body: { on: 'answer', ref: rated.dataset.ref, rating: rated.dataset.rate, draft: S.draft.id } }); toast('Thanks: noted.'); }
+        catch (err) { toast(err.message, { ok: false }); }
+      }
       const res = e.target.closest('[data-resume]');
       if (res) { e.preventDefault(); if (await resume(res.dataset.resume)) { DC.selectPane(el, 'overview'); $('#home-chat', el).scrollIntoView({ behavior: 'smooth' }); } }
     });
@@ -192,7 +198,9 @@ DC.view('home', {
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}</div>` : ''}`;
       }
-      thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}</div></div>`);
+      // 19.9: was this answer helpful? It joins the session record, never changes the conversation
+      const rate = m.id ? `<div class="row xs muted" data-style="gap:6px;margin-top:4px"><button type="button" class="link-btn" data-rate="helpful" data-ref="${esc(m.id)}" aria-label="Helpful">👍</button><button type="button" class="link-btn" data-rate="unhelpful" data-ref="${esc(m.id)}" aria-label="Not helpful">👎</button></div>` : '';
+      thread.insertAdjacentHTML('beforeend', `<div class="msg"><span class="avatar ai">AI</span><div class="msg-body"><div class="who">DCLab <span>${esc((m.at || '').slice(11, 16))}</span></div>${body}${rate}</div></div>`);
       DC.hydrate(thread);
       scrollThread();
     }
