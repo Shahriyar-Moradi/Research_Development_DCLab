@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.19.0 (2026-10-14)
+
+Package 22.2: classical decision classifiers. A new module and a new contract, `dclab_core.decision_model_card.v1`.
+
+- `decision_models` (new): `train(point, train_rows, dev_rows, exclude)` chooses a logistic or gradient-boosted
+  classifier and its strength by out-of-fold accuracy over folds grouped by table (a tie to the smaller strength, then
+  the logistic model; a fold that cannot be fitted counts its rows wrong), refits it on every training row, calibrates
+  it (Platt scaling on the same grouped folds) and measures it on the dev rows beside the rule; sealed rows are refused,
+  in training and in dev. `metrics` gives accuracy (an abstention counts wrong); for a yes/no point the positive
+  answer's precision and recall with Wilson intervals; for a choice, macro means over every class true or answered (a
+  class never answered counts precision 0, as scikit-learn's `zero_division=0`) with a bootstrap interval clustered by
+  table group, and each class's figures with Wilson intervals. `calibration_error` (expected calibration error over ten
+  bins). `ModelCard` (`decision_model_card`): the point, the model's version (a hash of its candidate and its training
+  rows), the family and strength, the features and the state fields they came from, the training rows, their
+  fingerprint, groups and label sources, each candidate's out-of-fold accuracy, the calibration, the dev score by
+  source, the rule's dev score, the calibration error and the limits.
+
 ## 0.18.0 (2026-10-14)
 
 Package 22.1: generated decision benchmarks. A new module; no contract changes shape.

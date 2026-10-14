@@ -336,13 +336,29 @@ by the same gates; the ledger feeds all of them, each in its own training format
   bands and name tokens), trained on the decision datasets with grouped cross-validation, calibrated, each with its
   card: the point, the features, the training sources, the accuracy by source, the rule's accuracy beside it.
 - **Done when:** for `column.is_identifier`, `column.semantic_role` and `feature.leakage_suspect`, each classifier's
-  precision and recall on the sealed partition are reported with their intervals beside the rule's.
+  precision and recall on the dev partition are reported with their intervals beside the rule's. (Amended on
+  2026-10-14: the sealed figures move to 22.3, so the sealed partition is read once, after its gate is written.)
+- **Status: done (2026-10-14).** `dclab_core/decision_models.py` (dclab-core 0.19.0) and `make decision-models`
+  (`dclab_rnd/decision_models_build.py`): for each of the six points of the generated sets (22.1), a logistic or
+  gradient-boosted classifier chosen among six candidates by out-of-fold accuracy over five folds grouped by table,
+  refitted on the training rows and calibrated (Platt scaling on the same folds), its card (`decision_model_card.v1`)
+  committed in `research/llm-fine-tuning/experiments/decisions/models_v1/` (the fitted models are rebuilt, not
+  committed). Dev accuracy, model against rule: `column.semantic_role` 0.936 [0.920, 0.949] against 0.835 (macro
+  precision 0.952, recall 0.950 against 0.887 and 0.856); `feature.leakage_suspect` 0.971 [0.960, 0.979] against 0.921
+  (precision 1.0 [0.980, 1.0], recall 0.833 [0.779, 0.877] against 0.942 and 0.590); `column.category_code` 0.919
+  against 0.803; `column.time` 0.973 against 0.941 (recall 0.622 against 1.0); `column.is_identifier` 0.991 [0.983,
+  0.995] against 1.0 (precision 0.986, recall 0.932) and `column.group` 0.992 against 1.0: where the rule is exact on
+  these tables, the classifier trails it. Calibration error on dev 0.005 to 0.033. Limits: generated tables only; dev
+  and sealed hold new seeds of the same ten bases; every generated table plants the same kinds, so intervals drawn by
+  table group are narrow and say nothing about other kinds of table; benchmark labels only (the build refuses measured
+  labels until their fields can be left out, 22.4). The sealed figures come once, from 22.3's gate.
 
 ### 22.3 Gates fixed before the runs
 - **Delivers:** the promotion gates, written before any result: as the main product's R3 (sealed cases, blind cases,
   a margin over the rule, a Wilson lower bound, a cluster bootstrap by dataset, demotion bars), applied to each
   classifier; the result stored as an evidence record, never rerun on the same sealed set.
-- **Done when:** each classifier has one recorded verdict per gate version.
+- **Done when:** each classifier has one recorded verdict per gate version, with its precision and recall on the
+  sealed partition and their intervals beside the rule's (moved here from 22.2).
 
 ### 22.4 Shadow in the studio
 - **Delivers:** a classifier as another answerer at its decision point, at level 0: its answer recorded in the

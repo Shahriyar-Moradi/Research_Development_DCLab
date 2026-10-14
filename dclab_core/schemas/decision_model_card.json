@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "Score": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Accuracy"
+        },
+        "accuracy_ci": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "title": "Accuracy Ci",
+          "type": "array"
+        },
+        "answered": {
+          "default": 0,
+          "description": "Rows it answered (an abstention is counted wrong in accuracy).",
+          "minimum": 0,
+          "title": "Answered",
+          "type": "integer"
+        },
+        "intervals": {
+          "default": "",
+          "description": "How the precision and recall intervals were drawn.",
+          "maxLength": 200,
+          "title": "Intervals",
+          "type": "string"
+        },
+        "n": {
+          "minimum": 0,
+          "title": "N",
+          "type": "integer"
+        },
+        "per_class": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "description": "For a choice: each class's rows, precision and recall with their Wilson intervals (macro figures are their means).",
+          "title": "Per Class",
+          "type": "object"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precision"
+        },
+        "precision_ci": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "title": "Precision Ci",
+          "type": "array"
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recall"
+        },
+        "recall_ci": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "title": "Recall Ci",
+          "type": "array"
+        }
+      },
+      "required": [
+        "n"
+      ],
+      "title": "Score",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_model_card.v1.json",
+  "additionalProperties": false,
+  "description": "A decision classifier: its point, how it was chosen, what it was trained on, and how it compares with the rule.",
+  "properties": {
+    "calibration": {
+      "default": "",
+      "description": "How the chosen model's confidences were calibrated.",
+      "maxLength": 200,
+      "title": "Calibration",
+      "type": "string"
+    },
+    "chosen_by": {
+      "maxLength": 300,
+      "title": "Chosen By",
+      "type": "string"
+    },
+    "dev": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Score"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dev_by_source": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Score"
+      },
+      "description": "The model's dev score by label source.",
+      "title": "Dev By Source",
+      "type": "object"
+    },
+    "dev_calibration_error": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Expected calibration error on dev, after calibration: the gap between the answer's confidence and how often it is right, over ten bins of confidence.",
+      "title": "Dev Calibration Error"
+    },
+    "excluded": {
+      "description": "State fields left out (a label's own measure).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Excluded",
+      "type": "array"
+    },
+    "family": {
+      "enum": [
+        "logistic",
+        "boosting"
+      ],
+      "title": "Family",
+      "type": "string"
+    },
+    "features": {
+      "description": "How many features the state gave (bands one-hot, name tokens, numbers).",
+      "minimum": 0,
+      "title": "Features",
+      "type": "integer"
+    },
+    "fields": {
+      "description": "The state fields the features came from.",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "title": "Fields",
+      "type": "array"
+    },
+    "groups": {
+      "description": "Tables (groups) in the training rows.",
+      "minimum": 0,
+      "title": "Groups",
+      "type": "integer"
+    },
+    "label_sources": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Training labels by source.",
+      "title": "Label Sources",
+      "type": "object"
+    },
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Limits",
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 120,
+      "title": "Name",
+      "type": "string"
+    },
+    "oof_accuracy": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Out-of-fold accuracy of each candidate, by table folds.",
+      "title": "Oof Accuracy",
+      "type": "object"
+    },
+    "point": {
+      "maxLength": 80,
+      "title": "Point",
+      "type": "string"
+    },
+    "rule_dev": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Score"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_model_card.v1",
+      "default": "dclab_core.decision_model_card.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "strength": {
+      "description": "Logistic: the inverse regularisation C. Boosting: the trees' depth is 2 plus its whole part.",
+      "title": "Strength",
+      "type": "number"
+    },
+    "trained_on": {
+      "minimum": 0,
+      "title": "Trained On",
+      "type": "integer"
+    },
+    "trained_set": {
+      "default": "",
+      "description": "SHA-256 of the training rows' records and labels.",
+      "maxLength": 64,
+      "title": "Trained Set",
+      "type": "string"
+    },
+    "version": {
+      "description": "The fitted model's identity: a hash of its candidate and its training rows.",
+      "maxLength": 40,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "point",
+    "name",
+    "version",
+    "family",
+    "strength",
+    "features",
+    "trained_on",
+    "groups",
+    "chosen_by"
+  ],
+  "title": "ModelCard",
+  "type": "object"
+}

@@ -1,0 +1,232 @@
+{
+  "$defs": {
+    "Score": {
+      "additionalProperties": false,
+      "properties": {
+        "accuracy": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "accuracy_ci": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        "answered": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "n": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "per_class": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "precision_ci": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        "recall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recall_ci": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "n"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "chosen_by": {
+      "maxLength": 300,
+      "type": "string"
+    },
+    "dev": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Score"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "dev_by_source": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Score"
+      },
+      "type": "object"
+    },
+    "dev_calibration_error": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "excluded": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "family": {
+      "enum": [
+        "logistic",
+        "boosting"
+      ],
+      "type": "string"
+    },
+    "features": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "groups": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "label_sources": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10,
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 120,
+      "type": "string"
+    },
+    "oof_accuracy": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "point": {
+      "maxLength": 80,
+      "type": "string"
+    },
+    "rule_dev": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Score"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "dclab_core.decision_model_card.v1",
+      "default": "dclab_core.decision_model_card.v1",
+      "type": "string"
+    },
+    "strength": {
+      "type": "number"
+    },
+    "trained_on": {
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "point",
+    "name",
+    "family",
+    "strength",
+    "features",
+    "trained_on",
+    "groups",
+    "chosen_by"
+  ],
+  "type": "object"
+}

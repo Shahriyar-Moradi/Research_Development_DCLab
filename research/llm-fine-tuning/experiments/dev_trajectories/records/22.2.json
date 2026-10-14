@@ -1,0 +1,180 @@
+{
+ "package": "22.2",
+ "title": "Classical decision classifiers: chosen on table folds, calibrated, each beside the rule on dev",
+ "date": "2026-10-14",
+ "request": "One classifier per decision point, trained on the generated decision sets with grouped cross-validation, calibrated, each with a card: the point, the features, the training sources, the accuracy by source and the rule's accuracy beside it.",
+ "spec": "A pure trainer in dclab_core: candidates chosen by out-of-fold accuracy over table-grouped folds, refitted and calibrated; dev measured beside the rule; sealed rows refused. A build command writes one card per point; the fitted models are rebuilt, not committed.",
+ "plan": [
+  "Metrics first: accuracy with an abstention counted wrong, Wilson intervals, macro figures for a choice.",
+  "Choose among logistic and boosted candidates by out-of-fold accuracy, folds grouped by table.",
+  "Refit, calibrate on the same folds, measure dev beside the rule, write the card.",
+  "Leave the sealed partition unread: its figures come once from the next package's gate."
+ ],
+ "decisions": [
+  {
+   "decision": "The sealed figures move to 22.3; 22.2 reports dev only, and the plan's Done-when says so.",
+   "why": "22.3 reads each sealed set once under a gate written before; reading it here first would spend it without a gate."
+  },
+  {
+   "decision": "A choice point's macro interval is a bootstrap clustered by table group; each class keeps its own Wilson interval.",
+   "why": "A mean of ratios has no Wilson interval, and decisions of one table are not independent."
+  },
+  {
+   "decision": "A model's version is a hash of its candidate and its training rows.",
+   "why": "Shadow answers and demotion later must tell two fitted models apart."
+  },
+  {
+   "decision": "The build refuses labels other than benchmark ones.",
+   "why": "A measured label comes from a state field, which must be left out of the features; that list arrives with 22.4."
+  }
+ ],
+ "change": "dclab_core/decision_models.py (new; dclab-core 0.19.0, contract decision_model_card.v1 and its schema), dclab_core/contracts.py (registers it), dclab_rnd/decision_models_build.py (new), Makefile (make decision-models), .gitignore (fitted models), the six cards; tests/test_decision_models.py (new); CHANGELOG, CLAUDE.md, the plan (Done-when amended, status), the roadmap.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A choice point's precision and recall carried an interval borrowed from accuracy.",
+   "scenario": "For semantic_role the card showed macro precision 0.9531 with an interval whose upper end was 0.9498.",
+   "cause": "The pooled counts of a choice are accuracy's counts; their Wilson interval does not belong to a macro mean.",
+   "fix": "Per-class figures with their own intervals; the macro interval from a clustered bootstrap.",
+   "test": "test_a_choice_gives_each_class_with_its_interval_and_a_clustered_macro_interval"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The Done-when asked for sealed figures that this package deliberately does not read.",
+   "scenario": "A done status would have claimed sealed precision and recall that were never measured.",
+   "cause": "The order (gate first, then one sealed read) was decided after the plan was written.",
+   "fix": "The plan's Done-when amended: dev here, sealed in 22.3.",
+   "test": "the plan text"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A choice point had no interval at all.",
+   "scenario": "semantic_role's precision and recall were reported bare.",
+   "cause": "The borrowed interval had been removed without a replacement.",
+   "fix": "A bootstrap clustered by table group for the macro figures, Wilson per class.",
+   "test": "test_a_choice_gives_each_class_with_its_interval_and_a_clustered_macro_interval"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Macro precision was inflated.",
+   "scenario": "Truth a, a, b answered a, a, z gave precision 1.0; answered a, a, a gave 0.6667.",
+   "cause": "Classes came from the truth only, and a class never answered was dropped from the mean.",
+   "fix": "Classes over truth and answers; a class never answered counts precision 0, as scikit-learn's zero_division=0.",
+   "test": "test_a_class_never_answered_or_never_true_is_not_dropped_from_the_macro"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Nothing was calibrated although the plan says calibrated.",
+   "scenario": "A boosted model's raw confidence would feed abstention and what users see.",
+   "cause": "Calibration was measured on dev but never applied.",
+   "fix": "Platt scaling on the same table-grouped folds of the training rows; the error measured after it.",
+   "test": "test_the_card_compares_with_the_rule_on_dev_and_validates"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Every fitted model had the same version.",
+   "scenario": "Retrained on another set, a model would record the same answerer name as the old one.",
+   "cause": "The answerer's default version was never set.",
+   "fix": "The version is a hash of the candidate and the training rows, on the card too.",
+   "test": "test_the_card_compares_with_the_rule_on_dev_and_validates"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The card overstated what dev tests.",
+   "scenario": "Dev holds new seeds of the same bases, not new tables.",
+   "cause": "The limits said only that tables were generated.",
+   "fix": "A limit says so, and another says intervals by table group are narrow because every table plants the same kinds.",
+   "test": "the card's limits"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A fold that could not be fitted was skipped and its rows left out of out-of-fold accuracy.",
+   "scenario": "A table with the only rows of one value scored nothing and raised the candidate's accuracy from 0.8 to 1.0.",
+   "cause": "The skipped fold also left the denominator.",
+   "fix": "Its rows count wrong, as an abstention does.",
+   "test": "test_a_fold_that_cannot_be_fitted_counts_its_rows_wrong"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Importing answerers first failed.",
+   "scenario": "Any caller that imported dclab_core.answerers before the contracts got an import error.",
+   "cause": "contracts imports decision_models to register the card, which imported names from answerers while it was still loading.",
+   "fix": "decision_models reads answerers by module, at call time.",
+   "test": "test_every_module_imports_first_in_a_fresh_interpreter"
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "leakage",
+   "defect": "Sealed rows passed as dev rows were measured.",
+   "scenario": "A caller could read the sealed partition through dev before its gate.",
+   "cause": "Only the training rows were checked for the sealed split.",
+   "fix": "Sealed rows are refused in training and in dev.",
+   "test": "test_sealed_rows_are_refused"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "semantic_role on dev",
+   "gate": "model accuracy above the rule's on the same dev decisions (descriptive; the promotion gate is 22.3's)",
+   "result": "model accuracy 0.936 [0.9201, 0.949] against the rule's 0.8351 on 1110 dev decisions",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "0.936 against 0.8351",
+   "limits": [
+    "Dev holds new seeds of the same bases; the sealed partition is not read here."
+   ]
+  },
+  {
+   "name": "leakage_suspect on dev",
+   "gate": "model accuracy above the rule's on the same dev decisions (descriptive)",
+   "result": "model accuracy 0.9706 [0.9597, 0.9786], recall 0.8333, against the rule's 0.9213, recall 0.5901, on 1258 dev decisions",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "0.9706 against 0.9213",
+   "limits": [
+    "Generated tables only."
+   ]
+  },
+  {
+   "name": "is_identifier on dev",
+   "gate": "model accuracy above the rule's on the same dev decisions (descriptive)",
+   "result": "model accuracy 0.9905 [0.9834, 0.9945] against the rule's 1.0 on 1258 dev decisions",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "0.9905 against 1.0",
+   "limits": [
+    "The rule is exact on these planted kinds; the classifier trails it."
+   ]
+  }
+ ],
+ "outcome": "Six classifiers with their cards: on dev the classifier beats the rule for semantic_role, leakage_suspect, category_code and time, and trails it for is_identifier and group, where the rule is exact on these tables. The sealed figures come once from 22.3.",
+ "lessons": [
+  "Decide when a sealed set is read before writing the package that could read it, and amend the plan to match.",
+  "A macro mean needs its own interval; borrowing accuracy's hides the classes it averages.",
+  "Registering a contract by import makes import order part of the interface: test each module imported first."
+ ],
+ "risks": [
+  "The tables are generated from ten bases; real tables may have kinds these never planted.",
+  "Measured labels need their fields left out before they can train a model."
+ ],
+ "commits": []
+}
