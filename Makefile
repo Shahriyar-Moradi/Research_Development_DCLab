@@ -1,4 +1,4 @@
-.PHONY: datasets decisions-gen decision-models decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check
+.PHONY: datasets decisions-gen decision-models decisions-export decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -281,6 +281,9 @@ decisions-gen:  ## 22.1: generated decision benchmarks: invented tables with pla
 
 decision-models:  ## 22.2: a classifier per decision point on the generated sets (make decisions-gen first), its card beside the rule's dev score
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_models_build $(ARGS)
+
+decisions-export:  ## 22.5: the decision sets as chat JSONL (with a dataset card), a parquet table and typed questions; sealed rows never written
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_export
 
 decision-gate:  ## 22.3: each classifier judged once on its sealed decisions by decision_gate_v1 (fixed before the run); prints the plan, ARGS=--yes runs it
 	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) -m dclab_rnd.decision_gate_run $(ARGS)

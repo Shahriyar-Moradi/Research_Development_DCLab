@@ -1,0 +1,171 @@
+{
+ "package": "22.5",
+ "title": "Open-source decision models: the decision sets in three formats, a model answering through the same interface, compared on dev",
+ "date": "2026-10-15",
+ "request": "Export the decision datasets in each family's format from one builder (tabular, chat with a dataset card, typed questions), write fine-tuning recipes for a small open-source model, register the tuned model as an answerer and compare it with the classifiers and the rules; used only where it passes.",
+ "spec": "One builder in dclab_core, a writer for the generated sets, a gateway purpose and an answerer class for a model, a comparison harness that never spends without a cap, and a fine-tuning recipe; the run is the owner's.",
+ "plan": [
+  "Survey the decision sets, the gateway, the prompts and the existing LoRA script.",
+  "Write the three exports from the same rows, sealed rows never written.",
+  "Add the decision_answer purpose, its prompt and a model answerer; compare a local model on dev.",
+  "Review, plant faults, fix, measure again."
+ ],
+ "decisions": [
+  {
+   "decision": "A model is asked exactly as the chat export trains it: one request builder for both.",
+   "why": "A tuned model compared on inputs it never saw measures the mismatch, not the model."
+  },
+  {
+   "decision": "The chat export's answer is the label alone, with no reason.",
+   "why": "A reason learned from invented tables would be said about real columns."
+  },
+  {
+   "decision": "The comparison refuses a fallback to another tier and a remote model without a cap.",
+   "why": "A tuned tier that cannot answer would silently be replaced by a paid one."
+  },
+  {
+   "decision": "The fine-tuning run, and the sealed verdict, are left open and said so.",
+   "why": "The GPU and the model are the owner's decision, and every sealed set of v1 was already read."
+  }
+ ],
+ "change": "dclab_core/decision_export.py (new), answerers.py (ModelAnswerer), prompts/decision_answer.md (dclab-core 0.30.0), dclab_rnd/decision_export.py (new; make decisions-export), decision_model_compare.py (new), models/settings.py (the decision_answer purpose), agents/harness.py, decisions/finetune/README.md, .gitignore; tests/test_decision_export.py (new), test_model_data_limits.py; evidence decision_llm_v1; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The local model's long replies stopped the comparison.",
+   "scenario": "A reply cut at the token limit raised in the middle of the run.",
+   "cause": "The advisor treats a cut reply as a failure, and the answerer let it propagate.",
+   "fix": "A failed request is an abstention, counted; the answer may use 300 tokens.",
+   "test": "test_an_option_is_its_answer_and_anything_else_abstains"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Removing the check that the purpose is served by the tier asked for went unnoticed.",
+   "scenario": "A planted fault dropped the check and every test passed.",
+   "cause": "The earlier refusals stopped every tested case first.",
+   "fix": "A test where the tuned tier cannot answer and the gateway would fall back.",
+   "test": "test_the_comparison_never_falls_back_to_a_paid_model"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The tuned comparison could spend money and record a paid model as local.",
+   "scenario": "With no tuned tier set and an API key present, the purpose fell back to the cheap tier on a paid endpoint, recorded as tuned and local.",
+   "cause": "The local check was skipped for the tuned path and the record hard-coded local.",
+   "fix": "The tuned tier must be set; a remote one needs a cap; the purpose must be served by the tier asked for; local is read from the tier.",
+   "test": "test_the_comparison_never_falls_back_to_a_paid_model"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A tuned model would be trained on one input and asked another.",
+   "scenario": "The chat export held a prose question under its own system text; the answerer sent JSON under the prompt file.",
+   "cause": "Two builders for the same request.",
+   "fix": "One request builder; the chat export holds the prompt file and the same JSON the model is sent.",
+   "test": "test_a_model_is_asked_exactly_as_it_was_trained"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The training answers taught a false reason.",
+   "scenario": "Every answer ended with a reason saying the column was planted in an invented table, which a tuned model would repeat about real columns.",
+   "cause": "A reason written from the label's source.",
+   "fix": "The answer is the label alone.",
+   "test": "test_the_chat_shape_and_the_answer_are_the_label"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A JSON true or false answer was discarded.",
+   "scenario": "A reply with answer true matched neither yes nor no and counted as an abstention.",
+   "cause": "The answer was matched as text.",
+   "fix": "A JSON boolean is read as yes or no; the typed export writes the answer as one of the options.",
+   "test": "test_an_option_is_its_answer_and_anything_else_abstains"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The recipe promised a sealed gate that cannot run.",
+   "scenario": "Every sealed set of v1 was read in 22.3 and the gate runner takes fitted classifiers only.",
+   "cause": "Wording ahead of the tools.",
+   "fix": "The recipe and the status say a sealed verdict needs a new generated set and a runner for any answerer: open.",
+   "test": "test_the_comparison_never_falls_back_to_a_paid_model"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The local run could ask a different model than the one it recorded.",
+   "scenario": "An intern model setting took precedence over the model named on the command line.",
+   "cause": "The tier's model reads that setting first.",
+   "fix": "The setting is cleared and the model is named for the purpose.",
+   "test": "test_the_comparison_never_falls_back_to_a_paid_model"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The table export carried whole column and target names.",
+   "scenario": "Two columns held the names where only their tokens should be.",
+   "cause": "Every state field was a column.",
+   "fix": "Whole names are left out; their tokens stay.",
+   "test": "test_the_table_and_typed_questions"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The answerer could send states its purpose does not describe.",
+   "scenario": "A project or workflow decision's state holds measures and codes the purpose's limit does not name.",
+   "cause": "Any point was accepted.",
+   "fix": "A model answers column decisions only; another point is refused.",
+   "test": "test_an_option_is_its_answer_and_anything_else_abstains"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "a local model beside the rules and the classifiers on 240 dev decisions",
+   "gate": "the comparison recorded on the same decisions: coverage, agreement with the rule and accuracy against the benchmark labels",
+   "result": "the rules right on 0.9333; the classifiers 0.875 to 1.0 on their points' 40; a local Qwen 2.5 coder 1.5B, not tuned, 0.4507 on the 213 it answered (0.4 of all), 23 failed requests",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "recorded for every answerer on the same 240 decisions",
+   "limits": [
+    "Dev partition of invented tables.",
+    "A small base model, not the tuned one the package asks for.",
+    "Nothing is used."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "8 of 8 planted faults caught after the tests were strengthened",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "8 of 8",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "The decision sets export in three formats from the same records, a model answers through the same interface as the rules exactly as it would be trained, and its comparison is recorded; the fine-tuning run and a sealed verdict wait for the owner's GPU and a new generated set.",
+ "lessons": [
+  "Train and ask a model through one function, or the comparison measures the difference between them.",
+  "Never teach a model a reason that is only true of the training data.",
+  "A measurement that must not spend checks the tier that will answer, not the one it asked for."
+ ],
+ "risks": [
+  "No tuned model yet.",
+  "A sealed verdict for a model needs a new generated set."
+ ],
+ "commits": []
+}

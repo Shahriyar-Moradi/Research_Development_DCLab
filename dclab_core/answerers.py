@@ -163,6 +163,45 @@ class ClassifierAnswerer:
                       raw=round(confidence, 6), confidence=round(confidence, 4))
 
 
+class ModelAnswerer:
+    """A language model as an answerer (22.5): it is asked through an injected ``Advisor`` (the host's gateway) with the
+    decision's question, state (bands and name tokens, never a value) and options, and answers one option. An answer
+    outside the options, or no answer, is an abstention. ``name`` and ``version`` say which model and prompt."""
+
+    by = "model_role"
+
+    def __init__(self, advisor: Any, points: Iterable[str], name: str = "model", version: str = "1", purpose: str = "decision_answer"):
+        points = frozenset(points)
+        other = sorted(p for p in points if "column" not in POINTS[p].subjects)
+        if other:  # its purpose may see a column's state: a decision about a project or a workflow holds other things
+            raise ValueError(f"a model answers column decisions only here: {', '.join(other)}")
+        self.advisor, self.points, self.name, self.version, self.purpose = advisor, points, name, version, purpose
+        self.errors = 0  # requests that failed (a cut or broken reply): each an abstention, counted
+
+    def answer(self, point: str, state: Mapping[str, Any], options: list[Any]) -> Optional[Answer]:
+        from dclab_core.ledger import POINTS
+
+        from dclab_core.decision_export import request
+
+        if point not in self.points:
+            return None
+        evidence = request(point, state, options)  # what a tuned model was trained on, word for word
+        try:
+            reply = self.advisor.ask(self.purpose, evidence)
+        except Exception:  # noqa: BLE001 - a failed request is an abstention, and counted
+            self.errors += 1
+            return None
+        if not isinstance(reply, Mapping):
+            return None
+        raw = reply.get("answer", "")
+        said = ("yes" if raw else "no") if isinstance(raw, bool) else str(raw).strip().lower()  # a JSON true is a yes
+        chosen = next((o for o in options if str(o).strip().lower() == said), None)
+        if chosen is None:
+            return None
+        reason = str(reply.get("reason") or "")[:300] or None
+        return Answer(by="model_role", answerer=f"{self.name}@{self.version}", value=_option(chosen), reason=reason)
+
+
 def _key(value: Any) -> str:
     """One spelling per value: True and "True" are the same answer; a number by its shortest form."""
     return str(value) if not isinstance(value, float) else f"{value:.12g}"

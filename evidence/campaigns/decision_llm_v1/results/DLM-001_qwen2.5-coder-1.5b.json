@@ -1,0 +1,270 @@
+{
+  "id": "DLM-001",
+  "experiment_id": "DLM-001",
+  "campaign_id": "decision_llm_v1",
+  "kind": "decision_llm_compare",
+  "status": "completed",
+  "at": "2026-10-14T22:55:11+00:00",
+  "model": "qwen2.5-coder:1.5b",
+  "local": true,
+  "cap_eur": null,
+  "split": "dev",
+  "per_point": 40,
+  "seed": 0,
+  "decisions": 240,
+  "model_errors": 23,
+  "prompt": "3f05eeb3d1dbaf09",
+  "comparison": {
+    "recorded_rule@1": {
+      "all": {
+        "decisions": 240,
+        "answered": 240,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 240,
+        "accuracy": 0.9333,
+        "accuracy_all": 0.9333
+      },
+      "column.category_code": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 0.9,
+        "accuracy_all": 0.9
+      },
+      "column.group": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 1.0,
+        "accuracy_all": 1.0
+      },
+      "column.is_identifier": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 1.0,
+        "accuracy_all": 1.0
+      },
+      "column.semantic_role": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 0.825,
+        "accuracy_all": 0.825
+      },
+      "column.time": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      },
+      "feature.leakage_suspect": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 0.9,
+        "accuracy_all": 0.9
+      }
+    },
+    "column.category_code.boosting@0c0163be0857": {
+      "all": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.925,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      },
+      "column.category_code": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.925,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      }
+    },
+    "llm:qwen2.5-coder:1.5b@3f05eeb3d1dbaf09": {
+      "all": {
+        "decisions": 240,
+        "answered": 213,
+        "coverage": 0.8875,
+        "agreement_with_rule": 0.4413,
+        "labelled": 213,
+        "accuracy": 0.4507,
+        "accuracy_all": 0.4
+      },
+      "column.category_code": {
+        "decisions": 40,
+        "answered": 32,
+        "coverage": 0.8,
+        "agreement_with_rule": 0.4375,
+        "labelled": 32,
+        "accuracy": 0.4375,
+        "accuracy_all": 0.35
+      },
+      "column.group": {
+        "decisions": 40,
+        "answered": 39,
+        "coverage": 0.975,
+        "agreement_with_rule": 0.4103,
+        "labelled": 39,
+        "accuracy": 0.4103,
+        "accuracy_all": 0.4
+      },
+      "column.is_identifier": {
+        "decisions": 40,
+        "answered": 37,
+        "coverage": 0.925,
+        "agreement_with_rule": 0.5405,
+        "labelled": 37,
+        "accuracy": 0.5405,
+        "accuracy_all": 0.5
+      },
+      "column.semantic_role": {
+        "decisions": 40,
+        "answered": 35,
+        "coverage": 0.875,
+        "agreement_with_rule": 0.2857,
+        "labelled": 35,
+        "accuracy": 0.3714,
+        "accuracy_all": 0.325
+      },
+      "column.time": {
+        "decisions": 40,
+        "answered": 36,
+        "coverage": 0.9,
+        "agreement_with_rule": 0.5278,
+        "labelled": 36,
+        "accuracy": 0.5556,
+        "accuracy_all": 0.5
+      },
+      "feature.leakage_suspect": {
+        "decisions": 40,
+        "answered": 34,
+        "coverage": 0.85,
+        "agreement_with_rule": 0.4412,
+        "labelled": 34,
+        "accuracy": 0.3824,
+        "accuracy_all": 0.325
+      }
+    },
+    "column.group.boosting@6059027e9cc1": {
+      "all": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.975,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      },
+      "column.group": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.975,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      }
+    },
+    "column.is_identifier.boosting@28c44957214c": {
+      "all": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 1.0,
+        "accuracy_all": 1.0
+      },
+      "column.is_identifier": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 1.0,
+        "labelled": 40,
+        "accuracy": 1.0,
+        "accuracy_all": 1.0
+      }
+    },
+    "column.semantic_role.boosting@73710656cf1b": {
+      "all": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.95,
+        "labelled": 40,
+        "accuracy": 0.875,
+        "accuracy_all": 0.875
+      },
+      "column.semantic_role": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.95,
+        "labelled": 40,
+        "accuracy": 0.875,
+        "accuracy_all": 0.875
+      }
+    },
+    "column.time.boosting@1186fbf4bce4": {
+      "all": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.95,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      },
+      "column.time": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.95,
+        "labelled": 40,
+        "accuracy": 0.975,
+        "accuracy_all": 0.975
+      }
+    },
+    "feature.leakage_suspect.boosting@32e3693f7eda": {
+      "all": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.9,
+        "labelled": 40,
+        "accuracy": 1.0,
+        "accuracy_all": 1.0
+      },
+      "feature.leakage_suspect": {
+        "decisions": 40,
+        "answered": 40,
+        "coverage": 1.0,
+        "agreement_with_rule": 0.9,
+        "labelled": 40,
+        "accuracy": 1.0,
+        "accuracy_all": 1.0
+      }
+    }
+  },
+  "rule": "A language model asked the generated sets' dev decisions through the decision_answer purpose (bands and name tokens, never values), beside the recorded rule and the classical classifiers, against the benchmark labels. Dev only: nothing here is a sealed verdict, and nothing is used."
+}

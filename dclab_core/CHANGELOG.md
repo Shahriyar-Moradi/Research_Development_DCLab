@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.30.0 (2026-10-15)
+
+Package 22.5: open-source decision models. A new module; no contract changes shape.
+
+- `decision_export` (new): the same decision rows as a table (`tabular`, one column per state field), chat
+  conversations (`chat`, the shape fine-tuning tools take, with `card`, its Hugging Face dataset card) and typed
+  questions (`typed`: the question, the state, the primitive, the answer); a sealed row is never written.
+- `answerers.ModelAnswerer`: a language model as an answerer, asked through an injected `Advisor` (the host's
+  `decision_answer` purpose) with the question, the options and the state's bands and name tokens; an answer outside
+  the options, no answer or a failed request is an abstention (failures counted).
+- `prompts/decision_answer.md`: its prompt.
+
 ## 0.29.0 (2026-10-15)
 
 Package 22.4: the decision classifiers in shadow. No contract changes shape.

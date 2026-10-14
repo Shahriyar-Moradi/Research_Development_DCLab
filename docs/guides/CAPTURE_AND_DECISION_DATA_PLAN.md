@@ -410,6 +410,20 @@ by the same gates; the ledger feeds all of them, each in its own training format
   partition and gates.
 - **Done when:** one decision dataset exports in the three formats from the same records, a fine-tuned open-source
   model answers through the interface, and its comparison is recorded; it is used only where it passes.
+- **Status: built (2026-10-15); the fine-tuning run waits for the owner (a GPU, which model).**
+  `dclab_core/decision_export.py` (dclab-core 0.30.0) and `make decisions-export`: the generated sets' 33,666 train and
+  dev decisions as chat JSONL (`train.chat.jsonl`, `val.chat.jsonl`, the request a model is sent and the label as its
+  answer, with its Hugging Face dataset card), a parquet table (bands and name tokens, never a whole name) and typed
+  questions, the same records in each and no sealed row (the writer never opens the sealed file). A language model
+  answers through the interface (`answerers.ModelAnswerer`, the gateway's `decision_answer` purpose: a column's bands
+  and name tokens, never a value), asked exactly as it is trained; `python -m dclab_rnd.decision_model_compare`
+  compares it with the rules and the classifiers on the dev partition, never falling back to a paid model (a remote
+  tuned one only under a cap). The fine-tuning recipe (`decisions/finetune/README.md`: LoRA with the existing
+  `train_lora.py`, or MLX on Apple silicon) is written, not run. Measured on 240 dev decisions (`decision_llm_v1/
+  DLM-001`): the rules are right on 93%, the classifiers on 88% to 100% of their points' 40, and a local Qwen 2.5
+  coder 1.5B, not tuned, on 45% of the 213 it answered (23 requests failed). Open: the tuned run (the owner's GPU and
+  model); a sealed verdict for it, which needs a new generated set (every v1 sealed set was read in 22.3) and a gate
+  runner that takes any answerer.
 
 ### 22.6 Choosing a model per decision
 - **Delivers:** for each decision point, the answerers that passed their gates ranked by accuracy, cost and speed;

@@ -63,6 +63,7 @@ MODEL_USES: dict[str, str] = {  # purpose -> why it is not an agent: one complet
     "notebook_review": "a notebook's methodology review",
     "leakage_review": "a second reading of leakage suspects",
     "campaign_review": "the review of a finished research campaign",
+    "decision_answer": "one decision answered from its state, beside the rule (22.5)",
 }
 
 

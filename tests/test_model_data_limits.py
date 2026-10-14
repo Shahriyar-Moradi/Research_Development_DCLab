@@ -215,6 +215,19 @@ class DataLimitTests(unittest.TestCase):
         run_role(READER, GatewayAdvisor(gw), {"field": "labels", "answer": "nothing has been confirmed yet", "columns": list(table.columns)})
         self.assertEqual(self.assertWithinLimit("conversation_reader"), set())
 
+    def test_the_decision_answerer_sees_bands_and_names_never_values(self):  # 22.5
+        from dclab_core.answerers import ModelAnswerer
+        from dclab_rnd.core_advisor import GatewayAdvisor
+        from dclab_rnd.ledger import column_state
+        from dclab_rnd.studio.data import profile_table
+
+        table = marked_table()
+        gw = gateway({"decision_answer": [{"content": '{"answer": "no", "reason": "a band"}', "tool_calls": [], "usage": {}}] * len(table.columns)})
+        answerer = ModelAnswerer(GatewayAdvisor(gw), {"column.is_identifier"})
+        for column in profile_table(table)["columns"]:
+            answerer.answer("column.is_identifier", column_state(column, len(table)), ["yes", "no"])
+        self.assertEqual(self.assertWithinLimit("decision_answer"), set())
+
     def test_the_data_investigator_sees_column_names_and_shares_never_values(self):
         from dclab_core.analyse import analyse
         from dclab_rnd.core_advisor import GatewayAdvisor
@@ -302,7 +315,8 @@ class DataLimitTests(unittest.TestCase):
 
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
-                  "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter"}
+                  "leakage_review", "notebook_review", "problem_analyst", "conversation_reader", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter",
+                  "decision_answer"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

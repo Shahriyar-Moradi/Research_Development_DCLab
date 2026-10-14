@@ -1,0 +1,6 @@
+{
+  "campaign_id": "decision_llm_v1",
+  "objective": "Language models as decision answerers (22.5): asked the generated sets' dev decisions through the decision_answer purpose (the question, the options and the state's bands and name tokens, exactly as a tuned model is trained on them), beside the recorded rule and the classical classifiers, against the benchmark labels.",
+  "rule": "Dev only: nothing here is a sealed verdict, and nothing a model answered is used. A local model costs nothing; a remote tuned one is asked only under a stated cap. A sealed verdict for a tuned model needs a new generated set: every sealed set of v1 was judged in 22.3.",
+  "command": "python -m dclab_rnd.decision_model_compare --ollama MODEL --per-point 40 --write (or --tuned [--cap-eur N])"
+}
