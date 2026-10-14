@@ -83,12 +83,13 @@ def kept_out(run: Run, column: str, why: str, roles: tuple[str, ...] = ("blocked
                  f"its role: {role}" + ("; but its text is modelled" if column in modelled_text(run) else ""))
 
 
-def build(case: Case, root: Path) -> tuple[Any, str]:
-    """The project a person would make from the case: the data, the label file, the proposal accepted."""
+def build(case: Case, root: Path | None, store: Any = None) -> tuple[Any, str]:
+    """The project a person would make from the case: the data, the label file, the proposal accepted. ``store``: a
+    store already open (a server's, on files or PostgreSQL) instead of a file store at ``root``."""
     from dclab_rnd.studio import ProjectStore, data as sd
     from dclab_rnd.studio.solution import Solution, propose
 
-    store = ProjectStore(root)
+    store = store if store is not None else ProjectStore(root)
     project = store.create("Replica", "general", case.moment)
     directory = store.data_dir(project["id"])
     label_bytes = None

@@ -68,7 +68,7 @@ class AnomalyKindTest(unittest.TestCase):
         client = TestClient(create_app(home))
         h = {"X-DCLab-Token": client.get("/api/config").json()["csrf"]}
         case = kinds.get("anomaly").case(0)
-        store, pid = acceptance.build(case, home / "projects")  # where the server keeps the workspace's projects
+        store, pid = acceptance.build(case, None, store=client.app.state.services.projects)  # the server's own store (files or PostgreSQL)
         keys = list(case.table["order_id"].astype(str).head(3))
         r = client.post(f"/api/projects/{pid}/review", json={"confirmed": keys[:2]}, headers=h)
         self.assertEqual(r.status_code, 200, r.text)

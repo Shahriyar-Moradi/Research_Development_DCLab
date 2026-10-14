@@ -159,6 +159,16 @@
    "cause": "The new value was not checked against the kind.",
    "fix": "Refused for every kind that learns from an outcome.",
    "test": "test_a_solution_reads_no_outcome_and_other_kinds_still_need_one"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "The review-loop test passed on files and failed on PostgreSQL.",
+   "scenario": "The milestone gate's PostgreSQL run answered 404 for a project the test had just built.",
+   "cause": "The test built its project in a file store beside the server, which on PostgreSQL never reads that folder.",
+   "fix": "The acceptance builder takes an open store; the test builds in the server's own store.",
+   "test": "test_confirmed_alerts_become_labels_and_the_problem_a_rare_event_one"
   }
  ],
  "measurements": [
