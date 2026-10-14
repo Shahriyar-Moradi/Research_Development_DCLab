@@ -22,7 +22,7 @@ No experiments in this folder yet.
 
 - [expansion_v1](../../evidence/campaigns/expansion_v1): 20 result files · [CAMPAIGN_REPORT.md](../../evidence/campaigns/expansion_v1/CAMPAIGN_REPORT.md)
 - [pitfalls_v1](../../evidence/campaigns/pitfalls_v1): 6 result files · [PITFALLS_REPORT.md](../../evidence/campaigns/pitfalls_v1/PITFALLS_REPORT.md)
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 16 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 17 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 
