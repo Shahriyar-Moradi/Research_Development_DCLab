@@ -16,7 +16,7 @@ No experiments in this folder yet.
 
 **Related evidence campaigns** (shared across tracks, in `evidence/campaigns/`):
 
-- [kinds_v1](../../evidence/campaigns/kinds_v1): 15 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
+- [kinds_v1](../../evidence/campaigns/kinds_v1): 16 result files · [README.md](../../evidence/campaigns/kinds_v1/README.md)
 
 ## Notebooks
 
