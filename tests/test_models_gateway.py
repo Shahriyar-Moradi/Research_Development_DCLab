@@ -606,7 +606,11 @@ class ApiTests(unittest.TestCase):
         deadline = time.time() + 60
         while time.time() < deadline and not c.get(f"/api/drafts/{d['id']}").json()["questions"]:
             time.sleep(0.2)
-        self.assertEqual(c.post(f"/api/drafts/{d['id']}/messages", json={"text": "Customers who cancel within 30 days"}, headers=self.h).status_code, 202)
+        sent = c.post(f"/api/drafts/{d['id']}/messages", json={"text": "Customers who cancel within 30 days"}, headers=self.h)
+        while sent.status_code == 409 and time.time() < deadline:  # the question is written before the agent's first turn ends
+            time.sleep(0.2)
+            sent = c.post(f"/api/drafts/{d['id']}/messages", json={"text": "Customers who cancel within 30 days"}, headers=self.h)
+        self.assertEqual(sent.status_code, 202, sent.text)
         c.post("/api/evidence/ask", json={"question": "Should I oversample before splitting?"}, headers=self.h)
         while time.time() < deadline and "home_agent" not in (c.get("/api/models").json()["usage"] or {}).get("by_purpose", {}):
             time.sleep(0.2)

@@ -300,7 +300,7 @@ def decide(point: str, subject: tuple[str, str], *, answers: Iterable[Any], valu
             id="dr" + secrets.token_hex(10), point=point, subject=contract.Subject(kind=subject[0], key=str(subject[1])[:200]),
             state={k: v for k, v in (state or {}).items() if v is not None}, options=[str(o)[:200] for o in options][:64],
             answers=[a for a in answers if a is not None], value_used=value_used, used=used, level=level, workspace=target.workspace,
-            at=_now(), **{k: v for k, v in _ids(ids).items() if k in ("project", "draft", "run", "conversation") and v is not None})
+            at=_now(), **{k: v for k, v in _ids(ids).items() if k in ("project", "draft", "run", "conversation", "dataset", "experiment") and v is not None})
     except Exception as exc:  # noqa: BLE001 - the contract refused it: the decision stands, its record is reported
         DROPPED["count"] += 1
         print(f"ledger: {point} refused: {str(exc).splitlines()[1] if len(str(exc).splitlines()) > 1 else exc}"[:300], file=sys.stderr, flush=True)
