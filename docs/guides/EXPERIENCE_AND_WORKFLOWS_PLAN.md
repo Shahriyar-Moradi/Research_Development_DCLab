@@ -257,6 +257,17 @@ code are not one connected object a data scientist can read, run and change.
   the gates in place); a model may propose changes, the validator decides.
 - **Done when:** for every family the workflow has its safety blocks and family steps, and a planted invalid model
   proposal (holdout before the choice, no leakage audit) is refused.
+- **Status: done (2026-10-14).** `dclab_core/solution_workflow.py` (dclab-core 0.23.0, contract
+  `solution_workflow.v1`): every family's workflow holds the seven safety steps in order and the family's own steps;
+  the data card's entity or time split and the labels join come before the lock, the findings add theirs (the leaks in
+  one step naming their columns, per-entity features when a detector misses a shape, censoring kept), and a split found
+  only by the analysis locks the holdout again and reads the analysis again. The validator reads the steps' content: a
+  safety or family step changed, a block going back, the holdout read by anything but the final score or before the
+  gate, a choice before the leakage audit or after the holdout is read, a finding no step answers: each is refused, and
+  a model's proposal is used only when it validates (the planted holdout-before-the-choice and missing-audit proposals
+  are refused, and so are the same violations written otherwise). Left open: nothing in the studio draws its workflow
+  from it yet (the draft's drawn workflow, `draft/workflow.py`, and the coordinator's workflow state stay as they
+  were); the steps are a plan the engine's stages carry out, not code they run.
 
 ### 20.7 Anomaly detection without labels, in the engine
 - **Delivers:** the missing family as a kind with its own machine (16.15's pattern): detectors (robust scores per

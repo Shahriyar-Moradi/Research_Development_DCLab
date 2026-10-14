@@ -1017,7 +1017,7 @@ def _behaviour(train: pd.DataFrame, entity: Optional[str], time: Optional[str]) 
         return []
     med, spread = _robust(counts.astype(float))
     far = float((((counts - med) / spread) > ROBUST_Z).mean())
-    evidence: dict[str, Any] = {"entities": int(len(counts)), "rows_per_entity_median": _r(float(counts.median()), 2),
+    evidence: dict[str, Any] = {"column": str(entity)[:120], "entities": int(len(counts)), "rows_per_entity_median": _r(float(counts.median()), 2),
                                 "rows_per_entity_p90": _r(float(counts.quantile(0.9)), 2), "share_of_entities_far_busier": _r(far, 4),
                                 "rows_held_by_top_1pct": _r(float(counts.iloc[:max(1, len(counts) // 100)].sum() / counts.sum()), 4)}
     stamps = _stamps(train, time)

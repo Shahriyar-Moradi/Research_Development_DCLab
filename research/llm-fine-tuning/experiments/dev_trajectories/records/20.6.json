@@ -1,0 +1,175 @@
+{
+ "package": "20.6",
+ "title": "The solution workflow from the two cards: steps validated on what they do, not their names",
+ "date": "2026-10-14",
+ "request": "A graph of steps for each problem, each with purpose, inputs, outputs, the decision, the check and the rule, built from the family's template and the findings, validated by code; a model may propose changes and the validator decides. A planted invalid proposal must be refused.",
+ "spec": "A pure module in dclab_core with a contract, a template per family, steps from the cards and the findings, and a validator reading the steps' content.",
+ "plan": [
+  "Write the safety steps and each family's steps.",
+  "Add the steps the cards and the findings call for.",
+  "Validate on order, the holdout's one read after the gate, and the choice after the audit.",
+  "Let a model propose; refuse what does not validate."
+ ],
+ "decisions": [
+  {
+   "decision": "The validator compares the safety and family steps with their template, whole.",
+   "why": "Checking names lets a step keep its name and stop doing what it is for."
+  },
+  {
+   "decision": "Inputs and outputs come from a closed list of artefacts.",
+   "why": "A free string such as holdout rows escapes any check on the word holdout."
+  },
+  {
+   "decision": "A split the cards name comes before the lock; one only the analysis finds locks the holdout again.",
+   "why": "The analysis runs after the lock: a split it finds would move analysed rows into the holdout."
+  },
+  {
+   "decision": "A family not settled is refused.",
+   "why": "Guessing classification would draw the wrong workflow, the morning's failure again."
+  }
+ ],
+ "change": "dclab_core/solution_workflow.py (new; dclab-core 0.23.0, contract solution_workflow.v1 and its schema), dclab_core/contracts.py, dclab_core/analyse.py (the behaviour finding names its column); tests/test_solution_workflow.py (new); CHANGELOG, the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The order rule was not tested on its own.",
+   "scenario": "With the order check removed, the tests still passed.",
+   "cause": "The planted proposal broke two rules at once.",
+   "fix": "A proposal breaking only the order.",
+   "test": "test_a_leakage_audit_after_the_choice_is_refused"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A safety step could be emptied while keeping its name.",
+   "scenario": "A leakage audit with no inputs, no outputs and no check was accepted.",
+   "cause": "Only ids were checked.",
+   "fix": "Safety and family steps must equal their template.",
+   "test": "test_the_same_violations_written_otherwise_are_refused"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A holdout read was found only by the exact word.",
+   "scenario": "A step reading holdout rows before the choice was accepted.",
+   "cause": "Inputs were free strings.",
+   "fix": "A closed list of artefacts; the final score alone reads the holdout.",
+   "test": "test_the_same_violations_written_otherwise_are_refused"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A model could be fitted before the audit, or before the lock under an earlier block.",
+   "scenario": "A model step between the analysis and the audit, or labelled WF-03 before the lock, was accepted.",
+   "cause": "Order was checked between safety steps only, and a step's declared block was trusted.",
+   "fix": "Blocks never go back; choosing comes after the audit; before the lock only the split, read from the table.",
+   "test": "test_the_same_violations_written_otherwise_are_refused"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Choosing again after the holdout was read was accepted.",
+   "scenario": "A retune step after the final score produced a new chosen model.",
+   "cause": "Nothing limited what follows the final read.",
+   "fix": "After the final read only reporting steps; only the choice on validation outputs a chosen model.",
+   "test": "test_the_same_violations_written_otherwise_are_refused"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A proposal could drop the steps the findings required.",
+   "scenario": "Without the leak and entity steps, a proposal validated.",
+   "cause": "Only the family's steps were required.",
+   "fix": "Every finding used must be answered by a step, and a proposal keeps the current card and finding steps.",
+   "test": "test_a_proposal_cannot_drop_what_the_findings_asked"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Leak steps collided and one was lost.",
+   "scenario": "Persian column names and Final Fare against final_fare gave the same step id.",
+   "cause": "Ids came from slugs and the first step won.",
+   "fix": "One step keeping every leak out, naming its columns.",
+   "test": "test_leaks_are_one_step_naming_their_real_columns"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A two-column leak named no real column.",
+   "scenario": "A sum leak gave a step keeping sum-base_fare-tip out.",
+   "cause": "The column came from the finding's id.",
+   "fix": "Read from the evidence: the columns of a sum, the later column of a recompute.",
+   "test": "test_leaks_are_one_step_naming_their_real_columns"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An entity's name came from the slugged finding id.",
+   "scenario": "Biker ID became biker-id, a column that does not exist.",
+   "cause": "The behaviour finding did not name its column.",
+   "fix": "The finding names its column; the step reads it.",
+   "test": "test_a_split_the_card_names_comes_before_the_lock_and_one_the_analysis_finds_locks_again"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Long names or many findings raised.",
+   "scenario": "A 500-character column name, or sixty leaks, broke the contract's limits.",
+   "cause": "Texts were not cut and each leak was its own step.",
+   "fix": "Texts cut to their limits; the leaks merged into one step.",
+   "test": "test_leaks_are_one_step_naming_their_real_columns"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A family not settled became classification.",
+   "scenario": "The morning's card, with no family yet, drew a classification workflow.",
+   "cause": "A default family.",
+   "fix": "Refused until the family is settled.",
+   "test": "test_a_family_not_settled_is_refused_never_guessed"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A split found by the analysis came before the lock.",
+   "scenario": "Relocking by biker after the analysis would move analysed rows into the holdout.",
+   "cause": "The findings' split steps were placed before the lock.",
+   "fix": "The cards' split before the lock; one only the analysis finds locks the holdout again and reads the analysis again.",
+   "test": "test_a_split_the_card_names_comes_before_the_lock_and_one_the_analysis_finds_locks_again"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Family evaluation steps sat before the gate.",
+   "scenario": "The Qini curve and precision bound were ordered before the person signed.",
+   "cause": "They were placed in WF-09.",
+   "fix": "They read the holdout score, after the one read.",
+   "test": "test_every_family_has_its_safety_steps_and_its_own"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every family's workflow holds its safety and family steps, the cards and findings add theirs, and the validator refuses invalid proposals however they are written.",
+ "lessons": [
+  "Validate what a step does, never what it is called.",
+  "A closed vocabulary turns a string match into a real check.",
+  "When a later stage can change an earlier choice, the workflow must say the earlier step runs again."
+ ],
+ "risks": [
+  "Nothing in the studio draws its workflow from it yet."
+ ],
+ "commits": []
+}

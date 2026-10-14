@@ -1,0 +1,196 @@
+{
+  "$defs": {
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "description": "The workflow block it belongs to, WF-01 to WF-10.",
+          "title": "Block",
+          "type": "string"
+        },
+        "check": {
+          "description": "What proves the step was done right.",
+          "maxLength": 400,
+          "title": "Check",
+          "type": "string"
+        },
+        "columns": {
+          "description": "The columns it acts on.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Columns",
+          "type": "array"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The decision it makes: a plan key (analyse.AFFECTS), or none.",
+          "title": "Decision"
+        },
+        "gate": {
+          "default": false,
+          "description": "A person signs before the next step runs.",
+          "title": "Gate",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{1,60}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "enum": [
+              "table",
+              "label file",
+              "training rows",
+              "holdout",
+              "findings",
+              "columns kept",
+              "chosen model",
+              "approval",
+              "holdout score",
+              "report"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "kind": {
+          "default": "family",
+          "enum": [
+            "safety",
+            "family",
+            "card",
+            "finding"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "title": "Name",
+          "type": "string"
+        },
+        "outputs": {
+          "items": {
+            "enum": [
+              "table",
+              "label file",
+              "training rows",
+              "holdout",
+              "findings",
+              "columns kept",
+              "chosen model",
+              "approval",
+              "holdout score",
+              "report"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Outputs",
+          "type": "array"
+        },
+        "purpose": {
+          "maxLength": 400,
+          "title": "Purpose",
+          "type": "string"
+        },
+        "rests_on": {
+          "description": "The findings it answers.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "title": "Rests On",
+          "type": "array"
+        },
+        "rule": {
+          "description": "The principle it rests on.",
+          "maxLength": 200,
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "block",
+        "name",
+        "purpose",
+        "check",
+        "rule"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.solution_workflow.v1.json",
+  "additionalProperties": false,
+  "description": "The steps of one problem's solution, in order, and what they rest on.",
+  "properties": {
+    "family": {
+      "maxLength": 40,
+      "title": "Family",
+      "type": "string"
+    },
+    "findings_used": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "title": "Findings Used",
+      "type": "array"
+    },
+    "problems": {
+      "description": "Why a proposal was refused (empty when valid).",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Problems",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_workflow.v1",
+      "default": "dclab_core.solution_workflow.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "default": "template",
+      "enum": [
+        "template",
+        "model"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 60,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "family"
+  ],
+  "title": "SolutionWorkflow",
+  "type": "object"
+}

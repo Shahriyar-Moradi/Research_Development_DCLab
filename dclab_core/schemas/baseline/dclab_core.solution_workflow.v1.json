@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "block": {
+          "type": "string"
+        },
+        "check": {
+          "maxLength": 400,
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gate": {
+          "default": false,
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{1,60}$",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "enum": [
+              "table",
+              "label file",
+              "training rows",
+              "holdout",
+              "findings",
+              "columns kept",
+              "chosen model",
+              "approval",
+              "holdout score",
+              "report"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "kind": {
+          "default": "family",
+          "enum": [
+            "safety",
+            "family",
+            "card",
+            "finding"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 80,
+          "type": "string"
+        },
+        "outputs": {
+          "items": {
+            "enum": [
+              "table",
+              "label file",
+              "training rows",
+              "holdout",
+              "findings",
+              "columns kept",
+              "chosen model",
+              "approval",
+              "holdout score",
+              "report"
+            ],
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "purpose": {
+          "maxLength": 400,
+          "type": "string"
+        },
+        "rests_on": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 200,
+          "type": "array"
+        },
+        "rule": {
+          "maxLength": 200,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "block",
+        "name",
+        "purpose",
+        "check",
+        "rule"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "family": {
+      "maxLength": 40,
+      "type": "string"
+    },
+    "findings_used": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 200,
+      "type": "array"
+    },
+    "problems": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.solution_workflow.v1",
+      "default": "dclab_core.solution_workflow.v1",
+      "type": "string"
+    },
+    "source": {
+      "default": "template",
+      "enum": [
+        "template",
+        "model"
+      ],
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 60,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "family"
+  ],
+  "type": "object"
+}

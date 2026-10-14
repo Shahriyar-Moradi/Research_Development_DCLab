@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.23.0 (2026-10-14)
+
+Package 20.6: the solution workflow from the two cards. A new module and a new contract, `dclab_core.solution_workflow.v1`.
+
+- `solution_workflow(problem_card, data_card, findings)`: the steps of one problem's solution, each with its purpose,
+  inputs and outputs (from a closed list of artefacts), the decision it makes (`analyse.AFFECTS`), its check, its rule,
+  the findings it answers and the columns it acts on: the safety steps (lock the holdout, analyse the training rows,
+  audit leakage, choose on validation, a person's gate, score the holdout once, report the limits), the family's
+  steps, the data card's split and label join before the lock, the findings' steps (the leaks in one step naming their
+  columns, per-entity features, censoring kept), and a second lock with the analysis read again when the analysis finds
+  a split the cards did not name. A family not settled is refused, never guessed.
+- `validate(workflow, current)`: on the steps' content: the safety and family steps as their template, blocks never
+  going back, the holdout read by the final score alone, after the gate, only the choice on validation choosing, and
+  after the leakage audit, nothing but reporting after the holdout is read, every finding answered by a step.
+  `propose(current, proposed)`: a model's workflow used only when it validates.
+- `analyse`: `F-behaviour-<entity>` names its column in its evidence.
+
 ## 0.22.0 (2026-10-14)
 
 Package 20.5: analysis by family. No contract changes shape; `analyse` gains arguments and findings.
