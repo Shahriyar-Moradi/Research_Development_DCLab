@@ -111,7 +111,10 @@ class TogetherTest(unittest.TestCase):
         cases_draft, cases = self.draft("Find the fraud among the rides", "known.csv", self.cases)
         self.assertEqual(cases["analysis"]["cases_table"]["tables"], [])  # nothing to offer yet
         orders, _ = self.draft("Rides of the delivery service", "rides.csv", self.rides)
-        offers = self.client.get(f"/api/drafts/{cases_draft}").json()["analysis"]["cases_table"]["tables"]
+        deadline, offers = time.time() + 30, []
+        while time.time() < deadline and orders not in [o["draft_id"] for o in offers]:  # refreshed just after the table is ready
+            offers = self.client.get(f"/api/drafts/{cases_draft}").json()["analysis"]["cases_table"]["tables"]
+            time.sleep(0.1)
         self.assertIn(orders, [o["draft_id"] for o in offers])
 
     def test_a_table_the_cases_would_not_label_is_neither_offered_nor_brought(self):
