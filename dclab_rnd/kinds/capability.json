@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-14T19:38:14+00:00",
+ "at": "2026-10-14T19:54:18+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -442,11 +442,35 @@
      "decision": "a pretrained local encoder is measured on the replicas",
      "ok": false,
      "detail": "measured with baselines only (random-features-64-seed0, hashing-text-2048): no pretrained weights are on this machine, and no model purpose may read workspace texts yet"
+    },
+    {
+     "decision": "the engine runs every stage as the embedded machine",
+     "ok": true,
+     "detail": "data: embedded, leakage: embedded, features: embedded, models: embedded, final: embedded"
+    },
+    {
+     "decision": "in the engine a source stays on one side, and the holdout's rows are never fitted",
+     "ok": true,
+     "detail": "63 rows of 12 authors held out; 0 authors on both sides"
+    },
+    {
+     "decision": "in the engine every text pasted again across the holdout line is counted, and nothing else",
+     "ok": true,
+     "detail": "6 of 6 copies across the line found, 0 other pairs"
+    },
+    {
+     "decision": "in the engine the model chosen on folds by author is the one the holdout scores, once",
+     "ok": true,
+     "detail": "chosen C=1.0, scored C=1.0"
+    },
+    {
+     "decision": "in the engine the notes are solved on whole authors: folds by author at least 0.9, the holdout at least 0.8",
+     "ok": true,
+     "detail": "folds by author 1.0, random folds 1.0, holdout 1.0"
     }
    ],
    "missing": [
-    "a pretrained local encoder is measured on the replicas",
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
+    "a pretrained local encoder is measured on the replicas"
    ]
   },
   {
