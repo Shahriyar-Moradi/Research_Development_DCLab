@@ -145,6 +145,8 @@
    *  @property {*=} setting
    *  @property {*=} tier
    *  @property {*=} reason
+   *  @property {(number|null)=} cap_eur_month
+   *  @property {boolean=} override
    */
   /** @typedef {Object} Run
    *  @property {(string|null)=} id
@@ -275,6 +277,7 @@
     listLessons: ["GET", "/lessons", [], ["project_id", "status"]],
     reviewLesson: ["POST", "/lessons/{lesson_id}/review", ["lesson_id"], []],
     modelOverview: ["GET", "/models", [], []],
+    modelRoles: ["GET", "/models/roles", [], []],
     changeRouting: ["POST", "/models/routing", [], []],
     opsEvidenceRecent: ["GET", "/ops/evidence-recent", [], ["limit"]],
     opsJobs: ["GET", "/ops/jobs", [], ["limit"]],
@@ -740,6 +743,12 @@
   client.modelOverview = (...args) => call('modelOverview', args);
   client.path.modelOverview = (...args) => build('modelOverview', args).path;
   client.href.modelOverview = (...args) => '/api' + build('modelOverview', args).path;
+  /** GET /api/models/roles: Model Roles
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.modelRoles = (...args) => call('modelRoles', args);
+  client.path.modelRoles = (...args) => build('modelRoles', args).path;
+  client.href.modelRoles = (...args) => '/api' + build('modelRoles', args).path;
   /** POST /api/models/routing: Change Routing
    *  @param {{body: RoutingChange, headers?: Object}} [opts]
    *  @returns {Promise<ModelsSummary>} */

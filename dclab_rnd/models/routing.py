@@ -15,6 +15,7 @@ role is the one the request declares (``X-DCLab-Role``), not a verified login.
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
 from pathlib import Path
@@ -27,6 +28,28 @@ REVIEWERS = ("reviewer", "owner")
 NOT_ROUTED = frozenset({"campaign", "campaign_review"})
 SETTINGS = ("shadow", "serve")
 TEXT = 300
+# 21.4: the roles that read what the person means; a stronger model serves one only when it measured better on the
+# conversations (or the owner says so, audited, with the reason)
+UNDERSTANDING = frozenset({"problem_analyst", "conversation_reader", "brief_checker", "data_investigator"})
+RANK = {"cheap": 0, "standard": 1, "strong": 2}  # how strong a tier is; tuned and local tiers are not "stronger"
+
+
+def prompt_of(purpose: str) -> str | None:
+    """The version of the prompt a purpose is sent with: its content hash (dclab_core's roles, or the studio's prompts)."""
+    try:
+        from dclab_core import prompts as core_prompts
+
+        found = core_prompts.fingerprints().get(purpose)
+        if found:
+            return found
+    except Exception:  # noqa: BLE001 - a purpose without a role prompt
+        pass
+    try:
+        from .. import prompts as studio_prompts
+
+        return studio_prompts.fingerprints().get(f"prompt:{purpose}")
+    except Exception:  # noqa: BLE001
+        return None
 
 
 class RoutingError(ValueError):
@@ -123,8 +146,11 @@ def approved(entry: dict[str, Any]) -> bool:
     return current["model"] == entry.get("serve_model") and current["endpoint"] == entry.get("serve_endpoint")
 
 
-def change(store: RoutingStore, purpose: str, setting: str, tier: str | None, role: str | None, reason: str = "") -> dict[str, Any]:
-    """Set a purpose's shadow or serving tier (None: no shadow, or back to the purpose's own tier)."""
+def change(store: RoutingStore, purpose: str, setting: str, tier: str | None, role: str | None, reason: str = "",
+           measured: dict[str, float] | None = None, override: bool = False) -> dict[str, Any]:
+    """Set a purpose's shadow or serving tier (None: no shadow, or back to the purpose's own tier). Moving an
+    understanding role to a stronger tier needs ``measured`` (each model's score on the conversations, at this prompt)
+    to show the new model better than the one serving it now, or the owner's ``override`` with a reason."""
     settings.purpose(purpose)  # an unknown purpose is an error
     if purpose in NOT_ROUTED:
         raise RoutingError(f"{purpose} requests go through the research campaign's own client: the gateway cannot route or shadow them")
@@ -154,9 +180,71 @@ def change(store: RoutingStore, purpose: str, setting: str, tier: str | None, ro
     doc = store.get()
     current = route(doc, purpose)
     if current[setting] == tier and (setting == "shadow" or current.get("serve_model") == model):
-        return doc
+        return doc  # the same setting again changes nothing
+    evidence = None
+    if setting == "serve" and tier is not None and purpose in UNDERSTANDING and not (tier in RANK and RANK[tier] < RANK.get(own, -1)):
+        # every move but one to a weaker tier than its own (a tuned or unranked tier included) needs the new model to have
+        # measured better than its own tier's model and than the model a reviewer approved for it, on the same conversations
+        bars = {str(settings.public(own)["model"])}
+        if current["serve"] and approved(current):
+            bars.add(str(current.get("serve_model")))
+        bars.discard(str(model))
+        scores = {str(k): float(v) for k, v in (measured or {}).items() if v is not None}
+        better = model in scores and all(b in scores and scores[model] > scores[b] for b in bars)
+        if not better and not (override and role == "owner"):
+            raise RoutingError(f"{purpose} reads what the person means: a model serves it only when it measured better on the same "
+                               f"conversations than {', '.join(sorted(bars)) or 'its own tier'} ({model}: {scores.get(model, 'not measured')}; "
+                               + "; ".join(f"{b}: {scores.get(b, 'not measured')}" for b in sorted(bars)) + "), or the owner overrides with a reason")
+        evidence = {"measured": {k: scores[k] for k in sorted({str(model), *bars}) if k in scores}, "override": not better}
     purposes = dict(doc.get("purposes") or {})
     purposes[purpose] = {**current, setting: tier, **({"serve_model": model, "serve_endpoint": endpoint} if setting == "serve" else {})}
     entry = {"at": _now(), "purpose": purpose, "setting": setting, "from": current[setting], "to": tier, "by": role or "human", "reason": reason or None,
-             **({"model": model, "endpoint": endpoint} if setting == "serve" and tier else {})}
+             "prompt": prompt_of(purpose), **({"model": model, "endpoint": endpoint} if setting == "serve" and tier else {}),
+             **({"evidence": evidence} if evidence else {})}
     return store.save({**doc, "purposes": purposes, "history": [*(doc.get("history") or []), entry]})
+
+
+def set_cap(store: RoutingStore, purpose: str, eur_month: float | None, role: str | None, reason: str = "") -> dict[str, Any]:
+    """A purpose's monthly spend cap in euros (21.4; None: no cap of its own). A reviewer or the owner sets it, with a
+    reason; the gateway refuses a request that could pass it."""
+    settings.purpose(purpose)
+    if role not in REVIEWERS:
+        raise PermissionError("Only a reviewer or the owner sets a role's spend cap")
+    reason = " ".join(str(reason or "").split())[:TEXT]
+    if not reason:
+        raise RoutingError("Say why: the reason is kept in the audit trail")
+    if eur_month is not None and (not isinstance(eur_month, (int, float)) or not math.isfinite(eur_month) or eur_month < 0):
+        raise RoutingError("a cap is a number of euros, zero or more")
+    doc = store.get()
+    entry = dict((doc.get("purposes") or {}).get(purpose) or {})
+    before = entry.get("cap_eur_month")
+    if before == eur_month:
+        return doc
+    entry["cap_eur_month"] = None if eur_month is None else round(float(eur_month), 4)
+    history = {"at": _now(), "purpose": purpose, "setting": "cap", "from": before, "to": entry["cap_eur_month"], "by": role, "reason": reason}
+    return store.save({**doc, "purposes": {**(doc.get("purposes") or {}), purpose: entry}, "history": [*(doc.get("history") or []), history]})
+
+
+def cap(doc: dict[str, Any], purpose: str) -> float | None:
+    value = ((doc.get("purposes") or {}).get(purpose) or {}).get("cap_eur_month")
+    return float(value) if value is not None else None
+
+
+def switch(store: RoutingStore, audit_log: Any, purpose: str, setting: str, value: Any, role: str | None, reason: str = "",
+           measured: dict[str, float] | None = None, override: bool = False) -> dict[str, Any]:
+    """One audited change of a role's model (21.4): the routing changed and its audit row written in the same call, the
+    row naming the model, its endpoint, the prompt version and the measurement it was decided on. ``setting``: serve,
+    shadow (``value`` a tier or None) or cap (``value`` euros a month or None)."""
+    kept = len(store.get().get("history") or [])
+    doc = (set_cap(store, purpose, value, role, reason) if setting == "cap"
+           else change(store, purpose, setting, value, role, reason, measured=measured, override=override))
+    history = doc.get("history") or []
+    if len(history) > kept and audit_log is not None:  # the same setting again changes nothing and is not audited
+        from .. import audit
+
+        made = history[-1]
+        audit.record(audit_log, "routing", "human", str(made.get("by") or role or "person").capitalize(), move="set_routing", status="allowed",
+                     args={**{k: made.get(k) for k in ("purpose", "setting", "from", "to")},  # "to" None: back to its own tier
+                           **{k: made[k] for k in ("model", "endpoint", "prompt", "evidence") if made.get(k) is not None}},
+                     message=made.get("reason") or "")
+    return doc

@@ -139,6 +139,16 @@
    "cause": "The role's parsed output was stored whole.",
    "fix": "Only the columns it proposed are kept.",
    "test": "test_the_mornings_walk_is_a_run_of_the_coordinator"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Renaming the from-draft route's handler changed the generated web client.",
+   "scenario": "The gate failed: the committed api.js no longer matched the routes.",
+   "cause": "The client's names come from the handlers' names.",
+   "fix": "The handler keeps its name; the shared function is bring_from_draft.",
+   "test": "test_the_committed_client_is_what_the_routes_give"
   }
  ],
  "measurements": [
@@ -158,7 +168,8 @@
  "lessons": [
   "When two paths decide the same thing (the build route and the coordinator), make them read one function.",
   "Progress is an action's outcome, not a change of state: answering an open question changes nothing the state machine sees.",
-  "A failure that happens after a file moved aside leaves a state that looks complete: test the failure in the middle."
+  "A failure that happens after a file moved aside leaves a state that looks complete: test the failure in the middle.",
+  "A route handler's name is part of the generated client: rename the function it calls, never the handler."
  ],
  "risks": [
   "Only the data investigator's hand-off is gated.",

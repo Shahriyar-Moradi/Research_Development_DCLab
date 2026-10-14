@@ -360,6 +360,24 @@ asked the labels question, and the build happened anyway); one model tier served
   when, and only when, it measures better on 20.10's conversations.
 - **Done when:** switching a role's model is one audited change, and the conversation suite reports each role's
   score and cost by model.
+- **Status: done (2026-10-14).** `models/routing.switch`: a role's model (its serving tier), its shadow or its monthly cap
+  changed and its audit row written in one call, the row naming the model, its endpoint, the prompt version (a content
+  hash, `routing.prompt_of`) and the measurement it was decided on; the routing route goes through it. A role's cap
+  (`set_cap`, a reviewer and a reason, a finite number) is enforced by the gateway like the project and workspace caps,
+  per purpose. An understanding role (problem analyst, conversation reader, brief checker, data investigator) is
+  served by another model only when that model measured better than its own tier's model and than the one a reviewer
+  approved for it, on the same conversations (split and file fingerprint) at the same prompt, each model's mean over all
+  its runs; a step down needs nothing, a tuned or unranked tier is measured like any other, and the owner may override
+  with a reason (audited as an override). The conversation suite stores, per run, each role's model, tier, prompt
+  version and cost and the conversations' fingerprint; `--model NAME` measures the reader on a named model and
+  `--report` prints each role's score and cost by model. `GET /api/models/roles` and the Admin page's "Roles and their
+  models" table show each role's serving tier and model, prompt version, measured scores, this month's spend by model,
+  its cap (set from the page) and whether the product asks it. Left open: only the conversation reader is measured by
+  the conversation suite (the other understanding roles have their own suites, 18.2 and 18.3, not yet tied to a
+  model), so they move to a stronger model only by the owner's override; the basis is the written dev conversations
+  (a sealed set is run once, so two models never share one; 20.10's suite replaces it); `--model` uses the role's own
+  tier's endpoint; a model changed in `.env` is not a routing change and is not checked; a cap counts euros, so an
+  unpriced model is not stopped by it; the rules alone score 12 of 12 on dev, so a reader can at best tie today.
 
 ### 21.5 Harness evaluation from real sessions
 - **Delivers:** every role and the coordinator measured on the conversation suite (20.10) and on replays of recorded

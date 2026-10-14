@@ -91,7 +91,19 @@ class Gateway:
         self.shadow_runner = shadow_runner or (lambda fn: threading.Thread(target=fn, daemon=True).start())
         self._lock, self._held = threading.Lock(), {}  # euros held by requests in flight, per project ("p:<id>") and workspace ("w")
 
-    def reserve(self, project_id: str | None, run: "Bound | None", estimate: float | None) -> tuple[str | None, Callable[[], None]]:
+    def purpose_cap(self, purpose: str | None) -> float | None:
+        """A role's own monthly cap (21.4, set in the routing by a reviewer), or None."""
+        if not purpose or self.routing is None:
+            return None
+        from . import routing as model_routing
+
+        try:
+            return model_routing.cap(self.routing.get(), purpose)
+        except Exception:  # noqa: BLE001 - an unreadable routing keeps the other caps
+            return None
+
+    def reserve(self, project_id: str | None, run: "Bound | None", estimate: float | None,
+                purpose: str | None = None) -> tuple[str | None, Callable[[], None]]:
         """Before a request: refuse it if it could pass a cap, otherwise hold its upper-bound cost until it ends.
 
         Returns (refusal or None, release). The check and the hold happen under one lock, so requests sent at the
@@ -99,7 +111,7 @@ class Gateway:
         """
         nothing = lambda: None  # noqa: E731
         if estimate is None:
-            return self.refusal(project_id, run), nothing  # only "already over" can be said without a price
+            return self.refusal(project_id, run, purpose), nothing  # only "already over" can be said without a price
         with self._lock:
             if run is not None and run.run_limit_eur is not None and run.spent_eur + run.reserved_eur + estimate > run.run_limit_eur:
                 left = max(0.0, run.run_limit_eur - run.spent_eur - run.reserved_eur)
@@ -114,6 +126,13 @@ class Gateway:
                     return (f"this project has used its budget: €{spent:.2f} of €{cap:.2f} this month, €{max(0.0, cap - spent):.2f} left; "
                             f"the next request could cost up to €{estimate:.2f}. Raise the project's budget or wait for next month"), nothing
                 keys.append("p:" + project_id)
+            pcap = self.purpose_cap(purpose)
+            if pcap is not None and since:
+                spent = self.usage.spent(since, purpose=purpose) + self._held.get("r:" + purpose, 0.0)
+                if spent + estimate > pcap:
+                    return (f"{purpose} has used its monthly budget: €{spent:.2f} of €{pcap:.2f}, €{max(0.0, pcap - spent):.2f} left; "
+                            "a reviewer raises the role's cap on the Models page"), nothing
+                keys.append("r:" + purpose)
             wcap = workspace_cap()
             if wcap is not None and since:
                 spent = self.usage.spent(since) + self._held.get("w", 0.0)
@@ -140,7 +159,7 @@ class Gateway:
                     run.reserved_eur = max(0.0, run.reserved_eur - estimate)
         return None, release
 
-    def refusal(self, project_id: str | None, run: "Bound | None" = None) -> str | None:
+    def refusal(self, project_id: str | None, run: "Bound | None" = None, purpose: str | None = None) -> str | None:
         """The cap is already reached (used where no estimate is possible: an unpriced model, a client the gateway does not send for)."""
         if run is not None and run.run_limit_eur is not None and run.run_limit_eur > 0 and run.spent_eur >= run.run_limit_eur:
             return f"this run has used its budget: €{run.spent_eur:.2f} of €{run.run_limit_eur:.2f}"
@@ -150,6 +169,9 @@ class Gateway:
         cap = self.project_cap(project_id) if (project_id and self.project_cap) else None
         if cap is not None and self.usage.spent(since, project_id) >= cap > 0:
             return f"this project has used its budget of €{cap:.2f} this month. Raise the project's budget or wait for next month"
+        pcap = self.purpose_cap(purpose)
+        if pcap is not None and self.usage.spent(since, purpose=purpose) >= pcap:
+            return f"{purpose} has used its monthly budget of €{pcap:.2f}"
         wcap = workspace_cap()
         if wcap is not None and self.usage.spent(since) >= wcap > 0:
             return f"the workspace has used its monthly budget of €{wcap:.2f}"
@@ -370,7 +392,7 @@ class Bound:
         try:
             chars = sum(len(str(m.get("content") or "")) + len(json.dumps(m.get("tool_calls") or [])) for m in messages) + len(json.dumps(tools or []))
             estimate = prices.estimate(self.model, settings.public(self.tier.get("name") or self.p.tier)["local"], chars, max_tokens)
-            refusal, release = self.gateway.reserve(self.project_id, self, estimate)
+            refusal, release = self.gateway.reserve(self.project_id, self, estimate, self.purpose)
         except ValueError as error:  # a broken price file: nothing is sent until it is fixed
             refusal, release = str(error), (lambda: None)
         if refusal:  # checked before sending: nothing reaches the provider
@@ -421,7 +443,7 @@ class Bound:
 
 def check_external(purpose: str, project_id: str | None = None) -> None:
     """For clients the gateway does not send for (NOOA): refuse before the request when a cap is already reached."""
-    refusal = installed().refusal(project_id)
+    refusal = installed().refusal(project_id, purpose=purpose)
     if refusal:
         error = RuntimeError(f"BudgetExceeded: {refusal}")
         error.transient = False  # type: ignore[attr-defined]

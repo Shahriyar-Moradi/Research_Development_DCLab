@@ -104,41 +104,62 @@ async def configuration(s: Services = Depends(services)):
             "privacy": "When a model is configured, aggregate data profiles (with up to three example values per column) and scientific evidence are sent to it; the Home agent sends summaries only. Full rows and API keys are never sent. store=false; provider policies still apply."}
 
 
+def conversation_scores(purpose: str, tier: Any, routing_doc: dict[str, Any]) -> dict[str, float]:
+    """The share of right cards of the model a role would move to, of its own tier's model and of the one a reviewer
+    approved for it, measured on the same stored conversations at the role's current prompt (21.4)."""
+    from ...agent_eval import conversation
+    from ...models import routing as model_routing, settings as model_settings
+
+    if not isinstance(tier, str) or tier not in model_settings.ROUTABLE:
+        return {}
+    current = model_routing.route(routing_doc, purpose)
+    candidates = {model_settings.public(tier)["model"], model_settings.public(model_settings.purpose(purpose).tier)["model"]}
+    if current["serve"] and model_routing.approved(current):
+        candidates.add(current.get("serve_model"))
+    models = sorted({m for m in candidates if m})
+    return conversation.measured(purpose, model_routing.prompt_of(purpose), models)
+
+
 @router.get("/api/models", response_model=ModelsSummary)
 async def model_overview(s: Services = Depends(services)):
     """Which model serves which purpose, what each purpose may be shown, and the usage so far (no keys)."""
     return await asyncio.to_thread(s.gateway.summary)
 
 
+@router.get("/api/models/roles", response_model=Doc)
+async def model_roles(s: Services = Depends(services)):
+    """Each role's model on one page (21.4): its tier and the model serving it, the prompt version, its cap and this
+    month's spend by model, whether the product asks it, and how it measured by model on the conversations."""
+    from ...models import overview
+
+    return {"roles": await asyncio.to_thread(overview.roles, s.gateway)}
+
+
 @router.post("/api/models/routing", response_model=ModelsSummary)
 async def change_routing(body: RoutingChange, request: Request, s: Services = Depends(services)):
     """Set a purpose's shadow (a local model that answers beside it, never used) or move the purpose to another
-    tier. Moving it needs a reviewer (X-DCLab-Role, declared until accounts exist) and a reason; moving it back to
-    its own tier (tier null) is one setting. Every change is kept in the routing history and the platform audit."""
+    tier, or set its monthly spend cap (setting "cap", cap_eur_month). Moving it, or a cap, needs a reviewer
+    (X-DCLab-Role, declared until accounts exist) and a reason; moving it back to its own tier (tier null) is one
+    setting. An understanding role moves to a stronger model only when that model measured better on the
+    conversations, or with the owner's override. Every change is kept in the routing history and the audit."""
     from ...models import routing as model_routing
 
     role = declared_role(request)
     tier = body.tier
-    try:
-        kept = len(s.gateway.routing.get().get("history") or [])
-    except Exception:  # noqa: BLE001 — the change below reports what is wrong with the routing
-        kept = None
-    try:
-        doc = model_routing.change(s.gateway.routing, str(body.purpose or ""), str(body.setting or ""), tier if isinstance(tier, str) and tier else None,
-                             role, str(body.reason or ""))
+    setting = str(body.setting or "")
+    purpose = str(body.purpose or "")
+    value = body.cap_eur_month if setting == "cap" else (tier if isinstance(tier, str) and tier else None)
+    measured = (await asyncio.to_thread(conversation_scores, purpose, value, s.gateway.routing.get())
+                if setting == "serve" and purpose in model_routing.UNDERSTANDING else None)
+    try:  # 21.4: the change and its audit row in one call, the row naming the model, prompt and measurement
+        await asyncio.to_thread(model_routing.switch, s.gateway.routing, s.audit, purpose, setting, value, role, str(body.reason or ""),
+                                measured, bool(body.override))
     except PermissionError as exc:
         raise HTTPException(403, str(exc)) from None
     except KeyError as exc:
         raise HTTPException(422, str(exc).strip("'\"")) from None
     except model_routing.RoutingError as exc:
         raise HTTPException(422, str(exc)) from None
-    from ... import audit
-
-    history = (doc or {}).get("history") or []
-    if kept is not None and len(history) > kept:  # a change was made (the same setting again changes nothing and is not audited)
-        change = history[-1]
-        audit.record(s.audit, "routing", "human", (change.get("by") or role or "person").capitalize(), move="set_routing", status="allowed",
-                     args={k: change.get(k) for k in ("purpose", "setting", "from", "to")}, message=change.get("reason") or "")
     return await asyncio.to_thread(s.gateway.summary)
 
 

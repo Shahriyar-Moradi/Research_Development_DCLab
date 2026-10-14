@@ -10,7 +10,7 @@ everywhere instead of a 500 in some places.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
@@ -137,6 +137,8 @@ class RoutingChange(Doc):
     setting: Any = ""
     tier: Any = None
     reason: Any = None
+    cap_eur_month: Optional[float] = None  # setting "cap": the role's monthly spend cap in euros (None: none of its own)
+    override: bool = False  # the owner moves an understanding role to a stronger model without a better measurement
 
 
 class InternStart(Doc):

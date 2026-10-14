@@ -1,0 +1,137 @@
+{
+ "package": "21.4",
+ "title": "Model management per role: one audited change, caps, and a stronger model only when it measured better",
+ "date": "2026-10-14",
+ "request": "Each role's model chosen per role with a reviewer and a reason, prompts versioned, spend caps per role, a page showing each role's model, prompt version, score and cost; a stronger model for the understanding roles only when it measures better on the conversations. Switching a role's model must be one audited change, and the conversation suite must report each role's score and cost by model.",
+ "spec": "Routing changes and their audit row in one call; per-purpose caps in the gateway; the measured-better rule in routing; conversation runs that name their roles' models, prompts and costs; one page per role.",
+ "plan": [
+  "Map what exists: routing by tier, the shadow log, caps, the Admin table, the conversation suite.",
+  "Make the change and its audit one call, with the model, prompt version and measurement.",
+  "Add per-role caps and enforce them in the gateway.",
+  "Record each role's model and cost in conversation runs; compare models only on the same conversations.",
+  "Show each role on one page."
+ ],
+ "decisions": [
+  {
+   "decision": "A role's model stays its tier's model; a move is a move to another tier.",
+   "why": "Per-role model strings would bypass the tier's approved endpoint and key; the tier is already the unit a reviewer approves."
+  },
+  {
+   "decision": "The bar for a stronger model is its own tier's model and the approved one, never the tier it stands on now.",
+   "why": "Measured against where it stands, a step down and up again would bring a worse model in."
+  },
+  {
+   "decision": "Each model's score is its mean over all runs on the same conversations.",
+   "why": "With the newest run only, a rerun could pick its luck."
+  },
+  {
+   "decision": "The prompt version is a content hash.",
+   "why": "The prompts already carry pinned hashes; a number would need its own bookkeeping and could drift from the text."
+  }
+ ],
+ "change": "dclab_rnd/models/routing.py, gateway.py, usage.py, overview.py (new), agentic/routers/core.py, agentic/api_models.py, agent_eval/conversation, core_advisor.py, the Admin page (views/admin.html, features.js; the built app and api.js regenerated); tests/test_model_management.py (new); the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "Moving a role back to its own tier lost the target in the audit.",
+   "scenario": "The audit row of a move back had no to field.",
+   "cause": "Empty values were dropped from the row.",
+   "fix": "The four core fields are always written; only the extras are dropped when empty.",
+   "test": "test_the_admin_routes_and_the_audit"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The same change again wrote a second audit row.",
+   "scenario": "Serving a role with the tier it already had was recorded as a change.",
+   "cause": "An edit removed the early return for an unchanged setting.",
+   "fix": "The early return restored.",
+   "test": "test_switching_a_roles_model_is_one_audited_change"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A step down and up again brought a worse model in.",
+   "scenario": "Refused on strong, moved to cheap, then strong was compared with the cheap model and allowed.",
+   "cause": "The bar was the tier serving the role now.",
+   "fix": "The bar is its own tier's model and the approved one.",
+   "test": "test_neither_a_step_down_nor_the_tuned_tier_gets_around_the_measurement"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The tuned tier needed no measurement.",
+   "scenario": "An understanding role moved to a tuned tier configured as any model.",
+   "cause": "Only a higher-ranked tier counted as stronger.",
+   "fix": "Every move but one to a weaker tier needs the measurement.",
+   "test": "test_neither_a_step_down_nor_the_tuned_tier_gets_around_the_measurement"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Models measured on different conversations were compared.",
+   "scenario": "A run on nine dev conversations against one on twelve, both called dev.",
+   "cause": "Runs were grouped by split name only.",
+   "fix": "Each run stores the conversations' fingerprint; models compare only on the same one.",
+   "test": "test_models_are_compared_only_on_the_same_conversations_at_the_same_prompt"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The newest run of each model was its score.",
+   "scenario": "Rerunning a model until the noise favoured it would decide the move.",
+   "cause": "Only the latest run counted.",
+   "fix": "The mean over all its runs on the same conversations.",
+   "test": "test_models_are_compared_only_on_the_same_conversations_at_the_same_prompt"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Three understanding roles can never pass the measured path.",
+   "scenario": "The conversation suite asks only the reader.",
+   "cause": "The other roles have their own suites, not tied to a model.",
+   "fix": "Stated in the plan's status and on the page; the owner's override, audited, is their path.",
+   "test": "the plan text"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A cap that is not a number was accepted.",
+   "scenario": "A NaN cap capped nothing while the audit said a cap was set.",
+   "cause": "Only negative numbers were refused.",
+   "fix": "A cap is a finite number, zero or more.",
+   "test": "test_a_cap_is_a_finite_number"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A model changed in the environment bypasses the rule, and a cap cannot stop an unpriced model.",
+   "scenario": "A stronger model set in .env serves a tier with no review; an unpriced model's spend never reaches a cap.",
+   "cause": "Approval pins routed tiers only; caps count euros.",
+   "fix": "Said on the page, in the cap dialog and in the plan.",
+   "test": "the page text"
+  }
+ ],
+ "measurements": [],
+ "outcome": "A role's model, shadow or cap changes in one audited call naming the model, prompt version and measurement; caps per role stop spending; an understanding role gets another model only when it measured better on the same conversations; one page shows it all.",
+ "lessons": [
+  "A rule that compares with the current state can be walked around one step at a time: compare with a fixed bar.",
+  "A measurement is comparable only on the same items: fingerprint the set.",
+  "When a replacement block spans several statements, check that none of the lines between was lost."
+ ],
+ "risks": [
+  "Only the conversation reader is measured by model today.",
+  "An unpriced model escapes euro caps."
+ ],
+ "commits": []
+}

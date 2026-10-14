@@ -193,6 +193,7 @@ window.FEATURES = [
 
   // ---- admin
   { id: 'admin.models', view: 'admin', name: 'Model endpoints and routing per tier', status: 'built', phase: 'Now', where: '.env DCLAB_TIER_* · POST /api/models/routing', note: 'Each purpose shows its serving tier, its shadow and the agreement rates; moving a purpose needs a reviewer; tiers are still set in .env.' },
+  { id: 'admin.rolemodels', view: 'admin', name: 'Each role\'s model, prompt, score and cost', status: 'built', phase: 'Now', where: 'models/overview.py · GET /api/models/roles', note: 'Per role: the model serving it, the prompt version sent, its measured score by model on the conversations, this month\'s cost and its cap; a reviewer sets the cap.' },
   { id: 'admin.keys', view: 'admin', name: 'Keys stay on the server, never in the browser', status: 'built', phase: 'Now', where: 'server reads .env', note: '' },
   { id: 'admin.policies', view: 'admin', name: 'Governance policies as switches', status: 'built', phase: 'Now', where: 'pages/platform.py · PATCH /api/projects/{id}', note: 'Locked invariants are checked live; the two gate switches are set per project and every change is audited.' },
   { id: 'admin.roles', view: 'admin', name: 'Roles and permissions', status: 'built', phase: 'Now', where: 'dclab_rnd/accounts (package 10.2)', note: 'With DCLAB_AUTH set, four roles checked on every route; without it, one owner on this machine.' },

@@ -17,22 +17,32 @@ class GatewayAdvisor:
     """``cap_eur`` caps everything this advisor sends (one client per purpose, each with what is left of the cap)."""
 
     def __init__(self, gateway: Any = None, *, project_id: Optional[str] = None, draft_id: Optional[str] = None,
-                 max_tokens: int = 700, cap_eur: Optional[float] = None):
+                 max_tokens: int = 700, cap_eur: Optional[float] = None, models: Optional[dict[str, str]] = None):
         if gateway is None:
             from dclab_rnd.models import installed
 
             gateway = installed()
         self.gateway, self.project_id, self.draft_id, self.max_tokens, self.cap_eur = gateway, project_id, draft_id, max_tokens, cap_eur
+        self.models = dict(models or {})  # a model named per purpose (21.4: a measurement comparing models), else the routed one
         self._clients: dict[str, Any] = {}
         self.calls: dict[str, int] = {}  # requests sent, per purpose
 
     def _client(self, purpose: str) -> Any:
         if purpose not in self._clients:
-            client = self.gateway.client(purpose, project_id=self.project_id, draft_id=self.draft_id)
+            named = {"model": self.models[purpose]} if purpose in self.models else {}
+            client = self.gateway.client(purpose, project_id=self.project_id, draft_id=self.draft_id, **named)
             if client is not None and self.cap_eur is not None:
                 client.run_limit_eur = max(0.0, self.cap_eur - self.spent_eur())
             self._clients[purpose] = client
         return self._clients[purpose]
+
+    def report(self) -> list[dict[str, Any]]:
+        """Each purpose it asked: the model and tier that answered, the prompt version sent, requests and cost (21.4)."""
+        from dclab_rnd.models import routing
+
+        return [{"role": purpose, "model": getattr(c, "model", None), "tier": (getattr(c, "tier", None) or {}).get("name"),
+                 "prompt": routing.prompt_of(purpose), "requests": self.calls.get(purpose, 0),
+                 "cost_eur": round(float(getattr(c, "spent_eur", 0.0) or 0.0), 6)} for purpose, c in self._clients.items() if c is not None]
 
     def spent_eur(self) -> float:
         return sum(float(getattr(c, "spent_eur", 0.0) or 0.0) for c in self._clients.values() if c is not None)

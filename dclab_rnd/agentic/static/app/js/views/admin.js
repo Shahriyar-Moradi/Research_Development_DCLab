@@ -55,6 +55,24 @@ DC.view('admin', {
       route({ purpose: sel.dataset.shadow, setting: 'shadow', tier: sel.value || null });
     });
     el.addEventListener('click', e => {
+      const capped = e.target.closest('[data-cap-role]'); if (!capped) return;
+      const purpose = capped.dataset.capRole;
+      DC.modal.open({
+        eyebrow: '<span class="eyebrow">Roles and their models</span>', title: `Monthly cap for ${esc(purpose)}`, confirm: 'Set the cap',
+        html: '<label class="small" for="cap-eur">Euros a month (empty: no cap of its own)</label><input id="cap-eur" type="number" min="0" step="0.01">'
+          + '<label class="small" for="cap-reason">Reason (kept in the audit)</label><textarea id="cap-reason" rows="2"></textarea>'
+          + '<label class="row small"><input type="checkbox" id="cap-role"> I set this as the workspace\'s reviewer</label>'
+          + '<p class="xs muted">A cap counts euros: a model without a price is not stopped by it (its requests are counted, not priced).</p>',
+        onConfirm: () => {
+          if (!(document.getElementById('cap-role') || {}).checked) { toast('Only a reviewer sets a cap: tick the box.', { ok: false }); return false; }
+          const raw = (document.getElementById('cap-eur') || {}).value;
+          route({ purpose, setting: 'cap', cap_eur_month: raw === '' ? null : Number(raw), reason: (document.getElementById('cap-reason') || {}).value || '' },
+                { 'X-DCLab-Role': 'reviewer' }).then(ok => { if (ok) { DC.modal.close(); this.loadRoles(el); } });
+          return false;
+        },
+      });
+    });
+    el.addEventListener('click', e => {
       const back = e.target.closest('[data-serve-back]');
       if (back) { route({ purpose: back.dataset.serveBack, setting: 'serve', tier: null }); return; }
       const tuned = e.target.closest('[data-serve-tuned]'); if (!tuned) return;
@@ -158,10 +176,31 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadDecisions(el), this.loadDatasets(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadDecisions(el), this.loadDatasets(el)]);
   },
 
   // 19.13: the catalog of the datasets, and the sessions each came from
+  async loadRoles(el) {
+    /* 21.4: each role's model, prompt version, score by model and cost, one table */
+    const { $, esc } = DC;
+    const box = $('#roles-body', el);
+    let data;
+    try { data = await DC.client.modelRoles({ quiet: true }); } catch (err) { DC.states.failed(box, err, { retry: () => this.loadRoles(el) }); return; }
+    const eur = v => v == null ? '—' : '€' + Number(v).toFixed(v < 1 ? 4 : 2);
+    const rows = (data.roles || []).map(r => {
+      const spent = (r.spent_this_month || []).map(s => `${esc(s.model || '?')} ${s.unpriced ? `${s.requests} unpriced` : eur(s.eur)}`).join('<br>') || '<span class="muted">none</span>';
+      const scores = (r.measured || []).map(m => `${esc(m.model || 'rules')}: ${m.right}/${m.of} (${esc(m.split)})`).join('<br>') || '<span class="muted">not measured</span>';
+      const on = r.kind === 'agent' ? '<span class="xs muted">agent</span>' : `<span class="pill ${r.on ? 'ok' : 'outline'}" title="${esc(r.why || '')}">${r.on ? 'asked' : 'off'}</span>`;
+      return `<tr><td class="mono small">${esc(r.role)}${r.understanding ? ' <span class="xs muted">understanding</span>' : ''}</td>`
+        + `<td>${esc(r.serving_tier)}${r.serving_tier !== r.own_tier ? ` <span class="pill warn">moved from ${esc(r.own_tier)}</span>` : ''}<div class="mono xs muted">${esc(r.model || 'no model')}</div></td>`
+        + `<td class="mono xs">${esc(r.prompt || '—')}</td><td class="small">${scores}</td><td class="small">${spent}</td>`
+        + `<td>${eur(r.cap_eur_month)} <button type="button" class="link-btn small" data-cap-role="${esc(r.role)}">Set…</button></td><td>${on}</td></tr>`;
+    }).join('');
+    box.innerHTML = rows ? `<div class="table-wrap"><table class="data compact"><thead><tr><th>Role</th><th>Served by</th><th>Prompt</th><th>Measured</th><th>This month</th><th>Cap a month</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <span class="xs muted">Another model serves an understanding role only when it measured better than its own tier's model on the same conversations at this prompt (python -m dclab_rnd.agent_eval.conversation --arm reader --model NAME; today the written dev conversations, and the conversation reader only), or the owner overrides with a reason. Every change, a cap included, is one audited change. A cap counts euros: an unpriced model is not stopped by it. A model changed in .env is not a routing change and is not checked here.</span>`
+      : '<div class="empty">No roles.</div>';
+  },
+
   async loadDatasets(el) {
     const { $, esc } = DC;
     let r;

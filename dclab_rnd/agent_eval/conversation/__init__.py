@@ -84,15 +84,19 @@ def sealed_runs(arm: str = "*", split: str = "sealed") -> list[Path]:
     return sorted(RESULTS.glob(f"CONV-*_{split}_{arm}.json")) if RESULTS.exists() else []
 
 
-def store(rows: list[dict[str, Any]], split: str, arm: str, result: str, spent_eur: float = 0.0) -> Path:
+def store(rows: list[dict[str, Any]], split: str, arm: str, result: str, spent_eur: float = 0.0,
+          roles: Optional[list[dict[str, Any]]] = None) -> Path:
     RESULTS.mkdir(parents=True, exist_ok=True)
     n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in RESULTS.glob("CONV-*.json")] or [0])
     ident = f"CONV-{n:03d}"
     doc = {"id": ident, "campaign_id": "conversation_v1", "kind": "understanding_conversation", "split": split, "arm": arm,
+           "conversations": fingerprint(HERE / f"conversations_{split}.json"),  # 21.4: runs compare only on the same set
            "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "gate": GATES.get(split, GATE), "spent_eur": spent_eur, "rows": rows,
            "summary": {"conversations": len(rows), "right": sum(r["right"] for r in rows),
                        "questions_mean": round(sum(r["questions"] for r in rows) / max(len(rows), 1), 2)},
            "verdict": result, "status": "completed", "experiment_id": ident,
+           # 21.4: which model answered for each role, at which prompt version, and what it cost
+           "roles": roles or [{"role": "rules", "model": None, "tier": None, "prompt": None, "requests": 0, "cost_eur": 0.0}],
            "rule": f"Scores on {len(rows)} written conversations say how DCLab's understanding conversation handles these; they are "
                    "not a claim about any other conversation or about production readiness."}
     path = RESULTS / f"{ident}_{split}_{arm}.json"
@@ -100,4 +104,38 @@ def store(rows: list[dict[str, Any]], split: str, arm: str, result: str, spent_e
     return path
 
 
-__all__ = ["GATE", "GATE_V2", "GATES", "load", "measure", "score", "verdict", "store", "sealed_runs"]
+def runs() -> list[dict[str, Any]]:
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(RESULTS.glob("CONV-*.json"))] if RESULTS.exists() else []
+
+
+def by_model(results: Optional[list[dict[str, Any]]] = None) -> list[dict[str, Any]]:
+    """Each role's score and cost by model (21.4): one row per run and role, newest last."""
+    out = []
+    for r in results if results is not None else runs():
+        summary = r.get("summary") or {}
+        for role in r.get("roles") or [{"role": "rules"}]:
+            out.append({"run": r.get("id"), "split": r.get("split"), "conversations": r.get("conversations"), "arm": r.get("arm"),
+                        "role": role.get("role"), "model": role.get("model"),
+                        "tier": role.get("tier"), "prompt": role.get("prompt"), "right": summary.get("right"), "of": summary.get("conversations"),
+                        "cost_eur": role.get("cost_eur"), "requests": role.get("requests")})
+    return out
+
+
+def measured(role: str, prompt: Optional[str], models: list[str], results: Optional[list[dict[str, Any]]] = None) -> dict[str, float]:
+    """The share of right cards of each model for ``role`` at ``prompt``, on one set of conversations every model was run
+    on (the same split and the same file, by its fingerprint): each model's mean over all its runs there, so a rerun
+    cannot pick its luck. Models run on different conversations are not compared (empty)."""
+    rows = [x for x in by_model(results) if x["role"] == role and x["model"] in models and x["prompt"] == prompt and x["of"]
+            and x.get("conversations")]
+    sets = sorted({(x["split"], x["conversations"]) for x in rows}, key=lambda k: (not str(k[0]).startswith("sealed"), str(k)))
+    for split, which in sets:
+        here = [x for x in rows if (x["split"], x["conversations"]) == (split, which)]
+        shares: dict[str, list[float]] = {}
+        for x in here:
+            shares.setdefault(x["model"], []).append(x["right"] / x["of"])
+        if set(models) <= set(shares):
+            return {m: round(sum(shares[m]) / len(shares[m]), 4) for m in models}
+    return {}
+
+
+__all__ = ["GATE", "GATE_V2", "GATES", "load", "measure", "score", "verdict", "store", "sealed_runs", "runs", "by_model", "measured"]
