@@ -247,6 +247,19 @@ person's overrides.
   a new benchmark version (never a sealed set); (g) the **development records** (`devlog.py`) beside them.
 - **Done when:** `make datasets` builds every set the consent allows, each manifest names every source, and a decision
   dataset for `column.is_identifier` holds its benchmark, measured and person labels apart.
+- **Status: done (2026-10-14).** `dclab_core/datasets.py` (dclab-core 0.13.0): `DatasetManifest` and builders (a)
+  to (f); `dclab_rnd/datasets.py` and `make datasets`: for each workspace, the train sets only with its train switch,
+  the failure candidates only with its improve switch, each project (and the draft it came from) only with its own
+  switch; everything read through the consent export (redacted, no cells, no prompts, no person); written to
+  `<workspace>/datasets/<builder>/<name>/` (`rows.jsonl`, `sealed.jsonl` for a sealed partition, `manifest.json`
+  naming every decision, label, event, run, visit, draft and project used, and each row naming its own); rows are
+  grouped by project (a draft with the project it became) and split with one salt, so a project is sealed in every set
+  or in none; a rebuild removes every set it no longer writes (a use switched off, a project withdrawn or deleted); a
+  data card leaves with its tables renamed (`table_1.csv`), a workflow redacted, and a session's flags computed only on
+  the events the consent lets out; a row still holding an e-mail address or a path is refused, and the manifest is
+  recounted from what was kept; a reviewer accepts a candidate in `datasets/failures/reviews.json` and the accepted ones
+  are `accepted.jsonl` for the next benchmark version; (g) the development records are listed beside them. Left open:
+  a page to review the candidates; the code of a pipeline in the workflow examples; the catalog (19.13).
 
 ### 19.13 The archive and its catalog
 - **Delivers:** one documented layout (`docs/guides/EXPERIENCE_ARCHIVE.md`): per workspace, events by day and visit,

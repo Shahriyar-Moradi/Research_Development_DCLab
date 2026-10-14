@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.13.0 (2026-10-14)
+
+Package 19.12: training and evaluation sets from real use. A new contract; no other contract changes shape.
+
+- `datasets` (new): `DatasetManifest` (`dclab_core.dataset_manifest.v1`): a set's builder and version, when, on what
+  consent, every source by id, its counts and how it was split. Builders over what a consented export let through:
+  `decisions` (one set per decision point, each label source in its own column and the label that counts, whole groups
+  split into train, dev and a sealed partition), `conversations` (Home conversations that ended in a build),
+  `preferences` (a proposal and the person's choice used instead), `trajectories` (an agent run's steps, never a
+  tool's arguments), `workflows` (problem card, data card, workflow, solution and pipeline), `failures` (flagged
+  sessions as candidate benchmark cases, a case only once a reviewer accepts it). `group_of` (a dataset, else a
+  project, a draft with the project it became) and `split_of(group)` with one salt: a group lands in one split in
+  every set. Each row names its sources; `refit` recounts a manifest from the rows a host kept.
+
 ## 0.12.0 (2026-10-14)
 
 Package 19.11: data cards and synthetic tables. A new contract; no other contract changes shape.

@@ -1,0 +1,43 @@
+{
+ "package": "19.12",
+ "title": "Training and evaluation sets from real use, built only from what the consent allows and named source by source",
+ "date": "2026-10-14",
+ "request": "The owner wants decision models of any kind trained on what happens in DCLab. Every set should be built from real use, consented, with a manifest that names where each row came from, and with a sealed partition never used for tuning.",
+ "spec": "Builders in dclab_core over the ledger and the session record, each with a DatasetManifest: decision sets per point with each label source apart, SFT conversations, preference pairs, tool trajectories, workflow examples, failures as candidate benchmark cases, and the development records beside them. make datasets builds what the consent allows. Done when a decision set for column.is_identifier holds its benchmark, measured and person labels apart.",
+ "plan": [
+  "The builders read only what the 19.10 consent export lets through: redacted text, no cells, no prompts, no person.",
+  "DatasetManifest names every source by id; each row names its own, so a refused row takes its sources with it.",
+  "Rows grouped by project and split by a hash, with the sealed partition in a file of its own."
+ ],
+ "decisions": [
+  {"decision": "The train sets need the train switch; the failure candidates need the improve switch.", "why": "Turning failures into benchmark cases improves DCLab; it does not train a model."},
+  {"decision": "One salt for every set, and a draft grouped with the project it became.", "why": "A table sealed in one set must be sealed in all of them, or tuning on one set would see the sealed rows of another."},
+  {"decision": "A rebuild removes every set it no longer writes.", "why": "The folder must hold what the consent allows today, never what it allowed once."},
+  {"decision": "A failure candidate becomes a case only when a reviewer accepts it, and goes to a new benchmark version.", "why": "A flag is a rule's guess, and a sealed set is never changed after it is frozen."}
+ ],
+ "change": "dclab_core/datasets.py (new; dclab-core 0.13.0), dclab_core/contracts.py, schemas dataset_manifest; dclab_rnd/datasets.py (new), Makefile (make datasets); tests/test_datasets.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "S1", "source": "self", "severity": "flaky", "defect": "The test's three groups could all hash into the sealed split.", "scenario": "rows.jsonl did not exist because every row was sealed.", "cause": "Dataset names chosen without regard to their split.", "fix": "The test picks a name for each split.", "test": "test_the_identifier_set_keeps_its_labels_apart"},
+  {"id": "R1", "source": "reviewer", "severity": "privacy", "defect": "Failure flags were computed over every event of a visit, including a project without consent.", "scenario": "A visit touching a non-consented project leaked its target name in a flag message.", "cause": "The flags ran on the visit's raw events.", "fix": "Flags run only on the events the improve consent lets out.", "test": "test_a_visit_that_also_touched_a_project_without_consent"},
+  {"id": "R2", "source": "reviewer", "severity": "privacy", "defect": "A file name and the person's words left through the workflow and the data card.", "scenario": "An uploaded file's name and a sentence with a name and a phone number appeared in workflows/rows.jsonl.", "cause": "The draft's workflow and data card were copied raw, past the export.", "fix": "The card's tables are renamed table_1.csv and the like, and the workflow and card go through the export's redaction.", "test": "test_a_workflow_leaves_without_a_file_name_or_the_persons_words"},
+  {"id": "R3", "source": "reviewer", "severity": "privacy", "defect": "A rebuild kept sets whose consent was withdrawn.", "scenario": "A project's train switch turned off; its decision rows stayed on disk.", "cause": "Only the sets of the current run were rewritten.", "fix": "Every set folder the build did not write is removed.", "test": "test_a_withdrawn_consent_takes_its_sets_away"},
+  {"id": "R4", "source": "reviewer", "severity": "leakage", "defect": "One table could sit in train in one set and in sealed in another.", "scenario": "A draft's rows went to train and the same columns in its project to sealed. A per-set salt also split one project differently across sets.", "cause": "Groups keyed by draft or project separately, and a different salt per builder and point.", "fix": "group_of puts a draft with the project it became, and one salt serves every set.", "test": "test_a_draft_and_the_project_it_became_are_one_group"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "After refused rows, the manifest still counted and named them.", "scenario": "rows 0 with splits {train: 1}, and the refused events named.", "cause": "Only rows and limits were updated.", "fix": "Each row names its sources, and refit recounts the manifest from the rows kept.", "test": "test_a_row_still_holding_a_path_is_refused_and_not_named"},
+  {"id": "R6", "source": "reviewer", "severity": "gap", "defect": "Some sources were not named.", "scenario": "A failure's data card did not name its draft; the workflow pipeline did not name its runs.", "cause": "Sources listed by hand per builder.", "fix": "The draft and each stage's run are named.", "test": "test_every_set_the_consent_allows"},
+  {"id": "R7", "source": "reviewer", "severity": "gap", "defect": "Planted faults passed the suite.", "scenario": "Removing the workflows consent filter or the refusal of paths passed.", "cause": "No test of a workflow's content, a mixed visit, a withdrawal or a refusal.", "fix": "A test for each.", "test": "tests/test_datasets.py"}
+ ],
+ "measurements": [
+  {"name": "planted faults", "gate": "each fix undone fails a test", "result": "8 of 8 caught", "verdict": "pass", "cost_eur": 0.0, "against_gate": "8 of 8", "limits": ["Only the faults planted."]}
+ ],
+ "outcome": "make datasets writes, for each workspace, only the sets its consent allows today: decision sets with each label source apart and a sealed partition, conversations, preferences, trajectories, workflows and failure candidates. Each set has a manifest that names every source, and each row names its own.",
+ "lessons": [
+  "A visit can touch work that did not consent: filter events before any rule reads them, not only before they are written.",
+  "A split decided per set leaks the sealed rows of one set into the training rows of another: decide it once per group.",
+  "A derived artefact (a card, a workflow) carries the words it was derived from: redact it like the source."
+ ],
+ "risks": [
+  "Capture never sets a dataset, so a project is the group; two projects on one table are two groups.",
+  "There is no page yet to review the failure candidates; reviews are written to a file."
+ ],
+ "commits": []
+}
