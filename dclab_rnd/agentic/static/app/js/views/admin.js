@@ -158,7 +158,30 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadDecisions(el)]);
+    await Promise.all([this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadDecisions(el), this.loadDatasets(el)]);
+  },
+
+  // 19.13: the catalog of the datasets, and the sessions each came from
+  async loadDatasets(el) {
+    const { $, esc } = DC;
+    let r;
+    try { r = await DC.client.datasetsCatalog({ quiet: true }); } catch (e) { DC.states.failed($('#ds-body', el), e, { retry: () => this.loadDatasets(el), cols: 5 }); return; }
+    const n = v => Number(v || 0).toLocaleString('en-US');
+    $('#ds-stats', el).innerHTML = [[n(r.total), 'datasets'], [n(r.rows), 'rows in them']]
+      .map(([v, l]) => `<div class="stat"><span class="v">${esc(v)}</span><span class="l">${esc(l)}</span></div>`).join('');
+    if (!r.items.length) { DC.states.empty($('#ds-body', el), 'No dataset yet. Turn on a use under Budgets & data, then run make datasets.', { cols: 5 }); return; }
+    $('#ds-body', el).innerHTML = r.items.map(i => i.error ? `<tr><td class="mono small">${esc(i.path)}</td><td colspan="4" class="muted">${esc(i.error)}</td></tr>`
+      : `<tr data-ds="${esc(i.path)}" class="clickable"><td class="mono small">${esc(i.path)}</td><td class="mono small">${n(i.rows)}${i.splits && i.splits.sealed ? ` <span class="pill outline">${n(i.splits.sealed)} sealed</span>` : ''}</td>`
+        + `<td class="small">${esc(i.use || 'own')}</td><td class="small">${esc(this.when(i.built_at))} · v${esc(i.version)} · ${esc((i.bytes / 1024).toFixed(1))} KB</td>`
+        + `<td class="small">${Object.entries(i.sources || {}).map(([k, v]) => `${n(v)} ${esc(k)}`).join(', ')}</td></tr>`).join('');
+    $('#ds-body', el).querySelectorAll('[data-ds]').forEach(row => row.addEventListener('click', async () => {
+      const box = $('#ds-lineage', el);
+      box.hidden = false;
+      let l;
+      try { l = await DC.client.datasetsLineage({ query: { path: row.dataset.ds }, quiet: true }); } catch (e) { DC.states.failed(box, e); return; }
+      box.innerHTML = `<b>${esc(l.path)}</b>: ${n(l.sessions.length)} session${l.sessions.length === 1 ? '' : 's'}`
+        + (l.sessions.length ? `<div class="row wrap small">${l.sessions.slice(0, 60).map(s => `<span class="pill outline mono">${esc(s.visit)} · ${n(s.events)}</span>`).join(' ')}</div>` : '');
+    }));
   },
 
   async loadDecisions(el) {

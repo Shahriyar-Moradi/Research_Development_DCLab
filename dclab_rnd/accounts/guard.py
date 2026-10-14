@@ -56,6 +56,9 @@ SPECIAL = {
     ("GET", "/api/consent"): "read",
     ("PUT", "/api/consent"): "admin",
     ("DELETE", "/api/experience/sessions/{visit}"): "timelines",
+    # the catalog of the datasets built from them (19.13): the owner's
+    ("GET", "/api/datasets"): "admin",
+    ("GET", "/api/datasets/lineage"): "admin",
 }
 
 

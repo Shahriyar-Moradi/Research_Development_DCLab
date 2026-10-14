@@ -222,6 +222,8 @@
     kaggleSearch: ["POST", "/connectors/kaggle/search", [], []],
     readConsent: ["GET", "/consent", [], []],
     setConsent: ["PUT", "/consent", [], []],
+    datasetsCatalog: ["GET", "/datasets", [], []],
+    datasetsLineage: ["GET", "/datasets/lineage", [], ["path"]],
     listDrafts: ["GET", "/drafts", [], []],
     createDraft: ["POST", "/drafts", [], []],
     deleteDraft: ["DELETE", "/drafts/{draft_id}", ["draft_id"], []],
@@ -416,6 +418,18 @@
    *  @returns {Promise<Page>} */
   client.setConsent = (...args) => call('setConsent', args);
   client.path.setConsent = (...args) => build('setConsent', args).path;
+  /** GET /api/datasets: Datasets Catalog
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.datasetsCatalog = (...args) => call('datasetsCatalog', args);
+  client.path.datasetsCatalog = (...args) => build('datasetsCatalog', args).path;
+  client.href.datasetsCatalog = (...args) => '/api' + build('datasetsCatalog', args).path;
+  /** GET /api/datasets/lineage: Datasets Lineage
+   *  @param {{query?: {path?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.datasetsLineage = (...args) => call('datasetsLineage', args);
+  client.path.datasetsLineage = (...args) => build('datasetsLineage', args).path;
+  client.href.datasetsLineage = (...args) => '/api' + build('datasetsLineage', args).path;
   /** GET /api/drafts: List Drafts
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Array<Doc>>} */

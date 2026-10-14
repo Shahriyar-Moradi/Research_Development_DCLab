@@ -2021,6 +2021,18 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     </div>
   </div>
 
+  <div class="pane" data-pane="datasets" data-label="Datasets">
+    <div class="stats" id="ds-stats">
+      <div class="stat"><span class="v">—</span><span class="l">datasets</span></div>
+      <div class="stat"><span class="v">—</span><span class="l">rows</span></div>
+    </div>
+    <div class="panel" data-f="admin.datasets">
+      <div class="panel-head"><div class="panel-title"><h2>Training and evaluation sets</h2><span class="sub">What <code>make datasets</code> built from the sessions and decisions your consent allows. A row opens the sessions it came from.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Set</th><th>Rows</th><th>Consent</th><th>Built</th><th>From</th></tr></thead><tbody id="ds-body"></tbody></table></div>
+      <div class="panel-body" id="ds-lineage" hidden></div>
+    </div>
+  </div>
+
   <div class="pane" data-pane="sessions" data-label="Sessions">
     <div class="stats" id="sess-stats">
       <div class="stat"><span class="v">—</span><span class="l">sessions recorded</span></div>

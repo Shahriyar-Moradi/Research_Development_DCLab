@@ -1,0 +1,38 @@
+{
+ "package": "19.13",
+ "title": "The archive and its catalog: one layout for everything a workspace keeps, and every dataset traced back to its sessions",
+ "date": "2026-10-14",
+ "request": "Everything that happens should be organized and findable as training data. One documented layout, and a catalog that lists every dataset with its source, size, consent, version and date, and its lineage back to the sessions.",
+ "spec": "docs/guides/EXPERIENCE_ARCHIVE.md: the layout on files and on PostgreSQL. A catalog (python -m dclab_rnd.experience catalog and an Admin Datasets page) of every set with its lineage. Done when the catalog lists every dataset with its lineage back to its sessions, and a restore from a backup gives the same catalog.",
+ "plan": [
+  "Read the manifests make datasets wrote; a set's sources resolved to visits through the session record.",
+  "The Admin Datasets tab and two read routes, for the owner only.",
+  "A backup and restore test on PostgreSQL comparing the catalog and the lineage."
+ ],
+ "decisions": [
+  {"decision": "A decision reaches its sessions through the narrowest thing it belonged to: its run, else its conversation or draft, else its project.", "why": "Through its project, one decision would claim every visit that ever touched the project."},
+  {"decision": "A folder linked into the datasets folder from elsewhere is not listed.", "why": "Its lineage could not be opened, and it is not the workspace's."}
+ ],
+ "change": "docs/guides/EXPERIENCE_ARCHIVE.md (new), dclab_rnd/experience/catalog.py (new), experience/__main__.py (catalog), agentic/pages/datasets.py (new), pages/__init__.py, accounts/guard.py, the Admin Datasets tab; tests/test_catalog.py (new), tests/test_models_gateway.py (a race in a test); CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "S1", "source": "self", "severity": "flaky", "defect": "A gateway test posted a reply while the Home agent's first turn was still running.", "scenario": "409 'The agent is still answering' under the parallel PostgreSQL suite.", "cause": "The test waited for the question to appear, but the question is written before the turn ends.", "fix": "Retry while the reply is refused as busy, within the test's deadline.", "test": "test_the_home_flow_and_the_evidence_answers_are_counted_by_purpose"},
+  {"id": "R1", "source": "reviewer", "severity": "behaviour", "defect": "The development set could not be opened from the page.", "scenario": "GET /api/datasets/lineage?path=development returned 422.", "cause": "The route's pattern required builder/name.", "fix": "The name is optional in the pattern.", "test": "test_the_admin_page_reads_it (every listed path opens)"},
+  {"id": "R2", "source": "reviewer", "severity": "behaviour", "defect": "The lineage of an unreadable manifest gave a 500.", "scenario": "A half-written manifest.", "cause": "The catalog caught the read error, but the lineage did not.", "fix": "The lineage refuses it as not found.", "test": "test_a_broken_manifest_is_listed_and_has_no_lineage"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "A decision's lineage listed every visit of its project.", "scenario": "One decision of a Home conversation claimed the intern's visit and the visit that created the project.", "cause": "All four ids of the record were followed, the project included.", "fix": "Follow only the narrowest id.", "test": "test_every_dataset_with_its_lineage_back_to_its_sessions"},
+  {"id": "R4", "source": "reviewer", "severity": "gap", "defect": "The layout named a table that does not exist, and claimed a backup without a database.", "scenario": "project_stage instead of stage_record; make backup needs PostgreSQL.", "cause": "Written from memory.", "fix": "Corrected against storage/models.py and the storage CLI.", "test": "read against the code"},
+  {"id": "R5", "source": "reviewer", "severity": "gap", "defect": "The CLI, the sort order, size, version, consent and the owner-only rule had no test; a file deleted mid-listing could fail the whole catalog.", "scenario": "A rebuild removing a file while the page lists.", "cause": "The size was measured outside the read guard.", "fix": "Size inside the guard, and tests for each.", "test": "test_the_command_line, test_every_item_says_its_size_version_and_consent"}
+ ],
+ "measurements": [
+  {"name": "planted faults", "gate": "each fix undone fails a test", "result": "3 of 4 caught at first; the sort-order test sharpened, then 4 of 4", "verdict": "pass", "cost_eur": 0.0, "against_gate": "4 of 4", "limits": ["Only the faults planted."]},
+  {"name": "restore gives the same catalog", "gate": "the catalog and one set's lineage equal after a backup and a restore", "result": "equal, on PostgreSQL", "verdict": "pass", "cost_eur": 0.0, "against_gate": "equal", "limits": ["Without a database there is no backup command; a copy of the folder is the backup."]}
+ ],
+ "outcome": "Milestone B is done. Everything a workspace keeps has one documented place. Every dataset is listed with its size, version, consent and date, and traced back to the sessions it came from, on the command line and on the Admin page. A restored workspace lists the same.",
+ "lessons": [
+  "Lineage through the broadest id is no lineage: resolve through the narrowest id a record carries.",
+  "Every path a listing shows must open: test it by opening each one."
+ ],
+ "risks": [
+  "A lineage reads the whole session record; a workspace with millions of events will wait seconds to minutes."
+ ],
+ "commits": []
+}

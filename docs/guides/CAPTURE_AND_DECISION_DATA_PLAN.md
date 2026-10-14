@@ -268,6 +268,15 @@ person's overrides.
   consent basis, version and date; `make backup` includes it all.
 - **Done when:** the catalog lists every dataset with its lineage back to its sessions, and a restore from a backup
   gives the same catalog.
+- **Status: done (2026-10-14).** `docs/guides/EXPERIENCE_ARCHIVE.md` (the layout: session record, run records,
+  decisions and labels, data cards, consent, datasets, reviews and the audit, on files and on PostgreSQL);
+  `dclab_rnd/experience/catalog.py`: `catalog` (every set: builder, name, version, date, consent, rows, splits, size,
+  sources by kind) and `lineage` (a set's sources resolved to the visits they came from: an event to its visit; a
+  conversation, run, draft or project to every visit that touched it; a decision through what it belonged to);
+  `python -m dclab_rnd.experience catalog [--lineage BUILDER/NAME]`; the Admin page's **Datasets** tab
+  (`GET /api/datasets`, `/api/datasets/lineage`, the owner only); `make backup` takes the datasets with the rest of the
+  workspace folder, and a restore gives the same catalog and the same lineage (tested on PostgreSQL). Milestone B is
+  done. Left open: a page to review the failure candidates; datasets kept outside the workspace folder.
 
 ---
 

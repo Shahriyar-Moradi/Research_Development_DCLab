@@ -97,6 +97,9 @@ def main(argv: list[str] | None = None) -> int:
     again = sub.add_parser("replay")
     again.add_argument("project")
     again.add_argument("stage")
+    listed = sub.add_parser("catalog", help="every dataset make datasets built (19.13), or one set's sessions")
+    listed.add_argument("--lineage", metavar="BUILDER/NAME", help="the sessions one dataset came from")
+    listed.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     if args.command in ("lineage", "replay"):
         return _lineage(args, parser)
@@ -113,6 +116,27 @@ def main(argv: list[str] | None = None) -> int:
                   "or: .venv/bin/python -m dclab_rnd.storage upgrade", file=sys.stderr)
             return 2
     log = _log()
+    if args.command == "catalog":
+        from ..ledger import open_ledger
+        from ..settings import Settings
+        from . import catalog as cat
+
+        home = Path(Settings.load().agent_home)
+        if args.lineage:
+            try:
+                found = cat.lineage(home, args.lineage, log, open_ledger(home, getattr(log, "workspace", None)))
+            except KeyError:
+                parser.error(f"no readable dataset {args.lineage}: `python -m dclab_rnd.experience catalog` lists them")
+            if args.json:
+                print(json.dumps(found, indent=2, ensure_ascii=False))
+                return 0
+            print(f"{found['path']}: {len(found['sessions'])} sessions; sources {found['sources']}")
+            for s in found["sessions"]:
+                print(f"  {s['visit']}  {s['events']} events")
+            return 0
+        items = cat.catalog(home)
+        print(json.dumps(items, indent=2, ensure_ascii=False) if args.json else "\n".join(cat.lines(items)) or "No datasets yet: make datasets")
+        return 0
     if args.command == "sessions":
         from . import flags, visit_events
 
