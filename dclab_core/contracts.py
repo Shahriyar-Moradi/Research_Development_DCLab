@@ -379,3 +379,4 @@ import dclab_core.experience  # noqa: E402,F401  (registers its contracts in CON
 import dclab_core.card  # noqa: E402,F401  (the problem card, 20.1)
 import dclab_core.lineage  # noqa: E402,F401  (run records, 19.5)
 import dclab_core.ledger  # noqa: E402,F401  (the decision ledger, 19.6)
+import dclab_core.datacard  # noqa: E402,F401  (data cards, 19.11)

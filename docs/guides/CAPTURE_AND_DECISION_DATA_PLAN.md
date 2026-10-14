@@ -224,6 +224,16 @@ person's overrides.
   training example can carry a table without carrying a person's rows.
 - **Done when:** for the fraud replica, the card and a synthetic table from it reproduce the roles and the planted
   traps, and the synthetic table shares no row with the source.
+- **Status: done (2026-10-14).** `dclab_core/datacard.py` (dclab-core 0.12.0): `card_of` and `synthesize`; on the
+  fraud replica the card names all six planted traps (the inflating pair join, rows not in the table, `sender_phone`
+  with two meanings, fares that disagree, frauds on a few bikers, no biker on a cancelled ride), a drawn pair of tables
+  keeps every role and the same problems, and shares no row and no identifier with the source (numeric ids are drawn
+  above the source's largest); `dclab_core/bands.py` the shared banding. A card keeps no row's value: quantiles at the
+  1st to 99th percentiles, rounded to a hundredth of the spread; dates at the 1st and 99th percentile days over 20 rows
+  or more; a number kept as a category only when every kept level has 5 rows. Drafts (`draft["data_card"]`, the table
+  and its label file, whichever came first) and projects (`data.card`, built off the event loop) keep their table's
+  card. Left open: relations across rows (a behaviour, a formula between numbers) are not drawn again;
+  a rounded quantile still says roughly where values lie; 19.12 puts cards and drawn tables into training examples.
 
 ## Phase C5 — Training sets and the catalog
 

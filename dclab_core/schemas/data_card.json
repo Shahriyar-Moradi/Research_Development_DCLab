@@ -1,0 +1,640 @@
+{
+  "$defs": {
+    "ColumnCard": {
+      "additionalProperties": false,
+      "description": "One column: what it is, in bands, and what it takes to draw it again.",
+      "properties": {
+        "cardinality": {
+          "enum": [
+            "constant",
+            "binary",
+            "low",
+            "medium",
+            "high",
+            "very_high"
+          ],
+          "title": "Cardinality",
+          "type": "string"
+        },
+        "categories": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 50,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Their names, only when kept.",
+          "title": "Categories"
+        },
+        "date_format": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dates stored as text: their format.",
+          "title": "Date Format"
+        },
+        "digits": {
+          "anyOf": [
+            {
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Numeric identifiers: how many digits.",
+          "title": "Digits"
+        },
+        "distinct": {
+          "minimum": 0,
+          "title": "Distinct",
+          "type": "integer"
+        },
+        "dtype": {
+          "enum": [
+            "integer",
+            "float",
+            "boolean",
+            "datetime",
+            "string",
+            "categorical",
+            "other"
+          ],
+          "title": "Dtype",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "maxLength": 10,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dates: the last day.",
+          "title": "End"
+        },
+        "integer": {
+          "default": false,
+          "title": "Integer",
+          "type": "boolean"
+        },
+        "length": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text: mean characters, rounded.",
+          "title": "Length"
+        },
+        "monotonic": {
+          "default": false,
+          "title": "Monotonic",
+          "type": "boolean"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "null_rate": {
+          "description": "Rounded to three decimals.",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Null Rate",
+          "type": "number"
+        },
+        "nulls": {
+          "enum": [
+            "none",
+            "under_1pct",
+            "from_1_to_10pct",
+            "from_10_to_50pct",
+            "from_50_to_90pct",
+            "from_90_to_99pct",
+            "over_99pct",
+            "all"
+          ],
+          "title": "Nulls",
+          "type": "string"
+        },
+        "numeric_levels": {
+          "default": false,
+          "description": "The categories are numbers (kept only when not named like a key).",
+          "title": "Numeric Levels",
+          "type": "boolean"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "maxLength": 6,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Identifiers: a prefix every value shares (letters only).",
+          "title": "Prefix"
+        },
+        "quantiles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 7,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Numbers: rounded, at QUANTILES.",
+          "title": "Quantiles"
+        },
+        "repeats": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Identifiers: rows per value at p50, p90 and the most.",
+          "title": "Repeats"
+        },
+        "role": {
+          "enum": [
+            "numeric",
+            "categorical_code",
+            "identifier",
+            "datetime",
+            "free_text",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "shape": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Identifiers: x hex, 9 digit, a letter, A capital, others kept.",
+          "title": "Shape"
+        },
+        "shares": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 51,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Categories by share, largest first.",
+          "title": "Shares"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 10,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dates: the first day.",
+          "title": "Start"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Numbers: nearly every value a multiple of it (1, 2, 2.5 or 5 times a power of ten).",
+          "title": "Step"
+        },
+        "uniqueness": {
+          "enum": [
+            "none",
+            "under_1pct",
+            "from_1_to_10pct",
+            "from_10_to_50pct",
+            "from_50_to_90pct",
+            "from_90_to_99pct",
+            "over_99pct",
+            "all"
+          ],
+          "title": "Uniqueness",
+          "type": "string"
+        },
+        "value_pattern": {
+          "enum": [
+            "digits",
+            "mixed",
+            "date_like",
+            "long_text",
+            "short_text",
+            "not_text"
+          ],
+          "title": "Value Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dtype",
+        "role",
+        "nulls",
+        "uniqueness",
+        "cardinality",
+        "value_pattern",
+        "null_rate",
+        "distinct"
+      ],
+      "title": "ColumnCard",
+      "type": "object"
+    },
+    "Problem": {
+      "additionalProperties": false,
+      "description": "Something a careful data scientist must see in these tables, with the numbers that show it.",
+      "properties": {
+        "code": {
+          "pattern": "^[a-z_]{3,60}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Columns",
+          "type": "array"
+        },
+        "numbers": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Numbers",
+          "type": "object"
+        },
+        "source": {
+          "default": "found",
+          "enum": [
+            "found",
+            "planted"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 400,
+          "title": "Statement",
+          "type": "string"
+        },
+        "tables": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Tables",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "statement"
+      ],
+      "title": "Problem",
+      "type": "object"
+    },
+    "Relation": {
+      "additionalProperties": false,
+      "description": "How columns or tables relate: measured on the source, drawn again by :func:`synthesize`.",
+      "properties": {
+        "category": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "null_when: the category's rank by share (0 the largest).",
+          "title": "Category"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Columns",
+          "type": "array"
+        },
+        "concentrated_on": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "key: the entity column the matched rows gather on.",
+          "title": "Concentrated On"
+        },
+        "entities": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "key: how many of those entities the matched rows hold.",
+          "title": "Entities"
+        },
+        "fanout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "key, join: rows of the other table each matched row finds.",
+          "title": "Fanout"
+        },
+        "kind": {
+          "enum": [
+            "key",
+            "join",
+            "disjoint",
+            "agrees",
+            "equals",
+            "null_when",
+            "one_to_one"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "matched": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "key: rows of the table that find a row in the other.",
+          "title": "Matched"
+        },
+        "other_columns": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Other Columns"
+        },
+        "other_table": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Other Table"
+        },
+        "share": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "agrees, equals, disjoint: the share of rows it holds for.",
+          "title": "Share"
+        },
+        "table": {
+          "maxLength": 200,
+          "title": "Table",
+          "type": "string"
+        },
+        "unmatched": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "key: rows that find none.",
+          "title": "Unmatched"
+        }
+      },
+      "required": [
+        "kind",
+        "table",
+        "columns"
+      ],
+      "title": "Relation",
+      "type": "object"
+    },
+    "TableCard": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/ColumnCard"
+          },
+          "maxItems": 2000,
+          "title": "Columns",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "default": "main",
+          "enum": [
+            "main",
+            "labels",
+            "related"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "rows": {
+          "minimum": 0,
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "rows"
+      ],
+      "title": "TableCard",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.data_card.v1.json",
+  "additionalProperties": false,
+  "description": "The tables of one problem without their rows: columns in bands, relations, problems.",
+  "properties": {
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Limits",
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "problems": {
+      "items": {
+        "$ref": "#/$defs/Problem"
+      },
+      "maxItems": 100,
+      "title": "Problems",
+      "type": "array"
+    },
+    "relations": {
+      "items": {
+        "$ref": "#/$defs/Relation"
+      },
+      "maxItems": 500,
+      "title": "Relations",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.data_card.v1",
+      "default": "dclab_core.data_card.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "synthetic": {
+      "default": false,
+      "description": "Built from a synthetic table (a replica, or drawn from another card).",
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/TableCard"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Tables",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "tables"
+  ],
+  "title": "DataCard",
+  "type": "object"
+}

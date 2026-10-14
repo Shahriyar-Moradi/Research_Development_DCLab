@@ -1,0 +1,555 @@
+{
+  "$defs": {
+    "ColumnCard": {
+      "additionalProperties": false,
+      "properties": {
+        "cardinality": {
+          "enum": [
+            "constant",
+            "binary",
+            "low",
+            "medium",
+            "high",
+            "very_high"
+          ],
+          "type": "string"
+        },
+        "categories": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 50,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "date_format": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "digits": {
+          "anyOf": [
+            {
+              "maximum": 20,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "distinct": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "dtype": {
+          "enum": [
+            "integer",
+            "float",
+            "boolean",
+            "datetime",
+            "string",
+            "categorical",
+            "other"
+          ],
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "maxLength": 10,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "integer": {
+          "default": false,
+          "type": "boolean"
+        },
+        "length": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "monotonic": {
+          "default": false,
+          "type": "boolean"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "null_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "nulls": {
+          "enum": [
+            "none",
+            "under_1pct",
+            "from_1_to_10pct",
+            "from_10_to_50pct",
+            "from_50_to_90pct",
+            "from_90_to_99pct",
+            "over_99pct",
+            "all"
+          ],
+          "type": "string"
+        },
+        "numeric_levels": {
+          "default": false,
+          "type": "boolean"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "maxLength": 6,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quantiles": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 7,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "repeats": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "role": {
+          "enum": [
+            "numeric",
+            "categorical_code",
+            "identifier",
+            "datetime",
+            "free_text",
+            "other"
+          ],
+          "type": "string"
+        },
+        "shape": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "shares": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 51,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 10,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "step": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "uniqueness": {
+          "enum": [
+            "none",
+            "under_1pct",
+            "from_1_to_10pct",
+            "from_10_to_50pct",
+            "from_50_to_90pct",
+            "from_90_to_99pct",
+            "over_99pct",
+            "all"
+          ],
+          "type": "string"
+        },
+        "value_pattern": {
+          "enum": [
+            "digits",
+            "mixed",
+            "date_like",
+            "long_text",
+            "short_text",
+            "not_text"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dtype",
+        "role",
+        "nulls",
+        "uniqueness",
+        "cardinality",
+        "value_pattern",
+        "null_rate",
+        "distinct"
+      ],
+      "type": "object"
+    },
+    "Problem": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[a-z_]{3,60}$",
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "type": "array"
+        },
+        "numbers": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "source": {
+          "default": "found",
+          "enum": [
+            "found",
+            "planted"
+          ],
+          "type": "string"
+        },
+        "statement": {
+          "maxLength": 400,
+          "type": "string"
+        },
+        "tables": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "statement"
+      ],
+      "type": "object"
+    },
+    "Relation": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "columns": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array"
+        },
+        "concentrated_on": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "entities": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fanout": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "key",
+            "join",
+            "disjoint",
+            "agrees",
+            "equals",
+            "null_when",
+            "one_to_one"
+          ],
+          "type": "string"
+        },
+        "matched": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "other_columns": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "other_table": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "share": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "table": {
+          "maxLength": 200,
+          "type": "string"
+        },
+        "unmatched": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "table",
+        "columns"
+      ],
+      "type": "object"
+    },
+    "TableCard": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/ColumnCard"
+          },
+          "maxItems": 2000,
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "default": "main",
+          "enum": [
+            "main",
+            "labels",
+            "related"
+          ],
+          "type": "string"
+        },
+        "rows": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "rows"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "type": "string"
+    },
+    "problems": {
+      "items": {
+        "$ref": "#/$defs/Problem"
+      },
+      "maxItems": 100,
+      "type": "array"
+    },
+    "relations": {
+      "items": {
+        "$ref": "#/$defs/Relation"
+      },
+      "maxItems": 500,
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "dclab_core.data_card.v1",
+      "default": "dclab_core.data_card.v1",
+      "type": "string"
+    },
+    "synthetic": {
+      "default": false,
+      "type": "boolean"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/TableCard"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "tables"
+  ],
+  "type": "object"
+}

@@ -1,0 +1,49 @@
+{
+ "package": "19.11",
+ "title": "Data cards and synthetic tables: a table described without its rows, and invented rows with the same traps",
+ "date": "2026-10-14",
+ "request": "A training example should be able to carry a table without carrying a person's rows. A data card describes every table that reaches DCLab, and a synthetic table is drawn from the card with the same roles, relations and planted problems.",
+ "spec": "A dclab_core contract, DataCard: per column its role, dtype and bands, and the aggregates needed to draw it again; the relations between columns and tables; the problems they show. synthesize(card) returns invented tables. Done when, on the fraud replica, the card and a table drawn from it reproduce the roles and the planted traps, and the drawn table shares no row with the source.",
+ "plan": [
+  "Bands in one module (dclab_core.bands) so a card and a decision's state band a column the same way.",
+  "Relations measured on the source: key, join, disjoint, agrees, equals, null_when, one_to_one. Problems are derived from them, never from values.",
+  "A draw that rebuilds each column from its card, then applies the relations, and copies the label table's matched rows from the invented main table."
+ ],
+ "decisions": [
+  {"decision": "Category names become codes (status_a, status_b) unless the caller keeps them for a public or synthetic table.", "why": "A category can be a person's name, a city or a shop."},
+  {"decision": "Numeric identifiers are drawn above the source's largest value.", "why": "A drawn id that equals a source id would point at a real customer or account."},
+  {"decision": "The traps are found as relations and problems, not declared by the replica.", "why": "The same card can then find them in a person's own tables."}
+ ],
+ "change": "dclab_core/datacard.py (new; dclab-core 0.12.0), dclab_core/bands.py (new; ledger re-exports it), dclab_core/contracts.py, schemas data_card; dclab_rnd/studio/data.py (data_card, data.card), dclab_rnd/draft/pipeline.py (draft data_card, rebuilt when a label file arrives), agentic/routers/projects.py (attach off the event loop), dclab_rnd/ledger/__init__.py; tests/test_data_card.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "S1", "source": "self", "severity": "behaviour", "defect": "A numeric id stored as an integer in one file and as a float in the other made one id look like two.", "scenario": "biker_id 622233 in the sample and 622233.0 in the rides was reported as one name with two meanings.", "cause": "Values were compared as text.", "fix": "One normal form for comparing values across tables.", "test": "test_the_card_names_every_planted_trap"},
+  {"id": "S2", "source": "self", "severity": "behaviour", "defect": "Quantiles rounded to three significant digits flattened coordinates.", "scenario": "A longitude near 45.0 became constant, and the drawn table lost its spread.", "cause": "The rounding was relative to the value, not to the spread.", "fix": "Round to a hundredth of the spread.", "test": "test_a_drawn_table_keeps_the_roles_and_the_traps"},
+  {"id": "S3", "source": "self", "severity": "latent", "defect": "A circular import: the card needed the ledger's bands while the ledger was still loading.", "scenario": "Importing dclab_core.ledger first failed.", "cause": "contracts imports ledger, which imports contracts.", "fix": "dclab_core.bands, a module with no dependency, imported by both.", "test": "test_core_contracts"},
+  {"id": "R1", "source": "reviewer", "severity": "privacy", "defect": "Numeric quantiles kept one person's exact value.", "scenario": "The highest salary of 200 was stored exactly, as quantile 1.0.", "cause": "The quantiles included 0 and 1, and the rounding was clamped at units.", "fix": "Quantiles from the 1st to the 99th percentile (the 5th and 95th under 100 rows), rounded below the units too.", "test": "test_no_extreme_no_exact_day_no_level_of_one_person"},
+  {"id": "R2", "source": "reviewer", "severity": "privacy", "defect": "Dates kept the exact first and last day, even for three rows.", "scenario": "The oldest person's birth date was stored as the start of the range.", "cause": "min and max, with no row floor.", "fix": "The 1st and 99th percentile days, only with 20 rows or more.", "test": "test_no_extreme_no_exact_day_no_level_of_one_person"},
+  {"id": "R3", "source": "reviewer", "severity": "privacy", "defect": "A numeric level held by one row was kept by name.", "scenario": "An age of 97, held by one person, was kept with its share.", "cause": "Numeric levels were kept whenever the column was not named like a key.", "fix": "Keep the names only when every kept level has 5 rows or more.", "test": "test_no_extreme_no_exact_day_no_level_of_one_person"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "One inf in a numeric column lost the whole card.", "scenario": "The project got no card, silently.", "cause": "A non-finite quantile failed the contract.", "fix": "Only finite numbers enter the quantiles.", "test": "test_odd_tables_still_have_a_card_and_a_draw"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "Drawing a table with a boolean column crashed.", "scenario": "float('False') raised.", "cause": "Booleans were treated as numeric levels.", "fix": "Booleans drawn as booleans.", "test": "test_odd_tables_still_have_a_card_and_a_draw"},
+  {"id": "R6", "source": "reviewer", "severity": "privacy", "defect": "Numeric ids could not be drawn, or were drawn among the source's own ids.", "scenario": "customer_id 1 to 1000 crashed. account 3 of the replica appeared in the drawn table.", "cause": "The digit count came from the median, and the draw used the source's range.", "fix": "Draw above the source's largest value, in a range wide enough, with bounded retries.", "test": "test_no_row_of_the_source_and_marked_synthetic, test_invented_ids_avoid_the_taken_ones"},
+  {"id": "R7", "source": "reviewer", "severity": "behaviour", "defect": "Dates and times came back as text.", "scenario": "Re-carding a drawn table gave dtype string.", "cause": "No cast back.", "fix": "Cast to datetime when the card says datetime.", "test": "test_odd_tables_still_have_a_card_and_a_draw"},
+  {"id": "R8", "source": "reviewer", "severity": "behaviour", "defect": "Wide tables blocked the server for a minute and could lose the trap relations.", "scenario": "100,000 rows with 25 id columns took 84.5 s inside an async route. Within-table relations filled the cap before the traps.", "cause": "Text conversion per pair of columns, no cap on pairs, and relations recorded on any coincidence.", "fix": "One conversion per column, at most 12 id columns compared, equals only from 1% of rows, between-table relations first, the upload off the event loop.", "test": "test_odd_tables_still_have_a_card_and_a_draw (and a timing probe: 1.7 s)"},
+  {"id": "R9", "source": "reviewer", "severity": "behaviour", "defect": "A draft's card ignored a label file that arrived after the table.", "scenario": "In the usual order the card had no key, coarse join or concentration traps.", "cause": "The labels branch returned before the card was rebuilt.", "fix": "Rebuild the card with the label file in that branch.", "test": "test_a_drafts_card_takes_its_label_file_when_it_comes_after"},
+  {"id": "R10", "source": "reviewer", "severity": "behaviour", "defect": "Long or non-text column names silently cost the card.", "scenario": "Two 190-character names overflowed a statement. A column named 0 raised a KeyError.", "cause": "Untruncated names in statements, and keys by str(name) while the frame was indexed by the name itself.", "fix": "Names shortened in statements, and columns renamed to text first.", "test": "test_odd_tables_still_have_a_card_and_a_draw"},
+  {"id": "R11", "source": "reviewer", "severity": "gap", "defect": "Tests did not cover the draft, privacy of numbers and dates, or odd dtypes.", "scenario": "Exact quantiles and ignored taken ids both passed the suite.", "cause": "Only the replica path was tested.", "fix": "Tests for each, and planted faults until each is caught.", "test": "PrivacyTest, DraftTest"}
+ ],
+ "measurements": [
+  {"name": "planted faults", "gate": "each fix undone fails a test", "result": "7 of 13 caught at first; tests sharpened until 11 of 13 caught; the other 2 (a statement cap and a draw-loop guard) are second guards behind another fix", "verdict": "pass", "cost_eur": 0.0, "against_gate": "11 of 13, the other 2 redundant", "limits": ["Only the faults planted."]},
+  {"name": "wide table card time", "gate": "a card of 100,000 rows and 25 id columns well under the 84.5 s measured", "result": "1.7 s after the fix (5,000 rows and 150 columns: 0.2 s)", "verdict": "pass", "cost_eur": 0.0, "against_gate": "1.7 s against 84.5 s", "limits": ["One machine; random tables."]}
+ ],
+ "outcome": "Every table that reaches DCLab gets a card in bands, with no row and no value of one person. A table drawn from the card keeps the roles and the six planted traps of the fraud replica, and shares no row and no identifier with it.",
+ "lessons": [
+  "A quantile at 0 or 1 is one row's value: privacy needs the tails cut, not only rounding.",
+  "An invented id must be drawn outside the source's range, or the draw can name a real account.",
+  "Test a card with the tables people actually have (booleans, time zones, ids from 1 to n, a column named 0), not only the replica."
+ ],
+ "risks": [
+  "A rounded quantile still says roughly where values lie: the scale of a fare, the city of the coordinates.",
+  "Relations across rows (a behaviour, a formula between numbers) are not drawn again."
+ ],
+ "commits": []
+}

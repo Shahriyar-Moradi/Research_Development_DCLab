@@ -38,21 +38,10 @@ from pydantic import Field, field_validator, model_validator
 
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
-# ------------------------------------------------------------------------------------------------ the state's vocabulary
-# Jev's bands, as its release defines them (main product apps/api/app/agents/semantic/releases.py at the recorded commit)
-DTYPE_KINDS = ("integer", "float", "boolean", "datetime", "string", "categorical", "other")
-RATIO_BANDS = ("none", "under_1pct", "from_1_to_10pct", "from_10_to_50pct", "from_50_to_90pct", "from_90_to_99pct", "over_99pct", "all")
-CARDINALITY_BANDS = ("constant", "binary", "low", "medium", "high", "very_high")
-VALUE_PATTERNS = ("digits", "mixed", "date_like", "long_text", "short_text", "not_text")
-TASKS = ("binary_classification", "multiclass_classification", "regression")
-ROLES = ("numeric", "categorical_code", "identifier", "datetime", "free_text", "other")
-AVAILABILITY = ("before_prediction", "after_outcome", "unknown")
-COUNT_BANDS = ("none", "one", "several")
-# this studio's own bands
-SIZE_BANDS = ("tiny", "small", "medium", "large", "very_large")            # rows: <200, <2k, <50k, <1M, more
-FAMILIES = ("classification", "regression", "rare_event", "anomaly", "forecasting", "time_to_event", "ranking",
-            "segmentation", "uplift", "entity_tables", "streams", "text_or_images")
-LABEL_SITUATIONS = ("column", "file", "none", "unknown")
+# the state's vocabulary and the banding of numbers: dclab_core.bands (19.11), shared with the data card
+from dclab_core.bands import (AVAILABILITY, CARDINALITY_BANDS, COUNT_BANDS, DTYPE_KINDS, FAMILIES, LABEL_SITUATIONS,  # noqa: F401
+                              RATIO_BANDS, ROLES, SIZE_BANDS, TASKS, VALUE_PATTERNS, cardinality_band, name_tokens, ratio_band,
+                              rows_band)
 
 BAND, NAME, TOKENS, FLAG, COUNT, RATIO, MEASURE, CODE = "band", "name", "tokens", "flag", "count", "ratio", "measure", "code"
 NAME_CHARS = 200

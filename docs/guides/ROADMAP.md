@@ -13,7 +13,7 @@ Written 2026-10-13. Done before it: 20.0 (the guard), 19.1–19.3 (the record of
 card). Every package is built the same way: a failing test, the change, the checks, an adversarial review and its
 fixes, planted faults, its development record for the owner's SFT, a commit pushed.
 
-**Progress (2026-10-14):** milestone A done (19.4–19.8); milestone B: 19.9 and 19.10 done, 19.11 next.
+**Progress (2026-10-14):** milestone A done (19.4–19.8); milestone B: 19.9, 19.10 and 19.11 done, 19.12 next.
 
 ## The two goals it serves
 

@@ -340,33 +340,7 @@ DTYPES = {"numeric": "float", "integer": "integer", "float": "float", "categoric
           "boolean": "boolean", "id": "string", "string": "string"}
 
 
-def ratio_band(value: float | None) -> str:
-    """As the main product's ``releases.ratio_band``."""
-    if value is None or value != value or value <= 0:
-        return "none"
-    if value >= 1:
-        return "all"
-    for bound, band in ((0.01, "under_1pct"), (0.10, "from_1_to_10pct"), (0.50, "from_10_to_50pct"), (0.90, "from_50_to_90pct"),
-                        (0.99, "from_90_to_99pct")):
-        if value < bound:
-            return band
-    return "over_99pct"
-
-
-def cardinality_band(distinct: int | None) -> str | None:
-    if distinct is None:
-        return None
-    if distinct <= 1:
-        return "constant"
-    if distinct == 2:
-        return "binary"
-    return "low" if distinct <= 10 else "medium" if distinct <= 100 else "high" if distinct <= 1000 else "very_high"
-
-
-def name_tokens(name: str) -> list[str]:
-    """As the main product's ``releases.name_tokens``: lower-case tokens of a column's name."""
-    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(name))
-    return [t.lower() for t in re.split(r"[^0-9A-Za-z]+", spaced) if t and len(t) <= 40][:16]
+from dclab_core.bands import cardinality_band, name_tokens, ratio_band, rows_band  # noqa: E402,F401  (19.11: one banding)
 
 
 def column_state(column: dict[str, Any], rows: int | None = None) -> dict[str, Any]:
@@ -381,7 +355,3 @@ def column_state(column: dict[str, Any], rows: int | None = None) -> dict[str, A
             "cardinality": cardinality_band(int(unique)) if isinstance(unique, (int, float)) else None}
 
 
-def rows_band(rows: int | None) -> str | None:
-    if rows is None:
-        return None
-    return "tiny" if rows < 200 else "small" if rows < 2000 else "medium" if rows < 50_000 else "large" if rows < 1_000_000 else "very_large"

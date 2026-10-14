@@ -152,9 +152,17 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
             out = store.data_dir(draft_id) / "labels_clean.parquet"
             _to_parquet(frame, out)
             _record(store, out)
+            card = None  # 19.11: the table's card again, now with its label file beside it
+            try:
+                table = pd.read_parquet(store.data_dir(draft_id) / other["clean_file"])
+                card = data_card(store, draft_id, (other or {}).get("name") or "table", table)
+            except Exception:  # noqa: BLE001 - the card stays as it was; the label file is kept either way
+                pass
             final: dict[str, Any] = {}
 
             def put_labels(d):
+                if card is not None:
+                    d["data_card"] = card
                 for a in d["assets"]:
                     if a["id"] == asset_id:
                         a.update(status="ready", kind="labels", rows=int(len(frame)), columns=int(frame.shape[1]),
@@ -191,6 +199,7 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         out = store.data_dir(draft_id) / "clean.parquet"
         _to_parquet(frame, out)
         _record(store, out)
+        card = data_card(store, draft_id, asset.get("name") or "table", frame)  # 19.11: the table without its rows
         final: dict[str, Any] = {}
 
         def put(d):  # one write: a reader never sees the asset ready without its analysis
@@ -199,6 +208,7 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
                     a.update(status="ready", rows=int(len(frame)), columns=int(frame.shape[1]), category_codes=codes, clean_file="clean.parquet")
                     final.update(a)
             d["cleaning_log"], d["analysis"], d["structure"], d["active_asset"] = log, report, info, asset_id
+            d["data_card"] = card
         store.update(draft_id, put)
         store.emit(draft_id, "analysis", {"asset": asset_id, "analysis": report})
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "ready", "text": "Ready", "rows": int(len(frame)), "columns": int(frame.shape[1])})
@@ -242,3 +252,18 @@ def _as_text(value: Any) -> str | None:
     except (TypeError, ValueError):
         pass
     return str(value)
+
+
+
+def data_card(store: Any, draft_id: str, name: str, frame: Any) -> dict[str, Any] | None:
+    """The draft's data card (package 19.11): the table, and its label file when one is here (``studio.data.data_card``)."""
+    from ..studio.data import data_card as card
+
+    tables = {str(name)[:200] or "table": frame}
+    labels = store.data_dir(draft_id) / "labels_clean.parquet"
+    try:
+        if labels.exists():
+            tables["labels"] = pd.read_parquet(labels)
+    except Exception:  # noqa: BLE001 - the table's card stands without its labels
+        pass
+    return card(tables, name)

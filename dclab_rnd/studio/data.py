@@ -79,6 +79,20 @@ def column_kind(series: pd.Series) -> str:
     return "categorical"
 
 
+def data_card(tables: dict[str, pd.DataFrame], name: str) -> dict[str, Any] | None:
+    """The tables' data card (package 19.11, ``dclab_core.datacard``): columns in bands, relations and problems, never a
+    row; category names replaced by codes. None when it cannot be built: what it describes stands without it."""
+    import sys
+
+    try:
+        from dclab_core.datacard import card_of
+
+        return card_of(tables, name=str(name)[:200] or "table").model_dump(mode="json")
+    except Exception as exc:  # noqa: BLE001
+        print(f"data card: not built: {type(exc).__name__}", file=sys.stderr, flush=True)
+        return None
+
+
 def profile_table(frame: pd.DataFrame) -> dict[str, Any]:
     """Shape, per-column facts and candidate roles. Nothing here looks at a target."""
     columns = []
@@ -385,7 +399,7 @@ def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | 
                 old.unlink(missing_ok=True)
     project = store.get(project_id)
     project["data"] = {"filename": filename, "rows": int(len(frame)), "columns": [str(c) for c in frame.columns],
-                       "sha256": stored["sha256"], "profile": profile_table(frame)}
+                       "sha256": stored["sha256"], "profile": profile_table(frame), "card": data_card({filename: frame}, filename)}
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
     project["labels"] = None  # its file was removed with the old table, and it was keyed on that table
     if project.get("memory"):

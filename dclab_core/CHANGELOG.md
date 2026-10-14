@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.12.0 (2026-10-14)
+
+Package 19.11: data cards and synthetic tables. A new contract; no other contract changes shape.
+
+- `datacard` (new): `DataCard` (`dclab_core.data_card.v1`), the tables of one problem without their rows: each
+  column's role, dtype and bands (the ledger's vocabulary), the aggregates needed to draw it again (rounded quantiles,
+  category shares with invented codes unless kept, an identifier's shape, a date range), the relations between columns
+  and tables (`key`, `join`, `disjoint`, `agrees`, `equals`, `null_when`, `one_to_one`), and the problems they show
+  (a coarse join that inflates labels, rows not in the table, one name with two meanings, values that disagree,
+  labels gathered on a few entities, a column empty for one category). `card_of(tables)`, `synthesize(card, seed)`:
+  invented tables with the same roles, relations and problems, no row of the source, marked synthetic.
+- `bands` (new): the state's vocabulary and `ratio_band`, `cardinality_band`, `name_tokens`, `rows_band`, moved out
+  of `ledger` (which re-exports them) so a card and a decision's state band a column the same way.
+
 ## 0.11.0 (2026-10-14)
 
 Package 19.10: redaction before anything leaves a workspace. A new module; no contract changes shape.

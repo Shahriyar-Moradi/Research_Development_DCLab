@@ -162,7 +162,7 @@ async def upload_data(project_id: str, request: Request, filename: str = "data.c
     if not name:
         raise HTTPException(422, "Give the file a name")
     (s.projects.data_dir(project_id) / name).write_bytes(body)
-    return s.with_records(s.attach_data(p, name))
+    return s.with_records(await asyncio.to_thread(s.attach_data, p, name))  # the profile and the card: never on the event loop
 
 
 @router.post("/api/projects/{project_id}/data/sample", response_model=Project)
