@@ -140,10 +140,12 @@ class BinaryFraudTest(unittest.TestCase):
     def test_the_join_the_pair_inflation_and_the_column_that_means_something_else(self):
         join = self.f["F-labels-join"]
         self.assertIn("best on order_id", join.statement)
-        self.assertEqual(join.evidence["joins"]["order_id"]["label_rows_found"],
-                         len(self.replica.sample) - self.replica.facts["sample_rows_not_in_table"])
+        train = self.rides.loc[self.train]  # 20.5: which rows the label file marks is read on the training rows only
+        self.assertEqual(join.evidence["joins"]["order_id"]["label_rows_found"], int(self.replica.sample["order_id"].isin(train["order_id"]).sum()))
+        unmatched = self.f["F-labels-unmatched"]  # the label rows in no row of the table at all: key membership, all rows
+        self.assertEqual((unmatched.evidence["unmatched"], unmatched.scope), (self.replica.facts["sample_rows_not_in_table"], "all_rows"))
         pair = self.f["F-labels-inflation-account_id-biker_id"]
-        marked = self.rides.set_index(["account_id", "biker_id"]).index.isin(
+        marked = train.set_index(["account_id", "biker_id"]).index.isin(
             list(zip(self.replica.sample["account_id"], self.replica.sample["biker_id"].astype(float)))).sum()
         self.assertEqual(pair.evidence["rows_marked"], int(marked))
         self.assertEqual(pair.severity, "critical")

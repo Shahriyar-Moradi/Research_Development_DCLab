@@ -50,8 +50,24 @@ def _slug(text: Any) -> str:
     return re.sub(r"[^a-z0-9_.-]+", "-", str(text).lower()).strip("-")[:120] or "x"
 
 
+# The decisions a finding may name (``affects``), each with the decision ledger's point it is recorded as (20.5); None:
+# a plan decision the ledger does not record on its own yet (the target's transform, a risk to state, the baseline).
+AFFECTS: dict[str, Optional[str]] = {
+    "task.framing": "task.framing", "labels.coverage": "labels.situation", "labels.join": "labels.join_key",
+    "split.strategy": "split.strategy", "metric.primary": "metric.primary", "metric.secondary": "metric.primary",
+    "threshold.policy": "threshold.operating_point", "features.forbidden": "feature.leakage_suspect",
+    "features.to_confirm": "feature.leakage_suspect", "features.identifiers": "column.is_identifier",
+    "features.direction": "features.recipe", "features.by_segment": "features.recipe", "features.entity_history": "features.recipe",
+    "data.cleaning": "data.cleaning_step", "model.families": "model.family",
+    "target.transform": None, "target.log": None, "risk.check": None, "baseline": None,
+}
+
+
 def _f(fid: str, topic: str, statement: str, evidence: dict[str, Any], implication: str, affects: Sequence[str],
        severity: str = "info", scope: str = "training_rows") -> Finding:
+    unknown = [a for a in affects if a not in AFFECTS]
+    if unknown:  # a finding names decisions the plan and the ledger know, never a word of its own
+        raise ValueError(f"finding {fid} names unknown decisions: {unknown}")
     return Finding(id=f"F-{_slug(fid)}", topic=topic, statement=statement[:3900], evidence=evidence,
                    implication=implication[:3900], affects=list(affects), severity=severity, scope=scope)
 
@@ -748,6 +764,21 @@ def _disagreeing(main: pd.DataFrame, labels: pd.DataFrame, key: str) -> dict[str
     return out
 
 
+def _labels_unmatched(table: pd.DataFrame, name: str, labels: pd.DataFrame, label_name: str) -> list[Finding]:
+    """Label rows whose key matches no row of the whole table: key membership, a fact of structure (no target is read)."""
+    joins = label_join(table, labels)
+    if not joins:
+        return []
+    best = joins[0]
+    missing = int(best["label_rows"] - best["label_rows_found"])
+    if missing <= 0:
+        return []
+    return [_f("labels-unmatched", "labels", f"{missing} of {best['label_rows']} rows of {label_name} match no row of {name} on "
+               f"{best['key']}.", {"key": best["key"], "label_rows": int(best["label_rows"]), "unmatched": missing},
+               "Keep them apart: they cannot be scored, but they can check the model from outside; ask why they are missing.",
+               ["labels.join", "risk.check"], "warning" if missing > 0.1 * best["label_rows"] else "info", "all_rows")]
+
+
 def _labels(main: pd.DataFrame, name: str, labels: pd.DataFrame, label_name: str) -> list[Finding]:
     joins = label_join(main, labels)
     if not joins:
@@ -756,10 +787,11 @@ def _labels(main: pd.DataFrame, name: str, labels: pd.DataFrame, label_name: str
                    ["labels.join"], "critical", "label_file")]
     best = joins[0]
     out = [_f("labels-join", "labels", f"{label_name} joins {name} best on {best['key']}: {best['label_rows_found']} of "
-              f"{best['label_rows']} label rows found, {best['rows_marked']} rows marked.",
-              {"key": best["key"], "joins": {j["key"][:100]: {k: v for k, v in j.items() if k != "key"} for j in joins[:12]}},
-              f"Join on {best['key']}; the {best['label_rows'] - best['label_rows_found']} label rows not found in {name} are kept "
-              "apart (they cannot be scored, but they can check the model from outside).",
+              f"{best['label_rows']} label rows found among the {len(main)} training rows, {best['rows_marked']} of them marked.",
+              {"key": best["key"], "training_rows": int(len(main)),
+               "joins": {j["key"][:100]: {k: v for k, v in j.items() if k != "key"} for j in joins[:12]}},
+              f"Join on {best['key']}. The label rows not among the training rows are either held out (scored once, at the end) "
+              f"or not in {name} at all (kept apart: they can check the model from outside).",
               ["labels.join", "labels.coverage"], "info", "label_file")]
     for j in joins[1:]:
         if j["rows_per_label"] > 1.5 and j["label_rows_found"] > 0:
@@ -889,14 +921,353 @@ def _places(df: pd.DataFrame, y: Optional[pd.Series], task: str, target: Optiona
     return [_f("places", "places", statement, evidence, implication, ["split.strategy"], "warning" if strong else "info")]
 
 
+# ---------------------------------------------------------------------------------------------- 20.5: by family
+
+NO_LABEL = ("anomaly", "streams")  # families read without an outcome; rare_event joins them when its labels are partial or absent
+ROBUST_Z = 3.5
+MAX_NORMAL = 12
+
+
+def _numbers(train: pd.DataFrame, skip: Sequence[Optional[str]]) -> list[str]:
+    """Numeric columns a detector would read: not the target or a named column, not an identifier, not constant."""
+    out = []
+    for c in train.columns:
+        if c in skip or ID_NAME.search(str(c)) or not pd.api.types.is_numeric_dtype(train[c]) or pd.api.types.is_bool_dtype(train[c]):
+            continue
+        x = pd.to_numeric(train[c], errors="coerce")
+        if x.notna().sum() >= 20 and x.nunique() > 2:
+            out.append(c)
+    return out[:40]
+
+
+def _robust(x: pd.Series) -> tuple[float, float]:
+    x = pd.to_numeric(x, errors="coerce").dropna()
+    med = float(x.median()) if len(x) else 0.0
+    mad = float((x - med).abs().median()) * 1.4826 if len(x) else 0.0
+    return med, (mad if mad > 0 else float(x.std() or 0.0) or 1.0)
+
+
+def _stamps(train: pd.DataFrame, time: Optional[str]) -> Optional[pd.Series]:
+    """A time column read as dates, or None when it is not one: numbers are never read as nanoseconds since 1970, and a
+    span under a day says nothing per day."""
+    if not time or time not in train.columns:
+        return None
+    raw = train[time]
+    if pd.api.types.is_numeric_dtype(raw) and not pd.api.types.is_datetime64_any_dtype(raw):
+        return None
+    stamps = _as_time(raw)
+    if stamps.notna().mean() < 0.9 or (stamps.max() - stamps.min()) < pd.Timedelta(days=1):
+        return None
+    return stamps
+
+
+def _normal(train: pd.DataFrame, cols: list[str]) -> list[Finding]:
+    """The shape of normal: each column's robust centre and spread, its skew and how much of it sits at zero."""
+    if not cols:
+        return []
+    shape = {}
+    for c in cols[:MAX_NORMAL]:
+        x = pd.to_numeric(train[c], errors="coerce")
+        med, spread = _robust(x)
+        shape[str(c)[:60]] = {"median": _r(med, 3), "spread": _r(spread, 3), "skew": _r(float(x.skew() or 0.0), 2),
+                              "zero_share": _r(float((x == 0).mean()), 3), "missing_share": _r(float(x.isna().mean()), 3)}
+    skewed = [c for c, v in shape.items() if abs(v["skew"]) > 2]
+    return [_f("normal", "normal", f"What is normal on {len(shape)} numeric columns of the training rows: their robust centre and "
+               f"spread{(' (' + ', '.join(skewed[:5]) + ' strongly skewed)') if skewed else ''}.", {"columns": shape},
+               "A detector scores distance from this normal: scale each column by its robust spread (a skewed one on a log "
+               "scale), never by values of rows it will score later.", ["features.direction", "target.transform"])]
+
+
+def _rules(train: pd.DataFrame, cols: list[str], entity: Optional[str]) -> list[Finding]:
+    """The rows plain rules would flag (a value beyond 3.5 robust deviations), and whether a few entities hold them."""
+    if not cols:
+        return []
+    hits = pd.Series(False, index=train.index)
+    per = {}
+    for c in cols:
+        x = pd.to_numeric(train[c], errors="coerce")
+        med, spread = _robust(x)
+        h = ((x - med).abs() / spread) > ROBUST_Z
+        per[str(c)[:60]] = _r(float(h.mean()), 4)
+        hits |= h.fillna(False)
+    share = float(hits.mean())
+    evidence: dict[str, Any] = {"rows": int(len(train)), "rows_flagged": int(hits.sum()), "share": _r(share, 4),
+                                "by_column": dict(sorted(per.items(), key=lambda kv: -kv[1])[:15])}
+    held = None
+    if entity and entity in train.columns and hits.any():
+        by = train.loc[hits, entity].dropna().value_counts()
+        if by.sum() > 0:
+            top = max(1, int(np.ceil(0.05 * train[entity].nunique())))
+            held = float(by.iloc[:top].sum() / by.sum())
+            evidence["held_by_top_5pct_entities"] = _r(held, 3)
+    many = share > 0.10
+    statement = (f"{share:.1%} of the training rows sit beyond {ROBUST_Z} robust deviations on at least one column"
+                 + (f"; the top 5% of {entity} values hold {held:.0%} of them" if held is not None else "") + ".")
+    implication = ("Rules alone would flag too many rows for a review budget: rank rows instead, and keep the rules as features."
+                   if many else "Rules give a first ranking to beat: a detector earns its place only by finding what they miss.")
+    return [_f("rules", "rules", statement, evidence, implication, ["threshold.policy", "model.families"], "warning" if many else "info")]
+
+
+def _behaviour(train: pd.DataFrame, entity: Optional[str], time: Optional[str]) -> list[Finding]:
+    """Each entity's activity: rows per entity, and how many entities sit far from the others."""
+    if not entity or entity not in train.columns:
+        return []
+    counts = train[entity].value_counts()
+    if len(counts) < 5:
+        return []
+    med, spread = _robust(counts.astype(float))
+    far = float((((counts - med) / spread) > ROBUST_Z).mean())
+    evidence: dict[str, Any] = {"entities": int(len(counts)), "rows_per_entity_median": _r(float(counts.median()), 2),
+                                "rows_per_entity_p90": _r(float(counts.quantile(0.9)), 2), "share_of_entities_far_busier": _r(far, 4),
+                                "rows_held_by_top_1pct": _r(float(counts.iloc[:max(1, len(counts) // 100)].sum() / counts.sum()), 4)}
+    stamps = _stamps(train, time)
+    if stamps is not None:
+        per_day = train.assign(_d=stamps.dt.floor("D")).groupby([entity, "_d"]).size()
+        if len(per_day):
+            evidence["rows_per_entity_day_p99"] = _r(float(per_day.quantile(0.99)), 2)
+    warn = far > 0.01
+    return [_f(f"behaviour-{entity}", "behaviour", f"{len(counts)} {entity} values: a median of {counts.median():g} rows each"
+               + (f"; {far:.1%} of them far busier than the rest" if warn else "") + ".", evidence,
+               f"Score each row against its {entity}'s own history as well as against everyone (counts per day, the row against "
+               f"its {entity}'s usual): an anomaly is often normal for the table and odd for its {entity}. Keep a {entity}'s rows "
+               "together when testing.", ["features.entity_history", "split.strategy", "model.families"], "warning" if warn else "info")]
+
+
+def _detectable(train: pd.DataFrame, cols: list[str], seed: int = 0) -> list[Finding]:
+    """A planted-anomaly check: plant two generic shapes in a copy of the training rows (one value far from normal; a
+    pair of columns that move together, broken) and measure what a detector on these columns finds at a review budget
+    of 1% of the rows. It says what a detector can see in these columns, not where the real anomalies are."""
+    if len(cols) < 2 or len(train) < 200:
+        return []
+    from sklearn.ensemble import IsolationForest
+    from sklearn.metrics import average_precision_score
+
+    rng = np.random.default_rng(seed)
+    X = train[cols].apply(pd.to_numeric, errors="coerce")
+    X = X.fillna(X.median())
+    for c in cols:  # a skewed count or amount is read on a log scale, as the shape of normal says to
+        if X[c].min() >= 0 and float(X[c].skew() or 0) > 2:
+            X[c] = np.log1p(X[c])
+    scale = {c: _robust(X[c]) for c in cols}
+    Z = pd.DataFrame({c: (X[c] - scale[c][0]) / scale[c][1] for c in cols}, index=X.index)
+    k = max(10, int(0.01 * len(Z)))  # planted rows, and the review budget: recall at k can reach 1
+    shapes: dict[str, Any] = {}
+    signed = Z.corr(method="spearman").where(~np.eye(len(cols), dtype=bool)).stack()
+    pair = signed.abs().idxmax() if len(signed) and signed.abs().max() >= 0.5 else None
+    for shape in ("far_value", "broken_pair"):
+        if shape == "broken_pair" and pair is None:
+            continue
+        planted = Z.copy()
+        rows = rng.choice(len(Z), size=k, replace=False)
+        if shape == "far_value":  # beyond every training value of the column, on the side the column can take
+            for r in rows:
+                c = cols[int(rng.integers(len(cols)))]
+                upward = X[c].min() >= 0 or bool(rng.integers(2))
+                far = 8.0 + float(rng.uniform(0, 8))  # each its own distance: identical outliers mask each other
+                value = Z[c].max() + far if upward else Z[c].min() - far
+                planted.iloc[r, planted.columns.get_loc(c)] = value
+        else:  # each value typical, together unusual: against the pair's own direction
+            a, b = pair
+            positive = signed[pair] > 0
+            planted.iloc[rows, planted.columns.get_loc(a)] = planted[a].quantile(0.1)
+            planted.iloc[rows, planted.columns.get_loc(b)] = planted[b].quantile(0.9 if positive else 0.1)
+        truth = np.zeros(len(Z), dtype=int)
+        truth[rows] = 1
+        forest = IsolationForest(n_estimators=150, max_samples=min(1024, len(planted)), random_state=seed)  # 256 rows hide a 1% shape
+        score = -forest.fit(planted).score_samples(planted)
+        top = np.argsort(-score)[:k]
+        shapes[shape] = {"planted": k, "recall_at_budget": _r(float(truth[top].sum() / k), 3),
+                         "average_precision": _r(float(average_precision_score(truth, score)), 3), "chance": _r(k / len(Z), 4)}
+        if shape == "broken_pair":
+            shapes[shape]["columns"] = f"{str(pair[0])[:60]} with {str(pair[1])[:60]}"
+    missed = [s for s, v in shapes.items() if v["recall_at_budget"] < 0.5]
+    statement = ("On these columns a detector " + "; ".join(f"finds {v['recall_at_budget']:.0%} of {v['planted']} planted {s.replace('_', ' ')} "
+                                                          f"rows among its top {v['planted']}" for s, v in shapes.items()) + ".")
+    implication = ("A shape it misses on these columns needs features that make it visible (per-entity history, the relation "
+                   "between the columns); evaluate any detector on planted anomalies of the shapes found."
+                   if missed else "A detector on these columns can find both shapes; the real anomalies may take other shapes, so "
+                   "keep a review loop whose confirmed cases become labels.")
+    return [_f("detectable", "detectability", statement, {"shapes": shapes, "detector": "isolation forest (150 trees of up to 1024 rows) on "
+                                                           "robust-scaled columns, skewed ones on a log scale", "budget": "as many rows as were planted (1%, at least 10)"},
+               implication,
+               ["model.families", "features.direction", "risk.check"], "warning" if missed else "info")]
+
+
+def _censoring(train: pd.DataFrame, duration: Optional[str], event: Optional[str]) -> list[Finding]:
+    if not duration or not event or duration not in train.columns or event not in train.columns:
+        return []
+    from dclab_core.survival import censoring_check, duration_check
+
+    out = []
+    raw = train[event]
+    ended = raw.astype(float) if (pd.api.types.is_numeric_dtype(raw) or pd.api.types.is_bool_dtype(raw)) else None
+    if ended is None or ended.dropna().nunique() > 2:
+        return [_f("censoring", "censoring", f"The event flag {event} cannot be read as ended or not (it is not a 0/1 flag).",
+                   {"values": int(raw.nunique())}, "Ask which value means the event happened, and code it as 1, the rest 0.",
+                   ["task.framing"], "warning")]
+    frame = train.assign(**{event: ended}).dropna(subset=[event, duration])
+    flag = frame[event] != 0
+    ok = censoring_check(flag.astype(int))
+    censored = float(1 - flag.mean()) if len(flag) else 0.0
+    follow = pd.to_numeric(frame[duration], errors="coerce")
+    readable = bool(ok.get("ok"))
+    statement = (f"{censored:.0%} of the training rows had not ended when the data was taken: their durations are lower bounds."
+                 if readable else f"The durations cannot be read honestly: {ok.get('why')}.")
+    out.append(_f("censoring", "censoring", statement,
+                  {"censored_share": _r(censored, 4), "rows": int(len(frame)), "readable": readable,
+                   "follow_up_median": _r(float(follow.median()), 2), "follow_up_p90": _r(float(follow.quantile(0.9)), 2)},
+                  ("Model the time to the event with censoring (Kaplan-Meier, Cox, a discrete hazard): a regression on the durations, or "
+                   "dropping the rows still going, biases every horizon. Score only horizons the follow-up reaches." if readable else
+                   "Ask whether rows still going were left out of the export or marked as ended: without them no horizon can be scored."),
+                  ["task.framing", "metric.primary", "split.strategy"], "warning" if (censored > 0.05 or not readable) else "info"))
+    if not readable:
+        return out
+    train = frame.assign(**{event: flag.astype(int)})
+    ids = [c for c in train.columns if ID_NAME.search(str(c))]  # an identifier grows with the start date: no measure of follow-up
+    past = duration_check(train, duration=duration, event=event, exclude=ids)
+    for c in (past.get("past_the_start") or [])[:10]:
+        out.append(_f(f"counted-{c}", "leakage", f"{c} moves with the duration both among rows still going and rows that ended: it was "
+                      "counted during the follow-up, after the start.", {"column": str(c)[:120], "why": str((past.get("why") or {}).get(c, ""))[:300]},
+                      f"Keep {c} out: at the start it was not known.", ["features.forbidden"], "warning"))
+    return out
+
+
+def _series(train: pd.DataFrame, target: Optional[str], series: Optional[str], time: Optional[str]) -> list[Finding]:
+    if not time or time not in train.columns or not target or target not in train.columns:
+        return []
+    stamps = _stamps(train, time)
+    if stamps is None:
+        return []
+    keys = train[series] if series and series in train.columns else pd.Series("all", index=train.index)
+    frame = pd.DataFrame({"s": keys.values, "t": stamps.values, "y": pd.to_numeric(train[target], errors="coerce").values}).dropna()
+    if frame.empty:
+        return []
+    lengths = frame.groupby("s")["t"].nunique()
+    gap = frame.sort_values("t").groupby("s")["t"].diff().dt.total_seconds().median()
+    step = "day" if gap and abs(gap - 86400) < 3600 else "week" if gap and abs(gap - 7 * 86400) < 86400 else "month" if gap and 27 * 86400 <= gap <= 32 * 86400 else "other"
+    candidates = {"day": (7, 365), "week": (52, 4), "month": (12, 3), "other": (7, 12)}[step]
+    acf: dict[str, float] = {}
+    for lag in candidates:
+        values = []
+        for _, g in frame.sort_values("t").groupby("s"):
+            y = g["y"].to_numpy()
+            if len(y) > 2 * lag + 2 and np.std(y[:-lag]) > 0 and np.std(y[lag:]) > 0:
+                values.append(float(np.corrcoef(y[:-lag], y[lag:])[0, 1]))
+        values = [v for v in values if np.isfinite(v)]  # an intermittent series has no correlation to give
+        if values:
+            acf[str(lag)] = _r(float(np.mean(values)), 3)
+    season = max(acf, key=acf.get) if acf and max(acf.values()) >= 0.3 else None
+    short = float((lengths < 2 * (int(season) if season else 7)).mean())
+    out = [_f("series", "series", f"{len(lengths)} series of a median {lengths.median():g} time steps ({step}s); {short:.0%} are short.",
+              {"series": int(len(lengths)), "steps_median": _r(float(lengths.median()), 1), "step": step, "short_share": _r(short, 3)},
+              "Backtest from rolling origins and keep a series' later steps after its earlier ones; short series lean on a model "
+              "fitted across series, and every model must beat the seasonal naive forecast.", ["split.strategy", "model.families", "baseline"],
+              "warning" if short > 0.2 else "info")]
+    out.append(_f("season", "time", (f"The target repeats every {season} {step}s (autocorrelation {acf[season]})." if season
+                                     else "No strong season among the usual periods."), {"autocorrelation_by_lag": acf, "step": step},
+                  f"Use a seasonal naive baseline of {season} {step}s and season features." if season else
+                  "A plain naive forecast is the baseline to beat.", ["baseline", "features.direction"]))
+    return out
+
+
+def _arms(train: pd.DataFrame, target: Optional[str], treatment: Optional[str]) -> list[Finding]:
+    if not treatment or treatment not in train.columns:
+        return []
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_predict
+    from sklearn.metrics import roc_auc_score
+
+    t = train[treatment].astype(str)
+    arms = t.value_counts(normalize=True)
+    cols = [c for c in _numbers(train, [target, treatment])][:20]
+    auc = None
+    if len(arms) == 2 and cols:
+        X = train[cols].apply(pd.to_numeric, errors="coerce")
+        X = (X.fillna(X.median()) - X.median()) / X.std().replace(0, 1)
+        y = (t == arms.index[0]).astype(int).to_numpy()
+        p = cross_val_predict(LogisticRegression(max_iter=500), X, y, cv=3, method="predict_proba")[:, 1]
+        auc = float(roc_auc_score(y, p))
+        auc = max(auc, 1 - auc)
+    randomised = auc is not None and auc < 0.6
+    shown = {str(k)[:40]: _r(v, 4) for k, v in arms.iloc[:10].items()}
+    if len(arms) > 10:
+        shown["(the other arms)"] = _r(float(arms.iloc[10:].sum()), 4)
+    evidence: dict[str, Any] = {"arms": shown, "arm_count": int(len(arms)), "propensity_auc": _r(auc, 3) if auc is not None else None}
+    if target and target in train.columns:
+        outcome = pd.to_numeric(train[target], errors="coerce")
+        if outcome.notna().mean() > 0.9:  # a numeric or 0/1 outcome; a text one is not averaged
+            means = {str(k)[:40]: float(outcome[t == k].mean()) for k in arms.index[:5]}
+            evidence["outcome_by_arm"] = {k: _r(v, 4) for k, v in means.items() if np.isfinite(v)}
+    return [_f("arms", "arms", f"{len(arms)} arms; the covariates tell the arms apart with AUC {auc:.2f}." if auc is not None else
+               f"{len(arms)} arms.", evidence,
+               ("The arms look randomised: an uplift model can compare them directly, scored by the Qini curve on held-out rows."
+                if randomised else "The arms differ before the treatment: weight by the propensity, or the uplift measured is who was chosen."),
+               ["task.framing", "risk.check", "model.families"], "info" if randomised else "warning")]
+
+
+def _popularity(train: pd.DataFrame, item: Optional[str]) -> list[Finding]:
+    if not item or item not in train.columns:
+        return []
+    counts = train[item].value_counts()
+    if len(counts) < 20:
+        return []
+    top = float(counts.iloc[:max(1, len(counts) // 100)].sum() / counts.sum())
+    return [_f(f"popularity-{item}", "popularity", f"The top 1% of {item} values hold {top:.0%} of the events.",
+               {"items": int(len(counts)), "top_1pct_share": _r(top, 4), "items_seen_once": _r(float((counts == 1).mean()), 4)},
+               "Popularity is the baseline every ranking must beat, and a metric over all items rewards it: report coverage of "
+               "the long tail beside it.", ["baseline", "metric.primary", "risk.check"], "warning" if top > 0.2 else "info")]
+
+
+def _scales(train: pd.DataFrame, cols: list[str]) -> list[Finding]:
+    if len(cols) < 2:
+        return []
+    spreads = {str(c)[:60]: _robust(train[c])[1] for c in cols}
+    ratio = max(spreads.values()) / max(min(spreads.values()), 1e-12)
+    return [_f("scales", "scales", f"The numeric columns' spreads differ by a factor of {ratio:.3g}.",
+               {"columns": len(spreads), "spread_ratio": _r(ratio, 3)},
+               "Distances are dominated by the widest column unless each is scaled first (robust scaling; a log for skewed counts).",
+               ["features.direction"], "warning" if ratio > 100 else "info")]
+
+
+def by_family(train: pd.DataFrame, family: Optional[str], target: Optional[str], y: Optional[pd.Series], entity: Optional[str] = None,
+              time: Optional[str] = None, treatment: Optional[str] = None, event: Optional[str] = None,
+              labelled: bool = False) -> list[Finding]:
+    """The family's own findings, all on the training rows (20.5). Unknown or no family: none."""
+    if not family:
+        return []
+    out: list[Finding] = []
+    cols = _numbers(train, [target, entity, time, treatment, event])
+    no_label = family in NO_LABEL or (family == "rare_event" and not labelled and (y is None or y.isna().mean() > 0.5))
+    if no_label or (family == "rare_event"):
+        out += _normal(train, cols) + _rules(train, cols, entity) + _behaviour(train, entity, time)
+    if no_label:
+        out += _detectable(train, cols)
+    if family == "time_to_event":
+        out += _censoring(train, target, event)
+    if family == "forecasting":
+        out += _series(train, target, entity, time)
+    if family == "uplift":
+        out += _arms(train, target, treatment)
+    if family == "ranking":
+        out += _popularity(train, entity)
+    if family == "segmentation":
+        out += _normal(train, cols) + _scales(train, cols)
+    return out
+
+
 def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, task: Optional[TaskType] = None,
             brief: Optional[ProblemBrief] = None, train_index: Optional[Sequence[Any]] = None,
             main: Optional[str] = None, labels: Optional[str] = None, advisor: Optional[Advisor] = None,
-            moment: Optional[str] = None) -> DataFindings:
+            moment: Optional[str] = None, family: Optional[str] = None, entity: Optional[str] = None,
+            time: Optional[str] = None, treatment: Optional[str] = None, event: Optional[str] = None) -> DataFindings:
     """Analyse the tables for the decisions they imply. ``train_index``: the rows of the main table the host may look
     at for choices (its training partition); without it, every row is used and the findings say so. ``advisor``: the
     data investigator (18.3) may read the column names and kinds, never values, and propose columns written after the
-    ``moment`` (default: the brief's) and entities; every proposal is tested here like a telling name."""
+    ``moment`` (default: the brief's) and entities; every proposal is tested here like a telling name. ``family`` (the
+    problem card's, 20.5) adds that family's findings, each on the training rows only: without labels the shape of
+    normal, the rows rules would flag, each ``entity``'s behaviour and which planted shapes a detector finds; the
+    censoring and the columns counted during follow-up (``event``: the ended flag); the series and their season
+    (``entity`` the series, ``time``); the arms (``treatment``); popularity (``entity`` the item); the columns' scales."""
     if not tables:
         return DataFindings()
     main = main or max((n for n in tables if n != labels), key=lambda n: len(tables[n]))
@@ -927,8 +1298,11 @@ def analyse(tables: Mapping[str, pd.DataFrame], target: Optional[str] = None, ta
     findings += _leakage(features, y, task, target, proposals.get("after"))
     findings += _missing(train, y, task, target)
     findings += _columns(df, target)
-    if labels and labels in tables:
-        findings += _labels(df, main, tables[labels], labels)
+    if labels and labels in tables:  # which rows the label file marks is read on the training rows only
+        findings += _labels(train, main, tables[labels], labels)
+        findings += _labels_unmatched(df, main, tables[labels], labels)
+    findings += by_family(train, family, target, y, entity=entity, time=time, treatment=treatment, event=event,
+                          labelled=bool(labels and labels in tables))
     seen, unique = set(), []
     for f in findings:
         if f.id not in seen:

@@ -4,6 +4,22 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.22.0 (2026-10-14)
+
+Package 20.5: analysis by family. No contract changes shape; `analyse` gains arguments and findings.
+
+- `analyse(..., family, entity, time, treatment, event)`: a family's own findings, all on the training rows. Without
+  labels (anomaly, streams, a rare event with no or partial labels): `F-normal` (each column's robust centre and
+  spread), `F-rules` (rows beyond 3.5 robust deviations, and whether a few entities hold them), `F-behaviour-<entity>`
+  (rows per entity, those far busier) and `F-detectable` (two generic shapes planted in a copy of the training rows: a
+  value beyond the column's range, and a pair of columns broken against its direction; what an isolation forest finds
+  among as many top rows as were planted). Time to event: `F-censoring` (or why the durations cannot be read) and
+  `F-counted-<col>` (columns counted during follow-up). Forecasting: `F-series`, `F-season`. Uplift: `F-arms` (the
+  propensity of the arms). Ranking: `F-popularity-<item>`. Segmentation: `F-scales`.
+- `AFFECTS`: the decisions a finding may name, each with its decision-ledger point; a finding naming any other raises.
+- The label join reads the training rows only (which rows the label file marks is a fact about the target);
+  `F-labels-unmatched` (scope `all_rows`) counts the label rows that match no row of the table at all.
+
 ## 0.21.0 (2026-10-14)
 
 Package 21.2: the coordinator's state machine. A new module and a new contract, `dclab_core.coordinator_situation.v1`.

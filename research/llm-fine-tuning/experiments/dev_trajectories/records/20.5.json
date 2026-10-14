@@ -1,0 +1,168 @@
+{
+ "package": "20.5",
+ "title": "Analysis by family: what each family's decisions need, read on the training rows only",
+ "date": "2026-10-14",
+ "request": "Extend the analysis per family on training rows only: without labels the shape of normal, rule hits, per-entity behaviour and a planted-anomaly check of what detectors can find; partial labels; time; entities; places; each finding naming the decision it bears on. Each family's replica must yield the findings its decisions need, and none may read a holdout row.",
+ "spec": "New arguments to analyse and one function per family, each on the training rows; a checked vocabulary of decisions mapped to the ledger; a poison guard over every replica.",
+ "plan": [
+  "Survey what analyse finds on each replica today.",
+  "Add the no-label block and the per-family findings, each on the training rows.",
+  "Check every decision a finding names against a vocabulary mapped to the ledger.",
+  "Poison every held-out row and require every training-rows finding unchanged."
+ ],
+ "decisions": [
+  {
+   "decision": "The finding contract stays; the decision a finding bears on is its existing affects list, now checked.",
+   "why": "A new field would move the frozen schema for what the contract already holds."
+  },
+  {
+   "decision": "The planted shapes are generic (a value beyond the range, a broken pair), never the replica's frauds.",
+   "why": "The check says what a detector can see on these columns; planting the known frauds would measure the answer key."
+  },
+  {
+   "decision": "Which rows the label file marks is read on the training rows only; label rows matching no row at all are counted apart as structure.",
+   "why": "Membership of a held-out row among the cases is a fact about its target."
+  },
+  {
+   "decision": "Findings about structure (duplicates, keys, unmatched labels) keep reading all rows.",
+   "why": "A duplicate or a key across the split is the problem itself; the guard covers every finding about the training rows."
+  }
+ ],
+ "change": "dclab_core/analyse.py (dclab-core 0.22.0); tests/test_core_analyse_families.py (new), test_core_analyse.py; CHANGELOG, the plan, the roadmap.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "An identifier was flagged as counted during follow-up.",
+   "scenario": "subscriber_id grows with the signup date and moved with the duration.",
+   "cause": "Every column was checked against the duration.",
+   "fix": "Identifiers are excluded from the follow-up check.",
+   "test": "test_what_a_detector_finds_is_measured_and_the_limits_are_said"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The detector check missed half of the planted far values.",
+   "scenario": "Values beyond every column's range were found 47% of the time.",
+   "cause": "The forest's 256-row sub-samples rarely held a planted row, and identical planted values masked each other.",
+   "fix": "Sub-samples of up to 1024 rows and a distance of its own for each planted value.",
+   "test": "test_a_negative_pair_is_broken_against_its_direction_and_a_skewed_far_value_is_far"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A negatively correlated pair was never broken.",
+   "scenario": "For b = -a, the planted rows followed the pair's normal pattern and the check reported broken pairs missed.",
+   "cause": "The pair's correlation was taken in absolute value, so its sign was lost.",
+   "fix": "The pair is chosen by its absolute correlation and broken against its sign.",
+   "test": "test_a_negative_pair_is_broken_against_its_direction_and_a_skewed_far_value_is_far"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "On skewed columns the far value was not far.",
+   "scenario": "On lognormal columns no planted row was found, because real rows sat beyond eight deviations.",
+   "cause": "Values were planted at eight robust deviations, inside a heavy tail.",
+   "fix": "Beyond the column's range, skewed columns on a log scale; the implication no longer claims the data's anomalies will be missed.",
+   "test": "test_a_negative_pair_is_broken_against_its_direction_and_a_skewed_far_value_is_far"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Recall could not reach one on small tables.",
+   "scenario": "At 200 rows, ten planted rows were sought among the top two.",
+   "cause": "The budget was 1% of the rows while at least ten were planted.",
+   "fix": "Recall among as many top rows as were planted.",
+   "test": "test_a_small_table_can_reach_full_recall"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Ordinary data crashed the analyses.",
+   "scenario": "An intermittent series, flagged rows with no entity, and a text outcome produced non-finite evidence.",
+   "cause": "Correlations and shares over empty or constant data.",
+   "fix": "Non-finite values dropped, empty shares skipped, text outcomes not averaged.",
+   "test": "test_ordinary_data_never_crashes_the_family_analyses"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Forty arms crashed the arms finding.",
+   "scenario": "A treatment column with forty values exceeded the evidence's mapping limit.",
+   "cause": "Every arm was listed.",
+   "fix": "The ten largest arms and the share of the rest.",
+   "test": "test_ordinary_data_never_crashes_the_family_analyses"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A text or gappy event flag crashed the censoring finding.",
+   "scenario": "An event of ended or active, or one with missing values, raised.",
+   "cause": "The flag was cast to numbers without checking.",
+   "fix": "A flag that is not 0/1 is said; missing rows are dropped first.",
+   "test": "test_an_event_flag_that_cannot_be_read_is_said"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An unreadable event flag was reported as fine.",
+   "scenario": "Every row ended: the finding said none were censored and recommended Cox.",
+   "cause": "The censoring check's refusal was only in the evidence.",
+   "fix": "The refusal is the statement, as a warning.",
+   "test": "test_an_event_flag_that_cannot_be_read_is_said"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The label join counted held-out cases as not in the table.",
+   "scenario": "With a time split, most recent cases fall in the holdout and were called missing.",
+   "cause": "The join was moved to the training rows but its wording was not.",
+   "fix": "Found among the training rows; label rows matching no row at all counted apart as structure.",
+   "test": "test_the_join_the_pair_inflation_and_the_column_that_means_something_else"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "An epoch-seconds time column was read as nanoseconds.",
+   "scenario": "Every row fell on one day, so rows per entity and day were rows per entity.",
+   "cause": "Numbers were parsed as dates.",
+   "fix": "A numeric time column is not read as dates; a span under a day says nothing per day.",
+   "test": "test_ordinary_data_never_crashes_the_family_analyses"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "what a detector finds on the fraud replica's rides",
+   "gate": "descriptive: a planted-anomaly check, no gate",
+   "result": "98% of 124 planted far values and 9% of 124 planted broken pairs among the top 124",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "98% and 9% reported as measured",
+   "limits": [
+    "Generic shapes, not the replica's frauds."
+   ]
+  }
+ ],
+ "outcome": "Eight families' replicas yield the findings their decisions need, each naming a decision the ledger knows, and no finding about the training rows reads a held-out row.",
+ "lessons": [
+  "A planted-anomaly check measures the detector's settings as much as the data: a forest's default sub-sample hides a 1% shape.",
+  "Identical planted values mask each other; give each its own.",
+  "When a computation moves to the training rows, its wording must move with it."
+ ],
+ "risks": [
+  "The studio does not pass the family yet.",
+  "Four families add no findings of their own."
+ ],
+ "commits": []
+}

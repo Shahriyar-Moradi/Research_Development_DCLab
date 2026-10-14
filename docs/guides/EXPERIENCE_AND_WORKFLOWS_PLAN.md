@@ -234,6 +234,19 @@ code are not one connected object a data scientist can read, run and change.
   per-entity behaviour, a planted-anomaly check of what detectors can find); partial labels; time; entities; places;
   each finding naming the decision it bears on.
 - **Done when:** each family's replica yields the findings its decisions need, and none reads a holdout row.
+- **Status: done (2026-10-14).** `dclab_core/analyse.py` (dclab-core 0.22.0): `analyse(..., family, entity, time,
+  treatment, event)` adds each family's findings on the training rows: without labels the shape of normal, the rows rules
+  flag (and whether a few entities hold them), each entity's behaviour, and a planted-anomaly check of what a detector
+  can find on these columns (a value beyond the range, a pair broken against its direction; on the fraud replica's
+  rides a detector finds 98% of the first and 9% of the second, so relation features are needed); censoring and
+  columns counted during follow-up; series and season; the arms' propensity; popularity; the columns' scales. Every
+  finding names decisions from `AFFECTS`, each mapped to a decision-ledger point. The label join now reads the training
+  rows only; the label rows in no row of the table are counted apart. `tests/test_core_analyse_families.py`: eight
+  families' replicas yield the findings their decisions need; replacing every value of the held-out rows with garbage
+  leaves every finding about the training rows unchanged; ordinary data (intermittent series, text outcomes, forty arms,
+  unreadable event flags, epoch seconds) never crashes them. Left open: classification, regression, entity tables and
+  text or images add no findings of their own (their existing ones stand); the studio's call sites pass no family yet
+  (the solution workflow, 20.6, reads these findings); the planted shapes are generic, not the replica's own frauds.
 
 ## Phase W4 — The solution workflow
 
