@@ -1,0 +1,161 @@
+{
+ "package": "16.15C2",
+ "title": "Streams run in the engine: incidents as a related table, the holdout cut from dates, the alert method chosen on validation",
+ "date": "2026-10-14",
+ "request": "Phase C of 16.15, second part: run the streams kind (machine readings, rare incidents, alerts within a budget) through the engine's five stages, the incidents a related table of the project, the holdout locked from dates, the method and threshold chosen on validation and the holdout read once.",
+ "spec": "The streams library split into split, known_by, training_view, choose and score; the kind's machine per stage; the incidents attached as a related table; the engine acceptance on the machine replica.",
+ "plan": [
+  "Split streams.evaluate into what each stage runs, keeping evaluate for the library acceptance.",
+  "Write the kind's engine fields, solution checks and machine.",
+  "Test that the holdout's readings and incidents reach only the final stage.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "Training reads the readings before the cut and only the incidents known by it, their label delay included.",
+   "why": "An incident whose label arrives after the cut cannot have been known when the model was built."
+  },
+  {
+   "decision": "The cut is placed on the time axis, not by counting windows.",
+   "why": "Machines stop reporting while down after a failure, so counting windows lets the holdout's failures move the line."
+  },
+  {
+   "decision": "A sensor that follows the hours to the next failure far before it is kept out until a person confirms it.",
+   "why": "A back-filled column is written in the past but knows the future; time checks cannot see it."
+  },
+  {
+   "decision": "With no incident to score on validation, the choice is refused rather than made by a tie-break.",
+   "why": "A method reported as chosen by incident recall must have been chosen by it."
+  }
+ ],
+ "change": "dclab_core/streams.py (split, known_by, training_view, choose, score, written_ahead, without, wilson; dclab-core 0.26.0), dclab_rnd/kinds/streams.py (fields, checks, StreamMachine, engine acceptance; the incidents in Case.tables); tests/test_core_streams.py, tests/test_kind_acceptance_streams.py (new); CHANGELOG, the playbook, the roadmap.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Reading incidents not yet known by the cut went unnoticed.",
+   "scenario": "A planted fault dropped the label-delay filter and every test passed.",
+   "cause": "With the replica's zero delay the filter changes nothing; no test asked it directly.",
+   "fix": "A test checks the incidents known by the cut with a 72-hour delay.",
+   "test": "test_an_incident_not_known_by_the_cut_is_never_read_before_the_final"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Fitting on the machines left out for the unseen-machine measure went unnoticed.",
+   "scenario": "A planted fault fitted on every machine and every test passed.",
+   "cause": "The record did not say which machines the measure was fitted on.",
+   "fix": "The record lists the machines fitted on; a test checks they never meet the ones left out.",
+   "test": "test_machines_left_out_are_never_fitted_on"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With no incident in the validation period the method was chosen by a tie-break and reported as chosen by incident recall.",
+   "scenario": "Dropping the incidents of the validation period left every recall empty and own_change chosen on false alerts 0.200 against 0.202.",
+   "cause": "Only the incidents before the validation period were counted.",
+   "fix": "choose refuses a validation period with no scoreable incident.",
+   "test": "test_no_incident_in_the_validation_period_is_refused"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A sensor filled in knowing when the failure came was used unflagged.",
+   "scenario": "A service counter of hours to the next failure, capped at 300, moved no window and was chosen with validation recall 1.0.",
+   "cause": "The leakage stage only listed columns not read; time checks cannot see a back-filled value.",
+   "fix": "written_ahead flags sensors following the hours to the next incident far before it (Spearman 0.87 for the counter); they are kept out until confirmed.",
+   "test": "test_a_sensor_written_knowing_the_failure_is_kept_out_until_confirmed"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "With no holdout incident the gap reported a drop that never happened.",
+   "scenario": "Holdout recall None was taken as 0 and the gap reported as minus the validation recall.",
+   "cause": "A missing value replaced by zero.",
+   "fix": "The gap is None when either side is; the claim says no holdout incident can be scored.",
+   "test": "test_a_delayed_label_is_known_by_the_cut_in_the_engine"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The unseen-machine refit could crash after the holdout was read.",
+   "scenario": "With no validation window left on the other machines, scikit-learn raised on an empty array in the final stage.",
+   "cause": "The library's evaluate guarded the refit; score did not.",
+   "fix": "The measure is left empty, and said, when the others have no validation window.",
+   "test": "test_machines_left_out_without_validation_windows_are_not_scored"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Failures after the cut moved the cut.",
+   "scenario": "One more day of downtime per machine after the cut moved it from 06:00 to 00:00 and the validation start by a step.",
+   "cause": "The cut was a quantile of window ends, and downtime writes fewer windows.",
+   "fix": "The cut and the validation start are placed on the time axis.",
+   "test": "test_downtime_after_the_cut_never_moves_the_line"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Holdout recall had no uncertainty.",
+   "scenario": "22 of 22 incidents were reported without an interval.",
+   "cause": "Not computed.",
+   "fix": "A Wilson 95% interval: 0.85 to 1.0 for 22 of 22.",
+   "test": "test_the_wilson_interval"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The capability matrix was not rebuilt.",
+   "scenario": "The matrix still showed streams as partial.",
+   "cause": "The campaign needs the committed code.",
+   "fix": "The campaign and kinds-check run after the code commit.",
+   "test": "test_the_committed_file_lists_every_built_in_kind_as_supported"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the machine replica in the engine, seed 0",
+   "gate": "every engine acceptance decision holds: no window reads past the cut, the method chosen on validation is scored once, at least 0.75 incident recall with 6 hours of warning within 1.5 times the budget, machines never seen scored",
+   "result": "12 of 12 decisions hold: supervised chosen; 22 of 22 holdout incidents caught (95% 0.85 to 1.0), median 36.0 hours before, 0.232 alerts per machine-day against a budget of 0.2; 9 of 9 incidents on unseen machines; 0 of 2782 windows moved",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "12 of 12 decisions hold",
+   "limits": [
+    "Invented replica, one seed.",
+    "22 incidents: recall read on few events.",
+    "How long after an incident starts it is detected is not measured."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "15 of 15 planted faults caught after the fixes",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "15 of 15",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "Streams run in the engine: readings as the table and incidents as a related table, the holdout cut on the time axis, training from what was known by then, back-filled sensors kept out until confirmed, the method and threshold chosen on validation, the holdout scored once with an interval.",
+ "lessons": [
+  "A split read off counts of rows can move with the outcome when outcomes change how many rows exist; place it on the time axis.",
+  "A value written in the past can still know the future: test what a column follows far from the event, not only when it was written.",
+  "A choice that cannot be made by its rule must be refused, not made by the tie-break."
+ ],
+ "risks": [
+  "Embedded data is still outside the engine.",
+  "The written-ahead check reads one shape (a value following the hours left); other back-filled shapes may pass."
+ ],
+ "commits": []
+}

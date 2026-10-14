@@ -116,6 +116,49 @@ class ReplicaTest(unittest.TestCase):
             streams.evaluate(self.r.readings, unmatched, **self.args)
 
 
+
+class EngineSplitTest(unittest.TestCase):  # 16.15 C: what the engine's stages call
+    @classmethod
+    def setUpClass(cls):
+        r = machine_sensors.generate(0)
+        cls.r, cls.f = r, r.facts
+        cls.kw = dict(unit=r.facts["unit"], time=r.facts["time"], sensors=r.facts["sensors"])
+        cls.parts = streams.split(r.readings, **cls.kw)
+
+    def test_downtime_after_the_cut_never_moves_the_line(self):
+        cut = pd.Timestamp(self.parts["cut"])
+        at = pd.to_datetime(self.r.readings[self.f["time"]])
+        quiet = self.r.readings[~((at > cut + pd.Timedelta(days=3)) & (at < cut + pd.Timedelta(days=6)))]  # every machine silent three days later
+        again = streams.split(quiet, **self.kw)
+        self.assertEqual((again["cut"], again["validation_from"]), (self.parts["cut"], self.parts["validation_from"]))
+
+    def test_no_incident_in_the_validation_period_is_refused(self):
+        p = self.parts
+        inc = self.r.incidents
+        t = pd.to_datetime(inc[self.f["incident_time"]])
+        kept = inc[~((t > pd.Timestamp(p["validation_from"])) & (t <= pd.Timestamp(p["cut"])))]
+        view = streams.training_view(self.r.readings, kept, p, incident_time=self.f["incident_time"], **self.kw)
+        with self.assertRaises(ValueError):
+            streams.choose(view, kept, p, unit=self.f["unit"], incident_time=self.f["incident_time"])
+
+    def test_machines_left_out_without_validation_windows_are_not_scored(self):
+        view = streams.training_view(self.r.readings, self.r.incidents, self.parts, incident_time=self.f["incident_time"], **self.kw)
+        unit = self.f["unit"]
+        units = np.array(sorted(view["fit"][unit].unique()))
+        held = set(np.random.default_rng(0).choice(units, max(1, len(units) // 4), replace=False))  # score's own draw
+        only_held = {**view, "validation": view["validation"][view["validation"][unit].isin(held)]}  # the others have no validation window
+        out = streams.score(self.r.readings, self.r.incidents, only_held, self.parts, "own_change", incident_time=self.f["incident_time"], **self.kw)
+        self.assertIsNone(out["unseen_units"])  # not measured, and said, rather than a crash after the holdout was read
+        self.assertIn("own_change", out["holdout"])
+        full = streams.score(self.r.readings, self.r.incidents, view, self.parts, "own_change", incident_time=self.f["incident_time"], **self.kw)
+        self.assertIsNotNone(full["unseen_units"])
+
+    def test_the_wilson_interval(self):
+        self.assertEqual(streams.wilson(22, 22), (0.8513, 1.0))
+        low, high = streams.wilson(5, 10)
+        self.assertTrue(low < 0.5 < high)
+        self.assertEqual(streams.wilson(0, 0), (None, None))
+
 class KindTest(unittest.TestCase):
     def setUp(self):
         try:
@@ -133,16 +176,18 @@ class KindTest(unittest.TestCase):
         peeked = {**run, "evaluation": {**run["evaluation"], "future_check": {**run["evaluation"]["future_check"], "changed_by_the_future": 3}}}
         self.assertFalse(kind.accept(peeked)[0]["ok"])
 
-    def test_detected_by_its_words_and_refused_by_the_engine(self):
+    def test_detected_by_its_words_and_run_by_the_engine_without_a_target(self):  # 16.15 C
         from dclab_rnd.studio.solution import Solution
 
         self.assertEqual(self.kinds.detect("Alert before a machine failure from the sensors' readings")["key"], "streams")
         self.assertNotEqual(self.kinds.detect("Which customers will churn next month?")["key"], "streams")
         self.assertEqual(self.kinds.detect("Survival analysis of machine failures: time to failure for each pump, with censored machines")["key"],
                          "time_to_event")
-        with self.assertRaises(ValueError):
-            Solution(target="incident", task="binary", prediction_moment="Every six hours", kind="streams",
-                     kind_fields={"unit_column": "m", "time_column": "t", "sensor_columns": ["x"], "incident_time_column": "at"})
+        fields = {"unit_column": "m", "time_column": "t", "sensor_columns": ["x"], "incident_time_column": "at"}
+        with self.assertRaises(ValueError):  # the target is built from the incidents
+            Solution(target="incident", task="binary", prediction_moment="Every six hours", kind="streams", kind_fields=fields)
+        Solution(task="binary", prediction_moment="Every six hours", kind="streams", kind_fields=fields)
+        self.assertTrue(self.kinds.get("streams").runs_in_engine)
 
 
 if __name__ == "__main__":

@@ -278,3 +278,169 @@ def evaluate(readings: pd.DataFrame, incidents: pd.DataFrame, *, unit: str, time
             "methods": results, "validation": validation, "best": best, "chosen_by": "incident recall on the validation period",
             "unseen_units": unseen, "held_out_units": sorted(map(str, held)),
             "not_measured": ["detection delay after an incident starts (alerts after an incident are not counted: the windows in its downtime are dropped)"]}
+
+
+# ---------------------------------------------------------------------------- 16.15 C: in the engine, split / choose / score
+
+def _makers(features: Sequence[str], detectors: Optional[dict[str, Any]], seed: int) -> dict[str, Any]:
+    return {"isolation_forest": lambda: _Forest(seed), "own_change": lambda: _OwnChange(features), **(detectors or {}),
+            "supervised": lambda: _Classifier(seed)}
+
+
+def split(readings: pd.DataFrame, *, unit: str, time: str, sensors: Sequence[str], window_hours: float = 24, step_hours: float = 6,
+          horizon_hours: float = 48, label_delay_hours: float = 0, holdout_share: float = 0.3) -> dict[str, Any]:
+    """Where the periods end, read from the windows' dates only (never an incident): the holdout is the windows after
+    ``cut`` (the latest ``holdout_share`` of window ends); a training window counts when its horizon and the delay before
+    its label end by the cut; models are fitted on the training windows whose label is known by ``validation_from`` and
+    their thresholds set on the windows after it."""
+    every = windows(readings, unit=unit, time=time, sensors=sensors, window_hours=window_hours, step_hours=step_hours)
+    if every.empty:
+        raise ValueError("no window: the readings are shorter than one window, or too sparse")
+    h, delay = pd.Timedelta(hours=horizon_hours), pd.Timedelta(hours=label_delay_hours)
+    first, last = every["end"].min(), every["end"].max()
+    # on the time axis, not by counting windows: a machine down after a failure writes fewer windows, and must not move the line
+    cut = (first + (1 - holdout_share) * (last - first)).floor("h")
+    usable = cut - h - delay
+    if usable <= first:
+        raise ValueError("no training window's label is known by the holdout's start: longer readings, or a shorter horizon")
+    vcut = (first + 0.6 * (usable - first)).floor("h")
+    known = every[every["end"] + h + delay <= cut]
+    return {"by": "time", "cut": str(cut), "validation_from": str(vcut), "data_end": str(every["end"].max()),
+            "train_labels_until": str(known["end"].max() + h + delay), "window_hours": window_hours, "step_hours": step_hours,
+            "horizon_hours": horizon_hours, "label_delay_hours": label_delay_hours,
+            "thresholds_set_on": "the validation period, out of sample"}
+
+
+def known_by(readings: pd.DataFrame, incidents: pd.DataFrame, parts: dict[str, Any], *, time: str, incident_time: str) -> tuple:
+    """The readings before the holdout's start, and the incidents whose label is known by then: what training may read."""
+    cut = pd.Timestamp(parts["cut"])
+    delay = pd.Timedelta(hours=parts["label_delay_hours"])
+    r = readings[(_when(readings[time]) <= cut).to_numpy()]
+    i = incidents[((_when(incidents[incident_time]) + delay) <= cut).to_numpy()]
+    return r, i
+
+
+def training_view(readings: pd.DataFrame, incidents: pd.DataFrame, parts: dict[str, Any], *, unit: str, time: str, sensors: Sequence[str],
+                  incident_time: str, downtime_hours: float = 24) -> dict[str, Any]:
+    """The fit and validation windows, labelled, from the readings and incidents known by the holdout's start only."""
+    r, i = known_by(readings, incidents, parts, time=time, incident_time=incident_time)
+    cut, vcut = pd.Timestamp(parts["cut"]), pd.Timestamp(parts["validation_from"])
+    h, delay = pd.Timedelta(hours=parts["horizon_hours"]), pd.Timedelta(hours=parts["label_delay_hours"])
+    every = windows(r, unit=unit, time=time, sensors=sensors, window_hours=parts["window_hours"], step_hours=parts["step_hours"])
+    rows = label_windows(every, i, unit=unit, time=incident_time, horizon_hours=parts["horizon_hours"], downtime_hours=downtime_hours)
+    train = rows[rows["end"] + h + delay <= cut]
+    fit, val = train[train["end"] + h + delay <= vcut], train[train["end"] > vcut]
+    features = [c for c in rows.columns if c not in (unit, "end", "target", "_last_read")]
+    return {"fit": fit.reset_index(drop=True), "validation": val.reset_index(drop=True), "features": features,
+            "incidents_known": int(len(i)), "readings_read": int(len(r)),
+            "readings_after_the_cut_read": int((pd.to_datetime(rows["_last_read"]) > cut).sum()) if len(rows) else 0}
+
+
+def _fit_and_threshold(view: dict[str, Any], name: str, make: Any, budget: float, unit: str) -> tuple:
+    features = view["features"]
+    model = make().fit(view["fit"][features].fillna(0.0).to_numpy(), view["fit"]["target"].to_numpy())
+    v = model.predict_proba(view["validation"][features].fillna(0.0).to_numpy())[:, 1]
+    return model, v, _threshold(v, _unit_days(view["validation"], unit), budget)
+
+
+def choose(view: dict[str, Any], incidents: pd.DataFrame, parts: dict[str, Any], *, unit: str, incident_time: str, budget_per_unit_day: float = 0.2,
+           downtime_hours: float = 24, detectors: Optional[dict[str, Any]] = None, seed: int = 0) -> dict[str, Any]:
+    """Every method fitted on the fit windows, its threshold set on the validation windows for the alert budget, and
+    scored there by incident; the best incident recall is chosen (fewer false alerts break a tie). The holdout's
+    windows are never built here; ``incidents`` are only those known by the holdout's start."""
+    fit, val = view["fit"], view["validation"]
+    h, delay = pd.Timedelta(hours=parts["horizon_hours"]), pd.Timedelta(hours=parts["label_delay_hours"])
+    matched = int((incidents[unit].isin(fit[unit].unique()).to_numpy() & (_when(incidents[incident_time]) <= pd.Timestamp(parts["validation_from"])).to_numpy()).sum())
+    if matched < 3 or fit["target"].nunique() < 2 or val.empty:
+        raise ValueError(f"{matched} incidents in the first part of the training period: too few to learn from (at least 3), or no period to set thresholds")
+    out = {}
+    for name, make in _makers(view["features"], detectors, seed).items():
+        _, v, threshold = _fit_and_threshold(view, name, make, budget_per_unit_day, unit)
+        out[name] = {"threshold": _r(threshold, 6), **incident_metrics(val, v >= threshold, incidents, unit=unit, time=incident_time, horizon_hours=parts["horizon_hours"],
+                                                                       start=pd.Timestamp(parts["validation_from"]) + h, stop=pd.Timestamp(parts["cut"]) - h - delay,
+                                                                       downtime_hours=downtime_hours)}
+    if not any(m["incidents"] for m in out.values()):
+        raise ValueError("no incident has its whole warning horizon in the validation period: no method can be chosen by incident recall "
+                         "(longer readings, or a shorter horizon)")
+    ranked = out
+    best = max(ranked, key=lambda n: (ranked[n]["incident_recall"] or 0, -(ranked[n]["false_alerts_per_unit_day"] or 0)))
+    return {"validation": out, "chosen": best, "chosen_by": "incident recall on the validation period (fewer false alerts break a tie)",
+            "fit_windows": int(len(fit)), "validation_windows": int(len(val))}
+
+
+def score(readings: pd.DataFrame, incidents: pd.DataFrame, view: dict[str, Any], parts: dict[str, Any], chosen: str, *, unit: str, time: str,
+          sensors: Sequence[str], incident_time: str, budget_per_unit_day: float = 0.2, downtime_hours: float = 24,
+          detectors: Optional[dict[str, Any]] = None, seed: int = 0) -> dict[str, Any]:
+    """The chosen method and the two that need no label, as fitted and thresholded in ``choose``, scored once on the
+    holdout's windows (built from every reading, labelled with every incident); and the chosen one again fitted
+    without a quarter of the units, read on those units' holdout windows (machines never seen)."""
+    cut, h = pd.Timestamp(parts["cut"]), pd.Timedelta(hours=parts["horizon_hours"])
+    every = windows(readings, unit=unit, time=time, sensors=sensors, window_hours=parts["window_hours"], step_hours=parts["step_hours"])
+    rows = label_windows(every, incidents, unit=unit, time=incident_time, horizon_hours=parts["horizon_hours"], downtime_hours=downtime_hours)
+    test = rows[rows["end"] > cut]
+    lost = [c for c in view["features"] if c not in test.columns]
+    if lost or test.empty:
+        raise ValueError(f"the holdout has no window, or lacks training features: {', '.join(lost)}")
+    makers = _makers(view["features"], detectors, seed)
+    stop = rows["end"].max()
+    out = {}
+    for name in dict.fromkeys([chosen, "own_change", "isolation_forest"]):
+        model, _, threshold = _fit_and_threshold(view, name, makers[name], budget_per_unit_day, unit)
+        t = model.predict_proba(test[view["features"]].fillna(0.0).to_numpy())[:, 1]
+        out[name] = {"threshold": _r(threshold, 6), **incident_metrics(test, t >= threshold, incidents, unit=unit, time=incident_time,
+                                                                       horizon_hours=parts["horizon_hours"], start=cut + h, stop=stop, downtime_hours=downtime_hours)}
+    units = np.array(sorted(view["fit"][unit].unique()))
+    held = set(np.random.default_rng(seed).choice(units, max(1, len(units) // 4), replace=False))
+    unseen, fitted_on = None, []
+    others = {k: (v[~v[unit].isin(held)] if k in ("fit", "validation") else v) for k, v in view.items()}
+    mine = test[test[unit].isin(held)]
+    if int(others["fit"]["target"].sum()) >= 3 and others["fit"]["target"].nunique() == 2 and len(others["validation"]) and len(mine):
+        model, _, threshold = _fit_and_threshold(others, chosen, makers[chosen], budget_per_unit_day, unit)
+        fitted_on = sorted(map(str, set(others["fit"][unit]) | set(others["validation"][unit])))
+        t = model.predict_proba(mine[view["features"]].fillna(0.0).to_numpy())[:, 1]
+        unseen = incident_metrics(mine, t >= threshold, incidents, unit=unit, time=incident_time, horizon_hours=parts["horizon_hours"],
+                                  start=cut + h, stop=stop, downtime_hours=downtime_hours)
+    return {"holdout": out, "holdout_windows": int(len(test)), "unseen_units": unseen, "held_out_units": sorted(map(str, held)),
+            "unseen_fitted_on_units": fitted_on}
+
+
+def written_ahead(view: dict[str, Any], incidents: pd.DataFrame, *, unit: str, incident_time: str, sensors: Sequence[str],
+                  horizon_hours: float, limit: float = 0.5) -> dict[str, Any]:
+    """Sensors whose value follows the hours to the unit's next known incident on windows far before it (more than twice
+    the warning horizon): a physical warning sign cannot see that far, a column filled in afterwards (hours to the next
+    failure, a service counter reset at repair) can. Read on the training windows and the incidents known by the cut;
+    each such sensor is to be confirmed by a person (|Spearman| at least ``limit``)."""
+    rows = pd.concat([view["fit"], view["validation"]], ignore_index=True)
+    inc = incidents.assign(_t=_when(incidents[incident_time]).to_numpy()).dropna(subset=["_t"]).sort_values("_t")
+    nxt = pd.merge_asof(rows[[unit, "end"]].reset_index().sort_values("end"), inc[[unit, "_t"]].rename(columns={"_t": "_next"}),
+                        left_on="end", right_on="_next", by=unit, direction="forward").set_index("index").sort_index()
+    hours = (nxt["_next"] - rows["end"]).dt.total_seconds() / 3600
+    far = hours > 2 * horizon_hours
+    out, why = [], {}
+    for s in sensors:
+        col = f"{s}_last"
+        if col not in rows or far.sum() < 30:
+            continue
+        rho = rows.loc[far, col].astype(float).rank().corr(hours[far].rank())
+        if pd.notna(rho) and abs(rho) >= limit:
+            out.append(s)
+            why[s] = (f"on {int(far.sum())} windows more than {2 * horizon_hours:g} hours before the next incident, it follows the hours left "
+                      f"(Spearman {rho:.2f}): written knowing when the failure came")
+    return {"to_confirm": out, "why": why, "windows_read": int(far.sum())}
+
+
+def without(view: dict[str, Any], sensors: Sequence[str]) -> dict[str, Any]:
+    """The view with every feature of ``sensors`` left out."""
+    gone = {c for s in sensors for c in view["features"] if c.startswith(f"{s}_")}
+    return {**view, "features": [c for c in view["features"] if c not in gone]}
+
+
+def wilson(caught: int, total: int, z: float = 1.96) -> tuple[Optional[float], Optional[float]]:
+    """The Wilson interval of a share (caught of total): exact enough for few incidents, never outside [0, 1]."""
+    if not total:
+        return None, None
+    p = caught / total
+    d = 1 + z * z / total
+    c = (p + z * z / (2 * total)) / d
+    w = z * np.sqrt(p * (1 - p) / total + z * z / (4 * total * total)) / d
+    return _r(max(0.0, c - w), 4), _r(min(1.0, c + w), 4)

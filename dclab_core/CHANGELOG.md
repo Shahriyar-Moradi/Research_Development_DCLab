@@ -4,6 +4,23 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.26.0 (2026-10-14)
+
+Package 16.15 C (second part): streams in the engine. `streams` splits into what an engine runs stage by stage; no
+contract changes shape; `evaluate` is unchanged.
+
+- `streams.split`: the holdout's start (`cut`, the latest 30 % of window ends) and the validation's (`validation_from`)
+  from the windows' dates alone, never an incident. `known_by` keeps the readings before the cut and the incidents
+  known by it (their label delay included); `training_view` builds and labels the fit and validation windows from
+  those only. `choose` fits every method on the fit windows, sets each threshold on the validation windows for the
+  alert budget and picks the best incident recall there; `score` builds the holdout's windows from every reading and
+  scores the chosen method and the two that need no label once, and the chosen one again on machines left out.
+- `split` cuts on the time axis (a machine down after a failure writes fewer windows and never moves the line);
+  `choose` refuses a validation period with no scoreable incident; `score` leaves the machines-left-out measure empty
+  (and says so) when the other machines have no validation window.
+- `written_ahead`: sensors that follow the hours to the next known incident on windows far before it (more than twice
+  the horizon), to be confirmed; `without` drops a sensor's features from a view; `wilson`, the interval of a share.
+
 ## 0.25.0 (2026-10-14)
 
 Package 16.15 C (first part): several tables in the engine. `entities` splits into what an engine runs stage by stage;
