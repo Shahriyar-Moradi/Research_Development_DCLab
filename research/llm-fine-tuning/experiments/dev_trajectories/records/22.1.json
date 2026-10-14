@@ -1,0 +1,41 @@
+{
+ "package": "22.1",
+ "title": "Generated decision benchmarks: planted columns, hard negatives, and a sealed partition that holds",
+ "date": "2026-10-14",
+ "request": "Decision models need many labelled decisions. Generated tables with planted columns give labels true by construction: thousands per point, across at least a hundred tables, grouped by table, with a sealed partition never used for tuning; every table also with hidden names so a model learns from bands.",
+ "spec": "Invented tables built from the replicas with planted columns of known kinds; the rules' decisions on them recorded with benchmark labels; per-point sets grouped by table with a sealed partition.",
+ "plan": [
+  "A pure generator in dclab_core: plant, hide names, decide with the data card's rules.",
+  "A command that builds every base under many seeds, both variants, through the 19.12 builder.",
+  "Commit the manifest only: counts, the rules' score, the sealed fingerprints."
+ ],
+ "decisions": [
+  {"decision": "A table and its hidden-name twin share one group.", "why": "They hold the same data: in two splits, the sealed one would be a copy of training."},
+  {"decision": "Plant negatives with the positives' signatures.", "why": "With positives only, one band (a float is a leak) gave every label away."}
+ ],
+ "change": "dclab_core/benchgen.py (new; dclab-core 0.18.0), dclab_rnd/decisions_gen.py (new), Makefile (make decisions-gen), .gitignore, the manifest; tests/test_benchgen.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "S1", "source": "self", "severity": "leakage", "defect": "A table and its hidden-name twin could fall in different splits.", "scenario": "The same planted data in train and in sealed.", "cause": "Each variant was its own group.", "fix": "The twins share a group.", "test": "test_a_twin_shares_its_tables_group"},
+  {"id": "R1", "source": "reviewer", "severity": "leakage", "defect": "A hidden name gave the kind away.", "scenario": "Within a base, f008 was always the identifier.", "cause": "The columns kept their order when renamed.", "fix": "The order shuffled per seed.", "test": "test_a_hidden_name_never_says_the_kind"},
+  {"id": "R2", "source": "reviewer", "severity": "leakage", "defect": "A single band gave each label away.", "scenario": "Every labelled float was a leak: 'float means leak' scored 100%; 95% of sealed states were in training.", "cause": "Only planted positives and a few negatives, each with its own signature.", "fix": "Nine negatives with the positives' signatures; no field alone reaches 97% on any point.", "test": "test_no_single_band_gives_a_label_away"},
+  {"id": "R3", "source": "reviewer", "severity": "gap", "defect": "column.category_code had too few decisions, and the test could not see it.", "scenario": "1,440 decisions; the test checked three points.", "cause": "Only three kinds settled it.", "fix": "More kinds settle it (4,800); the test checks all six points.", "test": "test_the_committed_manifest_meets_the_done_when"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "The 'sum' was not a sum identity.", "scenario": "A noisy copy whose other part was never planted.", "cause": "The noise column was not added.", "fix": "Both parts planted: they add up to the outcome exactly; the part alone is a negative.", "test": "test_each_kind_is_what_its_truth_says_read_from_the_data"},
+  {"id": "R5", "source": "reviewer", "severity": "gap", "defect": "The label test was circular.", "scenario": "Wrong TRUTH entries passed.", "cause": "Labels were compared with the table they came from.", "fix": "Each kind checked from its values.", "test": "test_each_kind_is_what_its_truth_says_read_from_the_data"},
+  {"id": "R6", "source": "reviewer", "severity": "gap", "defect": "The sealed fingerprint hashed only record ids.", "scenario": "A change to the generator changed sealed labels without changing the fingerprint.", "cause": "Ids do not depend on values.", "fix": "Hash the records, states and labels together.", "test": "test_a_small_build_and_its_sealed_partition_does_not_move"}
+ ],
+ "measurements": [
+  {"name": "decisions per point", "gate": "a few thousand labelled decisions per point across at least a hundred tables", "result": "4,800 to 8,160 per point across 240 table groups (480 tables)", "verdict": "pass", "cost_eur": 0.0, "against_gate": "4,800 and more against a few thousand", "limits": ["Ten bases: the sealed partition holds new seeds of known bases."]},
+  {"name": "sealed lookup shortcut", "gate": "no single band gives a label away (below 97%)", "result": "below 97% for every field and point; a lookup of a whole sealed state in training is right 84-99% of the time", "verdict": "pass", "cost_eur": 0.0, "against_gate": "below 97% per field", "limits": ["Bands together still carry much of each label."]}
+ ],
+ "outcome": "44,640 labelled decisions on 480 invented tables, one set per decision point with a sealed partition by table group. No single band gives a label away, and the hidden names say nothing.",
+ "lessons": [
+  "A planted benchmark with positives only teaches the planting, not the decision: plant negatives that look the same.",
+  "Twins of one table belong in one split.",
+  "Fingerprint what a sealed set holds, not only its ids."
+ ],
+ "risks": [
+  "The bases are ten replicas; the public tables have no declared outcome yet.",
+  "Base columns are not labelled."
+ ],
+ "commits": []
+}

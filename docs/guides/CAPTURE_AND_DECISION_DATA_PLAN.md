@@ -314,6 +314,22 @@ by the same gates; the ledger feeds all of them, each in its own training format
   rules make on them recorded with its benchmark label. The same generator gives the main product R3-style cases.
 - **Done when:** for each Jev purpose and each studio point with a planted truth, at least a few thousand labelled
   decisions across at least a hundred tables, grouped by table, with a sealed partition never used for tuning.
+- **Status: done (2026-10-14).** `dclab_core/benchgen.py` (dclab-core 0.18.0) and `make decisions-gen`
+  (`dclab_rnd/decisions_gen.py`): ten replica bases with an outcome, 24 seeds each, every table twice (with its names,
+  and with every name hidden in an order shuffled per seed): 480 tables in 240 groups (a table and its twin share
+  one), 44,640 decisions with benchmark labels: 8,160 each for `column.is_identifier`, `feature.leakage_suspect`,
+  `column.group` and `column.time`, 7,200 for `column.semantic_role`, 4,800 for `column.category_code`. Seventeen
+  planted kinds: eight positives (an identifier, a recurring key, a code, a date in time order, free text, a column
+  written after the outcome, a copy, and the sum of an exact identity whose other part is planted beside it) and nine
+  negatives with the same signatures (independent, gappy, genuinely predictive numbers, the identity's other part, a
+  category of many levels, counts, small counts, a code of many levels, a date that is not the row's time), so no
+  single band gives a label away (tested: below 97% for every field and point). One set per point through the 19.12
+  builder, a sealed partition by group in a file of its own; the rows are rebuilt by the command, the manifest
+  (counts, the rules' score, a fingerprint of each sealed partition's contents) is committed. Limits: the sealed
+  partition holds new seeds of the same ten bases, not new tables; the bands together still carry much of each label
+  (a lookup of a sealed state in the training rows is right 84–99% of the time), which is what a classifier may learn;
+  base columns are not labelled; the public tables (no declared outcome yet) and the main product's R3-style cases
+  are left open.
 
 ### 22.2 Classical decision classifiers
 - **Delivers:** one classifier per decision point (gradient boosting or a calibrated logistic model on the state's

@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.18.0 (2026-10-14)
+
+Package 22.1: generated decision benchmarks. A new module; no contract changes shape.
+
+- `benchgen` (new): `plant(base, target, seed)` adds seventeen kinds of column to a table: eight positives (a unique
+  identifier, a recurring key, a numeric category code, a date in time order, free text, a column written after the
+  outcome, a copy, the sum of an exact identity) and nine negatives with the same signatures (so no single band gives
+  a label away); `obfuscate(..., seed)` renames every column `f000`… in a shuffled order; `decide` runs the data card's
+  rules on the planted columns and returns their `DecisionRecord`s (bands only) with benchmark `DecisionLabel`s from
+  `TRUTH`, the record's `dataset` the group a table shares with its hidden-name twin.
+
 ## 0.17.0 (2026-10-14)
 
 Package 22.0: one interface for every decision model. A new module; no contract changes shape.
