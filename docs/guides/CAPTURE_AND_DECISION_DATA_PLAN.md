@@ -295,6 +295,16 @@ by the same gates; the ledger feeds all of them, each in its own training format
   ledger records every answerer's answer beside the rule's, so models are compared on the same decisions.
 - **Done when:** a scripted answerer, the rule and a classical classifier answer the same recorded decisions, and
   their agreement and accuracy come out of one function.
+- **Status: done (2026-10-14).** `dclab_core/answerers.py` (dclab-core 0.17.0): the protocol, a registry, the
+  recorded rule, a scripted answerer and a logistic-regression classifier; `compare()` gives each one's coverage,
+  agreement with the rule and accuracy against the label that counts, overall and by point; `with_answers()` records
+  answers beside the rule's as validated shadows (`source="shadow"`) that never change what was used nor which label
+  counts; the classifier scales its numbers on the training rows, leaves out the measure a label comes from
+  (`exclude`), never answers an option the decision did not offer, and abstains below its confidence; `compare` adds
+  accuracy over every labelled decision, an abstention counted wrong. The test compares the three kinds in one call on
+  generated identifier decisions held out by project; its classifier wins by construction (the state's band is set
+  from the label, the rule reads only the name): it shows the plumbing, not a finding about any real rule. Left open:
+  a model through the gateway as an answerer (22.5), recording shadow answers at decision time (22.4).
 
 ### 22.1 Decision datasets at scale: generated benchmarks
 - **Delivers:** the largest source of labels, by construction: thousands of tables generated from the replicas and

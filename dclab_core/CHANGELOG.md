@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.17.0 (2026-10-14)
+
+Package 22.0: one interface for every decision model. A new module; no contract changes shape.
+
+- `answerers` (new): `DecisionAnswerer`, the protocol every decision model answers through (a point, its state in
+  the ledger's bands, its options → an `Answer` with a confidence, or None to abstain), with a registry by
+  `name@version` and the points each answers; `RecordedRule` (the rule's recorded answer, today's code),
+  `ScriptedAnswerer`, `ClassifierAnswerer` (logistic regression on the state's bands and name tokens, abstaining below
+  a confidence); `with_answers(record, answerers)`, every answer beside the rule's (a shadow, never used);
+  `compare(records, labels, answerers)`, each answerer's coverage, agreement with the rule and accuracy against the
+  labels that count, overall and by point. `features(state)`: a state as features, a column's name only by its tokens.
+
 ## 0.16.0 (2026-10-14)
 
 Package 20.2: the understanding conversation. A new module; no contract changes shape. `card.WORDS` reads more ways

@@ -1,0 +1,39 @@
+{
+ "package": "22.0",
+ "title": "One interface for every decision model, and one function to compare them on the same decisions",
+ "date": "2026-10-14",
+ "request": "Milestone D: decision models of any kind (a classical classifier, an open-source model, a hosted one) answer DCLab's decision points through one interface and are judged by the same measures against the rules.",
+ "spec": "A DecisionAnswerer protocol in dclab_core: a point, its state and its options in; an answer with a confidence, or an abstention, out. Registered with its name, version and points; the ledger records every answerer's answer beside the rule's. Done when a scripted answerer, the rule and a classical classifier answer the same recorded decisions, and their agreement and accuracy come out of one function.",
+ "plan": [
+  "The protocol, a registry, the recorded rule, a scripted answerer and a logistic-regression classifier.",
+  "compare(): coverage, agreement with the rule, accuracy where a label says what was right.",
+  "with_answers(): shadow answers recorded beside the rule's, never used."
+ ],
+ "decisions": [
+  {"decision": "The rule is the answer recorded with each decision, not the code run again.", "why": "The code saw the table; the state holds only bands, so a replay from the state would be a different rule."},
+  {"decision": "Shadow answers are marked and set aside when deciding what counts as right.", "why": "An answer nobody saw must not turn a person's agreement into a contradiction, and so into a label."}
+ ],
+ "change": "dclab_core/answerers.py (new; dclab-core 0.17.0); tests/test_answerers.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "R1", "source": "reviewer", "severity": "behaviour", "defect": "Numbers entered the classifier unscaled, and it lost on a perfectly separable small measure.", "scenario": "A lift of a few hundredths separating the labels: below chance on held-out projects.", "cause": "Raw units in a regularised model beside 0/1 bands.", "fix": "A scaler fitted on the training rows inside the classifier.", "test": "test_a_small_measure_is_learned_once_scaled"},
+  {"id": "R2", "source": "reviewer", "severity": "leakage", "defect": "A classifier could read the very measure its label was computed from.", "scenario": "A measured leakage label is true exactly when the state's lift is above zero.", "cause": "Every numeric state field became a feature.", "fix": "exclude= on the classifier and features(); names never enter whole.", "test": "test_the_measure_a_label_comes_from_can_be_left_out"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "with_answers bypassed validation.", "scenario": "'maybe' recorded as an answer to a yes/no point; the ledger would then skip the record on read.", "cause": "A copy without validation.", "fix": "Answers the point refuses are abstentions; the record is validated again; register checks who may answer.", "test": "test_shadows_are_validated_and_never_move_the_truth"},
+  {"id": "R4", "source": "reviewer", "severity": "leakage", "defect": "A shadow answer changed which label counted as the truth.", "scenario": "A person agreeing with the rule became a contradiction once a shadow disagreed.", "cause": "effective_label counts an exposed label against any non-person answer.", "fix": "Shadows are marked and set aside when the truth is read.", "test": "test_shadows_are_validated_and_never_move_the_truth"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "The classifier answered options the decision never offered.", "scenario": "split.strategy answered 'time' when only 'random' was an option.", "cause": "options ignored.", "fix": "Restricted to the offered options, renormalised; abstains when none remains.", "test": "test_a_choice_answer_stays_within_the_decisions_options"},
+  {"id": "R6", "source": "reviewer", "severity": "gap", "defect": "Accuracy flattered an answerer that abstains.", "scenario": "Answering half the cases and getting those right showed 1.0.", "cause": "Accuracy only over answered decisions.", "fix": "accuracy_all, an abstention counted wrong.", "test": "test_coverage_abstention_and_accuracy_over_all"},
+  {"id": "R7", "source": "reviewer", "severity": "gap", "defect": "The test's win over the rule was planted and not said so.", "scenario": "The state's band is set from the label; the rule reads only the name.", "cause": "Generated data meant to exercise the plumbing.", "fix": "Said in the test and the status line.", "test": "read against the files"}
+ ],
+ "measurements": [
+  {"name": "planted faults", "gate": "each fix undone fails a test", "result": "8 of 8 caught", "verdict": "pass", "cost_eur": 0.0, "against_gate": "8 of 8", "limits": ["Only the faults planted."]}
+ ],
+ "outcome": "Every decision model now answers through one interface and is compared with the rule on the same decisions: coverage, agreement and accuracy, overall and by point. Shadow answers are recorded without moving the truth.",
+ "lessons": [
+  "Scale features inside the fitted model, or small measures lose to counts.",
+  "A label computed from a state field turns that field into the answer: leave it out.",
+  "Say when a test's winner is planted: it proves plumbing, not quality."
+ ],
+ "risks": [
+  "No real decisions have been compared yet: generated benchmarks come with 22.1."
+ ],
+ "commits": []
+}
