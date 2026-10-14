@@ -2048,7 +2048,7 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
     </div>
     <div class="panel" id="sess-one" hidden>
       <div class="panel-head"><div class="panel-title"><h2 id="sess-one-title">A session</h2><span class="sub" id="sess-one-sub"></span></div>
-        <div class="row"><label class="switch"><input type="checkbox" id="sess-model-text"><span class="track"></span><span class="small">Prompts and replies</span></label><button type="button" class="btn sm" id="sess-close">Close</button></div></div>
+        <div class="row"><label class="switch"><input type="checkbox" id="sess-model-text"><span class="track"></span><span class="small">Prompts and replies</span></label><button type="button" class="btn sm danger" id="sess-delete">Delete session</button><button type="button" class="btn sm" id="sess-close">Close</button></div></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Time</th><th>Who</th><th>What</th></tr></thead><tbody id="sess-timeline"></tbody></table></div>
     </div>
   </div>

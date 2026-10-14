@@ -46,8 +46,9 @@ WRITE_ROUTES = {
     "POST /api/drafts": (EVENTS, ["draft.created"]),
     "POST /api/ledger/blind/{record_id}": (NONE, "a blind label is the ledger's own record (decision_label), not a session event"),
     "POST /api/feedback": (EVENTS, ["feedback.given"]),
+    "PUT /api/consent": (EVENTS, ["decision.accepted"]),  # the switch, audited as a policy
     "PATCH /api/drafts/{draft_id}": (EVENTS, ["draft.edited"]),
-    "DELETE /api/drafts/{draft_id}": (NONE, "the deletion is audited; what the draft left stays in the record until retention (19.6)"),
+    "DELETE /api/drafts/{draft_id}": (NONE, "the deletion is audited (its tombstone) and what the draft left is removed from the record (19.10)"),
     "PUT /api/drafts/{draft_id}/data": (EVENTS, ["data.uploaded", "data.cleaned", "data.analysed", "run.recorded"]),  # a label file: no analysis of its own
     "POST /api/drafts/{draft_id}/data/sample": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/data/synthetic": (EVENTS, ["data.uploaded"]),
@@ -63,7 +64,8 @@ WRITE_ROUTES = {
     "POST /api/drafts/{draft_id}/build": (EVENTS, ["draft.built"]),  # or draft.refused, for a list of cases alone
     "POST /api/projects": (NONE, "an empty project; its data, solution and stages are events"),
     "PATCH /api/projects/{project_id}": (EVENTS, ["decision.accepted"]),  # settings, gates, the opt-in; a name or a goal leaves none
-    "DELETE /api/projects/{project_id}": (NONE, "the deletion is audited; the project's events stay until retention (19.6)"),
+    "DELETE /api/projects/{project_id}": (NONE, "the deletion is audited (its tombstone) and the project's events are removed (19.10)"),
+    "DELETE /api/experience/sessions/{visit}": (NONE, "the session's events are removed; the audit keeps its tombstone (19.10)"),
     "PUT /api/projects/{project_id}/data": (EVENTS, ["data.uploaded"]),
     "POST /api/projects/{project_id}/data/sample": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/solution": (EVENTS, ["graph.move", "solution.saved"]),

@@ -14,6 +14,9 @@ Each job worker sweeps once an hour on a thread of its own (never in its heartbe
 atomic step before it is checked and removed, so of several sweeps one deletes and audits it, and an upload that
 landed under the name meanwhile is put back. A sweep stopped between marking and deleting is finished by the next.
 ``python -m dclab_rnd.retention [--days N] [--dry-run]`` sweeps now.
+
+The same sweep applies the session record's retention (package 19.10, ``experience.retention``):
+``DCLAB_RETENTION_EVENT_DAYS`` and ``DCLAB_RETENTION_MODEL_TEXT_DAYS``, each off when unset.
 """
 
 from __future__ import annotations
@@ -129,13 +132,36 @@ def sweep(drafts: Any, days: int, now: datetime | None = None, dry_run: bool = F
 
 
 def sweep_due(env: Any, state: dict[str, float], clock: float) -> list[dict[str, Any]]:
-    """For the worker's retention thread: sweep when the rule is on and the last sweep was an hour ago."""
+    """For the worker's retention thread: sweep when a rule is on and the last sweep was an hour ago: raw uploads, and
+    the session record's events and model text (19.10, ``experience.retention``)."""
+    from .experience import retention as record
+
     days = raw_days()
-    if days is None or clock - state.get("last", float("-inf")) < SWEEP_SECONDS:
+    record_on = record.days("DCLAB_RETENTION_EVENT_DAYS") or record.days("DCLAB_RETENTION_MODEL_TEXT_DAYS")
+    if (days is None and not record_on) or clock - state.get("last", float("-inf")) < SWEEP_SECONDS:
         return []
     state["last"] = clock
+    if record_on:
+        sweep_record(env)
     drafts = getattr(env, "drafts", None)
-    return sweep(drafts, days) if drafts is not None else []
+    return sweep(drafts, days) if drafts is not None and days is not None else []
+
+
+def sweep_record(env: Any) -> dict[str, int]:
+    """The session record past its retention (events, then prompts and replies), audited when anything went."""
+    from . import audit
+    from .experience import retention as record
+
+    log = getattr(env, "experience", None)
+    out = record.sweep_events(log) if log is not None else {"events_deleted": 0, "texts_removed": 0}
+    text_days = record.days("DCLAB_RETENTION_MODEL_TEXT_DAYS")
+    usage = getattr(getattr(env, "gateway", None), "usage", None)
+    if text_days and usage is not None and hasattr(usage, "forget_prompts"):  # the gateway's copy of each prompt goes too
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=text_days)).isoformat(timespec="seconds")
+        out["usage_prompts_removed"] = usage.forget_prompts(before=cutoff)
+    if any(out.values()):
+        audit.record(getattr(env, "audit", None), "retention", "system", move="sweep_session_record", status="allowed", **out)
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -152,15 +178,24 @@ def main(argv: list[str] | None = None) -> int:
     from .settings import ROOT, Settings
 
     load_dotenv(ROOT / ".env", override=False)
+    from .experience import retention as record
+
     days = args.days if args.days is not None else raw_days()
-    if not days or days < 1:
-        print("Retention is off: set DCLAB_RETENTION_RAW_DAYS (or --days) to a number of days.", file=sys.stderr)
+    record_on = bool(record.days("DCLAB_RETENTION_EVENT_DAYS") or record.days("DCLAB_RETENTION_MODEL_TEXT_DAYS")) and not args.dry_run
+    if (not days or days < 1) and not record_on:
+        print("Retention is off: set DCLAB_RETENTION_RAW_DAYS (or --days), DCLAB_RETENTION_EVENT_DAYS or "
+              "DCLAB_RETENTION_MODEL_TEXT_DAYS to a number of days.", file=sys.stderr)
         return 2
     from .agentic.pool import Pool
 
     pool = Pool(Settings.load(args.home))
     total = 0
     for services in [pool.default] + [pool.get(w) for w in (pool.workspace_ids()[1:] if pool.settings.auth != "none" else [])]:
+        if record_on:
+            out = sweep_record(services)
+            print(f"session record: {out['events_deleted']} events deleted, {out['texts_removed']} prompts and replies removed")
+        if not days or days < 1:
+            continue
         for row in sweep(services.drafts, days, dry_run=args.dry_run):
             total += 1
             print(f"{'would delete' if args.dry_run else 'deleted'} draft {row['draft_id']} {row['filename']} (added {row['added']})")

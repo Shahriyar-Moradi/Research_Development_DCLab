@@ -52,6 +52,10 @@ SPECIAL = {
     ("POST", "/api/ledger/blind/{record_id}"): "review",
     # feedback on an answer, a proposal or a decision (19.9): every role may say what helped
     ("POST", "/api/feedback"): "read",
+    # consent for what leaves the workspace, and deleting a session's record (19.10): the owner's
+    ("GET", "/api/consent"): "read",
+    ("PUT", "/api/consent"): "admin",
+    ("DELETE", "/api/experience/sessions/{visit}"): "timelines",
 }
 
 

@@ -310,17 +310,24 @@ def _spend() -> dict[str, Any]:
 
 
 def _retention() -> dict[str, Any]:
-    """The retention rule as the privacy list states it (package 12.5): what DCLAB_RETENTION_RAW_DAYS does, and that it is off."""
+    """The retention rules as the privacy list states them: raw uploads (package 12.5, DCLAB_RETENTION_RAW_DAYS) and the
+    session record (19.10, DCLAB_RETENTION_EVENT_DAYS and DCLAB_RETENTION_MODEL_TEXT_DAYS); each off until set."""
     from ... import retention
+    from ...experience import retention as record
 
     days = retention.raw_days()
-    if days is None:
-        return {"title": "Retention", "on": False, "text": "No timed retention: raw uploads stay until their draft is deleted "
-                "(DCLAB_RETENTION_RAW_DAYS turns it on). Deleting a project or a draft removes its files and leaves an audit entry."}
-    return {"title": "Retention", "on": True, "text": f"A draft's raw upload is deleted {days} day{'s' if days != 1 else ''} after it became a cleaned "
-            "table; the cleaned table, its SHA-256 and every record stay, and each deletion is in the audit. An upload that failed "
-            "to process is kept until its draft is deleted (a retry needs it). Deleting a project or a draft removes its files and "
-            "leaves an audit entry."}
+    events, text = record.days("DCLAB_RETENTION_EVENT_DAYS"), record.days("DCLAB_RETENTION_MODEL_TEXT_DAYS")
+    plural = lambda n: f"{n} day{'s' if n != 1 else ''}"  # noqa: E731
+    raw = (f"A draft's raw upload is deleted {plural(days)} after it became a cleaned table; the cleaned table, its SHA-256 and "
+           "every record stay, and each deletion is in the audit. An upload that failed to process is kept until its draft is "
+           "deleted (a retry needs it)." if days is not None else
+           "Raw uploads stay until their draft is deleted (DCLAB_RETENTION_RAW_DAYS turns timed deletion on).")
+    kept = (" The session record keeps " + (f"events for {plural(events)}" if events else "events until deleted")
+            + (f" and prompts and replies for {plural(text)}." if text else ", prompts and replies with them.")
+            + ("" if events and text else " DCLAB_RETENTION_EVENT_DAYS and DCLAB_RETENTION_MODEL_TEXT_DAYS set them."))
+    return {"title": "Retention", "on": days is not None or bool(events or text),
+            "text": raw + kept + " Deleting a project, a draft or a session removes its files, its record and its decisions, and "
+            "leaves an audit entry that it was deleted."}
 
 
 def limits(projects) -> dict[str, Any]:

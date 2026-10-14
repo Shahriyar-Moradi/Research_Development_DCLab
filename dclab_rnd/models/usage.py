@@ -136,6 +136,34 @@ class FileUsage:
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]:
         return _totals([e for e in self._all() if (not since or str(e.get("at")) >= since) and (not project_id or e.get("project_id") == project_id)])
 
+    def forget_prompts(self, before: str | None = None, project_id: str | None = None, draft_id: str | None = None) -> int:
+        """Prompts removed (19.10): those older than ``before``, or of a deleted project or draft. The rest of each row
+        (tokens, spend) stays: a month's spend still adds up."""
+        import os
+        import secrets
+
+        if not (before or project_id or draft_id) or not self.path.is_file():
+            return 0
+        removed = 0
+        with self._lock:
+            out = []
+            for line in self.path.read_text(encoding="utf-8").splitlines():
+                try:
+                    e = json.loads(line)
+                except json.JSONDecodeError:
+                    out.append(line)
+                    continue
+                if e.get("prompt") and ((before and str(e.get("at")) < before) or (project_id and e.get("project_id") == project_id)
+                                        or (draft_id and e.get("draft_id") == draft_id)):
+                    e["prompt"], removed = None, removed + 1
+                    line = json.dumps(e, ensure_ascii=False, default=str)
+                out.append(line)
+            if removed:
+                tmp = self.path.with_name(f"{self.path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+                tmp.write_text("".join(x + "\n" for x in out), encoding="utf-8")
+                tmp.replace(self.path)
+        return removed
+
 
 class PgUsage:
     def __init__(self, workspace_id: str, url: str | None = None):
@@ -206,6 +234,19 @@ class PgUsage:
 
     def totals(self, since: str | None = None, project_id: str | None = None) -> dict[str, Any]:
         return _totals(self._query(since, project_id))
+
+    def forget_prompts(self, before: str | None = None, project_id: str | None = None, draft_id: str | None = None) -> int:
+        import sqlalchemy as sa
+
+        from ..storage.models import model_request as t
+
+        if not (before or project_id or draft_id):
+            return 0
+        which = [c for c in ((t.c.at < before) if before else None, (t.c.project_id == project_id) if project_id else None,
+                             (t.c.draft_id == draft_id) if draft_id else None) if c is not None]
+        with self.engine.begin() as c:
+            return int(c.execute(sa.update(t).where(t.c.workspace_id == self.workspace_id, t.c.prompt.isnot(None), sa.or_(*which))
+                                 .values(prompt=None)).rowcount or 0)
 
 
 def open_usage(home: Path) -> UsageLog:

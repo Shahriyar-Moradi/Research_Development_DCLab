@@ -52,10 +52,10 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
     projects = s.projects
     p = s.project(project_id)
     body = payload.model_dump(exclude_unset=True)
-    if isinstance(body.get("policy"), dict) or "share_for_training" in (body.get("settings") or {}):
+    if isinstance(body.get("policy"), dict) or {"share_for_training", "consent"} & set(body.get("settings") or {}):
         from ...accounts.guard import demand
 
-        demand("admin", "change a gate switch or the training opt-in")  # the owner's (package 10.2)
+        demand("admin", "change a gate switch, the training opt-in or consent")  # the owner's (package 10.2, 19.10)
     for key in ("name", "goal"):
         if key in body:
             p[key] = str(body[key]).strip()[:4000 if key == "goal" else 120]
@@ -71,9 +71,26 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
             p["settings"]["quick"] = bool(settings["quick"])
         if "folds" in settings:
             p["settings"]["folds"] = max(studio_engine.FOLD_CAPS[0], min(int(settings["folds"]), studio_engine.FOLD_CAPS[1]))
+        from ... import consent as consents
+
         if isinstance(settings.get("share_for_training"), bool) and settings["share_for_training"] != bool(p["settings"].get("share_for_training")):
             p["settings"]["share_for_training"] = settings["share_for_training"]  # A6.1: only the owner's choice puts a project's runs in the export
             opted = {"share_for_training": settings["share_for_training"], "actor": "human"}
+            if isinstance((p["settings"].get("consent") or {}).get("train"), bool):  # one switch, two names: both move
+                p["settings"]["consent"] = {**p["settings"]["consent"], "train": settings["share_for_training"]}
+        consented = {}
+        if isinstance(settings.get("consent"), dict):  # 19.10: use to improve DCLab, use to train its models; each off by default
+            now = consents.project_consent(p)
+            own = dict(p["settings"].get("consent") or {})
+            for use in ("improve", "train"):
+                value = settings["consent"].get(use)
+                if isinstance(value, bool) and (value != now[use] or not isinstance(own.get(use), bool)):
+                    own[use] = value
+                    if value != now[use]:
+                        consented[use] = value
+            if "train" in own:  # the earlier opt-in says the same as the train switch
+                p["settings"]["share_for_training"] = own["train"]
+            p["settings"]["consent"] = own
         from ...experience import hooks  # 19.3: how it will run, as the person set it (the opt-in is a policy, recorded as one)
 
         hooks.settings_changed({k: p["settings"].get(k) for k in ("max_rows", "quick", "folds") if before.get(k) != p["settings"].get(k)},
@@ -90,6 +107,10 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
         for key, change in changed.items():
             audit.record(s.audit, "policy", "human", project=p, move="set_policy", status="allowed",
                          args={"policy": key, "label": audit.POLICY_NAMES.get(key, key), "on": bool(change["to"]), "was": change["from"]})
+    for use, on in (consented if isinstance(body.get("settings"), dict) else {}).items():
+        projects.log(project_id, "consent_changed", {"use": use, "on": on, "actor": "human"})
+        audit.record(s.audit, "policy", "human", project=p, move="set_consent", status="allowed",
+                     args={"policy": f"consent_{use}", "label": audit.POLICY_NAMES[f"consent_{use}"], "on": on})
     if opted:
         projects.log(project_id, "training_opt_in_changed", opted)
         audit.record(s.audit, "policy", "human", project=p, move="set_training_opt_in", status="allowed",
@@ -118,9 +139,12 @@ async def delete_project(project_id: str, s: Services = Depends(services)):
             forgotten = files.forget(prefix)  # the records of its files go with it
         except Exception:  # noqa: BLE001
             pass
-    # the project and its files are gone; who deleted it, and which table it held, stay (package 12.5)
+    from ...experience import retention  # 19.10: and everything it left in the session record and the decision ledger
+
+    gone = await asyncio.to_thread(retention.forget, project=project_id, log=s.experience, ledger=s.ledger, usage=getattr(s.gateway, "usage", None))
+    # the project and its files are gone; who deleted it, and which table it held, stay (package 12.5): its tombstone
     audit.record(s.audit, "deletion", "human", project={"id": project_id, "name": project.get("name")}, move="delete_project", status="allowed",
-                 filename=data.get("filename"), sha256=data.get("sha256"), files=len(forgotten))
+                 filename=data.get("filename"), sha256=data.get("sha256"), files=len(forgotten), **gone)
     return Response(status_code=204)
 
 

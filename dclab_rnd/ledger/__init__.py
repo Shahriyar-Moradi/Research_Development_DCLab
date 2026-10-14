@@ -130,6 +130,9 @@ def _day(at: str) -> str:
     return datetime.fromisoformat(at).astimezone(timezone.utc).strftime("%Y/%m/%d")
 
 
+from ..filelock import held  # noqa: E402  (19.10: appends and a deletion's rewrite never cross)
+
+
 class FileLedger:
     """``ledger/decisions/YYYY/MM/DD.jsonl`` and ``ledger/labels/…``: one line per record, only ever appended."""
 
@@ -139,7 +142,7 @@ class FileLedger:
     def _append(self, kind: str, doc: Any) -> None:
         path = self.root / kind / f"{_day(doc.at)}.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
-        with _LOCK, path.open("a", encoding="utf-8") as out:
+        with _LOCK, held(self.root), path.open("a", encoding="utf-8") as out:
             out.write(doc.model_dump_json() + "\n")
 
     def add(self, record: Any) -> None:
@@ -156,7 +159,7 @@ class FileLedger:
             for day, items in by_day.items():
                 path = self.root / kind / f"{day}.jsonl"
                 path.parent.mkdir(parents=True, exist_ok=True)
-                with _LOCK, path.open("a", encoding="utf-8") as out:
+                with _LOCK, held(self.root), path.open("a", encoding="utf-8") as out:
                     out.write("".join(d.model_dump_json() + "\n" for d in items))
 
     def _read(self, kind: str, model: Any) -> list[Any]:

@@ -164,9 +164,11 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
             except Exception:  # noqa: BLE001
                 pass
         from .. import audit  # the draft and its files are gone; who deleted it stays (package 12.5)
+        from ..experience import retention  # 19.10: and what it left in the session record and the decision ledger
 
+        gone = await asyncio.to_thread(retention.forget, draft=draft_id, usage=getattr(models, "usage", None))
         audit.record_for(drafts, "deletion", "human", draft_id=draft_id, move="delete_draft", status="allowed",
-                         assets=len(draft.get("assets") or []), project_id=draft.get("project_id"), files=len(forgotten))
+                         assets=len(draft.get("assets") or []), project_id=draft.get("project_id"), files=len(forgotten), **gone)
         try:
             if traces is not None:
                 traces.delete(draft_id)

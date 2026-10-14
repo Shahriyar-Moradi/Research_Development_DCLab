@@ -13,6 +13,8 @@ Written 2026-10-13. Done before it: 20.0 (the guard), 19.1–19.3 (the record of
 card). Every package is built the same way: a failing test, the change, the checks, an adversarial review and its
 fixes, planted faults, its development record for the owner's SFT, a commit pushed.
 
+**Progress (2026-10-14):** milestone A done (19.4–19.8); milestone B: 19.9 and 19.10 done, 19.11 next.
+
 ## The two goals it serves
 
 1. **DCLab solves machine-learning problems the right way, end to end**: it understands the problem and the data,
@@ -61,7 +63,7 @@ A ──► B ──► (training data can leave the workspace)
 
 | Decision | Needed by | Proposal |
 |---|---|---|
-| Retention per class | B (19.10) | events 24 months, model text 12 months |
+| Retention per class | B (19.10) | events 24 months, model text 12 months (built and off until set: DCLAB_RETENTION_EVENT_DAYS=730, DCLAB_RETENTION_MODEL_TEXT_DAYS=365) |
 | Who reads session timelines and decisions | A (19.4) | owner and admin roles |
 | Who labels blind | A (19.8) | the owner first, reviewers later |
 | A GPU for fine-tuning, and which open-source models first | H (22.5) | one small model (Qwen 2.5 1.5B or Phi-3 mini) beside the one the owner names (e.g. Laya) |

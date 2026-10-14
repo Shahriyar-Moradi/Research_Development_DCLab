@@ -220,6 +220,8 @@
     configuration: ["GET", "/config", [], []],
     connectorsStatus: ["GET", "/connectors", [], []],
     kaggleSearch: ["POST", "/connectors/kaggle/search", [], []],
+    readConsent: ["GET", "/consent", [], []],
+    setConsent: ["PUT", "/consent", [], []],
     listDrafts: ["GET", "/drafts", [], []],
     createDraft: ["POST", "/drafts", [], []],
     deleteDraft: ["DELETE", "/drafts/{draft_id}", ["draft_id"], []],
@@ -245,6 +247,7 @@
     evidenceRecord: ["GET", "/evidence/{record_id}", ["record_id"], []],
     experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit"]],
     experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
+    deleteSession: ["DELETE", "/experience/sessions/{visit}", ["visit"], []],
     experienceSession: ["GET", "/experience/sessions/{visit}", ["visit"], ["model_text"]],
     giveFeedback: ["POST", "/feedback", [], []],
     internStatus: ["GET", "/intern", [], []],
@@ -402,6 +405,17 @@
    *  @returns {Promise<Array<Doc>>} */
   client.kaggleSearch = (...args) => call('kaggleSearch', args);
   client.path.kaggleSearch = (...args) => build('kaggleSearch', args).path;
+  /** GET /api/consent: Read Consent
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.readConsent = (...args) => call('readConsent', args);
+  client.path.readConsent = (...args) => build('readConsent', args).path;
+  client.href.readConsent = (...args) => '/api' + build('readConsent', args).path;
+  /** PUT /api/consent: Set Consent
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.setConsent = (...args) => call('setConsent', args);
+  client.path.setConsent = (...args) => build('setConsent', args).path;
   /** GET /api/drafts: List Drafts
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Array<Doc>>} */
@@ -554,6 +568,12 @@
   client.experienceSessions = (...args) => call('experienceSessions', args);
   client.path.experienceSessions = (...args) => build('experienceSessions', args).path;
   client.href.experienceSessions = (...args) => '/api' + build('experienceSessions', args).path;
+  /** DELETE /api/experience/sessions/{visit}: Delete Session
+   *  @param {string} visit
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<null>} */
+  client.deleteSession = (...args) => call('deleteSession', args);
+  client.path.deleteSession = (...args) => build('deleteSession', args).path;
   /** GET /api/experience/sessions/{visit}: Experience Session
    *  @param {string} visit
    *  @param {{query?: {model_text?: *}, headers?: Object}} [opts]

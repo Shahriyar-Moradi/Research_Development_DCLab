@@ -160,7 +160,9 @@ class FileLog:
         return self.root / f"{day:%Y}" / f"{day:%m}" / f"{day:%d}" / f"{name}.jsonl"
 
     def append(self, events: list[contract.ExperienceEvent]) -> None:
-        with self._lock:
+        from ..filelock import held
+
+        with self._lock, held(self.root):  # a deletion's rewrite (experience.retention) waits, and is waited for
             for event in events:
                 path = self._path(event)
                 path.parent.mkdir(parents=True, exist_ok=True)

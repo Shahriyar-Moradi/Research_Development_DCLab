@@ -276,7 +276,8 @@ def sha256_of(path: Path) -> str | None:
 # ---------------------------------------------------------------------- reading: the Admin audit tab
 
 POLICY_NAMES = {"require_solution_signoff": "solution sign-off", "require_holdout_approval": "holdout approval",
-                "share_for_training": "training opt-in"}
+                "share_for_training": "training opt-in", "consent_improve": "consent: use to improve DCLab",
+                "consent_train": "consent: use to train DCLab's models"}
 
 
 def item(row: dict[str, Any], names: dict[str, str]) -> dict[str, Any]:

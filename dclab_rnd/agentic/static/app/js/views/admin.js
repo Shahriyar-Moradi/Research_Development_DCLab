@@ -86,6 +86,16 @@ DC.view('admin', {
     $('#sess-clear', el).addEventListener('click', () => { $('#sess-find', el).reset(); this.loadSessions(el); });
     $('#sess-close', el).addEventListener('click', () => { $('#sess-one', el).hidden = true; S.visit = null; });
     $('#sess-model-text', el).addEventListener('change', () => { if (S.visit) this.openSession(el, S.visit); });
+    /* 19.10: a session and everything it left, deleted; the audit keeps only that it was. A second click confirms. */
+    $('#sess-delete', el).addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      if (!S.visit) return;
+      if (btn.dataset.armed !== S.visit) { btn.dataset.armed = S.visit; btn.textContent = 'Delete for good?'; return; }
+      try { await DC.client.deleteSession(S.visit); DC.toast('Deleted. The audit log keeps that it was, never what it held.'); }
+      catch (err) { DC.toast(err.message, { ok: false }); return; }
+      finally { delete btn.dataset.armed; btn.textContent = 'Delete session'; }
+      $('#sess-one', el).hidden = true; S.visit = null; this.loadSessions(el);
+    });
     $('#sess-body', el).addEventListener('click', e => {
       const row = e.target.closest('[data-visit]');
       if (row && !e.target.closest('a')) this.openSession(el, row.dataset.visit);
@@ -491,7 +501,25 @@ DC.view('admin', {
         : '<span class="muted">Not tracked</span>', esc(l.spend.note));
     const mb = v => Math.round(v / 1048576) + ' MB';
     $('#privacy-body', el).innerHTML = l.privacy.map(p => `<div class="inset stack tight"><div class="spread"><b>${esc(p.title)}</b><span class="pill ${p.on ? 'ok' : 'outline'}">${p.on ? 'yes' : 'no'}</span></div><span class="muted">${esc(p.text)}</span></div>`).join('') +
-      `<dl class="kv"><dt>Upload limit</dt><dd>${mb(l.upload_max_bytes)} per file · ${mb(l.connector_max_bytes)} per connector import</dd><dt>Workspace folder</dt><dd class="mono xs">${esc(l.storage)}</dd></dl>`;
+      `<dl class="kv"><dt>Upload limit</dt><dd>${mb(l.upload_max_bytes)} per file · ${mb(l.connector_max_bytes)} per connector import</dd><dt>Workspace folder</dt><dd class="mono xs">${esc(l.storage)}</dd></dl>` +
+      '<div id="consent-box" class="stack tight"></div>';
+    this.loadConsent(el);
+  },
+
+  // 19.10: what may leave this workspace; each use off until the owner turns it on, every change in the audit log
+  async loadConsent(el) {
+    const { $, esc, toast } = DC;
+    const box = $('#consent-box', el);
+    if (!box) return;
+    let c;
+    try { c = await DC.client.readConsent({ quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => this.loadConsent(el) }); return; }
+    const words = { improve: ['Use what happens here to improve DCLab', 'Sessions and decisions read by the DCLab team and turned into test cases. Text is redacted (names, e-mails, phone numbers, addresses, ids, amounts); table values and model prompts never leave.'],
+                    train: ['Use it to train DCLab\'s models', 'The same, plus the decision records (their states hold bands, never values). A project takes part only when its own switch is on too.'] };
+    box.innerHTML = '<b>Consent</b>' + c.uses.map(u => `<label class="switch"><input type="checkbox" data-consent="${esc(u)}" ${c.workspace[u] ? 'checked' : ''}><span class="track"></span><span>${esc(words[u][0])}<span class="xs muted" data-style="display:block">${esc(words[u][1])}</span></span></label>`).join('');
+    box.querySelectorAll('[data-consent]').forEach(input => input.addEventListener('change', async () => {
+      try { await DC.client.setConsent({ body: { use: input.dataset.consent, on: input.checked } }); toast('Saved. The change is in the audit log.'); }
+      catch (err) { input.checked = !input.checked; toast(err.message, { ok: false }); }
+    }));
   },
 
   async loadAudit(el) {

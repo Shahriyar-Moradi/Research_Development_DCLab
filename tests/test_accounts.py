@@ -109,7 +109,7 @@ class AccountsTests(unittest.TestCase):
         from dclab_rnd.accounts.guard import permission
         from dclab_rnd.agentic.api_models import api_routes
 
-        wrong_role = {"write": "view1", "approve_stage": "view1", "approve_gate": "ds1", "review": "ds1", "admin": "ds1"}
+        wrong_role = {"write": "view1", "approve_stage": "view1", "approve_gate": "ds1", "review": "ds1", "admin": "ds1", "timelines": "ds1"}
         before, ids, checked = self.snapshot(), self.ids(), []
         for route in api_routes(self.app):
             for method in sorted(route.methods & WRITES):
@@ -137,6 +137,7 @@ class AccountsTests(unittest.TestCase):
         self.assertNotEqual(reviewer.post(f"/api/projects/{pid}/stages/data/approve", json={}).status_code, 403)  # the stage's choice: reviewer too
         # gate switches and the training opt-in are the owner's
         self.assertEqual(scientist.patch(f"/api/projects/{pid}", json={"policy": {"require_holdout_approval": True}}).status_code, 403)
+        self.assertEqual(scientist.patch(f"/api/projects/{pid}", json={"settings": {"consent": {"train": True}}}).status_code, 403)  # 19.10
         self.assertEqual(scientist.patch(f"/api/projects/{pid}", json={"name": "Churn W1"}).status_code, 200)
 
     def test_a_user_never_sees_another_workspace(self):

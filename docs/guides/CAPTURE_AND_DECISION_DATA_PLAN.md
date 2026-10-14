@@ -201,6 +201,21 @@ person's overrides.
   the export refusing any class or workspace its consent does not allow.
 - **Done when:** with consent off nothing is exported; on for improvement, redacted text and no cells; on for
   training, the same plus decision states; a planted e-mail and a planted cell value never pass.
+- **Status: done (2026-10-14).** `dclab_core/redact.py` (dclab-core 0.11.0); `dclab_rnd/consent.py`: the workspace's
+  switches (`consent.json`, `GET`/`PUT /api/consent`, the owner's, audited as a policy and recorded) and each project's
+  (`settings.consent` through `PATCH /api/projects/{id}`, the owner's; the earlier `share_for_training` counts as
+  `train`), and the one export (`export_events`, `export_decisions`) that refuses a use the workspace does not allow,
+  keeps only consenting projects, only meta, counts and redacted text, never cells, prompts, the person or the
+  request; `experience/retention.py`: deleting a project or a draft removes its events, its decisions with their labels and
+  the prompts the gateway's usage log kept for it; deleting a session (`DELETE /api/experience/sessions/{visit}`)
+  removes its events (its decisions belong to their project or draft and go with them); PostgreSQL lets only these
+  functions past the append-only triggers (migration 0017), files are rewritten under the folder's lock
+  (`filelock.py`, which every appender holds); the audit row is the tombstone, with what could not be removed;
+  a draft's Home conversation and decisions follow the consent of the project it became; every string of an
+  exported event is redacted (a file's name leaves as its extension), and who labelled leaves by kind, never by person; retention per class (`DCLAB_RETENTION_EVENT_DAYS`,
+  `DCLAB_RETENTION_MODEL_TEXT_DAYS`, off until the owner sets them) in the worker's hourly sweep and
+  `python -m dclab_rnd.retention`; the switches and a session's deletion on the Admin page. Left open: the owner's
+  retention days; the datasets that use the export (19.12); a tombstone inside an export already made.
 
 ### 19.11 Data samples: data cards and synthetic tables
 - **Delivers:** a **data card** for every table that reaches DCLab (the schema, each column's role and bands, the

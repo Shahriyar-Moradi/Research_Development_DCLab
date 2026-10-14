@@ -4,6 +4,15 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.11.0 (2026-10-14)
+
+Package 19.10: redaction before anything leaves a workspace. A new module; no contract changes shape.
+
+- `redact` (new): `redact_text(text)` replaces e-mail addresses, web and IP addresses, IBANs and card numbers, phone
+  numbers, amounts of money, street addresses, long ids and probable names (two or three capitalised words outside the
+  product's own words) with placeholders, and counts what it replaced. A rule, not a guarantee: that is why a table's
+  values and model prompts never leave at all. A host redacts person and agent text with it on every export.
+
 ## 0.10.0 (2026-10-14)
 
 Package 19.9: signals of quality. A new module; no contract changes shape.
