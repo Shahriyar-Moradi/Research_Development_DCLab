@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from dclab_core.card import LABEL_WORDS, ProblemCard, problem_card
+from dclab_core.card import FAMILIES, LABEL_WORDS, ProblemCard, problem_card
 from dclab_core.contracts import CoverageFact, LabelSourceFact, TaskFact, TextFact
 from dclab_core.understand import understand
 
@@ -89,7 +89,8 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     named = bool(target and target in columns)
     data = {"label_file": has_labels, "cases_only": bool(cases) and not has_labels and not named,
             "tables": sum(1 for a in draft.get("assets") or [] if a.get("status") == "ready")}
-    return problem_card(brief, words=words, data=data, family=KIND_FAMILY.get(str(solution.get("kind") or "")))
+    stated = KIND_FAMILY.get(str(solution.get("kind") or "")) or (u.get("family") if u.get("family") in FAMILIES else None)  # 20.2: said in an answer
+    return problem_card(brief, words=words, data=data, family=stated)
 
 
 def meeting(draft: dict[str, Any], store: Any) -> Any:

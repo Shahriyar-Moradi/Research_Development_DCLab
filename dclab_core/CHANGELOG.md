@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.16.0 (2026-10-14)
+
+Package 20.2: the understanding conversation. A new module; no contract changes shape. `card.WORDS` reads more ways
+of saying time to an event ("the time until each customer cancels").
+
+- `conversation` (new): `card_for(problem, said, columns, data, kinds=)`, the card of a conversation (a host passes
+  the outcome column's kind from its table); `next_question(card, contradictions, asked)`, the question that unblocks
+  the most (a contradiction first, then the files, the labels, the outcome before the kind of answer, the moment);
+  `read_answer(field, text, columns)`, an answer read by rules ("it is anomaly detection" states the family whatever
+  was asked); `converse(...)` plays a written conversation in at most five questions; `summary(card)` is what the
+  person confirms; `READER`, the conversation reader role (pinned prompt `conversation_reader`), kept only behind its
+  validator (a value from the field's vocabulary, quoted from the answer, a column of the table), the rules its fallback.
+
 ## 0.15.0 (2026-10-14)
 
 Package 20.4: the problem meets the data. A new contract; no other contract changes shape.

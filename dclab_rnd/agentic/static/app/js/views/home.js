@@ -201,7 +201,14 @@ DC.view('home', {
       } else if (m.kind === 'analysis') {
         body = `<p>${esc(m.text)}</p>${analysisCard(S.analysis[m.asset], m.asset)}`;
       } else if (m.kind === 'summary') {
-        body = `<p>${esc(m.text)}</p><div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
+        const c = m.card;  // 20.2: the problem as DCLab understood it, to confirm before the build
+        const fam = c ? (c.family ? c.family.replace(/_/g, ' ') : (c.in_play || []).map(f => f.replace(/_/g, ' ')).join(' or ') || 'not settled') : '';
+        const card = c ? `<div class="inset stack tight small"><div class="eyebrow">The problem, as understood</div><dl class="kv">`
+          + `<dt>Kind</dt><dd>${esc(fam)}${c.family_how === 'stated' ? ' <span class="muted">(you said)</span>' : ''}</dd>`
+          + `<dt>Labels</dt><dd>${esc({ column: 'a column marks the cases', file: 'a file lists the known cases', none: 'nothing is labelled' }[c.labels] || 'not said')}</dd>`
+          + `<dt>Outcome</dt><dd>${esc(c.outcome || 'not named')}</dd><dt>Moment</dt><dd>${esc(c.moment || 'not said')}</dd></dl>`
+          + (c.ready ? '' : `<div class="callout warn small">${esc((c.blocking || [])[0] || 'Something is still open.')}</div>`) + '</div>' : '';
+        body = `<p>${esc(m.text)}</p>${card}<div class="row"><button type="button" class="btn primary sm" data-build="1">Let's build the solution</button><button type="button" class="btn sm" data-open-bring="1">Add data first</button></div>`;
       } else {
         body = `<p>${esc(m.text)}</p>${(m.actions || []).length ? `<div class="row">${m.actions.includes('upload') ? '<button type="button" class="btn sm" data-open-bring="upload">Upload a sample</button>' : ''}${m.actions.includes('connect') ? '<button type="button" class="btn sm" data-open-bring="kaggle">Connect a source</button>' : ''}${m.actions.includes('simulate') ? '<button type="button" class="btn sm" data-open-bring="synthetic">Simulate data</button>' : ''}</div>` : ''}`;
       }

@@ -58,7 +58,8 @@ WORDS = {  # what the person's words say, family by family (stems: "anomal" catc
                              r"chargeback\w*|(loan|credit|payment) defaults?|default(s|ed)? on (a |their |the )?(loan|payment|credit|debt)s?|"
                              r"intrusion\w*|money laundering)", re.I),
     "forecasting": re.compile(r"\b(forecast\w*|demand (per|for|each)|how many .{0,30}\b(tomorrow|next (day|week|month)))", re.I),
-    "time_to_event": re.compile(r"\b(how long (until|before)|time (to|until) (churn|failure|event|cancel\w*)|survival analysis|time[- ]to[- ]event)", re.I),
+    "time_to_event": re.compile(r"\b(how long (until|before)|time (to|until|before) (\w+ ){0,3}(churn|fail|leave|cancel|quit|die|default)"
+                                r"(s|ed|ing)?\b|time (to|until|before) (\w+ ){0,3}breaks? down|time to failure|survival analysis|time[- ]to[- ]event)", re.I),
     "ranking": re.compile(r"\b(rank\w* (items|products|results|documents|offers|listings)|recommend\w* (items|products|content|movies|songs|offers)|"
                           r"recommendations? (system|engine)|which items? to show)", re.I),
     "segmentation": re.compile(r"\b(segment (our|the) (customers|users|stores)|customer segmentation|cluster\w* (our|the) (customers|users|stores)|"

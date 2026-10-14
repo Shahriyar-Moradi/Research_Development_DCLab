@@ -1,0 +1,231 @@
+[
+ {
+  "id": "CD-01",
+  "family": "classification",
+  "problem": "Predict which subscribers will churn next month",
+  "columns": [
+   "subscriber_id",
+   "plan",
+   "monthly_fee",
+   "support_calls",
+   "churned"
+  ],
+  "answers": {
+   "outcome": "the churned column",
+   "prediction_moment": "on the first day of each month, with what we know then"
+  },
+  "gold": {
+   "family": "classification",
+   "labels": "column"
+  }
+ },
+ {
+  "id": "CD-02",
+  "family": "regression",
+  "problem": "Estimate how many minutes each delivery will take",
+  "columns": [
+   "order_id",
+   "order_time",
+   "distance_km",
+   "actual_minutes"
+  ],
+  "answers": {
+   "outcome": "actual_minutes",
+   "prediction_moment": "when the order is placed"
+  },
+  "gold": {
+   "family": "regression",
+   "labels": "column"
+  }
+ },
+ {
+  "id": "CD-03",
+  "family": "rare_event",
+  "problem": "Find the fraudulent rides",
+  "columns": [
+   "ride_id",
+   "biker_id",
+   "fare",
+   "is_fraud"
+  ],
+  "answers": {
+   "labels": "A column marks them",
+   "outcome": "is_fraud",
+   "prediction_moment": "after each ride ends"
+  },
+  "gold": {
+   "family": "rare_event",
+   "labels": "column"
+  }
+ },
+ {
+  "id": "CD-04",
+  "family": "anomaly",
+  "problem": "I want build anomaly detection",
+  "columns": [
+   "customer_id",
+   "order_id",
+   "fare",
+   "created_at"
+  ],
+  "answers": {
+   "labels": "Nothing is labelled",
+   "prediction_moment": "every night, on the day's orders"
+  },
+  "gold": {
+   "family": "anomaly",
+   "labels": "none"
+  }
+ },
+ {
+  "id": "CD-05",
+  "family": "forecasting",
+  "problem": "Forecast the units each store sells next week",
+  "columns": [
+   "store",
+   "product",
+   "date",
+   "units"
+  ],
+  "answers": {
+   "outcome": "units",
+   "prediction_moment": "every Monday for the next seven days"
+  },
+  "gold": {
+   "family": "forecasting"
+  }
+ },
+ {
+  "id": "CD-06",
+  "family": "time_to_event",
+  "problem": "How long until each machine fails",
+  "columns": [
+   "machine",
+   "installed",
+   "days_running",
+   "failed"
+  ],
+  "answers": {
+   "outcome": "days_running",
+   "prediction_moment": "each morning"
+  },
+  "gold": {
+   "family": "time_to_event"
+  }
+ },
+ {
+  "id": "CD-07",
+  "family": "ranking",
+  "problem": "Recommend products to each shopper on the home page",
+  "columns": [
+   "user_id",
+   "item_id",
+   "time",
+   "event"
+  ],
+  "answers": {
+   "outcome": "event",
+   "prediction_moment": "when the shopper opens the page"
+  },
+  "gold": {
+   "family": "ranking"
+  }
+ },
+ {
+  "id": "CD-08",
+  "family": "segmentation",
+  "problem": "Group our customers by how they buy",
+  "columns": [
+   "customer_id",
+   "orders_per_month",
+   "avg_basket",
+   "channel"
+  ],
+  "answers": {
+   "family": "groups of similar customers, there is no outcome"
+  },
+  "gold": {
+   "family": "segmentation"
+  }
+ },
+ {
+  "id": "CD-09",
+  "family": "uplift",
+  "problem": "Decide who to target with the discount so it changes what they buy",
+  "columns": [
+   "customer_id",
+   "age",
+   "got_offer",
+   "bought"
+  ],
+  "answers": {
+   "outcome": "bought",
+   "prediction_moment": "before the campaign is sent"
+  },
+  "gold": {
+   "family": "uplift"
+  }
+ },
+ {
+  "id": "CD-10",
+  "family": "time_to_event",
+  "problem": "Estimate the time until each user leaves the app",
+  "columns": [
+   "user_id",
+   "signup_date",
+   "days_active",
+   "left"
+  ],
+  "answers": {
+   "outcome": "days_active",
+   "prediction_moment": "every Sunday"
+  },
+  "gold": {
+   "family": "time_to_event"
+  },
+  "origin": "written after sealed v1's failure CS-06, in its shape (time until an account ends; days active as the outcome)"
+ },
+ {
+  "id": "CD-11",
+  "family": "anomaly",
+  "problem": "Spot strange logins on our servers",
+  "columns": [
+   "login_id",
+   "user",
+   "ip_country",
+   "time"
+  ],
+  "answers": {
+   "family": "it is anomaly detection, nothing is labelled",
+   "prediction_moment": "as each login happens"
+  },
+  "gold": {
+   "family": "anomaly",
+   "labels": "none"
+  },
+  "origin": "the owner's morning of 2026-10-13: the kind of answer said outright"
+ },
+ {
+  "id": "CD-12",
+  "family": "classification",
+  "problem": "Tell which shipments will arrive damaged",
+  "columns": [
+   "shipment_id",
+   "weight_kg",
+   "carrier",
+   "damaged"
+  ],
+  "kinds": {
+   "damaged": "binary"
+  },
+  "answers": {
+   "outcome": "damaged",
+   "prediction_moment": "when the shipment leaves the depot"
+  },
+  "gold": {
+   "family": "classification",
+   "labels": "column"
+  },
+  "origin": "written after sealed v2's failure CS2-01, in its shape; it passes only with the outcome's kind (kinds), which neither sealed set has"
+ }
+]

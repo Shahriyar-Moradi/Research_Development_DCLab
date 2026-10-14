@@ -56,6 +56,8 @@ PURPOSES: dict[str, Purpose] = {
                                               "count, the column audit's flags, and the ids and titles of rule and leakage-precedent records; never rows or cell values"),
     "problem_analyst": Purpose("standard", 60, "the problem's description (the person's own words, up to 20 paragraphs) and the names of their "
                                                "files and columns (dclab_core's problem analyst, package 18.2); never rows or cell values"),
+    "conversation_reader": Purpose("standard", 60, "one question's field, the person's answer to it, and the table's column names "
+                                                   "(dclab_core's conversation reader, package 20.2); never rows or cell values"),
     "brief_checker": Purpose("standard", 60, "the problem's description, the names of their files and columns, and what dclab_core's rules "
                                              "read from the description with the words it rests on (package 18.2's follow-up); never rows "
                                              "or cell values"),

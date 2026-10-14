@@ -1,0 +1,169 @@
+{
+  "id": "CONV-001",
+  "campaign_id": "conversation_v1",
+  "kind": "understanding_conversation",
+  "split": "dev",
+  "arm": "rules",
+  "at": "2026-10-14T02:59:36+00:00",
+  "gate": {
+    "version": "conversation_gate_v1",
+    "split": "sealed",
+    "questions_at_most": 5,
+    "rules": "every conversation reaches the right card, ready",
+    "reader": "at least as many right cards as the rules, and none the rules got right turned wrong"
+  },
+  "spent_eur": 0.0,
+  "rows": [
+    {
+      "id": "CD-01",
+      "family": "classification",
+      "right": true,
+      "asked": [
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "classification",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-02",
+      "family": "regression",
+      "right": true,
+      "asked": [
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "regression",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-03",
+      "family": "rare_event",
+      "right": true,
+      "asked": [
+        "labels",
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 3,
+      "got": {
+        "family": "rare_event",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-04",
+      "family": "anomaly",
+      "right": true,
+      "asked": [
+        "labels",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "anomaly",
+        "labels": "none",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-05",
+      "family": "forecasting",
+      "right": true,
+      "asked": [
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "forecasting",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-06",
+      "family": "time_to_event",
+      "right": true,
+      "asked": [
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "time_to_event",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-07",
+      "family": "ranking",
+      "right": true,
+      "asked": [
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "ranking",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-08",
+      "family": "segmentation",
+      "right": true,
+      "asked": [],
+      "questions": 0,
+      "got": {
+        "family": "segmentation",
+        "labels": null,
+        "ready": true
+      },
+      "why": null
+    },
+    {
+      "id": "CD-09",
+      "family": "uplift",
+      "right": true,
+      "asked": [
+        "outcome",
+        "prediction_moment"
+      ],
+      "questions": 2,
+      "got": {
+        "family": "uplift",
+        "labels": "column",
+        "ready": true
+      },
+      "why": null
+    }
+  ],
+  "summary": {
+    "conversations": 9,
+    "right": 9,
+    "questions_mean": 1.89
+  },
+  "verdict": "pass (dev: the gate is read on the sealed set)",
+  "status": "completed",
+  "experiment_id": "CONV-001",
+  "rule": "Scores on 9 written conversations say how DCLab's understanding conversation handles these; they are not a claim about any other conversation or about production readiness."
+}

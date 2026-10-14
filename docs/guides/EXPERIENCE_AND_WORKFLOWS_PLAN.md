@@ -167,6 +167,22 @@ code are not one connected object a data scientist can read, run and change.
   A model role at each step, measured against the rules before it is on by default.
 - **Done when:** a set of written conversations (dev and sealed), one per family, reaches the right card in at most
   five questions, with the gate fixed before the run.
+- **Status: built (2026-10-14); its gate not passed.** `dclab_core/conversation.py` (dclab-core 0.16.0): the next
+  question by what it unblocks (the files and labels first, the outcome before the kind of answer), answers read into
+  the card by rules (the kind of answer only from an answer to that question or said outright, "it is anomaly
+  detection"; never rare events when nothing is confirmed), the conversation reader role behind a validator that
+  keeps only whole words of the answer (off: not yet measured), the card summary to confirm. Home reads the person's
+  own words in scripted and model turns, asks a contradiction found by 20.4 first and then the card's labels, kind or
+  outcome question once a table is there and its plan is done (within its four questions), and shows the card with
+  the summary. The harness (`dclab_rnd/agent_eval/conversation`), nine of the twelve families (the other three are a
+  host's kind): **sealed v1, gate v1 fixed before its run: 8 of 9, fail** (CONV-002: "the time until each customer
+  cancels" read as a regression); **sealed v2: 8 of 9, fail** (CONV-004: with no outcome named, the kind of answer was
+  asked first, and the conversation had no column values to settle it). Sealed v2 is not independent: it was written by
+  the author of the rules right after the rule change, and its CS2-06 uses that change's words. Dev 12 of 12
+  (CONV-005), not evidence: CD-10 and CD-12 were written after the sealed failures, in their shape, and CD-12 passes
+  only with the outcome's kind, which a host has from its table and neither sealed set gave. Both sealed sets are
+  spent for every arm. Next: a sealed set written by someone other than the author of the rules (the owner or a
+  reviewer), then the reader role measured on it (≤ €0.5).
 
 ## Phase W2 — Understand the data, and connect it to the problem
 

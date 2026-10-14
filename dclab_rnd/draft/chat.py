@@ -370,6 +370,7 @@ class HomeAgent:
                 if item["id"] == q["id"]:
                     item["answered"] = value
         self.store.update(draft_id, answered)
+        self.read_card_answer(draft_id, q["field"], value)
         u = self.store.get(draft_id).get("understanding") or {}
         for field, quote in plans.extract(value).items():  # "…within 30 days, scored every Monday" also gives the moment
             if field != q["field"] and not u.get(field):
@@ -379,6 +380,52 @@ class HomeAgent:
             self.on_request(draft_id, "simulate", {"prompt": draft["problem"]})
         self.refresh_workflow(draft_id)
         self.next_turn(draft_id)
+
+    CARD_FIELDS = {"target": "outcome", "outcome": "outcome", "labels": "labels", "family": "family", "prediction_moment": "prediction_moment",
+                   "labels_check": "labels", "target_check": "outcome"}
+    LABEL_PHRASES = {"column": "A column marks them", "file": "A file lists the known ones", "none": "Nothing is labelled"}
+    CONTRADICTIONS = {"labels_contradict": "labels_check", "target_absent": "target_check", "target_refused": "target_check"}
+    HOME_FIELDS = {"outcome": "target", "labels": "labels", "family": "family", "prediction_moment": "prediction_moment", "data": "data_plan"}
+
+    def read_card_answer(self, draft_id: str, field: str, value: str) -> None:
+        """20.2: what an answer says for the problem card, by rules (``dclab_core.conversation.read_answer``): "it is
+        anomaly detection", typed whatever was asked, states the family."""
+        from dclab_core.conversation import read_answer
+
+        columns = [str(c.get("name")) for c in ((self.store.get(draft_id).get("analysis") or {}).get("profile") or {}).get("columns") or []]
+        read = read_answer(self.CARD_FIELDS.get(field, field), value, columns or None)
+        if read.get("family"):
+            self.record(draft_id, "family", read["family"])
+        if field in ("labels_check", "target_check"):  # the answer to a contradiction settles what it was about
+            if read.get("labels"):
+                self.record(draft_id, "labels", self.LABEL_PHRASES[read["labels"]])
+            if read.get("target_column"):
+                self.record(draft_id, "target", read["target_column"])
+
+    def card_question(self, draft: dict[str, Any]) -> tuple[str, str, list[str], str] | None:
+        """20.2: when the plan has nothing left to ask but the problem card still blocks, its question that unblocks the
+        most (a contradiction between the words and the data first), never one asked before."""
+        from dclab_core.card import LABELS_OPTIONS
+        from dclab_core.conversation import next_question
+
+        from .card import card_of, meeting
+
+        if not (draft.get("analysis") or {}).get("profile"):  # with no table the card's questions cannot be answered yet
+            return None
+        asked_home = {q.get("field") for q in draft["questions"]}
+        met = meeting(draft, self.store)  # 20.4's mismatches: a contradiction is shown before anything else
+        for m in (met.mismatches if met is not None else []):
+            field = self.CONTRADICTIONS.get(m.code)
+            if field and field not in asked_home:
+                return (field, m.question, list(LABELS_OPTIONS) if field == "labels_check" else [], "The words and the data disagree.")
+        card = card_of(draft)
+        if card.ready:
+            return None
+        asked = tuple(self.CARD_FIELDS.get(q.get("field"), q.get("field")) for q in draft["questions"])
+        q = next_question(card, asked=asked)
+        if q is None or getattr(q, "field", None) not in ("labels", "family", "outcome"):  # the plan asks the rest its own way
+            return None
+        return (self.HOME_FIELDS.get(q.field, q.field), q.text, list(q.options), q.why)
 
     # ------------------------------------------------------------------ the deterministic script
     def script_turn(self, draft_id: str, text: str) -> None:
@@ -405,6 +452,8 @@ class HomeAgent:
             return
         self.update_plan(draft_id)
         question = self.next_question(self.store.get(draft_id), opening)
+        if question is None and not opening:  # the plan is done; the problem card may still block (20.2)
+            question = self.card_question(self.store.get(draft_id))
         asked = question is not None and self.ask(draft_id, *question)
         from ..ledger import capture  # 19.7: the question actually asked, or none
 
@@ -503,7 +552,11 @@ class HomeAgent:
         last = next((m for m in reversed(draft["messages"]) if m["role"] == "agent"), None)
         if last and last.get("kind") == "summary" and last.get("text") == text:
             return  # two turns can end here (the data-ready turn and the reply that started a simulation): say it once
-        self.say(draft_id, text, kind="summary", actions=["build"])
+        from dclab_core.conversation import summary
+
+        from .card import card_of
+
+        self.say(draft_id, text, kind="summary", actions=["build"], card=summary(card_of(draft)))  # 20.2: the card to confirm
 
     # ------------------------------------------------------------------ the model
     def context(self, draft: dict[str, Any]) -> str:
@@ -662,6 +715,8 @@ def record(turn: Turn, /, **args: Any) -> dict[str, Any]:
         else:
             agent.record(draft_id, field, value)
         agent.store.update(draft_id, lambda d: [q.update(answered=value) for q in d["questions"] if q["id"] == pending["id"]])
+        said = next((m.get("text") for m in reversed(agent.store.get(draft_id)["messages"]) if m.get("role") == "user"), "")
+        agent.read_card_answer(draft_id, field, str(said or ""))  # 20.2: the person's own words, read for the card
     elif field in plans.ALL_FIELDS and args.get("quote"):  # the user said it elsewhere; the guard checked the quote
         agent.note(draft_id, field, value, args.get("status") or "stated", "model", str(args["quote"]))
     else:
