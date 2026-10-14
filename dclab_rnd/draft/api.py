@@ -707,10 +707,7 @@ def build_blockers(drafts: DraftStore, draft_id: str, capture_card: bool = False
         blocking = [m.question for m in (met.mismatches if met is not None else []) if m.blocking]
         if blocking:
             out.append(BuildRefused("Not yet: " + " ".join(blocking[:2]), "problem and data disagree"))
-    if card.family.value == "anomaly":  # said plainly, never built as something else (it became a model of customer ids once)
-        out.append(BuildRefused("Anomaly detection without labels is not in the engine yet (package 20.7). With a file of known "
-                                "cases (even a sample), it is a rare-event problem DCLab solves: add that file to this draft.", "family not built yet"))
-    return out
+    return out  # 20.7: anomaly detection without labels is built as its own kind (never as a model of some column)
 
 
 class BringRefused(ValueError):
@@ -753,6 +750,38 @@ def bring_from_draft(drafts: DraftStore, draft_id: str, other_id: str) -> dict[s
     shutil.copyfile(source, drafts.data_dir(draft_id) / name)
     return pipeline.new_asset(drafts, draft_id, "draft", asset.get("name") or name, name,
                               source={"kind": "draft", "draft_id": other_id, "asset": asset.get("id")})
+
+
+def _anomaly_solution(projects, project: dict[str, Any], u: dict[str, Any]) -> dict[str, Any]:
+    """The solution of an anomaly project (20.7): no target; the entity the person named, the table's day column, the
+    key of a row (a column unique on every row, named as an id) and the review budget they stated."""
+    import pandas as pd
+
+    from dclab_core import anomaly
+
+    from ..studio import data as studio_data
+    from ..studio.solution import Solution
+
+    frame = studio_data.load_table(studio_data.data_path(projects, project))
+    columns = list(frame.columns)
+    entity = _entity_column(u.get("entity"), columns)
+    time = None
+    for c in columns:
+        days = anomaly._days(frame, c)
+        if days is not None and days.nunique() >= 3:
+            time = c
+            break
+    # the key a person names a row by: an id column nearly unique (an order with two drop-offs repeats), before a reference
+    named = [c for c in columns if c != entity and re.search(r"(^id$|_id$|_ref$)", str(c), re.I)]
+    share = {c: frame[c].nunique() / max(len(frame), 1) for c in named}
+    ids = sorted((c for c in named if share[c] >= 0.95 and re.search(r"(^id$|_id$)", str(c), re.I)), key=lambda c: -share[c])
+    refs = sorted((c for c in named if share[c] >= 0.95), key=lambda c: -share[c])
+    key = (ids or refs or [None])[0]
+    budget = project.get("suggestion", {}).get("alert_budget") if isinstance(project.get("suggestion"), dict) else None
+    moment = str(u.get("prediction_moment") or "When the rows are reviewed after they happen; nothing is labelled yet.")
+    return Solution(target=None, task="binary", prediction_moment=moment if len(moment) >= 12 else moment + " (nothing is labelled yet)",
+                    labels="none", kind="anomaly", kind_fields={"entity_column": entity, "time_column": time, "key_column": key,
+                                                                "budget": budget}).model_dump()
 
 
 def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
@@ -812,24 +841,27 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
                         "card": card.model_dump(mode="json"),  # 20.1: the problem as understood, its open questions with it
                         "workflow": draft.get("workflow"), "cleaning_log": draft.get("cleaning_log"),
                         "synthetic": bool(asset and asset.get("synthetic"))}
+    built_solution = draft.get("solution")
+    if not built_solution and card.family.value == "anomaly" and labels is None and project.get("data"):  # 20.7: no outcome
+        built_solution = _anomaly_solution(projects, project, u)  # saved below like the wizard's, through the same check
     projects.save(project)
     projects.log(pid, "built_from_draft", {"draft": draft_id, "rows": (project.get("data") or {}).get("rows")})
-    if draft.get("solution") and project.get("data"):
+    if built_solution and project.get("data"):
         from ..studio import graph as studio_graph
 
         project = projects.get(pid)
-        verdict = studio_graph.check(project, "set_solution", "human", target=draft["solution"]["target"])  # same check as the project page
+        verdict = studio_graph.check(project, "set_solution", "human", target=built_solution["target"])  # same check as the project page
         studio_graph.log(projects, pid, verdict, project, outcome="done: solution from the draft" if verdict.allowed else None)
         if verdict.allowed:
             from ..studio import memory as studio_memory
 
             project = projects.get(pid)
-            project["solution"] = draft["solution"]
-            studio_memory.solution_saved(project, None, draft["solution"], "human")  # A5.2: the person saved it in the wizard
+            project["solution"] = built_solution
+            studio_memory.solution_saved(project, None, built_solution, "human")  # A5.2: the person saved it in the wizard
             projects.save(project)
             from .. import audit
 
-            audit.solution(projects, project, draft["solution"], "human", built=True)
+            audit.solution(projects, project, built_solution, "human", built=True)
 
     def done(d):
         d["status"], d["project_id"] = "built", pid

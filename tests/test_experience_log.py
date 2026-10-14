@@ -75,6 +75,7 @@ WRITE_ROUTES = {
     "POST /api/projects/{project_id}/run": (EVENTS, ["job.started", "stage.started", "stage.finished", "run.recorded", "job.stopped"]),
     "POST /api/projects/{project_id}/stages/{stage}/approve": (EVENTS, ["graph.move", "stage.approved"]),
     "POST /api/projects/{project_id}/approvals": (EVENTS, ["decision.accepted"]),
+    "POST /api/projects/{project_id}/review": (EVENTS, ["graph.move"]),  # 20.7: confirmed alerts become labels, audited as a move
     "POST /api/projects/{project_id}/ask": (EVENTS, ["chat.person", "chat.agent"]),
     "POST /api/projects/{project_id}/graph/check": (NONE, "reads whether a move would be allowed; changes nothing"),
     "POST /api/projects/{project_id}/lessons": (NONE, "proposes lessons for review; the review is the event"),

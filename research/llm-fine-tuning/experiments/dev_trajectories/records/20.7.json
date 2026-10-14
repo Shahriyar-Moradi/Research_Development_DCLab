@@ -1,0 +1,188 @@
+{
+ "package": "20.7",
+ "title": "Anomaly detection without labels in the engine: a review list, measured on planted anomalies, with its limits",
+ "date": "2026-10-14",
+ "request": "The missing family as a kind with its own machine: detectors, evaluation without labels (planted anomalies, stability, a review budget), partial labels joining the rare-event kind, and a review loop where confirmed cases become labels. The owner's morning on a replica with no label must end with a ranked review list, its evaluation on planted anomalies and the honest limits; with a label file it moves to the rare-event kind.",
+ "spec": "A portable library of detectors, planting and splitting; a kind whose machine runs the five stages with no target; Home builds it; a route takes confirmed alerts into labels.",
+ "plan": [
+  "Survey the kind machinery and the no-label pieces.",
+  "Write the library: split by day, features with entity behaviour, detectors, planted shapes, the choice on validation, the review.",
+  "Write the kind and its machine; let a solution have no target for this kind only.",
+  "Build it from Home; add the review loop; accept it on the replica."
+ ],
+ "decisions": [
+  {
+   "decision": "A detector is chosen on anomalies planted in a validation period, never on the rows to review.",
+   "why": "With no label, planted shapes are the only truth, and the rows to review play the holdout's part."
+  },
+  {
+   "decision": "Its measure is called what it is: recall on planted generic shapes, never a precision.",
+   "why": "Nobody has labelled the real anomalies; a number that sounded like precision would overclaim."
+  },
+  {
+   "decision": "A solution may have no target only for a kind that says it needs none.",
+   "why": "Every other kind learns from an outcome, and a missing one must still be refused."
+  },
+  {
+   "decision": "Confirmed alerts become partial labels, their selection by the detector written in their provenance.",
+   "why": "A rare-event model trained on them partly measures the detector again; the person must see that."
+  }
+ ],
+ "change": "dclab_core/anomaly.py (new; dclab-core 0.24.0), dclab_rnd/kinds/anomaly.py (new), kinds/base.py, kinds/acceptance.py, studio/solution.py, draft/api.py, draft/card.py, agentic/routers/projects.py, the web client; tests/test_core_anomaly.py (new), test_kind_acceptance_anomaly.py (new), test_problem_card.py, test_experience_log.py; CHANGELOG, the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A continuous fare was dropped as an identifier.",
+   "scenario": "The fare, unique on every row, was left out of the detectors.",
+   "cause": "Any column unique on every row was taken for an id.",
+   "fix": "Only unique integer columns are row numbers.",
+   "test": "test_the_review_list_is_the_budgets_size_and_finds_a_planted_far_value"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "A second round of review was refused.",
+   "scenario": "After the first confirmation the project had no anomaly solution left.",
+   "cause": "Attaching labels clears the solution.",
+   "fix": "The review keeps its own record (key column, rounds) on the project.",
+   "test": "test_confirmed_alerts_become_labels_and_the_problem_a_rare_event_one"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The rows to review were scored without history.",
+   "scenario": "Their entity counts and usual places covered one or two days against the training rows' week; the list leaned on that difference.",
+   "cause": "Behaviour features were computed inside each frame transformed.",
+   "fix": "Scored rows are transformed with the earlier rows as their history, keeping theirs.",
+   "test": "test_the_choice_and_the_review_score_their_rows_with_history"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A refused confirmation still wrote its keys.",
+   "scenario": "Typos stayed in the case file and spoiled later rounds.",
+   "cause": "The file was written before the label check.",
+   "fix": "Keys the table does not hold refuse the round before anything is written; each round attaches its own file.",
+   "test": "test_confirmed_alerts_become_labels_and_the_problem_a_rare_event_one"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The first confirmation erased the review list.",
+   "scenario": "Confirming two of fifty alerts deleted the record of the other alerts.",
+   "cause": "Attaching labels clears the stages.",
+   "fix": "Each round's review list is kept on the project.",
+   "test": "test_the_review_list_survives_the_first_confirmation"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "After confirmation the project became binary unless its pack was imbalanced.",
+   "scenario": "An acceptance-built project with no pack resolved to binary.",
+   "cause": "The kind followed the pack.",
+   "fix": "The suggestion names the rare-event kind.",
+   "test": "test_confirmed_alerts_become_labels_and_the_problem_a_rare_event_one"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The anomaly solution was written at build without the graph check.",
+   "scenario": "No check, log, memory or audit for the built solution.",
+   "cause": "It was saved directly.",
+   "fix": "It goes through the same block as the wizard's solution.",
+   "test": "test_the_build_waits_for_the_labels_and_the_moment_and_says_why"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "The key was a payment reference, and a check counted a set of keys.",
+   "scenario": "On seed 3 an order listed twice failed the list-size check; Home keyed rows by terminal_ref.",
+   "cause": "Order ids repeat and the key had to be unique on every row.",
+   "fix": "The list's length is checked; Home prefers a nearly unique id column; ids shown without .0.",
+   "test": "test_the_mornings_replica_ends_with_a_ranked_review_list_its_evaluation_and_its_limits"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The limits said the shapes were the analysis' own.",
+   "scenario": "The planted shapes are a fixed generic set.",
+   "cause": "The wording promised more than the code does.",
+   "fix": "The limit names the three generic shapes.",
+   "test": "the limits text"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A table with nothing numeric crashed the models stage.",
+   "scenario": "No numeric column and no entity raised inside the planting.",
+   "cause": "Nothing refused it earlier.",
+   "fix": "Refused at the leakage stage and in the library.",
+   "test": "test_a_table_with_nothing_to_score_is_refused"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Labels from the review loop did not say how they were picked.",
+   "scenario": "A rare-event model on them partly re-measures the detector.",
+   "cause": "Their provenance said only partial.",
+   "fix": "The provenance names the detector's selection; rejected alerts are kept as reviewed.",
+   "test": "test_confirmed_alerts_become_labels_and_the_problem_a_rare_event_one"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The identifier rule read the rows to review.",
+   "scenario": "Uniqueness was measured over every row.",
+   "cause": "The whole frame was read in the leakage stage.",
+   "fix": "Measured on the training rows.",
+   "test": "test_the_rows_to_review_reach_the_final_stage_only"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "No labels with an outcome was accepted.",
+   "scenario": "A binary solution with labels none was treated as complete.",
+   "cause": "The new value was not checked against the kind.",
+   "fix": "Refused for every kind that learns from an outcome.",
+   "test": "test_a_solution_reads_no_outcome_and_other_kinds_still_need_one"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the owner's morning with no label, four seeds",
+   "gate": "a review list at least ten times above the fake trips' rate, the rows to review read once, the limits stated",
+   "result": "7 to 13 fake trips in lists of 36 or 37 rows, against rates of 0.0070 to 0.0108; 0 self-deliveries listed",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "7 of 37 against a rate of 0.0070 at worst: well above ten times the rate",
+   "limits": [
+    "Invented replica; generic planted shapes."
+   ]
+  }
+ ],
+ "outcome": "Anomaly detection without labels runs in the engine as its own kind: a review list measured on planted anomalies with its limits, built from Home, and a review loop that turns confirmed alerts into rare-event labels.",
+ "lessons": [
+  "Features that count over history must be computed with the same history for every row they compare.",
+  "Validate a person's keys before writing anything a later round reads.",
+  "Name a measure for what it measures: recall on planted shapes is not precision."
+ ],
+ "risks": [
+  "No page shows the review list yet.",
+  "Planted shapes are generic."
+ ],
+ "commits": []
+}

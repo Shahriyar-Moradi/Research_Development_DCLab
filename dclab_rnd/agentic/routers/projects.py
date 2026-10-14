@@ -13,7 +13,7 @@ from fastapi.responses import Response
 from ... import audit, lessons as workspace_lessons
 from ...studio import agent as studio_agent, data as studio_data, engine as studio_engine, export as studio_export
 from ...studio import graph as studio_graph, lineage as studio_lineage, memory as studio_memory, sft as studio_sft, solution as studio_solution
-from ..api_models import (OCTET, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
+from ..api_models import (OCTET, AnyObject, Answer, Fixes, GateApproval, Graph, Lessons, MoveCheck, Project, ProjectCreate, ProjectPatch, Proposal,
                           ProposalRequest, Page, Question, Review, Router, SampleChoice, SolutionBody, StageApproval, Verdict, download)
 from ..services import charge_upload, Services, services
 
@@ -356,6 +356,33 @@ async def remove_memory_note(project_id: str, note_id: str, body: Any = Body(Non
         raise HTTPException(404, "No such note") from None
     audit.record(s.audit, "memory_removed", "human", project=s.projects.get(project_id), move="remove_memory_note", status="allowed",
                  args={"note": note_id}, message=str(reason or "")[:300])
+    return s.with_records(s.projects.get(project_id))
+
+
+@router.post("/api/projects/{project_id}/review", response_model=Project)
+async def confirm_review(project_id: str, payload: AnyObject, s: Services = Depends(services)):
+    """{"confirmed": [keys], "rejected": [keys]}: alerts of an anomaly project's review list a person reviewed (20.7). The
+    confirmed join the project's known cases, kept across rounds, and become its labels (the problem is then a rare-event
+    one); the rejected are kept as reviewed, never as labels. A round the label check refuses changes nothing."""
+    from ...kinds.anomaly import confirm
+
+    project = s.project(project_id)
+    body = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload or {})
+    keys = [str(k)[:200] for k in (body.get("confirmed") or [])][:5000]
+    rejected = [str(k)[:200] for k in (body.get("rejected") or [])][:5000]
+    solution = project.get("solution") or {}
+    key = ((solution.get("kind_fields") or {}).get("key_column") if solution.get("kind") == "anomaly" else None) \
+        or (project.get("review") or {}).get("key_column")  # a later round: the first one made the cases its labels
+    if not key:
+        raise HTTPException(409, "Only an anomaly project with a key column takes reviewed alerts")
+    if not keys:
+        raise HTTPException(422, "Name the confirmed alerts by their key")
+    try:
+        await asyncio.to_thread(confirm, s.projects, project_id, keys, key, rejected)
+    except (studio_data.DataError, ValueError) as exc:
+        raise HTTPException(409, str(exc)) from None
+    audit.record(s.audit, "move", "human", None, project_id=project_id, move="confirm_review", status="allowed",
+                 args={"confirmed": len(keys)})
     return s.with_records(s.projects.get(project_id))
 
 

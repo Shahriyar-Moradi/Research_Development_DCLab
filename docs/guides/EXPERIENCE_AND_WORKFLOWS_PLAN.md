@@ -276,6 +276,22 @@ code are not one connected object a data scientist can read, run and change.
   kind; the review loop: confirmed cases become labels.
 - **Done when:** the owner's morning on a replica (events of deliveries, no label) ends with a ranked review list,
   its evaluation on planted anomalies, and the honest limits stated; with a label file it moves to the rare-event kind.
+- **Status: done (2026-10-14).** `dclab_core/anomaly.py` (dclab-core 0.24.0) and the kind `anomaly`
+  (`dclab_rnd/kinds/anomaly.py`, its own machine in the engine; a solution with no target, `labels: none`). The rows to
+  review are the latest whole days; the detectors (rules, an isolation forest, nearest neighbours, a row against its
+  entity's usual) are fitted on the earlier rows, every row scored with the earlier rows as its history, and chosen on
+  anomalies of three generic shapes planted in a validation period; the chosen one ranks the latest rows once, in the
+  final stage, into a review list of the budget's size. On the fraud replica's deliveries with no label (seeds 0 to 3)
+  the list of 36 or 37 rows holds 7 to 13 fake trips, against a rate of about 1%; on planted shapes it finds every far
+  value and every busy entity, and almost no broken pair; no self-delivery is listed (the table has no column that shows
+  one), which the limits say. Home builds a ready anomaly card into this kind (the entity named, the day column, a key
+  nearly unique per row), through the same solution check as the wizard. The review loop:
+  `POST /api/projects/{id}/review` with confirmed and rejected keys; the confirmed join the project's known cases across
+  rounds and become its labels (partial, their selection by the detector said in their provenance), the problem then a
+  rare-event one; a key the table does not hold refuses the round and nothing is written; each round's review list is
+  kept. Left open: no page shows the review list or takes the confirmations yet (the route is in the API client); the
+  planted shapes are generic, not derived from the analysis' findings; rejected alerts are kept as reviewed, never as
+  negatives; 16.15 C (projects of several tables).
 
 ## Phase W5 — The pipeline and its code
 

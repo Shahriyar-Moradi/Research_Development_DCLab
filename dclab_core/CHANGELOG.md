@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.24.0 (2026-10-14)
+
+Package 20.7: anomaly detection without labels. A new module; no contract changes shape.
+
+- `anomaly` (new): `split` (the rows to review are the latest whole days, a validation period before them; without a
+  time column a seeded share); `Features` (numbers robust-scaled, skewed ones logged, and an entity's behaviour without
+  labels) and `with_history` (rows scored with the earlier rows as their history, nothing after their own day);
+  detectors `rules`, `isolation_forest`, `nearest_neighbours`, `entity`; `plant` (three generic shapes: a value beyond
+  its range, a correlated pair broken against its direction, a row's entity counts pushed high); `choose` (each
+  detector fitted on the earlier rows and judged on anomalies planted in the validation period, with its stability
+  across halves); `review` (the chosen detector ranks the rows to review into a list of the budget's size, measured on
+  anomalies planted in a copy of them, with its limits); `evaluate`; `numeric_columns`; `budget_rows`.
+
 ## 0.23.0 (2026-10-14)
 
 Package 20.6: the solution workflow from the two cards. A new module and a new contract, `dclab_core.solution_workflow.v1`.

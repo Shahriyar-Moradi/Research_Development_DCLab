@@ -20,7 +20,7 @@ from . import plan as plans
 KIND_FAMILY = {"binary": "classification", "multiclass": "classification", "text_tabular": "classification", "regression": "regression",
                "rare_event": "rare_event", "forecasting": "forecasting", "time_to_event": "time_to_event", "ranking": "ranking",
                "segmentation": "segmentation", "uplift": "uplift", "entity_tables": "entity_tables", "streams": "streams",
-               "embedded": "text_or_images"}
+               "embedded": "text_or_images", "anomaly": "anomaly"}
 UNIT_ANSWER = re.compile(r"^\s*(one|each|a single)\b", re.I)  # "One delivery", "Each order": a unit, not an entity
 
 

@@ -307,6 +307,7 @@
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
     reviewProjectNotebook: ["GET", "/projects/{project_id}/review", ["project_id"], []],
+    confirmReview: ["POST", "/projects/{project_id}/review", ["project_id"], []],
     reviewProjectFixes: ["POST", "/projects/{project_id}/review/fixes", ["project_id"], []],
     runAll: ["POST", "/projects/{project_id}/run", ["project_id"], ["start", "wait"]],
     saveSolution: ["PUT", "/projects/{project_id}/solution", ["project_id"], []],
@@ -931,6 +932,12 @@
   client.reviewProjectNotebook = (...args) => call('reviewProjectNotebook', args);
   client.path.reviewProjectNotebook = (...args) => build('reviewProjectNotebook', args).path;
   client.href.reviewProjectNotebook = (...args) => '/api' + build('reviewProjectNotebook', args).path;
+  /** POST /api/projects/{project_id}/review: Confirm Review
+   *  @param {string} project_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Project>} */
+  client.confirmReview = (...args) => call('confirmReview', args);
+  client.path.confirmReview = (...args) => build('confirmReview', args).path;
   /** POST /api/projects/{project_id}/review/fixes: Review Project Fixes
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

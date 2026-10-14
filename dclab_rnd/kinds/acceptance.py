@@ -33,7 +33,7 @@ class Case:
     """A replica as a person brings it: the table, what they state, and how the engine is run."""
 
     table: pd.DataFrame
-    target: str
+    target: str | None  # None: a kind that reads no outcome (20.7)
     task: str
     moment: str
     solution: dict[str, Any] = field(default_factory=dict)  # what the person states beyond accepting the proposal
@@ -110,6 +110,8 @@ def build(case: Case, root: Path) -> tuple[Any, str]:
         project["pack"] = case.pack
     if label_file is not None and project.get("suggestion"):  # a label file's join: its suggestion is the starting point
         proposal = {**project["suggestion"]}
+    elif case.target is None:  # 20.7: no outcome to propose around; the person states the kind and its columns
+        proposal = {}
     else:
         frame = sd.load_table(sd.data_path(store, project))
         proposal = propose(frame, project["data"]["profile"], case.target, case.task, case.pack)

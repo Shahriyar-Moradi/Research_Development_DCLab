@@ -185,10 +185,12 @@ class HomeTest(unittest.TestCase):
         with self.assertRaises(BuildRefused) as refused:
             self.build()
         self.assertIn("prediction made", str(refused.exception))
-        self.answer(prediction_moment=MOMENT)
-        with self.assertRaises(BuildRefused) as refused:  # ready, but said plainly: not built as something else
-            self.build()
-        self.assertIn("not in the engine yet", str(refused.exception))
+        self.answer(prediction_moment=MOMENT, entity="The biker")
+        project = self.build()  # 20.7: ready, and built as what was said: anomaly detection, with no outcome column
+        solution = project["solution"]
+        self.assertEqual((solution["kind"], solution["target"], solution["labels"]), ("anomaly", None, "none"))
+        self.assertEqual(solution["kind_fields"]["entity_column"], "biker_id")
+        self.assertEqual(solution["kind_fields"]["time_column"], "created_date")
 
     def test_with_the_known_frauds_it_is_a_rare_event_problem_and_builds(self):
         from tests.test_morning_guard import upload

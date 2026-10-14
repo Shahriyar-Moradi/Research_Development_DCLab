@@ -76,7 +76,7 @@ class SpatialSplit(BaseModel):
 
 class Solution(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    target: str
+    target: str | None = None  # 20.7: none only for a kind that reads no outcome (anomaly detection without labels)
     task: Literal["binary", "multiclass", "regression"]
     positive_label: str | None = None
     prediction_moment: str = Field(min_length=12, max_length=2000, description="When the prediction is made and what is known then.")
@@ -89,7 +89,7 @@ class Solution(BaseModel):
     notes: str = Field(default="", max_length=4000)
     # package 15.2: labels from a sample (or a person who says some cases were never found) are partial: an unlabelled
     # row is unknown, not a negative, and every precision is a lower bound
-    labels: Literal["complete", "partial"] = "complete"
+    labels: Literal["complete", "partial", "none"] = "complete"  # none: nothing is labelled (20.7)
     label_provenance: str = Field(default="", max_length=600)
     # package 15.3: the share of rows the team can review (asked in words: "about 70 a day" over the rows of a day)
     alert_budget: float | None = Field(default=None, gt=0, lt=1)
@@ -117,6 +117,12 @@ class Solution(BaseModel):
             if self.target in coords or coords & names:
                 raise ValueError("The coordinates that make the blocks cannot be the target or forbidden")
         kind = self.problem_kind()
+        if self.target is None and getattr(kind, "needs_target", True):
+            raise ValueError("Name the outcome column: this kind of problem learns from it")
+        if self.labels == "none" and getattr(kind, "needs_target", True):
+            raise ValueError("A problem that learns from an outcome needs labels: with none, it is anomaly detection")
+        if self.target is not None and not getattr(kind, "needs_target", True):
+            raise ValueError(f"The {kind.title.lower()} kind reads no outcome column: leave the target empty")
         if self.kind_fields and not self.kind:
             raise ValueError("A kind's fields need the kind itself: declare `kind` with them")
         if not kind.runs_in_engine:
@@ -151,7 +157,7 @@ class Solution(BaseModel):
 
     def check_columns(self, columns: list[str]) -> None:
         known = set(columns)
-        for name in [self.target, *(f.column for f in self.forbidden), *self.identifiers, *self.text_columns,
+        for name in [*([self.target] if self.target else []), *(f.column for f in self.forbidden), *self.identifiers, *self.text_columns,
                      *( [self.time_column] if self.time_column else []), *([self.group_column] if self.group_column else []),
                      *(self.decision.columns() if self.decision else []),
                      *([self.spatial.lat_column, self.spatial.lon_column] if self.spatial else [])]:

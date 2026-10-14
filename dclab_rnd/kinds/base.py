@@ -160,6 +160,7 @@ class ProblemKind:
         return None
 
     runs_in_engine = True  # False: the kind runs only as a library (its own ``solve``); the Solution refuses it, the matrix says partial
+    needs_target = True  # 20.7: a kind that reads no outcome column (anomaly detection without labels) says False
     # decisions known to fail until the owner acts (weights to download, a purpose to open): still listed as missing, but
     # `make kinds-check` fails only on a decision outside them
     open_decisions: tuple[str, ...] = ()
