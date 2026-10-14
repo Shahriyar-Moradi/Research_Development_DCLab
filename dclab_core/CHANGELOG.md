@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.25.0 (2026-10-14)
+
+Package 16.15 C (first part): several tables in the engine. `entities` splits into what an engine runs stage by stage;
+no contract changes shape.
+
+- `entities.split`: the holdout is the latest cutoff whose horizon the log reaches (from dates alone), the training
+  cutoffs those whose horizon ends by it, the validation the latest of them; cutoffs past the data's end are left out
+  and said. `clip` keeps the events before a moment; `training_view` builds every training row and target from the
+  log clipped at the holdout. `choose` picks among `CANDIDATES` (boosted trees, logistic regression, recency alone)
+  on the validation cutoff, fitted on the cutoffs whose horizon ends by it; `score` builds the holdout from the whole
+  log at its cutoff and scores the chosen model once, beside recency. `build` takes `data_end`; `data_end_of`.
+
 ## 0.24.0 (2026-10-14)
 
 Package 20.7: anomaly detection without labels. A new module; no contract changes shape.

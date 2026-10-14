@@ -176,28 +176,32 @@ def entity_check(rows: pd.DataFrame, entities: pd.DataFrame, tables: dict[str, d
 
 
 def build(entities: pd.DataFrame, tables: dict[str, dict[str, Any]], *, key: str, cutoffs: Sequence[str], target_table: str,
-          horizon_days: int, absent: bool = True, windows: Sequence[int] = (7, 30, 90)) -> dict[str, Any]:
+          horizon_days: int, absent: bool = True, windows: Sequence[int] = (7, 30, 90), data_end: Optional[str] = None,
+          entity_columns: Optional[Sequence[str]] = None) -> dict[str, Any]:
     """The training table: one row per (entity, cutoff), the entity table's own columns (joined, checked), window
-    features from every event table, and the target from ``target_table`` in the horizon after each cutoff."""
+    features from every event table, and the target from ``target_table`` in the horizon after each cutoff.
+    ``entity_columns``: the entity columns to keep, decided elsewhere (the holdout keeps exactly what training kept)."""
     first = tables[target_table]
     rows = snapshot_rows(first["frame"], key=key, time=first["time"], cutoffs=cutoffs)
     joins = {"entities": check_join(rows, entities, key, name="the entity table")}
     written_later = entity_check(rows, entities, tables, key=key)
-    kept = [c for c in entities.columns if c not in written_later["after_the_cutoff"]]
+    kept = ([key, *(c for c in entity_columns if c != key)] if entity_columns is not None
+            else [c for c in entities.columns if c not in written_later["after_the_cutoff"]])
     table = rows.merge(entities[kept], on=key, how="left")
-    last_read = []
+    last_read, window_columns = [], []
     for name, spec in tables.items():
         feats = window_features(rows, spec["frame"], key=key, time=spec["time"], prefix=name, sums=spec.get("sums", ()), windows=windows)
         last_read.append(feats.pop(f"_{name}_last_read"))
+        window_columns += list(feats.columns)
         table = pd.concat([table, feats], axis=1)
-    target = window_target(rows, first["frame"], key=key, time=first["time"], horizon_days=horizon_days, absent=absent)
+    target = window_target(rows, first["frame"], key=key, time=first["time"], horizon_days=horizon_days, absent=absent, data_end=data_end)
     table = pd.concat([table, target], axis=1)
     read = pd.concat(last_read, axis=1).max(axis=1)
     unknown = int(table["target"].isna().sum())
     table = table[table["target"].notna()].reset_index(drop=True)
     return {"table": table, "joins": joins, "entity_columns_kept_out": written_later, "cutoffs": [str(pd.Timestamp(c).date()) for c in cutoffs],
             "rows_left_out_unknown": unknown, "events_after_cutoff_read": int((read >= rows["cutoff"]).sum()),
-            "last_read": read}
+            "last_read": read, "entity_columns": [c for c in kept if c != key], "window_columns": window_columns}
 
 
 def evaluate(built: dict[str, Any], *, key: str, seed: int = 0) -> dict[str, Any]:
@@ -225,3 +229,139 @@ def evaluate(built: dict[str, Any], *, key: str, seed: int = 0) -> dict[str, Any
             "positive_rate": round(float(y.mean()), 3),
             "model": {"roc_auc": round(float(roc_auc_score(y, p)), 4), "average_precision": round(float(average_precision_score(y, p)), 4)},
             "recency_only": {"roc_auc": round(float(roc_auc_score(y, base)), 4), "average_precision": round(float(average_precision_score(y, base)), 4)}}
+
+
+# ---------------------------------------------------------------------------- 16.15 C: in the engine, split / choose / score
+
+def data_end_of(tables: dict[str, dict[str, Any]], target_table: str, declared: Optional[str] = None) -> pd.Timestamp:
+    """Where the log ends: the date the person states, else the last event of the target's table."""
+    if declared:
+        return pd.Timestamp(declared)
+    spec = tables[target_table]
+    return _when(spec["frame"][spec["time"]]).max()
+
+
+def split(tables: dict[str, dict[str, Any]], *, cutoffs: Sequence[str], target_table: str, horizon_days: int,
+          data_end: Optional[str] = None) -> dict[str, Any]:
+    """Which cutoffs train, validate and test, read from dates only (never an outcome): the holdout is the latest cutoff
+    whose horizon the log reaches; training cutoffs end their horizon by it; the validation cutoff is the latest of
+    those, fitted on the ones whose horizon ends by it. Cutoffs whose horizon passes the holdout's or the log's end are
+    left out, and said."""
+    end = data_end_of(tables, target_table, data_end)
+    horizon = pd.Timedelta(days=horizon_days)
+    every = sorted({pd.Timestamp(c) for c in cutoffs})
+    known = [c for c in every if c + horizon <= end]
+    if len(known) < 3:
+        raise ValueError(f"too few cutoffs whose {horizon_days}-day horizon the log reaches (by {end.date()}): at least 3 are needed")
+    holdout = known[-1]
+    train = [c for c in known if c + horizon <= holdout]
+    if len(train) < 2:
+        raise ValueError("too few training cutoffs end their horizon before the holdout's: add earlier cutoffs")
+    validation = train[-1]
+    fit = [c for c in train if c + horizon <= validation]
+    if not fit:
+        raise ValueError("no cutoff ends its horizon before the validation cutoff: add earlier cutoffs")
+    day = lambda c: str(c.date())  # noqa: E731
+    return {"holdout": day(holdout), "train": [day(c) for c in train], "validation": day(validation), "fit": [day(c) for c in fit],
+            "data_end": str(end.date()), "left_out": [day(c) for c in every if c not in train and c != holdout],
+            "why_left_out": "their horizon passes the log's end, or overlaps the holdout's"}
+
+
+def clip(tables: dict[str, dict[str, Any]], until: str) -> dict[str, dict[str, Any]]:
+    """Every event table cut to its events strictly before ``until``: the view the training rows are built from."""
+    stop = pd.Timestamp(until)
+    out = {}
+    for name, spec in tables.items():
+        frame = spec["frame"]
+        out[name] = {**spec, "frame": frame[_when(frame[spec["time"]]).to_numpy() < np.datetime64(stop)]}
+    return out
+
+
+def training_view(entities: pd.DataFrame, tables: dict[str, dict[str, Any]], parts: dict[str, Any], *, key: str, target_table: str,
+                  horizon_days: int, absent: bool = True) -> dict[str, Any]:
+    """The training rows at the training cutoffs, built from the events before the holdout's cutoff only: features and
+    targets alike (a horizon ending by the holdout's cutoff is read in full there)."""
+    return build(entities, clip(tables, parts["holdout"]), key=key, cutoffs=parts["train"], target_table=target_table,
+                 horizon_days=horizon_days, absent=absent, data_end=parts["holdout"])
+
+
+def feature_columns(t: pd.DataFrame, key: str, exclude: Sequence[str] = ()) -> list[str]:
+    """The columns a model reads: numeric, neither the key, the cutoff, the target nor its bookkeeping, nor ``exclude``
+    (what the leakage audit kept out: forbidden, identifiers, columns the prediction moment rules out)."""
+    out = set(exclude)
+    return [c for c in t.columns if c not in (key, "cutoff", "target", "horizon_end", "target_last_read") and c not in out
+            and pd.api.types.is_numeric_dtype(t[c])]
+
+
+CANDIDATES = ("hist_gradient_boosting", "logistic_regression", "recency_only")
+
+
+def _model(name: str, seed: int = 0) -> Any:
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    if name == "logistic_regression":
+        return make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), LogisticRegression(max_iter=1000))
+    return HistGradientBoostingClassifier(max_iter=200 if name == "hist_gradient_boosting" else 100, learning_rate=0.06, random_state=seed)
+
+
+def _columns(name: str, features: list[str]) -> list[str]:
+    return [c for c in features if c.endswith("_days_since_last")][:1] if name == "recency_only" else features
+
+
+def choose(view: dict[str, Any], parts: dict[str, Any], *, key: str, exclude: Sequence[str] = (), seed: int = 0) -> dict[str, Any]:
+    """Every candidate fitted on the fit cutoffs' rows and scored by ROC-AUC on the validation cutoff's rows; the best
+    is chosen (a tie to the simpler one). The holdout's rows are not built here."""
+    from sklearn.metrics import average_precision_score, roc_auc_score
+
+    t = view["table"]
+    fit = t[t["cutoff"].isin(pd.to_datetime(parts["fit"]))]
+    val = t[t["cutoff"] == pd.Timestamp(parts["validation"])]
+    if fit["target"].nunique() < 2 or val["target"].nunique() < 2:
+        raise ValueError("the fit or the validation rows hold one outcome only: add cutoffs")
+    features = feature_columns(t, key, exclude)
+    scores = {}
+    for name in CANDIDATES:
+        cols = _columns(name, features)
+        p = _model(name, seed).fit(fit[cols], fit["target"]).predict_proba(val[cols])[:, 1]
+        scores[name] = {"roc_auc": round(float(roc_auc_score(val["target"], p)), 4),
+                        "average_precision": round(float(average_precision_score(val["target"], p)), 4)}
+    order = list(CANDIDATES)[::-1]  # recency first: the simplest wins a tie
+    best = max(scores, key=lambda n: (scores[n]["roc_auc"], order.index(n)))
+    return {"validation": scores, "chosen": best, "features": features, "fit_rows": int(len(fit)), "validation_rows": int(len(val)),
+            "chosen_by": "the best ROC-AUC on the validation cutoff's rows, fitted on the cutoffs whose horizon ends by it"}
+
+
+def score(entities: pd.DataFrame, tables: dict[str, dict[str, Any]], view: dict[str, Any], parts: dict[str, Any], chosen: str, *,
+          key: str, target_table: str, horizon_days: int, absent: bool = True, exclude: Sequence[str] = (), seed: int = 0) -> dict[str, Any]:
+    """The chosen model fitted on every training row and scored once on the holdout cutoff's rows (built from the whole
+    log: features from events before the cutoff, the target from the horizon after it), beside recency alone."""
+    from sklearn.metrics import average_precision_score, roc_auc_score
+
+    train = view["table"]
+    features = feature_columns(train, key, exclude)
+    built = build(entities, tables, key=key, cutoffs=[parts["holdout"]], target_table=target_table, horizon_days=horizon_days,
+                  absent=absent, data_end=parts["data_end"], entity_columns=view["entity_columns"])  # what training kept, no more
+    held = built["table"]
+    # a kept column that follows the log after the holdout's cutoff could not be seen from the training period: said
+    later = [c for c in built["entity_columns_kept_out"]["after_the_cutoff"] if c in features]
+    lost = [c for c in features if c not in held.columns]
+    if lost:
+        raise ValueError(f"the holdout's rows lack training features: {', '.join(lost)}")
+    test = held
+    y = test["target"].to_numpy()
+    if len(set(y)) < 2:
+        raise ValueError("the holdout cutoff's rows hold one outcome only")
+    out = {}
+    for name in dict.fromkeys([chosen, "recency_only"]):
+        cols = _columns(name, features)
+        p = _model(name, seed).fit(train[cols], train["target"]).predict_proba(test[cols])[:, 1]
+        out[name] = {"roc_auc": round(float(roc_auc_score(y, p)), 4), "average_precision": round(float(average_precision_score(y, p)), 4)}
+    seen = set(train[key])
+    return {"holdout": out, "holdout_rows": int(len(test)), "train_rows": int(len(train)), "positive_rate": round(float(np.mean(y)), 4),
+            "kept_but_written_later_at_the_holdout": later,
+            "holdout_entities": int(test[key].nunique()), "holdout_entities_seen_in_training": int(test[key].isin(seen).sum()),
+            "beats_recency": out[chosen]["roc_auc"] > out["recency_only"]["roc_auc"] if chosen != "recency_only" else False}

@@ -42,6 +42,7 @@ class Case:
     files: Callable[[Path], tuple[str, str | None]] | None = None  # writes the person's own files: (data file, label file)
     quick: bool = True
     facts: dict[str, Any] = field(default_factory=dict)
+    tables: dict[str, pd.DataFrame] | None = None  # 16.15 C: related tables, attached by name beside the main one
 
 
 @dataclass
@@ -105,6 +106,9 @@ def build(case: Case, root: Path) -> tuple[Any, str]:
         case.labels[0].to_csv(directory / label_file, index=False)
     if label_file is not None:
         project = sd.attach_labels(store, project["id"], label_file, target=case.labels[1] if case.labels else case.target)
+    for name, frame in (case.tables or {}).items():  # after the main table and the labels: attaching those clears the folder
+        frame.to_csv(directory / f"{name}.csv", index=False)
+        sd.attach_table(store, project["id"], f"{name}.csv", name)
     project = store.get(project["id"])
     if case.pack:
         project["pack"] = case.pack

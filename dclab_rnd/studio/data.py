@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -404,6 +405,7 @@ def attach_data(store, project_id: str, filename: str, source: dict[str, Any] | 
                        "sha256": stored["sha256"], "profile": profile_table(frame), "card": data_card({filename: frame}, filename)}
     project["solution"], project["proposal"], project["suggestion"] = None, None, None
     project["labels"] = None  # its file was removed with the old table, and it was keyed on that table
+    project["tables"] = {}  # 16.15 C: the related tables' files went with the old table too
     if project.get("memory"):
         from . import memory
         memory.data_replaced(project, filename)  # A5.2: what the notes settled was about the old table
@@ -487,6 +489,103 @@ def attach_labels(store, project_id: str, filename: str, target: str = "is_case"
     audit.record_for(store, "data_import", actor, project=project, move="attach_labels", status="allowed", source={"kind": "labels"},
                      filename=filename, sha256=stored["sha256"], rows=review["label_rows"], columns=int(frame.shape[1]))
     return store.get(project_id)
+
+
+def attach_table(store, project_id: str, filename: str, name: str | None = None, actor: str = "human", staged: str | None = None) -> dict[str, Any]:
+    """Register ``data/<filename>`` (already written) as one more table of the project, under ``name`` (16.15 C: orders
+    and tickets beside a table of customers, the incidents beside the readings). It is stored and fingerprinted like the
+    main table, and the data card shows how it relates to it. The solution stays (it names tables by name); the stages
+    are cleared, since a machine may read the table. ``staged``: the bytes wait under that name and replace ``filename``
+    only once the move is allowed and they read as a table, so a refused or broken upload never touches an attached
+    file (only the staged one is removed)."""
+    from ..storage.files import FileError, files_for
+
+    from . import graph
+
+    project = store.get(project_id)
+    name = re.sub(r"[^A-Za-z0-9_-]+", "_", str(name or Path(filename).stem)).strip("_")[:60] or "table"
+    path = store.data_dir(project_id) / filename
+    source = store.data_dir(project_id) / staged if staged else path
+
+    def discard() -> None:  # never a file the project holds: only the staged bytes, or a name nothing refers to
+        if staged:
+            source.unlink(missing_ok=True)
+        elif filename not in files_in_use(store.get(project_id)):
+            path.unlink(missing_ok=True)
+
+    verdict = graph.check(project, "attach_table", actor, filename=filename, name=name)
+    if not verdict.allowed:
+        graph.log(store, project_id, verdict, project)
+        discard()
+        raise DataError(verdict.message)
+    if filename in files_in_use(project, but=name) or (staged and staged in files_in_use(project)):
+        if staged and staged not in files_in_use(project):
+            source.unlink(missing_ok=True)
+        raise DataError(f"{filename} is already one of the project's files")
+    try:
+        frame = load_table(source)
+    except Exception as exc:  # noqa: BLE001 — pandas raises many types; the file is simply not a table
+        discard()
+        raise DataError(f"Could not read {filename} as a table: {type(exc).__name__}") from None
+    if frame.shape[1] < 2 or len(frame) < 1:
+        discard()
+        raise DataError("A related table needs at least 2 columns and a row")
+    if staged:
+        os.replace(source, path)
+    before = (project.get("tables") or {}).get(name)
+    try:
+        files = files_for(store)
+        stored = files.put(files.key_of(path), path)
+    except Exception as exc:  # noqa: BLE001 — as attach_data
+        path.unlink(missing_ok=True)
+        raise DataError(str(exc) if isinstance(exc, FileError) else f"The table could not be stored ({type(exc).__name__})") from None
+    project = store.get(project_id)
+    tables = dict(project.get("tables") or {})
+    if before and before["filename"] != filename and before["filename"] not in files_in_use(project, but=name):
+        (store.data_dir(project_id) / before["filename"]).unlink(missing_ok=True)  # the name now points to another file
+    tables[name] = {"filename": filename, "sha256": stored["sha256"], "rows": int(len(frame)), "columns": [str(c) for c in frame.columns]}
+    project["tables"] = tables
+    try:  # the card reads every table together: the relations between them
+        main = load_table(data_path(store, project))
+        project["data"]["card"] = data_card({project["data"]["filename"]: main, **{n: load_tables(store, project, [n])[n] for n in tables}},
+                                            project["data"]["filename"])
+    except Exception:  # noqa: BLE001 — a card that cannot be drawn leaves the table attached
+        pass
+    store.save(project)
+    store.clear_stages(project_id)
+    graph.log(store, project_id, verdict, store.get(project_id), outcome=f"done: table {name} attached")
+    store.log(project_id, "table_attached", {"name": name, "filename": filename, "rows": int(len(frame))})
+    from .. import audit
+
+    audit.record_for(store, "data_import", actor, project=project, move="attach_table", status="allowed", source={"kind": "table", "name": name},
+                     filename=filename, sha256=stored["sha256"], rows=int(len(frame)), columns=int(frame.shape[1]))
+    return store.get(project_id)
+
+
+def files_in_use(project: dict[str, Any], but: str | None = None) -> set[str]:
+    """The file names the project already holds (the main table, the label file, the related tables but ``but``): a new
+    related table is never written over one of them."""
+    used = {(project.get("data") or {}).get("filename"), (project.get("labels") or {}).get("filename"),
+            *(t["filename"] for n, t in (project.get("tables") or {}).items() if n != but)}
+    return {u for u in used if u}
+
+
+def load_tables(store, project: dict[str, Any], names: list[str]) -> dict[str, pd.DataFrame]:
+    """The project's related tables by name, each checked against the SHA-256 recorded when it was attached."""
+    from ..storage.files import FileError, files_for
+
+    out = {}
+    known = project.get("tables") or {}
+    for name in names:
+        if name not in known:
+            raise DataError(f"The project has no table named {name!r}: attach it first")
+        path = store.data_dir(project["id"]) / known[name]["filename"]
+        try:
+            files = files_for(store)
+            out[name] = load_table(files.path(files.key_of(path), expected=known[name].get("sha256")))
+        except FileError as exc:
+            raise DataError(str(exc)) from None
+    return out
 
 
 def sample_categorical(key: str, columns: list[str]) -> list[str]:

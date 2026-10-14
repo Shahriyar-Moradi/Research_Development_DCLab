@@ -149,13 +149,15 @@ class KindTest(unittest.TestCase):
                       "Predict whether an order is delivered late, from the orders table."):
             self.assertNotEqual(self.kinds.detect(other)["key"], "entity_tables", other)
 
-    def test_refused_by_the_engine_until_it_runs_it(self):
+    def test_the_engine_runs_it_once_its_event_tables_are_named(self):  # 16.15 C: refused before, a machine of its own now
         from dclab_rnd.studio.solution import Solution
 
+        fields = {"key_column": "k", "target_table": "orders", "horizon_days": 30, "cutoffs": ["2025-01-01", "2025-02-01"]}
         with self.assertRaises(ValueError):
-            Solution(target="target", task="binary", prediction_moment="On each cutoff", kind="entity_tables",
-                     kind_fields={"key_column": "k", "target_table": "orders", "horizon_days": 30, "cutoffs": ["2025-01-01", "2025-02-01"]})
-
+            Solution(task="binary", prediction_moment="On each cutoff", kind="entity_tables", kind_fields=fields)
+        Solution(task="binary", prediction_moment="On each cutoff", kind="entity_tables",
+                 kind_fields={**fields, "event_tables": [{"name": "orders", "time_column": "at"}]})
+        self.assertTrue(self.kinds.get("entity_tables").runs_in_engine)
 
 if __name__ == "__main__":
     unittest.main()

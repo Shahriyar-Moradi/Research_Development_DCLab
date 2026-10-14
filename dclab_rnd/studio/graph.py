@@ -58,7 +58,7 @@ GATES = {"solution": "The owner signs the solution before WF-04.",
          "holdout": "The owner approves opening the holdout (WF-09)."}
 DEFAULT_POLICY = {"require_solution_signoff": False, "require_holdout_approval": False}
 MOVES = ("run_stage", "set_solution", "approve_stage", "approve_gate", "capture",
-         "create_project", "attach_data", "set_settings", "propose_solution", "attach_labels")  # the last four: every other project write
+         "create_project", "attach_data", "set_settings", "propose_solution", "attach_labels", "attach_table")  # the last four: every other project write
 DONE = ("completed", "approved")
 
 
@@ -177,7 +177,7 @@ def check(project: dict[str, Any], move: str, actor: str = "human", **args: Any)
     return {"run_stage": _run_stage, "set_solution": _set_solution, "approve_stage": _approve_stage,
             "approve_gate": _approve_gate, "capture": _capture, "create_project": _create_project,
             "attach_data": _attach_data, "set_settings": _set_settings, "propose_solution": _propose_solution,
-            "attach_labels": _attach_labels}[move](project, actor, frm, clean)
+            "attach_labels": _attach_labels, "attach_table": _attach_table}[move](project, actor, frm, clean)
 
 
 def _verdict(move: str, actor: str, frm: str | None, to: str | None, checks: list[dict[str, Any]], rules: list[str],
@@ -328,6 +328,14 @@ def _attach_labels(project: dict[str, Any], actor: str, frm: str | None, args: d
     ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
     side = ["The labels define the target: the solution is cleared" + (f", and so are {', '.join(ran)}." if ran else ".")]
     return _verdict("attach_labels", actor, frm, "WF-02", checks, ["DCLAB-R01"], [], side, args, ("Signed solution unchanged",))
+
+
+def _attach_table(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:
+    """One more table beside the main one (16.15 C): it needs the main table; the solution stays, the stages are rerun."""
+    checks = [_not_running(project), _check("A table is attached", bool(project.get("data")), "Attach the main table before a related one.")]
+    ran = [s for s in STAGE_KEYS if _stage_status(project, s) in DONE]
+    side = [f"A machine may read it: {', '.join(ran)} cleared." if ran else "No stage has run yet."]
+    return _verdict("attach_table", actor, frm, "WF-02", checks, ["DCLAB-R09"], [], side, args)
 
 
 def _set_settings(project: dict[str, Any], actor: str, frm: str | None, args: dict[str, Any]) -> Verdict:

@@ -178,6 +178,14 @@ class ProblemKind:
         """For a kind with its own machine: the decisions checked on the engine's records of the same case (16.15)."""
         return []
 
+    def tables_of(self, solution: Any) -> list[str]:
+        """The project's related tables the kind's machine reads (16.15 C), by name; none by default."""
+        return []
+
+    def table_columns_of(self, solution: Any) -> dict[str, list[str]]:
+        """The columns each related table must hold, by table name."""
+        return {}
+
     def columns_of(self, solution: Any) -> list[str]:
         """The columns the kind's own fields name (checked against the table before a machine runs)."""
         return []

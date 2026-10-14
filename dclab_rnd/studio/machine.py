@@ -14,9 +14,13 @@ from .solution import Solution
 class MachinePrepared:
     """What the engine prepares for a kind with its own machine (the tabular ``Prepared``'s counterpart)."""
 
-    def __init__(self, store: Any, project: dict[str, Any], solution: Solution, kind: Any, frame: pd.DataFrame):
+    def __init__(self, store: Any, project: dict[str, Any], solution: Solution, kind: Any, frame: pd.DataFrame,
+                 tables: dict[str, pd.DataFrame] | None = None):
         self.store, self.project, self.solution, self.kind, self.frame = store, project, solution, kind, frame
-        self.machine: Machine = kind.own_machine()(kind, solution, frame, project)
+        cls = kind.own_machine()
+        # 16.15 C: a machine that reads related tables gets them; the others keep their four arguments
+        self.machine: Machine = (cls(kind, solution, frame, project, tables=tables or {}) if getattr(cls, "uses_tables", False)
+                                 else cls(kind, solution, frame, project))
         self.sampling = {"source_rows": int(len(frame)), "rows_used": int(len(frame)), "rule": "every row (the kind's machine reads the whole table)"}
         self.plan, self.label_info, self.critic, self.class_labels = project.get("plan"), project.get("labels"), None, None
 
@@ -52,4 +56,11 @@ def prepare(store: Any, project: dict[str, Any], solution: Solution, kind: Any) 
     missing = [c for c in kind.columns_of(solution) if c not in frame.columns]
     if missing:
         raise ValueError(f"The {kind.title.lower()} kind names columns the table does not have: {', '.join(missing)}")
-    return MachinePrepared(store, project, solution, kind, frame)
+    from .data import load_tables
+
+    tables = load_tables(store, project, kind.tables_of(solution))  # each checked against its recorded SHA-256
+    for name, columns in kind.table_columns_of(solution).items():
+        lost = [c for c in columns if c not in tables[name].columns]
+        if lost:
+            raise ValueError(f"The table {name} has no column {', '.join(lost)}")
+    return MachinePrepared(store, project, solution, kind, frame, tables)

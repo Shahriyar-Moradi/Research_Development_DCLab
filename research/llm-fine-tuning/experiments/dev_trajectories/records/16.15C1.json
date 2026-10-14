@@ -1,0 +1,175 @@
+{
+ "package": "16.15C1",
+ "title": "A project holds several tables, and the entity-tables kind runs in the engine",
+ "date": "2026-10-14",
+ "request": "Phase C of 16.15, first part: let a project hold related tables beside its main one, and run the several-tables kind (an entity table with event tables, the target built per entity and cutoff) through the engine's five stages with the holdout locked first, the choice made on validation and the holdout read once.",
+ "spec": "A related table attached by name through the graph, stored and fingerprinted; a machine that declares it reads tables gets the ones its kind names; dclab_core.entities split into split, clip, training_view, choose and score; the kind's machine per stage; a route to upload a related table.",
+ "plan": [
+  "Add the shared table layer: attach_table, load_tables, the graph move, prepare passing tables, Case.tables, lineage refs.",
+  "Split the entities library into what an engine runs stage by stage, and verify it on the replica.",
+  "Write the kind's fields, its machine and its engine acceptance.",
+  "Test that the holdout reaches only the final stage, then review, plant faults and fix."
+ ],
+ "decisions": [
+  {
+   "decision": "The holdout is the latest cutoff whose horizon the log reaches, chosen from dates alone in the data stage.",
+   "why": "Nothing about outcomes may shape the split, and the final stage can then refuse a holdout that moved."
+  },
+  {
+   "decision": "Every training row and target is built from the log clipped at the holdout's cutoff.",
+   "why": "Defence in depth: even a feature bug cannot read the holdout's horizon during training."
+  },
+  {
+   "decision": "The holdout keeps exactly the entity columns training kept, and a kept column that follows the log after the holdout is flagged in the final stage.",
+   "why": "Training and scoring must read the same columns; what the training period cannot reveal must at least be said."
+  },
+  {
+   "decision": "A table that joins cleanly is checked but not yet joined as columns, and the record says so.",
+   "why": "Saying 'refused joins: none' implied a join that never happened."
+  },
+  {
+   "decision": "An upload waits under a staged name and replaces the attached file only once the move is allowed and it reads as a table.",
+   "why": "A refused or broken re-upload must never destroy a table the project holds."
+  }
+ ],
+ "change": "dclab_core/entities.py (split, clip, training_view, feature_columns, choose, score; build keeps given entity columns; dclab-core 0.25.0), dclab_rnd/kinds/entity_tables.py (fields, EntityMachine, engine acceptance), kinds/base.py, kinds/acceptance.py, studio/data.py (attach_table, load_tables, files_in_use), studio/graph.py, studio/machine.py, studio/lineage.py, agentic/routers/projects.py, agentic/api_models.py, the web client; tests/test_kind_acceptance_entities.py (new), tests/test_core_entities.py; CHANGELOG, the playbook, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The engine check counted thousands of training rows as reading later events.",
+   "scenario": "The features stage compared the windows built from the whole log with those built before the holdout.",
+   "cause": "Missing windows are NaN on both sides, and NaN never equals NaN.",
+   "fix": "Rows differ only where a value differs and is not missing on both sides.",
+   "test": "test_the_model_is_chosen_on_validation_before_the_holdout_is_read"
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Attaching a table without clearing the stages went unnoticed.",
+   "scenario": "A planted fault skipped clear_stages and every test still passed.",
+   "cause": "The test asserted the status was not 'done', a value the store never uses.",
+   "fix": "The test asserts every stage is pending and the final record is gone.",
+   "test": "test_a_table_changed_on_disk_is_refused_and_attached_again_clears_the_stages"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Forbidden columns, identifiers and moment-rule columns reached the models.",
+   "scenario": "A numeric forbidden column was listed as kept out by the leakage stage yet fitted by choose and score.",
+   "cause": "The leakage stage's kept-out list was never passed on; the models took every numeric column.",
+   "fix": "choose and score take exclude; the machine passes the leakage record's kept-out list; the features list is exactly what the models read.",
+   "test": "test_no_model_reads_a_column_the_audit_kept_out"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Training and holdout decided the written-later entity columns on different logs, and the holdout filled the gap with NaN silently.",
+   "scenario": "An export-day score holding the holdout period's orders was kept for training and dropped at the holdout, then reindexed to NaN.",
+   "cause": "The holdout was built from the whole log with its own entity check, then reindexed to the training columns.",
+   "fix": "The holdout keeps exactly the training's entity columns; a missing training feature raises; a kept column that follows the log after the holdout is flagged with a warning and a limit.",
+   "test": "test_a_kept_column_that_follows_the_log_after_the_holdout_is_said_and_scored_as_kept"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A failed re-upload deleted the attached table.",
+   "scenario": "Re-uploading orders with one column returned 400, removed orders.csv and left the project pointing at it.",
+   "cause": "The route wrote over the final name before any check, and the failure path unlinked it.",
+   "fix": "Uploads wait under a staged name and replace the file only after the graph check and the read; failures remove only the staged bytes.",
+   "test": "test_a_broken_reupload_leaves_the_attached_table_as_it_was"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The engine acceptance check on reading later events could not fail on a look-ahead inside the horizon.",
+   "scenario": "Windows planted to read past the cutoff left the whole-log comparison at zero.",
+   "cause": "Every training horizon ends by the holdout, so both logs hold the same events.",
+   "fix": "The check also requires no row to read an event at or after its cutoff; the comparison is named for what it measures.",
+   "test": "test_the_acceptance_fails_on_a_look_ahead_inside_the_horizon"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Joined tables were checked but never joined, while the claim implied they were.",
+   "scenario": "A clean one-row-per-key table passed its check and its columns never reached the features.",
+   "cause": "Only the refusal was recorded.",
+   "fix": "The record and its claim list the tables checked but not joined as columns yet.",
+   "test": "test_the_replica_ends_with_the_holdout_scored_once_against_recency"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The holdout note said the holdout held only the training's customers.",
+   "scenario": "Customers first seen after the last training cutoff also enter the holdout.",
+   "cause": "The wording assumed the replica's shape.",
+   "fix": "The final stage counts the holdout customers also seen in training and says it.",
+   "test": "test_the_replica_ends_with_the_holdout_scored_once_against_recency"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The capability matrix was not rebuilt.",
+   "scenario": "The matrix still showed the kind as partial with the library's checks.",
+   "cause": "The campaign and kinds-check need the committed code.",
+   "fix": "The campaign and make kinds-check run after the code commit, in the next commit.",
+   "test": "test_the_committed_file_lists_every_built_in_kind_as_supported"
+  },
+  {
+   "id": "S3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A refused attach could delete an attached table.",
+   "scenario": "A planted fault removed the guard in the discard path and no test failed.",
+   "cause": "No test refused an attach of a name already attached.",
+   "fix": "A test refuses the move and checks the table stays attached and readable.",
+   "test": "test_a_refused_attach_never_deletes_an_attached_table"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the shop replica in the engine, seed 0",
+   "gate": "every engine acceptance decision holds: the holdout read once, the chosen model beats recency, no event read after a cutoff",
+   "result": "logistic regression chosen on validation (ROC-AUC 0.9096); holdout ROC-AUC 0.9208 against recency's 0.9003; last_order_date and lifetime_orders kept out; the addresses join refused; 0 rows read an event at or after their cutoff",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "10 of 10 decisions hold",
+   "limits": [
+    "Invented replica, one seed.",
+    "The holdout is the same customers at a later cutoff: a split in time, not across customers."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "16 of 17 planted faults caught after the fixes; the one left changed nothing, since the training view never holds the holdout",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 17, the 17th an equivalent change",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "A project holds related tables, each fingerprinted and never written over another file, and the entity-tables kind runs in the engine: the holdout locked from dates, training built before it, the model chosen on validation, the holdout scored once beside recency, with forbidden columns kept from every model.",
+ "lessons": [
+  "A list a stage records is a promise: pass it to the code that acts on it, and test the act, not the record.",
+  "Compare missing values as missing on both sides, never with plain inequality.",
+  "Write uploaded bytes beside the file they replace, never over it, until they are checked."
+ ],
+ "risks": [
+  "Streams and embedded data are still outside the engine.",
+  "Joined tables are checked but not yet joined as columns.",
+  "No page lists a project's related tables yet."
+ ],
+ "commits": []
+}

@@ -95,7 +95,8 @@ def inputs_of(project: dict[str, Any], previous: dict[str, Optional[dict[str, An
     earlier = {k: r for k, r in previous.items() if r}
     refs = {"labels": (project.get("labels") or {}).get("sha256") or _short_hash(project.get("labels")),
             "pack": _short_hash(project.get("pack")), "feature_programs": _short_hash(project.get("feature_programs")),
-            "plan": _short_hash(project.get("plan")), "categorical": _short_hash(data.get("categorical"))}
+            "plan": _short_hash(project.get("plan")), "categorical": _short_hash(data.get("categorical")),
+            "tables": _short_hash({n: t.get("sha256") for n, t in sorted((project.get("tables") or {}).items())})}  # 16.15 C
     settings = project.get("settings") or {}
     return contract.RunInputs(
         data_sha256=data.get("sha256"), data_rows=data.get("rows"),

@@ -187,6 +187,7 @@ class Project(Doc):
     goal: Any = None
     industry: Any = None
     data: Any = None
+    tables: Any = None  # 16.15 C: the related tables by name
     solution: Any = None
     settings: Any = None
     stages: Any = None

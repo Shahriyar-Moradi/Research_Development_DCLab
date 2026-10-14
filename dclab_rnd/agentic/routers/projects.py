@@ -165,6 +165,31 @@ async def upload_data(project_id: str, request: Request, filename: str = "data.c
     return s.with_records(await asyncio.to_thread(s.attach_data, p, name))  # the profile and the card: never on the event loop
 
 
+@router.put("/api/projects/{project_id}/tables/{name}", response_model=Project, openapi_extra=OCTET)
+async def upload_table(project_id: str, name: str, request: Request, filename: str = "", s: Services = Depends(services)):
+    """One more table beside the main one (16.15 C: the orders and tickets of a table of customers), as raw bytes, under
+    ``name``; the solution names it there. The stages are cleared: a machine may read it."""
+    p = s.project(project_id)
+    body = await request.body()
+    if len(body) > s.upload_max_bytes:
+        raise HTTPException(413, "Files above 200 MB are not supported in the local notebook")
+    if not body:
+        raise HTTPException(400, "Empty file")
+    file = studio_data.safe_name(filename or f"{name}.csv")
+    if not file:
+        raise HTTPException(422, "Give the file a name")
+    if file in studio_data.files_in_use(p, but=name):  # written before it is checked: never over the main table, the labels or another table
+        raise HTTPException(409, f"{file} is already one of the project's files: give the table another file name")
+    await asyncio.to_thread(charge_upload, len(body))
+    staged = f"{file}.part"  # checked before it replaces anything: a refused or broken upload never touches an attached table
+    (s.projects.data_dir(project_id) / staged).write_bytes(body)
+    try:
+        await asyncio.to_thread(studio_data.attach_table, s.projects, project_id, file, name, "human", staged)
+    except studio_data.DataError as exc:
+        raise HTTPException(400, str(exc))
+    return s.with_records(s.projects.get(project_id))
+
+
 @router.post("/api/projects/{project_id}/data/sample", response_model=Project)
 async def use_sample(project_id: str, body: SampleChoice, s: Services = Depends(services)):
     s.project(project_id)

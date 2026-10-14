@@ -100,6 +100,7 @@
    *  @property {*=} goal
    *  @property {*=} industry
    *  @property {*=} data
+   *  @property {*=} tables
    *  @property {*=} solution
    *  @property {*=} settings
    *  @property {*=} stages
@@ -314,6 +315,7 @@
     solutionProposal: ["POST", "/projects/{project_id}/solution/proposal", ["project_id"], []],
     approveStage: ["POST", "/projects/{project_id}/stages/{stage}/approve", ["project_id", "stage"], []],
     runStage: ["POST", "/projects/{project_id}/stages/{stage}/run", ["project_id", "stage"], ["wait", "reuse_reason"]],
+    uploadTable: ["PUT", "/projects/{project_id}/tables/{name}", ["project_id", "name"], ["filename"]],
     research: ["GET", "/research", [], []],
     researchFile: ["GET", "/research/file", [], ["path"]],
     agentRoles: ["GET", "/roles", [], []],
@@ -976,6 +978,13 @@
    *  @returns {Promise<Project>} */
   client.runStage = (...args) => call('runStage', args);
   client.path.runStage = (...args) => build('runStage', args).path;
+  /** PUT /api/projects/{project_id}/tables/{name}: Upload Table
+   *  @param {string} project_id
+   *  @param {string} name
+   *  @param {{query?: {filename?: *}, body: Blob, headers?: Object}} [opts]
+   *  @returns {Promise<Project>} */
+  client.uploadTable = (...args) => call('uploadTable', args);
+  client.path.uploadTable = (...args) => build('uploadTable', args).path;
   /** GET /api/research: Research
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
