@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.20.0 (2026-10-14)
+
+Package 22.3: the promotion gate of a decision model. A new module; no contract changes shape.
+
+- `decision_gate` (new): `decision_gate_v1`, fixed before any sealed run, in the shape of the main product's R3: every
+  sealed decision scored (an error counted, never skipped), lower bounds on accuracy (0.90), precision and recall (0.80)
+  and a margin over the rule above zero, each from a bootstrap of whole table groups (`bounds`, `margin`); no class of
+  30 or more decisions below recall 0.70; at most 2% of the rule's right decisions turned wrong. For a choice, recall is
+  the mean over the classes in the truth and precision the mean over the classes answered. `DEMOTION` declares the bars
+  a promoted model is demoted by; `verdict` returns the criteria, the bounds and the scores of the model and the rule.
+
 ## 0.19.0 (2026-10-14)
 
 Package 22.2: classical decision classifiers. A new module and a new contract, `dclab_core.decision_model_card.v1`.

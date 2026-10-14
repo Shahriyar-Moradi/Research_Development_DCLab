@@ -359,6 +359,10 @@ by the same gates; the ledger feeds all of them, each in its own training format
   classifier; the result stored as an evidence record, never rerun on the same sealed set.
 - **Done when:** each classifier has one recorded verdict per gate version, with its precision and recall on the
   sealed partition and their intervals beside the rule's (moved here from 22.2).
+- **Status: gate written (2026-10-14), run next.** `dclab_core/decision_gate.py` (`decision_gate_v1`, dclab-core
+  0.20.0) and `make decision-gate` (`dclab_rnd/decision_gate_run.py`) are committed and pushed before any sealed row is
+  read; the campaign manifest (`evidence/campaigns/decision_models_v1/manifest.json`) says why each threshold and what
+  dev predicts for each point.
 
 ### 22.4 Shadow in the studio
 - **Delivers:** a classifier as another answerer at its decision point, at level 0: its answer recorded in the

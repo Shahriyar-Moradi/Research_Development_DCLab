@@ -1,0 +1,19 @@
+{
+  "campaign_id": "decision_models_v1",
+  "objective": "The decision classifiers of package 22.2 (one per point of the generated decision sets of 22.1), each judged once on its point's sealed decisions by decision_gate_v1 (dclab_core/decision_gate.py), beside the rule on the same decisions. The gate was committed and pushed before any sealed row was read; each sealed set is read once, under any gate version.",
+  "gate": {
+    "version": "decision_gate_v1",
+    "why": {
+      "accuracy_lower_min 0.90": "A model that answers a technical decision beside the rule should be right nine times in ten at worst; the agent benchmark's gate_v1 asks a Wilson lower bound of 0.80 on a harder task (leaks caught across whole cases).",
+      "precision_lower_min and recall_lower_min 0.80": "The same bar as gate_v1's leaks-caught lower bound: a model that misses or invents one decision in five is not ready to stand beside the rule.",
+      "margin_lower_min 0.0 (strictly above)": "A model is promoted only if it is better than the rule on the same decisions, with the 95% lower bound of the difference above zero; matching the rule is not enough, since the rule is free and explainable.",
+      "class_recall_min 0.70 over classes of 30 or more": "As gate_v1's weak family: an aggregate must not hide a class the model misses.",
+      "turned_max 0.02": "A model that fixes the rule's errors but breaks its right answers trades one kind of mistake for another; two in a hundred is the most it may break.",
+      "bounds by table group": "A table's decisions, and a table and its hidden-name twin, are not independent; every lower bound is a bootstrap of whole table groups (2000 draws, seed 0)."
+    },
+    "seen_before": "The thresholds were set after the dev figures of the cards in research/llm-fine-tuning/experiments/decisions/models_v1/ were seen, and before any sealed row was read. Expected from dev, written before the run: column.is_identifier and column.group cannot pass (the rule is exact on dev, so the margin cannot be above zero); column.category_code is expected to fail (dev precision lower bound 0.711); column.time is expected to fail (dev recall 0.622); column.semantic_role is expected to pass unless the turned-wrong share is above 0.02 (not measured on dev); feature.leakage_suspect sits at the recall bar (dev recall lower bound 0.779 by Wilson) and could go either way.",
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements, on a new sealed set."
+  },
+  "rule": "Verdicts say how each classifier reads planted kinds in generated tables like those it was trained on, beside the rule on the same decisions; nothing about real tables nor production readiness. A sealed set is read once.",
+  "command": "make decision-gate ARGS=--yes (python -m dclab_rnd.decision_gate_run --yes)"
+}

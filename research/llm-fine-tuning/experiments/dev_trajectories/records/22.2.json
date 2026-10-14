@@ -129,6 +129,16 @@
    "cause": "Only the training rows were checked for the sealed split.",
    "fix": "Sealed rows are refused in training and in dev.",
    "test": "test_sealed_rows_are_refused"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The new card's frozen schema did not match its final shape.",
+   "scenario": "The gate failed: decision_model_card changed shape but kept version v1.",
+   "cause": "The baseline was frozen by the first schema build, before the review fixes added fields, and a baseline is never overwritten.",
+   "fix": "The unreleased contract's v1 baseline frozen again from its final shape.",
+   "test": "test_no_contract_changes_shape_under_the_same_version"
   }
  ],
  "measurements": [
@@ -170,7 +180,8 @@
  "lessons": [
   "Decide when a sealed set is read before writing the package that could read it, and amend the plan to match.",
   "A macro mean needs its own interval; borrowing accuracy's hides the classes it averages.",
-  "Registering a contract by import makes import order part of the interface: test each module imported first."
+  "Registering a contract by import makes import order part of the interface: test each module imported first.",
+  "Freeze a new contract's baseline only after its review fixes: the first build makes the baseline, and a baseline is never overwritten."
  ],
  "risks": [
   "The tables are generated from ten bases; real tables may have kinds these never planted.",
