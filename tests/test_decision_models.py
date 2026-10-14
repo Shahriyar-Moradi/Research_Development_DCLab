@@ -133,10 +133,22 @@ class TrainTest(unittest.TestCase):
 @unittest.skipIf(MISSING, MISSING)
 class ImportTest(unittest.TestCase):
     def test_every_module_imports_first_in_a_fresh_interpreter(self):
-        # contracts registers the card by importing this module, which reads answerers: no order may break it
-        for module in ("dclab_core.answerers", "dclab_core.contracts", "dclab_core.decision_models", "dclab_core"):
+        # contracts registers its cards by importing modules that import others: no first import may meet a cycle
+        # (the ledger imported first once failed through contracts -> decision_models -> answerers -> ledger)
+        from concurrent.futures import ThreadPoolExecutor
+
+        modules = ["dclab_core"] + sorted(f"dclab_core.{p.stem}" for p in (ROOT / "dclab_core").glob("*.py") if p.stem != "__init__")
+        modules += sorted(f"dclab_core.{p.parent.name}" for p in (ROOT / "dclab_core").glob("*/__init__.py"))
+
+        def first(module):
             done = subprocess.run([sys.executable, "-c", f"import {module}"], cwd=ROOT, capture_output=True, text=True)
-            self.assertEqual(done.returncode, 0, done.stderr)
+            missing = "No module named" in done.stderr and "dclab_core" not in done.stderr.split("No module named")[-1]
+            return module, done.returncode, done.stderr[-600:], missing  # an optional library absent here is not a cycle
+
+        with ThreadPoolExecutor(8) as pool:
+            for module, code, err, missing in pool.map(first, modules):
+                if not missing:
+                    self.assertEqual(code, 0, f"{module}: {err}")
 
 
 @unittest.skipIf(MISSING, MISSING)

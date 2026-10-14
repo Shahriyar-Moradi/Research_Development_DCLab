@@ -139,6 +139,16 @@
    "cause": "The baseline was frozen by the first schema build, before the review fixes added fields, and a baseline is never overwritten.",
    "fix": "The unreleased contract's v1 baseline frozen again from its final shape.",
    "test": "test_no_contract_changes_shape_under_the_same_version"
+  },
+  {
+   "id": "S5",
+   "source": "self",
+   "severity": "latent",
+   "defect": "Importing the decision ledger first failed on an import cycle.",
+   "scenario": "from dclab_core.ledger import POINTS, as a host's first import, raised an ImportError.",
+   "cause": "contracts imported decision_models, which imported answerers, which imported the ledger while it was loading; the import-order test covered four modules only.",
+   "fix": "decision_models reads answerers when first used; the test imports every dclab_core module first, each in a fresh interpreter.",
+   "test": "test_every_module_imports_first_in_a_fresh_interpreter"
   }
  ],
  "measurements": [
@@ -181,7 +191,8 @@
   "Decide when a sealed set is read before writing the package that could read it, and amend the plan to match.",
   "A macro mean needs its own interval; borrowing accuracy's hides the classes it averages.",
   "Registering a contract by import makes import order part of the interface: test each module imported first.",
-  "Freeze a new contract's baseline only after its review fixes: the first build makes the baseline, and a baseline is never overwritten."
+  "Freeze a new contract's baseline only after its review fixes: the first build makes the baseline, and a baseline is never overwritten.",
+  "An import-order test must cover every module of the package, not the ones the change touched."
  ],
  "risks": [
   "The tables are generated from ten bases; real tables may have kinds these never planted.",

@@ -20,7 +20,19 @@ from typing import Any, Literal, Optional
 
 from pydantic import Field
 
-from dclab_core import answerers as _answerers  # by module: contracts imports this file while answerers may be loading
+
+
+class _Answerers:
+    """``dclab_core.answerers``, imported when first used: contracts imports this module to register the card, and
+    answerers imports the ledger, which imports contracts; at import time the cycle would break whichever came first."""
+
+    def __getattr__(self, name: str) -> Any:
+        from dclab_core import answerers
+
+        return getattr(answerers, name)
+
+
+_answerers = _Answerers()
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
 FAMILIES = ("logistic", "boosting")
