@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.15.0 (2026-10-14)
+
+Package 20.4: the problem meets the data. A new contract; no other contract changes shape.
+
+- `meet` (new): `check(problem_card, data_card) -> ProblemDataCheck` (`dclab_core.problem_data_check.v1`): every
+  mismatch between what the person said and what the tables are, each a `Mismatch` (code, blocking, a question to
+  the person, evidence in column names and counts): the outcome named is not a column (`target_absent`) or may never
+  be one (`target_refused`); it does not fit the family (`target_family`: blocking when the person stated the family,
+  a question when it was read from words); one row is not what is predicted (`unit_grain`); a time is needed and
+  absent (`time_absent`); a file of cases is not joined (`labels_not_joined`); the words say nothing is labelled but a
+  column looks like the outcome (`labels_contradict`); a check that could not run (`not_checked`, set by a host).
+  `ready` when nothing blocks. A unit blocks only when the person stated it, and matches an entity by its noun
+  (`customer_id` for "a customer", never `delivery_zone_id` for "a delivery"); `check(..., joined=)` takes the host's
+  own label review over the data card's guess. Inserted words are clipped: a check never fails on a long answer.
+
 ## 0.14.0 (2026-10-14)
 
 Package 20.3: what each column is for. `DataCard` moves to v2 (`dclab_core.data_card.v2`); a v1 card is read as v2,

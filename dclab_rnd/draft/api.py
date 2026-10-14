@@ -608,10 +608,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
     async def draft_card(draft_id: str):
         """The problem card (20.1): the family, the label situation, the questions still open and whether a project
         can be built yet, with why not."""
-        from .card import card_of
+        from .card import card_of, meeting
 
-        card = await asyncio.to_thread(card_of, get(draft_id))
-        return card.model_dump(mode="json")
+        draft = get(draft_id)
+        card = await asyncio.to_thread(card_of, draft)
+        met = await asyncio.to_thread(meeting, draft, drafts)  # 20.4: what the problem and the data disagree on
+        return {**card.model_dump(mode="json"), "meets_data": met.model_dump(mode="json") if met is not None else None}
 
     @router.post("/api/drafts/{draft_id}/build", status_code=201, response_model=Project)
     async def build(draft_id: str):
@@ -719,6 +721,13 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         raise BuildRefused("Not yet: " + " ".join(card.blocking[:3]), "problem card not ready")
     if not has_data and card.in_play:  # a plan-only draft carries its questions, but not one about what the problem is
         raise BuildRefused("Not yet: " + " ".join(b for b in card.blocking if "confirmed" in b), "problem card not ready")
+    if has_data:  # 20.4: the problem meets the data; a mismatch that would answer another problem waits for the person
+        from .card import meeting
+
+        met = meeting(draft, drafts)
+        blocking = [m.question for m in (met.mismatches if met is not None else []) if m.blocking]
+        if blocking:
+            raise BuildRefused("Not yet: " + " ".join(blocking[:2]), "problem and data disagree")
     if card.family.value == "anomaly":  # said plainly, never built as something else (it became a model of customer ids once)
         raise BuildRefused("Anomaly detection without labels is not in the engine yet (package 20.7). With a file of known "
                            "cases (even a sample), it is a rare-event problem DCLab solves: add that file to this draft.", "family not built yet")

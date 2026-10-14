@@ -67,8 +67,10 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
         update["action"] = _stated(str(u["action"]))
     if u.get("unit"):
         update["unit"] = _stated(str(u["unit"]))
-    elif u.get("entity") and UNIT_ANSWER.match(str(u["entity"])):
-        update["unit"] = _stated(str(u["entity"]))
+    elif u.get("entity") and UNIT_ANSWER.match(str(u["entity"])) and len(str(u["entity"]).split()) <= 4:
+        update["unit"] = _stated(str(u["entity"]))  # "One customer"; "One biker can fake many rides" names a group, not the unit
+    if solution.get("time_column") and solution["time_column"] in columns:
+        update["time_column"] = _stated(str(solution["time_column"]))  # 20.4: the time the split follows, checked against the table
     labels = str(u.get("labels") or "")
     if labels:
         said = next((value for value, pattern in LABEL_WORDS if pattern.search(labels)), None)  # "no" is read first
@@ -88,3 +90,41 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     data = {"label_file": has_labels, "cases_only": bool(cases) and not has_labels and not named,
             "tables": sum(1 for a in draft.get("assets") or [] if a.get("status") == "ready")}
     return problem_card(brief, words=words, data=data, family=KIND_FAMILY.get(str(solution.get("kind") or "")))
+
+
+def meeting(draft: dict[str, Any], store: Any) -> Any:
+    """The problem card against the data card of the draft's tables (20.4), the card built again now with the outcome
+    the draft names today (it may have been named after the data was analysed); the label file counts as joined when
+    the draft's own label review found its key. None with no table. When the check itself fails, a blocking
+    ``not_checked``: a build never goes past a check that did not run."""
+    import sys
+
+    from dclab_core.meet import Mismatch, ProblemDataCheck
+
+    active = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset") and a.get("status") == "ready"), None)
+    if active is None or not active.get("clean_file"):
+        return None
+    try:
+        import pandas as pd
+
+        from dclab_core.datacard import card_of as data_card_of
+        from dclab_core.meet import check
+
+        from .plan import label_asset
+
+        tables = {str(active.get("name") or "table"): pd.read_parquet(store.data_dir(draft["id"]) / active["clean_file"])}
+        labels = store.data_dir(draft["id"]) / "labels_clean.parquet"
+        if labels.exists():
+            tables["labels"] = pd.read_parquet(labels)
+        problem = card_of(draft)
+        target = problem.brief.target_column.value
+        main = next(iter(tables.values()))
+        file = label_asset(draft)
+        joined = bool(((file or {}).get("label_review") or {}).get("key")) if file is not None else None
+        return check(problem, data_card_of(tables, target=target if target in main.columns else None), joined=joined)
+    except Exception as exc:  # noqa: BLE001
+        print(f"meeting: not checked: {type(exc).__name__}", file=sys.stderr, flush=True)
+        return ProblemDataCheck(mismatches=[Mismatch(code="not_checked", blocking=True,
+                                                     question="DCLab could not check the problem against the data. Try the build again; "
+                                                              "if it fails again, the draft's table needs a look.",
+                                                     evidence={"error": type(exc).__name__})], ready=False)

@@ -1,0 +1,42 @@
+{
+ "package": "20.4",
+ "title": "The problem meets the data: each mismatch a question with its evidence, blocking only what would answer another problem",
+ "date": "2026-10-14",
+ "request": "Milestone C: before a build, what the person said must be checked against what the tables are. The outcome must exist and fit the family, the unit must be the grain (or an aggregation proposed), the time the moment needs must be there, and a label file must be joined; each mismatch becomes a question or a blocking issue.",
+ "spec": "check(problem_card, data_card) in dclab_core. Done when each planted mismatch in a suite (unit is not grain, target an id, label file not joined, moment needs an absent column) is found, and a matching pair raises nothing.",
+ "plan": [
+  "A pure rule over the two cards, with a contract for the mismatches.",
+  "A suite on the replicas: planted mismatches and matching pairs.",
+  "The studio: the draft's build refused while a blocking mismatch is open, and the card route carrying the check."
+ ],
+ "decisions": [
+  {"decision": "Block only what would answer another problem, and only on what the person said.", "why": "A family read from words, or a unit read from a file's name, is a guess: a question, not a wall."},
+  {"decision": "The host's own label review decides whether a file of cases is joined.", "why": "The data card's join is a description; the draft's review is the join the build uses."},
+  {"decision": "A check that cannot run refuses the build.", "why": "A silent failure let a model of biker_id through in a probe: the 2026-10-13 failure again."}
+ ],
+ "change": "dclab_core/meet.py (new; dclab-core 0.15.0), contracts, schemas problem_data_check; dclab_rnd/draft/card.py (meeting; a short entity answer as the unit; the solution's time column), dclab_rnd/draft/api.py (the build check, the card route); tests/test_problem_meets_data.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "S1", "source": "self", "severity": "behaviour", "defect": "A person's own choice of outcome was blocked by a family read from words.", "scenario": "A fraud draft whose person named biker_fare: 'rare event, but biker_fare is a number'.", "cause": "Every family mismatch blocked.", "fix": "Block only when the person stated the family; otherwise a question.", "test": "test_a_family_read_from_words_gives_way_to_the_named_outcome"},
+  {"id": "R1", "source": "reviewer", "severity": "behaviour", "defect": "A label file the pipeline had joined still blocked the build, with no way out.", "scenario": "Eight known cases on order_id: the data card found no key, so 'add that file' was asked of a file already there.", "cause": "Joined was read from the data card's guess, not the draft's own label review.", "fix": "check(joined=) takes the host's review; with a label file present the mismatch is a question about its key.", "test": "test_what_must_not_block"},
+  {"id": "R2", "source": "reviewer", "severity": "behaviour", "defect": "A unit inferred from a file's name blocked the build.", "scenario": "customer_transactions.csv: 'aggregate per customer_id first'.", "cause": "The unit's status was ignored.", "fix": "A unit blocks only when the person stated it.", "test": "test_what_must_not_block"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "The unit matched any column sharing a word with it.", "scenario": "'each delivery' against delivery_zone_id; an entity answer of a whole sentence taken as the unit.", "cause": "Any shared token counted, over the whole answer.", "fix": "The entity's name without key words must be within the unit's noun; a unit is at most three words; an entity answer becomes a unit only when short.", "test": "test_what_must_not_block"},
+  {"id": "R4", "source": "reviewer", "severity": "leakage", "defect": "A long answer made the check fail, and the build went through past a blocking mismatch.", "scenario": "A 520-character unit and biker_id as the target: a model of biker_id was built.", "cause": "The question overflowed its contract, and the failure was swallowed.", "fix": "Inserted words clipped; a failed check is a blocking not_checked.", "test": "test_a_draft_build_is_refused_on_a_blocking_mismatch_and_the_card_says_why"},
+  {"id": "R5", "source": "reviewer", "severity": "gap", "defect": "The studio integration had no test.", "scenario": "Removing the build check passed the suite.", "cause": "Only the core rule was tested.", "fix": "A draft through the routes: refused with the reason, the card's meets_data, then built once the outcome is right.", "test": "test_a_draft_build_is_refused_on_a_blocking_mismatch_and_the_card_says_why"},
+  {"id": "R6", "source": "reviewer", "severity": "gap", "defect": "Two rules could be broken without a failing test.", "scenario": "labels_contradict made blocking; the key exclusion of unit_grain removed.", "cause": "No assertion of ready for the contradiction; no matching pair with a unit and a two-column key.", "fix": "Both asserted.", "test": "test_each_planted_mismatch_is_found, test_a_matching_pair_raises_nothing"}
+ ],
+ "measurements": [
+  {"name": "mismatch suite", "gate": "each planted mismatch found, and each matching pair clean", "result": "8 planted found, 4 pairs clean", "verdict": "pass", "cost_eur": 0.0, "against_gate": "8 of 8, 4 of 4", "limits": ["Replica tables and written cards only."]},
+  {"name": "planted faults", "gate": "each fix undone fails a test", "result": "4 of 7 caught at first; tests sharpened, then 6 of 7; the 7th (clipping the question) is a second guard behind clipped inserts", "verdict": "pass", "cost_eur": 0.0, "against_gate": "6 of 7, the 7th redundant", "limits": ["Only the faults planted."]}
+ ],
+ "outcome": "A build now checks the problem against its tables. An outcome that is not a column, a key used as the outcome, a stated family it does not fit, a stated unit coarser than a row, a missing time and a missing label file each stop it, with a question saying what to do. Guesses and contradictions are questions, never walls.",
+ "lessons": [
+  "A check that blocks must give a way forward, or it is a dead end in the product.",
+  "Block on what the person said, not on what a rule guessed.",
+  "A check that fails must fail closed when it guards against the worst mistake."
+ ],
+ "risks": [
+  "A moment that says another column is known is not checked against the table yet.",
+  "Units are matched by their noun only: 'client' does not meet customer_id."
+ ],
+ "commits": []
+}

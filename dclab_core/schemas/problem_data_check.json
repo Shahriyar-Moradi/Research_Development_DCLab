@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "Mismatch": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "code": {
+          "enum": [
+            "target_absent",
+            "target_refused",
+            "target_family",
+            "unit_grain",
+            "time_absent",
+            "labels_not_joined",
+            "labels_contradict"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "description": "Column names, purposes and counts: never a value.",
+          "title": "Evidence",
+          "type": "object"
+        },
+        "question": {
+          "maxLength": 600,
+          "title": "Question",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "blocking",
+        "question"
+      ],
+      "title": "Mismatch",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.problem_data_check.v1.json",
+  "additionalProperties": false,
+  "description": "What the problem and the data disagree on; ``ready`` when nothing blocks.",
+  "properties": {
+    "mismatches": {
+      "items": {
+        "$ref": "#/$defs/Mismatch"
+      },
+      "maxItems": 20,
+      "title": "Mismatches",
+      "type": "array"
+    },
+    "ready": {
+      "default": true,
+      "title": "Ready",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.problem_data_check.v1",
+      "default": "dclab_core.problem_data_check.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "ProblemDataCheck",
+  "type": "object"
+}

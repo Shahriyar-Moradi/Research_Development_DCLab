@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "Mismatch": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking": {
+          "type": "boolean"
+        },
+        "code": {
+          "enum": [
+            "target_absent",
+            "target_refused",
+            "target_family",
+            "unit_grain",
+            "time_absent",
+            "labels_not_joined",
+            "labels_contradict"
+          ],
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "question": {
+          "maxLength": 600,
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "blocking",
+        "question"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "mismatches": {
+      "items": {
+        "$ref": "#/$defs/Mismatch"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "ready": {
+      "default": true,
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "dclab_core.problem_data_check.v1",
+      "default": "dclab_core.problem_data_check.v1",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "type": "object"
+}

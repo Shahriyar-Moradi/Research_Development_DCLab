@@ -198,6 +198,18 @@ code are not one connected object a data scientist can read, run and change.
   with the files; each mismatch becomes a question or a blocking issue with its evidence.
 - **Done when:** each planted mismatch in a mismatch suite (unit ≠ grain, target an id, label file not joined, moment
   needs a column that is absent) is found, and a matching pair raises nothing.
+- **Status: done (2026-10-14).** `dclab_core/meet.py` (dclab-core 0.15.0): `check(problem_card, data_card)`, seven
+  mismatch codes, each a question with its evidence (names and counts, never a value), blocking when building on it
+  would answer another problem; a family read from the words gives way to the outcome the person named (a question,
+  not a block). The suite (`tests/test_problem_meets_data.py`) plants each mismatch on the replicas (an outcome absent,
+  an identifier as the outcome, a yes or no for a regression, orders when each prediction is per customer, a file of
+  cases not joined, a named time absent, a forecast with no time, a label column when nothing is said labelled): each
+  is found; four matching pairs (churn, delivery time, fraud with its file, demand) raise nothing, and what must not
+  block does not (a label file the draft's review joined, a unit read from a file's name, a delivery zone beside "a
+  delivery", a long answer). In the studio a draft's build is refused while a blocking mismatch is open (and when the
+  check itself cannot run), the card built again with the outcome named today, and `GET /api/drafts/{id}/card`
+  carries the check (`meets_data`). Left open: the questions are asked in the Home conversation by 20.2; a moment
+  is checked only for a time column, not for every column it says is known; units match by noun only.
 
 ## Phase W3 — Analyse the data for the decisions
 
