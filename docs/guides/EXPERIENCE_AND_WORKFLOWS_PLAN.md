@@ -291,6 +291,24 @@ asked the labels question, and the build happened anyway); one model tier served
   a step and spend budget, the tool registry and its scope guard, the validator before every write, retries with a
   reason, stop, and the Part 8 recorder on every step (the assistant's text included). No agent loop outside it.
 - **Done when:** a test enumerates every agent entry point and fails if one runs a step the recorder did not see.
+- **Status: done (2026-10-14).** `dclab_rnd/agents/harness.py`: `AGENTS` lists the seven entry points (the Home agent
+  with a model and its script, the intern with a model and its standard plan, the team, the research campaign, an MCP
+  client's calls), `ROLES` the eight roles, `MODEL_USES` the ten purposes that are one completion for one job; every
+  purpose of `models/settings.py` is in exactly one. A model loop runs on `runtime.run`, which now always traces (no
+  tracer of the caller's: one of its own) and records every reply, one without a tool call too (an answer's words kept;
+  tool calls written as text keep the step, not their words); every other agent runs in `harness.session`, each move a
+  step (`agent.step`, and `tool.call` for a tool), a raising call a step too, its end a `run.recorded` whose status is
+  the caller's when it returned without completing (a declined gate is "stopped"). The run is bound around what it
+  asks, so a role (`GatewayAdvisor.ask`: a step `role.<purpose>`, its reply left in its model request) and a model
+  request join it; a step names only a request made during it. The campaign's NOOA requests are `model.request`
+  events of its run, with their tokens in its record; each MCP call is a run of its own. `tests/test_agent_harness.py`
+  enumerates them: every purpose classified, every entry opens the harness, every tool call (called or passed by
+  reference) inside the seven functions that record it, and one probe per agent (two elsewhere: the team in
+  `test_team.py`, the campaign in `test_agentic.py`) that fails if a move leaves no step. Left open: the budgets, the
+  scope guard and the validator stay where they were (`runtime.run`'s policy and the registry's guards; a session
+  calls tools through the same registry); a new loop that reuses a classified purpose is caught only by review; the
+  NOOA review and live-evaluation clients (`guide_review.py`, `live_eval.py`) are measurement tools, recorded in their
+  own usage logs.
 
 ### 21.2 The coordinator
 - **Delivers:** a lead agent over an explicit state machine: problem card → data cards of every file → their links →

@@ -52,10 +52,13 @@ def build_server(toolbox: Toolbox):
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:
-        result = await asyncio.to_thread(toolbox.call, name, arguments or {})
-        from .experience import hooks  # 19.3: a tool an MCP client called, in the session's record
+        from . import experience
+        from .agents import harness  # 21.1: each call of an MCP client is a run of the "mcp" agent, recorded even when it raises
 
-        hooks.from_mcp_call(name, arguments or {}, result)
+        project = (arguments or {}).get("project_id")
+        with experience.bind(project=project if isinstance(project, str) else None), harness.session("mcp") as current:
+            with current.timed(name, arguments or {}) as out:
+                out["result"] = result = await asyncio.to_thread(toolbox.call, name, arguments or {})
         return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False, default=str))]
 
     return server

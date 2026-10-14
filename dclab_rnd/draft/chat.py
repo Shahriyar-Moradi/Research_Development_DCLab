@@ -14,6 +14,7 @@ Every message and change is written to the draft and emitted as an event for the
 
 from __future__ import annotations
 
+import contextvars
 import functools
 import json
 import re
@@ -22,6 +23,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from dclab_rnd import kinds, prompts
+from dclab_rnd.agents import harness
 from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
@@ -43,6 +45,9 @@ BUILD_WORDS = re.compile(r"\b(let'?s build|build (it|the solution)|go ahead|star
 SIMULATE_WORDS = re.compile(r"\b(simulat\w*|synthetic|fake data|generate (some )?data)\b", re.I)
 
 POLICY = prompts.text("home_agent")  # dclab_rnd/prompts/home_agent.md (A4.3: prompts are versioned files)
+
+_SCRIPT: contextvars.ContextVar = contextvars.ContextVar("home_script", default=None)  # (draft id, harness run) of a scripted turn
+
 
 def turn(method):
     """One agent turn at a time per draft. The data pipeline ("your data is ready") and the user's messages run in
@@ -429,21 +434,44 @@ class HomeAgent:
 
     # ------------------------------------------------------------------ the deterministic script
     def script_turn(self, draft_id: str, text: str) -> None:
+        """The Home agent without a model: a run of the scripted agent in the harness (21.1), each move a step."""
+        with harness.session("home.script", trace=harness.tracer("home.script", draft_id)) as current:
+            token = _SCRIPT.set((draft_id, current))  # per thread and per draft: one agent object serves every draft
+            try:
+                self._script_turn(draft_id, text)
+            finally:
+                _SCRIPT.reset(token)
+
+    def _script_turn(self, draft_id: str, text: str) -> None:
         draft = self.store.get(draft_id)
         q = self.pending(draft)
         if q is not None:
+            self.moved(draft_id, "take_answer", {"field": q.get("field")})
             self.take_answer(draft_id, q, text)
             return
         if SIMULATE_WORDS.search(text):
             self.say(draft_id, "I'll simulate a dataset from this conversation. It will be labelled synthetic everywhere.")
+            self.moved(draft_id, "simulate", {}, {"simulating": True})
             self.on_request(draft_id, "simulate", {"prompt": draft["problem"] + " " + text})
             return
         if BUILD_WORDS.search(text):
+            self.moved(draft_id, "summarize", {})
             self.summarize(draft_id)
             return
         self.record(draft_id, "notes", ((draft.get("understanding") or {}).get("notes", "") + " " + text).strip())
+        self.moved(draft_id, "record", {"field": "notes"})
         self.say(draft_id, "Noted. I added it to the solution notes.")
         self.next_turn(draft_id)
+
+    def moved(self, draft_id: str, tool: str, arguments: dict[str, Any], result: Any = None) -> None:
+        """A move of the scripted agent (21.1): a step of its run, or of the draft's conversation between runs (the
+        question asked when the data is ready). Field names only: what the person wrote is in the chat events."""
+        result = {"ok": True} if result is None else result
+        running = _SCRIPT.get()
+        if running is not None and running[0] == draft_id:
+            running[1].step(tool, arguments, result)
+        else:
+            harness.step("home.script", draft_id, tool, arguments, result)
 
     def next_turn(self, draft_id: str, opening: bool = False) -> None:
         """Ask the next missing thing, or summarise when everything needed is known."""
@@ -459,8 +487,10 @@ class HomeAgent:
 
         capture.next_question(self.store.get(draft_id), question if asked else None)
         if asked:
+            self.moved(draft_id, "ask_user", {"field": question[0]})
             return
         if not opening:
+            self.moved(draft_id, "summarize", {})
             self.summarize(draft_id)
 
     def next_question(self, draft: dict[str, Any], opening: bool = False) -> tuple[str, str, list[str], str] | None:
@@ -660,7 +690,9 @@ class HomeAgent:
         if tool is None or tool.scope != "draft":
             return {"error": f"unknown tool {name}"}
         known = {k: v for k, v in args.items() if k in tool.parameters.get("properties", {})}
-        return self.registry.call(tool.name, known, Turn(self, draft_id), scope="draft", check="none")
+        result = self.registry.call(tool.name, known, Turn(self, draft_id), scope="draft", check="none")
+        self.moved(draft_id, tool.name, known, result)  # 21.1: code's call is a step of the scripted agent
+        return result
 
 
 def title_for(draft: dict[str, Any], key: str) -> str:

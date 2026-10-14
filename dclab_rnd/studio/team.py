@@ -25,6 +25,7 @@ signed only by ``Person.approve``, which must come from a person: its ``who`` is
 
 from __future__ import annotations
 
+import contextvars
 import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
@@ -58,10 +59,16 @@ class Stopped(Exception):
         self.at, self.why = at, why
 
 
+_RUN: contextvars.ContextVar = contextvars.ContextVar("team_run", default=None)  # the harness run of this team (21.1)
+
+
 def _step(store: Any, project_id: str, steps: list, role: str, wf: str, source: str, reason: str, **extra: Any) -> None:
     entry = {"role": role, "step": wf, "source": source, "reason": str(reason)[:300], **extra}
     store.log(project_id, "team_step", entry)
     steps.append(entry)
+    current = _RUN.get()
+    if current is not None:  # a role's move, a step of the team's run: who, which workflow step, from what (not the reason's words)
+        current.step(role, {"step": wf, "source": source}, {"error": "stopped"} if source == "stopped" else {"ok": True})
 
 
 def _write(store: Any, project_id: str, what: str, **changes: Any) -> dict[str, Any]:
@@ -124,6 +131,22 @@ def run(store: Any, project_id: str, description: str, person: Person, advisor: 
     what the person settled, and how the run ended (``completed``, or ``stopped`` with where and why)."""
     steps: list[dict[str, Any]] = []
     settled: dict[str, str] = {}
+    from dclab_rnd import experience
+    from dclab_rnd.agents import harness
+
+    with experience.bind(project=project_id), harness.session("team") as current:
+        token = _RUN.set(current)
+        try:
+            out = _team(store, project_id, description, person, advisor, quick, steps, settled)
+        finally:
+            _RUN.reset(token)
+        if out.get("status") == "stopped":  # a declined gate or a failed stage: the run says so, not "completed"
+            current.status = "stopped"
+        return out
+
+
+def _team(store: Any, project_id: str, description: str, person: Person, advisor: Any, quick: Optional[bool],
+          steps: list, settled: dict[str, str]) -> dict[str, Any]:
     try:
         out = _run(store, project_id, description, person, advisor, quick, steps, settled)
     except Stopped as stop:

@@ -120,18 +120,34 @@ class AuditedClient(ResponsesClient):
         try:
             response = await asyncio.wait_for(super().acall(messages, **kwargs), timeout=180)
         except Exception as exc:
-            installed().record("campaign", self.model.removeprefix("openai/"), None, time.monotonic() - started, 1, f"{type(exc).__name__}: the model request failed", base_url=_endpoint())
+            outcome = f"{type(exc).__name__}: the model request failed"
+            eur = installed().record("campaign", self.model.removeprefix("openai/"), None, time.monotonic() - started, 1, outcome, base_url=_endpoint())
+            self._recorded(messages, None, eur, time.monotonic() - started, outcome)
             raise
         usage = response.usage or {}
-        installed().record("campaign", self.model.removeprefix("openai/"), {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
-                                                     "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")},
-                           time.monotonic() - started, 1, "ok", base_url=_endpoint())
+        tokens = {"input_tokens": usage.get("prompt_tokens") or usage.get("input_tokens"),
+                  "output_tokens": usage.get("completion_tokens") or usage.get("output_tokens")}
+        eur = installed().record("campaign", self.model.removeprefix("openai/"), tokens, time.monotonic() - started, 1, "ok", base_url=_endpoint())
+        self._recorded(messages, tokens, eur, time.monotonic() - started, "ok")
         total = self.ledger.get(self.run_id)["usage"]
         for key, value in usage.items():
             if isinstance(value, (int, float)): total[key] = total.get(key, 0) + value
         self.ledger.update(self.run_id, usage=total)
         self.ledger.event(self.run_id, "llm_usage", {"model": self.model, "usage": usage, "finish_reason": response.finish_reason})
         return response
+
+    def _recorded(self, messages, tokens, eur, seconds, outcome):
+        """21.1: the request in the session record like any gateway request (NOOA keeps its own HTTP client), joined to
+        the campaign's run; its next phase step names it."""
+        from .. import experience
+        from ..experience import hooks
+
+        if getattr(self, "session", None) is not None:
+            self.session.used(tokens)
+        hooks.from_model_request({"id": experience.new_model_request(), "purpose": "campaign", "tier": None, "model": self.model.removeprefix("openai/"),
+                                  "input_tokens": (tokens or {}).get("input_tokens"), "output_tokens": (tokens or {}).get("output_tokens"),
+                                  "cost_eur": eur, "seconds": round(seconds, 3), "outcome": outcome, "run": self.run_id},
+                                 [m for m in messages if isinstance(m, dict)] if isinstance(messages, list) else None)
 
 async def ask(agent_type, method, client, context):
     # A fresh specialist per node prevents hidden cross-node conversation state;

@@ -214,7 +214,8 @@ class OneSessionTest(unittest.TestCase):
                 for e in self.events if ((e.ids.conversation == self.draft or e.ids.project == self.project) and e.kind != "chat.agent"
                                          or (e.kind == "chat.agent" and e.ids.project == self.project))
                 and not (e.kind.startswith("job.") and e.payload.get("kind") == "pipeline")  # a background job's end races the next request
-                and not (e.kind == "run.recorded" and e.payload.get("run_kind") in ("agent", "pipeline"))]  # background: they race the next request
+                and not (e.kind == "run.recorded" and e.payload.get("run_kind") in ("agent", "pipeline"))  # background: they race the next request
+                and not (e.kind in ("agent.step", "tool.call") and e.ids.run == self.draft)]  # the Home agent's moves: a background turn too
         self.assertEqual(mine, [
             ("draft.created", ""), ("data.uploaded", ""), ("data.cleaned", ""), ("data.analysed", ""), ("solution.proposed", ""), ("solution.saved", ""), ("decision.accepted", "settings"), ("graph.move", "set_solution"),
             ("draft.built", ""), ("job.started", ""), ("stage.started", "data"), ("stage.finished", "data"), ("run.recorded", ""), ("graph.move", "run_stage"),
@@ -226,6 +227,13 @@ class OneSessionTest(unittest.TestCase):
         self.assertEqual([e.payload["status"] for e in pipeline], ["completed"])  # the one upload, read and cleaned
         analysed = next(e for e in self.events if e.kind == "data.analysed" and e.ids.conversation == self.draft)
         self.assertEqual(analysed.ids.run, pipeline[0].ids.run)  # the pipeline's events carry its run
+
+    def test_the_home_agents_scripted_moves_are_steps_of_its_conversation(self):
+        # 21.1: with no model, the Home agent's questions are steps of the harness like a model's, in its conversation
+        moves = [e for e in self.events if e.kind == "agent.step" and e.ids.conversation == self.draft]
+        self.assertTrue(moves and all(e.payload["agent"] == "home.script" for e in moves))
+        self.assertIn("ask_user", [e.payload["tool"] for e in moves])
+        self.assertTrue(all(e.ids.model_request is None for e in moves))  # no model chose them
 
     def test_one_action_is_one_event(self):
         kinds = [e.kind for e in self.events if e.ids.conversation == self.draft or e.ids.project == self.project]
@@ -332,7 +340,9 @@ class AgentsTest(unittest.TestCase):
                 experience.install(None)
         events = log.read(visit="v00000000000000bb")
         request = next(e for e in events if e.kind == "model.request")
-        step = next(e for e in events if e.kind == "agent.step" and e.payload.get("tool") == "ask_user")
+        step = next(e for e in events if e.kind == "agent.step" and e.payload.get("tool") == "ask_user" and e.payload["agent"] == "home")
+        script = next(e for e in events if e.kind == "agent.step" and e.payload["agent"] == "home.script")  # the opening question, no model
+        self.assertIsNone(script.ids.model_request)
         self.assertTrue(request.ids.model_request and request.ids.model_request == step.ids.model_request)
         self.assertEqual(step.payload["reply"], "I will ask what counts as fake.")  # the model's own words, kept
         self.assertEqual(request.ids.conversation, d["id"])

@@ -204,7 +204,8 @@ class Tracer:
         self.reply_base = self.last_reply + 1
 
     def __call__(self, tool: str, arguments: dict[str, Any] | None, result: Any, seconds: float, reply: int | None = None,
-                 tokens: dict[str, int] | None = None, verdict: str | None = None, n: int | None = None, text: str | None = None) -> dict[str, Any]:
+                 tokens: dict[str, int] | None = None, verdict: str | None = None, n: int | None = None, text: str | None = None,
+                 model_request: str | None = None) -> dict[str, Any]:
         """One row. ``n`` is the caller's own step number when it keeps one (the intern session's), so the two never drift."""
         self.n = n if n is not None else self.n + 1
         if reply is not None:
@@ -223,8 +224,23 @@ class Tracer:
                 pass
         from ..experience import hooks  # 19.3: the step and its tool call in the session's record too
 
-        hooks.from_trace({**row, "reply_text": text})  # the model's own words: in the session's record, not in the trace row
+        # the model's own words, and the request a step names (a campaign phase's): in the session's record, not the trace row
+        hooks.from_trace({**row, "reply_text": text, "model_request": model_request})
         return row
+
+    def said(self, text: str | None, reply: int | None = None, tokens: dict[str, int] | None = None, verdict: str = "answered") -> None:
+        """A reply without a tool call (an answer, or tool calls written as text): a step in the session's record
+        (21.1), not a row of the trace store, whose rows are the moves a replay sends again."""
+        if reply is not None:
+            reply = self.reply_base + reply
+            self.last_reply = max(self.last_reply, reply)
+        from ..experience import hooks
+
+        hooks.from_trace({"run_id": self.run_id, "agent": self.agent, "n": self.n, "reply": reply, "state": self._state(), "tool": None,
+                          "arguments": None, "verdict": verdict, "result": None, "seconds": 0.0,
+                          # tool calls written as text hold arguments (cell values): the step is kept, not its words
+                          "reply_text": None if verdict == "no_call" else (text or "").strip() or None,
+                          "input_tokens": int((tokens or {}).get("input_tokens") or 0), "output_tokens": int((tokens or {}).get("output_tokens") or 0)})
 
 
 def moves(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:

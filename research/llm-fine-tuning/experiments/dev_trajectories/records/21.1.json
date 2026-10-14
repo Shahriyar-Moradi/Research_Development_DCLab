@@ -1,0 +1,188 @@
+{
+ "package": "21.1",
+ "title": "One harness for every agent: every step on the record, the assistant's words included",
+ "date": "2026-10-14",
+ "request": "Every agent (Home, intern, team roles, campaign, MCP callers) runs through one harness with the session recorder on every step, the assistant's text included; a test enumerates every entry point and fails if one runs a step the recorder did not see.",
+ "spec": "A harness module classifying every model purpose, a loop that always traces, sessions for agents that are not loops, roles as steps of what asked them, and an enumeration test with one probe per agent.",
+ "plan": [
+  "Map every entry point and how its steps reach the record.",
+  "Make the loop always trace and record replies without tool calls.",
+  "Run every other agent in a harness session; record roles and the campaign's requests.",
+  "Enumerate: classify every purpose, scan every tool call, probe every agent."
+ ],
+ "decisions": [
+  {
+   "decision": "Text-only replies reach the session record but not the trace store.",
+   "why": "The trace store's rows are the moves a replay sends again; a reply without a call is not a move."
+  },
+  {
+   "decision": "A role's step carries no reply text.",
+   "why": "A role's JSON may name the table's columns; its reply stays in its model request, kept only where the workspace keeps model text."
+  },
+  {
+   "decision": "Each MCP call is a run of its own.",
+   "why": "One run per server joined unrelated callers over weeks into one trajectory."
+  },
+  {
+   "decision": "The static scan allows tool calls in seven named functions, by reference too.",
+   "why": "A module-wide allowance let any new call in those modules pass, and a call passed to a thread was not a call node."
+  }
+ ],
+ "change": "dclab_rnd/agents/harness.py (new), agents/runtime.py, agents/traces.py, experience/hooks.py, intern/loop.py, draft/chat.py, studio/team.py, core_advisor.py, mcp_server.py, agentic/agents.py, agentic/engine.py; tests/test_agent_harness.py (new), test_experience_log.py, test_team.py, test_agentic.py; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A run without a tracer of its caller's recorded no step.",
+   "scenario": "An agent run started with trace=None left only its run.recorded.",
+   "cause": "Recording was opt-in per caller.",
+   "fix": "runtime.run makes a tracer when none is given.",
+   "test": "test_a_run_without_a_tracer_of_its_own_is_still_recorded"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "latent",
+   "defect": "A scripted step was joined to an unrelated model request.",
+   "scenario": "The Home script's opening question carried the id of a request made before it.",
+   "cause": "Every trace row took the last model request of its context.",
+   "fix": "Only a step a model reply produced, or one naming its own request, joins one.",
+   "test": "test_the_home_agents_scripted_moves_are_steps_of_its_conversation"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "An instance attribute held the scripted turn's run.",
+   "scenario": "One Home agent object serves every draft on several threads; a turn of one draft could record into another's run.",
+   "cause": "The run was stored on the shared object.",
+   "fix": "A context variable keyed by the draft.",
+   "test": "test_home_without_a_model"
+  },
+  {
+   "id": "S4",
+   "source": "self",
+   "severity": "gap",
+   "defect": "A tool passed to a thread by reference escaped the scan.",
+   "scenario": "The MCP server's asyncio.to_thread(toolbox.call, ...) was not a call node.",
+   "cause": "The scan looked at calls only, by receiver name, module-wide.",
+   "fix": "Every .call or .acall reference outside self or super(), allowed in seven named functions.",
+   "test": "test_no_tool_is_called_outside_the_functions_that_record_it"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Tool calls written as text were kept as agent text.",
+   "scenario": "A model wrote a call with a person's address as text; both replies were recorded under a class kept by exports that drop cell values.",
+   "cause": "Every reply without a call kept its words.",
+   "fix": "The step is kept, not its words, when the reply was calls written as text.",
+   "test": "test_tool_calls_written_as_text_keep_the_step_not_the_words"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A role asked by the team was not a step of the team's run.",
+   "scenario": "Inside a team session, a role step and its model requests had no run.",
+   "cause": "The session did not bind its run id.",
+   "fix": "Sessions and runtime.run bind their run around what they ask.",
+   "test": "test_a_role_asked_inside_a_run_is_a_step_of_that_run_and_names_only_its_own_request"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A team that stopped was recorded as completed.",
+   "scenario": "A declined holdout gate ended a run.recorded with status completed.",
+   "cause": "The team returns a stopped result instead of raising.",
+   "fix": "A session carries the status its caller sets.",
+   "test": "test_a_declined_gate_stops_the_run_there"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "One MCP run for the whole server process.",
+   "scenario": "Every client's calls over weeks shared one run, which the trajectories builder groups by.",
+   "cause": "The run id was made once per server.",
+   "fix": "Each call a session of its own, with its run.recorded.",
+   "test": "test_an_mcp_clients_calls"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A campaign phase never named its model request.",
+   "scenario": "The campaign's requests were recorded, but their phase steps had no request id.",
+   "cause": "Only steps with a reply number joined a request.",
+   "fix": "A step may name the request made during it; a phase passes it.",
+   "test": "test_the_campaign_runs_in_the_harness_and_its_requests_are_recorded"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The static scan could be bypassed.",
+   "scenario": "default_registry().call, a renamed receiver, or a new call anywhere in an allowed module passed.",
+   "cause": "Receiver names and whole modules were allowed.",
+   "fix": "Named functions only, any receiver but self or super(), handlers called directly refused.",
+   "test": "test_no_tool_is_called_outside_the_functions_that_record_it"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A tool call that raised left no step.",
+   "scenario": "An MCP call or a standard-plan step raising an unmapped error was not in the record.",
+   "cause": "The step was written after the call returned.",
+   "fix": "The call runs inside a timed step; the standard plan records the failure before raising.",
+   "test": "test_an_mcp_clients_calls"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A role step could name an earlier request.",
+   "scenario": "A transport raising before the gateway recorded left the previous role's request on the step.",
+   "cause": "The last request of the context was read after the call.",
+   "fix": "Only a request made during the call is named.",
+   "test": "test_a_role_asked_inside_a_run_is_a_step_of_that_run_and_names_only_its_own_request"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The campaign's record disagreed with its store.",
+   "scenario": "A used-up wall-time budget was recorded as failed with zero tokens.",
+   "cause": "The timeout raised through the session; no client reported tokens.",
+   "fix": "The caller's status wins; the client adds its tokens to the session.",
+   "test": "test_a_session_ends_as_its_caller_says"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "full suite with the harness",
+   "gate": "every test file passes on files",
+   "result": "1575 tests in 142 files: one file failed only while planted faults were being tried at the same time; passed when rerun alone",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "142 files, the one failure explained and rerun",
+   "limits": [
+    "Planted faults must not run beside the suite."
+   ]
+  }
+ ],
+ "outcome": "Seven agent entry points, eight roles and ten model uses are classified; every step of every agent reaches the session record, joined to its run and its own model request, and a test fails when one does not.",
+ "lessons": [
+  "Recording that is opt-in per caller is recording that is missing somewhere: make the loop own it.",
+  "A static scan of calls must include references passed to threads and must allow functions, not modules.",
+  "Never plant faults while the full suite runs: the suite reads the planted file."
+ ],
+ "risks": [
+  "A new agent loop that reuses a classified purpose is caught only by review.",
+  "Budgets and guards stay in the runtime and the registry, not in the harness itself."
+ ],
+ "commits": []
+}

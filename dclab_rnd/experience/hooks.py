@@ -152,13 +152,14 @@ def from_activity(project_id: str, kind: str, payload: Any) -> None:
 def from_trace(row: dict[str, Any]) -> None:
     """One agent step (the Home agent, the intern, the campaign): the step, and its tool call when it made one."""
     ids = {"run": row.get("run_id")}
-    if row.get("agent") in ("home", "intern"):
+    if str(row.get("agent") or "").split(".")[0] in ("home", "intern"):  # their run is the conversation (21.1: script and plan too)
         ids["conversation"] = row.get("run_id")
     from . import last_model_request
 
     record("agent.step", "agent", {"agent": row.get("agent"), "n": row.get("n"), "state": str(row.get("state") or "")[:300] or None,
                                    "reply": text if isinstance(text := row.get("reply_text"), str) and text else None, "tool": row.get("tool"),
-                                   "verdict": row.get("verdict"), "seconds": row.get("seconds")}, model_request=last_model_request(), **ids)
+                                   "verdict": row.get("verdict"), "seconds": row.get("seconds")},
+           model_request=row.get("model_request") or (last_model_request() if row.get("reply") is not None else None), **ids)  # only a model's reply joins its request
     if row.get("tool"):
         arguments = row.get("arguments")
         names = sorted(arguments)[:50] if isinstance(arguments, dict) else None
@@ -183,16 +184,6 @@ def from_model_request(entry: dict[str, Any], messages: list[dict[str, Any]] | N
                                       "seconds": entry.get("seconds"), "outcome": entry.get("outcome"),
                                       "prompt": prompt[:20000] if prompt else None, "reply": (reply or None) if keep else None},
            project=entry.get("project_id"), conversation=entry.get("draft_id"), model_request=entry.get("id"), run=entry.get("run"))
-
-
-@_quiet
-def from_mcp_call(tool: str, arguments: dict[str, Any], result: Any) -> None:
-    """A tool an MCP client (Hugging Face Chat UI, ML Intern) called through /mcp."""
-    from ..agents.traces import arguments_of, summary, verdict_of
-
-    record("tool.call", "agent", {"tool": tool, "scope": "mcp", "argument_names": sorted(arguments)[:50] or None,
-                                  "arguments": arguments_of(arguments) or None, "verdict": verdict_of(result), "result": summary(result)},
-           project=arguments.get("project_id") if isinstance(arguments.get("project_id"), str) else None)
 
 
 @_quiet
@@ -238,6 +229,32 @@ def from_agent_run(policy: Any, result: Any, trace: Any, started: str, seconds: 
     ids = {"run": getattr(trace, "run_id", None)}
     if getattr(trace, "agent", None) in ("home", "intern"):  # as its steps (from_trace): the conversation is the run
         ids["conversation"] = ids["run"]
+    _run_event(done, **ids)
+
+
+@_quiet
+def from_agent_session(agent: str, current: Any, started: str, seconds: float, error: str | None = None,
+                       interrupted: bool = False, params: dict[str, Any] | None = None) -> None:
+    """One run of an agent outside a model loop (21.1: the Home agent's script, the intern's standard plan, the team,
+    the campaign, an MCP client's calls) as a run, like a loop's: how it ended, its steps, the code it ran with."""
+    from . import contract, current_log
+
+    if contract is None or current_log() is None:
+        return
+    from dclab_core import lineage
+
+    from ..studio.lineage import code, new_run
+
+    status = "stopped" if interrupted else (getattr(current, "status", None) or ("failed" if error else "completed"))  # the caller's word first
+    numbers = {"steps": float(current.steps), "failed_steps": float(current.failed), **{k: float(v) for k, v in current.usage.items()}}
+    done = lineage.RunRecord(run=new_run(), kind="agent", name=str(agent)[:120], parent=current.run_id, status=status, started=started,
+                               finished=now(), seconds=max(seconds, 0.0),
+                               params={k: v for k, v in (params or {}).items() if isinstance(v, (int, float, str, bool))},
+                               outputs=lineage.RunOutputs(chosen=status, numbers=numbers), code=code("dclab_rnd.agents.harness"),
+                               error=(error or None) and error[:600])
+    ids = {"run": current.run_id}
+    if agent.split(".")[0] in ("home", "intern"):
+        ids["conversation"] = current.run_id
     _run_event(done, **ids)
 
 

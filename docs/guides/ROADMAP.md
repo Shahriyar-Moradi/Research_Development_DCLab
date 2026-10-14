@@ -13,7 +13,7 @@ Written 2026-10-13. Done before it: 20.0 (the guard), 19.1–19.3 (the record of
 card). Every package is built the same way: a failing test, the change, the checks, an adversarial review and its
 fixes, planted faults, its development record for the owner's SFT, a commit pushed.
 
-**Progress (2026-10-14):** milestone A done (19.4–19.8); milestone B done (19.9–19.13); milestone C: 20.3, 21.3 and 20.4 done; 20.2 built, its gate failed twice (8 of 9 on two sealed sets) and waits for a sealed set written by someone else; milestone D done (22.0–22.3: two of six classifiers passed their sealed gate, semantic_role and leakage_suspect); milestone E next.
+**Progress (2026-10-14):** milestone A done (19.4–19.8); milestone B done (19.9–19.13); milestone C: 20.3, 21.3 and 20.4 done; 20.2 built, its gate failed twice (8 of 9 on two sealed sets) and waits for a sealed set written by someone else; milestone D done (22.0–22.3: two of six classifiers passed their sealed gate, semantic_role and leakage_suspect); milestone E: 21.1 done, 21.2 next.
 
 ## The two goals it serves
 

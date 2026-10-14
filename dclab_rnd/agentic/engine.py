@@ -15,7 +15,7 @@ from .schemas import Experiment
 from .store import Store
 from .agents import ResearchPlanner, DataScientist, ExperimentDesigner, ResultsCritic, KnowledgeCurator, AuditedClient, ask
 from .campaign_tools import CampaignTurn, check_citations, signature  # noqa: F401 — signature and check_citations are imported from here too
-from ..agents import registry_of
+from ..agents import harness, registry_of
 from ..agents.traces import Tracer, open_traces
 
 class ResearchState(TypedDict, total=False):
@@ -65,29 +65,41 @@ async def worker(request, timeout=300):
             proc.kill()
             await proc.wait()
 
-def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask, traces=None):
+def build_graph(store, run_id, client, checkpointer, tool=worker, ask_fn=ask, traces=None, run=None):
     """The campaign as a LangGraph loop. Its specialists answer in typed objects (no tool calls), so their phases are
     not runtime replies; its one write, an experiment, is the registered tool ``run_experiment`` behind the campaign
     guard (package A2.4). Each phase and each experiment is a row of the agent trace (``traces``, under the run id)."""
     registry = registry_of("campaign")
     seen = {"trials": 0}  # the state a row records: how many trials the phase saw
-    tracer = Tracer.resume(traces, run_id, "campaign", lambda: f"{seen['trials']} trials") if traces is not None else None
+    # 21.1: always traced, through the harness run that runs_research opens (``run``), or a tracer of its own
+    tracer = run.trace if run is not None else Tracer.resume(traces, run_id, "campaign", None)
+    tracer.state = lambda: f"{seen['trials']} trials"
 
-    def trace(name, arguments, value, started, trials):
-        if tracer is not None:
-            seen["trials"] = trials
-            tracer(name, arguments, value, time.monotonic() - started)
+    def trace(name, arguments, value, started, trials, before=None):
+        """A phase or experiment as a step; a phase names the model request it made (``before``: the last one before it)."""
+        from .. import experience
+
+        seen["trials"] = trials
+        made = experience.last_model_request()
+        request = made if made != before else None  # a request made during this phase, never an earlier one
+        if run is not None:
+            run.step(name, arguments, value, time.monotonic() - started, model_request=request)
+        else:
+            tracer(name, arguments, value, time.monotonic() - started, model_request=request)
 
     async def phase(name, cls, method, context):
         store.update(run_id, phase=name)
         store.event(run_id, "phase", {"name": name})
         started = time.monotonic()
+        from .. import experience
+
+        before = experience.last_model_request()
         try:
             value = await ask_fn(cls, method, client, context)
         except Exception as exc:
-            trace(method, {}, {"error": type(exc).__name__}, started, context.get("attempted", 0))
+            trace(method, {}, {"error": type(exc).__name__}, started, context.get("attempted", 0), before)
             raise
-        trace(method, {}, value, started, context.get("attempted", 0))
+        trace(method, {}, value, started, context.get("attempted", 0), before)
         return value
     def context(state):
         trials = state.get("trials", [])
@@ -202,13 +214,20 @@ async def run_research(store: Store, run_id: str, resume=False):
     store.update(run_id, status="running", error=None)
     try:
         client = AuditedClient(run["config"]["model"], store, run_id)
-        async with AsyncSqliteSaver.from_conn_string(str(store.home / "checkpoints.sqlite3")) as saver:
-            graph = build_graph(store, run_id, client, saver, traces=campaign_traces(store.home))
-            config = {"configurable": {"thread_id": run_id}, "recursion_limit": 250}
-            snapshot = await graph.aget_state(config)
-            project = run["config"].get("project", "general")
-            initial = None if resume and snapshot.values else {"config": run["config"], "trials": [], "critiques": [], "memory": store.knowledge(run["config"]["datasets"])[:12], "historical_evidence": historical_context(project)}
-            await asyncio.wait_for(graph.ainvoke(initial, config), timeout=remaining)
+        traces = campaign_traces(store.home)
+        with harness.session("campaign", trace=Tracer.resume(traces, run_id, "campaign"), params={"max_experiments": run["config"]["max_experiments"]}) as current:
+            async with AsyncSqliteSaver.from_conn_string(str(store.home / "checkpoints.sqlite3")) as saver:
+                graph = build_graph(store, run_id, client, saver, traces=traces, run=current)
+                config = {"configurable": {"thread_id": run_id}, "recursion_limit": 250}
+                snapshot = await graph.aget_state(config)
+                project = run["config"].get("project", "general")
+                initial = None if resume and snapshot.values else {"config": run["config"], "trials": [], "critiques": [], "memory": store.knowledge(run["config"]["datasets"])[:12], "historical_evidence": historical_context(project)}
+                client.session = current  # its requests' tokens count in the run's record
+                try:
+                    await asyncio.wait_for(graph.ainvoke(initial, config), timeout=remaining)
+                except asyncio.TimeoutError:
+                    current.status = "stopped"  # the active wall-time budget was used: stopped, as the store says
+                    raise
         store.update(run_id, status="completed", phase="Research complete")
     except asyncio.CancelledError:
         store.update(run_id, status="paused", phase="Paused at durable checkpoint")

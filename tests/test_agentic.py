@@ -270,3 +270,43 @@ def test_real_worker_profile_and_trial():
         assert len(result["repeat_summary"])==1
         assert set(result["repeat_summary"][0])=={"repeat","roc_auc","average_precision","log_loss","brier"}
         assert Path(directory,"recipe.json").exists()
+
+
+def test_the_campaign_runs_in_the_harness_and_its_requests_are_recorded(monkeypatch):
+    """21.1: every phase and experiment is a step of the campaign's harness run, and each model request NOOA sends is a
+    model.request of that run (captured here at the hooks: this environment may not hold the record's contract)."""
+    from types import SimpleNamespace
+
+    from dclab_rnd.agentic.agents import AuditedClient
+    from dclab_rnd.agents import harness
+    from dclab_rnd.experience import hooks
+
+    rows, requests = [], []
+    monkeypatch.setattr(hooks, "from_trace", lambda row: rows.append(row))
+    monkeypatch.setattr(hooks, "from_model_request", lambda entry, messages=None, reply=None: requests.append(entry))
+    with tempfile.TemporaryDirectory() as directory:
+        store = Store(Path(directory)); request = RunRequest(max_experiments=1).model_dump(); store.create("h", request)
+
+        async def agent(cls, method, client, context):
+            if method == "plan":  # a phase that sends a model request: its step names it
+                from dclab_rnd import experience
+                experience.new_model_request()
+            if method == "propose": return experiment()
+            if method == "critique": return {"evidence_ids": [], "next_question": "", "continue_research": False}
+            if method == "synthesize": return {"summary": "s", "lessons": [], "theoretical_principles": [], "workflow_blocks": [], "unanswered_questions": []}
+            return {}
+
+        async def tool(req):
+            if req["action"] == "profile": return []
+            return {"dataset": "bank_marketing", "plan": req["plan"], "metrics": {"roc_auc": .7}, "fold_standard_deviation": {}, "input_sensitivity": [],
+                    "stress_tests": [], "output_calibration": [], "wall_seconds": 1, "limitations": ["test"], "split_hash": "same", "data_hashes": {}, "folds": [{"roc_auc": .7}] * 3}
+
+        with harness.session("campaign", run_id="h") as current:
+            graph = build_graph(store, "h", None, InMemorySaver(), tool, agent, run=current)
+            asyncio.run(graph.ainvoke({"config": request, "trials": [], "critiques": []}, {"configurable": {"thread_id": "h"}}))
+    assert current.steps == len(rows) and "run_experiment" in [r["tool"] for r in rows]
+    assert all(r["run_id"] == "h" and r["agent"] == "campaign" for r in rows)
+    phases = {r["tool"]: r.get("model_request") for r in rows}
+    assert phases["plan"] and phases["review"] is None  # a phase names the request it made, never an earlier one
+    AuditedClient._recorded(SimpleNamespace(model="openai/m", run_id="h"), [{"role": "user", "content": "plan"}], {"input_tokens": 3, "output_tokens": 2}, 0.001, 0.5, "ok")
+    assert (requests[0]["purpose"], requests[0]["run"], requests[0]["input_tokens"]) == ("campaign", "h", 3)

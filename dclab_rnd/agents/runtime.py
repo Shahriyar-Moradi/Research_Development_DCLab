@@ -91,9 +91,17 @@ def run(policy: Policy, client: Any, registry: Registry, messages: list[dict[str
 
     from ..experience import hooks
 
+    if trace is None:  # 21.1: every run is traced; without a store of the caller's, its steps reach the session record only
+        from .harness import tracer
+
+        trace = tracer(policy.name)
     began, clock, result, error, interrupted = datetime.now(timezone.utc).isoformat(timespec="microseconds"), time.monotonic(), None, None, False
+    from .. import experience
+
+    conversation = trace.run_id if str(getattr(trace, "agent", "")).split(".")[0] in ("home", "intern") else None
     try:
-        result = _run(policy, client, registry, messages, context, on_step, stream, steps_used, started, trace, contexts)
+        with experience.bind(run=trace.run_id, conversation=conversation):  # 21.1: what a tool asks (a role, a model) joins this run
+            result = _run(policy, client, registry, messages, context, on_step, stream, steps_used, started, trace, contexts)
         return result
     except BaseException as exc:
         error = f"{type(exc).__name__}: {str(exc)[:500]}"
@@ -147,6 +155,9 @@ def _run(policy: Policy, client: Any, registry: Registry, messages: list[dict[st
         calls = out.get("tool_calls") or []
         if not calls:
             text = (out.get("content") or "").strip()
+            if trace is not None:  # 21.1: a reply without a tool call is a step of the record too (an answer, or calls as text)
+                trace.said(text, reply=reply, tokens=tokens, verdict="answered" if result.steps or not (nudged or policy.must_act
+                                                                                                       or writes_tool_calls(text, allowed)) else "no_call")
             # Only in a run where no tool has run: a report that quotes a call after real work is an answer.
             if not result.steps and (nudged or policy.must_act or writes_tool_calls(text, allowed)):
                 if not nudged:  # once: the model is told; any reply without a call after that ends the run

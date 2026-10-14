@@ -8,6 +8,7 @@ The answer must be one JSON object; anything else is no answer, and the role fal
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Mapping
 from typing import Any, Optional
 
@@ -47,14 +48,26 @@ class GatewayAdvisor:
         self.calls[purpose] = self.calls.get(purpose, 0) + 1
         messages = [{"role": "system", "content": prompts.text(purpose)},
                     {"role": "user", "content": json.dumps(evidence, ensure_ascii=False)}]
-        reply = client.complete(messages, None, max_tokens=self.max_tokens)
-        if reply.get("finish_reason") == "length":
-            raise RuntimeError("the reply was cut at the token limit")  # a failure, not an abstention
-        content = (reply.get("content") or "").strip()
-        answer = _first_object(content)
-        if answer is None and content:
-            raise ValueError("the reply holds no JSON object")
-        return answer
+        from dclab_rnd import experience
+
+        clock, verdict, before = time.monotonic(), "error", experience.last_model_request()
+        try:
+            reply = client.complete(messages, None, max_tokens=self.max_tokens)
+            if reply.get("finish_reason") == "length":
+                raise RuntimeError("the reply was cut at the token limit")  # a failure, not an abstention
+            content = (reply.get("content") or "").strip()
+            answer = _first_object(content)
+            if answer is None and content:
+                raise ValueError("the reply holds no JSON object")
+            verdict = "ok" if answer is not None else "no_answer"
+            return answer
+        finally:  # 21.1: a role's answer is a step of whatever asked it, recorded whether it answered or not
+            from dclab_rnd.agents import harness
+
+            if purpose in harness.ROLES:
+                made = experience.last_model_request()
+                harness.role_step(purpose, time.monotonic() - clock, verdict, model_request=made if made != before else None,
+                                  project=self.project_id, conversation=self.draft_id)
 
 
 def _first_object(text: str) -> Optional[dict[str, Any]]:

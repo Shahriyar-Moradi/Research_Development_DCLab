@@ -67,6 +67,24 @@ class TeamTest(unittest.TestCase):
                 self.assertFalse(store.get(pid)["settings"].get("critic"))  # the critic was the run's, not left on
                 self.assertEqual(len([e for e in store.activity(pid, limit=500) if e["kind"] == "team_step"]), len(out["steps"]))
 
+    def test_the_teams_moves_are_steps_of_its_run(self):
+        # 21.1: the team runs in the agent harness: each role's move is a step of one run, which ends recorded
+        from dclab_rnd import experience
+
+        log = experience.FileLog(Path(tempfile.mkdtemp()) / "experience", "wtest")
+        experience.install(log)
+        try:
+            store, pid, case, out, _ = self.run_team("binary")
+        finally:
+            experience.install(None)
+        events = log.read()
+        steps = [e for e in events if e.kind == "agent.step" and e.payload["agent"] == "team"]
+        self.assertEqual([e.payload.get("tool") for e in steps], [s["role"] for s in out["steps"]])
+        self.assertTrue(all(e.ids.project == pid for e in steps))
+        self.assertEqual(len({e.ids.run for e in steps}), 1)
+        done = [e for e in events if e.kind == "run.recorded" and e.ids.run == steps[0].ids.run]
+        self.assertEqual((done[-1].payload["name"], done[-1].payload["status"]), ("team", "completed"))
+
     def test_only_what_is_open_is_asked_and_the_answers_are_used(self):
         store, pid, case, out, _ = self.run_team("rare_event")
         fields = [q["field"] for q in out["asked"]]
@@ -90,8 +108,17 @@ class TeamTest(unittest.TestCase):
         self.assertAlmostEqual(team._share("70 a day", 3000, 30.0), 0.7)
 
     def test_a_declined_gate_stops_the_run_there(self):
-        store, pid, case, out, _ = self.run_team("binary", approve={"solution": True, "holdout": False})
+        from dclab_rnd import experience
+
+        log = experience.FileLog(Path(tempfile.mkdtemp()) / "experience", "wtest")
+        experience.install(log)
+        try:
+            store, pid, case, out, _ = self.run_team("binary", approve={"solution": True, "holdout": False})
+        finally:
+            experience.install(None)
         self.assertEqual((out["status"], out["at"]), ("stopped", "holdout gate"))
+        ended = [e for e in log.read() if e.kind == "run.recorded" and e.payload["name"] == "team"]
+        self.assertEqual(ended[-1].payload["status"], "stopped")  # 21.1: the harness run says so, not "completed"
         self.assertTrue(store.has_stage(pid, "models"))
         self.assertFalse(store.has_stage(pid, "final"))  # the holdout stays sealed
         store, pid, case, out, _ = self.run_team("binary", approve=False)

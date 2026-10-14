@@ -11,9 +11,11 @@ from __future__ import annotations
 import json
 import re
 import time
-from typing import Any
+from contextlib import contextmanager
+from typing import Any, Iterator
 
 from dclab_rnd import prompts
+from dclab_rnd.agents import harness
 from dclab_rnd.agents.registry import Registry, Tool
 from dclab_rnd.agents.runtime import Policy, Step, run as run_policy
 from dclab_rnd.agents.traces import Tracer
@@ -52,6 +54,7 @@ class Intern:
     def __init__(self, sessions: SessionStore, toolbox: Toolbox, client: Any | None = None, traces: Any = None):
         self.sessions, self.toolbox, self.client, self.traces = sessions, toolbox, client, traces
         self.tracer: Tracer | None = None
+        self._run: harness.Session | None = None  # the harness run a standard-plan step belongs to
 
     # ------------------------------------------------------------------ public
     def start(self, task: str, budget: dict[str, Any] | None = None, project_id: str | None = None, model: str | None = None) -> dict[str, Any]:
@@ -83,7 +86,8 @@ class Intern:
             if session["mode"] == "llm":
                 self._llm_loop(session, started)
             else:
-                self._standard_plan(session, started)
+                with self._plan_run():  # 21.1: a run like the loop's
+                    self._standard_plan(session, started)
         except Exception as exc:  # noqa: BLE001 — the session records the failure
             session = self.sessions.get(session_id)
             session["status"] = "failed"
@@ -119,12 +123,13 @@ class Intern:
         session["status"] = "running"
         session["used"]["minutes_before"] = session["used"]["minutes"]
         self.tracer = self._trace(session)
-        if session.get("project_id"):
-            result = self._step(session, "ask_project", {"project_id": session["project_id"], "question": text}, started)
-            session["final"] = result.get("answer", "") + ("\n\nProof: " + ", ".join(result.get("proof", [])) if result.get("proof") else "")
-        else:
-            result = self._step(session, "search_evidence", {"query": text, "k": 4}, started)
-            session["final"] = "Relevant evidence: " + "; ".join(f"{r['record_id']} — {r['title']}" for r in result.get("results", [])) or "Nothing matched."
+        with self._plan_run():  # 21.1: a follow-up is a run of the plan
+            if session.get("project_id"):
+                result = self._step(session, "ask_project", {"project_id": session["project_id"], "question": text}, started)
+                session["final"] = result.get("answer", "") + ("\n\nProof: " + ", ".join(result.get("proof", [])) if result.get("proof") else "")
+            else:
+                result = self._step(session, "search_evidence", {"query": text, "k": 4}, started)
+                session["final"] = "Relevant evidence: " + "; ".join(f"{r['record_id']} — {r['title']}" for r in result.get("results", [])) or "Nothing matched."
         session["status"] = "completed"
         session["used"]["minutes"] = round(session["used"]["minutes_before"] + (time.monotonic() - started) / 60, 2)
         return self.sessions.save(session)
@@ -164,7 +169,11 @@ class Intern:
         if self.tracer is not None:
             self.tracer.before()
         clock = time.perf_counter()
-        result = self.toolbox.call(tool, arguments)
+        try:
+            result = self.toolbox.call(tool, arguments)
+        except Exception as exc:  # 21.1: a call that raised is a step too, then the session fails as before
+            self._record(tool, arguments, {"error": type(exc).__name__}, round(time.perf_counter() - clock, 2), len(session["steps"]) + 1)
+            raise
         step = {"n": len(session["steps"]) + 1, "tool": tool, "arguments": arguments if len(json.dumps(arguments, default=str)) <= 1200 else {"_truncated": truncate(arguments, 1200)},
                 "summary": summarize(result), "ok": not (isinstance(result, dict) and "error" in result),
                 "elapsed_seconds": round(time.perf_counter() - clock, 2), "at": now()}
@@ -177,9 +186,21 @@ class Intern:
         self.sessions.save(session)
         return result
 
+    @contextmanager
+    def _plan_run(self) -> Iterator[harness.Session]:
+        """A run of the standard plan in the agent harness: its steps are the session's, its end a ``run.recorded``."""
+        with harness.session("intern.standard", trace=self.tracer) as current:
+            self._run = current
+            try:
+                yield current
+            finally:
+                self._run = None
+
     def _record(self, tool: str, arguments: dict[str, Any], result: Any, seconds: float, n: int) -> None:
         """A standard-plan step's trace row: no model chose it, so it has no reply number."""
-        if self.tracer is not None:
+        if self._run is not None:
+            self._run.step(tool, arguments, result, seconds, n=n)
+        elif self.tracer is not None:
             self.tracer(tool, arguments, result, seconds, n=n)
 
     # ------------------------------------------------------------------ LLM mode
