@@ -43,6 +43,16 @@ def _transport(t: dict[str, Any], p: settings.Purpose) -> ChatClient:
     return ChatClient(model=t["model"], base_url=t["base_url"], api_key=t["api_key"], timeout=p.timeout, max_retries=0)
 
 
+def endpoint_client(base_url: str, model: str, api_key: str, timeout: float = 180) -> ChatClient:
+    """A transport for an endpoint the caller names (a twin run's Claude, A6.6): the same ChatClient the tiers use,
+    made here so that every model client in the repository still comes from this module. The caller is a wrapper
+    that reports each request through ``Gateway.record`` and keeps its own caps; it is never handed to a purpose
+    directly."""
+    if not api_key:
+        raise RuntimeError("the endpoint needs a key")
+    return ChatClient(model=model, base_url=base_url, api_key=api_key, timeout=timeout, max_retries=1)
+
+
 def user_cap() -> tuple[float | None, str | None]:
     """The signed-in person's monthly euro limit and id (package 10.6); (None, None) without accounts or a person."""
     from ..accounts.principal import current

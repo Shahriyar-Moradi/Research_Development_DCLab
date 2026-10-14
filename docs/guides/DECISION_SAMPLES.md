@@ -28,9 +28,11 @@ scores, flags, option tables; and column names); `state_text` (the same evidence
 solution saved (every column judgment it states on the first save, only what changed afterwards; the target, task,
 metric, time column, split and whether a prediction moment was stated); a gate approved. A label names the latest
 sample with its key when one exists, and always carries the key, so a label written before its sample (a solution
-saved before the proposal ran) still joins at export. Every label today is `human_exposed`: the person saw the rule's
-answer first, so these labels train and monitor a model and never promote one (ADR 0008 of the main product). An
-agent's approval is not a label.
+saved before the proposal ran) still joins at export. A person's label is `human_exposed`: the person saw the rule's
+answer first, so these labels train and monitor a model and never promote one (ADR 0008 of the main product). An AI
+agent's approval or override (a twin run's AI-first lane, the intern in model mode) is kept as source `agent`: what
+the agent decided beside the rule, never counted as a person's answer; the export's `label` field holds the latest
+human label only, and agent labels stay in `labels[]`.
 
 ## What never enters a row
 

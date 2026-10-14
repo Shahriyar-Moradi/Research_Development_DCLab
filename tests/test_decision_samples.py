@@ -166,7 +166,8 @@ class RecorderTests(unittest.TestCase):
         self.assertEqual(next(r["label"] for r in first if r["key"] == "contract.prediction_moment:-"), "stated")
         gate_rows = labels.gate_approved(None, project, "solution", "owner", "fine")
         self.assertTrue(all(r["move"] == "approve_gate" and r["reason"] == "gate approved" for r in gate_rows))
-        self.assertEqual(labels.stage_approved(None, project, "data", self.records["data"], None, actor="agent"), [])  # an agent is not a person
+        agent = labels.stage_approved(None, project, "data", self.records["data"], None, actor="agent")
+        self.assertTrue(agent and all(r["source"] == "agent" for r in agent))  # an agent's approval is kept, never as a person's
         decisions.forget(self.store, pid)
         self.assertEqual(self.samples.samples(pid), [])
         self.assertEqual(self.samples.labels(pid), [])

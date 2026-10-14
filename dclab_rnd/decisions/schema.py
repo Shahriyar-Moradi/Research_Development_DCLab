@@ -32,7 +32,7 @@ CELL_KEYS = frozenset({"examples", "preview", "top_values", "values", "head", "s
                        "start", "end", "time_range", "classes_only_in_last_third", "quote", "statement"})  # the last five: dates, class values and words of a row or a person
 SPLIT_KINDS = {"time_and_group": "time_group", "spatial_block": "spatial", "time_group": "time_group", "spatial": "spatial", "stratified": "stratified",
                "random": "random", "group": "group", "time": "time"}
-REASONS = ("the rule's choice, approved", "chosen by the person", "stage approved as computed", "cleared by the person", "excluded by the person",
+REASONS = ("the rule's choice, approved", "chosen by the person", "chosen by the agent", "stage approved as computed", "cleared by the person", "excluded by the person",
            "first save of the solution", "gate approved")  # the only words a label carries: never what a person typed
 
 # field order of a sample row (files and the decision_sample table share it)
@@ -42,7 +42,7 @@ SAMPLE_FIELDS = ("sample_id", "at", "point", "subject_kind", "subject", "key", "
 LABEL_FIELDS = ("label_id", "at", "sample_id", "key", "project_id", "label", "source", "who", "user_id", "reason", "move", "schema_version")
 SCHEMA_VERSION = 1
 
-LABEL_SOURCES = ("human_exposed", "human_blind", "construction", "replica", "factory_rule", "rule_prod")
+LABEL_SOURCES = ("human_exposed", "human_blind", "agent", "construction", "replica", "factory_rule", "rule_prod")  # agent: an AI agent's own approval or override, never a person's
 SUBJECTS = ("column", "table", "problem")
 PARTITIONS = ("metadata", "train")
 

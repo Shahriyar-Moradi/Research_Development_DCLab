@@ -71,6 +71,8 @@ def pack_of(project: dict[str, Any]) -> str | None:
     """The project's Domain pack key (15.6): its own, else the draft's it was built from."""
     return project.get("pack") or ((project.get("draft") or {}).get("pack") or {}).get("key")
 _BUNDLES: dict[tuple[str, str, str], Any] = {}
+_BUNDLES_LOCK = __import__("threading").Lock()
+_BUNDLES_KEPT = 4  # one per project running at a time (two twin lanes, a job and a request), not one for the process
 
 
 def _now() -> str:
@@ -109,10 +111,12 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared)
            + str(project.get("pack")) + _hash(project.get("labels")) + _hash(project.get("feature_programs")))  # each changes what runs
-    if key in _BUNDLES:
-        _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
-        _BUNDLES[key].critic = _critic_advisor(project)
-        return _BUNDLES[key]
+    with _BUNDLES_LOCK:
+        cached = _BUNDLES.get(key)
+    if cached is not None:
+        cached.plan, cached.label_info = project.get("plan"), project.get("labels")
+        cached.critic = _critic_advisor(project)
+        return cached
     path = data_path(store, project)  # checked against the recorded SHA-256 (package 9.3)
     frame = load_table(path)
     if project.get("labels") and project["labels"].get("target") == solution.target:  # 15.2: the target from the label file
@@ -218,8 +222,10 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     prepared.kind = kind
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.critic = _critic_advisor(project)
-    _BUNDLES.clear()
-    _BUNDLES[key] = prepared
+    with _BUNDLES_LOCK:  # two projects preparing at once (twin lanes) keep each other's bundle; the oldest goes when there are too many
+        for old in [k for k in _BUNDLES if k[0] == key[0]] + list(_BUNDLES)[:max(0, len(_BUNDLES) - _BUNDLES_KEPT + 1)]:
+            _BUNDLES.pop(old, None)
+        _BUNDLES[key] = prepared
     return prepared
 
 

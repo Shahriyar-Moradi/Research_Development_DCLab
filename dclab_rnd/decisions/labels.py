@@ -5,9 +5,9 @@
   choices (target, task, split, metric) on the first save; afterwards only what changed;
 * a gate approved: the solution gate confirms the solution's judgments; the holdout gate, the final choice.
 
-Only a person's action is a label (``actor == "human"`` or a signed-in person): an agent's approval is the rule
-approving itself. Every label is ``human_exposed``: the person saw the rule's answer first (ADR 0008's rule: such
-labels train and monitor a model, never promote it). A label points at the latest sample with the same key in the
+A person's action is a ``human_exposed`` label (the person saw the rule's answer first: ADR 0008's rule, such labels
+train and monitor a model, never promote it). An AI agent's approval or override (``actor == "agent"``, no signed-in
+person) is kept too, as source ``agent``: what the agent decided beside the rule, never counted as a person's answer. A label points at the latest sample with the same key in the
 project (or, for a contract field, in the draft the project was built from), when one exists, and always carries
 the key, so a label written before its sample still joins by key at export time. A label's reason is one of
 ``schema.REASONS``: never the words a person typed.
@@ -58,9 +58,9 @@ class _Index:
             self.latest[r["key"]] = r
 
     def one(self, point: str, subject: str | None, value: Any, who: str, *, reason: str = "", move: str | None = None,
-            user_id: str | None = None) -> dict[str, Any]:
+            user_id: str | None = None, source: str = "human_exposed") -> dict[str, Any]:
         key = key_of(point, subject)
-        return label(self.latest.get(key), key, self.project_id, value, "human_exposed", who, user_id=user_id, reason=reason, move=move)
+        return label(self.latest.get(key), key, self.project_id, value, source, who, user_id=user_id, reason=reason, move=move)
 
 
 STAGE_POINTS = {"features": "feature.recipe", "models": "model.family", "final": "optimization.config"}
@@ -71,8 +71,7 @@ def stage_approved(store: SampleStore | None, project: dict[str, Any], stage: st
     """The approval of a stage: a label for the stage's own decision (the chosen option, the rule's when none was given)
     and, for the data and leakage stages, a confirmation of every column judgment the stage made."""
     user_id, who = _person(user_id)
-    if actor != "human" and who is None:
-        return []
+    source = "human_exposed" if (actor == "human" or who is not None) else "agent"
     who = who or actor
     index = _Index(store, project)
     decision = (record or {}).get("decision") or {}
@@ -80,18 +79,18 @@ def stage_approved(store: SampleStore | None, project: dict[str, Any], stage: st
     point = STAGE_POINTS.get(stage)
     if point and (choice or decision.get("selected") is not None):
         value = choice or decision.get("chosen") or decision.get("selected")
-        rows.append(index.one(point, None, value, who, move="approve_stage", user_id=user_id,
-                              reason="the rule's choice, approved" if value == decision.get("selected") else "chosen by the person"))
+        rows.append(index.one(point, None, value, who, move="approve_stage", user_id=user_id, source=source,
+                              reason="the rule's choice, approved" if value == decision.get("selected") else "chosen by the person" if source == "human_exposed" else "chosen by the agent"))
     evidence = (record or {}).get("evidence") or {}
     if stage == "data":
         for column, role in (evidence.get("column_roles") or {}).items():
-            rows.append(index.one("column.role", str(column), role, who, move="approve_stage", user_id=user_id, reason="stage approved as computed"))
+            rows.append(index.one("column.role", str(column), role, who, move="approve_stage", user_id=user_id, source=source, reason="stage approved as computed"))
     if stage == "leakage":
         declared = {str(c) for c in evidence.get("declared_leakage_features") or []}
         flagged = {str(f.get("feature")) for f in evidence.get("heuristic_review_candidates") or [] if isinstance(f, dict)}
         for column in sorted(declared | flagged):
             rows.append(index.one("column.leakage", column, "exclude" if column in declared else "review_flag", who,
-                                  move="approve_stage", user_id=user_id, reason="stage approved as computed"))
+                                  move="approve_stage", user_id=user_id, source=source, reason="stage approved as computed"))
     return rows
 
 
