@@ -453,6 +453,19 @@ by the same gates; the ledger feeds all of them, each in its own training format
   never hidden, and the person's choice becomes a label.
 - **Done when:** on the replicas, asking each technical point through the API, the MCP tool and the companion gives
   the same answer with its confidence and evidence, and a person's override is recorded as a label.
+- **Status: done (2026-10-15).** `dclab_rnd/decide.py`: `ask(point, state)` answers a technical decision about a
+  column from its state (name, name tokens and bands; a value is refused) the same way through `POST /api/decide`,
+  the registry's `decide` tool (the intern and `/mcp`) and the companion (`python -m dclab_rnd.notebook_assist
+  --decide`, with `--home`): what DCLab would do under the workspace's routing (22.6), the rule's answer, each
+  classifier's with its confidence and its sealed verdict, the disagreements (shown), and the rule records it rests
+  on. On a project the rule beside the models is the project's own recorded decision (`GET
+  /api/projects/{id}/decisions`, and a table on the Solution page with each disagreement marked); asked with a state
+  alone it is `rule:bands-approx`, an approximation the answer names as one. `choose` (`POST /api/decide/choose`)
+  records a person's answer with the answers they were shown, as a label when it differs from any of them, the
+  person's later answer superseding their earlier label; the person's id stays in the label only. Measured: on 4
+  columns of the binary replica, every technical point asked through the three surfaces gave the same answer, also
+  with a point routed to act. Left open: the copilot review and the companion's cell analysis do not ask it on their
+  own yet (the companion answers when asked).
 
 ### 22.9 Decision models inside the workflow (the second use)
 - **Delivers:** the workflow's own choices made with decision models where they passed their gates: the coordinator

@@ -354,6 +354,38 @@ async def project_lineage(project_id: str, path: str | None = None, s: Services 
         raise HTTPException(404, str(exc.args[0]) if exc.args else "No such path") from None
 
 
+@router.get("/api/projects/{project_id}/decisions", response_model=Page)
+async def project_decisions(project_id: str, s: Services = Depends(services)):
+    """22.8: for each column of the project's table (the first 40), what DCLab would decide on its identifier, time,
+    role and leak questions, from its bands, with the rule's and the classifiers' answers and any disagreement."""
+    from ... import decide
+    from ...ledger import column_state
+
+    p = s.project(project_id)
+    data = p.get("data") or {}
+    profile = (data.get("profile") or {}).get("columns") or []
+    rows = data.get("rows")
+    doc = s.gateway.routing.get() if getattr(s.gateway, "routing", None) is not None else {}
+    target = (p.get("solution") or {}).get("target")
+
+    def answers() -> list[dict[str, Any]]:
+        latest: dict[tuple[str, str], Any] = {}  # the project's own recorded decision per point and column: the rule beside the models
+        for r in (s.ledger.records(project=project_id) if getattr(s, "ledger", None) is not None else []):
+            key = (r.point, r.subject.key)
+            if r.point in decide.TECHNICAL and (key not in latest or r.at >= latest[key].at):
+                latest[key] = r
+        out = []
+        for column in profile[:40]:
+            if column.get("name") == target:
+                continue
+            state = {**column_state(column, rows), **({"target": str(target)[:200]} if target else {})}
+            out.append({"column": column.get("name"), "decisions": {point: decide.ask(point, state, routing_doc=doc, recorded=latest.get((point, str(column.get("name")))))
+                                                                    for point in ("column.is_identifier", "column.time", "column.semantic_role", "feature.leakage_suspect")}})
+        return out
+
+    return {"columns": await asyncio.to_thread(answers)}
+
+
 @router.get("/api/projects/{project_id}/pipeline", response_model=Page)
 async def project_pipeline(project_id: str, path: str | None = None, s: Services = Depends(services)):
     """The project's pipeline of workflows (20.8): every step behind its numbers, from the problem card to the report,

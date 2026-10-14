@@ -4,6 +4,13 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.31.0 (2026-10-15)
+
+Package 22.8: decision models for data scientists. No contract changes shape.
+
+- `answerers.compare`: a label superseded by a later one counts no more, wherever the later one is (a person's second
+  answer on the same column is a new record that supersedes their first label).
+
 ## 0.30.0 (2026-10-15)
 
 Package 22.5: open-source decision models. A new module; no contract changes shape.

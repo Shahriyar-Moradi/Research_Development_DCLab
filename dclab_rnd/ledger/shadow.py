@@ -120,7 +120,8 @@ def add_many(records: list[Any], models: Optional[Iterable[Any]] = None) -> list
         return records
     extra: dict[int, list[Any]] = {}
     for m in models:
-        mine = [(i, r) for i, r in enumerate(records) if r.point in m.points and banded(r.state)]
+        name = f"{m.name}@{m.version}"
+        mine = [(i, r) for i, r in enumerate(records) if r.point in m.points and banded(r.state) and not any(a.answerer == name for a in r.answers)]
         try:
             got = _answers(m, [r for _, r in mine])
         except Exception:  # noqa: BLE001 - a model that fails answers nothing; the decisions are recorded all the same
@@ -150,9 +151,7 @@ def gate_results() -> dict[str, str]:
 
 
 def _recorded(record: Any, name: str) -> Any:
-    from dclab_core.answerers import SHADOW
-
-    return next((a for a in record.answers if a.source == SHADOW and a.answerer == name), None)
+    return next((a for a in record.answers if a.answerer == name), None)  # a shadow, or an answer a person was shown (22.8)
 
 
 def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iterable[Any]] = None, answer: bool = False) -> dict[str, Any]:
@@ -161,12 +160,12 @@ def measure(records: Iterable[Any], labels: Iterable[Any], models: Optional[Iter
     and the blind ones weighted by their draw. ``answer``: answer again where no shadow of this version is recorded
     (a run measuring models); otherwise only the recorded shadows count (a page)."""
     from dclab_core.answerers import RecordedRule, _key
-    from dclab_core.ledger import effective_label
+    from dclab_core.ledger import current_labels, effective_label
 
     models = list(answerers() if models is None else models)
     records = list(records)
     by_record: dict[str, list[Any]] = {}
-    for x in labels:
+    for x in current_labels(list(labels)):  # a label another one supersedes (on another record too) no longer counts
         by_record.setdefault(x.record, []).append(x)
     gates = gate_results()
     rule_of = RecordedRule()

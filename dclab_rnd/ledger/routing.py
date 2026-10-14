@@ -186,14 +186,14 @@ def demote(store: Any, audit_log: Any, records: Iterable[Any], labels: Iterable[
     draw; an exposed label only where it says the routed answer was wrong, as the label rule reads it) is below its bar,
     moved back to shadow by DCLab itself, audited; the rule answers again."""
     from dclab_core.answerers import _key
-    from dclab_core.ledger import effective_label
+    from dclab_core.ledger import current_labels, effective_label
 
     doc = store.get()
     routed = {p: e for p, e in (doc.get("decisions") or {}).items() if e.get("level")}
     if not routed:
         return []
     by_record: dict[str, list[Any]] = {}
-    for x in labels:
+    for x in current_labels(list(labels)):  # a label another one supersedes no longer counts
         by_record.setdefault(x.record, []).append(x)
     records = [r for r in records if r.point in routed]
     out = []

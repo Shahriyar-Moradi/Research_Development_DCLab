@@ -1,0 +1,190 @@
+{
+ "package": "22.8",
+ "title": "Decision models for data scientists: one answer about a column, the same through the API, the MCP tool and the companion",
+ "date": "2026-10-15",
+ "request": "The technical decision points as something a data scientist asks while working: an API, an MCP tool, the notebook companion and the project page; each answer with its confidence, the answerer, the evidence and the rule's answer beside it, a disagreement shown, the person's choice a label. Done when the three surfaces give the same answer on the replicas and an override is recorded as a label.",
+ "spec": "One function answering from a column's state, three surfaces calling it, a project route and page table, and a person's choice recorded as a decision and a label.",
+ "plan": [
+  "Survey the tool registry, the companion, the rules and the evidence.",
+  "Write one function and three surfaces over it.",
+  "Show the answers beside each column on the Solution page.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "On a project, the rule beside the models is the project's own recorded decision; the bands rule only without one, and named as an approximation.",
+   "why": "An answer that contradicts what the project did confuses the person it is meant to help."
+  },
+  {
+   "decision": "A person's choice is a label when it differs from any answer they were shown.",
+   "why": "A choice against a classifier is exactly the label the shadow measurement needs."
+  },
+  {
+   "decision": "The person's id stays in the label, never in the answer.",
+   "why": "The export removes ids from labels; an answer would carry it out of the workspace."
+  },
+  {
+   "decision": "The companion reads only an existing workspace's routing.",
+   "why": "A read-only question must never create a workspace."
+  }
+ ],
+ "change": "dclab_rnd/decide.py (new), tools.py and intern/tools.py (the decide tool), notebook_assist.py (--decide, --home), agentic/pages/ledger.py (POST /api/decide and /api/decide/choose), agentic/routers/projects.py (GET /api/projects/{id}/decisions), the Solution page's table, accounts/guard.py, ledger/shadow.py and routing.py (superseded labels; shown answers measured), dclab_core/answerers.py (dclab-core 0.31.0), the web client; tests/test_decide.py (new), test_agents_runtime.py, test_experience_log.py; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A superseded label still counted.",
+   "scenario": "A person's second answer on a column superseded the first label, yet the measurement counted both.",
+   "cause": "Supersession was applied per record, and the replacement lives on another record.",
+   "fix": "Superseded labels are set aside across all labels in the measurement, the demotion and the comparison library.",
+   "test": "test_a_choice_against_any_answer_shown_is_a_label_and_a_later_one_supersedes_it"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Reporting a failed verdict as not judged went unnoticed.",
+   "scenario": "A planted fault merged fail and not judged and every test passed.",
+   "cause": "The test relied on local model files, absent where it ran.",
+   "fix": "A stand-in classifier with a real failed verdict.",
+   "test": "test_the_options_the_verdicts_and_a_broken_question"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The bands rule contradicted the project's recorded decisions and was presented as what DCLab would do.",
+   "scenario": "It disagreed with the studio's rule on 43 of 255 replica decisions, was right on 2 of 18 planted leaks, and called a date-like time column an identifier.",
+   "cause": "A rule from bands alone, standing in for rules that read the whole table.",
+   "fix": "On a project the rule is its recorded decision; without one the bands rule is named an approximation; a date is never an identifier.",
+   "test": "test_the_project_page_asks_each_column"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A choice against a classifier but with the rule was not a label.",
+   "scenario": "A person agreeing with the rule against a confident classifier left no label.",
+   "cause": "Only a difference from DCLab's answer made a label.",
+   "fix": "A difference from any answer shown makes a label.",
+   "test": "test_a_choice_against_any_answer_shown_is_a_label_and_a_later_one_supersedes_it"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Records of a person's choice were invisible to the shadow measurement.",
+   "scenario": "After four choices the measurement reported no answer and no label for the classifier.",
+   "cause": "The measurement read shadow answers only; the shown answers were not shadows.",
+   "fix": "The measurement reads the classifier's answer whatever its source.",
+   "test": "test_a_choice_against_any_answer_shown_is_a_label_and_a_later_one_supersedes_it"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A person's id left the workspace in the training export.",
+   "scenario": "The export held the answerer person:u_alice42.",
+   "cause": "The person's answer carried the id; the export cleans labels, not answers.",
+   "fix": "The answer says person; the id stays in the label.",
+   "test": "test_a_choice_against_any_answer_shown_is_a_label_and_a_later_one_supersedes_it"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "One person's repeated choices each made a label.",
+   "scenario": "Twenty posts could make twenty labels and demote a routed model.",
+   "cause": "No supersession.",
+   "fix": "A person's later answer on a column and point supersedes their earlier label.",
+   "test": "test_a_choice_against_any_answer_shown_is_a_label_and_a_later_one_supersedes_it"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A choice without a value, or kept nowhere, reported success.",
+   "scenario": "A body without a value wrote a label of nothing; with no ledger the route answered as if it had kept it.",
+   "cause": "Missing checks.",
+   "fix": "A value is required, and a decision not kept is an error.",
+   "test": "test_a_choice_without_a_value_or_a_ledger_is_refused"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The surfaces could read different routings, and a question could create a workspace.",
+   "scenario": "With PostgreSQL configured the companion bound a default folder to a new workspace and answered by the rule while the API used a routed model.",
+   "cause": "The companion opened whatever folder the settings named.",
+   "fix": "The companion takes the workspace folder, on PostgreSQL only one already bound; every answer says where its routing came from; a routed point is tested on all three.",
+   "test": "test_the_api_the_mcp_tool_and_the_companion_give_the_same_answer"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A failed sealed verdict was shown as not judged.",
+   "scenario": "Four classifiers with a failed verdict read fail or not judged.",
+   "cause": "Two cases merged.",
+   "fix": "The verdict is shown as recorded.",
+   "test": "test_the_options_the_verdicts_and_a_broken_question"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The tool took any state and any options, and a broken question crashed the companion.",
+   "scenario": "Values could reach the traces through a free state; a long or unknown option was echoed; malformed input gave a traceback.",
+   "cause": "A free schema and no checks.",
+   "fix": "The tool lists the bands with their values; options must be the point's own; a broken question is an error with exit 2.",
+   "test": "test_the_options_the_verdicts_and_a_broken_question"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Parts of the package were neither built nor said.",
+   "scenario": "No status line said that the copilot review and the companion's cell analysis do not ask on their own.",
+   "cause": "Wording ahead of the work.",
+   "fix": "The status says what is built and what is open; the project page shows the decisions beside each column.",
+   "test": "test_the_project_page_asks_each_column"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the same question through three surfaces",
+   "gate": "on the replicas, each technical point asked through the API, the MCP tool and the companion gives the same answer with its confidence and evidence",
+   "result": "4 columns of the binary replica times 6 technical points: 24 answers identical across the three surfaces, also with a point routed to act",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "24 of 24 identical",
+   "limits": [
+    "One replica's first columns.",
+    "The classifiers' confidence is shown where the fitted models are on the machine."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "17 of 17 planted faults caught after the tests were strengthened",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "17 of 17",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "A data scientist asks DCLab about a column through the API, an MCP tool or the companion and gets the same answer, with the rule, the classifiers' confidence, the disagreements and the evidence; on a project the rule is the project's own; a person's choice becomes a label.",
+ "lessons": [
+  "Beside a model, show the rule the person's project actually used, not an approximation of it.",
+  "A supersession that spans records must be applied across all labels, not per record.",
+  "A read-only question must never create state, not even a workspace row."
+ ],
+ "risks": [
+  "The copilot review and the companion's cell analysis do not ask on their own yet.",
+  "The bands rule is an approximation where there is no project."
+ ],
+ "commits": []
+}

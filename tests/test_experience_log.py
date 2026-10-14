@@ -70,6 +70,8 @@ WRITE_ROUTES = {
     "PUT /api/projects/{project_id}/data": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/tables/{name}": (EVENTS, ["data.uploaded"]),  # 16.15 C: a related table, its audit row a data import
     "POST /api/projects/{project_id}/pipeline/rerun": (EVENTS, ["job.started", "run.recorded"]),  # 20.8: a step rerun as a job
+    "POST /api/decide": (NONE, "a question answered from a state: nothing is decided or kept"),
+    "POST /api/decide/choose": (NONE, "a person's answer is the decision ledger's own record and label, not a session event"),
     "POST /api/ledger/routing": (NONE, "a decision point's routing is the workspace's routing document and its audit row, not a session event"),
     "POST /api/projects/{project_id}/data/sample": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/solution": (EVENTS, ["graph.move", "solution.saved"]),

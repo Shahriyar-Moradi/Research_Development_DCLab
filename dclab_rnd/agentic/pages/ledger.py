@@ -121,6 +121,36 @@ def register(app, ctx) -> None:
             raise HTTPException(422, str(exc)) from None
         return {"routed": routing.entry(doc, str(b.get("point")))}
 
+    @router.post("/api/decide", response_model=Page)
+    async def decide_route(body: Any = Body(None)):
+        """One technical decision about a column, asked from its state (name, name tokens and bands, never a value): what
+        DCLab would do, the rule's and the classifiers' answers with their confidence, any disagreement, the evidence
+        (22.8; the same as the MCP tool and the notebook companion)."""
+        from ... import decide
+
+        b = body if isinstance(body, dict) else {}
+        try:
+            return await asyncio.to_thread(decide.ask, str(b.get("point") or ""), b.get("state") if isinstance(b.get("state"), dict) else {},
+                                           b.get("options"), ctx.models.routing.get() if getattr(ctx, "models", None) is not None else None)
+        except decide.DecideError as exc:
+            raise HTTPException(422, str(exc)) from None
+
+    @router.post("/api/decide/choose", response_model=Page)
+    async def decide_choose(body: Any = Body(None)):
+        """A person's own answer to a technical decision: {"point", "state", "value"}; recorded as a decision with the
+        rule's and the models' answers beside it, and as a label when it differs from what DCLab said."""
+        from ... import decide
+        from ...accounts.principal import current
+
+        b = body if isinstance(body, dict) else {}
+        who = current()
+        by = f"person:{who.user_id}" if who is not None and who.user_id else "person"
+        try:
+            return await asyncio.to_thread(decide.choose, str(b.get("point") or ""), b.get("state") if isinstance(b.get("state"), dict) else {},
+                                           b.get("value"), by, None, store())
+        except decide.DecideError as exc:
+            raise HTTPException(422, str(exc)) from None
+
     @router.post("/api/feedback", response_model=Page)
     async def give_feedback(body: Any = Body(None)):
         """A person's feedback (19.9): {"on": answer | proposal | decision | report, "ref": its id, "rating": helpful |

@@ -227,6 +227,8 @@
     setConsent: ["PUT", "/consent", [], []],
     datasetsCatalog: ["GET", "/datasets", [], []],
     datasetsLineage: ["GET", "/datasets/lineage", [], ["path"]],
+    decideRoute: ["POST", "/decide", [], []],
+    decideChoose: ["POST", "/decide/choose", [], []],
     listDrafts: ["GET", "/drafts", [], []],
     createDraft: ["POST", "/drafts", [], []],
     deleteDraft: ["DELETE", "/drafts/{draft_id}", ["draft_id"], []],
@@ -300,6 +302,7 @@
     askAgent: ["POST", "/projects/{project_id}/ask", ["project_id"], []],
     uploadData: ["PUT", "/projects/{project_id}/data", ["project_id"], ["filename"]],
     useSample: ["POST", "/projects/{project_id}/data/sample", ["project_id"], []],
+    projectDecisions: ["GET", "/projects/{project_id}/decisions", ["project_id"], []],
     exportCode: ["GET", "/projects/{project_id}/export/code", ["project_id"], []],
     exportNotebook: ["GET", "/projects/{project_id}/export/notebook", ["project_id"], []],
     exportReport: ["GET", "/projects/{project_id}/export/report", ["project_id"], []],
@@ -442,6 +445,16 @@
   client.datasetsLineage = (...args) => call('datasetsLineage', args);
   client.path.datasetsLineage = (...args) => build('datasetsLineage', args).path;
   client.href.datasetsLineage = (...args) => '/api' + build('datasetsLineage', args).path;
+  /** POST /api/decide: Decide Route
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.decideRoute = (...args) => call('decideRoute', args);
+  client.path.decideRoute = (...args) => build('decideRoute', args).path;
+  /** POST /api/decide/choose: Decide Choose
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.decideChoose = (...args) => call('decideChoose', args);
+  client.path.decideChoose = (...args) => build('decideChoose', args).path;
   /** GET /api/drafts: List Drafts
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Array<Doc>>} */
@@ -882,6 +895,13 @@
    *  @returns {Promise<Project>} */
   client.useSample = (...args) => call('useSample', args);
   client.path.useSample = (...args) => build('useSample', args).path;
+  /** GET /api/projects/{project_id}/decisions: Project Decisions
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectDecisions = (...args) => call('projectDecisions', args);
+  client.path.projectDecisions = (...args) => build('projectDecisions', args).path;
+  client.href.projectDecisions = (...args) => '/api' + build('projectDecisions', args).path;
   /** GET /api/projects/{project_id}/export/code: Export Code
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

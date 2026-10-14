@@ -257,6 +257,16 @@ def kind_checks(kind: str) -> dict[str, Any]:
             "track_readme": f"research/{k.evidence_track}/README.md" if k.evidence_track else None}
 
 
+def decide(point: str, state: dict[str, Any], options: list[str] | None = None) -> dict[str, Any]:
+    """Answer one of DCLab's technical decisions about a column from its state (name, name tokens and bands, never a value): what DCLab would do, the rule's and the classifiers' answers with their confidence, any disagreement, and the evidence records."""
+    from .decide import DecideError, ask
+
+    try:
+        return ask(point, state, options)
+    except DecideError as exc:
+        return {"error": str(exc)}
+
+
 TOOLS: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {
     "search_evidence": (search_evidence, {
         "type": "object",
@@ -274,6 +284,15 @@ TOOLS: dict[str, tuple[Callable[..., Any], dict[str, Any]]] = {
     "kind_checks": (kind_checks, {"type": "object", "properties": {"kind": {"type": "string", "description": "A problem kind's key, e.g. forecasting, ranking, places."}},
                                   "required": ["kind"]}),
     "get_rules": (get_rules, {"type": "object", "properties": {"category": {"type": "string"}}}),
+    "decide": (decide, {"type": "object", "properties": {
+        "point": {"type": "string", "enum": ["column.is_identifier", "column.time", "column.group", "column.category_code", "column.semantic_role",
+                                             "feature.leakage_suspect"]},
+        "state": {"type": "object", "additionalProperties": False, "description": "The column's state: its name, name tokens and bands, never a value",
+                  "properties": {**{k: {"type": "string", "enum": list(v)} for k, v in __import__("dclab_core.ledger", fromlist=["STATE_FIELDS"]).STATE_FIELDS.items()
+                                    if k in ("dtype", "uniqueness", "nulls", "cardinality", "value_pattern") for v in [v[1]]},
+                                 "column": {"type": "string", "maxLength": 200}, "target": {"type": "string", "maxLength": 200},
+                                 "name_tokens": {"type": "array", "items": {"type": "string", "maxLength": 40}, "maxItems": 20}}},
+        "options": {"type": "array", "items": {"type": "string", "maxLength": 40}, "maxItems": 10}}, "required": ["point", "state"]}),
     "plan_next_stage": (plan_next_stage, {
         "type": "object",
         "properties": {"dataset": {"type": "string"}, "completed_stages": {"type": "array", "items": {"type": "string", "enum": STAGE_ORDER}}},

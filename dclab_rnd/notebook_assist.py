@@ -253,8 +253,21 @@ def main():
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--notebook", type=Path)
     source.add_argument("--stdin", action="store_true")
+    source.add_argument("--decide", metavar="JSON", help='22.8: one technical decision about a column, {"point": ..., "state": {...}}: '
+                                                        "the same answer the API and the MCP tool give")
+    parser.add_argument("--home", help="with --decide: the workspace folder whose routing applies (else the configured one)")
     parser.add_argument("--output", type=Path, help="Immutable JSON report; omit to print JSON on stdout")
     args = parser.parse_args()
+    if args.decide:
+        from dclab_rnd.decide import DecideError, ask
+
+        try:
+            question = json.loads(args.decide)
+            print(json.dumps(ask(question["point"], question.get("state") or {}, question.get("options"), home=args.home), ensure_ascii=False, indent=2))
+        except (DecideError, ValueError, KeyError, TypeError, AttributeError) as exc:
+            print(json.dumps({"error": str(exc)}))
+            sys.exit(2)
+        return
     if args.notebook:
         document = json.loads(args.notebook.read_text(encoding="utf-8"))
         document["notebook_path"] = str(args.notebook)

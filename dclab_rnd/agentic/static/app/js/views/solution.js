@@ -363,6 +363,7 @@ DC.view('solution', {
       $('#sol-data', el).innerHTML = dataReal(p, F);
       $('#sol-memory', el).hidden = false;
       $('#sol-memory-body', el).innerHTML = memoryReal(p);
+      decisionsReal(p);
       const n = DC.$('.ptab[data-ptab="owner"] .n', el);
       if (n) n.textContent = String(qs.filter(q => !q.done).length);
       if (cost.calc) {
@@ -372,6 +373,23 @@ DC.view('solution', {
       }
       DC.hydrate(el);
       if (busy(p)) watch();
+    }
+    /* 22.8: what DCLab decides about each column, the rule beside the classifiers, a disagreement marked */
+    async function decisionsReal(p) {
+      const box = $('#sol-decisions-body', el);
+      if (!box || !(p.data || {}).profile) return;
+      $('#sol-decisions', el).hidden = false;
+      let r;
+      try { r = await DC.client.projectDecisions(p.id, { quiet: true }); } catch (e) { DC.states.failed(box, e, { retry: () => decisionsReal(p), cols: 5 }); return; }
+      const say = v => v === true ? 'yes' : v === false ? 'no' : esc(String(v));
+      const cell = d => {
+        const models = (d.models || []).map(m => `${say(m.value)} ${Math.round((m.confidence || 0) * 100)}%`).join(', ');
+        return `<td class="small${(d.disagree || []).length ? ' warn' : ''}"><b>${say(d.answer)}</b>${models ? ` <span class="muted">· model ${esc(models)}</span>` : ''}`
+          + `${(d.disagree || []).length ? ' <span class="pill warn xs">differs</span>' : ''}</td>`;
+      };
+      const rows = r.columns || [];
+      if (!rows.length) { DC.states.empty(box, 'No profiled column to ask about.', { cols: 5 }); return; }
+      box.innerHTML = rows.map(c => `<tr><td class="mono small">${esc(c.column)}</td>${['column.is_identifier', 'column.time', 'column.semantic_role', 'feature.leakage_suspect'].map(k => cell(c.decisions[k])).join('')}</tr>`).join('');
     }
     /* the project's memory (A5.2): what was decided, why, by whom and by which move; a correction is marked */
     function memoryReal(p) {
@@ -387,6 +405,7 @@ DC.view('solution', {
     function restoreSample() {
       if (stopPoll) { stopPoll(); stopPoll = null; }
       $('#sol-memory', el).hidden = true;
+      if ($('#sol-decisions', el)) $('#sol-decisions', el).hidden = true;
       real = null;
       if (mode === 'sample') return;
       mode = 'sample';

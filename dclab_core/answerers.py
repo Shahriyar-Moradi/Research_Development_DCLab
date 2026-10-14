@@ -240,8 +240,10 @@ def compare(records: Iterable[DecisionRecord], labels: Iterable[DecisionLabel], 
     labelled decision with an abstention counted as wrong (``accuracy_all``: a selective answerer is not flattered);
     overall and by point. Shadow answers already in a record never move what counts as right."""
     answerers = list(answerers)
+    from dclab_core.ledger import current_labels
+
     by_record: dict[str, list[DecisionLabel]] = defaultdict(list)
-    for label in labels:
+    for label in current_labels(list(labels)):  # a label another one supersedes, on any record, no longer counts
         by_record[label.record].append(label)
     rule = RecordedRule()
     stats: dict[str, dict[str, Counter]] = {}
