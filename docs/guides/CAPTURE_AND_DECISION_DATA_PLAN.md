@@ -380,6 +380,24 @@ by the same gates; the ledger feeds all of them, each in its own training format
   labelling page first.
 - **Done when:** a week of studio use (or a replay of recorded sessions) gives each classifier's agreement and its
   accuracy on the labelled disagreements.
+- **Status: built (2026-10-15); the Done-when's accuracy waits for labels.** `dclab_rnd/ledger/shadow.py`: every
+  decision the ledger records at a point with a fitted classifier (the six of 22.2, each unpickled only when its bytes
+  match the committed `fitted.json`) carries its answer as a shadow: recorded at level 0, never used, and no answer of
+  the record (labels, agreement and exports set it aside; an export keeps it marked). A state holding only a name gets
+  none; a batch of decisions is answered in one prediction per point (a 150-column solution saved in 0.12 s instead of
+  7 s), and the models load when the server starts. The states now carry the bands the classifiers were trained on
+  (the data card's storage type and value pattern, the role and leakage decisions their profiled columns). A shadow
+  that differs from the rule puts the decision in the blind draw's most-drawn stratum, and the blind page shows those
+  first (the draw and its weights unchanged; a blind label keeps the weight the page showed). `measure` gives per
+  classifier its agreement, its disagreements and its accuracy on the labelled ones beside the rule's, by label source
+  and weighted by the draw; the Admin Decisions tab reads the recorded shadows. Measured on every replica's project run
+  by the engine (not a replay of real sessions: `python -m dclab_rnd.ledger.shadow recorded` measures a workspace's
+  own ledger), 482 decisions, 31 benchmark labels (`decision_shadow_v1/DSH-001`): agreement with the rule from 17%
+  (time) to 95% (identifier); the two that passed their sealed gate agree on 74% (semantic role) and 76% (leakage) of
+  decisions, and where the leakage classifier differs and a label exists it is right on 2 of 11, the rule on 9 of 11:
+  trained on generated tables, it does not carry over to the studio's decisions even with the same bands. None is
+  promoted. Open: accuracy on labelled disagreements for four of the six (no label yet where they differ: blind labels,
+  a person's work), and a week of real use.
 
 ### 22.5 Open-source decision models: export, fine-tune, compare
 - **Delivers:** the decision datasets exported in each family's format, from one builder: **tabular** (the state's

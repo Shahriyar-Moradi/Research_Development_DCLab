@@ -1,0 +1,215 @@
+{
+ "package": "22.4",
+ "title": "The decision classifiers in shadow: recorded beside the rule, never used, measured on the studio's own decisions",
+ "date": "2026-10-15",
+ "request": "A classifier as another answerer at its decision point at level 0: its answer recorded beside the rule's, never used; agreement and disagreement counted; disagreements to the blind labelling page first; done when use or a replay gives each classifier's agreement and its accuracy on the labelled disagreements.",
+ "spec": "Load the fitted classifiers safely, add their answers as shadows to every recorded decision, keep shadows out of labels, agreement and exports, order the blind page, measure on the replicas run by the engine, and show it on the Admin page.",
+ "plan": [
+  "Survey the ledger, the answerers and the fitted models.",
+  "Add shadows where decisions are recorded, and a measurement.",
+  "Run every replica through the engine with a ledger of its own and measure.",
+  "Review, plant faults, fix, measure again."
+ ],
+ "decisions": [
+  {
+   "decision": "A shadow is no answer of the record: labels, agreement and exports set it aside.",
+   "why": "An answer nobody saw or used must not change which label counts or what a model is said to have answered."
+  },
+  {
+   "decision": "The states give the classifiers the bands they were trained on.",
+   "why": "A storage type spelled differently, or a state holding only a name, measures the encoding, not the classifier."
+  },
+  {
+   "decision": "A batch of decisions is answered together, and the page reads the shadows already recorded.",
+   "why": "One prediction per decision made a save seconds slower and the page minutes slower on a large ledger."
+  },
+  {
+   "decision": "A model file is unpickled only when its bytes match the hash recorded when it was built.",
+   "why": "Unpickling runs code."
+  },
+  {
+   "decision": "The status says built, not done.",
+   "why": "Accuracy on labelled disagreements exists for two of six classifiers; the rest need blind labels a person gives."
+  }
+ ],
+ "change": "dclab_rnd/ledger/shadow.py (new), ledger/__init__.py (shadows in decide and at a batch's end; the card's dtype in a column's state), ledger/capture.py (the stages' decisions with profiled bands), ledger/labels.py (disagreements first; weights as shown; the shadow summary), studio/data.py (value pattern and dtype band in the profile), consent.py (a shadow stays marked in an export), agentic/services.py (models loaded at start), decision_models_build.py (fitted.json), dclab_core/ledger.py and datacard.py (dclab-core 0.29.0), the Admin Decisions tab; tests/test_decision_shadow.py (new), run_parallel.py; evidence decision_shadow_v1; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Counting an abstaining rule as a disagreement went unnoticed.",
+   "scenario": "A planted fault counted records whose rule gave no value and every test passed.",
+   "cause": "No test record had a rule without a value.",
+   "fix": "A test adds such a record and expects it outside the agreement counts.",
+   "test": "test_agreement_disagreement_and_accuracy_on_the_labelled_disagreements"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Two tests could not fail on their faults.",
+   "scenario": "Counting shadows in the label rule and skipping the hash check both passed every test.",
+   "cause": "The label scenario did not reach the demotion rule, and the module's own error handling hid the forbidden load.",
+   "fix": "The person's agreeing mark that only a shadow would make count; a spy that the swapped file is never loaded.",
+   "test": "test_a_model_file_that_is_not_the_one_built_is_never_loaded"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The studio named storage types differently from the classifiers' training states.",
+   "scenario": "An integer column read as float flipped the identifier, category-code and role classifiers; category codes agreed 0 of 14.",
+   "cause": "The state's dtype came from the profile's kind, not the data card's storage type.",
+   "fix": "The profile carries the card's dtype band and the state prefers it.",
+   "test": "test_a_columns_state_carries_its_value_pattern"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The leakage stage's decisions reached the classifier with an empty state.",
+   "scenario": "The classifier answered no with 0.9998 confidence for any column; most labelled leakage disagreements came from these.",
+   "cause": "The stage recorded a column's name, the task and a lift, none of them training fields.",
+   "fix": "The stage's decisions carry the profiled bands and the target; a state holding only a name gets no shadow.",
+   "test": "test_the_stages_decisions_carry_the_bands_a_classifier_reads"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A shadow changed which label counts once records left the workspace.",
+   "scenario": "A person's agreeing mark became the label because a shadow, never shown, differed; the export dropped the shadow marker.",
+   "cause": "The label rule and agreement read every answer, and the export removed every answer's source.",
+   "fix": "A shadow is no answer of the record for labels, agreement and the main product's row; an export keeps it marked.",
+   "test": "test_a_shadow_is_no_answer_of_the_record_for_labels_agreement_or_export"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Saving a solution became seconds slower.",
+   "scenario": "A 150-column solution took 7.28 s to record instead of 0.01 s.",
+   "cause": "One prediction per decision, one row at a time, on the request.",
+   "fix": "A batch is answered at its end in one prediction per point (0.12 s); the models load when the server starts.",
+   "test": "test_a_batch_is_answered_at_once_and_a_name_alone_gets_no_shadow"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The Admin page answered every recorded decision again on each load.",
+   "scenario": "400 decisions took 9.7 s to show.",
+   "cause": "The page measured by asking each model again.",
+   "fix": "The page reads the recorded shadows; only a run measuring models answers again.",
+   "test": "test_agreement_disagreement_and_accuracy_on_the_labelled_disagreements"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The measurement was called a replay of recorded sessions and the package done.",
+   "scenario": "Four of six classifiers had no labelled disagreement, and the runs were fresh engine runs of the replicas.",
+   "cause": "Wording ahead of the evidence.",
+   "fix": "The runs are named replica runs, a command measures a workspace's own ledger, and the status says built, with the open part named.",
+   "test": "test_agreement_disagreement_and_accuracy_on_the_labelled_disagreements"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "Tests depended on the owner's local model files, and the blind weights disagreed.",
+   "scenario": "A direct test run on the owner's machine drew a disagreement and compared an unrounded weight with the same weight rounded to six places.",
+   "cause": "Shadows were on in tests where the models exist; the page rounded the weight and the label did not.",
+   "fix": "Tests run with shadows off unless a test turns them on; a blind label keeps the weight the page showed.",
+   "test": "test_a_blind_label_carries_its_weight_and_only_a_drawn_decision_takes_one"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Blind labels of different draws were mixed without weights.",
+   "scenario": "A decision recorded before shadows sits in a less drawn stratum than the same decision after.",
+   "cause": "Plain counts.",
+   "fix": "The measurement adds the label sources and an accuracy weighted by each blind label's draw.",
+   "test": "test_agreement_disagreement_and_accuracy_on_the_labelled_disagreements"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The rule's answer was picked differently from the comparison library.",
+   "scenario": "A rule answer without a value came first and hid the one with a value.",
+   "cause": "The first rule answer was read.",
+   "fix": "The recorded rule's first answer with a value, as the library compares.",
+   "test": "test_agreement_disagreement_and_accuracy_on_the_labelled_disagreements"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The blind view could give the answer away by what it left out.",
+   "scenario": "A role decision's dtype datetime vanished exactly when the answer was datetime.",
+   "cause": "Any state field equal to the value used was left out.",
+   "fix": "Only a name equal to the answer is left out; every band stays.",
+   "test": "test_a_reviewer_sees_every_band"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Model files were unpickled before any check.",
+   "scenario": "A file written into the models folder would run its code at the first decision.",
+   "cause": "The version check ran after loading.",
+   "fix": "The build records each file's SHA-256 in fitted.json; a file whose bytes differ is never loaded.",
+   "test": "test_a_model_file_that_is_not_the_one_built_is_never_loaded"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Several behaviours had no test.",
+   "scenario": "Removing the stages' bands or the shadow summary failed nothing.",
+   "cause": "Tests covered the happy path.",
+   "fix": "Tests for the stages' bands, batching, band-less states, exports and the blind view.",
+   "test": "test_the_stages_decisions_carry_the_bands_a_classifier_reads"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the six classifiers in shadow on every replica run by the engine",
+   "gate": "each classifier's agreement with the rule, and its accuracy on labelled disagreements beside the rule's, where labels exist",
+   "result": "482 decisions, 31 benchmark labels; agreement from 0.1667 (time) to 0.9494 (identifier); the semantic role 0.7377 and leakage 0.7634, the two that passed their sealed gate; on labelled disagreements the leakage classifier is right on 2 of 11 and the rule on 9 of 11; four of six have no labelled disagreement",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "agreement for every classifier; accuracy on labelled disagreements for 2 of 6",
+   "limits": [
+    "Invented replicas, not real sessions.",
+    "Benchmark labels only where a replica plants a trap.",
+    "None of the classifiers is used."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "16 of 16 planted faults caught after the tests were strengthened",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 16",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "The decision classifiers answer every recorded decision in shadow, never used and never counted, cheaply; on the studio's own decisions the leakage classifier that passed its sealed gate on generated tables is mostly wrong where it differs from the rule.",
+ "lessons": [
+  "A model measured on its own training distribution says little about another: shadow it on the real path before trusting a gate.",
+  "Make the features match before blaming the model: a type spelled differently can fake a failure.",
+  "An answer nobody used must stay out of every label and every export, or it rewrites the truth it is judged by."
+ ],
+ "risks": [
+  "Accuracy for four of six classifiers waits for blind labels.",
+  "The replicas' states are not real sessions."
+ ],
+ "commits": []
+}

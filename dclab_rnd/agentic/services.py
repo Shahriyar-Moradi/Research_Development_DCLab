@@ -35,6 +35,9 @@ class Services:
         from ..models.shadow import open_shadows
 
         self.settings = settings
+        from ..ledger import shadow
+
+        shadow.warm()  # 22.4: the decision classifiers load off the request path (seconds, once)
         self.store = Store(Path(settings.agent_home))
         from ..storage import db
 

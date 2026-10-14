@@ -1,0 +1,6 @@
+{
+  "campaign_id": "decision_shadow_v1",
+  "objective": "The decision classifiers of package 22.2 in shadow (22.4): each answers beside the rule at its decision point on the decisions DCLab records while it works, at level 0 (recorded, never used). Measured on a replay: every replica the engine runs built into a project and run end to end, its decisions recorded, its planted traps as benchmark labels; per classifier, its agreement with the rule, its disagreements and its accuracy on the labelled ones beside the rule's.",
+  "rule": "Shadows are never used and never counted against a label. The replay runs invented replicas, not real sessions: its states are the studio's (profiled columns, the solution's target), not the generated tables' the classifiers were trained on, so it measures whether they transfer. Benchmark labels exist only where a replica plants a trap; blind labels of the disagreements add the rest.",
+  "command": "python -m dclab_rnd.ledger.shadow replay --write"
+}

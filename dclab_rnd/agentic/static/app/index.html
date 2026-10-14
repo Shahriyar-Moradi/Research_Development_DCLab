@@ -2023,6 +2023,10 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="panel-head"><div class="panel-title"><h2>Decisions by point</h2><span class="sub" id="dec-sub">Every decision DCLab made, technical and workflow, with who decided</span></div></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Point</th><th>Decisions</th></tr></thead><tbody id="dec-body"></tbody></table></div>
     </div>
+    <div class="panel" data-f="admin.shadow">
+      <div class="panel-head"><div class="panel-title"><h2>Classifiers in shadow</h2><span class="sub">Each answers beside the rule and is never used: how often it agrees, and how often it is right where they differ and a label says</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Classifier</th><th>Sealed gate</th><th>Decisions</th><th>Agrees with the rule</th><th>Differs</th><th>Right where it differs</th></tr></thead><tbody id="shadow-body"></tbody></table></div>
+    </div>
   </div>
 
   <div class="pane" data-pane="datasets" data-label="Datasets">

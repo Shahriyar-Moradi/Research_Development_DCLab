@@ -134,6 +134,20 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
     return written
 
 
+def _states(frame: Any, names: list[Any]) -> dict[Any, dict[str, Any]]:
+    """Each named column's state, profiled from the stage's rows: its name, dtype and bands, never a value."""
+    if frame is None:
+        return {}
+    from ..studio.data import profile_table
+
+    present = [n for n in names if n in frame.columns]
+    if not present:
+        return {}
+    rows = len(frame)
+    by_name = {str(c["name"]): c for c in profile_table(frame[present])["columns"]}
+    return {n: column_state(by_name[str(n)], rows) for n in present if str(n) in by_name}
+
+
 # ---------------------------------------------------------------------- a stage's choices
 
 @_quiet
@@ -178,27 +192,33 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                     state={"share": used_rows / total if isinstance(used_rows, int) and isinstance(total, int) and total else None})
             frame = getattr(prepared, "frame", None)
             numeric = set(frame.select_dtypes("number").columns) if frame is not None else set()
+            states = _states(frame, list((getattr(prepared, "roles", None) or {}))[:MAX_COLUMNS])  # 22.4: the bands a classifier reads
             for name, role in list((getattr(prepared, "roles", None) or {}).items())[:MAX_COLUMNS]:
                 kind = str(role).split(" ")[0]
                 value = {"blocked": "other", "identifier": "identifier", "time": "datetime", "group": "categorical_code",
                          "text": "free_text"}.get(kind, "numeric" if name in numeric else "categorical_code")
                 written += bool(_put("column.semantic_role", ("column", name), [answer("rule", "rule:prepare_roles", value)], value, "rule",
-                                     state={"column": str(name)[:200]}, options=["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"], **ids))
+                                     state=states.get(name) or {"column": str(name)[:200]},
+                                     options=["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"], **ids))
             for name in list(getattr(spec, "categorical_columns", None) or [])[:MAX_COLUMNS]:
                 if name in numeric:  # a number read as a code for categories
                     written += bool(_put("column.category_code", ("column", str(name)), [answer("rule", "rule:" + (_code(getattr(prepared, "code_rule", "")) or "codes"), True)],
-                                         True, "rule", state={"column": str(name)[:200], "dtype": "integer"}, options=["yes", "no"], **ids))
+                                         True, "rule", state=states.get(name) or {"column": str(name)[:200], "dtype": "integer"}, options=["yes", "no"], **ids))
         elif stage == "leakage":
             declared = list(evidence.get("declared_leakage_features") or [])
             per = (evidence.get("safe_vs_unsafe_training_cv") or {}).get("per_column") or {}
             findings = {f.get("feature"): f for f in evidence.get("heuristic_review_candidates") or [] if f.get("feature")}
-            for name in dict.fromkeys(declared + list(findings)):
+            names = list(dict.fromkeys(declared + list(findings)))
+            bands = _states(getattr(prepared, "frame", None), names)  # 22.4: the bands a classifier reads, as the solution's decisions have them
+            target = getattr(getattr(prepared, "solution", None), "target", None)
+            for name in names:
                 lift = (per.get(name) or {}).get("apparent_lift")
                 if lift is None and declared == [name]:
                     lift = evidence.get("apparent_lift")
                 rec = _put("feature.leakage_suspect", ("column", str(name)),
                            [answer("rule", "rule:leakage_heuristics", name in findings), answer("person", "solution", name in declared)],
-                           name in declared, "person", state={"column": str(name)[:200], "task": base["task"],
+                           name in declared, "person", state={**(bands.get(name) or {"column": str(name)[:200]}), "task": base["task"],
+                                                              "target": str(target)[:200] if target else None,
                                                               "apparent_lift": float(lift) if isinstance(lift, (int, float)) else None}, options=["yes", "no"], **ids)
                 written += bool(rec)
                 if rec is not None and isinstance(lift, (int, float)) and name in declared and lift > 0:  # measured: it would have looked better

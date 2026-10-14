@@ -164,7 +164,8 @@ def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: d
         doc = json.loads(record.model_dump_json())
         removed: dict[str, int] = {}
         for a in doc.get("answers") or []:
-            a.pop("source", None)  # a prompt's hash or a request's id: it stays home
+            if a.get("source") != "shadow":  # a shadow stays marked (22.4): it was never an answer, and must not read as one
+                a.pop("source", None)  # a prompt's hash or a request's id: it stays home
             if a.get("reason"):
                 a["reason"] = _scrub(a["reason"], removed)
         doc["labels"] = by_record.get(record.id, [])

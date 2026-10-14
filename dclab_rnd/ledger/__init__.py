@@ -103,6 +103,14 @@ def batch():
         yield
     finally:
         _BATCH.reset(token)
+        try:  # 22.4: every record's shadow answers at once, one prediction per point
+            from . import shadow
+
+            records = [doc for _, kind, doc in pending if kind == "record"]
+            shadowed = iter(shadow.add_many(records))
+            pending[:] = [(store, kind, next(shadowed) if kind == "record" else doc) for store, kind, doc in pending]
+        except Exception:  # noqa: BLE001 - a shadow never stops decisions from being recorded
+            pass
         by_store: dict[int, tuple[Any, list]] = {}
         for store, kind, doc in pending:
             by_store.setdefault(id(store), (store, []))[1].append((kind, doc))
@@ -305,6 +313,13 @@ def decide(point: str, subject: tuple[str, str], *, answers: Iterable[Any], valu
         DROPPED["count"] += 1
         print(f"ledger: {point} refused: {str(exc).splitlines()[1] if len(str(exc).splitlines()) > 1 else exc}"[:300], file=sys.stderr, flush=True)
         return None
+    if _BATCH.get() is None:  # 22.4: the classifiers answer in shadow (inside a batch, all together when it ends)
+        try:
+            from . import shadow
+
+            record = shadow.add(record)
+        except Exception:  # noqa: BLE001 - a shadow never stops a decision from being recorded
+            pass
     try:
         _write(target, "record", record)
     except Exception as exc:  # noqa: BLE001 - never stop a person's work because the ledger is briefly away
@@ -349,9 +364,12 @@ def column_state(column: dict[str, Any], rows: int | None = None) -> dict[str, A
     unique = column.get("unique")
     missing = column.get("missing_rate")
     ratio = column.get("unique_ratio")
-    return {"column": name[:200] or None, "name_tokens": name_tokens(name) or None, "dtype": DTYPES.get(str(column.get("kind") or ""), "other"),
+    # 22.4: the storage type as the data card says it (the classifiers' training states), else read from the profile's kind
+    dtype = column.get("dtype_band") or DTYPES.get(str(column.get("kind") or ""), "other")
+    return {"column": name[:200] or None, "name_tokens": name_tokens(name) or None, "dtype": dtype,
             "uniqueness": ratio_band(ratio) if isinstance(ratio, (int, float)) else None,
             "nulls": ratio_band(missing) if isinstance(missing, (int, float)) else None,
-            "cardinality": cardinality_band(int(unique)) if isinstance(unique, (int, float)) else None}
+            "cardinality": cardinality_band(int(unique)) if isinstance(unique, (int, float)) else None,
+            **({"value_pattern": column["value_pattern"]} if column.get("value_pattern") else {})}  # 22.4: on tables profiled since
 
 

@@ -62,9 +62,13 @@ def next_blind(ledger: Any = None, seed: str = "blind-v1", point: Optional[str] 
     if store is None:
         return None
     done = {x.record for x in store.labels() if x.source == "blind"}
-    for record in store.records(point=point):
-        if record.id not in done and contract.blind_draw(record, seed):
-            return {**contract.blind_view(record), "weight": round(1 / contract.blind_probability(record), 6), "seed": seed}
+    drawn = [r for r in store.records(point=point) if r.id not in done and contract.blind_draw(r, seed)]
+    # 22.4: the decisions where answers differ (a shadow classifier against the rule) are labelled first; the draw and
+    # its weights are unchanged, only the order in which a reviewer meets them
+    drawn.sort(key=lambda r: contract.stratum(r) != "disagree")
+    if drawn:
+        record = drawn[0]
+        return {**contract.blind_view(record), "weight": round(1 / contract.blind_probability(record), 6), "seed": seed}
     return None
 
 
@@ -82,7 +86,7 @@ def blind_label(record_id: str, value: Any, by: str, seed: str = "blind-v1", led
         raise ValueError("a blind label says what was right: a value")
     if any(x.source == "blind" and x.record == record_id and x.by == by for x in store.labels(record=record_id)):
         raise ValueError("this reviewer has labelled this decision already: one blind label each, or its weight counts twice")
-    out = label(record, value, "blind", by, weight=1 / contract.blind_probability(record), ledger=store)
+    out = label(record, value, "blind", by, weight=round(1 / contract.blind_probability(record), 6), ledger=store)  # as the page showed it
     if out is None:
         raise ValueError("the label was refused: the value is not an answer at this point")
     return out
@@ -96,9 +100,12 @@ def summary(ledger: Any = None) -> dict[str, Any]:
 
     store = ledger if ledger is not None else current_ledger()
     if store is None:
-        return {"decisions": 0, "labels": 0, "by_point": {}, "by_used": {}, "by_kind": {}, "by_source": {}, "drawn": 0}
+        return {"decisions": 0, "labels": 0, "by_point": {}, "by_used": {}, "by_kind": {}, "by_source": {}, "drawn": 0, "shadow": {}}
     records = store.records()
     labels = store.labels()
+    from . import shadow
+
     return {"decisions": len(records), "labels": len(labels), "by_point": dict(Counter(r.point for r in records).most_common()),
             "by_used": dict(Counter(r.used for r in records)), "by_kind": dict(Counter(r.kind for r in records)),
-            "by_source": dict(Counter(x.source for x in labels)), "drawn": sum(1 for r in records if contract.blind_draw(r))}
+            "by_source": dict(Counter(x.source for x in labels)), "drawn": sum(1 for r in records if contract.blind_draw(r)),
+            "shadow": shadow.measure(records, labels) if shadow.on() else {}}  # 22.4: each classifier beside the rule

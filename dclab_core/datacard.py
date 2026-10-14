@@ -201,6 +201,18 @@ def _shape(values: pd.Series) -> tuple[Optional[str], Optional[str]]:
     return (prefix or None), (str(shapes.mode().iloc[0]) if not shapes.empty else None)
 
 
+def dtype_band(series: pd.Series) -> str:
+    """A column's storage type as a data card and a decision's state say it (integer, float, boolean, datetime,
+    categorical, string, other)."""
+    return _dtype(series)
+
+
+def value_pattern(series: pd.Series, is_date: bool = False) -> str:
+    """The shape of a column's written values (digits, mixed, date_like, long_text, short_text, or not_text for a number
+    or a boolean), the band a data card and a decision's state use: never a value."""
+    return _pattern(series, series if is_date else None)
+
+
 def _pattern(series: pd.Series, dates: Optional[pd.Series]) -> str:
     if not (pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series)):
         return "not_text"

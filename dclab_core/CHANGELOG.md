@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.29.0 (2026-10-15)
+
+Package 22.4: the decision classifiers in shadow. No contract changes shape.
+
+- `ledger`: an answer whose source is `shadow` (recorded beside the others, never used) is no answer of the record:
+  `DecisionRecord.answer` and `agreement` set it aside, and `effective_label` never counts it among the answers a
+  person was shown. `blind_view` keeps every band in the state (a band left out when it equals the answer would give
+  the answer away); only a name equal to the answer is left out.
+- `datacard`: `dtype_band` and `value_pattern`, the bands a decision's state and a data card share, made public.
+
 ## 0.28.0 (2026-10-15)
 
 Package 20.8: the pipeline of workflows. A new contract, `pipeline.v1`.

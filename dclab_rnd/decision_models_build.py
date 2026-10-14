@@ -47,7 +47,20 @@ def build(points: list[str] | None = None, quick: bool = False, sets: Path = SET
         (out / f"{point}.json").write_text(card.model_dump_json(indent=1) + "\n", encoding="utf-8")
         joblib.dump(model, out / f"{point}.joblib")
         cards[point] = card
+    record_fitted(out)
     return cards
+
+
+def record_fitted(out: Path) -> dict[str, str]:
+    """``fitted.json``: each fitted model's SHA-256, committed beside the cards. A model file is unpickled only when its
+    bytes match (22.4): unpickling runs code, so a file swapped in the folder is refused before it is read."""
+    import hashlib
+    import json
+
+    out = Path(out)
+    hashes = {p.stem: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(out.glob("*.joblib"))}
+    (out / "fitted.json").write_text(json.dumps(hashes, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    return hashes
 
 
 def main(argv: list[str] | None = None) -> int:

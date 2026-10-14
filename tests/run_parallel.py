@@ -185,6 +185,7 @@ def run_one(name: str, slots: Queue, pg: bool, verbose: bool, threads_one: bool 
     slot = slots.get()
     tmp = tempfile.mkdtemp(prefix=f"dclab-{name.split('::')[0][5:-3]}-")
     env = {**ONE_THREAD, **os.environ, "TMPDIR": tmp} if threads_one else {**os.environ, "TMPDIR": tmp}
+    env.setdefault("DCLAB_DECISION_SHADOW", "0")  # 22.4: the fitted classifiers live on some machines only; a test turns them on itself
     if slot is not None:
         env["DCLAB_TEST_DATABASE_URL"] = slot
         if pg:

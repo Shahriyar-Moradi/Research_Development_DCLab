@@ -235,6 +235,12 @@ DC.view('admin', {
     const points = Object.entries(r.by_point || {});
     if (points.length) $('#dec-body', el).innerHTML = points.map(([p, c]) => `<tr><td class="mono small">${esc(p)}</td><td class="mono small">${n(c)}</td></tr>`).join('');
     else DC.states.empty($('#dec-body', el), 'No decision recorded yet: they appear as DCLab works on drafts and projects.', { cols: 2 });
+    const shadows = Object.entries(r.shadow || {});
+    const pct = v => (v === null || v === undefined) ? '—' : `${Math.round(v * 100)}%`;
+    if (shadows.length) $('#shadow-body', el).innerHTML = shadows.map(([name, s]) => `<tr><td class="mono small">${esc(name)}</td><td>${esc(s.gate || '—')}</td>`
+      + `<td class="mono small">${n(s.decisions)}</td><td class="mono small">${pct(s.agreement)}</td><td class="mono small">${n(s.disagree)}</td>`
+      + `<td class="mono small">${pct(s.accuracy_on_disagreements)} of ${n(s.labelled_disagreements)} labelled</td></tr>`).join('');
+    else DC.states.empty($('#shadow-body', el), 'No classifier answers in shadow on this machine (make decision-models fits them).', { cols: 6 });
     await this.loadBlind(el);
   },
 

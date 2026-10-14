@@ -285,7 +285,8 @@ class DecisionRecord(Versioned):
         return POINTS[self.point].kind
 
     def answer(self, by: str) -> Optional[Answer]:
-        return next((a for a in self.answers if a.by == by), None)
+        """The first answer of that kind that counts: a shadow (22.4) is recorded, never an answer of the record."""
+        return next((a for a in self.answers if a.by == by and a.source != SHADOW), None)
 
     def agreement(self) -> str:
         """The rule's answer against a model's (role or classifier), as the main product says it: agree, disagree,
@@ -338,6 +339,9 @@ class DecisionLabel(Versioned):
         return self
 
 
+SHADOW = "shadow"  # an answer recorded beside the others and never used (22.4): it is no answer of the record
+
+
 # ------------------------------------------------------------------------------------------------ which label counts (19.8)
 PRECEDENCE = ("blind", "benchmark", "measured", "user_decision_exposed")  # first is strongest
 
@@ -355,7 +359,7 @@ def effective_label(record: DecisionRecord, labels: list[DecisionLabel]) -> Opti
     since a person who saw the answer and agreed is not evidence that it was right: it counts when it contradicts an
     answer a rule or a model gave. A label without a value says nothing and never counts."""
     mine = [x for x in current_labels(labels) if x.record == record.id and x.value is not None]
-    shown = [a.value for a in record.answers if a.by != "person" and a.value is not None]
+    shown = [a.value for a in record.answers if a.by != "person" and a.value is not None and a.source != SHADOW]  # a shadow was never shown
     for source in PRECEDENCE:
         found = sorted((x for x in mine if x.source == source), key=lambda x: x.at)
         if source == "user_decision_exposed":
@@ -417,7 +421,8 @@ def blind_view(record: DecisionRecord) -> dict[str, Any]:
     """What a blind reviewer sees: the question, the subject, the state and the options; never an answer, the value
     used, or who decided."""
     point = POINTS[record.point]
-    state = {k: v for k, v in record.state.items() if v != record.value_used or isinstance(v, bool)}  # never the answer itself
+    # never the answer itself: a name equal to it is left out; a band always stays (left out, its absence would say it)
+    state = {k: v for k, v in record.state.items() if v != record.value_used or isinstance(v, bool) or STATE_FIELDS.get(k, (None,))[0] == BAND}
     return {"record": record.id, "point": record.point, "question": point.about, "answer": point.answer, "subject": record.subject.model_dump(),
             "state": state, "options": blind_options(record)}
 

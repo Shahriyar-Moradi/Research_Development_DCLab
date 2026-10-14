@@ -96,6 +96,18 @@ def data_card(tables: dict[str, pd.DataFrame], name: str, target: str | None = N
         return None
 
 
+def dtype_band(series: pd.Series) -> str:
+    from dclab_core.datacard import dtype_band as band
+
+    return band(series)
+
+
+def value_pattern(series: pd.Series, is_date: bool) -> str:
+    from dclab_core.datacard import value_pattern as pattern
+
+    return pattern(series, is_date)
+
+
 def profile_table(frame: pd.DataFrame) -> dict[str, Any]:
     """Shape, per-column facts and candidate roles. Nothing here looks at a target."""
     columns = []
@@ -120,6 +132,8 @@ def profile_table(frame: pd.DataFrame) -> dict[str, Any]:
             "text_like": kind == "text",
             "target_name_like": bool(TARGET_NAMES.search(str(name))),
             "low_cardinality": unique <= 20,
+            "value_pattern": value_pattern(series, kind == "datetime"),  # 22.4: the band a decision's state reads, never a value
+            "dtype_band": dtype_band(series),  # 22.4: the storage type as the decision classifiers were trained to read it
         })
     targets = sorted(  # a column named as a key (customer_id, order_no) is never proposed: a person may still name it
         [c for c in columns if proposable_target(c)],

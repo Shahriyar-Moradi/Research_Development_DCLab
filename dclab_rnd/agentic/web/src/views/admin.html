@@ -144,6 +144,10 @@
       <div class="panel-head"><div class="panel-title"><h2>Decisions by point</h2><span class="sub" id="dec-sub">Every decision DCLab made, technical and workflow, with who decided</span></div></div>
       <div class="table-wrap"><table class="data compact"><thead><tr><th>Point</th><th>Decisions</th></tr></thead><tbody id="dec-body"></tbody></table></div>
     </div>
+    <div class="panel" data-f="admin.shadow">
+      <div class="panel-head"><div class="panel-title"><h2>Classifiers in shadow</h2><span class="sub">Each answers beside the rule and is never used: how often it agrees, and how often it is right where they differ and a label says</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Classifier</th><th>Sealed gate</th><th>Decisions</th><th>Agrees with the rule</th><th>Differs</th><th>Right where it differs</th></tr></thead><tbody id="shadow-body"></tbody></table></div>
+    </div>
   </div>
 
   <div class="pane" data-pane="datasets" data-label="Datasets">
@@ -428,6 +432,12 @@ DC.view('admin', {
     const points = Object.entries(r.by_point || {});
     if (points.length) $('#dec-body', el).innerHTML = points.map(([p, c]) => `<tr><td class="mono small">${esc(p)}</td><td class="mono small">${n(c)}</td></tr>`).join('');
     else DC.states.empty($('#dec-body', el), 'No decision recorded yet: they appear as DCLab works on drafts and projects.', { cols: 2 });
+    const shadows = Object.entries(r.shadow || {});
+    const pct = v => (v === null || v === undefined) ? '—' : `${Math.round(v * 100)}%`;
+    if (shadows.length) $('#shadow-body', el).innerHTML = shadows.map(([name, s]) => `<tr><td class="mono small">${esc(name)}</td><td>${esc(s.gate || '—')}</td>`
+      + `<td class="mono small">${n(s.decisions)}</td><td class="mono small">${pct(s.agreement)}</td><td class="mono small">${n(s.disagree)}</td>`
+      + `<td class="mono small">${pct(s.accuracy_on_disagreements)} of ${n(s.labelled_disagreements)} labelled</td></tr>`).join('');
+    else DC.states.empty($('#shadow-body', el), 'No classifier answers in shadow on this machine (make decision-models fits them).', { cols: 6 });
     await this.loadBlind(el);
   },
 
