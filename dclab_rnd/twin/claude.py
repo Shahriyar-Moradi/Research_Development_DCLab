@@ -81,6 +81,7 @@ class ClaudeClient:
         self.inner, self.transcript, self.usage, self.purpose, self.lane = inner, transcript, usage, purpose, lane
         self.capture_cells = capture_cells
         self.project_id, self.draft_id = project_id, draft_id
+        self.observer: Any = None  # A6.7: the design monitor on the agent's client, called before each request
         self.model = getattr(inner, "model", model_name())
         self.base_url = getattr(inner, "base_url", ANTHROPIC_OPENAI_URL)
         # what the intern's _Model and the role advisors read and set
@@ -121,6 +122,12 @@ class ClaudeClient:
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None, max_tokens: int | None = 1800,
                  **options: Any) -> dict[str, Any]:
+        if self.observer is not None:  # reads the steps that finished, may revise the design and hand it to the agent
+            try:
+                self.observer.before(messages)
+            except Exception as exc:  # noqa: BLE001 — monitoring never stops the agent
+                self.transcript.write({"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "lane": self.lane, "purpose": "monitor",
+                                       "outcome": f"monitor failed: {type(exc).__name__}: {str(exc)[:300]}"})
         with self.shared["lock"]:
             refusal = self._refusal()
             if refusal is None:

@@ -291,9 +291,40 @@ class DataLimitTests(unittest.TestCase):
         seen = self.assertWithinLimit("reporter")
         self.assertFalse({m for m in seen if not m.startswith(("Q7Kxcls", "Q7Kxrare"))}, seen)  # the target's classes only
 
+    def test_the_twin_designer_sees_the_profile_and_its_own_design_never_values(self):
+        from types import SimpleNamespace
+
+        from dclab_rnd.intern.tools import Toolbox
+        from dclab_rnd.twin.design import Designer
+        from dclab_rnd.intern.tools import compact_record
+        from dclab_rnd.studio import ProjectStore, data, engine
+        store = ProjectStore(Path(tempfile.mkdtemp()) / "projects")  # a target whose classes are markers: its values must not reach the designer either
+        pid = store.create("Marked", "general", "Predict churn")["id"]
+        frame = marked_table()
+        frame["churned"] = frame["churned"].map({1: "Q7Kxyes", 0: "Q7Kxno"})
+        frame.to_parquet(store.data_dir(pid) / "t.parquet", index=False)
+        data.attach_data(store, pid, "t.parquet")
+        p = store.get(pid)
+        p["solution"] = {"target": "churned", "task": "binary", "positive_label": "Q7Kxyes", "prediction_moment": "At the monthly snapshot of each customer.",
+                         "forbidden": [], "identifiers": ["note"], "time_column": None, "group_column": None, "text_columns": [], "metric": "roc_auc", "notes": ""}
+        p["settings"]["quick"] = True
+        store.save(p)
+        models.install(gateway())
+        self.addCleanup(models.install, None)
+        engine.execute(store, pid, "data", "human")
+        lane = SimpleNamespace(projects=store, project_id=pid, home=Path(tempfile.mkdtemp()))
+        designer = Designer(lane, models.installed(), run_id="t", model="m")
+        designer.initial()
+        designer.revise("data", compact_record(store.records(pid)["data"]), [{"tool": "describe_data", "said": "I saw Q7Kxcity3 and Q7Kxseg1", "result": "…"}])
+        raw = Toolbox(store).describe_data(pid)  # evidence as a careless caller might pass it, examples included
+        designer.revise("leakage", raw, [])
+        self.assertEqual(self.assertWithinLimit("twin_designer"), set())
+        self.assertEqual(len(Capture.prompts["twin_designer"]), 3)
+        self.assertIn('\\"train_rows\\": 240', Capture.prompts["twin_designer"][1])  # the aggregates still arrive
+
     def test_every_purpose_has_a_limit_and_a_test(self):
         tested = {"home_agent", "parse_pattern", "synthetic_schema", "evidence_answer", "stage_notes", "project_answer", "lesson_proposal", "intern",
-                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter"}
+                  "leakage_review", "notebook_review", "problem_analyst", "data_investigator", "brief_checker", "feature_engineer", "solution_planner", "critic", "reporter", "twin_designer"}
         no_user_data = {"campaign", "campaign_review", "embedding"}  # research tools and evidence search: the repository's records and a typed question, never a workspace's data
         self.assertEqual(set(settings.PURPOSES), tested | no_user_data, "a new purpose needs a data-limit test here")
         self.assertTrue(all(settings.PURPOSES[p].cell_values == 0 for p in no_user_data))

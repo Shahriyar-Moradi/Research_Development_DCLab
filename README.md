@@ -265,7 +265,7 @@ Guide: [SFT data guide](docs/guides/SFT_DATA_GUIDE.md). Training (`train_lora.py
 
 Every typed decision the studio makes (a column's role, identifier or leakage judgment, the split, the recipe, the family, the contract fields) is also kept with the evidence it was made on, and a person's approval, override or correction beside it: the training data of DCLab's own decision models. `python -m dclab_rnd.decisions export` turns a workspace into a split, masked set. Guide: [Decision samples](docs/guides/DECISION_SAMPLES.md).
 
-A twin run (R&D only) runs one problem two ways at once: the current system, and Claude as an AI-first agent with the same tools and validator, each in its own workspace folder with everything captured, and a comparison of what each decided and what it cost: `python -m dclab_rnd.twin run --sample bank_marketing --yes`. Guide: [Twin runs](docs/guides/TWIN_RUNS.md).
+A twin run (R&D only) runs one problem two ways at once: the current system, and Claude as an AI-first agent with the same tools and validator, each in its own workspace folder with everything captured, and a comparison of what each decided and what it cost: `python -m dclab_rnd.twin run --sample bank_marketing --yes`. Claude first writes its solution design and workflow, revises it at checkpoints, and the run keeps every version, a timeline of what the agent did against it and the plan against the act (`ai_first/design/DESIGN.md`). Guide: [Twin runs](docs/guides/TWIN_RUNS.md).
 
 ### Start a new research idea
 

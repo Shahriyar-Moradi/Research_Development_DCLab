@@ -124,18 +124,31 @@ class Lane:
 
     # ------------------------------------------------------------------ running
 
-    def run_project(self, task: str, client: Any, max_steps: int, max_minutes: int) -> dict[str, Any]:
+    def run_project(self, task: str, client: Any, max_steps: int, max_minutes: int, designer: Any = None) -> dict[str, Any]:
         """The intern on the lane's project: with ``client`` the model decides every move (the AI-first lane); without,
         the standard plan runs the current system's fixed order (the workflow lane). Every move goes through the graph
         validator either way, and every tool call through the trace. The engine's profile (quick or full) is the
-        process's, set once by the run around both lanes: it is one global, never one per lane."""
+        process's, set once by the run around both lanes: it is one global, never one per lane.
+
+        ``designer`` (A6.7, the AI-first lane): Claude designs the solution and its workflow first, the design goes
+        with the task, a monitor on the client writes the timeline and asks for revisions at the checkpoints, and the
+        last revision, the adherence and ``design/DESIGN.md`` are written when the run ends, however it ends."""
         from .. import context
         from ..intern import Intern
         from ..intern.tools import Toolbox
 
         self.started, self.status = now(), "running"
+        monitor, session = None, None
         try:
             with context.using(self.services):
+                if designer is not None and client is not None:
+                    from .design import Monitor
+
+                    designer.initial()
+                    follow = designer.follow_text()
+                    task = task + ("\n\n" + follow if follow else "")
+                    monitor = Monitor(designer)
+                    client.observer = monitor
                 intern = Intern(self.sessions, Toolbox(self.projects), client, traces=self.traces)
                 session = intern.start(task, {"max_steps": max_steps, "max_minutes": max_minutes}, project_id=self.project_id)
                 self.session_id = session["id"]
@@ -144,8 +157,29 @@ class Lane:
             self.error = session.get("error")
         except Exception as exc:  # noqa: BLE001 — the lane records its failure; the other lane goes on
             self.status, self.error = "failed", f"{type(exc).__name__}: {str(exc)[:400]}"
+        finally:
+            if monitor is not None:
+                client.observer = None
+                try:
+                    with context.using(self.services):
+                        stored = self.sessions.get(self.session_id) if self.session_id else session
+                        monitor.finish(stored, self._outcome(stored))
+                except Exception as exc:  # noqa: BLE001 — the design's files are research notes; the lane's result stands
+                    self.notes.append(f"design finish failed: {type(exc).__name__}: {str(exc)[:300]}")
         self.finished = now()
         return self.summary()
+
+    def _outcome(self, session: dict[str, Any] | None) -> dict[str, Any]:
+        """What the run came to, for the design's retrospective record: the status, the holdout, the solution's fields."""
+        out: dict[str, Any] = {"status": (session or {}).get("status") or self.status}
+        if self.project_id:
+            final = self.projects.records(self.project_id).get("final") or {}
+            ev, metric = final.get("evidence") or {}, final.get("primary_metric")
+            out.update(metric=metric, holdout=(ev.get("holdout_metrics") or {}).get(metric) if metric else None, holdout_ci=ev.get("holdout_primary_metric_ci"))
+            sol = self.projects.get(self.project_id).get("solution") or {}
+            out["solution"] = {"target": sol.get("target"), "task": sol.get("task"), "forbidden": sorted(f.get("column") for f in sol.get("forbidden") or []),
+                               "identifiers": sorted(sol.get("identifiers") or [])}
+        return out
 
     def run_draft(self, turns: list[str], client: Any) -> dict[str, Any]:
         """The Home agent on the lane's draft, the person's recorded turns replayed one by one: with ``client`` the
@@ -224,16 +258,34 @@ class Lane:
             session = self.sessions.get(self.session_id)
             out["session"] = {"mode": session.get("mode"), "model": session.get("model"), "status": session.get("status"), "steps": len(session.get("steps") or []),
                               "tools": [s.get("tool") for s in session.get("steps") or []], "used": session.get("used"),
-                              "final": (session.get("final") or "")[:4000], "error": session.get("error")}
+                              "final": (session.get("final") or "")[:4000], "error": session.get("error"), "plan": (session.get("plan") or "")[:2000] or None}
         if self.draft_id:
             draft = self.drafts.get(self.draft_id)
             out["draft"] = {"messages": len(draft.get("messages") or []), "agent_turns": sum(1 for m in draft.get("messages") or [] if m.get("role") == "agent"),
                             "questions_asked": [q.get("field") for q in draft.get("questions") or []], "understanding": draft.get("understanding"),
                             "plan": draft.get("plan"), "workflow": draft.get("workflow"), "status": draft.get("status"),
                             "model_note": (draft.get("agent") or {}).get("model_note")}  # set when a turn fell back to the standard questions
+        rules: dict[str, Any] = {}
+        split_used = None
+        for row in self._rows("decision_samples.jsonl"):  # the rule's latest answer per decision point (A6.5): the current system's design
+            if row.get("key"):
+                rules[row["key"]] = row.get("rule_answer")
+            if row.get("point") == "split.strategy" and "holdout_split" in (row.get("features") or {}):
+                split_used = row.get("rule_answer")  # the data stage's sample: the split the lane's engine made
+        out["rule_answers"] = rules
+        out["split_used"] = split_used
+        design_summary = self.home / "design" / "summary.json"
+        if design_summary.is_file():
+            try:
+                out["design"] = json.loads(design_summary.read_text(encoding="utf-8"))
+            except ValueError:
+                out["design"] = {"error": "design/summary.json could not be read"}
+        if self.notes:
+            out["notes"] = list(self.notes)
         out["counts"] = {"audit": len(self._rows("audit.jsonl")), "agent_steps": len(self._rows("agent_steps.jsonl")),
                          "model_requests": len(self._rows("model_requests.jsonl")), "model_calls_captured": len(self._rows("transcripts/model_calls.jsonl")),
-                         "decision_samples": len(self._rows("decision_samples.jsonl")), "decision_labels": len(self._rows("decision_labels.jsonl"))}
+                         "decision_samples": len(self._rows("decision_samples.jsonl")), "decision_labels": len(self._rows("decision_labels.jsonl")),
+                         "design_versions": len(self._rows("design/designs.jsonl")), "design_timeline": len(self._rows("design/timeline.jsonl"))}
         if hasattr(self.gateway, "totals"):
             out["model"] = self.gateway.totals()
         else:  # the configured gateway (--workflow-models configured): counted from the rows it wrote

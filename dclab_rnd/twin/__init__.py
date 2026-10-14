@@ -39,9 +39,10 @@ from typing import Any
 
 from . import claude, compare as comparing
 from .claude import ClaudeClient, NoModels, Transcript, TwinGateway
+from .design import Designer
 from .lane import TASK, Lane, run_both
 
-__all__ = ["TASK", "Lane", "ClaudeClient", "TwinGateway", "NoModels", "Transcript", "run", "list_runs", "compare_run", "twin_home"]
+__all__ = ["Designer", "TASK", "Lane", "ClaudeClient", "TwinGateway", "NoModels", "Transcript", "run", "list_runs", "compare_run", "twin_home"]
 
 README = """# Twin run {run_id}
 
@@ -61,6 +62,9 @@ Two lanes ran the same problem at the same time. Each lane is a complete workspa
 | `<lane>/model_requests.jsonl` | one row per model request: purpose, model, tokens, seconds, cost, outcome |
 | `<lane>/transcripts/model_calls.jsonl` | every model request and answer, verbatim (the AI-first lane; the workflow lane only when it ran with a model) |
 | `<lane>/decision_samples.jsonl`, `decision_labels.jsonl` | the typed decisions with their evidence and the approvals (A6.5), ready for the decision-model builders |
+| `ai_first/design/DESIGN.md` | how Claude designed the solution and its workflow: each version, what changed and why, the timeline, plan against act (A6.7) |
+| `ai_first/design/design_vNN.json`, `.md` | each version of the design; `designs.jsonl` the raw answers; `timeline.jsonl` one row per tool call and design event |
+| `ai_first/design/adherence.json`, `intents.jsonl`, `sft_candidates.jsonl` | the plan against the act; the design's decisions on the A6.5 points; each design as a chat sample (unverified) |
 
 The workflow lane is the current system ({workflow_label}); the AI-first lane is {ai_label}.
 These files hold prompts, model answers and the table's column names: research material, kept where it was made.
@@ -92,11 +96,16 @@ ALL_ROLES = ("problem_analyst", "brief_checker", "data_investigator", "solution_
 def run(seed: str, *, home: Path | None = None, task: str = TASK, model: str | None = None, transport: Any = None, max_requests: int = 120,
         cap_eur: float | None = None, max_steps: int = 30, max_minutes: int = 40, blind: bool = False, workflow_models: str = "off",
         quick: bool = True, roles: str = "all", capture_cells: bool = False, allow_private: bool = False, source_home: Path | None = None,
-        run_id: str | None = None, log=print) -> dict[str, Any]:
+        run_id: str | None = None, design: bool = True, design_checkpoints: tuple[str, ...] | None = None, design_steer: bool = True,
+        log=print) -> dict[str, Any]:
     """One twin run. ``seed`` is ``sample:<key>``, ``project:<id>`` or ``draft:<id>``; ``transport`` replaces the real
     Claude transport (tests pass a scripted one). ``roles`` is ``all`` (every role of dclab_core on, so the AI-first
     lane asks Claude for each of them; the workflow lane has no model, so its roles stay on their rules) or ``judged``
-    (the product's own gating). Returns the manifest, written to ``<run>/run.json``."""
+    (the product's own gating). ``design`` (A6.7, a project seed): Claude designs the solution and its workflow before
+    the AI-first lane starts, revises it after each stage of ``design_checkpoints`` (data, leakage, models by default)
+    and once at the end, and the lane's ``design/`` folder keeps every version, the timeline of what the agent did
+    against it and the adherence; ``design_steer`` hands each revision to the agent. Returns the manifest, written to
+    ``<run>/run.json``."""
     kind, _, ref = seed.partition(":")
     if kind not in ("sample", "project", "draft") or not ref:
         raise ValueError("seed is sample:<key>, project:<id> or draft:<id>")
@@ -106,6 +115,11 @@ def run(seed: str, *, home: Path | None = None, task: str = TASK, model: str | N
 
     if database_url(required=False):
         raise RuntimeError("a twin run keeps files only: run it with DCLAB_DATABASE_URL unset (each lane is a folder of its own)")
+    from .design import CHECKPOINT_STAGES, CHECKPOINTS, Designer
+
+    checkpoints = tuple(CHECKPOINTS if design_checkpoints is None else design_checkpoints)
+    if any(c not in CHECKPOINT_STAGES for c in checkpoints):
+        raise ValueError(f"a design checkpoint is one of {', '.join(CHECKPOINT_STAGES)}")
     run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(3)
     root = twin_home(home) / run_id
     root.mkdir(parents=True, exist_ok=False)
@@ -122,6 +136,7 @@ def run(seed: str, *, home: Path | None = None, task: str = TASK, model: str | N
     ai_gateway.usage = Gateway(FileUsage(root / "ai_first" / "model_requests.jsonl"))  # the usage rows every client writes
     manifest: dict[str, Any] = {"run_id": run_id, "seed": seed, "task": task, "model": model, "started": now(), "finished": None,
                                 "caps": {"max_requests": max_requests, "cap_eur": cap_eur, "max_steps": max_steps, "max_minutes": max_minutes},
+                                "design": {"on": bool(design) and kind != "draft", "checkpoints": list(checkpoints), "steer": design_steer},
                                 "blind": blind, "workflow_models": workflow_models, "quick": quick, "roles": roles, "capture_cells": capture_cells,
                                 "lanes": {"workflow": {"label": workflow.label}, "ai_first": {"label": ai_first.label}}}
     try:
@@ -172,8 +187,10 @@ def run(seed: str, *, home: Path | None = None, task: str = TASK, model: str | N
                 (ai_first, lambda: ai_first.run_draft(turns or [], ai_gateway.client("home_agent", draft_id=ai_first.draft_id)))]
     else:
         wf_client = workflow.gateway.client("intern", project_id=workflow.project_id) if workflow_models == "configured" else None
+        designer = Designer(ai_first, ai_gateway, run_id=run_id, model=model, checkpoints=checkpoints, steer=design_steer) if design else None
         jobs = [(workflow, lambda: workflow.run_project(task, wf_client, max_steps, max_minutes)),
-                (ai_first, lambda: ai_first.run_project(task, ai_gateway.client("intern", project_id=ai_first.project_id), max_steps, max_minutes))]
+                (ai_first, lambda: ai_first.run_project(task, ai_gateway.client("intern", project_id=ai_first.project_id), max_steps, max_minutes,
+                                                        designer=designer))]
     with ExitStack() as stack:
         if quick:
             stack.enter_context(fast_profile())

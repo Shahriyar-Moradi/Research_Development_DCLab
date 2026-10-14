@@ -43,6 +43,74 @@ def _stage_rows(a: dict[str, Any], b: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def _did(summary: dict[str, Any], key: str) -> Any:
+    """What a lane finally did on a decision point, read from its summary (its saved solution and stages)."""
+    point, _, subject = key.partition(":")
+    sol = summary.get("solution") or {}
+    stages = summary.get("stages") or {}
+    if point == "contract.task":
+        return sol.get("task")
+    if point == "contract.target_column":
+        return sol.get("target")
+    if point == "contract.prediction_moment":
+        return "stated" if sol.get("prediction_moment") else None
+    if point == "metric.primary":
+        return sol.get("metric")
+    if point == "column.forbidden":
+        return "exclude" if subject in (sol.get("forbidden") or []) else "clear" if sol else None
+    if point == "column.identifier":
+        return "identifier" if subject in (sol.get("identifiers") or []) else "feature" if sol else None
+    if point == "column.leakage":
+        lk = stages.get("leakage") or {}
+        if not lk:
+            return None
+        return "exclude" if subject in (lk.get("declared") or []) else "review_flag" if subject in (lk.get("flagged") or []) else "clear"
+    if point == "model.families":
+        return (stages.get("models") or {}).get("chosen")
+    if point == "split.strategy":
+        return summary.get("split_used")  # the split the data stage made, not the proposal's
+    return None
+
+
+def _same(a: Any, b: Any, key: str = "") -> bool | None:
+    if a is None or b is None:
+        return None
+    if key.startswith("model.families"):  # the rule screens a baseline beside the families; naming it or not is no disagreement
+        from .design import BASELINES
+
+        def families(v: Any) -> set[str]:
+            return {str(x).lower() for x in (v if isinstance(v, list) else [v]) if str(x).lower() not in BASELINES}
+
+        fa, fb = families(a), families(b)
+        return fa == fb if isinstance(a, list) and isinstance(b, list) else bool(fa & fb)
+    if isinstance(a, list) or isinstance(b, list):
+        la, lb = a if isinstance(a, list) else [a], b if isinstance(b, list) else [b]
+        return {str(x).lower() for x in la} == {str(x).lower() for x in lb} or (isinstance(a, list) and not isinstance(b, list) and str(b).lower() in {str(x).lower() for x in la})
+    return str(a).strip().lower() == str(b).strip().lower()
+
+
+def design_rows(workflow: dict[str, Any], ai_first: dict[str, Any]) -> dict[str, Any] | None:
+    """How Claude designed the solution (A6.7) beside how the current system designs it (the rule's answers, the
+    standard plan) and what each lane finally did."""
+    d = ai_first.get("design")
+    if not d or d.get("error"):
+        return d
+    first, last = d.get("intents_first") or {}, d.get("intents_last") or {}
+    rules_wf = workflow.get("rule_answers") or {}
+    rows = []
+    for key in sorted(set(first) | set(last)):
+        row = {"key": key, "claude_first": first.get(key), "claude_last": last.get(key), "rule": rules_wf.get(key),
+               "did_ai_first": _did(ai_first, key), "did_workflow": _did(workflow, key)}
+        row["first_agrees_with_rule"] = _same(row["claude_first"], row["rule"], key)
+        row["changed"] = (key in first) != (key in last) or not _same(first.get(key), last.get(key), key)
+        row["did_as_last_design"] = _same(row["claude_last"], row["did_ai_first"], key)
+        rows.append(row)
+    return {"versions": d.get("versions"), "first_workflow": d.get("first_workflow"), "adherence_to_first": d.get("adherence_to_first"),
+            "adherence_to_last_revision": d.get("adherence_to_last_revision"), "last_revision": d.get("last_revision"), "design_seconds": d.get("design_seconds"), "changes": d.get("changes"), "retrospective": d.get("retrospective"),
+            "decisions": rows, "disagreements_with_rule": [r["key"] for r in rows if r["first_agrees_with_rule"] is False],
+            "workflow_lane_plan": (workflow.get("session") or {}).get("plan")}
+
+
 def compare(workflow: dict[str, Any], ai_first: dict[str, Any]) -> dict[str, Any]:
     sol = _solution_diff(workflow.get("solution"), ai_first.get("solution"))
     stages = _stage_rows(workflow, ai_first)
@@ -54,11 +122,13 @@ def compare(workflow: dict[str, Any], ai_first: dict[str, Any]) -> dict[str, Any
     sa, sb = workflow.get("session") or {}, ai_first.get("session") or {}
 
     def seconds(x: dict[str, Any]) -> float | None:
+        """The lane's own work: its window less the time Claude spent writing designs (A6.7), which the other lane has none of."""
         if not x.get("started") or not x.get("finished"):
             return None
         from datetime import datetime
 
-        return round((datetime.fromisoformat(x["finished"]) - datetime.fromisoformat(x["started"])).total_seconds(), 1)
+        window = (datetime.fromisoformat(x["finished"]) - datetime.fromisoformat(x["started"])).total_seconds()
+        return round(window - float((x.get("design") or {}).get("design_seconds") or 0.0), 1)
 
     out = {
         "status": {"workflow": workflow.get("status"), "ai_first": ai_first.get("status")},
@@ -73,9 +143,12 @@ def compare(workflow: dict[str, Any], ai_first: dict[str, Any]) -> dict[str, Any
         "tool_calls": {"workflow": sa.get("tools"), "ai_first": sb.get("tools"), "count": {"workflow": sa.get("steps"), "ai_first": sb.get("steps")}},
         "model": {"workflow": workflow.get("model"), "ai_first": ai_first.get("model")},
         "seconds": {"workflow": seconds(workflow), "ai_first": seconds(ai_first)},
+        "design_seconds": (ai_first.get("design") or {}).get("design_seconds"),
         "captured": {"workflow": workflow.get("counts"), "ai_first": ai_first.get("counts")},
         "final_reports": {"workflow": sa.get("final"), "ai_first": sb.get("final")},
     }
+    if ai_first.get("design"):
+        out["design"] = design_rows(workflow, ai_first)
     if workflow.get("draft") or ai_first.get("draft"):
         da, db = workflow.get("draft") or {}, ai_first.get("draft") or {}
         out["draft"] = {"questions_asked": {"workflow": da.get("questions_asked"), "ai_first": db.get("questions_asked")},
@@ -133,6 +206,8 @@ def markdown(c: dict[str, Any], manifest: dict[str, Any]) -> str:
               f"ai_first: `{' → '.join(c['moves']['sequence'].get('ai_first') or [])}`", "",
               "## Tool calls", "", f"workflow: `{' → '.join(c['tool_calls'].get('workflow') or [])}`", "",
               f"ai_first: `{' → '.join(c['tool_calls'].get('ai_first') or [])}`", ""]
+    if c.get("design") and not c["design"].get("error"):
+        lines += design_markdown(c["design"])
     if c.get("draft"):
         d = c["draft"]
         lines += ["## Draft chat", "", f"questions asked: workflow {_cell(d['questions_asked']['workflow'])} · ai_first {_cell(d['questions_asked']['ai_first'])}",
@@ -143,3 +218,27 @@ def markdown(c: dict[str, Any], manifest: dict[str, Any]) -> str:
               "## Captured", "", f"workflow: {json.dumps(c['captured']['workflow'])}", "", f"ai_first: {json.dumps(c['captured']['ai_first'])}", "",
               "Every number above is read from the lanes' own files; see README.md in the run folder for what each file holds."]
     return "\n".join(lines) + "\n"
+
+
+def design_markdown(d: dict[str, Any]) -> list[str]:
+    a, b = d.get("adherence_to_first") or {}, d.get("adherence_to_last_revision") or {}
+    lines = ["## How Claude designed it (ai_first/design/DESIGN.md)", "",
+             "Versions: " + ", ".join(f"v{v['version']:02d} {v['checkpoint']}{'' if v['parsed'] else ' (unreadable)'} ({v['changes']} changes)" for v in d.get("versions") or []), "",
+             "First workflow: `" + " → ".join(f"{s.get('id')} {s.get('tool')}{':' + s['stage'] if s.get('stage') else ''}" for s in d.get("first_workflow") or []) + "`", "",
+             f"Plan against act (first design): {a.get('done')} of {a.get('planned_steps')} steps done, {len(a.get('in_order') or [])} in order, "
+             f"skipped {_cell(a.get('skipped'))}, not in the design {_cell(a.get('unplanned'))}, failed or refused {_cell(a.get('failed_or_refused'))}; "
+             f"against the last revision before the end (v{d.get('last_revision') or 0:02d}): {b.get('done')} of {b.get('planned_steps')}. "
+             f"Claude spent {_cell(d.get('design_seconds'))} s writing designs (left out of the lane's seconds above).", ""]
+    if d.get("workflow_lane_plan"):
+        lines += ["The current system's plan (the workflow lane): " + str(d["workflow_lane_plan"]).replace("\n", " · "), ""]
+    rows = d.get("decisions") or []
+    if rows:
+        lines += ["| decision | Claude first | Claude last | the rule | ai_first did | workflow did |", "|---|---|---|---|---|---|"]
+        for r in rows:
+            mark = " **≠ rule**" if r.get("first_agrees_with_rule") is False else ""
+            lines.append(f"| {r['key']} | {_cell(r['claude_first'])}{mark} | {_cell(r['claude_last'])}{' (changed)' if r.get('changed') else ''} | {_cell(r['rule'])} | "
+                         f"{_cell(r['did_ai_first'])} | {_cell(r['did_workflow'])} |")
+        lines.append("")
+    for ch in d.get("changes") or []:
+        lines.append(f"- v{ch['version']:02d} after {ch['checkpoint']}: {ch.get('field')} {_cell(ch.get('from'))} → {_cell(ch.get('to'))}, because {ch.get('because', '')}")
+    return lines + [""]

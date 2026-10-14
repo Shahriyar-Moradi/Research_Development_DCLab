@@ -76,6 +76,11 @@ PURPOSES: dict[str, Purpose] = {
     "intern": Purpose("strong", 180, "the task, and the results of the tools it calls: data profiles (with up to three example values per "
                                      "column from describe_data), stage records and evidence records (with this workspace's accepted lessons: other "
                                      "projects' aggregate results and scope); never whole rows", cell_values=3 * 200),
+    "twin_designer": Purpose("strong", 180, "R&D only (a twin run's AI-first lane, package A6.7): the project's name and goal, the table's profile "
+                                            "without example values (column names, kinds, missing rates, unique counts, candidates), the known "
+                                            "solution when the run is not blind, the workflow's steps and the tool names, Claude's own design, and at a "
+                                            "checkpoint the tool calls made (results through the trace's scrub) and the stage's compact record; never "
+                                            "rows or cell values"),
     "campaign": Purpose("strong", 180, "research campaign context: the plan, dataset cards and experiment summaries of evidence/campaigns; "
                                        "no project or user data"),
     "campaign_review": Purpose("strong", 180, "one research campaign result's compact evidence (metrics, claims, setup) from evidence/campaigns; "

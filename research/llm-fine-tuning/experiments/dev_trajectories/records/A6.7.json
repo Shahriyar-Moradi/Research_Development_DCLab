@@ -1,0 +1,208 @@
+{
+  "package": "A6.7",
+  "title": "How Claude designs the solution and its workflow, watched: the design written first, revised at checkpoints, every version kept and set against what the agent did",
+  "date": "2026-10-14",
+  "request": "For the twin-run feature, get as much as possible from the Claude model: a feature that monitors and stores how Claude solves the problem, how it designs a solution and how it designs the solution workflow.",
+  "spec": "In the AI-first lane of a project twin run, Claude writes a structured solution design (understanding, data plan, leakage hypotheses, identifiers, split, features, families, evaluation, a workflow of steps on WF-01…WF-10 with tool, stage, why, evidence, decision rule and dependencies, routes back) before the agent acts; the design goes with the task and the agent names the design step before each call; a monitor on the agent's client writes a timeline of every call against the design, asks for a revision after each checkpoint stage with every change and its evidence, hands it to the agent unless --no-steer, and at the end asks for a final revision with a retrospective; ai_first/design/ keeps every version, the raw answers, the timeline, the adherence, the design's decisions on the A6.5 keys, unverified SFT candidates and DESIGN.md; COMPARE.md sets the design beside the rule's answers and what each lane did. The designer sees no cell value, no value of the target and, before the end, no holdout score.",
+  "plan": [
+    "Read the twin package, the intern's loop and runtime (messages extended in place, write_plan and finish as session tools, _Model), the toolbox's describe_data and compact_record, the graph's nodes, the prompt files and their gate, the gateway's purposes and the data-limit test, and the sample factory's solution_design format.",
+    "A design schema and its reader (the first JSON object, fenced or bare; problems named, never a refusal), the design's intents on the A6.5 point:subject keys, the plan-against-act measure, a page per version.",
+    "A Designer on a new purpose twin_designer with the prompts twin_design and twin_follow_design; a Monitor called by ClaudeClient.observer before each request; the lane designs first, passes the design with the task, and finishes the design however the run ends; the run and the CLI take --no-design, --design-checkpoints, --no-steer.",
+    "COMPARE.md's design section and the lane summary's rule answers and split; tests with a scripted Claude that designs, revises, skips one planned step and narrates; a data-limit test for the new purpose.",
+    "Review by a fresh reader; fix what it found; agent-eval for the new prompts; docs, plan row and section, CLAUDE.md, README."
+  ],
+  "decisions": [
+    {
+      "decision": "A separate design request on its own purpose, not a tool the agent calls.",
+      "why": "A design tool in the intern's registry would change the product's tool schemas and the prompt gate for an R&D feature, and the agent could skip it; a request the lane makes before the agent starts always happens, is always comparable, and has its own data limit."
+    },
+    {
+      "decision": "The monitor rides on ClaudeClient.observer and reads the conversation the runtime already extends in place.",
+      "why": "No hook in the intern or the runtime: the messages list before each request holds every finished call and its result, and the session holds the last ones after the run."
+    },
+    {
+      "decision": "Revisions are handed to the agent by default (steer), with --no-steer to only watch.",
+      "why": "The AI-first approach is design, act, revise; watching only shows how the design drifts from the act, steering shows how the design leads it. Both are useful, so both are a flag; the manifest records which ran."
+    },
+    {
+      "decision": "Keep the reasoning Claude writes down; do not claim its hidden reasoning.",
+      "why": "The OpenAI-compatible endpoint does not return Claude's thinking; each step's why, evidence and rule, each change's because and evidence, and what the agent says before a call are what can be kept honestly. The native Messages transport is the way to more."
+    },
+    {
+      "decision": "Designs become SFT candidates with verified false, not factory samples.",
+      "why": "They are a teacher model's words, not labels known by construction; the factory's checker wants its own step headers; a builder can keep the designs the holdout and the traps vindicated."
+    }
+  ],
+  "change": "dclab_rnd/twin/design.py (parse, problems, intents, adherence, replay, clean, markdown; Designer; Monitor), dclab_rnd/prompts/twin_design.md and twin_follow_design.md, dclab_rnd/models/settings.py (purpose twin_designer, no cell values), dclab_rnd/twin/claude.py (observer), lane.py (design first, finish in finally, outcome, rule answers, split used, design summary), __init__.py and __main__.py (options), compare.py (design section, seconds without design time), tests/test_twin.py, tests/test_model_data_limits.py, docs/guides/TWIN_RUNS.md, AGENTIC_FOUNDATION_PLAN A6.7, CLAUDE.md, README; evidence AEV-020 for the prompt gate.",
+  "findings": [
+    {
+      "id": "F1",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "Every design had a problem: tool 'finish' does not exist.",
+      "scenario": "The scripted design ends with a finish step; the designer checked tools against the toolbox's names only.",
+      "cause": "finish and write_plan are the intern's session tools, outside the toolbox.",
+      "fix": "The tool list given to and checked for the designer includes the session tools.",
+      "test": "test_every_version_is_kept_with_its_checkpoint_and_the_workflow_lane_has_no_design",
+      "impact": "A false problem on every design.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F2",
+      "source": "test",
+      "severity": "behaviour",
+      "defect": "The design requests wrote no usage rows and counted as unpriced.",
+      "scenario": "Five designer requests in the transcript, none in model_requests.jsonl.",
+      "cause": "Gateway.record raises on an unknown purpose and the client swallows it, so the row and the price were lost.",
+      "fix": "A purpose twin_designer in the gateway's settings, with its data limit and a data-limit test.",
+      "test": "test_the_ai_first_lane_captured_every_exchange_and_the_workflow_lane_sent_nothing",
+      "impact": "Usage and euros undercounted.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F3",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The target's values reached the designer, a purpose meant to see no cell value.",
+      "scenario": "The data checkpoint carried the record's target_summary (the positive label, a multiclass target's class names, a regression target's range), and the initial request the solution's positive_label.",
+      "cause": "The trace's scrub removes column examples and previews, not the target's summary.",
+      "fix": "clean(): the trace's scrub, then no target_summary, positive_label, classes or range; the data-limit test runs the real data stage on a table whose target classes are markers.",
+      "test": "test_the_twin_designer_sees_the_profile_and_its_own_design_never_values, test_the_designer_never_sees_the_targets_values",
+      "impact": "Target values in requests and in the transcript.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F4",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A refused or failed call counted as a step done in the adherence.",
+      "scenario": "approve_stage data refused, then retried: adherence.json marked the step done by the refused call and the retry as an unplanned write, the opposite of the timeline.",
+      "cause": "The monitor kept every call as an action and the adherence did not know which failed.",
+      "fix": "Actions carry ok; a failed or refused call carries out no step and is listed apart as failed_or_refused.",
+      "test": "test_a_refused_call_carries_out_no_step_and_its_retry_does",
+      "impact": "A wrong plan-against-act.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F5",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A design with a field of the wrong shape could fail the lane or blind the monitor.",
+      "scenario": "workflow: 5, risks: 3 or a step's after: 1 raised TypeError in the reader; on the first design that ended the lane before the agent started, at a checkpoint the monitor had already moved past the remaining calls.",
+      "cause": "The reader assumed lists; seen moved before the calls were read.",
+      "fix": "Fields read through _list and wrong shapes named as problems; the reading in a try that keeps an unreadable answer as a version with problems; seen moves per reply after it is read; one call the monitor cannot read is a monitor_error row.",
+      "test": "test_a_malformed_design_is_kept_with_its_problems_and_the_run_is_untouched",
+      "impact": "A design failure that changes the run.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F6",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "A string where a list was expected was split into characters.",
+      "scenario": "families: \"lightgbm\" became l, i, g…; identifiers: \"customer_id\" one intent per letter.",
+      "cause": "list() on a string.",
+      "fix": "_list wraps a string as one item.",
+      "test": "test_a_malformed_design_is_kept_with_its_problems_and_the_run_is_untouched",
+      "impact": "Wrong intents in the comparison.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F7",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Comparison rows that always disagreed.",
+      "scenario": "The prediction moment: the design's sentence against the rule's stated/inferred; the split: each lane's rule answer, not the split used; the families: the rule's list includes the dummy baseline.",
+      "cause": "Values compared on different scales.",
+      "fix": "The moment's intent is stated when the design names one; the split is the data stage's; baselines are left out of the families' comparison.",
+      "test": "test_plan_against_act_and_the_comparison",
+      "impact": "A misleading COMPARE.md.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F8",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "Design requests could starve the agent and inflated its time.",
+      "scenario": "A checkpoint revision could take the run's last request, so the agent's next one was refused; the lane's seconds included the designer's.",
+      "cause": "One shared budget and one time window.",
+      "fix": "A checkpoint revision never takes the run's last three requests; COMPARE.md's seconds leave the design time out and report it; the agent's max-minutes still includes revisions, documented.",
+      "test": "test_the_request_cap_stops_the_ai_first_lane_and_the_run_still_finishes",
+      "impact": "An AI-first lane cut short by its own monitor.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F9",
+      "source": "reviewer",
+      "severity": "behaviour",
+      "defect": "The monitor's labels drifted after a revision, refusals never showed as blocked, and adherence to the last design measured against a design written after the run.",
+      "scenario": "A revision that renumbers steps kept the old done set; verdict was read from a key no tool returns; the final revision was the yardstick.",
+      "cause": "State carried across versions; a misread of the tool result; the wrong version.",
+      "fix": "replay() recomputes the done steps against each new version; the verdict is traces.verdict_of; the second adherence is against the last revision before the end.",
+      "test": "test_the_timeline_follows_every_call_against_the_design, test_plan_against_act_and_the_comparison",
+      "impact": "Wrong timeline labels and a self-fulfilling adherence.",
+      "alternatives": [],
+      "open": ""
+    },
+    {
+      "id": "F10",
+      "source": "reviewer",
+      "severity": "privacy",
+      "defect": "The target's values still reached the designer through the calls' summaries and the data stage's sentences.",
+      "scenario": "A checkpoint's rows carried propose_solution's summary with the detected classes and positive label; a regression's data stage claim states the target's range in words.",
+      "cause": "clean() reads keys, and a summary or a claim is a string made before it.",
+      "fix": "The timeline's result is summarised from the cleaned result; the data stage's claims are left out of the designer's evidence, its numbers kept.",
+      "test": "test_the_designer_never_sees_the_targets_values",
+      "impact": "Target class names or a range in a purpose that may see no cell value.",
+      "alternatives": [],
+      "open": ""
+    }
+  ],
+  "measurements": [
+    {
+      "name": "a twin run on heart_disease with a scripted Claude that designs (quick profile)",
+      "gate": "five versions; one timeline row per call; the skipped step and the unplanned call named; three revisions in the agent's conversation; a disagreement with the rule shown; no cell, target value or holdout score in a request before the end",
+      "fixed_before_run": true,
+      "result": "five versions (initial, data, leakage, models, final); one timeline row per call, in the session's order; the adherence names the skipped review step and the ranking read that was not planned; three revisions handed to the agent; the thal leakage hypothesis shown against the rule's clear; the design time reported apart",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "against_gate": "all hold",
+      "limits": [
+        "a scripted designer, not Claude: it proves the capture, not Claude's design judgment"
+      ]
+    },
+    {
+      "name": "tests",
+      "gate": "test_twin, test_model_data_limits, test_prompt_gate pass",
+      "fixed_before_run": true,
+      "result": "19 twin tests and 18 data-limit tests pass; the prompt gate passes after AEV-020",
+      "verdict": "pass",
+      "cost_eur": 0,
+      "against_gate": "all pass",
+      "limits": [
+        "no live Claude request was made; the first real run should use --max-requests 20"
+      ]
+    }
+  ],
+  "outcome": "A twin run now keeps how Claude designed the solution and its workflow before acting, how it revised the design at each checkpoint and why, what the agent did against each version, and a page that tells the story; the comparison sets Claude's design beside the current system's rule answers.",
+  "lessons": [
+    "A purpose the gateway does not know is a silent loss of usage rows: a new model use starts with its purpose and its data-limit test.",
+    "Strip what a purpose may not see where the request is built, beyond the shared scrub: the target's summary is not a column example but is still the table's values.",
+    "A monitor that reads a log must advance its cursor only past what it has read, and must not let one unreadable entry hide the rest.",
+    "Clean a value before it becomes text: once a result is a summary string, no key filter can reach inside it."
+  ],
+  "risks": [
+    "No live request to Claude was made: its designs' shape against this schema is to be seen in the first real run.",
+    "Steering changes the AI-first lane's behaviour; a comparison should say whether it ran with --no-steer.",
+    "Design revisions run inside the agent's minute budget."
+  ],
+  "commits": []
+}
