@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-14T19:01:53+00:00",
+ "at": "2026-10-14T19:38:14+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -349,7 +349,7 @@
   },
   {
    "kind": "streams",
-   "status": "partial",
+   "status": "supported",
    "checks": [
     {
      "decision": "no window moves when every reading after a cut is changed",
@@ -380,11 +380,34 @@
      "decision": "machines never seen are scored on the holdout period",
      "ok": true,
      "detail": "9 of 9 incidents on 6 unseen machines"
+    },
+    {
+     "decision": "the engine runs every stage as the streams machine",
+     "ok": true,
+     "detail": "data: streams, leakage: streams, features: streams, models: streams, final: streams"
+    },
+    {
+     "decision": "in the engine no training window reads a reading after the holdout's start, and none moves when later readings change",
+     "ok": true,
+     "detail": "0 windows read after the cut; 0 of 2782 windows moved"
+    },
+    {
+     "decision": "in the engine thresholds and the method are set on validation, and the holdout scores that method once",
+     "ok": true,
+     "detail": "chosen supervised, scored supervised"
+    },
+    {
+     "decision": "in the engine most holdout incidents are caught, with hours of warning, within the alert budget",
+     "ok": true,
+     "detail": "22 of 22 incidents, median 36.0 h before, 0.232 alerts per machine-day"
+    },
+    {
+     "decision": "in the engine machines never seen are scored on the holdout period",
+     "ok": true,
+     "detail": "9 of 9 incidents on unseen machines"
     }
    ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
+   "missing": []
   },
   {
    "kind": "embedded",

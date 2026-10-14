@@ -55,7 +55,7 @@ class MatrixTest(unittest.TestCase):
 
     def test_the_committed_file_lists_every_built_in_kind_as_supported(self):
         rows = {r["kind"]: r for r in acceptance.matrix()}
-        for key in ("binary", "multiclass", "regression", "text_tabular", "rare_event", "anomaly", "entity_tables"):
+        for key in ("binary", "multiclass", "regression", "text_tabular", "rare_event", "anomaly", "entity_tables", "streams"):
             self.assertEqual(rows[key]["status"], "supported", rows[key]["missing"])
 
 

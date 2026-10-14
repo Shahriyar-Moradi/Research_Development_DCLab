@@ -1,0 +1,479 @@
+{
+ "schema_version": 1,
+ "campaign_id": "kinds_v1",
+ "experiment_id": "KND-017",
+ "kind": "kind_acceptance",
+ "problem_kind": "streams",
+ "title": "Streams: sensor anomalies and incidents",
+ "description": "Readings over time from machines or sessions: alert before an incident, within an alert budget.",
+ "metrics": [
+  "Incidents caught within the warning horizon",
+  "Hours of warning before an incident",
+  "Alerts per unit-day"
+ ],
+ "baselines": [
+  "isolation_forest",
+  "own_change"
+ ],
+ "reliability": [
+  "incidents in the holdout period",
+  "units never seen",
+  "false alerts per unit-day"
+ ],
+ "track": "anomaly-and-fraud-detection",
+ "runs_in_engine": true,
+ "question": "Which decisions does DCLab reach on a streams: sensor anomalies and incidents problem (Readings over time from machines or sessions: alert before an incident, within an alert budget), and do they hold?",
+ "hypothesis": "Each decision a careful data scientist reaches on this kind of problem holds on every seed of the kind's replica.",
+ "setup_summary": "The streams: sensor anomalies and incidents kind's replica on seeds 0, 1, 2, brought as a person would; the five stages of the engine solve it, and each decision is checked on the finished run. No model is called.",
+ "evidence": {
+  "decisions": [
+   {
+    "decision": "no window moves when every reading after a cut is changed",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "training labels are complete and known before the holdout period",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "most incidents are caught, with hours of warning, within the alert budget",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "machines never seen are scored on the holdout period",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "the engine runs every stage as the streams machine",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "in the engine no training window reads a reading after the holdout's start, and none moves when later readings change",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "in the engine thresholds and the method are set on validation, and the holdout scores that method once",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "in the engine most holdout incidents are caught, with hours of warning, within the alert budget",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   },
+   {
+    "decision": "in the engine machines never seen are scored on the holdout period",
+    "held": 3,
+    "of": 3,
+    "failed_on_seeds": [],
+    "open": false
+   }
+  ],
+  "rate": {
+   "held": 33,
+   "of": 33,
+   "share": 1.0,
+   "ci95_checks": [
+    0.896,
+    1.0
+   ],
+   "seeds_all_held": 3,
+   "seeds": 3,
+   "ci95": [
+    0.439,
+    1.0
+   ]
+  },
+  "seeds": [
+   {
+    "seed": 0,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "no window moves when every reading after a cut is changed",
+      "ok": true,
+      "detail": "4244 windows end before 2025-02-15 00:00:00; changed by the later readings: 0"
+     },
+     {
+      "decision": "training labels are complete and known before the holdout period",
+      "ok": true,
+      "detail": "split by time at 2025-03-05 06:00:00; training labels read until 2025-03-05 06:00:00"
+     },
+     {
+      "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
+      "ok": true,
+      "detail": "incident recall on the validation period"
+     },
+     {
+      "decision": "most incidents are caught, with hours of warning, within the alert budget",
+      "ok": true,
+      "detail": "supervised: 22 of 22 incidents, median 36.0 h before, 0.232 alerts per machine-day (0.013 false)"
+     },
+     {
+      "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
+      "ok": true,
+      "detail": "isolation_forest: 1.0, own_change: 1.0, percentile_rules: 0.955, ecod: 0.909, supervised: 1.0"
+     },
+     {
+      "decision": "machines never seen are scored on the holdout period",
+      "ok": true,
+      "detail": "9 of 9 incidents on 6 unseen machines"
+     },
+     {
+      "decision": "the engine runs every stage as the streams machine",
+      "ok": true,
+      "detail": "data: streams, leakage: streams, features: streams, models: streams, final: streams"
+     },
+     {
+      "decision": "in the engine no training window reads a reading after the holdout's start, and none moves when later readings change",
+      "ok": true,
+      "detail": "0 windows read after the cut; 0 of 2782 windows moved"
+     },
+     {
+      "decision": "in the engine thresholds and the method are set on validation, and the holdout scores that method once",
+      "ok": true,
+      "detail": "chosen supervised, scored supervised"
+     },
+     {
+      "decision": "in the engine most holdout incidents are caught, with hours of warning, within the alert budget",
+      "ok": true,
+      "detail": "22 of 22 incidents, median 36.0 h before, 0.232 alerts per machine-day"
+     },
+     {
+      "decision": "in the engine machines never seen are scored on the holdout period",
+      "ok": true,
+      "detail": "9 of 9 incidents on unseen machines"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 1,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "no window moves when every reading after a cut is changed",
+      "ok": true,
+      "detail": "4265 windows end before 2025-02-15 06:00:00; changed by the later readings: 0"
+     },
+     {
+      "decision": "training labels are complete and known before the holdout period",
+      "ok": true,
+      "detail": "split by time at 2025-03-05 06:00:00; training labels read until 2025-03-05 06:00:00"
+     },
+     {
+      "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
+      "ok": true,
+      "detail": "incident recall on the validation period"
+     },
+     {
+      "decision": "most incidents are caught, with hours of warning, within the alert budget",
+      "ok": true,
+      "detail": "supervised: 19 of 19 incidents, median 37.0 h before, 0.198 alerts per machine-day (0.003 false)"
+     },
+     {
+      "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
+      "ok": true,
+      "detail": "isolation_forest: 0.947, own_change: 1.0, percentile_rules: 0.895, ecod: 1.0, supervised: 1.0"
+     },
+     {
+      "decision": "machines never seen are scored on the holdout period",
+      "ok": true,
+      "detail": "6 of 7 incidents on 6 unseen machines"
+     },
+     {
+      "decision": "the engine runs every stage as the streams machine",
+      "ok": true,
+      "detail": "data: streams, leakage: streams, features: streams, models: streams, final: streams"
+     },
+     {
+      "decision": "in the engine no training window reads a reading after the holdout's start, and none moves when later readings change",
+      "ok": true,
+      "detail": "0 windows read after the cut; 0 of 2757 windows moved"
+     },
+     {
+      "decision": "in the engine thresholds and the method are set on validation, and the holdout scores that method once",
+      "ok": true,
+      "detail": "chosen supervised, scored supervised"
+     },
+     {
+      "decision": "in the engine most holdout incidents are caught, with hours of warning, within the alert budget",
+      "ok": true,
+      "detail": "19 of 19 incidents, median 37.0 h before, 0.198 alerts per machine-day"
+     },
+     {
+      "decision": "in the engine machines never seen are scored on the holdout period",
+      "ok": true,
+      "detail": "6 of 7 incidents on unseen machines"
+     }
+    ],
+    "missing": []
+   },
+   {
+    "seed": 2,
+    "status": "supported",
+    "checks": [
+     {
+      "decision": "no window moves when every reading after a cut is changed",
+      "ok": true,
+      "detail": "4265 windows end before 2025-02-15 06:00:00; changed by the later readings: 0"
+     },
+     {
+      "decision": "training labels are complete and known before the holdout period",
+      "ok": true,
+      "detail": "split by time at 2025-03-05 06:00:00; training labels read until 2025-03-05 06:00:00"
+     },
+     {
+      "decision": "thresholds and the choice of method are set on the validation period, not the holdout",
+      "ok": true,
+      "detail": "incident recall on the validation period"
+     },
+     {
+      "decision": "most incidents are caught, with hours of warning, within the alert budget",
+      "ok": true,
+      "detail": "supervised: 15 of 15 incidents, median 38.0 h before, 0.186 alerts per machine-day (0.017 false)"
+     },
+     {
+      "decision": "every method, 15.5's detectors included, is scored by incidents, not rows",
+      "ok": true,
+      "detail": "isolation_forest: 1.0, own_change: 1.0, percentile_rules: 0.933, ecod: 0.933, supervised: 1.0"
+     },
+     {
+      "decision": "machines never seen are scored on the holdout period",
+      "ok": true,
+      "detail": "4 of 4 incidents on 6 unseen machines"
+     },
+     {
+      "decision": "the engine runs every stage as the streams machine",
+      "ok": true,
+      "detail": "data: streams, leakage: streams, features: streams, models: streams, final: streams"
+     },
+     {
+      "decision": "in the engine no training window reads a reading after the holdout's start, and none moves when later readings change",
+      "ok": true,
+      "detail": "0 windows read after the cut; 0 of 2781 windows moved"
+     },
+     {
+      "decision": "in the engine thresholds and the method are set on validation, and the holdout scores that method once",
+      "ok": true,
+      "detail": "chosen supervised, scored supervised"
+     },
+     {
+      "decision": "in the engine most holdout incidents are caught, with hours of warning, within the alert budget",
+      "ok": true,
+      "detail": "16 of 16 incidents, median 38.5 h before, 0.182 alerts per machine-day"
+     },
+     {
+      "decision": "in the engine machines never seen are scored on the holdout period",
+      "ok": true,
+      "detail": "4 of 4 incidents on unseen machines"
+     }
+    ],
+    "missing": []
+   }
+  ]
+ },
+ "claims": [
+  {
+   "claim_id": "KND-017-C1",
+   "kind": "fact",
+   "statement": "Streams: sensor anomalies and incidents: on 3 of 3 seeds every decision held (95% interval over seeds [0.439, 1.0]); 33 of 33 decision checks held.",
+   "evidence": [
+    "evidence.decisions",
+    "evidence.rate"
+   ],
+   "limitations": [
+    "Invented replicas with planted traps, three seeds: what the kind decides, not how well it does on real data.",
+    "Checks on one seed share its data, so they are not independent: the interval over seeds is the honest one."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C2",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: no window moves when every reading after a cut is changed.",
+   "evidence": [
+    "evidence.decisions.0"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C3",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: training labels are complete and known before the holdout period.",
+   "evidence": [
+    "evidence.decisions.1"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C4",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: thresholds and the choice of method are set on the validation period, not the holdout.",
+   "evidence": [
+    "evidence.decisions.2"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C5",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: most incidents are caught, with hours of warning, within the alert budget.",
+   "evidence": [
+    "evidence.decisions.3"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C6",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: every method, 15.5's detectors included, is scored by incidents, not rows.",
+   "evidence": [
+    "evidence.decisions.4"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C7",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: machines never seen are scored on the holdout period.",
+   "evidence": [
+    "evidence.decisions.5"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C8",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: the engine runs every stage as the streams machine.",
+   "evidence": [
+    "evidence.decisions.6"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C9",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: in the engine no training window reads a reading after the holdout's start, and none moves when later readings change.",
+   "evidence": [
+    "evidence.decisions.7"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C10",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: in the engine thresholds and the method are set on validation, and the holdout scores that method once.",
+   "evidence": [
+    "evidence.decisions.8"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C11",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: in the engine most holdout incidents are caught, with hours of warning, within the alert budget.",
+   "evidence": [
+    "evidence.decisions.9"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  },
+  {
+   "claim_id": "KND-017-C12",
+   "kind": "recommendation",
+   "statement": "On a streams: sensor anomalies and incidents problem: in the engine machines never seen are scored on the holdout period.",
+   "evidence": [
+    "evidence.decisions.10"
+   ],
+   "limitations": [
+    "Held on every seed of an invented replica."
+   ]
+  }
+ ],
+ "status": "completed",
+ "started_at": "2026-10-14T19:35:40+00:00",
+ "completed_at": "2026-10-14T19:36:09+00:00",
+ "elapsed_seconds": 28.3,
+ "provenance": {
+  "git_commit": "ff8f808fceabfd12fad812d338b55dbd3aad7173",
+  "git_dirty": true,
+  "python": "3.10.19",
+  "python_implementation": "CPython",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "executable": "/private/tmp/claude-501/-Users-shahriar-Desktop-Desktop-Work-MyStartUp-R-D/403767c9-6f97-404c-a57d-02366f853759/scratchpad/kc/.venv/bin/python",
+  "random_state": null,
+  "packages": {
+   "numpy": "2.2.6",
+   "pandas": "2.3.3",
+   "scikit-learn": "1.7.2",
+   "lightgbm": "4.7.0",
+   "xgboost": "3.2.0",
+   "catboost": "1.2.10",
+   "optuna": "5.0.0",
+   "torch": "2.12.1"
+  },
+  "data_sha256": {},
+  "code_committed": true,
+  "command": "python -m dclab_rnd.kinds.campaign",
+  "seeds": [
+   0,
+   1,
+   2
+  ]
+ }
+}
