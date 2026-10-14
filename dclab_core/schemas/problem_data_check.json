@@ -15,7 +15,8 @@
             "unit_grain",
             "time_absent",
             "labels_not_joined",
-            "labels_contradict"
+            "labels_contradict",
+            "not_checked"
           ],
           "title": "Code",
           "type": "string"
@@ -23,6 +24,7 @@
         "evidence": {
           "additionalProperties": true,
           "description": "Column names, purposes and counts: never a value.",
+          "maxProperties": 12,
           "title": "Evidence",
           "type": "object"
         },
