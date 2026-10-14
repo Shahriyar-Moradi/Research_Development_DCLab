@@ -321,6 +321,18 @@ code are not one connected object a data scientist can read, run and change.
   numbers on the replica.
 - **Done when:** for every family supported in the engine, the exported pipeline runs in a clean environment and
   reproduces its holdout number.
+- **Status: done (2026-10-15).** `dclab_rnd/studio/code.py` writes a project's pipeline as code: `pipeline.py` (one
+  block per step: data and the locked holdout, what is kept out, the features, the choice, the holdout read once),
+  the same blocks as cells of `pipeline.ipynb`, the data it reads, dclab_core, pinned requirements and `expected.json`;
+  `python pipeline.py` computes the holdout number again and exits 1 when it differs. A kind with its own machine is
+  written as dclab_core calls from the raw tables (read by their own format), its rule's pick made again and checked;
+  a tabular project as the engine's runner on the rows the engine prepared (kept losslessly, with which rows trained,
+  are held out or are in neither). A person's choice over the rule's is scored, the rule's pick checked beside it.
+  `GET /api/projects/{id}/export/code` gives it as a zip (the write permission, and a `data_export` row in the audit
+  trail: the folder holds the data). `make code-check`: every kind the engine runs, from its replica, in a fresh
+  Python 3.12 with only the pinned requirements: 12 of 12 reproduced their holdout number. Left open: a tabular
+  project's preparation (the solution applied, labels joined, rows sampled) is shipped as its result, not re-run as
+  code; the main product's `code_snapshots` are not filled from it; images (no engine run) have no code.
 
 ## Phase W6 — Proof on common problems
 

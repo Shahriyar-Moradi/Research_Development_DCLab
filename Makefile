@@ -1,4 +1,4 @@
-.PHONY: datasets decisions-gen decision-models decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check
+.PHONY: datasets decisions-gen decision-models decision-gate benchmark benchmark-v3 embeddings staging-check model-paths deploy-check browser-test help dev sessions session session-search lineage replay db-reset test-db up down logs scan-secrets sft-v4 test-serial rd-gates retrieval-eval agent-eval agent-eval-live test rd-sync rd-check rd-status rd-baseline rd-smoke rd-campaign-plan rd-campaign-status rd-campaign-report rd-campaign-verify rd-campaign-quick rd-campaign-review agent-serve notebook chat-ui chat-ui-intern mcp-serve agent-test agent-status agent-archive agent-export-clean churn-run churn-status agent-hyperack agent-churn master-guide master-review sft-build report-pdf knowledge index sft-v3 critic-gate pitfalls category-codes copilot-demo product-demo web product-e2e verify-auditor expansion expansion-status new-track research-index clean test-pg check-all check-quick check-quick-tests check-commit core-schemas core-wheel-check code-check
 
 PYTHON ?= .venv/bin/python
 AGENT_PYTHON ?= .venv-agent/bin/python
@@ -335,6 +335,9 @@ core-schemas:  ## regenerate dclab_core/schemas/*.json from the contracts (the l
 
 core-wheel-check:  ## build dclab_core's wheel, install it in a clean Python 3.12 with only its dependencies (uv) and run a smoke call (~90 s)
 	$(PYTHON) scripts/core_wheel_check.py
+
+code-check:  ## 20.9: every kind the engine runs, exported as code, reproduces its holdout number in a clean Python 3.12 (uv; ARGS="binary streams" for some)
+	DCLAB_NO_LIVE_MODELS=1 $(PYTHON) scripts/code_check.py $(ARGS)
 
 research-index:  ## regenerate research/<track>/INDEX.md and the track graph
 	$(PYTHON) -m dclab_rnd.research_map

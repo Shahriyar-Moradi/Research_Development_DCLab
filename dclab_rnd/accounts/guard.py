@@ -58,6 +58,7 @@ SPECIAL = {
     ("DELETE", "/api/experience/sessions/{visit}"): "timelines",
     # the catalog of the datasets built from them (19.13): the owner's
     ("GET", "/api/datasets"): "admin",
+    ("GET", "/api/projects/{project_id}/export/code"): "write",  # 20.9: the folder holds the project's data
     ("GET", "/api/datasets/lineage"): "admin",
 }
 

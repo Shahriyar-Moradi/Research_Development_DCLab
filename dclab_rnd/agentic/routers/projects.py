@@ -494,6 +494,43 @@ async def export_notebook(project_id: str, s: Services = Depends(services)):
     return Response(text, media_type="application/x-ipynb+json", headers={"Content-Disposition": f'attachment; filename="dclab-{p["name"][:40].replace(" ", "_")}.ipynb"'})
 
 
+@router.get("/api/projects/{project_id}/export/code", response_class=Response, responses=download("application/zip"))
+async def export_code(project_id: str, s: Services = Depends(services)):
+    """The project's pipeline as code (20.9): a zip with ``pipeline.py`` (one block per step), ``pipeline.ipynb``, the
+    data it reads, dclab_core, the pinned requirements and ``expected.json``; ``python pipeline.py`` computes the
+    holdout number again and exits 1 when it differs from the record."""
+    import io
+    import tempfile
+    import zipfile
+    from pathlib import Path
+
+    from ...studio import code as studio_code
+
+    p = s.project(project_id)
+
+    def build() -> bytes:
+        with tempfile.TemporaryDirectory(prefix="dclab-code-") as tmp:
+            folder = Path(tmp) / "code"
+            studio_code.export(s.projects, project_id, folder)
+            buffer = io.BytesIO()
+            with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+                for path in sorted(folder.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(folder).as_posix())
+            return buffer.getvalue()
+
+    try:
+        data = await asyncio.to_thread(build)
+    except (studio_code.CodeRefused, studio_data.DataError, ValueError) as exc:  # refused, or the data changed since the run
+        raise HTTPException(409, str(exc)) from None
+    from urllib.parse import quote
+
+    name = p["name"][:40].replace(" ", "_")
+    ascii_name = "".join(ch for ch in name if ch.isascii() and (ch.isalnum() or ch in "-_")) or "project"
+    return Response(data, media_type="application/zip", headers={  # an ASCII name, and the real one for browsers that read it
+        "Content-Disposition": f'attachment; filename="dclab-{ascii_name}-code.zip"; filename*=UTF-8\'\'{quote(f"dclab-{name}-code.zip")}'})
+
+
 @router.get("/api/projects/{project_id}/review", response_model=Review)
 async def review_project_notebook(project_id: str, s: Services = Depends(services)):
     """The notebook copilot's review of the project's exported notebook, in the demo's review shape."""

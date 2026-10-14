@@ -298,6 +298,7 @@
     askAgent: ["POST", "/projects/{project_id}/ask", ["project_id"], []],
     uploadData: ["PUT", "/projects/{project_id}/data", ["project_id"], ["filename"]],
     useSample: ["POST", "/projects/{project_id}/data/sample", ["project_id"], []],
+    exportCode: ["GET", "/projects/{project_id}/export/code", ["project_id"], []],
     exportNotebook: ["GET", "/projects/{project_id}/export/notebook", ["project_id"], []],
     exportReport: ["GET", "/projects/{project_id}/export/report", ["project_id"], []],
     exportSft: ["GET", "/projects/{project_id}/export/sft", ["project_id"], []],
@@ -868,6 +869,13 @@
    *  @returns {Promise<Project>} */
   client.useSample = (...args) => call('useSample', args);
   client.path.useSample = (...args) => build('useSample', args).path;
+  /** GET /api/projects/{project_id}/export/code: Export Code
+   *  @param {string} project_id
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<*>} */
+  client.exportCode = (...args) => call('exportCode', args);
+  client.path.exportCode = (...args) => build('exportCode', args).path;
+  client.href.exportCode = (...args) => '/api' + build('exportCode', args).path;
   /** GET /api/projects/{project_id}/export/notebook: Export Notebook
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

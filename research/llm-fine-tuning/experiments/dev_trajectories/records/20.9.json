@@ -1,0 +1,171 @@
+{
+ "package": "20.9",
+ "title": "Code for each step: a project's pipeline as code that recomputes its holdout number in a clean environment",
+ "date": "2026-10-15",
+ "request": "Each step renders its code (a notebook cell and a module) from the records, readable by a data scientist; the whole pipeline as a notebook and a package; done when for every family supported in the engine the exported pipeline runs in a clean environment and reproduces its holdout number.",
+ "spec": "A folder per project: pipeline.py with one block per step, the same cells as a notebook, the data it reads, dclab_core, pinned requirements and the recorded number; a route giving it as a zip; a check that runs every engine kind's export in a fresh Python 3.12.",
+ "plan": [
+  "Survey what the notebook and service exports already do and whether anything reruns exported code.",
+  "Write each own-machine kind as dclab_core calls mirroring its machine; write tabular projects as the engine's runner on the prepared rows.",
+  "Run every kind's export, then build the clean-environment check.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "A kind with its own machine is written as dclab_core calls from the raw tables.",
+   "why": "Its library already holds every step; calling it with the recorded choices is both readable and exact."
+  },
+  {
+   "decision": "A tabular project ships the rows as the engine prepared them and the engine's runner.",
+   "why": "Its preparation lives in the studio; the recipe, the model and the score can be reproduced exactly, and the preparation is said rather than imitated."
+  },
+  {
+   "decision": "The clean check uses one fresh Python 3.12 with only the pinned requirements every export names.",
+   "why": "No repository, no dclab_rnd and no development environment can help the code reproduce its number."
+  },
+  {
+   "decision": "Exporting the code is a write action written to the audit trail.",
+   "why": "The folder holds the person's data."
+  }
+ ],
+ "change": "dclab_rnd/studio/code.py (new), scripts/code_check.py (new), Makefile (code-check), agentic/routers/projects.py (the zip route), accounts/guard.py (write permission), audit.py (data_export), the web client; tests/test_code.py (new); the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Ignoring the engine's model sizes went unnoticed.",
+   "scenario": "A planted fault dropped the recorded profile and every test passed.",
+   "cause": "The tested replicas chose models the profile does not change.",
+   "fix": "A test checks the recorded profile is carried into the code; the clean check covers the families it changes.",
+   "test": "test_one_block_per_step_in_the_module_and_the_notebook"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An own-machine kind always read its tables as CSV.",
+   "scenario": "A project built from Home keeps its table as parquet: the exported code crashed on its first read.",
+   "cause": "The templates called the CSV reader; related tables were saved again as CSV, changing their types.",
+   "fix": "The code reads each table by its file's format, copied byte for byte; the reader's package joins the requirements.",
+   "test": "test_a_table_stored_as_parquet_is_read_as_it_was"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A person's choice over the rule's made the exported code fail.",
+   "scenario": "Approving another detector before the final stage made the code's check of the choice fail.",
+   "cause": "The code checked the rule's pick made again against the person's choice.",
+   "fix": "The rule's pick is checked against the rule's, the person's choice scored, and the code says so.",
+   "test": "test_a_persons_choice_is_scored_and_the_rules_pick_checked"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "With a time-and-group split the exported code trained on rows of the holdout period.",
+   "scenario": "Later rows of a household seen in training, in neither part, were trained on: the number moved from 0.75017 to 0.75250.",
+   "cause": "Only the holdout was marked; every other row was taken as training.",
+   "fix": "Each row is marked train, holdout or neither.",
+   "test": "test_rows_in_neither_part_stay_out_of_training"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The prepared rows lost precision.",
+   "scenario": "Features scaled by 1e-11 were rounded to zero by the ten-digit text format and the number moved.",
+   "cause": "JSON text with ten decimal places.",
+   "fix": "The rows are kept as a pandas pickle written by the pinned pandas.",
+   "test": "test_numbers_keep_every_digit"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A project name outside Latin-1 made the download fail.",
+   "scenario": "A Persian project name raised an encoding error in the response header after the zip was built.",
+   "cause": "The name went into the header as is.",
+   "fix": "An ASCII file name, and the real one encoded for browsers that read it.",
+   "test": "test_the_route_gives_a_zip"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A reader could download every table of a project with no audit row.",
+   "scenario": "A viewer's read permission was enough for the code route, which carries the raw tables or the prepared rows with labels.",
+   "cause": "A GET route needs only read by default.",
+   "fix": "The route needs the write permission, and each export writes a data_export row with the files' hashes.",
+   "test": "test_the_route_gives_a_zip"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Changed data made the route fail with a server error.",
+   "scenario": "A table whose fingerprint no longer matched raised past the route.",
+   "cause": "Only the refusal was caught.",
+   "fix": "Data errors answer 409 with their reason.",
+   "test": "test_the_route_gives_a_zip"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The clean check could cover fewer kinds, or skip, without saying so.",
+   "scenario": "A kind without a replica would be dropped silently; any message with 'not found' counted as a missing Python.",
+   "cause": "A filter and a loose match.",
+   "fix": "Kinds without a replica fail the check by name; only uv's own message is a skip.",
+   "test": "test_one_block_per_step_in_the_module_and_the_notebook"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Some steps had no block, and the forecast's choice was never checked.",
+   "scenario": "Tabular code had no leakage block; the forecast computed its validation and discarded it.",
+   "cause": "Blocks written only where a call was needed.",
+   "fix": "A leakage block for tabular projects, feature blocks for the own-machine kinds, and the forecast's rule applied again and checked.",
+   "test": "test_one_block_per_step_in_the_module_and_the_notebook"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "every kind the engine runs, in a clean Python 3.12",
+   "gate": "each kind's exported code reproduces its recorded holdout number within 1e-6, in a fresh environment holding only the pinned requirements",
+   "result": "12 of 12 reproduced: binary, multiclass, regression, rare_event, text_tabular, places, entity_tables, forecasting, time_to_event, streams, anomaly, embedded, in Python 3.12.13",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "12 of 12",
+   "limits": [
+    "Replicas, one seed each.",
+    "A tabular project's preparation is shipped as its result, not re-run."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "10 of 12 planted faults caught; the 2 left: the profile on replicas whose models ignore it (now checked by a test), and the positive class, which the refitted ROC-AUC cannot see",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "10 of 12, the other 2 explained",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "A project's pipeline exports as readable code, one block per step, that recomputes its holdout number; every kind the engine runs does so exactly in a clean Python 3.12.",
+ "lessons": [
+  "Read a table the way the product read it: a format assumed is a crash on the first real project.",
+  "A split has three parts when groups and time meet: mark the rows in neither, or they drift into training.",
+  "Text formats round numbers; keep data losslessly when a number must come back exactly."
+ ],
+ "risks": [
+  "A tabular project's preparation is not re-run as code.",
+  "The main product's code snapshots are not filled.",
+  "Images have no code until they run in the engine."
+ ],
+ "commits": []
+}
