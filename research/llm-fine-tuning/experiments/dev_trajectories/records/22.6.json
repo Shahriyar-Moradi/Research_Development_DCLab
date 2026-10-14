@@ -1,0 +1,168 @@
+{
+ "package": "22.6",
+ "title": "Choosing a model per decision: one audited switch, the rule as the fallback, demotion below the bar",
+ "date": "2026-10-15",
+ "request": "For each decision point, the answerers that passed their gates ranked; routing that picks one with a reviewer and a reason; the rule as the fallback when a model abstains or fails; demotion when its accuracy on new labels falls below its bar. Done when switching a point's model is one audited change and a demoted model falls back to the rule.",
+ "spec": "A decisions section in the workspace's routing document, a switch that audits every change, an answer function that falls back to the rule, a demotion that reads new labels, and two routes.",
+ "plan": [
+  "Read the model purposes' routing and its audit pattern.",
+  "Write the decision routing beside it, the answer function and the demotion.",
+  "Add the routes and their permission.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "Decision routing lives in the same routing document as the model purposes.",
+   "why": "One store and one history per workspace, on files and PostgreSQL, with no new table."
+  },
+  {
+   "decision": "To act, a model needs its sealed gate and a shadow measurement at least as right as the rule.",
+   "why": "A gate on generated tables did not carry over to the studio's decisions in 22.4."
+  },
+  {
+   "decision": "Act with a check holds a disagreement for a person; only act uses the model alone.",
+   "why": "Two levels that behave alike are one level."
+  },
+  {
+   "decision": "A demotion is DCLab's own change in the audit trail.",
+   "why": "Writing it as a reviewer's would name a person who never made it."
+  }
+ ],
+ "change": "dclab_rnd/ledger/routing.py (new), agentic/pages/ledger.py (routing routes; a demotion check when a blind label arrives), accounts/guard.py, audit.py (the backfill reads decision changes), the web client; tests/test_decision_routing.py (new), test_experience_log.py; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The generated client was stale.",
+   "scenario": "The client test failed because the new routes were not in it.",
+   "cause": "The frontend was not rebuilt after the routes were added.",
+   "fix": "The client is rebuilt.",
+   "test": "test_the_committed_client_is_what_the_routes_give"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Demotion counted blind labels without their weights.",
+   "scenario": "90 agreeing decisions drawn at 0.1 and 60 differing ones at 0.6: a weighted accuracy of 0.96 was counted as 0.84 and the model demoted.",
+   "cause": "Every label counted once.",
+   "fix": "A blind label weighs as it was drawn.",
+   "test": "test_blind_labels_weigh_as_they_were_drawn"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model could be promoted to act without any shadow evidence.",
+   "scenario": "The leakage classifier, right on 2 of 11 labelled disagreements, could be set to act.",
+   "cause": "Only the sealed gate was checked.",
+   "fix": "To act, at least 20 labelled disagreements in shadow and a weighted accuracy on them at least the rule's.",
+   "test": "test_to_act_a_model_must_have_been_measured_right_in_shadow"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Act with a check behaved like act.",
+   "scenario": "At level 2 a model saying yes against the rule's no was used.",
+   "cause": "No check was made.",
+   "fix": "At level 2 a disagreement keeps the rule's value and holds the decision for a person.",
+   "test": "test_the_rule_answers_when_the_model_abstains_fails_disagrees_at_a_check_or_only_flags"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "An automatic demotion was written as a reviewer's.",
+   "scenario": "The audit row named a human reviewer, and under accounts the person who gave the blind label.",
+   "cause": "The demotion called the person's switch.",
+   "fix": "The demotion is written as DCLab's own change.",
+   "test": "test_a_model_below_its_bar_on_new_labels_is_demoted_by_dclab_and_the_rule_answers"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With no rule the answer listed None and said the rule was used, and a refused value could be used.",
+   "scenario": "No rule gave a list holding None; a model value outside the point's answers was acted on.",
+   "cause": "Missing guards.",
+   "fix": "Only real answers are listed, used is none without a rule, and a refused value falls back.",
+   "test": "test_the_rule_answers_when_the_model_abstains_fails_disagrees_at_a_check_or_only_flags"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The ranking promised speed and guessed the cost.",
+   "scenario": "Speed was never measured and cost came from the answerer's name.",
+   "cause": "Wording ahead of the measurements.",
+   "fix": "The ranking says what it uses, with the weighted shadow figure; speed is said to be unmeasured.",
+   "test": "test_the_candidates_are_those_that_passed_best_first"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Every blind label read the whole ledger, and a failed check failed the label.",
+   "scenario": "A large workspace paid for a full read on each label; an error after the label was saved answered 500.",
+   "cause": "The check ran unconditionally and unguarded.",
+   "fix": "Only a label at a routed point runs the check, on that point's decisions, and a failure never fails the label.",
+   "test": "test_the_routes"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "flaky",
+   "defect": "Two writers could lose a change to the shared routing document.",
+   "scenario": "A model routing change and a decision routing change at once.",
+   "cause": "Read, change and write of the whole document.",
+   "fix": "A lock within the process; across processes it is said to remain open.",
+   "test": "test_one_audited_change_by_a_reviewer_with_a_reason"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The audit backfill read a decision change as a model change.",
+   "scenario": "After a migration a decision change would show as set_routing with no purpose.",
+   "cause": "The backfill knew one kind of entry.",
+   "fix": "A decision change is backfilled as one, with its point.",
+   "test": "test_the_audit_backfill_reads_a_decision_change_as_one"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A bar change left no trace, and a bar of 0 became 0.9.",
+   "scenario": "The audit row's from and to omitted the bar; a zero bar was silently replaced.",
+   "cause": "The bar was not in the change and a falsy value took the default.",
+   "fix": "The bar is in from and to, and a bar outside 0.5 to 1 is refused.",
+   "test": "test_one_audited_change_by_a_reviewer_with_a_reason"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "16 of 16 planted faults caught",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 16",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "Each decision point's answerer is changed by one audited switch, acts only after its sealed gate and a shadow measurement at least as right as the rule, falls back to the rule when it abstains, fails or disagrees at a check, and is demoted by DCLab below its bar.",
+ "lessons": [
+  "Weigh a sampled label by how it was drawn whenever it decides something.",
+  "Two levels with one behaviour are one level: make each level do what its name says.",
+  "Write an automatic action as the system's, never as a person's."
+ ],
+ "risks": [
+  "Nothing in the studio asks the routing yet (22.9).",
+  "Across processes the routing document can still lose a concurrent change."
+ ],
+ "commits": []
+}

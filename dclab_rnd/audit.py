@@ -340,8 +340,11 @@ def history(projects: Any, routing: Any = None) -> list[dict[str, Any]]:
             changes = routing.get().get("history") or []
         except Exception:  # noqa: BLE001
             changes = []
-        keyed += [((h.get("at") or "", i), _row("routing", "human", (h.get("by") or "person").capitalize(), move="set_routing", status="allowed",
-                                                at=h.get("at"), args={k: h.get(k) for k in ("purpose", "setting", "from", "to")},
+        keyed += [((h.get("at") or "", i), _row("routing", "agent" if str(h.get("by") or "").startswith("system") else "human",
+                                                (h.get("by") or "person").capitalize(),
+                                                move="set_decision_routing" if h.get("decision_point") else "set_routing", status="allowed", at=h.get("at"),
+                                                args={k: h.get(k) for k in (("decision_point", "from", "to") if h.get("decision_point")
+                                                                            else ("purpose", "setting", "from", "to"))},
                                                 message=h.get("reason") or "", imported=True))
                   for i, h in enumerate(changes)]
     keyed.sort(key=lambda pair: pair[0])

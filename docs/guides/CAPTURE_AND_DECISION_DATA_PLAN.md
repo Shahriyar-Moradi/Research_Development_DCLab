@@ -430,6 +430,20 @@ by the same gates; the ledger feeds all of them, each in its own training format
   the routing that picks one (as `models/routing.py` routes purposes: a reviewer and a reason), the rule as the
   fallback when a model abstains or fails, and demotion when its accuracy on new labels falls below its bar.
 - **Done when:** switching a point's model is one audited change, and a demoted model falls back to the rule.
+- **Status: done (2026-10-15).** `dclab_rnd/ledger/routing.py`: each point's answerer and level live in the
+  workspace's routing document beside the model purposes (`decisions`), changed only by `switch`: a reviewer or the
+  owner, a reason, one audit row. Above shadow the answerer must have passed its sealed gate (22.3); to act (level 2 or
+  3) it must also have at least 20 labelled disagreements with the rule in shadow and a weighted accuracy on them at
+  least the rule's. `answer`: level 3 acts; level 2 acts when the model agrees with the rule and holds the decision for
+  a person when they differ; below that, and whenever the model abstains, fails or gives a value the point refuses,
+  the rule answers. `demote` (run when a blind label arrives at a routed point, and by `python -m
+  dclab_rnd.ledger.routing demote`) moves a model whose weighted accuracy on the labels given since it was routed falls
+  below its bar back to shadow, written as DCLab's own change; the rule answers again. `candidates` ranks the
+  answerers that passed by sealed accuracy, then weighted shadow accuracy (speed is not measured). `GET`/`POST
+  /api/ledger/routing` (review permission). None is routed today: the leakage classifier, the one that could, was right
+  on 2 of 11 labelled disagreements in shadow (22.4). Left open: nothing in the studio asks `answer` yet (22.9); a
+  model answerer (22.5) cannot be routed above shadow without a sealed verdict; the routing document's read-change-write
+  is locked within one process, not across processes.
 
 ### 22.8 Decision models for data scientists (the first use)
 - **Delivers:** the technical decision points as something a data scientist asks while they work: in the notebook

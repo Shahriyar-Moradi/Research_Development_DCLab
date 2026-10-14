@@ -48,6 +48,8 @@ SPECIAL = {
     ("GET", "/api/experience/search"): "timelines",
     # the decision ledger and its blind labels (19.8): the owner and reviewers
     ("GET", "/api/ledger/summary"): "review",
+    ("GET", "/api/ledger/routing"): "review",
+    ("POST", "/api/ledger/routing"): "review",  # 22.6: routing a decision to a model
     ("GET", "/api/ledger/blind/next"): "review",
     ("POST", "/api/ledger/blind/{record_id}"): "review",
     # feedback on an answer, a proposal or a decision (19.9): every role may say what helped

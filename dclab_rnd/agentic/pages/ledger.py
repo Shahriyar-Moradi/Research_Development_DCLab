@@ -14,7 +14,7 @@ import asyncio
 import re
 from typing import Any
 
-from fastapi import Body, HTTPException
+from fastapi import Body, HTTPException, Request
 
 from ..api_models import Page, Router
 
@@ -63,7 +63,63 @@ def register(app, ctx) -> None:
             raise HTTPException(404, "No such decision") from None
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from None
-        return {"label": out.model_dump(mode="json")}
+        demoted: list = []
+        if store() is not None and getattr(ctx, "models", None) is not None:  # 22.6: a new label may send a routed model back to shadow
+            from ...ledger import routing
+
+            def check() -> list:
+                routed = [p for p, e in (ctx.models.routing.get().get("decisions") or {}).items() if e.get("level")]
+                if out.point not in routed:  # only a label at a routed point can change a routed model's figures
+                    return []
+                return routing.demote(ctx.models.routing, ctx.audit, store().records(point=out.point), store().labels(point=out.point))
+
+            try:
+                demoted = await asyncio.to_thread(check)
+            except Exception:  # noqa: BLE001 - the label is kept; a failed check runs again with the next label
+                demoted = []
+        return {"label": out.model_dump(mode="json"), "demoted": demoted}
+
+    @router.get("/api/ledger/routing", response_model=Page)
+    async def ledger_routing():
+        """Which answerer serves each decision point and at which level (22.6), the answerers that may, best first, and
+        the changes made."""
+        from dclab_core.ledger import POINTS
+
+        from ...ledger import routing, shadow
+
+        doc = ctx.models.routing.get()
+        measured = await asyncio.to_thread(shadow.measure, store().records() if store() is not None else [], store().labels() if store() is not None else [])
+        points = sorted({p for p in POINTS if routing.entry(doc, p) or routing.candidates(p)})
+        return {"points": {p: {"routed": routing.entry(doc, p) or None, "candidates": routing.candidates(p, measured)} for p in points},
+                "history": [h for h in doc.get("history") or [] if h.get("decision_point")][-50:]}
+
+    @router.post("/api/ledger/routing", response_model=Page)
+    async def ledger_route(request: Request, body: Any = Body(None)):
+        """One audited change of a point's answerer: {"point", "answerer" (None: the rule alone), "level" (0 shadow, 1 flag,
+        2 act with a check, 3 act), "reason", "bar"}; a reviewer or the owner, and above shadow only an answerer that
+        passed its sealed gate."""
+        from ...ledger import routing
+        from ..routers.core import declared_role
+
+        from ...ledger import shadow
+
+        b = body if isinstance(body, dict) else {}
+        point = str(b.get("point") or "")
+        book = store()
+
+        def measured() -> dict[str, Any]:  # the shadow figures a promotion to act rests on
+            return shadow.measure(book.records(point=point), book.labels(point=point)) if book is not None else {}
+
+        try:
+            level = int(b.get("level") or 0)
+            doc = await asyncio.to_thread(lambda: routing.switch(ctx.models.routing, ctx.audit, point, b.get("answerer"), level, declared_role(request),
+                                                                 str(b.get("reason") or ""), b.get("bar", routing.BAR),
+                                                                 measured=measured() if level >= 2 else None))
+        except PermissionError as exc:
+            raise HTTPException(403, str(exc)) from None
+        except (routing.DecisionRoutingError, ValueError, TypeError) as exc:
+            raise HTTPException(422, str(exc)) from None
+        return {"routed": routing.entry(doc, str(b.get("point")))}
 
     @router.post("/api/feedback", response_model=Page)
     async def give_feedback(body: Any = Body(None)):

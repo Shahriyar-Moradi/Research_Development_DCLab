@@ -274,6 +274,8 @@
     learnPolicy: ["GET", "/learn/policy", [], []],
     ledgerBlindNext: ["GET", "/ledger/blind/next", [], ["point"]],
     ledgerBlindLabel: ["POST", "/ledger/blind/{record_id}", ["record_id"], []],
+    ledgerRouting: ["GET", "/ledger/routing", [], []],
+    ledgerRoute: ["POST", "/ledger/routing", [], []],
     ledgerSummary: ["GET", "/ledger/summary", [], []],
     listLessons: ["GET", "/lessons", [], ["project_id", "status"]],
     reviewLesson: ["POST", "/lessons/{lesson_id}/review", ["lesson_id"], []],
@@ -725,6 +727,17 @@
    *  @returns {Promise<Page>} */
   client.ledgerBlindLabel = (...args) => call('ledgerBlindLabel', args);
   client.path.ledgerBlindLabel = (...args) => build('ledgerBlindLabel', args).path;
+  /** GET /api/ledger/routing: Ledger Routing
+   *  @param {{headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.ledgerRouting = (...args) => call('ledgerRouting', args);
+  client.path.ledgerRouting = (...args) => build('ledgerRouting', args).path;
+  client.href.ledgerRouting = (...args) => '/api' + build('ledgerRouting', args).path;
+  /** POST /api/ledger/routing: Ledger Route
+   *  @param {{body?: *, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.ledgerRoute = (...args) => call('ledgerRoute', args);
+  client.path.ledgerRoute = (...args) => build('ledgerRoute', args).path;
   /** GET /api/ledger/summary: Ledger Summary
    *  @param {{headers?: Object}} [opts]
    *  @returns {Promise<Page>} */
