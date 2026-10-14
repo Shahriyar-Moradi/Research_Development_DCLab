@@ -207,9 +207,12 @@ class RoutesTest(unittest.TestCase):
 
     def test_only_the_owner_reads_timelines(self):
         routes = [r for r in api_routes(self.client.app) if getattr(r, "path", "").startswith("/api/experience")]
-        self.assertEqual(len(routes), 3)
+        self.assertEqual(sorted((m, r.path) for r in routes for m in r.methods),  # reading them, and deleting a session (19.10)
+                         [("DELETE", "/api/experience/sessions/{visit}"), ("GET", "/api/experience/search"), ("GET", "/api/experience/sessions"),
+                          ("GET", "/api/experience/sessions/{visit}")])
         for route in routes:
-            self.assertEqual(guard.permission("GET", route.path), "timelines", route.path)
+            for method in route.methods:
+                self.assertEqual(guard.permission(method, route.path), "timelines", route.path)
         self.assertEqual([role for role in ROLES if allows(role, "timelines")], ["owner"])
         with acting(Principal(role="reviewer", user_id="u1")), self.assertRaises(HTTPException) as refused:
             guard.demand("timelines", "read the sessions' record")
