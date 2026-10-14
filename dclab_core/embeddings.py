@@ -262,3 +262,95 @@ class RandomFeatures:
             cells = [r[i * gh // 3:(i + 1) * gh // 3, j * gw // 3:(j + 1) * gw // 3].mean(axis=(0, 1)) for i in range(3) for j in range(3)]
             out.append(np.concatenate([*cells, r.max(axis=(0, 1))]))  # what is where, and what at all
         return _unit(np.asarray(out, dtype=np.float32))
+
+
+# ---------------------------------------------------------------------------- 16.15 C: in the engine, split / choose / score
+CANDIDATE_C = (0.1, 1.0, 10.0)
+
+
+def _model(task: str, c: float) -> Any:
+    from sklearn.linear_model import LogisticRegression, Ridge
+
+    return LogisticRegression(max_iter=3000, C=c) if task != "regression" else Ridge(alpha=1.0 / c)
+
+
+def _scoring(task: str) -> str:
+    return "accuracy" if task == "multiclass" else ("roc_auc" if task == "binary" else "r2")
+
+
+def _names(sources: Sequence[Any]) -> np.ndarray:
+    """Every source as the same text in every function (a date, a number or a string alike)."""
+    return np.array([str(s) for s in sources], dtype=object)
+
+
+def split(sources: Sequence[Any], *, holdout: float = 0.2, folds: int = 5, seed: int = 0) -> dict[str, Any]:
+    """Which whole sources are held out, from the sources' names alone (never a label or an item): each source's place
+    is the SHA-256 of the seed and its name, and the lowest ``holdout`` share is held out, so adding rows never moves
+    a source. The record keeps a fingerprint of the held-out set, not the names."""
+    names = sorted(set(_names(sources)))
+    if len(names) < folds + 2:
+        raise ValueError(f"{len(names)} sources: too few to keep whole sources apart in {folds} folds and a holdout")
+    rank = sorted(names, key=lambda s: hashlib.sha256(f"{seed}:{s}".encode()).hexdigest())
+    held = sorted(rank[:max(1, int(round(holdout * len(names))))])
+    return {"by": "whole sources", "sources": len(names), "holdout_sources": len(held), "holdout_share": holdout, "folds": folds, "seed": seed,
+            "holdout_fingerprint": hashlib.sha256("\n".join(held).encode()).hexdigest()[:16], "_held": held}
+
+
+def holdout_mask(sources: Sequence[Any], parts: dict[str, Any]) -> np.ndarray:
+    return np.isin(_names(sources), parts["_held"])
+
+
+def choose(X: np.ndarray, y: Sequence[Any], sources: Sequence[Any], *, task: str = "binary", folds: int = 5, seed: int = 0,
+           threshold: float = THRESHOLD) -> dict[str, Any]:
+    """Each regularisation strength scored with folds grouped by source on the training rows only; the best mean is
+    chosen (a tie to the stronger regularisation). The chosen one is also scored with random folds: the gap is what
+    recognising near copies of a source is worth. Near copies across the grouped and the random folds are counted."""
+    from sklearn.model_selection import GroupKFold, KFold, StratifiedGroupKFold, cross_val_score
+
+    X, y, groups = np.asarray(X), np.asarray(y), _names(sources)
+    scoring = _scoring(task)
+    if task == "binary":
+        positive = len(set(groups[y == 1]))
+        if positive < folds or len(set(groups[y == 0])) < folds:
+            raise ValueError(f"{positive} sources with a positive row: too few for {folds} folds grouped by source that each hold both classes")
+    splitter = StratifiedGroupKFold(folds, shuffle=True, random_state=seed) if task == "binary" else GroupKFold(folds)
+    cuts = list(splitter.split(X, y, groups))
+    scores = {c: cross_val_score(_model(task, c), X, y, cv=cuts, scoring=scoring) for c in CANDIDATE_C}
+    if any(not np.isfinite(v).all() for v in scores.values()):
+        raise ValueError("a fold grouped by source holds one class: no regularisation can be chosen by its score")
+    best = max(CANDIDATE_C, key=lambda c: (round(float(scores[c].mean()), 4), -c))
+    shuffled = cross_val_score(_model(task, best), X, y, cv=KFold(folds, shuffle=True, random_state=seed), scoring=scoring)
+    fold_of, random_fold = np.zeros(len(y), dtype=int), np.zeros(len(y), dtype=int)
+    for k, (_, va) in enumerate(cuts):
+        fold_of[va] = k
+    for k, (_, va) in enumerate(KFold(folds, shuffle=True, random_state=seed).split(X)):
+        random_fold[va] = k
+    return {"metric": scoring, "by_c": {str(c): {"mean": _r(scores[c].mean()), "std": _r(scores[c].std())} for c in CANDIDATE_C},
+            "chosen": str(best), "chosen_by": f"the best mean {scoring} over folds grouped by source, stratified by class (a tie to the stronger regularisation)",
+            "grouped_folds": _r(scores[best].mean()), "random_folds": _r(shuffled.mean()),
+            "near_duplicates_across_folds": near_duplicates(X, fold_of, threshold=threshold)["pairs_across_sides"],
+            "near_duplicates_across_random_folds": near_duplicates(X, random_fold, threshold=threshold)["pairs_across_sides"]}
+
+
+def score(X: np.ndarray, y: Sequence[Any], sources: Sequence[Any], parts: dict[str, Any], chosen: str, *, task: str = "binary") -> dict[str, Any]:
+    """The chosen model fitted on every training row and scored once on the held-out sources' rows."""
+    from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
+
+    X, y = np.asarray(X), np.asarray(y)
+    test = holdout_mask(sources, parts)
+    train = ~test
+    groups = _names(sources)
+    model = _model(task, float(chosen)).fit(X[train], y[train])  # the holdout's rows are never fitted
+    predicted = model.predict_proba(X[test])[:, 1] if task == "binary" else model.predict(X[test])
+    why = None
+    if task != "regression" and len(set(y[test].tolist())) < 2:
+        held, why = None, "the held-out sources hold one class: the holdout score cannot be read"
+    elif task == "binary":
+        held = roc_auc_score(y[test], predicted)
+    elif task == "multiclass":
+        held = accuracy_score(y[test], predicted)
+    else:
+        held = r2_score(y[test], predicted)
+    return {"metric": _scoring(task), "holdout": _r(held), "why_no_score": why, "fitted_rows": int(train.sum()), "train_rows": int(train.sum()),
+            "holdout_rows": int(test.sum()), "sources_on_both_sides": int(len(set(groups[test]) & set(groups[train]))),
+            "holdout_predictions": [_r(v, 6) if task != "multiclass" else v for v in np.ravel(predicted).tolist()]}

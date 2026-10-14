@@ -1,0 +1,161 @@
+{
+ "package": "16.15C3",
+ "title": "Long texts run in the engine: whole sources held out from their names, near copies counted, the holdout read once",
+ "date": "2026-10-14",
+ "request": "Phase C of 16.15, third part: run the embedded kind in the engine, texts first; images and pretrained weights are the owner's decision.",
+ "spec": "The embeddings library split into split, holdout_mask, choose and score; the kind's machine for long texts in a column; the engine acceptance on the notes replica; images refused in the engine.",
+ "plan": [
+  "Add split, choose and score beside the library's evaluate.",
+  "Write the text machine and its engine acceptance, the images kept in Case.items for the library check.",
+  "Test that the holdout's labels reach only the final stage.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "The held-out sources are chosen from a hash of their names alone, and the record keeps a fingerprint, not the names.",
+   "why": "No label or item shapes the split, more rows never move a source, and no table value enters the record."
+  },
+  {
+   "decision": "Sources are held out from the rows with a text and a source, before any label is looked at.",
+   "why": "A missing label in the holdout must not move a source to the other side."
+  },
+  {
+   "decision": "The positive class comes from the person or the training rows only.",
+   "why": "A label value seen only in the holdout must not change what every earlier stage trains on."
+  },
+  {
+   "decision": "Images are refused in the engine.",
+   "why": "Their encoder needs local weights, the owner's download; a random-feature baseline is not a solution to offer."
+  }
+ ],
+ "change": "dclab_core/embeddings.py (split, holdout_mask, choose, score; dclab-core 0.27.0), dclab_rnd/kinds/embedded.py (text_column, checks, EmbeddedMachine, engine acceptance; the notes as the table, the images in Case.items), dclab_rnd/kinds/acceptance.py (Case.items); tests/test_kind_acceptance_embedded.py (new), tests/test_core_embeddings.py; CHANGELOG, the playbook, the roadmap.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "leakage",
+   "defect": "Fitting the final model on the holdout's rows went unnoticed.",
+   "scenario": "A planted fault fitted on every row and every test passed.",
+   "cause": "The record reported the fitted rows by count, not by what was fitted.",
+   "fix": "score returns the holdout's predictions; a test checks they stay the same when the holdout's labels change.",
+   "test": "test_the_holdout_rows_are_never_fitted"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "Calibrating the near-copy threshold on every text went unnoticed.",
+   "scenario": "A planted fault calibrated on the holdout's texts too and every test passed.",
+   "cause": "The labels-only holdout test never changes a text.",
+   "fix": "A test changes the holdout's texts and checks the calibration and the ranking stay the same.",
+   "test": "test_the_near_copy_threshold_is_calibrated_on_training_texts_only"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A date as the source column held nothing out while the record said sources were held out.",
+   "scenario": "Authors parsed as dates: 6 sources held out by name, 0 rows in the mask, then a crash in the final stage.",
+   "cause": "split and holdout_mask turned dates into text in two different ways.",
+   "fix": "One function names every source; the machine refuses an empty or full holdout.",
+   "test": "test_a_date_as_the_source_holds_out_the_same_sources"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The holdout's labels chose the positive class for every stage.",
+   "scenario": "One held-out label typed differently made the training rows hold no positive at all.",
+   "cause": "The positive class was the last of every row's values, the holdout included.",
+   "fix": "The positive class comes from the person or the training rows; a held-out value outside them is refused in the final stage.",
+   "test": "test_the_positive_class_comes_from_the_training_rows_or_the_person"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With folds of one class every score was missing and a regularisation was still chosen.",
+   "scenario": "Positives on 3 of 30 authors: every mean None and C=0.1 reported as chosen by the best mean.",
+   "cause": "Plain grouped folds and a maximum over missing values.",
+   "fix": "Folds grouped by source and stratified by class; a fold of one class refuses the choice.",
+   "test": "test_one_class_folds_and_a_one_class_holdout_are_said_not_scored"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A holdout of one class was consumed and reported as a missing score with no reason.",
+   "scenario": "Held-out authors who wrote only routine notes: ROC-AUC None and the holdout counted as used.",
+   "cause": "No check before the score.",
+   "fix": "score says why it cannot read the holdout; the claim and the note say it.",
+   "test": "test_one_class_folds_and_a_one_class_holdout_are_said_not_scored"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "After a person chose another regularisation the final figures described the rule's pick.",
+   "scenario": "An approval set C=0.1 and the final stage reported the folds' score of C=1.0.",
+   "cause": "The figure was read from the rule's choice, not from the scored model's row.",
+   "fix": "The figure is the scored model's own row of the ranking.",
+   "test": "test_the_final_figure_is_the_scored_models_own"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Row positions in the record referred to the rows kept, not the table.",
+   "scenario": "Five rows without a text shifted every later position by five.",
+   "cause": "The index was reset after dropping rows.",
+   "fix": "The record keeps the table's own positions.",
+   "test": "test_positions_in_the_record_are_the_tables"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Missing labels could move a source across the holdout line, and the drop was not said.",
+   "scenario": "One author whose labels were all missing vanished and the held-out count fell from 12 to 11.",
+   "cause": "Rows without a label were dropped before the split.",
+   "fix": "Sources are held out from the rows with a text and a source; the rows left out are counted by reason in the note and the claim.",
+   "test": "test_a_missing_label_never_moves_a_source"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the notes replica in the engine, seed 0",
+   "gate": "every engine acceptance decision holds: whole authors apart, every copy across the line counted and nothing else, the choice on folds by author scored once, folds by author at least 0.9 and the holdout at least 0.8",
+   "result": "5 of 5 decisions hold: 63 rows of 12 authors held out, 0 authors on both sides; 6 of 6 copies across the line found, 0 other pairs; C=1.0 chosen; folds by author 1.0, holdout 1.0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "5 of 5 decisions hold",
+   "limits": [
+    "An easy invented replica and a baseline encoder: 1.0 says the machine works, not that texts are solved.",
+    "The kind stays partial: a pretrained encoder is not measured."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "17 of 17 planted faults caught after the fixes, counting one pair of guards planted together",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "17 of 17",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "Long texts run in the engine: whole sources held out from their names, the positive class from training rows, near copies counted, the regularisation chosen on stratified folds by source, the holdout read once; images wait for local weights.",
+ "lessons": [
+  "Name a value the same way everywhere it is compared: two ways of turning a date into text silently emptied a holdout.",
+  "Take every class decision from the training rows only; the holdout's labels decide nothing.",
+  "Split before dropping rows whose drop depends on a label."
+ ],
+ "risks": [
+  "Images in the engine wait for the owner's weights.",
+  "Multiclass and regression texts are refused by the kind's binary task.",
+  "Near-copy search compares every pair: bounded scale."
+ ],
+ "commits": []
+}

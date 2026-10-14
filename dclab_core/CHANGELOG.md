@@ -4,6 +4,20 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.27.0 (2026-10-14)
+
+Package 16.15 C (third part): long texts in the engine. `embeddings` gains what an engine runs stage by stage; no
+contract changes shape; `evaluate` is unchanged.
+
+- `embeddings.split`: whole sources held out, chosen from their names alone (each source's place is the SHA-256 of the
+  seed and its name; more rows of the same sources never move one); the record keeps a fingerprint of the held-out set,
+  not the names. `holdout_mask`. `choose`: the regularisation (C 0.1, 1 or 10) by folds grouped by source on the
+  training rows, the chosen one also on random folds, near copies across both counted. `score`: fitted on the training
+  rows only and scored once on the held-out sources, with the holdout's predictions.
+- Every function reads a source as the same text (a date, a number or a string alike); `choose` uses folds grouped by
+  source and stratified by class for a binary target and refuses folds that hold one class; `score` says, rather than
+  scores, a holdout of one class (`why_no_score`).
+
 ## 0.26.0 (2026-10-14)
 
 Package 16.15 C (second part): streams in the engine. `streams` splits into what an engine runs stage by stage; no

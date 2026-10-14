@@ -43,6 +43,7 @@ class Case:
     quick: bool = True
     facts: dict[str, Any] = field(default_factory=dict)
     tables: dict[str, pd.DataFrame] | None = None  # 16.15 C: related tables, attached by name beside the main one
+    items: dict[str, Any] | None = None  # inputs that are not tables (images in memory): read by the library's own solve only
 
 
 @dataclass

@@ -128,7 +128,7 @@ class KindTest(unittest.TestCase):
                       "Predict which customers churn; we keep scans of their signed contracts"):
             self.assertNotEqual(self.kinds.detect(other)["key"], "embedded", other)
 
-    def test_the_image_encoder_never_downloads_and_the_engine_refuses_the_kind(self):
+    def test_the_image_encoder_never_downloads_and_the_engine_refuses_images(self):  # 16.15 C: long texts run in it
         from dclab_rnd.encoders import TorchvisionImage
         from dclab_rnd.studio.solution import Solution
 
