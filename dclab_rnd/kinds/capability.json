@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-13T07:47:57+00:00",
+ "at": "2026-10-14T18:12:10+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -604,6 +604,53 @@
      "decision": "the baselines the kind declares are the ones the final stage computes",
      "ok": true,
      "detail": "declared ['training_mean', 'training_median'], computed ['training_mean', 'training_median']"
+    }
+   ],
+   "missing": []
+  },
+  {
+   "kind": "anomaly",
+   "status": "supported",
+   "checks": [
+    {
+     "decision": "a ranked review list of the size the budget allows, from the latest days",
+     "ok": true,
+     "detail": "37 rows of 3567 from 2025-03-10"
+    },
+    {
+     "decision": "the detector chosen on planted anomalies of the validation period, before the rows to review are read",
+     "ok": true,
+     "detail": "nearest_neighbours: {'recall_at_budget': {'far_value': 1.0, 'broken_pair': 0.0, 'busy_entity': 1.0}, 'mean': 0.6667}"
+    },
+    {
+     "decision": "the review list finds the fake trips well above their rate",
+     "ok": true,
+     "detail": "7 of 37 listed are fake trips; their rate is 0.0070"
+    },
+    {
+     "decision": "its evaluation on planted anomalies of the rows to review, beside the rules",
+     "ok": true,
+     "detail": "{'far_value': {'chosen': 1.0, 'rules': 0.7297}, 'broken_pair': {'chosen': 0.0, 'rules': 0.027}, 'busy_entity': {'chosen': 1.0, 'rules': 1.0}}"
+    },
+    {
+     "decision": "the honest limits stated: what no column shows (self-deliveries) is not claimed",
+     "ok": true,
+     "detail": "0 of 4 self-deliveries listed"
+    },
+    {
+     "decision": "the engine runs every stage as the anomaly machine",
+     "ok": true,
+     "detail": "data: anomaly, leakage: anomaly, features: anomaly, models: anomaly, final: anomaly"
+    },
+    {
+     "decision": "in the engine the detector chosen on validation ranks the review list, read once",
+     "ok": true,
+     "detail": "nearest_neighbours, 37 rows listed"
+    },
+    {
+     "decision": "in the engine the evaluation on planted anomalies and its limits are in the final record",
+     "ok": true,
+     "detail": "planted {'far_value': {'chosen': 1.0, 'rules': 0.7297}, 'broken_pair': {'chosen': 0.0, 'rules': 0.027}, 'busy_entity': {'chosen': 1.0, 'rules': 1.0}}"
     }
    ],
    "missing": []
