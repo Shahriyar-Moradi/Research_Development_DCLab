@@ -27,6 +27,7 @@ Relations it finds and :func:`synthesize` reproduces:
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from collections.abc import Mapping
@@ -49,6 +50,9 @@ MIN_LEVEL = 5  # a number kept as a category only when every kept one has at lea
 KEY_TOKENS = frozenset({"id", "ids", "uuid", "guid", "key", "ref", "phone", "email", "hash", "token", "nr", "number"})
 HEX = frozenset("0123456789abcdef")
 Role = Literal["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"]
+# 20.3: what a column is for in the problem, each with its reason
+Purpose = Literal["identifier", "time", "entity", "target_candidate", "feature", "text", "place", "constant", "leak_suspect"]
+NOT_A_TARGET = frozenset({"identifier", "time", "entity", "text", "place", "constant", "leak_suspect"})
 TableRole = Literal["main", "labels", "related"]
 Source = Literal["found", "planted"]
 
@@ -89,6 +93,9 @@ class ColumnCard(Contract):
     date_format: Optional[str] = Field(None, max_length=20, description="Dates stored as text: their format.")
     length: Optional[float] = Field(None, ge=0, description="Text: mean characters, rounded.")
     step: Optional[float] = Field(None, gt=0, description="Numbers: nearly every value a multiple of it (1, 2, 2.5 or 5 times a power of ten).")
+    purpose: Optional[Purpose] = Field(None, description="v2 (20.3): what the column is for in the problem.")
+    why: Optional[str] = Field(None, max_length=300, description="v2: the rule that gave the purpose, in words.")
+    unit: Optional[str] = Field(None, max_length=20, description="v2: the unit its name says (km, minutes, EUR…).")
 
 
 class TableCard(Contract):
@@ -96,6 +103,11 @@ class TableCard(Contract):
     role: TableRole = "main"
     rows: int = Field(ge=0)
     columns: list[ColumnCard] = Field(default_factory=list, max_length=2000)
+    grain: Optional[str] = Field(None, max_length=300, description="v2: what one row is, in words.")
+    key: list[str] = Field(default_factory=list, max_length=4, description="v2: the fewest columns that tell rows apart.")
+    duplicate_rows: Optional[float] = Field(None, ge=0, le=1, description="v2: the share of rows repeated whole.")
+    target_candidates: list[str] = Field(default_factory=list, max_length=20, description="v2: allowed outcomes, likeliest first.")
+    joins_on: list[str] = Field(default_factory=list, max_length=4, description="v2: a labels table's key into the main table.")
 
 
 class Relation(Contract):
@@ -129,7 +141,7 @@ class Problem(Contract):
 class DataCard(Versioned):
     """The tables of one problem without their rows: columns in bands, relations, problems."""
 
-    schema_version: Literal["dclab_core.data_card.v1"] = _version("data_card")
+    schema_version: Literal["dclab_core.data_card.v2"] = _version("data_card", 2)
     name: str = Field(min_length=1, max_length=200)
     synthetic: bool = Field(False, description="Built from a synthetic table (a replica, or drawn from another card).")
     tables: list[TableCard] = Field(min_length=1, max_length=20)
@@ -137,8 +149,18 @@ class DataCard(Versioned):
     problems: list[Problem] = Field(default_factory=list, max_length=100)
     limits: list[str] = Field(default_factory=list, max_length=20)
 
+    target: Optional[str] = Field(None, max_length=200, description="v2: the outcome the problem names, when it names one.")
+
     def table(self, name: str) -> TableCard:
         return next(t for t in self.tables if t.name == name)
+
+    @classmethod
+    def read(cls, document):
+        """A card as stored; a v1 card (19.11) is read as v2: v2 only added fields, each optional."""
+        data = json.loads(document) if isinstance(document, (str, bytes)) else dict(document)
+        if data.get("schema_version") == "dclab_core.data_card.v1":
+            data["schema_version"] = cls.model_fields["schema_version"].default
+        return super().read(data)
 
 
 CONTRACTS["data_card"] = DataCard
@@ -466,15 +488,228 @@ def _problems(card_tables: list[TableCard], relations: list[Relation]) -> list[P
     return out
 
 
+# ------------------------------------------------------------------------------------------------ purposes (20.3)
+
+UNITS = {"km": "km", "m2": "m²", "mm": "mm", "cm": "cm", "kg": "kg", "minutes": "minutes", "mins": "minutes",
+         "hours": "hours", "hrs": "hours", "days": "days", "weeks": "weeks", "months": "months", "years": "years", "seconds": "seconds",
+         "pct": "percent", "percent": "percent", "eur": "EUR", "usd": "USD", "gbp": "GBP", "aed": "AED"}
+COORDINATES = frozenset({"lat", "lon", "lng", "latitude", "longitude"})
+PLACE_WORDS = COORDINATES | frozenset({"city", "country", "postcode", "zip", "zipcode", "district", "address", "street"})
+# words a column written after the outcome often carries: a suspicion to check, never a verdict
+AFTER_WORDS = frozenset({"final", "resolved", "refund", "refunded", "rating", "rated", "reply", "replied", "response", "delivered",
+                         "closed", "completed", "settled", "lifetime"})
+AFTER_PHRASES = ("so_far",)
+# an outcome by its whole name (churned, fraud, label) or by its form (is_late, fraud_flag); a token inside a longer
+# name (default_rate, class_size, positive_reviews) says nothing
+OUTCOME_NAMES = frozenset({"target", "label", "outcome", "result", "class", "churn", "churned", "fraud", "default", "defaulted",
+                           "converted", "bought", "negative", "positive", "urgent", "accepted", "cancelled", "canceled", "renewed",
+                           "failed", "y"})
+FLAG_HEADS = frozenset({"is", "has", "was", "did", "will"})
+FLAG_TAILS = frozenset({"flag", "label", "target", "outcome"})
+ENTITY_LEVELS = 20  # a text column with this many recurring names is a thing rows belong to, not a category
+
+
+def _unit(name: str) -> Optional[str]:
+    return next((UNITS[t] for t in reversed(name_tokens(name)) if t in UNITS), None)
+
+
+def outcome_named(name: str) -> bool:
+    tokens = name_tokens(name)
+    return bool(tokens) and ("_".join(tokens) in OUTCOME_NAMES or tokens[0] in FLAG_HEADS and len(tokens) > 1
+                             or tokens[-1] in FLAG_TAILS and len(tokens) > 1)
+
+
+def _after_named(name: str) -> Optional[str]:
+    hit = sorted(set(name_tokens(name)) & AFTER_WORDS) or [p for p in AFTER_PHRASES if p in name.lower()]
+    return ", ".join(hit) if hit else None
+
+
+def _row_number(series: pd.Series) -> bool:
+    numbers = pd.to_numeric(series, errors="coerce")
+    if numbers.isna().any() or len(numbers) < MIN_ROWS or not (numbers % 1 == 0).all():
+        return False
+    return bool(numbers.nunique() == len(numbers) and numbers.max() - numbers.min() + 1 == len(numbers))
+
+
+def _auc(x: pd.Series, y: pd.Series) -> float:
+    """How well one number separates a yes from a no (the area under its ROC curve, 0.5 when it says nothing)."""
+    ranks = x.rank()
+    pos = y.astype(bool)
+    n1, n0 = int(pos.sum()), int((~pos).sum())
+    if not n1 or not n0:
+        return 0.5
+    auc = (ranks[pos].sum() - n1 * (n1 + 1) / 2) / (n1 * n0)
+    return float(max(auc, 1 - auc))
+
+
+def _purity(x: pd.Series, y: pd.Series) -> Optional[float]:
+    """The share of rows whose value names their outcome: each value's commonest outcome, counted over all rows."""
+    pair = pd.DataFrame({"x": _norm(x), "y": _norm(y)}).dropna()
+    if len(pair) < MIN_ROWS or pair["y"].value_counts(normalize=True).iloc[0] >= 0.9:
+        return None  # an outcome nine rows in ten share: any column looks pure
+    return float(pair.groupby("x")["y"].agg(lambda v: v.value_counts().iloc[0]).sum() / len(pair))
+
+
+def _leak(name: str, frame: pd.DataFrame, card: ColumnCard, target: Optional[str], cards: dict[str, ColumnCard],
+          dates: dict[str, Optional[pd.Series]]) -> Optional[str]:
+    """Why a column looks written after the outcome, or None: by its name, and, when the outcome is known, by what it
+    holds: empty for exactly one outcome, naming it almost perfectly, separating it alone, tracking a number outcome,
+    or a time that gives it with another time. A suspicion to check, never proof."""
+    words = _after_named(name)
+    if words:
+        return f"its name ({words}) may say it is written after the outcome: check it is known at the prediction moment"
+    if not target or target not in frame or target == name:
+        return None
+    tokens = name_tokens(name)
+    if tokens and ("_".join(tokens) in OUTCOME_NAMES or (tokens[-1] in FLAG_TAILS and len(tokens) > 1)):  # is_/has_ forms are often inputs
+        return f"its name says an outcome too, beside {target}: a second outcome is not an input"
+    known = frame[target].notna()
+    if known.sum() < MIN_ROWS:
+        return None
+    y, x = frame[target][known], frame[name][known]
+    outcome = cards.get(target)
+    categorical = outcome is not None and outcome.cardinality in ("binary", "low", "medium")
+    if categorical and 0 < x.isna().mean() < 1:
+        empty = x.isna()
+        for value in y.unique()[:20]:
+            hit = y == value
+            both = (empty & hit).sum()  # both ways: that outcome's rows are the empty ones, and the empty ones are that outcome
+            if both >= 0.95 * hit.sum() and both >= 0.95 * empty.sum():
+                return f"it is empty exactly when {target} is one value"
+    if categorical and card.role == "categorical_code" and card.distinct >= 2 and len(x) / max(card.distinct, 1) >= 5:
+        pure = _purity(x, y)
+        if pure is not None and pure >= 0.98:
+            return f"each of its values names one {target} ({pure:.0%} of rows)"
+    if card.role == "numeric" and outcome is not None:
+        numbers = pd.to_numeric(x, errors="coerce")
+        both = numbers.notna()
+        if outcome.cardinality == "binary" and both.sum() >= MIN_ROWS:
+            auc = _auc(numbers[both], y[both] == y[both].unique()[0])
+            if auc >= 0.97:
+                return f"it alone separates the values of {target} (AUC {auc:.2f}): check it is known at the prediction moment"
+        elif outcome.role == "numeric" and both.sum() >= MIN_ROWS:
+            corr = abs(float(numbers[both].corr(pd.to_numeric(y[both], errors="coerce"), method="spearman") or 0))
+            if corr >= 0.97:
+                return f"it follows {target} almost exactly (rank correlation {corr:.2f})"
+    if card.role == "datetime" and outcome is not None and outcome.role == "numeric" and dates.get(name) is not None:
+        later = dates[name][known]
+        for other, earlier in dates.items():
+            if other in (name, target) or earlier is None:
+                continue
+            gap = (later - earlier[known]).dt.total_seconds()
+            both = gap.notna() & pd.to_numeric(y, errors="coerce").notna()
+            if both.sum() >= MIN_ROWS and (gap[both] >= 0).mean() > 0.95:
+                corr = abs(float(gap[both].corr(pd.to_numeric(y[both]), method="spearman") or 0))
+                if corr >= 0.95:
+                    return f"its time minus {other} gives {target} (rank correlation {corr:.2f})"
+    return None
+
+
+def purposes(frame: pd.DataFrame, cards: dict[str, ColumnCard], target: Optional[str] = None,
+             full: Optional[pd.DataFrame] = None) -> dict[str, tuple[str, str]]:
+    """Each column's purpose and the reason, by rule (``frame`` may be a sample; ``full`` the whole table, for a row
+    number). The outcome the problem names is judged as an outcome: a number with a different value in every row is a
+    regression target, not an identifier; it is refused only when its name says it is a key, it counts the rows, it is
+    one value, free text, a time, a coordinate or written after the outcome."""
+    full = full if full is not None else frame
+    dates = {c: _dates(frame[c]) for c, k in cards.items() if k.role == "datetime"}  # parsed once
+    out: dict[str, tuple[str, str]] = {}
+    for name, card in cards.items():
+        tokens = set(name_tokens(name))
+        is_target = name == target
+        unique = card.uniqueness in ("from_90_to_99pct", "over_99pct", "all")
+        numeric_values = card.dtype in ("integer", "float") or pd.to_numeric(frame[name].dropna().head(200), errors="coerce").notna().all()
+        if card.distinct <= 1 and not 0 < card.null_rate < 1:  # one value sometimes empty is a flag, not a constant
+            out[name] = ("constant", "one value in every row" if card.distinct else "empty in every row")
+        elif key_named(name):  # customer_id, order_ref, biker_phone: never an outcome, whatever its values
+            out[name] = ("identifier", "its name says it is a key, with a different value in nearly every row") if unique else \
+                ("entity", "its name says it is a key, and its values recur: rows of one customer, biker or store belong together")
+        elif card.dtype in ("integer", "float") and _row_number(full[name]):
+            out[name] = ("identifier", "the numbers 1 to n (or a step apart), one per row: a row number")
+        elif card.role == "identifier" and unique and not (is_target and numeric_values):
+            out[name] = ("identifier", "a different value in nearly every row")
+        elif not is_target and (why := _leak(name, frame, card, target, cards, dates)):
+            out[name] = ("leak_suspect", why)
+        elif card.role == "free_text":
+            out[name] = ("text", "long, varied text: words to read, not a category")
+        elif card.role == "datetime":
+            out[name] = ("time", "dates or times")
+        elif tokens & COORDINATES or (not is_target and tokens & PLACE_WORDS):
+            out[name] = ("place", f"its name says where ({', '.join(sorted(tokens & PLACE_WORDS))})")
+        elif card.role == "identifier" and not is_target:
+            out[name] = ("entity", "a key whose values recur: rows of one customer, biker or store belong together")
+        elif not is_target and card.role == "categorical_code" and card.dtype in ("string", "categorical") \
+                and card.distinct >= ENTITY_LEVELS and card.uniqueness in ("under_1pct", "from_1_to_10pct", "from_10_to_50pct"):
+            out[name] = ("entity", f"{card.distinct} names that recur: rows of one machine, author or series belong together")
+        elif is_target:
+            out[name] = ("target_candidate", "the outcome the problem names")
+        elif not target and (card.cardinality == "binary" or outcome_named(name)):  # with no outcome named: what could be one
+            out[name] = ("target_candidate", "a yes or no" if card.cardinality == "binary" else "its name says an outcome")
+        else:
+            out[name] = ("feature", "known about the row: a candidate input")
+    if not target:  # a yes or no whose name says written-after is a likely outcome when none is named yet
+        for name, card in cards.items():
+            if out[name][0] == "leak_suspect" and (card.cardinality == "binary" or outcome_named(name)):
+                out[name] = ("target_candidate", "a yes or no, or named as an outcome; its name may also mean written after one")
+    for name, card in cards.items():  # an entity whose rows all share one outcome: the group a split must keep together
+        if target and name != target and out[name][0] == "entity" and target in frame:
+            pure = _purity(frame[name], frame[target])
+            if pure is not None and pure >= 0.98:
+                out[name] = ("entity", out[name][1] + f"; its rows share one {target}: split by it")
+    return out
+
+
+def _grain(frame: pd.DataFrame, cards: dict[str, ColumnCard], purpose: dict[str, tuple[str, str]]) -> tuple[str, list[str], float]:
+    """What one row is: the fewest columns (up to three) that tell rows apart, in words."""
+    sample = _sample(frame)
+    duplicates = float(sample.duplicated().mean()) if len(sample) else 0.0
+    sample = sample.drop_duplicates()  # a row repeated whole is a duplicate to remove, not a second grain
+    repeated = f", with {duplicates:.1%} of rows repeated whole" if duplicates else ""
+    keys = [c for c, (p, _) in purpose.items() if p == "identifier" and cards[c].null_rate == 0 and not sample[c].duplicated().any()]
+    if keys:
+        return f"one row per {keys[0]}{repeated}", [keys[0]], duplicates
+    pool = [c for c, (p, _) in purpose.items() if p in ("identifier", "entity", "time") or (cards[c].role == "categorical_code" and cards[c].distinct > 1)]
+    pool = sorted(pool, key=lambda c: -cards[c].distinct)[:8]
+    from itertools import combinations
+
+    for size in (1, 2, 3):
+        for combo in combinations(pool, size):
+            part = sample[list(combo)]
+            if part.notna().all(axis=None) and not part.duplicated().any():
+                return f"one row per {' and '.join(combo)}{repeated}", list(combo), duplicates
+    return f"no column or set of three tells the rows apart{repeated}", [], duplicates
+
+
+def _candidates(cards: dict[str, ColumnCard], purpose: dict[str, tuple[str, str]], target: Optional[str]) -> list[str]:
+    allowed = [c for c, (p, _) in purpose.items() if p == "target_candidate"]
+    return sorted(allowed, key=lambda c: (c != target, not outcome_named(c), cards[c].cardinality != "binary", c))[:20]
+
+
 def card_of(tables: Mapping[str, pd.DataFrame], name: str = "tables", roles: Optional[Mapping[str, str]] = None,
-            keep_categories: bool = False, synthetic: bool = False, planted: Optional[list[Problem]] = None) -> DataCard:
-    """The card of these tables. ``roles``: each table's role (the first is ``main``, the rest ``labels`` by default)."""
+            keep_categories: bool = False, synthetic: bool = False, planted: Optional[list[Problem]] = None,
+            target: Optional[str] = None) -> DataCard:
+    """The card of these tables. ``roles``: each table's role (the first is ``main``, the rest ``labels`` by default).
+    ``target``: the outcome the problem names, when it names one (in the main table): it sharpens the leak suspicions
+    and is checked against what may be an outcome."""
     tables = {str(t): f.rename(columns=str) for t, f in tables.items()}  # a column named 0 is the column "0"
     names = list(tables)
     roles = dict(roles or {})
     columns = {t: {str(c): column_card(str(c), tables[t][c], keep_categories) for c in tables[t].columns} for t in names}
-    cards = [TableCard(name=str(t)[:200], role=roles.get(t, "main" if i == 0 else "labels"), rows=int(len(tables[t])), columns=list(columns[t].values()))
-             for i, t in enumerate(names)]
+    main_name = next((t for i, t in enumerate(names) if roles.get(t, "main" if i == 0 else "labels") == "main"), names[0])
+    cards, refused = [], []
+    for i, t in enumerate(names):
+        aim = target if t == main_name else None
+        purpose = purposes(_sample(tables[t]), columns[t], aim, full=tables[t])
+        cols = [c.model_copy(update={"purpose": purpose[c.name][0], "why": purpose[c.name][1][:300], "unit": _unit(c.name)}) for c in columns[t].values()]
+        columns[t] = {c.name: c for c in cols}
+        grain, key, duplicates = _grain(tables[t], columns[t], purpose)
+        if aim and aim in purpose and purpose[aim][0] in NOT_A_TARGET:
+            refused.append(_problem(code="target_refused", tables=[str(t)[:200]], columns=[str(aim)[:200]],
+                                    statement=f"{_short(aim)} cannot be the outcome: it is {purpose[aim][0].replace('_', ' ')} ({purpose[aim][1]}).",
+                                    numbers={}))
+        cards.append(TableCard(name=str(t)[:200], role=roles.get(t, "main" if i == 0 else "labels"), rows=int(len(tables[t])), columns=cols,
+                               grain=grain[:300], key=key[:4], duplicate_rows=round(duplicates, 4),
+                               target_candidates=_candidates(columns[t], purpose, aim)))
     relations: list[Relation] = []
     main = next((c.name for c in cards if c.role == "main"), names[0])
     for t in names:  # between the tables first: a key, a coarse join and a name with two meanings are the traps
@@ -482,8 +717,10 @@ def card_of(tables: Mapping[str, pd.DataFrame], name: str = "tables", roles: Opt
             relations += _between(t, tables[t], main, tables[main], columns[t], columns[main])
     for t in names:
         relations += _within(t, tables[t], columns[t])
-    found = _problems(cards, relations)
-    return DataCard(name=name[:200], synthetic=synthetic, tables=cards, relations=relations[:500],
+    keys = {r.table: list(r.columns) for r in relations if r.kind == "key"}
+    cards = [c.model_copy(update={"joins_on": keys.get(c.name, [])[:4]}) for c in cards]
+    found = refused + _problems(cards, relations)
+    return DataCard(name=name[:200], synthetic=synthetic, tables=cards, relations=relations[:500], target=(target or None) and str(target)[:200],
                     problems=(found + [p.model_copy(update={"source": "planted"}) for p in planted or []])[:100],
                     limits=["Relations are measured on at most 100,000 rows of each table.",
                             "A relation not listed here (a behaviour across rows, a formula between numbers) is not drawn again."])

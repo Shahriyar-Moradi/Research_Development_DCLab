@@ -176,6 +176,21 @@ code are not one connected object a data scientist can read, run and change.
   units, ranges, missingness; refusals in code: an identifier, a constant, a row number or a free-text column is
   never a target candidate.
 - **Done when:** on every replica the roles match the replica's facts; `customer_id` can never be proposed as a target.
+- **Status: done (2026-10-14).** The 19.11 card, moved to `dclab_core.data_card.v2` (dclab-core 0.14.0; v1 read as v2):
+  each column's `purpose` with its rule in words (`why`) and the unit its name says; each table's grain in words, its
+  key, the share of whole repeats, its target candidates and a labels table's join key; `card_of(..., target=)`
+  judges the outcome the problem names as an outcome (a unique number is a regression target, a 30-class column a
+  multiclass one) and refuses it, as a `target_refused` problem, only when its name says it is a key, it counts the
+  rows, it is one value, free text, a time, a coordinate or a leak suspect; a column named as a key (`customer_id`,
+  whatever its values) is never a candidate. Leak suspicion by name (words often written after an outcome: a
+  suspicion to check, never a verdict) and, with the outcome, by data (empty exactly for one outcome both ways,
+  naming it, separating it alone, tracking it, or a time that gives it); outcome words match the whole name or its
+  form (`is_…`, `…_flag`), never a token inside a longer name; an entity whose rows share one outcome stays an entity
+  ("split by it"). On all 16 replica tables the purposes match their facts and docstrings, and held-out realistic
+  names get theirs (`tests/test_data_card_purposes.py`); two cannot be seen in a table and are listed there with why
+  (`rain_mm` known only on the day; `last_order_date` written after a cutoff). A draft's card checks the outcome known
+  when its data is analysed. Left open: an outcome named later is checked at the build by 20.4; the engine's own
+  column roles (blocked, group) do not read the card yet; units only from names.
 
 ### 20.4 The problem meets the data
 - **Delivers:** `check(problem_card, data_card)`: the stated target exists and fits the family; the unit equals the

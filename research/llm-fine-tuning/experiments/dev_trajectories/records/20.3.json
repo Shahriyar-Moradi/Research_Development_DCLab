@@ -1,0 +1,47 @@
+{
+ "package": "20.3",
+ "title": "The data card says what each column is for, why, and which column may never be an outcome",
+ "date": "2026-10-14",
+ "request": "Milestone C: DCLab understands the problem and the data together. The morning a project predicted customer_id must be impossible: the card gives each column a purpose with its reason, and refuses an identifier, a constant, a row number or free text as an outcome.",
+ "spec": "DataCard v2: each column's purpose (identifier, time, entity, target candidate, feature, text, place, constant, leak suspect) with its reason, the grain, label files and their join keys, units, ranges and missingness. Done when, on every replica, the purposes match the replica's facts, and customer_id can never be proposed as a target.",
+ "plan": [
+  "Extend the 19.11 card to v2: optional fields, so a v1 card is read as v2.",
+  "Purposes by rule over the bands already measured, with the outcome the problem names as an input that sharpens leak suspicions.",
+  "A test over all 16 replica tables, with the facts as expectations and the two things a table cannot show listed with why."
+ ],
+ "decisions": [
+  {"decision": "A column named as a key is never an outcome, whatever its values.", "why": "customer_id with eight values once looked like a class; the name says what it is."},
+  {"decision": "The outcome the problem names is judged as an outcome, not by the rules for inputs.", "why": "A price with a different value in every row is a regression target, not an identifier."},
+  {"decision": "A leak by name is a suspicion to check, not a verdict.", "why": "Words like rating or response often mean written after the outcome, but not always; the reason says check it."}
+ ],
+ "change": "dclab_core/datacard.py (DataCard v2, purposes, grain, refusals; dclab-core 0.14.0), schemas data_card v2; dclab_rnd/studio/data.py, draft/pipeline.py (the outcome passed), dclab_rnd/datasets.py (anonymous_card renames shortened names too); tests/test_data_card_purposes.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {"id": "S1", "source": "self", "severity": "behaviour", "defect": "With an outcome named, every other yes-or-no column was also a target candidate.", "scenario": "ticket_routing's mentions_* flags were listed beside assigned_team.", "cause": "The binary rule ran whether or not the problem had named its outcome.", "fix": "Only with no outcome named is a yes or no a candidate.", "test": "test_on_every_replica_the_purposes_match_its_facts"},
+  {"id": "S2", "source": "self", "severity": "behaviour", "defect": "Two percent of whole-row repeats hid the grain.", "scenario": "ticket_routing had no key, though ticket_id names a ticket.", "cause": "The grain was judged on rows with their repeats.", "fix": "Judge the grain on distinct rows, and say how many repeat.", "test": "test_every_purpose_says_why_and_the_grain_is_said"},
+  {"id": "R1", "source": "reviewer", "severity": "leakage", "defect": "customer_id with few values was proposed, and accepted, as an outcome.", "scenario": "Two or eight customer codes over 400 rows: a yes or no, or a target with no refusal.", "cause": "The key rule needed many distinct values.", "fix": "A column named as a key is an identifier or an entity, never a candidate.", "test": "test_customer_id_with_few_values_is_still_a_key"},
+  {"id": "R2", "source": "reviewer", "severity": "behaviour", "defect": "Real regression and multiclass outcomes were refused.", "scenario": "A unique price, a number stored as text, a 30-class category and a city named as the target.", "cause": "The rules for inputs (identifier, entity, place) were applied to the named target.", "fix": "The named outcome is refused only when its name says key, it counts the rows, or it is a coordinate, a time, text or a constant.", "test": "test_a_named_outcome_is_judged_as_an_outcome"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "With no outcome named, a column named as one was called a leak.", "scenario": "outcome, result, refunded and delivered_on_time were leak suspects, and no candidate was offered.", "cause": "The written-after words were checked first, and outcome was in both lists.", "fix": "outcome and result left the written-after words. With no outcome named, a yes or no flagged by name is a candidate whose reason notes the doubt.", "test": "test_held_out_names_get_their_purpose"},
+  {"id": "R4", "source": "reviewer", "severity": "behaviour", "defect": "The word lists were fitted to the replicas and fired on ordinary names.", "scenario": "default_rate, class_size, positive_reviews and y_coord were treated as outcomes; ytd_spend as a leak; min_balance in minutes.", "cause": "A token anywhere in the name counted.", "fix": "Outcome words match the whole name or its form (is_, _flag); to_date and min removed; a held-out list of realistic names tested.", "test": "test_held_out_names_get_their_purpose"},
+  {"id": "R5", "source": "reviewer", "severity": "behaviour", "defect": "Random gaps were called a leak on a rare outcome.", "scenario": "0.8% fraud and 0.8% random gaps: 'empty exactly when'.", "cause": "Overall agreement is high by chance when both rates are small, and the filled direction is trivially true for the majority outcome.", "fix": "Empty for that outcome's rows, and those rows for the empty ones, each at 95%; the filled direction dropped.", "test": "test_the_data_rules_of_a_leak"},
+  {"id": "R6", "source": "reviewer", "severity": "leakage", "defect": "An entity whose rows share one outcome became a leak suspect.", "scenario": "customer_id in a transactions table with churned repeated on every row.", "cause": "The purity rule ran on recurring keys.", "fix": "Keys keep their entity purpose, with 'its rows share one outcome: split by it'.", "test": "test_an_entity_that_shares_its_outcome_stays_an_entity"},
+  {"id": "R7", "source": "reviewer", "severity": "privacy", "defect": "A long file name left a shared card through a problem.", "scenario": "A 66-character file name, shortened in a problem's tables, missed the renaming.", "cause": "The renaming looked up the full name only.", "fix": "The problem keeps the full name, and the renaming also replaces the shortened form.", "test": "test_a_long_file_name_never_leaves_a_shared_card"},
+  {"id": "R8", "source": "reviewer", "severity": "gap", "defect": "The data rules of a leak and the refusals of a row number had no test.", "scenario": "Disabling the AUC, time-pair, purity-guard or row-number rule passed the suite.", "cause": "Replica facts covered only name rules.", "fix": "A test for each rule, and planted faults until each is caught.", "test": "test_the_data_rules_of_a_leak"},
+  {"id": "R9", "source": "reviewer", "severity": "gap", "defect": "The status claimed a draft checks the outcome the person names, but a later answer is not checked.", "scenario": "An outcome named after the analysis.", "cause": "The card is built only when the data is analysed.", "fix": "The status narrowed; 20.4 checks the outcome against the card at the build.", "test": "read against the code"},
+  {"id": "R10", "source": "reviewer", "severity": "behaviour", "defect": "The leak rules were slow on wide date tables.", "scenario": "200,000 rows and ten date columns took 11 s.", "cause": "Dates re-parsed for every pair, and the full table read.", "fix": "Dates parsed once, the rules on the 100,000-row sample.", "test": "a timing probe: 3.3 s"}
+ ],
+ "measurements": [
+  {"name": "replica purposes", "gate": "every column a replica's facts name gets that purpose", "result": "all 16 replica tables match; 2 columns listed as not visible in a table, each with its reason", "verdict": "pass", "cost_eur": 0.0, "against_gate": "16 of 16", "limits": ["The facts name only some columns; held-out names cover others."]},
+  {"name": "planted faults", "gate": "each rule undone fails a test", "result": "9 of 13 caught at first; tests sharpened, then 13 of 13", "verdict": "pass", "cost_eur": 0.0, "against_gate": "13 of 13", "limits": ["Only the faults planted."]}
+ ],
+ "outcome": "Every column of a table now has a purpose and the rule behind it, and every table has its grain. An outcome named by the problem is checked: customer_id, a row number, a constant, free text, a time or a coordinate is refused with its reason, while a real price or class is accepted.",
+ "lessons": [
+  "Test word rules on held-out names, not only the replicas they were written beside.",
+  "Judge the named outcome by the rules for outcomes; the rules for inputs refuse real targets.",
+  "A rate agreement on a rare event is high by chance: require both conditional shares."
+ ],
+ "risks": [
+  "Leak suspicion by name will miss a leak with an innocent name and flag an innocent column with a suspicious one; the reason says check it.",
+  "rain_mm (known only on the day) cannot be seen in a table."
+ ],
+ "commits": []
+}

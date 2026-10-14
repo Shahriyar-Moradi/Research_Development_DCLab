@@ -256,7 +256,8 @@ def _as_text(value: Any) -> str | None:
 
 
 def data_card(store: Any, draft_id: str, name: str, frame: Any) -> dict[str, Any] | None:
-    """The draft's data card (package 19.11): the table, and its label file when one is here (``studio.data.data_card``)."""
+    """The draft's data card (package 19.11): the table, and its label file when one is here (``studio.data.data_card``),
+    with the outcome the person named checked against the table (20.3)."""
     from ..studio.data import data_card as card
 
     tables = {str(name)[:200] or "table": frame}
@@ -266,4 +267,8 @@ def data_card(store: Any, draft_id: str, name: str, frame: Any) -> dict[str, Any
             tables["labels"] = pd.read_parquet(labels)
     except Exception:  # noqa: BLE001 - the table's card stands without its labels
         pass
-    return card(tables, name)
+    try:
+        target = (store.get(draft_id).get("understanding") or {}).get("target")
+    except Exception:  # noqa: BLE001
+        target = None
+    return card(tables, name, target)

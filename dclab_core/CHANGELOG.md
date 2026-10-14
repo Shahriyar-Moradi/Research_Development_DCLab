@@ -4,6 +4,21 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.14.0 (2026-10-14)
+
+Package 20.3: what each column is for. `DataCard` moves to v2 (`dclab_core.data_card.v2`); a v1 card is read as v2,
+since v2 only adds optional fields.
+
+- Each `ColumnCard` has a `purpose` (identifier, time, entity, target candidate, feature, text, place, constant, leak
+  suspect), the rule that gave it (`why`) and the unit its name says. `purposes(frame, cards, target)`.
+- Each `TableCard` has its `grain` in words, the `key` (the fewest columns that tell rows apart, after whole repeats),
+  the share of rows repeated whole, its `target_candidates`, and, for a labels table, `joins_on`.
+- `card_of(..., target=)`: the outcome the problem names, judged as an outcome. It sharpens leak suspicions: a column
+  empty for exactly one outcome, naming it almost perfectly, separating it alone, tracking a number outcome, or a time
+  that gives it with another time. It is refused, with a `target_refused` problem, when its name says it is a key, it
+  counts the rows, it is one value, free text, a time, a coordinate or a leak suspect: `customer_id` is never an
+  outcome. `outcome_named(name)`: an outcome by its whole name or its form, never by a token inside a longer name.
+
 ## 0.13.0 (2026-10-14)
 
 Package 19.12: training and evaluation sets from real use. A new contract; no other contract changes shape.

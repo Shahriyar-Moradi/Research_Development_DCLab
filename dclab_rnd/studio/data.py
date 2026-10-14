@@ -79,7 +79,7 @@ def column_kind(series: pd.Series) -> str:
     return "categorical"
 
 
-def data_card(tables: dict[str, pd.DataFrame], name: str) -> dict[str, Any] | None:
+def data_card(tables: dict[str, pd.DataFrame], name: str, target: str | None = None) -> dict[str, Any] | None:
     """The tables' data card (package 19.11, ``dclab_core.datacard``): columns in bands, relations and problems, never a
     row; category names replaced by codes. None when it cannot be built: what it describes stands without it."""
     import sys
@@ -87,7 +87,9 @@ def data_card(tables: dict[str, pd.DataFrame], name: str) -> dict[str, Any] | No
     try:
         from dclab_core.datacard import card_of
 
-        return card_of(tables, name=str(name)[:200] or "table").model_dump(mode="json")
+        main = next(iter(tables.values()), None)
+        aim = target if main is not None and target in main.columns else None  # 20.3: the outcome the problem names, checked
+        return card_of(tables, name=str(name)[:200] or "table", target=aim).model_dump(mode="json")
     except Exception as exc:  # noqa: BLE001
         print(f"data card: not built: {type(exc).__name__}", file=sys.stderr, flush=True)
         return None

@@ -70,18 +70,20 @@ def anonymous_card(card: dict[str, Any] | None) -> dict[str, Any] | None:
     names = {t.get("name"): (t.get("name") if t.get("name") == "labels" else f"table_{i + 1}{Path(str(t.get('name'))).suffix[:10]}")
              for i, t in enumerate(card.get("tables") or [])}
 
+    from dclab_core.datacard import _short
+
     def rename(text: Any) -> Any:
         if not isinstance(text, str):
             return text
         for old, new in sorted(names.items(), key=lambda kv: -len(str(kv[0]))):
-            if old:
-                text = text.replace(str(old), new)
+            if old:  # the name in full, and as a statement shortens a long one
+                text = text.replace(str(old), new).replace(_short(old), new)
         return text
 
     out = {**card, "name": "tables", "tables": [{**t, "name": names.get(t.get("name"), "table")} for t in card.get("tables") or []],
            "relations": [{**r, "table": names.get(r.get("table"), r.get("table")), "other_table": names.get(r.get("other_table"), r.get("other_table"))}
                          for r in card.get("relations") or []],
-           "problems": [{**pr, "tables": [names.get(t, t) for t in pr.get("tables") or []], "statement": rename(pr.get("statement"))}
+           "problems": [{**pr, "tables": [names.get(t, rename(t)) for t in pr.get("tables") or []], "statement": rename(pr.get("statement"))}
                         for pr in card.get("problems") or []]}
     return consent._scrub(out, {})
 
