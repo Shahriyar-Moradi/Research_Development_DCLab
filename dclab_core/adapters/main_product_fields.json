@@ -1153,5 +1153,19 @@
   },
   "experience_read_on": "2026-10-13",
   "lineage_read_on": "2026-10-14 (experiments and pipeline_stage_runs from apps/api/app/db/models.py; agent_runs statuses and kinds from apps/api/app/domain/agent_records.py)",
-  "ledger_read_on": "2026-10-14 (semantic_decision_answers from apps/api/app/db/models.py; vocabularies from apps/api/app/domain/agent_records.py; Jev's bands and acting bands from apps/api/app/agents/semantic/releases.py, its raw answer {value} from semantic/policy.py and typesafe_jev.py)"
+  "ledger_read_on": "2026-10-14 (semantic_decision_answers from apps/api/app/db/models.py; vocabularies from apps/api/app/domain/agent_records.py; Jev's bands and acting bands from apps/api/app/agents/semantic/releases.py, its raw answer {value} from semantic/policy.py and typesafe_jev.py)",
+  "pipeline_read_on": "2026-10-15 (pipeline_versions: graph_definition JSONB, config JSONB, content_digest String(64) from apps/api/app/db/models.py; content_digest = SHA-256 of json.dumps({config, graph_definition}, sort_keys, compact separators, default=str) from apps/api/app/services/workflow_execution_service.py)",
+  "pipeline_version_fields": [
+    "id",
+    "workspace_id",
+    "project_id",
+    "pipeline_id",
+    "workflow_version_id",
+    "version",
+    "graph_definition",
+    "config",
+    "content_digest",
+    "created_at",
+    "locked_at"
+  ]
 }

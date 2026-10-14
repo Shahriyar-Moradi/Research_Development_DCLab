@@ -354,6 +354,50 @@ async def project_lineage(project_id: str, path: str | None = None, s: Services 
         raise HTTPException(404, str(exc.args[0]) if exc.args else "No such path") from None
 
 
+@router.get("/api/projects/{project_id}/pipeline", response_model=Page)
+async def project_pipeline(project_id: str, path: str | None = None, s: Services = Depends(services)):
+    """The project's pipeline of workflows (20.8): every step behind its numbers, from the problem card to the report,
+    with what each read and made, its run, its status (stale when what it read has changed) and where to resume; with
+    ``path`` (a report's record path), the steps that produced that number."""
+    from dclab_core import pipeline as core_pipeline
+
+    from ...studio import pipeline as studio_pipeline
+
+    s.project(project_id)
+    pipe = await asyncio.to_thread(studio_pipeline.of, s.projects, project_id)
+    out = {**pipe.model_dump(mode="json"), **core_pipeline.summary(pipe), "nodes": core_pipeline.by_node(pipe)}
+    if path is not None:
+        if len(path) > 300:
+            raise HTTPException(422, "path is a record path of at most 300 characters")
+        out["produced"] = core_pipeline.produced(pipe, path)
+    return out
+
+
+@router.post("/api/projects/{project_id}/pipeline/rerun", response_model=Page)
+async def rerun_pipeline_step(project_id: str, step: str, wait: bool = True, s: Services = Depends(services)):
+    """Rerun one step from its record (20.8), as a job (the limits on jobs at once apply, and Stop): a stage is replayed
+    in a scratch copy and compared with its record, the report rebuilt and compared with what its runs made; the
+    project is never changed. ``wait``: run it now and answer with its result; else the job, whose result lands in
+    the project's activity (``pipeline_rerun``)."""
+    from ...studio import pipeline as studio_pipeline
+
+    s.project(project_id)
+    pipe = await asyncio.to_thread(studio_pipeline.of, s.projects, project_id)
+    try:
+        pipe.step(step)
+    except KeyError:
+        raise HTTPException(404, f"No step {step[:60]!r} in this project's pipeline") from None
+    job = s.submit("rerun", f"{project_id}:{step}", {"project_id": project_id, "step": step}, here=wait)
+    if not wait:
+        return {"job": job}
+    done = await s.run_here(job)
+    result = next((e["payload"] for e in reversed(s.projects.activity(project_id, limit=200))
+                   if e.get("kind") == "pipeline_rerun" and (e.get("payload") or {}).get("job") == job["id"]), None)
+    if done.get("status") == "failed" or result is None:
+        raise HTTPException(500, done.get("error") or "The rerun ended without a result")
+    return {**result, "job": {"id": job["id"], "status": done.get("status")}}
+
+
 @router.post("/api/projects/{project_id}/graph/check", response_model=Verdict)
 async def check_move(project_id: str, payload: MoveCheck, s: Services = Depends(services)):
     p = s.project(project_id)

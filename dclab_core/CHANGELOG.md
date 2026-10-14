@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.28.0 (2026-10-15)
+
+Package 20.8: the pipeline of workflows. A new contract, `pipeline.v1`.
+
+- `pipeline` (new): `Pipeline` and `PipelineStep`, every step behind a project's numbers (the problem card, the
+  table, the solution, the workflow, each stage, the report) in order, each with what it read and made by hash, its
+  run and fingerprint, where the host keeps its record and how it is rerun; a step depends only on earlier steps.
+  `stale_from` carries a stale, failed or unrun step forward to every step that read it; `produced` gives the steps
+  behind a number's record path; `resume` the first step to run again; `graph_definition` and `content_digest` the
+  graph and digest of the main product's `pipeline_versions` row (`adapters/main_product_pipeline.py`).
+
 ## 0.27.0 (2026-10-14)
 
 Package 16.15 C (third part): long texts in the engine. `embeddings` gains what an engine runs stage by stage; no

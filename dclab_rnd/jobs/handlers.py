@@ -1,4 +1,5 @@
-"""The four kinds of job (package 10.3): stage runs, draft data pipelines, synthetic data and intern turns.
+"""The kinds of job (package 10.3): stage runs, draft data pipelines, synthetic data, intern turns, and (20.8) a
+pipeline step rerun from its record.
 
 ``env`` is the app's ``Services`` (``agentic/services.py``): the stores, the model gateway and the draft work, the same
 in the server and in ``python -m dclab_rnd.worker``. A payload holds ids and plain values only, so any worker can run it.
@@ -103,11 +104,35 @@ def _intern_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, 
     s.intern_sessions.save(session)
 
 
+# ---------------------------------------------------------------------- a pipeline step rerun from its record (20.8)
+
+def _rerun_run(s: Any, payload: dict[str, Any]) -> None:
+    from .. import audit
+    from ..studio import pipeline
+
+    pid, step = payload["project_id"], payload["step"]
+    checkpoint()
+    result = pipeline.rerun(s.projects, pid, step)
+    control = current()
+    keep = {k: result.get(k) for k in ("replayed", "same_numbers", "same_value", "same_choice", "same", "numbers_compared", "compared_with_runs",
+                                        "run", "original_run", "metric", "original", "rerun", "why", "differ", "changed_numbers")}
+    s.projects.log(pid, "pipeline_rerun", {"job": control.job["id"] if control else None, "step": step, **{k: v for k, v in keep.items() if v is not None}})
+    if step == "stage:final" and result.get("replayed"):  # the holdout read again in a scratch copy: said in the audit trail
+        audit.record_for(s.projects, "replay", "human", project={"id": pid}, move="replay_final", status="allowed", run=result.get("run"),
+                         original_run=result.get("original_run"))
+
+
+def _rerun_settle(s: Any, payload: dict[str, Any], reason: str, job: dict[str, Any]) -> None:
+    s.projects.log(payload["project_id"], "pipeline_rerun", {"job": job["id"], "step": payload["step"], "replayed": False,
+                                                             "why": [TEXT.get(reason, "The rerun ended before it finished")]})
+
+
 def register() -> None:
     handler("stage", _stage_run, _stage_settle)
     handler("pipeline", _pipeline_run, _pipeline_settle)
     handler("synthetic", _synthetic_run, _synthetic_settle)
     handler("intern", _intern_run, _intern_settle)
+    handler("rerun", _rerun_run, _rerun_settle)
 
 
 register()

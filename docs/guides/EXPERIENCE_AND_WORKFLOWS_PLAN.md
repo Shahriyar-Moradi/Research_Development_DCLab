@@ -299,6 +299,21 @@ code are not one connected object a data scientist can read, run and change.
 - **Delivers:** `Pipeline` v1: the problem workflow → data workflow → analysis → solution workflow → evaluation →
   report as one object with lineage (each step's inputs, outputs and record), resumable, its state on the graph.
 - **Done when:** a project's pipeline lists every step that produced its numbers and reruns one step from its record.
+- **Status: done (2026-10-15).** `dclab_core/pipeline.py` (dclab-core 0.28.0, contract `pipeline.v1`) and
+  `dclab_rnd/studio/pipeline.py`: a project's pipeline is the problem card, the table and its card, the saved solution,
+  the workflow and plan, each engine stage with its run record, the analysis of the training rows (its findings) and
+  the report, each with what it read and made by hash, its run and fingerprint, its graph nodes and where its record is
+  kept. A stage is stale when what its run read differs from the project now, or when its record no longer says what
+  its run made (a person's approval of another option is shown as overridden, not as an edit); every later step is
+  stale with it, and a stage from before run records cannot vouch for what read it. Every number of the report is
+  traced to the step that wrote it (`produced`). `GET /api/projects/{id}/pipeline` gives the steps, the status per
+  graph node and where to resume; `POST /api/projects/{id}/pipeline/rerun?step=` reruns one step as a job: a stage is
+  replayed in a scratch copy and compared with its record (the model stage on the binary replica: 376 numbers, the
+  same), the report rebuilt and each number compared with what its run made; a replayed final stage is written to the
+  audit trail. The main product's `pipeline_versions` row: `adapters/main_product_pipeline.py` fills its graph, config
+  and content digest the way its service computes it (the graph holds what the pipeline is, never how far it ran).
+  Left open: the graph page does not show the pipeline's stale steps yet (the route gives the status per node); the
+  code a run ran on is compared only by a replay; the analysis is built with the report, not as a run of its own.
 
 ### 20.9 Code for each step
 - **Delivers:** each step renders its code (a notebook cell and a module), from the records, readable by a data

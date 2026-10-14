@@ -307,6 +307,8 @@
     projectLessons: ["POST", "/projects/{project_id}/lessons", ["project_id"], []],
     projectLineage: ["GET", "/projects/{project_id}/lineage", ["project_id"], ["path"]],
     removeMemoryNote: ["DELETE", "/projects/{project_id}/memory/{note_id}", ["project_id", "note_id"], []],
+    projectPipeline: ["GET", "/projects/{project_id}/pipeline", ["project_id"], ["path"]],
+    rerunPipelineStep: ["POST", "/projects/{project_id}/pipeline/rerun", ["project_id"], ["step", "wait"]],
     reviewProjectNotebook: ["GET", "/projects/{project_id}/review", ["project_id"], []],
     confirmReview: ["POST", "/projects/{project_id}/review", ["project_id"], []],
     reviewProjectFixes: ["POST", "/projects/{project_id}/review/fixes", ["project_id"], []],
@@ -927,6 +929,19 @@
    *  @returns {Promise<Project>} */
   client.removeMemoryNote = (...args) => call('removeMemoryNote', args);
   client.path.removeMemoryNote = (...args) => build('removeMemoryNote', args).path;
+  /** GET /api/projects/{project_id}/pipeline: Project Pipeline
+   *  @param {string} project_id
+   *  @param {{query?: {path?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.projectPipeline = (...args) => call('projectPipeline', args);
+  client.path.projectPipeline = (...args) => build('projectPipeline', args).path;
+  client.href.projectPipeline = (...args) => '/api' + build('projectPipeline', args).path;
+  /** POST /api/projects/{project_id}/pipeline/rerun: Rerun Pipeline Step
+   *  @param {string} project_id
+   *  @param {{query?: {step?: *, wait?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.rerunPipelineStep = (...args) => call('rerunPipelineStep', args);
+  client.path.rerunPipelineStep = (...args) => build('rerunPipelineStep', args).path;
   /** GET /api/projects/{project_id}/review: Review Project Notebook
    *  @param {string} project_id
    *  @param {{headers?: Object}} [opts]

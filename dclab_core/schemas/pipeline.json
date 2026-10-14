@@ -1,0 +1,242 @@
+{
+  "$defs": {
+    "PipelineStep": {
+      "additionalProperties": false,
+      "description": "One step: what it read and made, the run that made it, and how it is rerun.",
+      "properties": {
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Depends On",
+          "type": "array"
+        },
+        "fingerprint": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fingerprint"
+        },
+        "id": {
+          "description": "Unique in the pipeline: problem, data, solution, workflow, stage:<name>, report.",
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "What it read, by hash or count: never a table's value.",
+          "title": "Inputs",
+          "type": "object"
+        },
+        "kind": {
+          "enum": [
+            "problem",
+            "data",
+            "solution",
+            "workflow",
+            "analysis",
+            "stage",
+            "report"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "The host's workflow-graph nodes the step carries out.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Nodes",
+          "type": "array"
+        },
+        "numbers": {
+          "description": "The record paths of the numbers it wrote.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2000,
+          "title": "Numbers",
+          "type": "array"
+        },
+        "outputs": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "What it made: hashes, its metric, value and choice.",
+          "title": "Outputs",
+          "type": "object"
+        },
+        "record": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the host keeps the step's record.",
+          "title": "Record"
+        },
+        "rerun": {
+          "default": "none",
+          "description": "replay: rerun from its record and compared; rerun: run again; none.",
+          "enum": [
+            "replay",
+            "rerun",
+            "none"
+          ],
+          "title": "Rerun",
+          "type": "string"
+        },
+        "roots": {
+          "description": "The record roots whose numbers it wrote (a stage's name, findings, brief, plan): a number's path names its step by its root.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Roots",
+          "type": "array"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run"
+        },
+        "status": {
+          "enum": [
+            "done",
+            "stale",
+            "failed",
+            "not_run",
+            "not_recorded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "why": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Why it is stale, failed, not run or not recorded.",
+          "title": "Why"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "status"
+      ],
+      "title": "PipelineStep",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.pipeline.v1.json",
+  "additionalProperties": false,
+  "description": "The steps behind a project's numbers, in the order they run.",
+  "properties": {
+    "project": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project"
+    },
+    "schema_version": {
+      "const": "dclab_core.pipeline.v1",
+      "default": "dclab_core.pipeline.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/PipelineStep"
+      },
+      "maxItems": 60,
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "steps"
+  ],
+  "title": "Pipeline",
+  "type": "object"
+}

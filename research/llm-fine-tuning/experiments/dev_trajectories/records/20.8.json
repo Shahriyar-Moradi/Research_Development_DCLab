@@ -1,0 +1,180 @@
+{
+ "package": "20.8",
+ "title": "The pipeline of workflows: every step behind a project's numbers, stale steps found, one step rerun from its record",
+ "date": "2026-10-15",
+ "request": "Pipeline v1: the problem, data, analysis, solution workflow, evaluation and report as one object with lineage, resumable, its state on the graph; done when a project's pipeline lists every step that produced its numbers and reruns one step from its record. The main product stores it as a pipeline version's graph.",
+ "spec": "A versioned contract of ordered steps with inputs, outputs, run and fingerprint; a builder from a project's records; staleness from what each run read; a rerun of one step as a job; routes; the main product's graph and digest.",
+ "plan": [
+  "Read what the run records (19.5) and the replay already give.",
+  "Read the main product's pipeline version row and its digest at the pinned commit.",
+  "Write the contract, the builder and the rerun, then the routes.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "A step's staleness comes from comparing what its run recorded reading with the project now.",
+   "why": "The run record already says what it read; nothing else needs to remember it."
+  },
+  {
+   "decision": "The graph sent to the main product holds what the pipeline is, never its state.",
+   "why": "Its content digest would otherwise make a new version every time a stage runs."
+  },
+  {
+   "decision": "A rerun runs as a job.",
+   "why": "A whole stage replayed inside a request would bypass the limits on jobs at once and Stop."
+  },
+  {
+   "decision": "The report's numbers are compared with what their runs made, not with the records read again.",
+   "why": "Comparing a record with itself can never fail."
+  }
+ ],
+ "change": "dclab_core/pipeline.py (new; dclab-core 0.28.0, contract pipeline.v1), dclab_core/adapters/main_product_pipeline.py (new) and main_product_fields.json, dclab_rnd/studio/pipeline.py (new), jobs/handlers.py (the rerun job), audit.py (a replay kind), agentic/routers/projects.py (two routes), the web client; tests/test_pipeline.py (new), test_experience_log.py; CHANGELOG, the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The report's numbers were said to differ from their records for numbers written inside text.",
+   "scenario": "10 of 47 paths ending in @0 or @1 were compared as missing values.",
+   "cause": "A path walker of its own that did not read the n-th number of a text.",
+   "fix": "The report library's own context and lookup resolve every path.",
+   "test": "test_the_report_is_rebuilt_and_every_number_matches_its_record"
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The report check could be removed without any test failing.",
+   "scenario": "A planted fault returned no differences and every test passed.",
+   "cause": "No test made a report number differ.",
+   "fix": "A test alters one report number and expects it found.",
+   "test": "test_a_report_number_that_differs_from_its_record_is_found"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The analysis step was missing and the contract could not name it.",
+   "scenario": "6 of 53 report numbers, the findings of the training rows, were traced to no step.",
+   "cause": "The pipeline built the report without the analysis the product's report includes.",
+   "fix": "An analysis step of its own kind, its numbers the findings the report cites; the report depends on it.",
+   "test": "test_every_number_of_the_report_is_traced_to_the_step_that_wrote_it"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The report rerun compared each record with itself and could never fail.",
+   "scenario": "A holdout value edited to 0.123 in the final record still gave the same report and a done stage.",
+   "cause": "Both sides were read from the same records moments apart.",
+   "fix": "Report numbers are compared with what their runs recorded when they ran; a record that no longer says what its run made makes its stage stale.",
+   "test": "test_a_record_edited_after_its_run_is_stale_and_the_report_says_so"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A stage's numbers written in text were credited to the whole chain through the report.",
+   "scenario": "10 of 47 report numbers, such as a protocol text's first number, were said to come from the final stage and the report.",
+   "cause": "The report step held every path and was found first.",
+   "fix": "A number's step is found among the other steps first, then by its path's root with the suffix read off.",
+   "test": "test_every_number_of_the_report_is_traced_to_the_step_that_wrote_it"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The main product's digest changed when a stage ran.",
+   "scenario": "The digest before and after running the stages differed though the pipeline had not changed.",
+   "cause": "Each node carried how its step is rerun, which depends on whether it has run.",
+   "fix": "The graph holds only what each step is and reads.",
+   "test": "test_the_graph_says_what_the_pipeline_is_not_how_far_it_ran"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The steps sat on the wrong graph nodes and the pipeline's state reached no node.",
+   "scenario": "The solution was placed on the split design and the final stage on one of its two nodes.",
+   "cause": "Node ids guessed rather than read from the graph.",
+   "fix": "Steps carry the graph's own nodes (the final stage both of its two); the route gives each node the worst status of its steps.",
+   "test": "test_the_graph_says_what_the_pipeline_is_not_how_far_it_ran"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A rerun ran a whole stage inside the request.",
+   "scenario": "Ten concurrent reruns of the model stage would run ten screens in the server's threads, past the limit on jobs at once, and a final replay left no audit row.",
+   "cause": "The route called the replay directly.",
+   "fix": "A rerun is a job of its own kind; a replayed final stage is written to the audit trail.",
+   "test": "test_the_routes"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The lineage showed the rule's choice after a person chose another.",
+   "scenario": "An approval with another model left the step's output naming the rule's model.",
+   "cause": "The choice was read from the run, fixed when it ran.",
+   "fix": "The step shows the record's choice, the rule's beside it and whether it was overridden; an override is not taken for an edit.",
+   "test": "test_a_persons_choice_is_shown_beside_the_rules"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A stage from before run records stayed done after its inputs changed.",
+   "scenario": "A setting changed on an old project left every old stage done.",
+   "cause": "With no run record there was nothing to compare and the stage was called done.",
+   "fix": "Such a stage is not recorded, and what read it cannot be vouched for.",
+   "test": "test_a_stage_from_before_run_records_cannot_vouch_for_what_read_it"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Any key error inside a rerun answered that the step does not exist.",
+   "scenario": "A failure deep in the report build would return 404.",
+   "cause": "One exception handler wrapped the whole rerun.",
+   "fix": "The step is resolved first; only an unknown step answers 404.",
+   "test": "test_the_routes"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the binary replica's pipeline",
+   "gate": "every step listed with its run, every report number traced to a step, one stage replayed with the same numbers, the report matching what its runs made",
+   "result": "11 steps; 53 report numbers each traced to a step; the model stage replayed: 376 numbers compared, the same; the report: 53 numbers, 8 compared with their runs, none different",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "every check holds on the replica",
+   "limits": [
+    "One replica; only the numbers a run kept (its first ones) and the holdout value can be compared with runs."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "16 of 18 planted faults caught; the 2 left are equivalent changes (steps are ordered; the analysis lists its paths exactly)",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 18, the other 2 equivalent",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "A project's pipeline lists every step behind its numbers with its run, finds stale steps and where to resume, and reruns one step from its record as a job; the main product can store it as a pipeline version.",
+ "lessons": [
+  "A check that compares a record with itself cannot fail: compare with what was fixed when the run happened.",
+  "A digest of a definition must hold only the definition, never state that changes as work runs.",
+  "Read the host's own node ids rather than guessing them."
+ ],
+ "risks": [
+  "The graph page does not show stale steps yet.",
+  "Only a replay compares the code a run ran on.",
+  "The analysis is rebuilt with the report rather than recorded as a run."
+ ],
+ "commits": []
+}

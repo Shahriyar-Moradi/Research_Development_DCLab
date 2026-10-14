@@ -25,7 +25,8 @@ from ..jobs.live import Live
 from .store import Store
 
 BUSY = {"stage": "This project is already running a stage", "intern": "This session is still working",
-        "pipeline": "This file is already being processed", "synthetic": "Synthetic data is already being generated for this draft"}
+        "pipeline": "This file is already being processed", "synthetic": "Synthetic data is already being generated for this draft",
+        "rerun": "This step is already being rerun"}
 
 
 class Services:

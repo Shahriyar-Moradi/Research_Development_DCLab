@@ -13,7 +13,7 @@ Written 2026-10-13. Done before it: 20.0 (the guard), 19.1–19.3 (the record of
 card). Every package is built the same way: a failing test, the change, the checks, an adversarial review and its
 fixes, planted faults, its development record for the owner's SFT, a commit pushed.
 
-**Progress (2026-10-14):** milestone A done (19.4–19.8); milestone B done (19.9–19.13); milestone C: 20.3, 21.3 and 20.4 done; 20.2 built, its gate failed twice (8 of 9 on two sealed sets) and waits for a sealed set written by someone else; milestone D done (22.0–22.3: two of six classifiers passed their sealed gate, semantic_role and leakage_suspect); milestone E done (21.1, 21.2, 21.4); milestone F: 20.5, 20.6 and 20.7 done; 16.15 C done: several tables, entity tables, streams and long texts in the engine (images wait for local weights); milestone F's closing gate next.
+**Progress (2026-10-15):** milestone A done (19.4–19.8); milestone B done (19.9–19.13); milestone C: 20.3, 21.3 and 20.4 done; 20.2 built, its gate failed twice (8 of 9 on two sealed sets) and waits for a sealed set written by someone else; milestone D done (22.0–22.3: two of six classifiers passed their sealed gate, semantic_role and leakage_suspect); milestone E done (21.1, 21.2, 21.4); milestone F: 20.5, 20.6 and 20.7 done; 16.15 C done: several tables, entity tables, streams and long texts in the engine (images wait for local weights); milestone F done (its check-all passed 2026-10-15); milestone G: 20.8 done, 20.9 next.
 
 ## The two goals it serves
 
@@ -73,4 +73,4 @@ A ──► B ──► (training data can leave the workspace)
 
 ## Status
 
-Each milestone's status is kept here as it moves: **A — done** (19.4–19.8, 2026-10-14). **B — done** (19.9–19.13). **C — done** (20.3, 21.3, 20.4; 20.2 built, its gate failed twice and waits for an independent sealed set). **D — done** (22.0–22.3). **E — done** (21.1, 21.2, 21.4). **F — in progress** (20.5, 20.6, 20.7 done; 16.15 C done: several tables, entity tables, streams and long texts in the engine).
+Each milestone's status is kept here as it moves: **A — done** (19.4–19.8, 2026-10-14). **B — done** (19.9–19.13). **C — done** (20.3, 21.3, 20.4; 20.2 built, its gate failed twice and waits for an independent sealed set). **D — done** (22.0–22.3). **E — done** (21.1, 21.2, 21.4). **F — done** (20.5, 20.6, 20.7; 16.15 C: several tables, entity tables, streams and long texts in the engine). **G — in progress** (20.8 done).
