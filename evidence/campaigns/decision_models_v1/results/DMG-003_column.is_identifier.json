@@ -1,0 +1,181 @@
+{
+  "id": "DMG-003",
+  "experiment_id": "DMG-003",
+  "campaign_id": "decision_models_v1",
+  "kind": "decision_model_gate",
+  "status": "completed",
+  "at": "2026-10-14T15:25:02+00:00",
+  "point": "column.is_identifier",
+  "model": {
+    "name": "column.is_identifier.boosting",
+    "version": "28c44957214c",
+    "family": "boosting",
+    "strength": 0.1,
+    "trained_set": "78e38dda074dbfa4cc8ef475588d389c626c05ebfb3ff16fcf6462606370baba"
+  },
+  "gate": {
+    "version": "decision_gate_v1",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 2006,
+    "fingerprint": "c4fc361ca311616e749f2bc39f82e7b2a9e01e5d3c72784e3cad0230f4804b40"
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": false,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "2006/2006",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.987,
+        "need": ">= 0.9",
+        "pass": true
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.9567,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.9153,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": -0.013,
+        "need": "> 0.0",
+        "pass": false
+      },
+      {
+        "criterion": "no class it misses",
+        "value": "none",
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": true
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.009,
+        "need": "<= 0.02 turned wrong",
+        "pass": true
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.991,
+          0.987,
+          0.995
+        ],
+        "precision": [
+          0.9823,
+          0.9567,
+          1.0
+        ],
+        "recall": [
+          0.9407,
+          0.9153,
+          0.9661
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "precision": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "recall": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 2006,
+      "accuracy": 0.991,
+      "accuracy_ci": [
+        0.9859,
+        0.9943
+      ],
+      "precision": 0.9823,
+      "precision_ci": [
+        0.9554,
+        0.9931
+      ],
+      "recall": 0.9407,
+      "recall_ci": [
+        0.9029,
+        0.9643
+      ],
+      "intervals": "Wilson, 95%",
+      "answered": 2006,
+      "per_class": {}
+    },
+    "rule": {
+      "n": 2006,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        0.9981,
+        1.0
+      ],
+      "precision": 1.0,
+      "precision_ci": [
+        0.984,
+        1.0
+      ],
+      "recall": 1.0,
+      "recall_ci": [
+        0.984,
+        1.0
+      ],
+      "intervals": "Wilson, 95%",
+      "answered": 2006,
+      "per_class": {}
+    },
+    "margin": {
+      "difference": -0.009,
+      "lower": -0.013,
+      "upper": -0.005
+    },
+    "turned": [
+      18,
+      2006
+    ],
+    "groups": 59,
+    "decisions": 2006,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "fail",
+  "rule": "One run of column.is_identifier.boosting on 2006 sealed decisions of generated tables, judged by a gate written before it; evidence about these planted kinds, not about real tables nor production readiness."
+}

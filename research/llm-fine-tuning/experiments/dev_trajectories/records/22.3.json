@@ -1,0 +1,163 @@
+{
+ "package": "22.3",
+ "title": "Gates fixed before the runs: six classifiers judged once on sealed decisions",
+ "date": "2026-10-14",
+ "request": "A promotion gate for each decision classifier, written before any result, in the shape of the main product's R3: sealed cases, a margin over the rule, lower bounds, a cluster bootstrap by dataset, demotion bars; each verdict stored as evidence and never rerun on the same sealed set.",
+ "spec": "A portable gate in dclab_core and a runner that reads each point's sealed set once, only when it matches its committed fingerprint, with the model its card describes; verdicts as evidence records.",
+ "plan": [
+  "Write the gate with its thresholds and their reasons before any sealed read.",
+  "Review it before the run and fix what could let a sealed set be read twice or judged loosely.",
+  "Commit and push the gate, then run once.",
+  "Record every verdict, and what the run shows the gate cannot see."
+ ],
+ "decisions": [
+  {
+   "decision": "The gate was committed and pushed before the run, with dev's expected verdict for each point in the campaign manifest.",
+   "why": "Git history then shows the gate came first, and the run reads as a test of stated expectations."
+  },
+  {
+   "decision": "A sealed set is spent under every gate version.",
+   "why": "Otherwise a rebuilt model under a new version could be tuned on the same sealed decisions."
+  },
+  {
+   "decision": "Every lower bound is a bootstrap of whole table groups.",
+   "why": "A table's decisions, and a table and its hidden-name twin, are not independent."
+  },
+  {
+   "decision": "Promotion needs a margin over the rule strictly above zero.",
+   "why": "The rule is free and explainable; a model that only matches it adds nothing."
+  }
+ ],
+ "change": "dclab_core/decision_gate.py (new; dclab-core 0.20.0), dclab_rnd/decision_gate_run.py (new), Makefile (make decision-gate), the campaign manifest and six verdicts in evidence/campaigns/decision_models_v1; tests/test_decision_gate.py (new); CHANGELOG, CLAUDE.md, the plan, the roadmap.",
+ "findings": [
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A new gate version could read a spent sealed set again.",
+   "scenario": "After a failure, a rebuilt model under decision_gate_v2 would be judged on the same sealed decisions.",
+   "cause": "A run was refused per point and gate version, not per sealed set.",
+   "fix": "A point whose sealed fingerprint was judged is refused under any version.",
+   "test": "test_a_new_gate_version_cannot_reread_a_spent_sealed_set"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The first run would have broken the lab page's campaign test.",
+   "scenario": "A campaign folder without a manifest has no objective.",
+   "cause": "Results were written without the campaign manifest.",
+   "fix": "The manifest committed before the run.",
+   "test": "test_campaigns_come_from_the_campaign_folders"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Thresholds could move within one gate version.",
+   "scenario": "After some points were judged, an edited bar would judge the rest under the same name.",
+   "cause": "Nothing pinned the thresholds.",
+   "fix": "A test pins them, and the runner refuses a version whose stored thresholds differ.",
+   "test": "test_the_gate_is_pinned"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Yes/no bounds were Wilson intervals over rows that include each table's twin.",
+   "scenario": "A recall near the bar would pass on an interval too narrow.",
+   "cause": "The margin was clustered by table, the other bounds were not.",
+   "fix": "Every gating bound is a bootstrap of whole table groups.",
+   "test": "test_the_gate_reads_the_bound_by_table_not_by_row"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "One stray answer of a class never true could sink macro recall.",
+   "scenario": "Five classes, one answer of a sixth: recall fell from 0.957 to 0.797.",
+   "cause": "Recall was averaged over every class seen, answered or true.",
+   "fix": "Recall over the classes in the truth, precision over the classes answered.",
+   "test": "test_a_class_answered_once_and_never_true_does_not_sink_the_recall"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The sealed file was read twice and a partial run blocked the rest.",
+   "scenario": "Plain --yes stopped at the first judged point.",
+   "cause": "The fingerprint was recomputed from a second read; judged points raised.",
+   "fix": "One read; judged points are skipped with a message.",
+   "test": "test_one_verdict_is_stored_and_the_sealed_set_is_then_spent"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The gate passed a leakage model that misses one planted kind in every table.",
+   "scenario": "With names hidden, every exact-identity leak (the outcome as a sum of columns) was answered as not a leak.",
+   "cause": "The class check runs over True and False, not over planted kinds; and the state holds bands only, which cannot tell an identity from an honest number.",
+   "fix": "Recorded as the gate's limit; decision_gate_v2 adds no planted kind missed, and the rule's relation check stays beside the model.",
+   "test": "the verdict's bounds: recall 0.8333 with no width"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "semantic_role, sealed",
+   "gate": "decision_gate_v1: accuracy lower bound 0.90, precision and recall lower bounds 0.80, margin lower bound above 0.0, no class below recall 0.70, turned at most 0.02",
+   "result": "accuracy lower 0.9316, precision lower 0.9496, recall lower 0.9446, margin lower 0.0983, no class missed, turned 0.0088",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "0.9316 against 0.90; 0.9496 and 0.9446 against 0.80; 0.0983 above 0.0; 0.0088 against 0.02",
+   "limits": [
+    "Intervals by table group are narrow: every table plants the same kinds."
+   ]
+  },
+  {
+   "name": "leakage_suspect, sealed",
+   "gate": "decision_gate_v1: accuracy lower bound 0.90, precision and recall lower bounds 0.80, margin lower bound above 0.0, no class below recall 0.70, turned at most 0.02",
+   "result": "accuracy lower 0.9706, precision lower 1.0, recall lower 0.8333, margin lower 0.0484, no class missed, turned 0.0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "0.9706 against 0.90; 1.0 and 0.8333 against 0.80; 0.0484 above 0.0; 0.0 against 0.02",
+   "limits": [
+    "It misses every exact-identity leak when names are hidden."
+   ]
+  },
+  {
+   "name": "is_identifier, sealed",
+   "gate": "decision_gate_v1: margin lower bound above 0.0, beside the other bars",
+   "result": "margin lower -0.013, the rule exact",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "-0.013 against above 0.0",
+   "limits": [
+    "The rule stays."
+   ]
+  },
+  {
+   "name": "time, sealed",
+   "gate": "decision_gate_v1: recall lower bound 0.80, no class below recall 0.70",
+   "result": "recall lower 0.6017; the True class 78 of 118",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "0.6017 against 0.80",
+   "limits": [
+    "The rule stays."
+   ]
+  }
+ ],
+ "outcome": "Two of six classifiers passed their sealed gate (semantic_role and leakage_suspect); four failed as dev predicted. The leakage classifier's blind spot (exact identities with hidden names) shows what a band-only state cannot see.",
+ "lessons": [
+  "Commit the gate and write the expected verdicts before the run: the run then tests stated expectations.",
+  "An interval with no width is a finding: the same error in every table means a kind the model cannot see.",
+  "Check by planted kind, not only by answer class: an aggregate can pass while one kind is always missed."
+ ],
+ "risks": [
+  "Only generated tables; no blind labels yet.",
+  "A model that passed still must run beside the rule's relation checks."
+ ],
+ "commits": [
+  "6343165"
+ ]
+}

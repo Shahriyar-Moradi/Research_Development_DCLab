@@ -359,11 +359,21 @@ by the same gates; the ledger feeds all of them, each in its own training format
   classifier; the result stored as an evidence record, never rerun on the same sealed set.
 - **Done when:** each classifier has one recorded verdict per gate version, with its precision and recall on the
   sealed partition and their intervals beside the rule's (moved here from 22.2).
-- **Status: gate written (2026-10-14), run next.** `dclab_core/decision_gate.py` (`decision_gate_v1`, dclab-core
-  0.20.0) and `make decision-gate` (`dclab_rnd/decision_gate_run.py`) are committed and pushed before any sealed row is
-  read; the campaign manifest (`evidence/campaigns/decision_models_v1/manifest.json`) says why each threshold and what
-  dev predicts for each point.
-
+- **Status: done (2026-10-14).** `dclab_core/decision_gate.py` (`decision_gate_v1`, dclab-core 0.20.0) and `make
+  decision-gate` (`dclab_rnd/decision_gate_run.py`), committed and pushed (6343165) before any sealed row was read, with
+  the campaign manifest's reasons and dev's expected verdicts. One run, six verdicts
+  (`evidence/campaigns/decision_models_v1/results/DMG-001`…`006`), every expectation held. Pass:
+  `column.semantic_role` (1,770 sealed decisions; macro precision 0.953 [0.950, 0.957], recall 0.951 [0.945, 0.958]
+  against the rule's 0.886 and 0.855; margin +0.104, lower bound +0.098; 13 of the rule's 1,475 right decisions turned)
+  and `feature.leakage_suspect` (2,006; precision 1.0, recall 0.833 against the rule's 0.927 and 0.571; margin +0.054,
+  lower +0.048; none turned). Fail: `column.is_identifier` and `column.group` (the rule is exact; margins −0.009 and
+  −0.007), `column.category_code` (precision lower bound 0.780), `column.time` (recall 0.661, lower 0.602; the True
+  class 78 of 118). Limits: generated tables of ten bases; every table plants the same kinds, so intervals by table
+  group are narrow (leakage's recall bound has no width: the model misses the same kind in every table). That kind,
+  found on dev after the run: with names hidden, the leakage classifier misses every exact-identity leak (the outcome
+  as a sum of columns), whose bands are those of an honest number: the state carries no relation measure, so no band
+  model can see it; the rule's relation check still must run beside it. No blind cases yet. Next gate version
+  (`decision_gate_v2`, on a new sealed set): no planted kind missed, and the blind labels of 22.4.
 ### 22.4 Shadow in the studio
 - **Delivers:** a classifier as another answerer at its decision point, at level 0: its answer recorded in the
   decision record beside the rule's, never used; agreement and disagreement counted; disagreements go to the blind

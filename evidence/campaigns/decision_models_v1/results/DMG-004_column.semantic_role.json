@@ -1,0 +1,313 @@
+{
+  "id": "DMG-004",
+  "experiment_id": "DMG-004",
+  "campaign_id": "decision_models_v1",
+  "kind": "decision_model_gate",
+  "status": "completed",
+  "at": "2026-10-14T15:29:56+00:00",
+  "point": "column.semantic_role",
+  "model": {
+    "name": "column.semantic_role.boosting",
+    "version": "73710656cf1b",
+    "family": "boosting",
+    "strength": 0.1,
+    "trained_set": "65bf333222cb14213ace7d84902bd33c6f2bf7952433925acc99c7d53927ea91"
+  },
+  "gate": {
+    "version": "decision_gate_v1",
+    "thresholds": {
+      "scored_share_min": 1.0,
+      "accuracy_lower_min": 0.9,
+      "precision_lower_min": 0.8,
+      "recall_lower_min": 0.8,
+      "margin_lower_min": 0.0,
+      "class_min_rows": 30,
+      "class_recall_min": 0.7,
+      "turned_max": 0.02,
+      "draws": 2000
+    }
+  },
+  "sealed": {
+    "decisions": 1770,
+    "fingerprint": "ab0fbdb8cf336c63115f6d9c13b1bb9c7e66461a5ca1f3b43d0500dc986141f3"
+  },
+  "verdict": {
+    "gate": "decision_gate_v1",
+    "pass": true,
+    "criteria": [
+      {
+        "criterion": "every sealed decision scored",
+        "value": "1770/1770",
+        "need": "100%",
+        "pass": true
+      },
+      {
+        "criterion": "accuracy, 95% lower bound (by table group)",
+        "value": 0.9316,
+        "need": ">= 0.9",
+        "pass": true
+      },
+      {
+        "criterion": "precision, 95% lower bound (by table group)",
+        "value": 0.9496,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "recall, 95% lower bound (by table group)",
+        "value": 0.9446,
+        "need": ">= 0.8",
+        "pass": true
+      },
+      {
+        "criterion": "margin over the rule, 95% lower bound (by table group)",
+        "value": 0.0983,
+        "need": "> 0.0",
+        "pass": true
+      },
+      {
+        "criterion": "no class it misses",
+        "value": "none",
+        "need": "no class with 30+ decisions below recall 0.7",
+        "pass": true
+      },
+      {
+        "criterion": "the rule's right decisions kept",
+        "value": 0.0088,
+        "need": "<= 0.02 turned wrong",
+        "pass": true
+      }
+    ],
+    "bounds": {
+      "model": {
+        "accuracy": [
+          0.9373,
+          0.9316,
+          0.9429
+        ],
+        "precision": [
+          0.9534,
+          0.9496,
+          0.9574
+        ],
+        "recall": [
+          0.9511,
+          0.9446,
+          0.9577
+        ]
+      },
+      "rule": {
+        "accuracy": [
+          0.8333,
+          0.8333,
+          0.8333
+        ],
+        "precision": [
+          0.8857,
+          0.8857,
+          0.8857
+        ],
+        "recall": [
+          0.8548,
+          0.8548,
+          0.8548
+        ]
+      },
+      "note": "[value, 95% lower, 95% upper], bootstrap of whole table groups; the gate reads these"
+    },
+    "model": {
+      "n": 1770,
+      "accuracy": 0.9373,
+      "accuracy_ci": [
+        0.925,
+        0.9477
+      ],
+      "precision": 0.9534,
+      "precision_ci": [
+        0.9496,
+        0.9574
+      ],
+      "recall": 0.9511,
+      "recall_ci": [
+        0.9446,
+        0.9577
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 1770,
+      "per_class": {
+        "categorical_code": {
+          "n": 354,
+          "precision": 0.8189,
+          "precision_ci": [
+            0.7771,
+            0.8543
+          ],
+          "recall": 0.8814,
+          "recall_ci": [
+            0.8435,
+            0.911
+          ]
+        },
+        "datetime": {
+          "n": 236,
+          "precision": 1.0,
+          "precision_ci": [
+            0.984,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.984,
+            1.0
+          ]
+        },
+        "free_text": {
+          "n": 118,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9685,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9685,
+            1.0
+          ]
+        },
+        "identifier": {
+          "n": 236,
+          "precision": 1.0,
+          "precision_ci": [
+            0.983,
+            1.0
+          ],
+          "recall": 0.9407,
+          "recall_ci": [
+            0.9029,
+            0.9643
+          ]
+        },
+        "numeric": {
+          "n": 826,
+          "precision": 0.9483,
+          "precision_ci": [
+            0.9309,
+            0.9616
+          ],
+          "recall": 0.9334,
+          "recall_ci": [
+            0.9143,
+            0.9485
+          ]
+        }
+      }
+    },
+    "rule": {
+      "n": 1770,
+      "accuracy": 0.8333,
+      "accuracy_ci": [
+        0.8153,
+        0.85
+      ],
+      "precision": 0.8857,
+      "precision_ci": [
+        0.8857,
+        0.8857
+      ],
+      "recall": 0.8548,
+      "recall_ci": [
+        0.8548,
+        0.8548
+      ],
+      "intervals": "bootstrap of 2000 draws, clustered by table group, 95%",
+      "answered": 1770,
+      "per_class": {
+        "categorical_code": {
+          "n": 354,
+          "precision": 0.5714,
+          "precision_ci": [
+            0.5233,
+            0.6183
+          ],
+          "recall": 0.6667,
+          "recall_ci": [
+            0.616,
+            0.7138
+          ]
+        },
+        "datetime": {
+          "n": 236,
+          "precision": 1.0,
+          "precision_ci": [
+            0.984,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.984,
+            1.0
+          ]
+        },
+        "free_text": {
+          "n": 118,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9685,
+            1.0
+          ],
+          "recall": 1.0,
+          "recall_ci": [
+            0.9685,
+            1.0
+          ]
+        },
+        "identifier": {
+          "n": 236,
+          "precision": 1.0,
+          "precision_ci": [
+            0.9788,
+            1.0
+          ],
+          "recall": 0.75,
+          "recall_ci": [
+            0.691,
+            0.8009
+          ]
+        },
+        "numeric": {
+          "n": 826,
+          "precision": 0.8571,
+          "precision_ci": [
+            0.8316,
+            0.8794
+          ],
+          "recall": 0.8571,
+          "recall_ci": [
+            0.8316,
+            0.8794
+          ]
+        }
+      }
+    },
+    "margin": {
+      "difference": 0.104,
+      "lower": 0.0983,
+      "upper": 0.1096
+    },
+    "turned": [
+      13,
+      1475
+    ],
+    "groups": 59,
+    "decisions": 1770,
+    "not_yet": "Blind cases (the main product's R3 asks for them): the generated sets have benchmark labels only; decision_gate_v2 adds the blind labels of 22.4's disagreements.",
+    "demotion": {
+      "accuracy_lower_below": 0.85,
+      "margin_lower_below": -0.02,
+      "turned_above": 0.05
+    },
+    "scope": "Evidence about this model on these generated decisions, not a claim that it is ready for production."
+  },
+  "result": "pass",
+  "rule": "One run of column.semantic_role.boosting on 1770 sealed decisions of generated tables, judged by a gate written before it; evidence about these planted kinds, not about real tables nor production readiness."
+}
