@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "Blocker": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 60,
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "question": {
+          "maxLength": 600,
+          "type": "string"
+        },
+        "state": {
+          "maxLength": 20,
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "code",
+        "question"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "blockers": {
+      "items": {
+        "$ref": "#/$defs/Blocker"
+      },
+      "type": "array"
+    },
+    "next": {
+      "type": "string"
+    },
+    "passed": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "says": {
+      "maxLength": 1000,
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.coordinator_situation.v1",
+      "default": "dclab_core.coordinator_situation.v1",
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "state",
+    "next",
+    "says"
+  ],
+  "type": "object"
+}

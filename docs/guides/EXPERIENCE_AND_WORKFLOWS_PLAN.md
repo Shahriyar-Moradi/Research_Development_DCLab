@@ -318,6 +318,23 @@ asked the labels question, and the build happened anyway); one model tier served
   says which one.
 - **Done when:** the owner's morning, replayed, ends in the fraud project (labels joined, partial, biker groups), and
   a planted bad hand-off (a role naming a column that does not exist) is refused by the gate.
+- **Status: done (2026-10-14).** `dclab_core/coordinator.py` (dclab-core 0.21.0): `situation(facts)` walks problem → data
+  → links → meet → analysis → workflow → build → built, returning the first state not satisfied, its blockers (each a
+  question with its evidence) and the next action; a question a file can settle waits for the data and links states; a
+  file that could not be read stops it; nothing is built while a question to the person is open or a build check
+  refuses (`draft/api.build_blockers`, which `build_project` raises from). `Handoff` and `gate`: a role's hand-off
+  naming a column the data card does not hold, or not in the hand-off's shape, is refused whole and the rules stand.
+  The host, `dclab_rnd/draft/coordinator.py`, runs in the agent harness (the agent `coordinator`), holds the draft's
+  turn, asks the person through `team.Person`, brings the table the cases label from another draft (`draft/api.bring_from_draft`,
+  also the from-draft route), sends the data investigator's raw answer through the gate, validates the drawn workflow
+  and builds. The owner's morning replayed from the cases' draft ends in the fraud project (labels joined on
+  `order_id`, partial, `biker_id` the groups, rare event); a planted `driver_rating` hand-off is refused, recorded as a
+  `decision.refused`; a brought table that cannot be read stops the walk and the build. Left open: only the data
+  investigator hands over through the gate (the problem analyst, planner, critic, feature engineer and reporter keep
+  their own validation inside the roles); the analysis state records the gated hand-off but the build does not read it
+  yet; "pipeline" is the project's build (20.8 builds the pipeline of workflows); from a table's draft the walk names
+  the draft holding its cases rather than bringing them; the coordinator is not yet a route or a button (it runs from
+  code and tests).
 
 ### 21.3 Files understood together
 - **Delivers:** every file of a workspace's draft read together: a table of cases (each row one confirmed case, a

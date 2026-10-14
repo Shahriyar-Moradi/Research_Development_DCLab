@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.21.0 (2026-10-14)
+
+Package 21.2: the coordinator's state machine. A new module and a new contract, `dclab_core.coordinator_situation.v1`.
+
+- `coordinator` (new): `situation(facts)` walks the states problem → data → links → meet → analysis → workflow → build
+  → built and returns the first one not satisfied, its blockers (each a question with its evidence) and the next
+  action; a question a file can settle (a file of known cases, and the outcome while the draft holds only cases) waits
+  for the data and links states; a file that could not be read stops the walk; from a table's draft, known cases in
+  another draft are named; nothing is built while a question to the person is open or a build check refuses.
+  `Handoff`, `gate(handoff, data_card)`: a role's hand-off naming a column the tables do not hold is refused whole;
+  `investigator_handoff` reads the data investigator's raw answer as one (column names, never its words; an answer
+  not in the hand-off's shape is refused as malformed); without a data card nothing is taken on trust.
+
 ## 0.20.0 (2026-10-14)
 
 Package 22.3: the promotion gate of a decision model. A new module; no contract changes shape.

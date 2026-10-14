@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "Blocker": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 60,
+          "title": "Code",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The problem card's field, when the person is asked.",
+          "title": "Field"
+        },
+        "question": {
+          "maxLength": 600,
+          "title": "Question",
+          "type": "string"
+        },
+        "state": {
+          "maxLength": 20,
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "code",
+        "question"
+      ],
+      "title": "Blocker",
+      "type": "object"
+    }
+  },
+  "$id": "https://dclab.dev/schemas/dclab_core.coordinator_situation.v1.json",
+  "additionalProperties": false,
+  "description": "Where a problem stands: the first state not yet satisfied, what blocks it, and the next action.",
+  "properties": {
+    "blockers": {
+      "items": {
+        "$ref": "#/$defs/Blocker"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "next": {
+      "title": "Next",
+      "type": "string"
+    },
+    "passed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Passed",
+      "type": "array"
+    },
+    "says": {
+      "description": "The sentence the coordinator says: what it does, or which blocker stops it.",
+      "maxLength": 1000,
+      "title": "Says",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "dclab_core.coordinator_situation.v1",
+      "default": "dclab_core.coordinator_situation.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "state": {
+      "title": "State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "state",
+    "next",
+    "says"
+  ],
+  "title": "Situation",
+  "type": "object"
+}

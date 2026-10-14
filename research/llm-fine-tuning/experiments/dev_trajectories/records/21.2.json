@@ -1,0 +1,168 @@
+{
+ "package": "21.2",
+ "title": "The coordinator: one lead agent walks a draft to a built project, gate by gate",
+ "date": "2026-10-14",
+ "request": "A lead agent over an explicit state machine (problem card, data cards, links, analysis, workflow, pipeline) delegating to roles through typed hand-offs and moving state only through deterministic gates; it never builds while a blocker is open and says which. The owner's morning replayed must end in the fraud project, and a planted bad hand-off must be refused.",
+ "spec": "A pure state machine and hand-off gate in dclab_core; a host that gathers a draft's facts, acts on the next state, runs in the agent harness, and builds through the same checks as the build route.",
+ "plan": [
+  "Map what exists: the card, the meet check, the label join across drafts, the build's checks.",
+  "Factor the build's checks and the table-bringing into functions the route and the coordinator share.",
+  "Write the machine: states in order, blockers with evidence, the hand-off gate.",
+  "Write the host and replay the morning; plant a bad hand-off."
+ ],
+ "decisions": [
+  {
+   "decision": "Questions a file can settle wait for the data and links states.",
+   "why": "The morning's labels question is answered by the file of known cases; asking it first would ask what the data already says."
+  },
+  {
+   "decision": "A hand-off naming a missing column is refused whole, and the role's rules stand.",
+   "why": "A role that names a column the tables do not hold has invented it; keeping the rest of its answer would trust the same reading."
+  },
+  {
+   "decision": "The build's checks are one function both the route and the coordinator read.",
+   "why": "Two copies of the checks would drift, and the coordinator would build what the route refuses."
+  },
+  {
+   "decision": "No build while a question to the person is open.",
+   "why": "A build with a question open is one of the session record's own failure signals."
+  }
+ ],
+ "change": "dclab_core/coordinator.py (new; dclab-core 0.21.0, contract coordinator_situation.v1), dclab_rnd/draft/coordinator.py (new), draft/api.py (build_blockers, bring_table), agents/harness.py (the coordinator agent); tests/test_coordinator.py (new), test_agent_harness.py; CHANGELOG, the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The walk asked a question the cases would settle.",
+   "scenario": "From the cases' draft the coordinator stopped on which column holds the outcome, before bringing the table.",
+   "cause": "Only the data and labels questions waited for the links.",
+   "fix": "While the draft holds only cases, or its cases are elsewhere, the outcome question waits for the links too.",
+   "test": "test_the_mornings_walk_is_a_run_of_the_coordinator"
+  },
+  {
+   "id": "S2",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "The walk stopped although it was making progress.",
+   "scenario": "Answering the entity question while the card still waited for the moment counted as no progress.",
+   "cause": "Progress was the situation changing, not the action's outcome.",
+   "fix": "No progress is the same outcome twice, or three times in a loop.",
+   "test": "test_the_mornings_walk_is_a_run_of_the_coordinator"
+  },
+  {
+   "id": "S3",
+   "source": "self",
+   "severity": "behaviour",
+   "defect": "It built with a question open.",
+   "scenario": "The morning's project was built while the entity question waited, so the bikers were not the groups.",
+   "cause": "Only blocking card questions held the build.",
+   "fix": "No build while a question to the person is open.",
+   "test": "test_the_states_come_in_order_and_a_question_the_data_can_settle_waits_for_it"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A table that could not be read was built around.",
+   "scenario": "The brought table's analysis failed after the cases moved aside; the cases alone became a project labelled by itself.",
+   "cause": "The pipeline's failed status was ignored, failed files did not block, and the build did not see the label file active alone.",
+   "fix": "The walk stops on a failed bring and on any failed file; the build refuses while the label file is the active table.",
+   "test": "test_a_table_that_could_not_be_read_is_never_built_around"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The workflow state only checked that steps existed.",
+   "scenario": "An invalid workflow would pass.",
+   "cause": "The drawn workflow was never validated.",
+   "fix": "The workflow is checked as a model's proposal is; the plan's status says what else stays open.",
+   "test": "test_from_the_tables_draft_the_walk_points_to_the_draft_with_its_cases"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "From the table's draft the walk never saw the cases in another draft.",
+   "scenario": "Started on the orders draft, it stopped on the outcome question.",
+   "cause": "Offers exist only on the cases' side.",
+   "fix": "The table's draft names the draft holding its cases and stops there.",
+   "test": "test_from_the_orders_draft_it_points_to_the_cases"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "A malformed answer was recorded as an accepted hand-off.",
+   "scenario": "An answer whose after was a mapping named no column and passed the gate.",
+   "cause": "Items not in the hand-off's shape were skipped silently.",
+   "fix": "An answer not in the shape is refused as malformed.",
+   "test": "test_a_handoff_naming_a_column_the_tables_do_not_hold_is_refused_whole"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The host's own column counted as a data card.",
+   "scenario": "A draft without a data card allowed an empty hand-off.",
+   "cause": "The check ran after adding the host's is_case.",
+   "fix": "Without the tables' own columns nothing is taken on trust.",
+   "test": "test_a_handoff_naming_a_column_the_tables_do_not_hold_is_refused_whole"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The question that stopped the walk was missing from the person's record.",
+   "scenario": "An unanswered question was not in the asked list.",
+   "cause": "The answer was asked for directly.",
+   "fix": "Through the person's ask, which records every question.",
+   "test": "test_it_never_builds_while_a_blocker_is_open_and_says_which"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The walk did not hold the draft's turn, and a loop of two questions went on.",
+   "scenario": "A Home turn could interleave with the walk; A/B/A/B asked the person up to twenty times.",
+   "cause": "No turn lock; only consecutive repeats were seen.",
+   "fix": "The walk holds the draft's turn; an outcome seen three times stops it.",
+   "test": "test_the_mornings_walk_is_a_run_of_the_coordinator"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "The model's words were kept in the draft.",
+   "scenario": "The data investigator's reasons were stored with the hand-off.",
+   "cause": "The role's parsed output was stored whole.",
+   "fix": "Only the columns it proposed are kept.",
+   "test": "test_the_mornings_walk_is_a_run_of_the_coordinator"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the owner's morning replayed",
+   "gate": "ends in the fraud project with labels joined on order_id, partial, biker_id the groups, and the planted hand-off refused",
+   "result": "built; labels key order_id, partial, group biker_id, family rare_event; driver_rating refused",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "every condition met",
+   "limits": [
+    "Invented replica; started from the cases' draft; scripted person."
+   ]
+  }
+ ],
+ "outcome": "One lead agent walks a draft from the problem to a built project through explicit gates, never building around a blocker, and refuses a role's hand-off that names a column the tables do not hold.",
+ "lessons": [
+  "When two paths decide the same thing (the build route and the coordinator), make them read one function.",
+  "Progress is an action's outcome, not a change of state: answering an open question changes nothing the state machine sees.",
+  "A failure that happens after a file moved aside leaves a state that looks complete: test the failure in the middle."
+ ],
+ "risks": [
+  "Only the data investigator's hand-off is gated.",
+  "The coordinator is not yet reachable from a route or the page."
+ ],
+ "commits": []
+}

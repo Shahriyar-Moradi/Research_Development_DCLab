@@ -376,37 +376,12 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         """{"draft": another draft's id}: that draft's table, copied into this one (21.3), so a file of cases and the
         table it labels are read together; the other draft is left as it was."""
         get(draft_id)
-        other_id = str(dump(payload).get("draft") or "")
-        if not other_id or other_id == draft_id:
-            raise HTTPException(422, "Name another draft of this workspace")
-        try:
-            other = drafts.get(other_id)
-        except KeyError:
-            raise HTTPException(404, "No such draft in this workspace") from None
-        asset = next((a for a in other.get("assets") or [] if a.get("id") == other.get("active_asset") and a.get("status") == "ready"
-                      and a.get("kind") != "labels" and a.get("clean_file")), None)
-        if asset is None:
-            raise HTTPException(409, "That draft has no table ready to bring")
-        here = get(draft_id)
-        if any((a.get("source") or {}).get("draft_id") == other_id for a in here.get("assets") or []):
-            raise HTTPException(409, "That table is already here")
-        source = drafts.data_dir(other_id) / asset["clean_file"]
-        mine = next((a for a in here.get("assets") or [] if a.get("id") == here.get("active_asset") and a.get("status") == "ready"
-                     and a.get("clean_file")), None)
-        if mine is not None:  # the pipeline's own rules: what it would not read as labels is not brought over the cases
-            import pandas as pd
-
-            from ..studio.labels import joinable
-
-            cases = await asyncio.to_thread(pd.read_parquet, drafts.data_dir(draft_id) / mine["clean_file"])
-            if not await asyncio.to_thread(joinable, cases, source):
-                raise HTTPException(409, "That table would not be read with these cases: they are more than half its rows, or have no column of their own")
         if services is not None:
             await asyncio.to_thread(services.job_room)  # its pipeline is a job (package 10.6)
-        name = f"from-{other_id}-{asset['id']}.parquet"  # never a name of this draft's own files (clean.parquet, labels_clean.parquet)
-        await asyncio.to_thread(shutil.copyfile, source, drafts.data_dir(draft_id) / name)
-        brought = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, "draft", asset.get("name") or name, name,
-                                          source={"kind": "draft", "draft_id": other_id, "asset": asset.get("id")})
+        try:
+            brought = await asyncio.to_thread(bring_from_draft, drafts, draft_id, str(dump(payload).get("draft") or ""))
+        except BringRefused as refused:
+            raise HTTPException(refused.status, str(refused)) from None
         process(draft_id, brought["id"])
         return brought
 
@@ -697,40 +672,101 @@ class BuildRefused(ValueError):
         self.rule = rule
 
 
-def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
-    """Create the project from the draft: its name and goal, the cleaned table, and what the chat established. Refused
-    while the draft holds only a list of known cases (every row a case: nothing to tell them from)."""
-    from ..studio import data as studio_data
-
+def build_blockers(drafts: DraftStore, draft_id: str, capture_card: bool = False) -> list[BuildRefused]:
+    """Every check that refuses a build now, in order (21.2: the coordinator reads them; ``build_project`` raises the
+    first): only known cases, a problem card not ready, a problem and data that disagree, a family not built yet."""
     draft = drafts.get(draft_id)
+    out: list[BuildRefused] = []
     cases = (draft.get("analysis") or {}).get("cases_table") or {}
     columns = {c.get("name") for c in ((draft.get("analysis") or {}).get("profile") or {}).get("columns") or []}
     named = (draft.get("solution") or {}).get("target") or ((draft.get("understanding") or {}).get("target") if
                                                               (draft.get("understanding") or {}).get("target") in columns else None)
-    if cases and plans.label_asset(draft) is None and not named:  # the morning of 2026-10-13: the cases' file alone became a project
-        raise BuildRefused("This draft holds only a list of known cases: add the table they belong to (with "
-                           f"{', '.join(cases['keys'][:2])}), and its cases become the labels", "list of known cases")
+    active = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset")), None) or {}
+    if active.get("kind") == "labels":  # the cases moved aside for a table that never became ready: they are not the table
+        out.append(BuildRefused("The known cases are here but the table they label is not ready: add it again, and its cases "
+                                "become the labels", "list of known cases"))
+    elif cases and plans.label_asset(draft) is None and not named:  # the morning of 2026-10-13: the cases' file alone became a project
+        out.append(BuildRefused("This draft holds only a list of known cases: add the table they belong to (with "
+                                f"{', '.join(cases['keys'][:2])}), and its cases become the labels", "list of known cases"))
     from .card import card_of
 
     card = card_of(draft)
-    from ..ledger import capture  # 19.7: the card's family and readiness, at the moment a build is asked for
+    if capture_card:
+        from ..ledger import capture  # 19.7: the card's family and readiness, at the moment a build is asked for
 
-    capture.problem_card(draft, card)
+        capture.problem_card(draft, card)
     has_data = any(a.get("status") == "ready" for a in draft.get("assets") or [])
     if has_data and not card.ready:  # 20.1: a project is built from a ready problem card
-        raise BuildRefused("Not yet: " + " ".join(card.blocking[:3]), "problem card not ready")
+        out.append(BuildRefused("Not yet: " + " ".join(card.blocking[:3]), "problem card not ready"))
     if not has_data and card.in_play:  # a plan-only draft carries its questions, but not one about what the problem is
-        raise BuildRefused("Not yet: " + " ".join(b for b in card.blocking if "confirmed" in b), "problem card not ready")
+        out.append(BuildRefused("Not yet: " + " ".join(b for b in card.blocking if "confirmed" in b), "problem card not ready"))
     if has_data:  # 20.4: the problem meets the data; a mismatch that would answer another problem waits for the person
         from .card import meeting
 
         met = meeting(draft, drafts)
         blocking = [m.question for m in (met.mismatches if met is not None else []) if m.blocking]
         if blocking:
-            raise BuildRefused("Not yet: " + " ".join(blocking[:2]), "problem and data disagree")
+            out.append(BuildRefused("Not yet: " + " ".join(blocking[:2]), "problem and data disagree"))
     if card.family.value == "anomaly":  # said plainly, never built as something else (it became a model of customer ids once)
-        raise BuildRefused("Anomaly detection without labels is not in the engine yet (package 20.7). With a file of known "
-                           "cases (even a sample), it is a rare-event problem DCLab solves: add that file to this draft.", "family not built yet")
+        out.append(BuildRefused("Anomaly detection without labels is not in the engine yet (package 20.7). With a file of known "
+                                "cases (even a sample), it is a rare-event problem DCLab solves: add that file to this draft.", "family not built yet"))
+    return out
+
+
+class BringRefused(ValueError):
+    """Another draft's table cannot be brought here; ``status`` is the HTTP code the route answers with."""
+
+    def __init__(self, message: str, status: int):
+        super().__init__(message)
+        self.status = status
+
+
+def bring_from_draft(drafts: DraftStore, draft_id: str, other_id: str) -> dict[str, Any]:
+    """Copy another draft's ready table into this one (21.3), as a new asset to read; the other draft is left as it was.
+    Refused (``BringRefused``) for this draft itself, an unknown draft, one with no table ready, a table already here,
+    or one the pipeline would not read with these cases. The caller runs the new asset's pipeline."""
+    if not other_id or other_id == draft_id:
+        raise BringRefused("Name another draft of this workspace", 422)
+    try:
+        other = drafts.get(other_id)
+    except KeyError:
+        raise BringRefused("No such draft in this workspace", 404) from None
+    asset = next((a for a in other.get("assets") or [] if a.get("id") == other.get("active_asset") and a.get("status") == "ready"
+                  and a.get("kind") != "labels" and a.get("clean_file")), None)
+    if asset is None:
+        raise BringRefused("That draft has no table ready to bring", 409)
+    here = drafts.get(draft_id)
+    if any((a.get("source") or {}).get("draft_id") == other_id for a in here.get("assets") or []):
+        raise BringRefused("That table is already here", 409)
+    source = drafts.data_dir(other_id) / asset["clean_file"]
+    mine = next((a for a in here.get("assets") or [] if a.get("id") == here.get("active_asset") and a.get("status") == "ready"
+                 and a.get("clean_file")), None)
+    if mine is not None:  # the pipeline's own rules: what it would not read as labels is not brought over the cases
+        import pandas as pd
+
+        from ..studio.labels import joinable
+
+        cases = pd.read_parquet(drafts.data_dir(draft_id) / mine["clean_file"])
+        if not joinable(cases, source):
+            raise BringRefused("That table would not be read with these cases: they are more than half its rows, or have no column of their own", 409)
+    name = f"from-{other_id}-{asset['id']}.parquet"  # never a name of this draft's own files (clean.parquet, labels_clean.parquet)
+    shutil.copyfile(source, drafts.data_dir(draft_id) / name)
+    return pipeline.new_asset(drafts, draft_id, "draft", asset.get("name") or name, name,
+                              source={"kind": "draft", "draft_id": other_id, "asset": asset.get("id")})
+
+
+def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]:
+    """Create the project from the draft: its name and goal, the cleaned table, and what the chat established. Refused
+    while the draft holds only a list of known cases (every row a case: nothing to tell them from)."""
+    from ..studio import data as studio_data
+
+    refused = build_blockers(drafts, draft_id, capture_card=True)
+    if refused:  # the first check that refuses says what is missing
+        raise refused[0]
+    from .card import card_of
+
+    draft = drafts.get(draft_id)
+    card = card_of(draft)
     u = draft.get("understanding") or {}
     name = (u.get("target") or draft["problem"])[:60].strip().rstrip(".") or "New project"
     project = projects.create(name[:1].upper() + name[1:], "general", draft["problem"])
