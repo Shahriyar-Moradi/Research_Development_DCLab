@@ -133,6 +133,16 @@
    "cause": "No test refused an attach of a name already attached.",
    "fix": "A test refuses the move and checks the table stays attached and readable.",
    "test": "test_a_refused_attach_never_deletes_an_attached_table"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The new upload route did not say what it records in the session record.",
+   "scenario": "The package gate's test of every write route found the related-table upload missing from the registry.",
+   "cause": "The route was added without its entry; its audit row already becomes a data upload event.",
+   "fix": "The route is registered as recording a data upload.",
+   "test": "test_every_write_route_says_what_it_records"
   }
  ],
  "measurements": [

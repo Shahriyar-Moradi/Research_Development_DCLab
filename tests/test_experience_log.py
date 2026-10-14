@@ -68,6 +68,7 @@ WRITE_ROUTES = {
     "DELETE /api/projects/{project_id}": (NONE, "the deletion is audited (its tombstone) and the project's events are removed (19.10)"),
     "DELETE /api/experience/sessions/{visit}": (NONE, "the session's events are removed; the audit keeps its tombstone (19.10)"),
     "PUT /api/projects/{project_id}/data": (EVENTS, ["data.uploaded"]),
+    "PUT /api/projects/{project_id}/tables/{name}": (EVENTS, ["data.uploaded"]),  # 16.15 C: a related table, its audit row a data import
     "POST /api/projects/{project_id}/data/sample": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/solution": (EVENTS, ["graph.move", "solution.saved"]),
     "POST /api/projects/{project_id}/solution/proposal": (NONE, "the project page's audit is shown, not saved: the saved solution is the event"),
