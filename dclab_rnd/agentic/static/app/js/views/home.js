@@ -125,6 +125,13 @@ DC.view('home', {
       if (ex) { $('#home-task', el).value = ex.dataset.example; $('#home-task', el).focus(); }
       const op = e.target.closest('[data-open-project]');
       if (op) { DC.state.projectId = op.dataset.openProject; }
+      const bringing = e.target.closest('[data-bring]');
+      if (bringing && S.draft) {
+        bringing.disabled = true;
+        try { await DC.client.bringTable(S.draft.id, { body: { draft: bringing.dataset.bring } }); DC.toast('Bringing that table here: it is read with the cases.'); }
+        catch (err) { bringing.disabled = false; DC.toast(err.message, { ok: false }); }
+        return;
+      }
       const rated = e.target.closest('[data-rate]');
       if (rated && S.draft) {
         rated.parentElement.querySelectorAll('[data-rate]').forEach(b => { b.disabled = true; });
@@ -248,7 +255,12 @@ DC.view('home', {
       if (num) charts += `<div class="inset"><div class="eyebrow">Distribution · ${esc(num.name)}</div>${DC.charts.vbars(num.hist.counts.map((v, i) => ({ value: v, label: i === 0 || i === num.hist.counts.length - 1 ? Number(num.hist.edges[i]).toPrecision(3) : null })), { width: 420, height: 140, aria: 'Histogram of ' + num.name })}</div>`;
       if (cat) charts += `<div class="inset"><div class="eyebrow">Top values · ${esc(cat.name)}</div>${DC.charts.barsH(cat.top.slice(0, 6).map(([v, n]) => ({ label: String(v).slice(0, 18), value: n, valueText: fmtN(n) })), { width: 420, labelW: 140, valW: 70, rowH: 22, aria: 'Top values of ' + cat.name })}</div>`;
       const hl = (a.highlights || []).slice(0, 5).map(h => `<li class="${h.severity === 'warning' ? 'blocked' : 'done'}"><span class="pi">${h.severity === 'warning' ? '!' : 'i'}</span><span><b>${esc(h.title)}</b> <span class="muted">${esc(h.text)}</span></span></li>`).join('');
+      const ct = a.cases_table && (a.cases_table.tables || []).length ? a.cases_table : null;  // 21.3: known cases, and the table they label
+      const bring = ct ? `<div class="inset stack tight"><div class="eyebrow">Known cases: the table they label</div>${ct.tables.map(t =>
+        `<div class="spread small"><span><b>${esc(t.asset)}</b> in another draft holds ${fmtN(t.matched)} of these ${fmtN(t.of)} cases (key <code>${esc(t.key)}</code>)${t.key_repeats ? ` · ${fmtN(t.key_repeats)} of its rows repeat a key` : ''}</span>`
+        + `<button type="button" class="btn sm" data-bring="${esc(t.draft_id)}">Bring it here</button></div>`).join('')}</div>` : '';
       return `<div class="stack tight">
+        ${bring}
         <div class="stats"><div class="stat"><span class="v">${fmtN(s.rows)}</span><span class="l">rows${s.sampled_rows ? ' · charts on a sample' : ''}</span></div><div class="stat"><span class="v">${fmtN(s.columns)}</span><span class="l">${esc(kinds || 'columns')}</span></div><div class="stat"><span class="v">${pctTxt(s.missing_cell_rate)}</span><span class="l">missing cells</span></div><div class="stat"><span class="v">${fmtN(s.duplicate_rows)}</span><span class="l">duplicate rows left</span></div></div>
         ${hl ? `<ul class="plan-list">${hl}</ul>` : ''}
         <div class="grid g2">${charts}</div>

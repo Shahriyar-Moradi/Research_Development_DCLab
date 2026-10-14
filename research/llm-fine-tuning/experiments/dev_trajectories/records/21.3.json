@@ -1,0 +1,41 @@
+{
+ "package": "21.3",
+ "title": "Files understood together: a file of known cases finds the table it labels, even in another draft",
+ "date": "2026-10-14",
+ "request": "The owner's challenge came as two files: a table of orders and a sample of known frauds. Uploaded separately, they must be recognised as one problem: the sample is a label file for the orders, keyed by order_request_id. A table that merely shares a column must not be taken for a label file.",
+ "spec": "Every file of a workspace's drafts read together: a table of cases recognised as a label file, its join key found and its coverage measured; files uploaded to separate drafts offered to be joined; duplicates of the key in the main table found and resolved before the join.",
+ "plan": [
+  "Build on 15.6's label review, cases detection and other-draft search.",
+  "Offer a table only by the draft pipeline's own rules and a minimum coverage; bring it into the cases' draft with a route and a button on Home.",
+  "Report the key's repeats before the join, on the coarsest key that finds as many cases."
+ ],
+ "decisions": [
+  {"decision": "Offer a table only when the pipeline would read the cases as its label file.", "why": "An offer the pipeline then refuses turns the brought table into the main table, over the cases."},
+  {"decision": "The brought file gets a name of its own (from-<draft>-<asset>.parquet).", "why": "A display name like clean.csv would overwrite the draft's cleaned cases."},
+  {"decision": "Report repeats on the coarsest key that finds as many cases, and say whether the chosen key resolves them.", "why": "When a labelled order has two drops, the finer key marks only the fraudulent one; the order key would mark both."}
+ ],
+ "change": "dclab_rnd/studio/labels.py (coverage, joinable, repeats), dclab_rnd/draft/pipeline.py (repeats in the summary; offers refreshed when a table becomes ready), dclab_rnd/draft/api.py (POST /api/drafts/{id}/data/from-draft), the Home analysis card (Known cases: the table they label); tests/test_files_together.py (new), test_experience_log.py; the plan, the roadmap.",
+ "findings": [
+  {"id": "R1", "source": "reviewer", "severity": "behaviour", "defect": "The brought table could overwrite the cases' own file.", "scenario": "An orders file uploaded as clean.csv in another draft replaced the cases' clean.parquet.", "cause": "The copy was named after the other asset's display name.", "fix": "A name that cannot collide: from-<draft>-<asset>.parquet.", "test": "test_two_files_uploaded_apart_are_read_together"},
+  {"id": "R2", "source": "reviewer", "severity": "behaviour", "defect": "No offer was made when the cases came before the table they label.", "scenario": "Cases uploaded to draft A, orders to draft B later: A never saw B.", "cause": "The offer was computed once, in the cases' pipeline.", "fix": "When a table becomes ready, drafts of cases look again and get a fresh analysis.", "test": "test_the_cases_first_and_their_table_later_are_offered_too"},
+  {"id": "R3", "source": "reviewer", "severity": "behaviour", "defect": "A table could be offered that the pipeline would not label, and bringing it destroyed the cases.", "scenario": "A 92-row orders table, almost every row a case.", "cause": "The offer ignored the pipeline's rules (at most half the rows, a column of its own).", "fix": "joinable() applies them to offers and to the route, which refuses with 409.", "test": "test_a_table_the_cases_would_not_label_is_neither_offered_nor_brought"},
+  {"id": "R4", "source": "reviewer", "severity": "leakage", "defect": "The repeats report vanished exactly when a labelled order repeats.", "scenario": "Five frauds on the first drop of a multi-drop order: terminal_ref was chosen and nothing was reported.", "cause": "Repeats were measured on the chosen key only.", "fix": "Measure them on the coarsest key that finds as many cases, and say whether the chosen key resolves them.", "test": "test_a_labelled_order_with_two_drops_is_found_before_the_join"},
+  {"id": "R5", "source": "reviewer", "severity": "gap", "defect": "The coverage test could not fail.", "scenario": "MIN_COVERAGE set to 0 passed.", "cause": "Its table was never a ready asset, so it was skipped whatever the coverage.", "fix": "Upload the table through the API, assert the offer with the true keys and none with the shifted ones.", "test": "test_a_file_sharing_few_of_its_keys_is_not_offered"},
+  {"id": "R6", "source": "reviewer", "severity": "gap", "defect": "The finer key and the count of labelled repeats were never asserted.", "scenario": "Forcing either to a wrong value passed.", "cause": "Only the resolution text was checked.", "fix": "Exact values asserted on the replica and its variant.", "test": "test_two_files_uploaded_apart_are_read_together"},
+  {"id": "R7", "source": "reviewer", "severity": "behaviour", "defect": "Bringing the same table twice erased the labels summary.", "scenario": "Two POSTs of the same draft.", "cause": "The second copy was read as a new main table.", "fix": "Refused when the table is already here (and by the pipeline-rules check behind it).", "test": "test_two_files_uploaded_apart_are_read_together"}
+ ],
+ "measurements": [
+  {"name": "planted faults", "gate": "each fix undone fails a test", "result": "7 of 8 caught; the 8th (the bring-twice guard) is a second guard behind the pipeline-rules check", "verdict": "pass", "cost_eur": 0.0, "against_gate": "7 of 8, the 8th redundant", "limits": ["Only the faults planted."]}
+ ],
+ "outcome": "A file of known cases uploaded to one draft is offered the table it labels in another, with how many of its cases that table holds and how many of its rows repeat a key. One click brings that table over, where the two are read together and joined on order_request_id. A table that merely shares biker_id is neither offered nor taken as labels.",
+ "lessons": [
+  "An offer must follow the same rules as the action it leads to, or accepting it does harm.",
+  "Never name a copied file after what a person called it: a display name can collide with the system's own files.",
+  "Measure repeats on the coarse key that could have been chosen, not only the one that was."
+ ],
+ "risks": [
+  "Files of one draft are still cleaned into one table: the cases move aside as labels_clean.parquet when a bigger table arrives.",
+  "A finer key is named, not yet offered as a choice to the person."
+ ],
+ "commits": []
+}

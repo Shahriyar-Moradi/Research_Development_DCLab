@@ -280,6 +280,15 @@ asked the labels question, and the build happened anyway); one model tier served
   in the main table found and resolved before the join.
 - **Done when:** the two challenge-shaped replica files, uploaded separately, are recognized (labels for orders, key
   `order_request_id`), and a table that merely shares a column is not taken for a label file.
+- **Status: done (2026-10-14).** Built on 15.6's label review and cases detection: a file of known cases in one draft
+  is offered the table it labels in another only when that table holds at least half of its keys (its coverage, and
+  how many of its rows repeat a key, shown on Home); `POST /api/drafts/{id}/data/from-draft` brings that table into the
+  cases' draft (the other draft untouched), where the two are read together and the cases join on their key; the
+  key's repeats in the table are found before the join and reported with how they are resolved (every row of a
+  labelled key is marked a case; a finer key both files share is named when one tells those rows apart). The fraud
+  replica's two files renamed to `order_request_id`, uploaded to separate drafts, join on it; a table of bikers sharing
+  `biker_id` is neither a file of cases nor a label file (`tests/test_files_together.py`). Left open: a finer key is
+  named, not yet offered as a choice; files of one draft are still cleaned into one table.
 
 ### 21.4 Model management
 - **Delivers:** each role's model and tier chosen per role (the routing of `models/routing.py`, with a reviewer and a

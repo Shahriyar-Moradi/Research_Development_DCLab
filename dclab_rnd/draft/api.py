@@ -371,6 +371,45 @@ def register(app: FastAPI, drafts: DraftStore, projects, models, jobs: dict[str,
         process(draft_id, asset["id"])
         return asset
 
+    @router.post("/api/drafts/{draft_id}/data/from-draft", response_model=Doc)
+    async def bring_table(draft_id: str, payload: AnyObject):
+        """{"draft": another draft's id}: that draft's table, copied into this one (21.3), so a file of cases and the
+        table it labels are read together; the other draft is left as it was."""
+        get(draft_id)
+        other_id = str(dump(payload).get("draft") or "")
+        if not other_id or other_id == draft_id:
+            raise HTTPException(422, "Name another draft of this workspace")
+        try:
+            other = drafts.get(other_id)
+        except KeyError:
+            raise HTTPException(404, "No such draft in this workspace") from None
+        asset = next((a for a in other.get("assets") or [] if a.get("id") == other.get("active_asset") and a.get("status") == "ready"
+                      and a.get("kind") != "labels" and a.get("clean_file")), None)
+        if asset is None:
+            raise HTTPException(409, "That draft has no table ready to bring")
+        here = get(draft_id)
+        if any((a.get("source") or {}).get("draft_id") == other_id for a in here.get("assets") or []):
+            raise HTTPException(409, "That table is already here")
+        source = drafts.data_dir(other_id) / asset["clean_file"]
+        mine = next((a for a in here.get("assets") or [] if a.get("id") == here.get("active_asset") and a.get("status") == "ready"
+                     and a.get("clean_file")), None)
+        if mine is not None:  # the pipeline's own rules: what it would not read as labels is not brought over the cases
+            import pandas as pd
+
+            from ..studio.labels import joinable
+
+            cases = await asyncio.to_thread(pd.read_parquet, drafts.data_dir(draft_id) / mine["clean_file"])
+            if not await asyncio.to_thread(joinable, cases, source):
+                raise HTTPException(409, "That table would not be read with these cases: they are more than half its rows, or have no column of their own")
+        if services is not None:
+            await asyncio.to_thread(services.job_room)  # its pipeline is a job (package 10.6)
+        name = f"from-{other_id}-{asset['id']}.parquet"  # never a name of this draft's own files (clean.parquet, labels_clean.parquet)
+        await asyncio.to_thread(shutil.copyfile, source, drafts.data_dir(draft_id) / name)
+        brought = await asyncio.to_thread(pipeline.new_asset, drafts, draft_id, "draft", asset.get("name") or name, name,
+                                          source={"kind": "draft", "draft_id": other_id, "asset": asset.get("id")})
+        process(draft_id, brought["id"])
+        return brought
+
     @router.post("/api/drafts/{draft_id}/data/sample", response_model=Doc)
     async def sample(draft_id: str, payload: AnyObject):
         get(draft_id)

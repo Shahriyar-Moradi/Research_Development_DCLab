@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 
 import secrets
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +94,7 @@ def _label_role(store: DraftStore, draft_id: str, asset_id: str, frame) -> tuple
     if not review["key"]:
         return None, None, None
     summary = {"key": review["key"], "rows_marked": review["rows_marked"], "rows": int(len(big)), "label_rows": review["label_rows"],
+               "repeats": review.get("repeats"),
                "not_found": review["not_found"], "disagreeing_columns": review["disagreeing_columns"],
                "refused": [{"key": c["key"], "reason": c["reason"]} for c in review["candidates"] if c["verdict"] == "refused"][:4]}
     return ("labels" if small is frame else "main_after_labels"), summary, main
@@ -212,6 +214,8 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         store.update(draft_id, put)
         store.emit(draft_id, "analysis", {"asset": asset_id, "analysis": report})
         store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "ready", "text": "Ready", "rows": int(len(frame)), "columns": int(frame.shape[1])})
+        if report.get("cases_table") is None:  # 21.3: a file of cases uploaded before this table is offered it now
+            refresh_offers(store, draft_id)
         if agent is not None:
             agent.data_ready(draft_id, final)
         return final
@@ -272,3 +276,38 @@ def data_card(store: Any, draft_id: str, name: str, frame: Any) -> dict[str, Any
     except Exception:  # noqa: BLE001
         target = None
     return card(tables, name, target)
+
+
+def refresh_offers(store: DraftStore, ready_draft: str) -> None:
+    """Each other draft holding a file of known cases, and no label file yet, looks again for the table it labels: a
+    table that became ready after its cases were uploaded is offered too (21.3). Never fails the pipeline."""
+    from ..studio import labels as label_review
+
+    try:
+        for summary in store.list(limit=50):
+            other = summary.get("id")
+            if other == ready_draft:
+                continue
+            draft = store.get(other)
+            cases = (draft.get("analysis") or {}).get("cases_table")
+            active = next((a for a in draft.get("assets") or [] if a.get("id") == draft.get("active_asset")), None)
+            if not cases or active is None or not active.get("clean_file") or plans_label_asset(draft) is not None:
+                continue
+            frame = pd.read_parquet(store.data_dir(other) / active["clean_file"])
+            tables = label_review.tables_it_labels(store, other, frame, cases.get("keys") or [])
+            if tables == cases.get("tables"):
+                continue
+
+            def put(d, tables=tables):
+                if (d.get("analysis") or {}).get("cases_table") is not None:
+                    d["analysis"]["cases_table"]["tables"] = tables
+            fresh = store.update(other, put)
+            store.emit(other, "analysis", {"asset": active["id"], "analysis": (fresh or store.get(other)).get("analysis")})
+    except Exception as exc:  # noqa: BLE001 - an offer is a hint: the table that became ready stands either way
+        print(f"offers: not refreshed: {type(exc).__name__}", file=sys.stderr, flush=True)
+
+
+def plans_label_asset(draft: dict[str, Any]) -> Any:
+    from .plan import label_asset
+
+    return label_asset(draft)

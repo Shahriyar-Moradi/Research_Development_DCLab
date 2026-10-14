@@ -24,6 +24,38 @@ STATUS_WORDS = re.compile(r"(status|state|result|outcome|flag|stage)", re.I)
 INFLATION = 1.5  # a key that marks more than this many table rows per label row is refused (multi-drop orders reach ~1.1)
 
 
+def _repeats(table: pd.DataFrame, labels: pd.DataFrame, key: list[str], candidates: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """Keys that repeat in the table, found before the join (21.3), on the coarsest key that finds as many cases as the
+    chosen one: how many of its values sit on several rows, how many of those carry a label, and how they are
+    resolved: by the chosen key itself when it is finer (only the labelled rows are marked), or every row of a labelled
+    key marked a case."""
+    chosen = next((c for c in candidates if c["key"] == key), None)
+    if chosen is None:
+        return None
+
+    def repeats(cols: list[str]) -> pd.Series:
+        if not all(c in table.columns for c in cols):
+            return pd.Series(dtype=int)
+        counts = table[cols].dropna().astype(str).value_counts()
+        return counts[counts > 1]
+
+    coarse = [c for c in candidates if c["verdict"] != "refused" and c["label_rows_found"] >= chosen["label_rows_found"] and len(repeats(c["key"]))]
+    coarsest = max(coarse, key=lambda c: c["rows_per_label"], default=None)
+    if coarsest is None:
+        return None
+    cols = coarsest["key"]
+    repeated = repeats(cols)
+    labelled = labels[cols].dropna().astype(str).drop_duplicates()
+    marked = int(labelled.merge(repeated.rename("n").reset_index(), on=cols).shape[0]) if len(labelled) else 0
+    finer = key if cols != key else next((c["key"] for c in candidates if c["key"] != key and c["verdict"] != "refused"
+                                          and c["label_rows_found"] >= chosen["label_rows_found"] and not len(repeats(c["key"]))), None)
+    resolution = (f"joined on {'+'.join(key)}, which tells the rows of a repeated {'+'.join(cols)} apart: only the labelled rows are marked"
+                  if cols != key else "every row of a labelled key is marked a case"
+                  + (f"; {'+'.join(finer)} would tell those rows apart" if finer else ""))
+    return {"key": cols, "keys_repeated": int(len(repeated)), "rows_in_repeats": int(repeated.sum()), "labelled_keys_repeated": marked,
+            "resolution": resolution, "finer_key": finer}
+
+
 def review(table: pd.DataFrame, labels: pd.DataFrame, key: Optional[list[str]] = None, per_entity: bool = False) -> dict[str, Any]:
     """Every candidate key with its numbers and a verdict, the chosen key, and the columns that disagree."""
     from dclab_core.analyse import _disagreeing, label_join
@@ -53,7 +85,8 @@ def review(table: pd.DataFrame, labels: pd.DataFrame, key: Optional[list[str]] =
         chosen["verdict"] = "chosen"
     label_rows = int(len(labels))
     found = chosen["label_rows_found"] if chosen else 0
-    return {"key": chosen["key"] if chosen else None, "rows_marked": chosen["rows_marked"] if chosen else 0,
+    repeats = _repeats(table, labels, chosen["key"], candidates) if chosen else None
+    return {"key": chosen["key"] if chosen else None, "rows_marked": chosen["rows_marked"] if chosen else 0, "repeats": repeats,
             "label_rows": label_rows, "label_rows_found": found, "not_found": label_rows - found if chosen else label_rows,
             "candidates": candidates, "per_entity": per_entity,
             "disagreeing_columns": _disagreeing(table, labels, chosen["key"][0]) if chosen and len(chosen["key"]) == 1 else {}}
@@ -116,9 +149,24 @@ def cases_table(profile: dict[str, Any], filename: str = "") -> Optional[dict[st
     return {"keys": keys, "case_kinds": kinds, "same_on_every_row": same, "file_name_says_so": named, "rows": int(profile.get("rows") or 0)}
 
 
+MIN_COVERAGE = 0.5  # a table holding fewer of the cases' keys shares a column, not the cases (21.3)
+LABEL_SHARE = 0.5   # as the draft pipeline: a file of cases is at most half the rows of the table it labels
+
+
+def joinable(cases: pd.DataFrame, table_path: Any) -> bool:
+    """Whether the draft pipeline would read ``cases`` as the label file of the table stored at ``table_path``: at most
+    half its rows, and a column of its own (a sample of the same table is not a file of cases)."""
+    import pyarrow.parquet as pq
+
+    meta = pq.read_metadata(table_path)
+    columns = set(pq.read_schema(table_path).names)
+    return len(cases) <= LABEL_SHARE * meta.num_rows and bool(set(map(str, cases.columns)) - columns)
+
+
 def tables_it_labels(drafts: Any, draft_id: str, cases: pd.DataFrame, keys: list[str], limit: int = 3) -> list[dict[str, Any]]:
     """Tables in the workspace's other drafts that a file of cases could label: each ready table holding one of its key
-    columns, with how many of the cases' keys it contains. Only the key column is read."""
+    columns and at least half of the cases' keys, with how many and what share (its coverage). Only the key column is
+    read."""
     try:
         return _tables_it_labels(drafts, draft_id, cases, keys, limit)
     except Exception:  # noqa: BLE001 - a hint only: the upload of the cases never fails for it
@@ -139,6 +187,8 @@ def _tables_it_labels(drafts: Any, draft_id: str, cases: pd.DataFrame, keys: lis
             if asset.get("status") != "ready" or asset.get("kind") == "labels" or not asset.get("clean_file"):
                 continue
             path = drafts.data_dir(other["id"]) / asset["clean_file"]
+            if not joinable(cases, path):
+                continue
             for key in keys:
                 try:
                     values = pd.read_parquet(path, columns=[key])[key]
@@ -146,7 +196,9 @@ def _tables_it_labels(drafts: Any, draft_id: str, cases: pd.DataFrame, keys: lis
                     continue
                 wanted = cases[key].dropna().astype(str)
                 matched = int(wanted.isin(set(values.dropna().astype(str))).sum())
-                if matched:
-                    found.append({"draft_id": other["id"], "asset": asset.get("name"),
-                                  "rows": int(len(values)), "key": key, "matched": matched, "of": int(len(wanted))})
+                coverage = matched / max(len(wanted), 1)
+                if matched and coverage >= MIN_COVERAGE:
+                    found.append({"draft_id": other["id"], "asset": asset.get("name"), "rows": int(len(values)), "key": key,
+                                  "matched": matched, "of": int(len(wanted)), "coverage": round(coverage, 3),
+                                  "key_repeats": int(values.dropna().duplicated().sum())})
     return sorted(found, key=lambda f: -f["matched"] / max(f["of"], 1))[:limit]

@@ -51,6 +51,7 @@ WRITE_ROUTES = {
     "DELETE /api/drafts/{draft_id}": (NONE, "the deletion is audited (its tombstone) and what the draft left is removed from the record (19.10)"),
     "PUT /api/drafts/{draft_id}/data": (EVENTS, ["data.uploaded", "data.cleaned", "data.analysed", "run.recorded"]),  # a label file: no analysis of its own
     "POST /api/drafts/{draft_id}/data/sample": (EVENTS, ["data.uploaded"]),
+    "POST /api/drafts/{draft_id}/data/from-draft": (EVENTS, ["data.uploaded"]),  # 21.3: another draft's table, brought here
     "POST /api/drafts/{draft_id}/data/synthetic": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/data/kaggle": (EVENTS, ["data.uploaded"]),
     "POST /api/drafts/{draft_id}/data/hf": (EVENTS, ["data.uploaded"]),

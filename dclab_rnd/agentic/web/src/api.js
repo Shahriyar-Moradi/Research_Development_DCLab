@@ -234,6 +234,7 @@
     upload: ["PUT", "/drafts/{draft_id}/data", ["draft_id"], ["filename"]],
     dataCloud: ["POST", "/drafts/{draft_id}/data/cloud", ["draft_id"], []],
     dataDatabase: ["POST", "/drafts/{draft_id}/data/database", ["draft_id"], []],
+    bringTable: ["POST", "/drafts/{draft_id}/data/from-draft", ["draft_id"], []],
     dataHf: ["POST", "/drafts/{draft_id}/data/hf", ["draft_id"], []],
     dataKaggle: ["POST", "/drafts/{draft_id}/data/kaggle", ["draft_id"], []],
     sample: ["POST", "/drafts/{draft_id}/data/sample", ["draft_id"], []],
@@ -491,6 +492,12 @@
    *  @returns {Promise<Doc>} */
   client.dataDatabase = (...args) => call('dataDatabase', args);
   client.path.dataDatabase = (...args) => build('dataDatabase', args).path;
+  /** POST /api/drafts/{draft_id}/data/from-draft: Bring Table
+   *  @param {string} draft_id
+   *  @param {{body: AnyObject, headers?: Object}} [opts]
+   *  @returns {Promise<Doc>} */
+  client.bringTable = (...args) => call('bringTable', args);
+  client.path.bringTable = (...args) => build('bringTable', args).path;
   /** POST /api/drafts/{draft_id}/data/hf: Data Hf
    *  @param {string} draft_id
    *  @param {{body: AnyObject, headers?: Object}} [opts]
