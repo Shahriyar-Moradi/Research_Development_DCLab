@@ -296,8 +296,10 @@ def answer(by: str, answerer: str, value: Any, **extra: Any) -> Any:
 
 
 def decide(point: str, subject: tuple[str, str], *, answers: Iterable[Any], value_used: Any = None, used: str = "rule",
-           state: dict[str, Any] | None = None, options: Iterable[Any] = (), level: int = 0, ledger: Any = None, **ids: Any) -> Optional[Any]:
-    """Record one decision in the current workspace's ledger; the record, or None when nothing is kept or it was refused."""
+           state: dict[str, Any] | None = None, options: Iterable[Any] = (), level: int = 0, ledger: Any = None, review: bool = False,
+           **ids: Any) -> Optional[Any]:
+    """Record one decision in the current workspace's ledger; the record, or None when nothing is kept or it was refused.
+    ``review``: a routed model differed from the rule at "act with a check" (22.9): the rule stood and a person decides."""
     from ..experience import _QUIET
 
     target = ledger if ledger is not None else current_ledger()
@@ -307,7 +309,7 @@ def decide(point: str, subject: tuple[str, str], *, answers: Iterable[Any], valu
         record = contract.DecisionRecord(
             id="dr" + secrets.token_hex(10), point=point, subject=contract.Subject(kind=subject[0], key=str(subject[1])[:200]),
             state={k: v for k, v in (state or {}).items() if v is not None}, options=[str(o)[:200] for o in options][:64],
-            answers=[a for a in answers if a is not None], value_used=value_used, used=used, level=level, workspace=target.workspace,
+            answers=[a for a in answers if a is not None], value_used=value_used, used=used, level=level, review=review, workspace=target.workspace,
             at=_now(), **{k: v for k, v in _ids(ids).items() if k in ("project", "draft", "run", "conversation", "dataset", "experiment") and v is not None})
     except Exception as exc:  # noqa: BLE001 - the contract refused it: the decision stands, its record is reported
         DROPPED["count"] += 1

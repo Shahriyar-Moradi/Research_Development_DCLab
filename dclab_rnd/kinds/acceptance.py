@@ -175,7 +175,9 @@ def engine_run(case: Case, replica: str | None = None) -> Run:
     from dclab_rnd.models.gateway import private_scope
     from dclab_rnd.studio import engine
 
-    with tempfile.TemporaryDirectory() as tmp:
+    from dclab_rnd.ledger import use
+
+    with tempfile.TemporaryDirectory() as tmp, use.scope({"decisions": {}}):  # 22.9: the rules, whatever this workspace routes
         store, project_id = build(case, Path(tmp))
         with runner.fast_profile(), private_scope(True), mock.patch("dclab_rnd.studio.engine._critic_advisor", return_value=None):
             engine.run_all(store, project_id)

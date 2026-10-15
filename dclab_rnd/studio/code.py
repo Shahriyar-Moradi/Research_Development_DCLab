@@ -309,6 +309,11 @@ def cells(store: Any, project_id: str) -> dict[str, Any]:
         raise CodeRefused(f"The final stage recorded no holdout {metric}: nothing to reproduce")
     run = final.get("run") or {}
     profile = ((run.get("inputs") or {}).get("settings") or {}).get("engine_profile") or "full"
+    from ..ledger import use
+
+    if ((run.get("inputs") or {}).get("refs") or {}).get("decision_routing") != use.fingerprint():  # 22.9
+        raise CodeRefused("The decision models routed for this workspace changed since the stages ran: run them again, and the code "
+                          "reproduces what they decide")
     prepared = None
     if kind.own_machine() is not None:
         maker = MACHINES.get(kind.key)

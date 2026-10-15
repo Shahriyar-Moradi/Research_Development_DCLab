@@ -6,7 +6,7 @@ import argparse
 import json
 import os
 
-from . import families, measure, sealed_runs, store, verdict
+from . import families, measure, sealed_runs, store, store_compare, verdict
 
 
 def main() -> int:
@@ -15,6 +15,7 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=min(4, max(1, (os.cpu_count() or 2) - 1)))  # each one an engine: memory
     parser.add_argument("--only", nargs="*")
     parser.add_argument("--no-store", action="store_true")
+    parser.add_argument("--compare", action="store_true", help="22.9: every arm (the rules, each gated decision model, all) on the split")
     parser.add_argument("--seed", type=int, default=None, help="the replicas' seed (the sealed run uses the gate's)")
     args = parser.parse_args()
     if args.split == "sealed" and sealed_runs():
@@ -29,6 +30,22 @@ def main() -> int:
         print(f"the sealed journeys run on the gate's seed, {GATE['seed']}")
         return 2
     seed = GATE["seed"] if args.split == "sealed" else (0 if args.seed is None else args.seed)
+    if args.compare:
+        if args.split == "sealed":
+            print("the arms are compared on dev: a sealed set is run once, for its gate")
+            return 2
+        from . import arms, compare
+
+        by_arm = {arm: measure(args.split, seed, args.workers, args.only, doc) for arm, doc in arms().items()}
+        result = compare(by_arm)
+        for arm, a in result["arms"].items():
+            print(f"{'ok  ' if a['ok'] else 'WORSE'} {arm:30} {a['right']}/{a['journeys']} right  {json.dumps(a['parts'])}  changed by the model {a['decisions_by_model']} (agreed {a['agreed_with_the_rule']}), "
+                  f"held for review {a['held_for_review']}, refused by the validator {a['refused_by_validator']}, moves refused {a['refused_moves']}, "
+                  f"changed {a['changed']}")
+        print(result["verdict"])
+        if not args.no_store:
+            print(store_compare(by_arm, result, args.split, seed))
+        return 0
     rows = measure(args.split, seed, args.workers, args.only)
     for r in rows:
         mark = "ok  " if r["right"] else "MISS"

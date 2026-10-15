@@ -105,7 +105,45 @@ def _files(replica: Any, folder: Path) -> tuple[str, Optional[str]]:
     return "table.csv", None
 
 
-def play(journey: dict[str, Any], seed: int = 0, answerers: Any = None) -> dict[str, Any]:
+def arms() -> dict[str, dict[str, Any]]:
+    """22.9: the routings a journey is played under: the rules alone, each decision classifier that passed its sealed
+    gate routed to act at its own point (measured on its own), and all of them together. A measurement's setting, not a
+    workspace's routing: a workspace routes a model only through ``ledger.routing.switch``."""
+    from dclab_rnd.ledger import routing
+
+    passed = {info["point"]: name for name, info in sorted(routing.passed().items())}
+    at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    def doc(points: dict[str, str], level: int = 3) -> dict[str, Any]:
+        return {"decisions": {p: {"answerer": n, "level": level, "bar": 0.9, "since": at} for p, n in points.items()}}
+
+    out = {"rules": doc({})}
+    for point, name in passed.items():  # each on its own: acting (level 3), and acting with a check (level 2: a difference waits)
+        out[point] = doc({point: name})
+        out[f"{point}@check"] = doc({point: name}, 2)
+    if len(passed) > 1:
+        out["all"] = doc(passed)
+        out["all@check"] = doc(passed, 2)
+    return out
+
+
+def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    """One journey played from its first sentence; its scores and what happened at each part. ``routing_doc``: the
+    decision models routed while it plays (22.9); the rules alone by default."""
+    from dclab_rnd.ledger import use
+
+    with use.scope(routing_doc or {"decisions": {}}), use.recording() as seen:
+        row = _play(journey, seed)
+    row["decisions"] = [{"point": c.point, "subject": c.subject, "answerer": c.answerer, "level": c.level, "model": c.model_value,
+                         "rule": c.rule_value, "used": c.used, "changed": c.changed, "refused": c.refused, "review": c.review}
+                        for c in seen if c.level]
+    row["by_model"] = sum(1 for d in row["decisions"] if d["changed"])  # what the model changed, not an agreement
+    row["agreed"] = sum(1 for d in row["decisions"] if d["used"] not in ("rule", "none") and not d["changed"])
+    row["refused_by_validator"] = sum(1 for d in row["decisions"] if d["refused"])
+    return row
+
+
+def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part."""
     from dclab_rnd import kinds
     from dclab_rnd.draft import workflow as wf
@@ -277,21 +315,47 @@ def _end(row: dict[str, Any], started: float) -> dict[str, Any]:
     return row
 
 
-def _play_one(args: tuple[dict[str, Any], int]) -> dict[str, Any]:
-    journey, seed = args
+def _play_one(args: tuple[dict[str, Any], int, Optional[dict[str, Any]]]) -> dict[str, Any]:
+    journey, seed, doc = args
     try:
-        return play(journey, seed)
+        return play(journey, seed, doc)
     except Exception as error:  # noqa: BLE001 - a journey that breaks is wrong, with its reason
         return {"id": journey["id"], "kind": journey["kind"], "family": journey["family"], "parts": {p: False for p in PARTS},
                 "right": False, "why": [f"broke: {type(error).__name__}: {str(error)[:300]}"]}
 
 
-def measure(split: str, seed: int = 0, workers: int = 1, only: Optional[list[str]] = None) -> list[dict[str, Any]]:
+def measure(split: str, seed: int = 0, workers: int = 1, only: Optional[list[str]] = None,
+            routing_doc: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
     journeys = [j for j in load(split) if not only or j["id"] in only or j["kind"] in only]
     if workers <= 1:
-        return [_play_one((j, seed)) for j in journeys]
+        return [_play_one((j, seed, routing_doc)) for j in journeys]
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(_play_one, [(j, seed) for j in journeys]))
+        return list(pool.map(_play_one, [(j, seed, routing_doc) for j in journeys]))
+
+
+def compare(by_arm: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    """22.9's reading: each arm against the rules, part by part and journey by journey (what a model changed, for the
+    better or the worse), with the validator's refusals; the gate: every arm right at least as often as the rules on
+    every part, and no graph move refused."""
+    base = {r["id"]: r for r in by_arm.get("rules") or []}
+    out: dict[str, Any] = {}
+    for arm, rows in by_arm.items():
+        parts = {p: sum(bool(r["parts"].get(p)) for r in rows) for p in PARTS}
+        changed = [{"id": r["id"], "rules": base[r["id"]]["right"], "arm": r["right"]} for r in rows
+                   if r["id"] in base and r["right"] != base[r["id"]]["right"]]
+        out[arm] = {"journeys": len(rows), "right": sum(r["right"] for r in rows), "parts": parts, "changed": changed,
+                    "decisions_by_model": sum(r.get("by_model") or 0 for r in rows),  # changed from the rule's answer
+                    "agreed_with_the_rule": sum(r.get("agreed") or 0 for r in rows),
+                    "held_for_review": sum(sum(1 for d in r.get("decisions") or [] if d.get("review")) for r in rows),
+                    "refused_by_validator": sum(r.get("refused_by_validator") or 0 for r in rows),
+                    "refused_moves": sum(r.get("refused_moves") or 0 for r in rows)}
+    rules = out.get("rules") or {}
+    for a in out.values():  # each arm on its own: a model that may act must pass alone
+        a["ok"] = bool(rules) and a["refused_moves"] == 0 and all(a["parts"][p] >= rules["parts"][p] for p in PARTS)
+    ok = all(a["ok"] for a in out.values())
+    worse = [f"{arm} on {p}" for arm, a in out.items() for p in PARTS if rules and a["parts"][p] < rules["parts"][p]]
+    return {"arms": out, "verdict": "pass: every arm right at least as often as the rules on each part, and no move refused" if ok else
+            "fail: " + ("; ".join(worse) or "a move was refused, or no rules arm")}
 
 
 def families(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -332,5 +396,26 @@ def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules
            "rule": f"Scores on {len(rows)} written journeys over seeded replicas say how DCLab carries these people from their "
                    "first sentence to a holdout number; they are not a claim about any other problem or about production readiness."}
     path = RESULTS / f"{ident}_{split}.json"
+    path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
+    return path
+
+
+def store_compare(by_arm: dict[str, list[dict[str, Any]]], result: dict[str, Any], split: str, seed: int) -> Path:
+    """22.9's measurement, beside the journeys' runs: one result with every arm."""
+    out = ROOT / "evidence" / "campaigns" / "decision_workflow_v1" / "results"
+    out.mkdir(parents=True, exist_ok=True)
+    n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in out.glob("DWF-*.json")] or [0])
+    ident = f"DWF-{n:03d}"
+    doc = {"id": ident, "campaign_id": "decision_workflow_v1", "kind": "decision_models_in_the_workflow", "split": split, "seed": seed,
+           "journeys": fingerprint(HERE / f"journeys_{split}.json"), "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "gate": {"version": "decision_workflow_gate_v1", "rule": "with decision models routed to act, the journeys are right at least as "
+                    "often as with the rules on the card, the workflow, the pipeline and the holdout, no graph move is refused, and each "
+                    "model is measured on its own"},
+           "arms": {arm: [{k: r.get(k) for k in ("id", "kind", "right", "parts", "why", "decisions", "by_model", "agreed", "refused_by_validator",
+                                                 "refused_moves", "holdout")} for r in rows] for arm, rows in by_arm.items()},
+           "summary": result["arms"], "verdict": result["verdict"], "spent_eur": 0.0, "status": "completed", "experiment_id": ident,
+           "rule": "Arms on the dev journeys over seeded replicas: what each routed decision model changes in these journeys, not a "
+                   "claim about any other problem; routing a model in a workspace still needs its audited switch."}
+    path = out / f"{ident}_{split}.json"
     path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
     return path

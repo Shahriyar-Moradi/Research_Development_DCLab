@@ -222,6 +222,7 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         proof = [s.split("precedent ")[-1] for s in row["signals"] if "precedent" in s]
         forbidden.append({"column": name, "reason": "; ".join(row["signals"]), "risk_score": row["risk_score"],
                           "proof": proof + ["DCLAB-R04", "DCLAB-R05"]})
+    decided = _model_leaks(columns, profile, target, task, identifiers, forbidden, time_candidates, group_candidates)  # 22.9
     text_columns = [name for name in profile["text_candidates"] if name != target]
     positive_rate = detected.get("positive_rate")
     kind = kinds.resolve({"task": task, "text_columns": text_columns}, pack)
@@ -238,7 +239,50 @@ def propose(frame: pd.DataFrame, profile: dict[str, Any], target: str, task: str
         "rows_read": rows_read_note(len(read), len(present), time_candidates[0] if time_candidates else None, by_time),
         "all_columns": audit["all_columns"],
         "plan": _core_plan(X, y, target, task, time_candidates[0] if time_candidates else None, rows=X.index),
+        **({"decided_by_models": decided} if decided else {}),
     }
+
+
+MODEL_PROOF = "decision-model:"  # a forbidden column a routed decision model added (22.9), never the audit's
+
+
+def _model_leaks(columns: dict[str, Any], profile: dict[str, Any], target: str, task: str, identifiers: list[str],
+                 forbidden: list[dict[str, Any]], time_candidates: list[str], group_candidates: list[str] = ()) -> list[dict[str, Any]]:
+    """22.9: the routed leakage model asked about each column the rules would model. It may forbid one the audit did not
+    flag (written after the outcome), never free one the audit flagged, and never forbid a column the split may be
+    built on (a time, a group, a coordinate): the person may choose it there, and a forbidden one cannot be. The rules
+    decide when nothing is routed."""
+    from dclab_core.behaviour import coordinate_pairs
+
+    from ..ledger import column_state, use
+    from ..ledger.capture import TASKS
+
+    if not use.routed("feature.leakage_suspect"):
+        return []
+    flagged = {f["column"] for f in forbidden}
+    structural = set(time_candidates) | set(group_candidates) | {c for pair in coordinate_pairs(list(columns)) for c in pair[1:]}
+    out = []
+    for name, column in list(columns.items())[:200]:
+        if name == target or name in identifiers:
+            continue
+        rule = name in flagged
+
+        def check(value: Any, name: str = name, rule: bool = rule) -> list[str]:
+            if rule and value is False:
+                return ["the audit flagged it: a model never frees a column the rules forbid"]
+            if value is True and name in structural:
+                return ["the split may be built on it (a time, a group or a coordinate): a model does not forbid it"]
+            return []
+
+        state = {**column_state(column, profile.get("rows")), "target": str(target)[:200], "task": TASKS.get(task)}
+        choice = use.choose("feature.leakage_suspect", state, ["yes", "no"], rule, "rule:column_audit", subject=name, check=check)
+        if choice.by_model and choice.value is True and not rule:
+            forbidden.append({"column": name, "reason": f"the decision model {choice.answerer} reads it as written after the outcome",
+                              "risk_score": None, "proof": [MODEL_PROOF + str(choice.answerer)]})
+        if choice.level:
+            out.append({"column": name, "answerer": choice.answerer, "level": choice.level, "model": choice.model_value,
+                        "used": choice.used, "changed": choice.changed, "review": choice.review, "refused": choice.refused})
+    return out
 
 
 PROVISIONAL_SHARE = 0.75  # at most 1 - the largest holdout an engine split takes (20 % tabular, 25 % time to event)

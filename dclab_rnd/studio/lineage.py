@@ -96,7 +96,8 @@ def inputs_of(project: dict[str, Any], previous: dict[str, Optional[dict[str, An
     refs = {"labels": (project.get("labels") or {}).get("sha256") or _short_hash(project.get("labels")),
             "pack": _short_hash(project.get("pack")), "feature_programs": _short_hash(project.get("feature_programs")),
             "plan": _short_hash(project.get("plan")), "categorical": _short_hash(data.get("categorical")),
-            "tables": _short_hash({n: t.get("sha256") for n, t in sorted((project.get("tables") or {}).items())})}  # 16.15 C
+            "tables": _short_hash({n: t.get("sha256") for n, t in sorted((project.get("tables") or {}).items())}),  # 16.15 C
+            "decision_routing": _routing()}  # 22.9: a routed decision model decides inside the stages
     settings = project.get("settings") or {}
     return contract.RunInputs(
         data_sha256=data.get("sha256"), data_rows=data.get("rows"),
@@ -107,6 +108,12 @@ def inputs_of(project: dict[str, Any], previous: dict[str, Optional[dict[str, An
         decisions={k: str((r.get("decision") or {}).get("chosen"))[:300] for k, r in earlier.items() if (r.get("decision") or {}).get("chosen") is not None},
         refs={k: v for k, v in refs.items() if v},
         upstream=[str((r.get("run") or {}).get("run")) for r in earlier.values() if (r.get("run") or {}).get("run")], seed=seed)
+
+
+def _routing() -> Optional[str]:
+    from ..ledger import use
+
+    return use.fingerprint()
 
 
 def _chosen_value(record: dict[str, Any]) -> Optional[float]:
@@ -217,7 +224,8 @@ def replay(store: Any, project_id: str, stage: str) -> dict[str, Any]:
     original = contract.RunRecord.model_validate(record["run"])
     earlier = {k: store.read_stage(project_id, k) for k in STAGE_KEYS[:STAGE_KEYS.index(stage)]}
     try:
-        now = inputs_of(project, earlier, engine.prepare(store, project), seed=ds.RANDOM_STATE)
+        with experience.quiet():  # reading the project as it is now is no decision of the project's (22.9)
+            now = inputs_of(project, earlier, engine.prepare(store, project), seed=ds.RANDOM_STATE)
     except (DataError, ValueError) as exc:
         return {"replayed": False, "why": [f"The project cannot be read as it was: {exc}"]}
     then, current = original.inputs.model_dump(), now.model_dump()

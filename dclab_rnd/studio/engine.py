@@ -90,6 +90,7 @@ class Prepared:
         self.label_info: dict[str, Any] | None = None  # the project's label file (15.2), set on every prepare
         self.critic: Any = None  # the critic's advisor (18.6) when the project turns it on, set on every prepare
         self.kind: kinds.ProblemKind = kinds.get(solution.task)  # the problem kind (16.1), set on every prepare
+        self.decided: list[Any] = []  # 22.9: the column decisions a routed decision model made here (ledger.use.Choice)
 
     @property
     def task(self) -> str:
@@ -127,7 +128,8 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         return prepare_machine(store, project, solution, kind)
     declared = project["data"].get("categorical")  # the R&D's list for one of its samples; None for an uploaded table
     key = (project["id"], project["data"]["sha256"], _hash(project["solution"]) + str(project["settings"]) + str(declared)
-           + str(project.get("pack")) + _hash(project.get("labels")) + _hash(project.get("feature_programs")))  # each changes what runs
+           + str(project.get("pack")) + _hash(project.get("labels")) + _hash(project.get("feature_programs"))
+           + _routed("column.semantic_role"))  # each changes what runs (22.9: a routed decision model too)
     if key in _BUNDLES:
         _BUNDLES[key].plan, _BUNDLES[key].label_info = project.get("plan"), project.get("labels")
         _BUNDLES[key].critic = _critic_advisor(project)
@@ -175,6 +177,7 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         if column not in identifiers and column != solution.group_column and column not in text_columns and column_kind(X[column]) == "datetime":
             identifiers[column] = "datetime column that is not the declared time column; excluded to avoid one-hot dates"
     blocked = {f.column: (f.reason or "declared unavailable at the prediction moment") for f in solution.forbidden if f.column in X}
+    decided = _model_identifiers(X, identifiers, blocked, text_columns, time_column, solution.group_column)  # 22.9
     for column in X.columns:
         roles[column] = ("blocked" if column in blocked else "identifier" if column in identifiers and column != time_column
                          else "time" if column == time_column else "group" if column == solution.group_column
@@ -235,11 +238,50 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
     recipes = _register_recipes(bundle.spec, X, roles, datetime_time, project.get("feature_programs"), kind)
     prepared = Prepared(frame, solution, bundle, roles, class_labels, recipes, sampling, code_rule)
     prepared.kind = kind
+    prepared.decided = decided
     prepared.plan, prepared.label_info = project.get("plan"), project.get("labels")
     prepared.critic = _critic_advisor(project)
     _BUNDLES.clear()
     _BUNDLES[key] = prepared
     return prepared
+
+
+SEMANTIC_ROLES = ["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"]
+
+
+def _routed(point: str) -> str:
+    from ..ledger import routing, use
+
+    return str(routing.entry(use.routing_doc(), point)) if use.routed(point) else ""
+
+
+def _model_identifiers(X: pd.DataFrame, identifiers: dict[str, str], blocked: dict[str, str], text_columns: Any, time_column: Any,
+                       group_column: Any) -> list[Any]:
+    """22.9: the routed semantic-role model asked about each column the rules would model. It may only mark one an
+    identifier (never a feature again): any other role it gives changes nothing the engine does, and a column the rules
+    already keep out is not asked. The rules decide when nothing is routed."""
+    from ..ledger import column_state, use
+
+    if not use.routed("column.semantic_role"):
+        return []
+    from .data import profile_table
+
+    asked = [c for c in X.columns if c not in identifiers and c not in blocked and c != time_column and c != group_column
+             and c not in text_columns][:200]
+    if not asked:
+        return []
+    profiled = {str(c["name"]): c for c in profile_table(X[asked])["columns"]}
+    out = []
+    for column in asked:
+        rule_value = "numeric" if pd.api.types.is_numeric_dtype(X[column]) else "categorical_code"
+        choice = use.choose("column.semantic_role", column_state(profiled[str(column)], len(X)), SEMANTIC_ROLES, rule_value, "rule:prepare_roles",
+                            subject=str(column), check=lambda v, r=rule_value: [] if v in ("identifier", r) else
+                            ["only marking an identifier changes what is modelled; the other roles stay the rules'"])
+        if choice.by_model and choice.value == "identifier":
+            identifiers[column] = f"decision model {choice.answerer}: an identifier, never a feature"
+        if choice.level:
+            out.append(choice)
+    return out
 
 
 def _hash(value: Any) -> str:
@@ -370,6 +412,10 @@ def stage_data(p: Prepared, eid: str) -> tuple[dict, list, str]:
         "feature_profiles": profiles,
         "risk_features": {pr["feature"]: pr["production_risks"] for pr in profiles if pr["production_risks"]},
         "column_roles": dict(p.roles),
+        # 22.9: what a routed decision model decided here, after the validator (a refused answer is listed with why)
+        **({"decided_by_models": [{"point": c.point, "column": c.subject, "answerer": c.answerer, "level": c.level, "model": c.model_value,
+                                   "used": c.used, "changed": c.changed, "review": c.review, "refused": c.refused} for c in p.decided]}
+           if getattr(p, "decided", None) else {}),
         "note": "Holdout feature distributions (never labels) are compared via PSI; the holdout labels stay sealed until the final stage.",
     }
     evidence["problem_kind"] = p.kind.key  # 16.1: the kind whose summary, claim and checks these are
@@ -742,6 +788,9 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
                     reasons.setdefault(k["experiment"], (f"{gain[:1].upper()}{gain[1:]}.", k["cites"]))
                 position = {name: i for i, name in enumerate(critic["order"])}
                 ranked = sorted(ranked, key=lambda name: position.get(name, len(position)))
+            model_choice = _model_experiment(p, ranked, number, rule_ranked[0] if rule_ranked else None)  # 22.9: among the runnable ones
+            if model_choice is not None and model_choice.by_model:
+                ranked = [model_choice.value] + [e for e in ranked if e != model_choice.value]
             pick = None
             for e in ranked:
                 for candidate in [family] + [f for f in ranking if f != family]:
@@ -774,6 +823,10 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
             statement, cites = reasons[name]
             rounds.append({"round": number, "experiment": name, "hypothesis": statement, "cites": cites,
                            "options": ranked[:20], "rule_first": rule_ranked[0] if rule_ranked else None,
+                           **({"decision_model": {"answerer": model_choice.answerer, "model": model_choice.model_value, "level": model_choice.level,
+                                                  "used": model_choice.used, "refused": model_choice.refused, "review": model_choice.review,
+                                                  "state": model_choice.state}}
+                              if model_choice is not None and model_choice.level else {}),
                            "family": candidate, "base_family": family, "change": trial, "base_mean": base_mean,
                            "variant_mean": rn._mean(row, metric), "margin": needed, **decision,
                            **({"critic": {**{k: critic[k] for k in ("source", "reason", "order", "refused")},
@@ -791,6 +844,22 @@ def _review_rounds(p: Prepared, recipe: str, selected: dict[str, Any], screened:
 
         log.warning("review rounds unavailable: %s", type(exc).__name__)
         return None
+
+
+def _model_experiment(p: Prepared, ranked: list[str], number: int, rule_first: Any = None) -> Any:
+    """22.9: the routed model for the next experiment, asked among the ranked runnable experiments; None when nothing
+    is routed. The rule it is compared with is the rules' own first pick (never a critic's reordering); its pick must
+    be one of the ranked ones (the validator); the rules' order stands otherwise."""
+    from ..ledger import rows_band, use
+    from ..ledger.capture import TASKS
+
+    if not ranked or not use.routed("experiment.next"):
+        return None
+    state = {"rows": rows_band(len(p.bundle.X_train)), "columns": int(p.bundle.X_train.shape[1]), "task": TASKS.get(p.task), "step": number}
+    choice = use.choose("experiment.next", state, list(ranked[:20]), rule_first if rule_first is not None else ranked[0], "rule:review_ranking",
+                        subject=f"round {number}", check=lambda v: [] if v in ranked else ["not one of the runnable experiments"])
+    choice.state = state  # the record shows the state the model was shown
+    return choice
 
 
 def _decision(p: Prepared, selected: dict[str, Any], y_test: pd.Series, predictions: np.ndarray) -> dict[str, Any] | None:

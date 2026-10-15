@@ -42,10 +42,10 @@ def _who(actor: str) -> tuple[str, str, int]:
 
 
 def _put(point: str, subject: tuple[str, str], answers: list[Any], value: Any, used: str, *, state: dict[str, Any] | None = None,
-         options: Any = (), level: int = 0, exposed: bool = False, **ids: Any) -> Any:
+         options: Any = (), level: int = 0, exposed: bool = False, review: bool = False, **ids: Any) -> Any:
     answers = [a for a in answers if a is not None]
     record = decide(point, subject, answers=answers, value_used=value, used=used, state=state or {},
-                    options=[str(o)[:200] for o in options if o is not None][:64], level=level, **ids)
+                    options=[str(o)[:200] for o in options if o is not None][:64], level=level, review=review, **ids)
     if record is not None and exposed and used == "person":  # 19.8: a person who was shown the rule's answer and chose otherwise
         rule = next((a for a in answers if a.by == "rule" and a.value is not None), None)
         if rule is not None and rule.value != value:
@@ -86,7 +86,9 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                                                           answer(by, who, solution.get("task"))],
                                  solution.get("task"), by, state=problem, options=list(TASKS), level=level, exposed=exposed, **ids))
         ids_rule = set(own.get("identifiers") or [])
-        audit = {f.get("column") for f in own.get("forbidden") or [] if "DCLAB-R01" not in (f.get("proof") or [])}
+        by_model = {str(d.get("column")): d for d in own.get("decided_by_models") or [] if d.get("answerer")}  # 22.9
+        audit = {f.get("column") for f in own.get("forbidden") or [] if "DCLAB-R01" not in (f.get("proof") or [])
+                 and not any(str(p).startswith("decision-model:") for p in f.get("proof") or [])}
         saved_ids = set(solution.get("identifiers") or [])
         forbidden = {f.get("column") if isinstance(f, dict) else getattr(f, "column", None) for f in solution.get("forbidden") or []}
         review = proposal.get("review") or {}
@@ -111,9 +113,12 @@ def solution_saved(proposal: dict[str, Any] | None, profile: dict[str, Any] | No
                 answers.append(answer("rule", "rule:moment", name in by_moment))
             if name in verdicts:
                 answers.append(answer("model_role", "leakage_review", verdicts[name]))
+            if name in by_model and by_model[name].get("model") is not None:  # 22.9: the routed classifier's answer, shown in the proposal
+                answers.append(answer("classifier", by_model[name]["answerer"], bool(by_model[name]["model"])))
             answers.append(answer(by, who, name in forbidden))
             rec = _put("feature.leakage_suspect", ("column", name), answers, name in forbidden, by,
-                       state={**bands, "target": str(target)[:200] if target else None, "task": task}, options=["yes", "no"], level=level, exposed=exposed, **ids)
+                       state={**bands, "target": str(target)[:200] if target else None, "task": task}, options=["yes", "no"], level=level, exposed=exposed,
+                       review=bool((by_model.get(name) or {}).get("review")), **ids)
             written += bool(rec)
             if truth and rec is not None:
                 label(rec, name in true_forbidden, "benchmark", f"sample:{truth.get('key') or 'written'}")
@@ -193,13 +198,20 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
             frame = getattr(prepared, "frame", None)
             numeric = set(frame.select_dtypes("number").columns) if frame is not None else set()
             states = _states(frame, list((getattr(prepared, "roles", None) or {}))[:MAX_COLUMNS])  # 22.4: the bands a classifier reads
+            decided = {str(c.subject): c for c in getattr(prepared, "decided", None) or []}  # 22.9: a routed model's answers here
             for name, role in list((getattr(prepared, "roles", None) or {}).items())[:MAX_COLUMNS]:
                 kind = str(role).split(" ")[0]
                 value = {"blocked": "other", "identifier": "identifier", "time": "datetime", "group": "categorical_code",
                          "text": "free_text"}.get(kind, "numeric" if name in numeric else "categorical_code")
-                written += bool(_put("column.semantic_role", ("column", name), [answer("rule", "rule:prepare_roles", value)], value, "rule",
+                c = decided.get(str(name))
+                answers = [answer("rule", "rule:prepare_roles", ("numeric" if name in numeric else "categorical_code") if c else value)]
+                if c is not None and c.answerer:
+                    answers.append(answer("classifier", c.answerer, c.model_value))
+                used = "classifier" if c is not None and c.by_model else "rule"
+                written += bool(_put("column.semantic_role", ("column", name), answers, value, used,
                                      state=states.get(name) or {"column": str(name)[:200]},
-                                     options=["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"], **ids))
+                                     options=["numeric", "categorical_code", "identifier", "datetime", "free_text", "other"],
+                                     **({"level": c.level, "review": c.review} if c is not None else {}), **ids))
             for name in list(getattr(spec, "categorical_columns", None) or [])[:MAX_COLUMNS]:
                 if name in numeric:  # a number read as a code for categories
                     written += bool(_put("column.category_code", ("column", str(name)), [answer("rule", "rule:" + (_code(getattr(prepared, "code_rule", "")) or "codes"), True)],
@@ -245,10 +257,15 @@ def stage_decisions(stage: str, record: dict[str, Any], prepared: Any, owner: di
                 experiment = r.get("experiment")
                 model_pick = critic[0] if critic else None
                 by_model = bool(critic) and model_pick == experiment and r.get("rule_first") != experiment
+                routed = r.get("decision_model") or {}  # 22.9: a routed decision model's pick, after the validator
+                by_classifier = routed.get("used") not in (None, "rule", "none") and routed.get("model") == experiment
                 written += bool(_put("experiment.next", subject, [answer("rule", "rule:review_ranking", r.get("rule_first")),
-                                                                  answer("model_role", "critic", model_pick) if critic else None],
-                                     experiment, "model_role" if by_model else "rule", state={**base, "step": int(r.get("round") or 0)},
-                                     options=r.get("options") or [experiment], level=2 if by_model else 0, **ids))
+                                                                  answer("model_role", "critic", model_pick) if critic else None,
+                                                                  answer("classifier", routed["answerer"], routed.get("model")) if routed.get("answerer") else None],
+                                     experiment, "classifier" if by_classifier else "model_role" if by_model else "rule",
+                                     state=routed.get("state") or {**base, "step": int(r.get("round") or 0)},  # 22.9: the state the model was shown
+                                     options=r.get("options") or [experiment], review=bool(routed.get("review")),
+                                     level=int(routed.get("level") or 2) if by_classifier else 2 if by_model else 0, **ids))
                 if isinstance(r.get("adopted"), bool):
                     put("experiment.accept", r["adopted"], "rule:paired_bound", options=["yes", "no"],
                         state={"kind": _code(experiment), "step": int(r.get("round") or 0)})
@@ -430,7 +447,16 @@ def tool_choice(policy: Any, step: Any, allowed: list[str], trace: Any) -> int:
     """A model's choice of a tool among those its policy offered (acted on through the scope's guard)."""
     run = getattr(trace, "run_id", None)
     state = {"agent": _code(policy.name), "step": int(step.n), "tools_offered": len(allowed), "steps_left": max(int(policy.max_steps) - int(step.n), 0)}
-    return int(bool(_put("agent.tool_choice", ("conversation", str(run or policy.name)), [answer("model_role", str(policy.name), str(step.tool)[:200])],
+    answers = [answer("model_role", str(policy.name), str(step.tool)[:200])]
+    from . import use
+
+    if use.routed("agent.tool_choice"):  # 22.9: a routed decision model checks the agent's choice; it never replaces it
+        chosen = str(step.tool)[:200]
+        checked = use.choose("agent.tool_choice", state, list(allowed), chosen, f"agent:{_code(policy.name)}", subject=str(run or policy.name),
+                             check=lambda v: [] if v == chosen else ["a decision model checks an agent's tool and never replaces it"])
+        if checked.answerer and checked.model_value is not None:
+            answers.append(answer("classifier", checked.answerer, str(checked.model_value)[:200]))
+    return int(bool(_put("agent.tool_choice", ("conversation", str(run or policy.name)), answers,
                          str(step.tool)[:200], "model_role", state=state, options=allowed, level=2, **({"run": run} if run else {}))))
 
 

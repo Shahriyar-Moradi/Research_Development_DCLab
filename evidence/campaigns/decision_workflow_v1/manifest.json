@@ -1,0 +1,6 @@
+{
+  "campaign_id": "decision_workflow_v1",
+  "objective": "Decision models inside the workflow (package 22.9): the studio asks the answerer routed for a decision point where it decides (the proposal's leakage per column, the engine's semantic role per column, the review rounds' next experiment; an agent's tool is checked, never replaced) and acts on its answer only after the point's validator accepts it (a model may add a caution, never remove one the rules took). Measured on the acceptance suite of conversations (20.10, dev journeys): the rules alone, then each decision classifier that passed its sealed gate (22.3) routed on its own, acting (level 3) and acting with a check (level 2), then all together; part by part against the rules, with the validator's refusals and the disagreements held for review.",
+  "rule": "What each routed model changes in these 15 journeys over seeded replicas, not a claim about any other problem. A measurement's routing, not a workspace's: a workspace routes a model only through the audited switch (22.6), which asks for shadow evidence before a model acts. The dev journeys were written beside the rules; the sealed journeys are spent (20.10).",
+  "command": "python -m dclab_rnd.agent_eval.journeys --split dev --compare"
+}

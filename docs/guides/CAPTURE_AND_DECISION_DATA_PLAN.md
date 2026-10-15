@@ -477,6 +477,25 @@ by the same gates; the ledger feeds all of them, each in its own training format
 - **Done when:** on the conversation suite, the workflow with decision models reaches the right card, workflow and
   holdout number at least as often as with the rules, with no move the validator refuses, and each model's
   contribution is measured on its own.
+- **Status: built, measured (2026-10-15).** `dclab_rnd/ledger/use.py`: where the studio decides, `choose` asks the
+  answerer routed for the point (22.6) and acts on its answer only after the point's validator accepts it; nothing
+  routed, the rules decide and no model is loaded. Wired where a decision model exists: the proposal's leakage per
+  column (a model may forbid a column, never free one the audit flagged, never forbid one the split may be built on: a
+  time, a group, a coordinate), the engine's semantic role per column (it may only mark an identifier), the review
+  rounds' next experiment (among the runnable ones, beside the rules' own first pick), and an agent's tool, checked and
+  never replaced. Each answer, refusal and held difference is in the ledger (`review`), the stage's evidence and the
+  session record; the routing a stage ran with is one of its run's inputs, so a change makes the stages stale and the
+  code export refuses until they run again. Measured on the acceptance suite's dev journeys (20.10; the sealed set is
+  spent), each model on its own, acting and with a check (`DWF-002`): the rules 15 of 15; the semantic-role classifier
+  acting 15 of 15 (it changed one decision, an identifier; the validator refused its 4 other different answers); the
+  leakage classifier **acting 14 of 15**: it changed 6 decisions, forbidding a delivery's distance and value, the
+  strongest honest predictors, and the holdout failed, as its shadow record said (right on 2 of 11 labelled
+  disagreements, 22.4); with a check every arm is 15 of 15 and changes nothing, holding 16 differences for a person. No
+  graph move was refused in any arm. So: the role classifier may act on this evidence; the leakage classifier only with
+  a check. Left open: no decision model exists for any workflow point (the coordinator's next step, readiness and going
+  back, Home's next question, the template, the review rounds' stop): there is no training set or gate for them, the
+  coordinator's machine stays deterministic, and those points keep their rules until one passes a gate; a held
+  difference is in the ledger but no page asks the person yet; the dev journeys were written beside the rules.
 
 ### 22.7 Adoption by the main product
 - **Delivers:** the classifiers as a DCLab ModelType answerer in the main product's harness (its design's own path for

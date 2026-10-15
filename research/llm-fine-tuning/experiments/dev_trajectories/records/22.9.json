@@ -1,0 +1,171 @@
+{
+ "package": "22.9",
+ "title": "Decision models inside the workflow: asked where the studio decides, acted on only after the point's validator",
+ "date": "2026-10-15",
+ "request": "The workflow's own choices made with decision models where they passed their gates, every answer through the validator first, the rule when the model abstains or fails, each judged on the conversation suite against the rules; done when the workflow with decision models is right at least as often, no move refused, and each model measured on its own.",
+ "spec": "One function that asks the routed model and applies the point's validator, wired where a gated model exists, recorded in the ledger, the evidence and the run's inputs, and measured on the journeys arm by arm.",
+ "plan": [
+  "Survey the workflow's decision points and what decides them.",
+  "Write the asking function with a fast path when nothing is routed.",
+  "Wire the points that have a gated model, each with its validator.",
+  "Measure each model alone, acting and with a check, against the rules on the journeys.",
+  "Review, plant faults, fix."
+ ],
+ "decisions": [
+  {
+   "decision": "A model may only move towards caution at each point.",
+   "why": "Forbidding or marking an identifier can cost accuracy but never leaks; freeing a column the rules forbid could."
+  },
+  {
+   "decision": "Nothing is wired at a workflow point without a model.",
+   "why": "No decision model exists for the coordinator's or Home's choices; plumbing without a measured model would claim what was not measured."
+  },
+  {
+   "decision": "Arms are measurement routings, not switches.",
+   "why": "A workspace routes a model only through the audited switch, which asks for shadow evidence."
+  },
+  {
+   "decision": "An agent's tool is checked, never replaced.",
+   "why": "The model's choice and its arguments belong together; a classifier sees only the state."
+  }
+ ],
+ "change": "dclab_rnd/ledger/use.py (new), studio/solution.py, studio/engine.py, studio/lineage.py, studio/code.py, ledger/capture.py, ledger/__init__.py (review), kinds/acceptance.py, agent_eval/journeys (arms, compare), evidence/campaigns/decision_workflow_v1; tests/test_decision_workflow.py (new); the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The leakage classifier, acting alone, broke a holdout.",
+   "scenario": "Routed to act on the delivery-time journey, it forbade the delivery's distance and value and the holdout fell below its planted floor.",
+   "cause": "Its answers differ from the rules mostly where it is wrong, as its shadow record said.",
+   "fix": "No code change: the measurement says it may act only with a check; the switch already requires shadow evidence before a model acts.",
+   "test": "test_an_arm_worse_than_the_rules_on_a_part_fails_alone"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Every validator refusal was lost from the session record.",
+   "scenario": "The refusal event carried a field outside its vocabulary and the experience contract dropped it.",
+   "cause": "The answerer was put in its own field.",
+   "fix": "The answerer is named in the reason.",
+   "test": "test_a_refusal_is_in_the_session_record"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "With the critic on, the rule beside the next experiment's model was the critic's pick.",
+   "scenario": "At act with a check, a model agreeing with the critic's reorder acted against the rules' own first pick.",
+   "cause": "The ranked list had already been reordered by the critic.",
+   "fix": "The rules' own first pick is the rule; the pick must still be among the ranked ones.",
+   "test": "test_the_rule_beside_the_next_experiments_model_is_the_rules_own_pick_not_a_critics"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A routed model left no trace in the run's inputs.",
+   "scenario": "After switching a point back to the rule, the stages still read done, a replay ran a different feature set and the code export lost an identifier.",
+   "cause": "The routing was not one of a run's inputs.",
+   "fix": "The routing a stage ran with is a run input; the export refuses a changed routing; the replay reads the project quietly.",
+   "test": "test_a_routed_model_is_an_input_of_a_run_and_an_export_refuses_a_changed_routing"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A difference held for a person reached no one.",
+   "scenario": "At act with a check every held difference was recorded as the rule's decision only.",
+   "cause": "The review flag was dropped before the ledger and the evidence.",
+   "fix": "The flag is kept in the ledger record and the stage's evidence.",
+   "test": "test_a_held_difference_is_kept_for_a_person_in_the_ledger"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Agreements were counted as the model's contribution.",
+   "scenario": "The first measurement said 38 decisions by the role model when it changed one.",
+   "cause": "Every answer acted on counted, including the rule's own value.",
+   "fix": "A change is a model's answer that acted and differs from the rule's; agreements are counted apart; a combined arm with a check was added.",
+   "test": "test_an_agreement_is_no_change"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A model could forbid a column the split may be built on.",
+   "scenario": "A later time candidate forbidden by the model made the person's save refuse that time column.",
+   "cause": "Only the first time candidate was protected.",
+   "fix": "Times, groups and coordinates are never forbidden by a model.",
+   "test": "test_a_model_never_forbids_a_column_the_split_may_be_built_on"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The next experiment's record held another state than the model was shown.",
+   "scenario": "The model saw the training rows' bands, the record kept the whole table's.",
+   "cause": "The state was built twice.",
+   "fix": "The state the model was shown is the record's.",
+   "test": "test_the_rule_beside_the_next_experiments_model_is_the_rules_own_pick_not_a_critics"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Measurements followed the local workspace's routing.",
+   "scenario": "A routed point in the owner's workspace would change the kinds' acceptance and their generated matrix.",
+   "cause": "Only the journeys pinned the rules.",
+   "fix": "The acceptance runs on the rules whatever the workspace routes.",
+   "test": "test_the_acceptance_runs_on_the_rules_whatever_the_workspace_routes"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A prepare cache that ignored the routing went unnoticed.",
+   "scenario": "A planted fault removing the routing from the cache key passed every test.",
+   "cause": "No test prepared twice under two routings.",
+   "fix": "A test prepares under the rules, then under a routed model, in one process.",
+   "test": "test_a_routing_change_is_never_served_from_the_prepare_cache"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "each decision model against the rules on the dev journeys",
+   "gate": "with decision models routed, the journeys are right at least as often as with the rules on the card, the workflow, the pipeline and the holdout, no graph move refused, each model measured on its own",
+   "result": "rules 15 of 15; the semantic-role classifier acting 15 of 15, changing one decision; the leakage classifier acting 14 of 15, changing 6 and failing one holdout; with a check every arm 15 of 15, holding 16 differences for a person; no move refused",
+   "verdict": "fail",
+   "cost_eur": 0.0,
+   "against_gate": "the leakage classifier acting: 14 of 15",
+   "limits": [
+    "15 dev journeys written beside the rules.",
+    "Two gated classifiers; no model for a workflow point."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "14 of 15 planted faults caught after one test was added; the other is equivalent: with nothing routed the routing loads no model either",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "14 of 15, the 15th equivalent",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "Where the studio decides a column's leakage, its role, the next experiment or checks an agent's tool, it asks the routed decision model and acts only after a validator that lets a model add caution, never remove it; measured on the journeys, the role classifier may act and the leakage classifier only with a check.",
+ "lessons": [
+  "Count what a model changed, not what it agreed with: agreements made the contribution look 38 times larger.",
+  "A model routed into a run is one of the run's inputs, or replay and export silently differ.",
+  "Measure each model alone and at each level: the same classifier is harmless with a check and harmful acting."
+ ],
+ "risks": [
+  "No page asks the person about a held difference yet.",
+  "No decision model exists for a workflow point."
+ ],
+ "commits": []
+}
