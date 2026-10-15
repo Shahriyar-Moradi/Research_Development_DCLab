@@ -36,7 +36,7 @@ class RetrievalTests(unittest.TestCase):
         groups = ["rule", "paraphrase"]
         self.assertEqual(retrieval.choose({"bm25": {"rule": 0.8, "paraphrase": 0.2, "overall": 0.5}, "hybrid": {"rule": 0.73, "paraphrase": 0.5, "overall": 0.6}}, groups), "bm25")
         self.assertEqual(retrieval.choose({"bm25": {"rule": 0.8, "paraphrase": 0.2, "overall": 0.5}, "hybrid": {"rule": 0.8, "paraphrase": 0.3, "overall": 0.55}}, groups), "hybrid")
-        self.assertEqual(self.m["chosen"], "bm25")  # today the hybrid is worse on the rules group
+        self.assertEqual(self.m["chosen"], retrieval.choose(self.m["recall"], [g for g in self.m["recall"]["bm25"] if g != "overall"]))  # as the rule reads the stored measurement
 
     def test_the_product_searches_by_the_chosen_method(self):
         question = "Should I oversample before splitting?"
