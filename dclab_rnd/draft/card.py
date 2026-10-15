@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from dclab_core.card import FAMILIES, ProblemCard, label_said, problem_card, refine_family
+from dclab_core.card import FAMILIES, SHAPED_AS, ProblemCard, label_said, problem_card, refine_family
 from dclab_core.contracts import CoverageFact, LabelSourceFact, TaskFact, TextFact
 from dclab_core.understand import understand
 
@@ -106,6 +106,19 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     said = (refine_family(u.get("family"), words, u.get("family_shape_only") == "yes")  # 20.2: said in an answer; 20.10 v2: a shape only
             if u.get("family") in FAMILIES else None)
     stated = KIND_FAMILY.get(str(solution.get("kind") or "")) or said
+    if stated == said and said in SHAPED_AS and u.get("family_shape_only") == "yes":
+        # 20.10 v4: an answer that gave only an output's shape is evidence, not a statement: the card is inferred without it
+        # (the words, the data: a table of long text alone), and kept when it is a family of that shape; else the shape stands
+        inferred = problem_card(brief, words=words, data=data)
+        if inferred.family.value in (said, *SHAPED_AS[said]) and not inferred.in_play:
+            return inferred
+    if stated == said and u.get("family_by") == "reader":
+        # 20.10 v4: the reader's family is the model's reading of the person, not their statement: what the card infers from
+        # what the person stated and the data (a label file: rare events) comes first; the reader's family names what the
+        # inference left open or gave only as a shape
+        inferred = problem_card(brief, words=words, data=data)
+        if inferred.family.value is not None and not inferred.in_play and inferred.family.value not in SHAPED_AS:
+            return inferred
     return problem_card(brief, words=words, data=data, family=stated)
 
 

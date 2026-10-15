@@ -1,0 +1,174 @@
+{
+ "package": "20.10d",
+ "title": "The conversation reader on Home: a model reads the person's words, measured against the rules on a fourth sealed set",
+ "date": "2026-10-15",
+ "request": "Three sealed sets in a row showed word rules gaining on each set's phrasings and meeting new ones on the next; now that Claude is configured, measure the conversation reader against the rules and judge it on a fourth sealed set.",
+ "spec": "The reader reads the problem sentence and the answers that settle the card; every value quotes the person; a person's statement and the data come before it; off in the product until it passes its sealed measurement under a rule fixed before the run.",
+ "plan": [
+  "Freeze a fourth sealed set first.",
+  "Wire the reader into Home behind a switch and its measurement.",
+  "Add the reader arm to the journeys command with a cap.",
+  "Measure live on dev and the three spent sets.",
+  "Review, fix, commit, gate, run the fourth set once."
+ ],
+ "decisions": [
+  {
+   "decision": "The reader's family weighs below what the card infers from the person's statements and the data.",
+   "why": "A model reading is not the person's statement: a label file brought later still makes rare events."
+  },
+  {
+   "decision": "A sealed reader run with any failed request is not stored.",
+   "why": "A run where the rules answered for the reader is not a reader arm."
+  },
+  {
+   "decision": "The product switch stays off until a stored sealed run shows the reader passed.",
+   "why": "A role serves the product only after it measured better than the rules."
+  }
+ ],
+ "change": "dclab_rnd/draft/reader.py (new), chat.py, card.py; dclab_core/prompts/conversation_reader.md and HASHES; models/settings.py may-see; journeys command (--reader, --yes, --cap-eur, --spent), GATE_V4 and reader_passed; tests conversation_reader_home (new) and journeys; HRN-003, an AEV result.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The reader read a review queue as ranking.",
+   "scenario": "Which deliveries to check first became a ranking of items.",
+   "cause": "The prompt did not tell cases to review from items shown to a person.",
+   "fix": "The prompt says it.",
+   "test": "none"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The reader's own yes or no blocked the data's long-text rule.",
+   "scenario": "A note triage answered yes or no became classification, not text.",
+   "cause": "A shape the model read was taken as a family said.",
+   "fix": "The reader's shape stays a shape; the card infers first without it.",
+   "test": "test_the_readers_own_shape_stays_a_shape_and_a_ranking_takes_no_outcome_column"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "The reader named an outcome column for a ranking.",
+   "scenario": "The Solution page refused the recommender's save.",
+   "cause": "Ranking reads no outcome column.",
+   "fix": "No reader outcome for families that read no column.",
+   "test": "test_the_readers_own_shape_stays_a_shape_and_a_ranking_takes_no_outcome_column"
+  },
+  {
+   "id": "M4",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A quarter of the reader's requests failed.",
+   "scenario": "Replies were cut at the token limit, and the rules answered for them.",
+   "cause": "The model reasons before its short JSON, and the limit was 300.",
+   "fix": "A limit of 1200; a failure counted and a run with one never stored.",
+   "test": "none"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The reader made a column mentioned as known later the outcome.",
+   "scenario": "We only know it once final_refund_amount is paid set the target.",
+   "cause": "The reader's branch skipped the clause check.",
+   "fix": "The clause holding the column is checked on every branch.",
+   "test": "test_a_column_mentioned_as_known_later_is_never_the_outcome_even_when_quoted"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A family read in one answer replaced one stated earlier.",
+   "scenario": "A classification said, then rare events read from the outcome answer.",
+   "cause": "The reader's family was applied to any answer.",
+   "fix": "Only when asked for it or while the family is open.",
+   "test": "test_a_family_the_person_stated_is_never_replaced_by_one_read_in_another_answer"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "An inferred family overrode a shape it contradicts.",
+   "scenario": "A yes or no for lateness became regression.",
+   "cause": "The inference was kept whatever it said.",
+   "fix": "Kept only when it is a family of that shape.",
+   "test": "test_a_shape_the_inference_contradicts_stands"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The reader's family was treated as the person's statement.",
+   "scenario": "A label file brought later no longer made the problem a rare event.",
+   "cause": "The card passed it as stated.",
+   "fix": "Inferred first; the reader names only what is open or a shape.",
+   "test": "test_the_readers_family_gives_way_to_a_label_file"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A sealed run could be stored without a clean reader arm or with no rule for comparing.",
+   "scenario": "A capped or failing reader would be stored as the reader arm and spend the set.",
+   "cause": "No failure count; no comparison fixed before the run.",
+   "fix": "Failures counted and refusing a store; the comparison in the gate; a sealed run needs both arms.",
+   "test": "test_the_reader_commands_refuse_what_would_spend_or_store_a_set_wrongly"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The reader's labels reading was paid for and dropped.",
+   "scenario": "A labels answer the rules could not read stayed unread.",
+   "cause": "Nothing recorded it.",
+   "fix": "Recorded where the rules read none.",
+   "test": "test_the_readers_labels_reading_is_recorded_where_the_rules_read_none"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "What the reader may see no longer said the problem description.",
+   "scenario": "The Admin page told reviewers less than the model was sent.",
+   "cause": "The purpose's text was written before.",
+   "fix": "The problem description named.",
+   "test": "none"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The product switch did not check the measurement.",
+   "scenario": "Setting the switch with a key would serve an unmeasured reader.",
+   "cause": "The switch alone decided.",
+   "fix": "On only after a stored sealed pass.",
+   "test": "test_off_unless_switched_on_served_and_measured"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the reader on dev material",
+   "gate": "the reader right on at least as many people as the rules on each set",
+   "result": "dev 15 and 15; the first set 24 and 24; the second 29 and 29; the third 29 against 25; after the limit was raised, 20 requests with none failed",
+   "verdict": "pass",
+   "cost_eur": 1.1,
+   "against_gate": "never fewer than the rules, more on the third set",
+   "limits": [
+    "Dev material: the prompt was adjusted on these people.",
+    "Spend is an upper bound: dollars entered as euros."
+   ]
+  }
+ ],
+ "outcome": "The reader is built, safe by its validator and its precedence, and better than the rules on the spent sets; the fourth sealed set decides whether it serves.",
+ "lessons": [
+  "A reasoning model's short answer can need many output tokens: set the limit from a real reply.",
+  "A reading by a model is evidence, not the person's statement: put it after what they said and what the data shows."
+ ],
+ "risks": [
+  "Live cost: about half a cent a request, with reasoning tokens billed."
+ ],
+ "commits": []
+}

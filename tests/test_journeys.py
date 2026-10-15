@@ -78,6 +78,22 @@ class JourneyTest(unittest.TestCase):
         with mock.patch.object(journeys, "HERE", tmp), self.assertRaises(ValueError):
             journeys.load("sealed")
 
+    def test_the_reader_commands_refuse_what_would_spend_or_store_a_set_wrongly(self):
+        from dclab_rnd.agent_eval.journeys import __main__ as cli
+
+        for argv in (["--split", "sealed_v4"], ["--split", "sealed_v4", "--spent", "--reader"]):  # no reader arm; a set never run
+            with mock.patch.object(sys, "argv", ["journeys", *argv]), mock.patch.object(journeys, "sealed_runs", return_value=[]):
+                self.assertEqual(cli.main(), 2, argv)
+        self.assertIn("reader", journeys.GATES["sealed_v4"])  # the reader's rule, fixed before the run
+        with mock.patch.object(journeys, "RESULTS", Path(tempfile.mkdtemp())):
+            self.assertFalse(journeys.reader_passed())
+
+    def test_the_fourth_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
+        people = journeys.load("sealed_v4")
+        self.assertEqual(len(people), 30)
+        self.assertEqual({j["kind"] for j in people}, {k.key for k in kinds.all_kinds()})
+        self.assertEqual((journeys.GATES["sealed_v4"]["seed"], journeys.GATES["sealed_v4"]["split"]), (4, "sealed_v4"))
+
     def test_the_third_sealed_set_is_frozen_with_its_own_gate_and_seed(self):
         people = journeys.load("sealed_v3")
         self.assertEqual(len(people), 30)

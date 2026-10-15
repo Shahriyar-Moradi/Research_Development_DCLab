@@ -22,6 +22,7 @@ import secrets
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from dclab_core.card import label_said
 from dclab_rnd import kinds, prompts
 from dclab_rnd.agents import harness
 from dclab_rnd.agents.registry import Registry, Tool
@@ -33,6 +34,19 @@ from . import plan as plans
 from . import workflow as wflow
 from .store import DraftStore, now
 
+SHAPES = ("classification", "regression")  # an output's shape: the rules and the data may still name the family (20.10 v4)
+NO_OUTCOME_COLUMN = ("ranking", "segmentation", "anomaly", "entity_tables", "streams")  # families that read no outcome column
+def clause_of(text: str, word: str) -> str:
+    """The clause of ``text`` that holds ``word``: from the delimiter before it to the one after."""
+    at = text.find(word)
+    if at < 0:
+        return ""
+    start = max(text.rfind(c, 0, at) for c in ",;.:") + 1
+    ends = [i for i in (text.find(c, at) for c in ",;.:") if i >= 0]
+    return text[start:min(ends) if ends else len(text)]
+
+
+LATER = re.compile(r"\b(after|once|only|later|not known|unknown|leak\w*)\b", re.I)  # a column mentioned as known later
 MAX_QUESTIONS = 5  # 20.10: the conversation gate's five; at four a rare event's review budget was never asked
 MODEL_REPLIES = 5  # model requests per user message
 MODEL_STEPS = 40  # tool calls per user message (a reply may make several)
@@ -106,8 +120,11 @@ def moment_options(pack: str | None) -> list[str]:
 
 class HomeAgent:
     def __init__(self, store: DraftStore, client=None, on_request: Callable[[str, str, dict[str, Any]], None] | None = None,
-                 registry: Registry | None = None, traces: Any = None):
+                 registry: Registry | None = None, traces: Any = None, reader: Callable[..., Any] | None = None):
         self.store, self.client, self.traces = store, client, traces
+        # 20.10 v4: the conversation reader (dclab_core.conversation.READER through a model), reading the problem sentence
+        # and the card's answers; (field, text, columns) -> what the model read, each value quoting the person's words
+        self.reader = reader
         self.on_request = on_request or (lambda draft_id, what, args: None)
         if registry is None:
             from dclab_rnd.agents import default_registry
@@ -158,6 +175,16 @@ class HomeAgent:
         self.store.emit(draft_id, "plan", {"plan": draft["plan"], "understanding": draft.get("understanding") or {}})
         return draft["plan"]
 
+    def model_read(self, field: str, text: str, columns: list[str] | None = None) -> dict[str, str]:
+        """What the conversation reader read from one text that the rules could not, or nothing (no reader, a refusal,
+        a failure: the rules' reading stands)."""
+        if self.reader is None or not str(text or "").strip():
+            return {}
+        try:
+            return dict(self.reader(field, str(text), list(columns or [])) or {})
+        except Exception:  # noqa: BLE001 - a reader that fails leaves the rules' reading
+            return {}
+
     def read_problem(self, draft_id: str) -> list[str]:
         """Fill the plan from the problem sentence: a model's reading when one is configured (each quote checked
         against the sentence), the keyword rules for what it leaves open. Returns the fields it filled."""
@@ -184,6 +211,11 @@ class HomeAgent:
             if field not in filled and not u.get(field):
                 self.note(draft_id, field, quote, "stated", "problem", quote)
                 filled.append(field)
+        read = self.model_read("problem", draft["problem"])  # 20.10 v4: the kind of result the sentence asks for
+        if read.get("family") not in (None, *SHAPES) and not (self.store.get(draft_id).get("understanding") or {}).get("family"):
+            self.record(draft_id, "family", read["family"])
+            self.record(draft_id, "family_shape_only", "no")
+            self.record(draft_id, "family_by", "reader")
         return filled
 
     def read_brief(self, draft_id: str) -> dict[str, str]:
@@ -387,6 +419,7 @@ class HomeAgent:
         self.refresh_workflow(draft_id)
         self.next_turn(draft_id)
 
+    READ_BY_MODEL = ("target", "outcome", "family", "labels")  # the answers a reader is asked about: they settle the card
     CARD_FIELDS = {"target": "outcome", "outcome": "outcome", "labels": "labels", "family": "family", "prediction_moment": "prediction_moment",
                    "labels_check": "labels", "target_check": "outcome"}
     LABEL_PHRASES = {"column": "A column marks them", "file": "A file lists the known ones", "none": "Nothing is labelled"}
@@ -400,16 +433,39 @@ class HomeAgent:
 
         columns = [str(c.get("name")) for c in ((self.store.get(draft_id).get("analysis") or {}).get("profile") or {}).get("columns") or []]
         read = read_answer(self.CARD_FIELDS.get(field, field), value, columns or None)
+        model = self.model_read(self.CARD_FIELDS.get(field, field), value, columns) if field in self.READ_BY_MODEL else {}
+        before = self.store.get(draft_id).get("understanding") or {}
+        rules_family = read.get("family")
+        open_family = (not before.get("family") or before.get("family_shape_only") == "yes" or before.get("family_by") == "reader")
+        if model.get("family") and (field == "family" or open_family) and (not read.get("family") or read.get("family_shape_only") == "yes"):
+            # never over a family the person stated earlier: only when asked for it, or while the family is still open
+            # a shape the rules read gives way to the family said; the reader's own shape (a yes or no: classification) stays a
+            # shape, which the person's other words and the data may still refine
+            read["family"] = model["family"]
+            read["family_shape_only"] = "yes" if model["family"] in SHAPES else "no"
+        for name in ("labels", "target_column"):
+            if model.get(name) and not read.get(name):
+                read[name] = model[name]
+        if model.get("labels") and field == "labels" and not label_said(value):
+            self.record(draft_id, "labels", self.LABEL_PHRASES[model["labels"]])  # 20.10 v4: the reader's reading of words the rules could not
         if read.get("family"):
             self.record(draft_id, "family", read["family"])
+            self.record(draft_id, "family_by", "reader" if read["family"] != rules_family else "answer")
             self.record(draft_id, "family_shape_only", read.get("family_shape_only") or "no")  # 20.10 v2: a shape alone may be refined
         named = read.get("target_column")
         if field in ("target", "outcome") and named and value.strip() not in columns and \
                 re.match(rf"\s*(the\s+)?((column|duration|outcome|target|label|flag|field)\s+){{0,2}}{re.escape(named)}\b", value, re.I) and \
-                not re.search(r"\b(after|once|only|later|not known|unknown|leak\w*)\b", re.split(r"[,;.]", value[value.find(named):] + ",")[0], re.I):
+                not LATER.search(re.split(r"[,;.]", value[value.find(named):] + ",")[0]):
             # 20.10: "days_subscribed, with cancelled saying whether they left" begins with its outcome; "a failure of the
             # machine" or "we only know it once final_refund_amount is paid" only mention a column
             self.record(draft_id, "target", named)
+        elif field in ("target", "outcome") and (self.store.get(draft_id).get("understanding") or {}).get("family") in NO_OUTCOME_COLUMN:
+            pass  # a ranking, groups, unusual rows: the reader's column is not an outcome these read (the Solution page refuses one)
+        elif field in ("target", "outcome") and model.get("target_column") in columns and \
+                model["target_column"] in (named, None if named else model["target_column"]) and \
+                not LATER.search(clause_of(value, model["target_column"])):
+            # 20.10 v4: the reader quoted the column as the outcome; one only mentioned as known later is never the outcome
+            self.record(draft_id, "target", model["target_column"])
         if field in ("labels_check", "target_check"):  # the answer to a contradiction settles what it was about
             if read.get("labels"):
                 self.record(draft_id, "labels", self.LABEL_PHRASES[read["labels"]])

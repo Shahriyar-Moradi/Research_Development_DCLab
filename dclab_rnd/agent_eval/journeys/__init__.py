@@ -41,7 +41,7 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RESULTS = ROOT / "evidence" / "campaigns" / "journeys_v1" / "results"
-SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256"}
+SEALED = {"sealed": "sealed.sha256", "sealed_v2": "sealed_v2.sha256", "sealed_v3": "sealed_v3.sha256", "sealed_v4": "sealed_v4.sha256"}
 GATE = {
     "version": "journeys_gate_v1",
     "split": "sealed",
@@ -59,7 +59,14 @@ GATE_V2 = {**GATE, "version": "journeys_gate_v2", "split": "sealed_v2",
 # 2026-10-15: the second set failed once (JRN-004, 24 of 30) and became dev material; a third, by another agent under the
 # same restrictions, frozen and committed before any rule changed for the second set's misses
 GATE_V3 = {**GATE_V2, "version": "journeys_gate_v3", "split": "sealed_v3", "seed": 3}
-GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3}
+# 2026-10-15: the third failed once (JRN-005, 25 of 30); a fourth, written the same way, frozen before the conversation reader
+# (a model) was measured: it judges the reader against the rules on the same people, both arms run once
+GATE_V4 = {**GATE_V2, "version": "journeys_gate_v4", "split": "sealed_v4", "seed": 4,
+           # fixed before the run (2026-10-15): the reader serves the product only when its arm passes the suite bar on its own
+           # and is right on at least as many of these people as the rules arm, with every reader request answered
+           "reader": "the reader arm passes the suite bar alone, is right on at least as many people as the rules arm on the same "
+                     "people, and no reader request failed (a run with a failed request is not stored)"}
+GATES = {"sealed": GATE, "sealed_v2": GATE_V2, "sealed_v3": GATE_V3, "sealed_v4": GATE_V4}
 PARTS = ("card", "workflow", "pipeline", "holdout")
 REFUSED = "family not built yet"  # dclab_core.coordinator.FAMILY_NOT_RUN: the build's rule for a family the engine does not run
 
@@ -193,7 +200,7 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
         home, mine = Path(tmp), Path(tmp) / "person"
         mine.mkdir()
         drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
-        agent = HomeAgent(drafts, (live or {}).get("client"))  # 21.5: the served model in a live run; the rules otherwise
+        agent = HomeAgent(drafts, (live or {}).get("client"), reader=(live or {}).get("reader"))  # 21.5: the served model in a live run; the rules otherwise
         table, labels = _files(replica, mine)
         first = drafts.create(journey["words"])["id"]
         agent.start(first)
@@ -213,7 +220,8 @@ def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]]
             advisor = ScriptedAdvisor(journey["advisor"])
         import contextlib
 
-        with private_scope(True) if live is None else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
+        only_reader = live is not None and set(live) <= {"reader"}  # 20.10 v4: the reader alone is measured; every other role keeps the rules
+        with private_scope(True) if live is None or only_reader else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
             out = Coordinator(drafts, projects, agent, advisor).run(start_at, person.person)
         row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
                            for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
@@ -454,20 +462,30 @@ def verdict(rows: list[dict[str, Any]]) -> str:
             f"{refused} moves refused by the validator" + (f", no journey for {', '.join(missing)}" if missing else ""))
 
 
+def reader_passed() -> bool:
+    """Whether the conversation reader passed its sealed measurement (``GATE_V4``'s reader rule), from the stored run."""
+    for path in sorted(RESULTS.glob("JRN-*_sealed_v4.json")) if RESULTS.exists() else []:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if doc.get("arm") == "reader":
+            return bool((doc.get("reader_against_rules") or {}).get("passed"))
+    return False
+
+
 def sealed_runs(split: str = "sealed") -> list[Path]:
     return sorted(RESULTS.glob(f"JRN-*_{split}.json")) if RESULTS.exists() else []
 
 
-def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules", seed: int = 0) -> Path:
+def store(rows: list[dict[str, Any]], split: str, result: str, arm: str = "rules", seed: int = 0, spent_eur: float = 0.0,
+          extra: Optional[dict[str, Any]] = None) -> Path:
     RESULTS.mkdir(parents=True, exist_ok=True)
     n = 1 + max([int(p.name.split("_")[0].split("-")[1]) for p in RESULTS.glob("JRN-*.json")] or [0])
     ident = f"JRN-{n:03d}"
     doc = {"id": ident, "campaign_id": "journeys_v1", "kind": "acceptance_journeys", "split": split, "arm": arm,
            "journeys": fingerprint(HERE / f"journeys_{split}.json"), "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "gate": GATES.get(split, GATE), "seed": seed, "spent_eur": 0.0, "rows": rows, "families": families(rows),
+           "gate": GATES.get(split, GATE), "seed": seed, "spent_eur": spent_eur, "rows": rows, "families": families(rows),
            "summary": {"journeys": len(rows), "right": sum(r["right"] for r in rows),
                        "by_part": {p: sum(bool(r["parts"].get(p)) for r in rows) for p in PARTS}},
-           "verdict": result, "status": "completed", "experiment_id": ident,
+           "verdict": result, "status": "completed", "experiment_id": ident, **(extra or {}),
            "rule": f"Scores on {len(rows)} written journeys over seeded replicas say how DCLab carries these people from their "
                    "first sentence to a holdout number; they are not a claim about any other problem or about production readiness."}
     path = RESULTS / f"{ident}_{split}.json"
