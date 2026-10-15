@@ -739,7 +739,8 @@ class ApiTests(unittest.TestCase):
             lines = []
             for line in s.iter_lines():
                 lines.append(line)
-                if line.startswith("event: analysis"):
+                seen = {k for k in ("event: analysis", "event: chat") if any(x.startswith(k) for x in lines)}
+                if len(seen) == 2:  # both, in either order: under load the chat can follow the analysis
                     break
         self.assertTrue(any(line.startswith("event: chat") for line in lines))
         self.assertTrue(any(line.startswith("id: ") for line in lines))
