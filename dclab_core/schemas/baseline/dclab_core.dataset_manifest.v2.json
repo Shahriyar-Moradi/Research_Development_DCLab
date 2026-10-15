@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "decision",
+            "label",
+            "event",
+            "visit",
+            "conversation",
+            "run",
+            "project",
+            "draft",
+            "package",
+            "flag"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "builder": {
+      "enum": [
+        "decisions",
+        "conversations",
+        "preferences",
+        "trajectories",
+        "workflows",
+        "failures",
+        "development"
+      ],
+      "type": "string"
+    },
+    "built_at": {
+      "type": "string"
+    },
+    "consent": {
+      "maxLength": 300,
+      "type": "string"
+    },
+    "counts": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "levels": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "type": "array"
+    },
+    "name": {
+      "maxLength": 120,
+      "minLength": 1,
+      "type": "string"
+    },
+    "policy": {
+      "maxLength": 600,
+      "type": "string"
+    },
+    "rows": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "dclab_core.dataset_manifest.v2",
+      "default": "dclab_core.dataset_manifest.v2",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "maxItems": 2000000,
+      "type": "array"
+    },
+    "splits": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "use": {
+      "anyOf": [
+        {
+          "enum": [
+            "improve",
+            "train"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "version": {
+      "maxLength": 20,
+      "minLength": 1,
+      "type": "string"
+    },
+    "workspace": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "builder",
+    "name",
+    "version",
+    "built_at",
+    "consent",
+    "rows",
+    "policy"
+  ],
+  "type": "object"
+}

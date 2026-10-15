@@ -73,6 +73,7 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
             p["settings"]["folds"] = max(studio_engine.FOLD_CAPS[0], min(int(settings["folds"]), studio_engine.FOLD_CAPS[1]))
         from ... import consent as consents
 
+        was_train = consents.project_consent(p)["train"]  # 23.1: the legacy opt-in may move the train switch without naming it
         if isinstance(settings.get("share_for_training"), bool) and settings["share_for_training"] != bool(p["settings"].get("share_for_training")):
             p["settings"]["share_for_training"] = settings["share_for_training"]  # A6.1: only the owner's choice puts a project's runs in the export
             opted = {"share_for_training": settings["share_for_training"], "actor": "human"}
@@ -91,6 +92,8 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
             if "train" in own:  # the earlier opt-in says the same as the train switch
                 p["settings"]["share_for_training"] = own["train"]
             p["settings"]["consent"] = own
+        if consents.project_consent(p)["train"] != was_train and "train" not in consented:
+            consented["train"] = consents.project_consent(p)["train"]  # recorded and invalidated like any consent change
         from ...experience import hooks  # 19.3: how it will run, as the person set it (the opt-in is a policy, recorded as one)
 
         hooks.settings_changed({k: p["settings"].get(k) for k in ("max_rows", "quick", "folds") if before.get(k) != p["settings"].get(k)},
@@ -111,6 +114,14 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
         projects.log(project_id, "consent_changed", {"use": use, "on": on, "actor": "human"})
         audit.record(s.audit, "policy", "human", project=p, move="set_consent", status="allowed",
                      args={"policy": f"consent_{use}", "label": audit.POLICY_NAMES[f"consent_{use}"], "on": on})
+        from dclab_core import consent as core
+
+        from ... import consent as consents, experience
+
+        consents.invalidate(project_id)  # 23.1: the next record of this project is stamped with the new level
+        experience.record("consent.changed", "person", {"scope": "project", "use": use, "on": on, "was": not on,
+                                                        "level": core.level_of(consents.workspace_consent(s.store.home), consents.project_consent(p)),
+                                                        "notice_version": consents.NOTICE_VERSION}, project=project_id)
     if opted:
         projects.log(project_id, "training_opt_in_changed", opted)
         audit.record(s.audit, "policy", "human", project=p, move="set_training_opt_in", status="allowed",

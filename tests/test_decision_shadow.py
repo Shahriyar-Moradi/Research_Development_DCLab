@@ -135,7 +135,7 @@ class ShadowTest(unittest.TestCase):
 
         r = shadow.add(record("refund_9", False, "dr000000000009"), [self.model])
         person = r.model_copy(update={"answers": [*r.answers, contract.Answer(by="person", answerer="solution", value=True)],
-                                      "used": "person", "value_used": True})
+                                      "used": "person", "value_used": True, "consent": "train"})  # 23.1: written under train
         self.assertIsNone(person.answer("classifier"))
         self.assertEqual(person.agreement(), "unavailable")  # a shadow is not the model's answer
         # the person marks "no" right after all: an exposed label agreeing with every answer shown (the rule's no) says

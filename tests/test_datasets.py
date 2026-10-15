@@ -33,6 +33,8 @@ class WorkspaceTest(unittest.TestCase):
         self.s = self.client.app.state.services
         self.home = Path(self.s.store.home)
         self.h = {"X-DCLab-Token": self.client.get("/api/config").json()["csrf"]}
+        for use in ("improve", "train"):  # 23.1: a record carries the level it was written under; the switches are on before the writes
+            consent.set_workspace_consent(self.home, use, True)
         self.p1 = self.client.post("/api/projects", json={"name": "Consented", "goal": "g"}, headers=self.h).json()["id"]
         self.p2 = self.client.post("/api/projects", json={"name": "Not consented", "goal": "g"}, headers=self.h).json()["id"]
         self.client.patch(f"/api/projects/{self.p1}", json={"settings": {"consent": {"train": True, "improve": True}}}, headers=self.h)
@@ -67,10 +69,21 @@ class WorkspaceTest(unittest.TestCase):
         return {(b["builder"], b["name"]): b for b in out["built"]}
 
     def test_nothing_without_the_workspaces_switch(self):
+        for use in ("improve", "train"):
+            consent.set_workspace_consent(self.home, use, False)
         out = datasets.build(self.s)
         self.assertEqual(out["built"], [])
         self.assertEqual({x["use"] for x in out["not_built"]}, {"train", "improve"})
         self.assertFalse((self.home / datasets.FOLDER / "decisions").exists())
+
+    def test_every_set_counts_its_rows_by_the_level_they_were_written_under(self):
+        from dclab_rnd.experience import catalog
+
+        out = self.built(datasets.build(self.s))
+        manifest = json.loads((Path(out["decisions", "column.is_identifier"]["folder"]) / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["schema_version"], "dclab_core.dataset_manifest.v2")
+        self.assertEqual(set(manifest["levels"]), {"train"})
+        self.assertTrue(any("rows by level" in line for line in catalog.lines(catalog.catalog(self.home))))
 
     def test_the_identifier_set_keeps_its_labels_apart(self):
         consent.set_workspace_consent(self.home, "train", True)
@@ -162,6 +175,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn("decisions/column.is_identifier", again["removed"])
         self.assertFalse((self.home / datasets.FOLDER / "decisions" / "column.is_identifier").exists())
         consent.set_workspace_consent(self.home, "train", False)
+        consent.set_workspace_consent(self.home, "improve", False)  # both withdrawn: every set goes
         datasets.build(self.s)
         self.assertEqual([p for p in (self.home / datasets.FOLDER).glob("*/*") if p.is_dir()], [])
 

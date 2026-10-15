@@ -146,7 +146,7 @@
       "type": "object"
     }
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.decision_record.v1.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.decision_record.v2.json",
   "additionalProperties": false,
   "description": "One decision: its point, its subject, the state it was made in, its options, every answer, and what was used.",
   "properties": {
@@ -160,6 +160,17 @@
     },
     "at": {
       "title": "At",
+      "type": "string"
+    },
+    "consent": {
+      "default": "operate",
+      "description": "v2 (23.1): the level the record was written under; a later change of the switches never re-labels it.",
+      "enum": [
+        "operate",
+        "improve",
+        "train"
+      ],
+      "title": "Consent",
       "type": "string"
     },
     "conversation": {
@@ -289,8 +300,8 @@
       "title": "Run"
     },
     "schema_version": {
-      "const": "dclab_core.decision_record.v1",
-      "default": "dclab_core.decision_record.v1",
+      "const": "dclab_core.decision_record.v2",
+      "default": "dclab_core.decision_record.v2",
       "title": "Schema Version",
       "type": "string"
     },

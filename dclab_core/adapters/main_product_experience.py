@@ -74,6 +74,7 @@ INTRA_STAGE_PREFIXES = ("cv_fold_", "candidate_")
 TERMINAL_STAGE = "terminal"
 # contract kinds the main product's tables cannot fill today, and why (never invented)
 KINDS_MISSING = {
+    "consent.changed": "no consent switch on its workspace rows (23.1): the host passes the level it allows when it maps them (CONSENT_MISSING)",
     "visit.started": "no visit is recorded (19.2 adds the auth session as the visit)",
     "visit.ended": "no visit is recorded (19.2)",
     "draft.created": "the main product has no draft before a project",
@@ -99,6 +100,8 @@ TABLES_NOT_READ = {
 }
 IDS_MISSING = {"visit": "no visit id on its rows: auth_sessions is per sign-in and not stamped on events (19.2)",
                "request": "X-Request-Id is bound per request but not stored (19.2)"}
+CONSENT_MISSING = ("no consent level on its rows (23.1): the host passes the level its workspace settings allow when it maps them "
+                   "(``events(..., consent=)``); a row mapped without one is ``operate`` and never leaves")
 
 
 def _at(value: Any) -> str:
@@ -244,9 +247,14 @@ def from_run_record(record: Any, run_row: Optional[Mapping[str, Any]] = None) ->
 def events(agent_events: Iterable[Mapping[str, Any]] = (), runs: Mapping[Any, Mapping[str, Any]] | None = None,
            invocations: Iterable[Mapping[str, Any]] = (), decisions: Iterable[Mapping[str, Any]] = (),
            run_events: Iterable[Mapping[str, Any]] = (), experiments: Iterable[Mapping[str, Any]] = (),
-           stage_runs: Iterable[Mapping[str, Any]] = ()) -> list[ExperienceEvent]:
+           stage_runs: Iterable[Mapping[str, Any]] = (), consent: str = "operate") -> list[ExperienceEvent]:
     """Every row read as an event, the unmapped ones left out. ``runs`` maps an agent run's id to its row; each finished
-    agent run, experiment and stage run is also a ``run.recorded`` (19.5)."""
+    agent run, experiment and stage run is also a ``run.recorded`` (19.5). ``consent``: the level the host's workspace
+    allows now (``dclab_core.consent.level_of`` on its settings), stamped on every event (23.1; ``CONSENT_MISSING``)."""
+    from dclab_core.consent import LEVELS
+
+    if consent not in LEVELS:
+        raise ValueError(f"consent is one of {', '.join(LEVELS)}")
     from dclab_core.adapters import main_product_lineage as lineage
     runs = runs or {}
     invocations = list(invocations)
@@ -260,4 +268,4 @@ def events(agent_events: Iterable[Mapping[str, Any]] = (), runs: Mapping[Any, Ma
     records = [lineage.from_agent_run(r) for r in (runs or {}).values()]
     records += [lineage.from_experiment(r) for r in experiments] + [lineage.from_stage_run(r) for r in stage_runs]
     out += [from_run_record(r) for r in records if r is not None]
-    return out
+    return [e if e.consent == consent else e.model_copy(update={"consent": consent}) for e in out]

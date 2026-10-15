@@ -1,0 +1,168 @@
+{
+ "package": "23.1",
+ "title": "Consent stamped at write time: a later opt-in never re-labels old data",
+ "date": "2026-10-15",
+ "request": "Phase 1's first remaining gap from the owner's capture document: each record stores the consent level it was written under, so a later change of the switches never re-labels old data; adoptable by the main product.",
+ "spec": "A level on every event and decision at write time; exports keep a record only when its stamp and the switches allow the use; consent changes are events; the rules and contracts in dclab_core, the adapter taking the host's level.",
+ "plan": [
+  "Put the ladder and its rules in dclab_core.",
+  "Add the stamp to the two contracts, old versions still read.",
+  "Stamp at the studio's two writers from the workspace folder and the project's switches.",
+  "Make the exports require the stamp.",
+  "Record consent changes; count the record by level on the consent page.",
+  "Test, publish the schemas, run the wheel, record, commit."
+ ],
+ "decisions": [
+  {
+   "decision": "An export requires both the stamp and the current switch.",
+   "why": "The stamp can only restrict: a withdrawal still blocks everything, and a writer's brief cache can never widen what leaves."
+  },
+  {
+   "decision": "A writer with no project store reachable stamps the workspace's level; a project the store does not know is operate.",
+   "why": "Direct writers (tests, a worker outside a request) cannot read a project; the export checks the project again at export time."
+  },
+  {
+   "decision": "A switch change is written under the level it brings in.",
+   "why": "It is the first record of that level, and the history of consent stands beside what it governs."
+  },
+  {
+   "decision": "A project's record written where no store can be read is operate.",
+   "why": "The stamp promises the level at write time; a guess from the workspace alone could be higher than the project allowed."
+  }
+ ],
+ "change": "dclab_core consent.py (new), experience.py, ledger.py, adapters/main_product_experience.py, schemas, CHANGELOG (0.38.0); dclab_rnd consent.py, experience, ledger, pages/consent.py, routers/projects.py; tests consent, core_experience, ledger, datasets; CORE_INTEGRATION.md, EXPERIENCE_ARCHIVE.md, the plan.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "Records written by tests before the switches were turned on stopped leaving.",
+   "scenario": "Four dataset tests and three export tests built nothing.",
+   "cause": "The new rule itself: a record carries the level at its write.",
+   "fix": "The tests give consent before they write, and withdraw both uses where every set must go.",
+   "test": "test_a_withdrawn_consent_takes_its_sets_away"
+  },
+  {
+   "id": "T2",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "A writer outside a request stamped every project record operate.",
+   "scenario": "Decisions written straight to a ledger never left, and on PostgreSQL the folder was unknown.",
+   "cause": "No project store is reachable outside a request, and the PostgreSQL stores carried no folder.",
+   "fix": "No store means the workspace's level; the stores learn their folder when opened.",
+   "test": "test_a_projects_record_follows_its_own_switch_and_an_unknown_project_is_operate"
+  },
+  {
+   "id": "T3",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The main product's adapter did not list the new kind.",
+   "scenario": "The conformance test found a contract kind neither produced nor explained.",
+   "cause": "A new kind without its reason.",
+   "fix": "consent.changed listed as missing with the reason.",
+   "test": "test_every_recorded_type_is_mapped_or_left_out_with_a_reason"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "flaky",
+   "defect": "A route test's audit rows reached another test's count.",
+   "scenario": "The switches-off test counted one more set_consent row.",
+   "cause": "Two tests on one app.",
+   "fix": "The route test has its own app.",
+   "test": "test_a_switch_change_is_in_the_record_and_the_page_counts_the_stamps"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A test pinned the event contract's old version.",
+   "scenario": "The lineage test failed on v3.",
+   "cause": "The version moved.",
+   "fix": "The test says v3.",
+   "test": "tests/test_lineage.py"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The catalog did not show rows per level.",
+   "scenario": "The done-when's last clause was not met.",
+   "cause": "No count in the manifest.",
+   "fix": "The manifest (v2) counts each row's stamp, the builders stamp their rows with the lowest level of their sources, the catalog prints it.",
+   "test": "test_every_set_counts_its_rows_by_the_level_they_were_written_under"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A worker's cache could stamp above the switch for ten seconds, and the legacy opt-in moved the train switch unrecorded.",
+   "scenario": "A project opted out mid-run kept train stamps for ten seconds; share_for_training changed the level with no event and no invalidation.",
+   "cause": "The API's invalidation never reaches a worker process; the legacy branch sat beside the consent branch.",
+   "fix": "The standalone worker reads a project's switches each time; the legacy switch is recorded and invalidated like a consent change.",
+   "test": "test_the_legacy_opt_in_is_a_consent_change_too"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A writer with no services stamped a project's record at the workspace level.",
+   "scenario": "A script writing with a project id stamped train for a project whose switch was off.",
+   "cause": "The no-store fallback trusted the workspace alone.",
+   "fix": "The writer opens the folder's stores; a project it cannot read is operate.",
+   "test": "test_a_projects_record_follows_its_own_switch_and_an_unknown_project_is_operate"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "Operate-stamped events shaped the failure signals.",
+   "scenario": "Events written before an opt-in fed the failures set.",
+   "cause": "The session filter checked the switch only.",
+   "fix": "The stamp is checked there too.",
+   "test": "none"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The workspace cache keyed on the mtime alone and was never cleared.",
+   "scenario": "Two changes within the clock's resolution left a stale level.",
+   "cause": "mtime equality; invalidate skipped it.",
+   "fix": "Keyed on mtime_ns and size; invalidate clears it.",
+   "test": "none"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "The consent page parsed the newest two hundred thousand events on every load.",
+   "scenario": "Seconds per page on PostgreSQL and partial counts.",
+   "cause": "A full read.",
+   "fix": "One grouped query on PostgreSQL; the whole record on files.",
+   "test": "none"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the stamp holds",
+   "gate": "an event written at operate never enters a dataset after the workspace opts in",
+   "result": "of two events and two decisions, the ones written at operate stay home after both switches are turned on; the record counts one operate and one train",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "the operate record never left",
+   "limits": [
+    "File stores in the test; PostgreSQL stores through the same writer."
+   ]
+  }
+ ],
+ "outcome": "Every record carries the level it was written under; a later opt-in widens nothing; the main product takes the level from its settings through the adapter.",
+ "lessons": [
+  "A rule about write time changes every test that wrote first and consented later: that is the rule working.",
+  "A store opened by a writer must know its folder, or the writer cannot read the switches."
+ ],
+ "risks": [
+  "A project switch changed through the API reaches a worker's cache within ten seconds; until then its stamp can be higher than the new level, which the export's own check covers."
+ ],
+ "commits": []
+}

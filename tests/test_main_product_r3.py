@@ -179,6 +179,7 @@ class ExportTest(unittest.TestCase):
             self.skipTest(str(error))
         rule = L.Answer(by="rule", answerer="r", value=False)
         recs = [record("column.is_identifier", [rule]), L.DecisionRecord(**{**record("column.time", [rule]).model_dump(), "id": "dr" + "1" * 12})]
+        recs = [r.model_copy(update={"consent": "train"}) for r in recs]  # 23.1: written under train; an operate record never leaves
         labels = [L.DecisionLabel(id="dl" + "0" * 12, record=recs[0].id, point="column.is_identifier", value=True, source="benchmark", by="t",
                                   at="2026-10-15T00:00:00+00:00"),
                   L.DecisionLabel(id="dl" + "1" * 12, record=recs[0].id, point="column.is_identifier", value=True, source="measured", by="t",

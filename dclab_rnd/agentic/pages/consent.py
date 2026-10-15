@@ -32,7 +32,9 @@ def register(app, ctx) -> None:
         """The workspace's switches; both off until the owner turns them on."""
         from ... import consent
 
-        return {"workspace": consent.workspace_consent(home()), "uses": list(consent.USES)}
+        counts = await asyncio.to_thread(consent.stamped_counts, getattr(ctx, "experience", None))
+        return {"workspace": consent.workspace_consent(home()), "uses": list(consent.USES), "notice_version": consent.NOTICE_VERSION,
+                "stamped": counts, "level": consent.current_level(home=home())}  # 23.1: what the record holds under each level
 
     @router.put("/api/consent", response_model=Page)
     async def set_consent(body: Any = Body(None)):
@@ -48,7 +50,14 @@ def register(app, ctx) -> None:
         if before.get(use) != on:
             audit.record(ctx.audit, "policy", "human", move="set_consent", status="allowed",
                          args={"policy": f"consent_{use}", "label": audit.POLICY_NAMES[f"consent_{use}"], "on": on, "was": before.get(use)})
-        return {"workspace": after, "uses": list(consent.USES)}
+            from dclab_core import consent as core
+
+            from ... import experience
+
+            for change in core.changes(before, after, "workspace"):  # 23.1: the history of consent is in the record
+                experience.record("consent.changed", "person", change)
+            consent.invalidate()
+        return {"workspace": after, "uses": list(consent.USES), "notice_version": consent.NOTICE_VERSION}
 
     @router.delete("/api/experience/sessions/{visit}", status_code=204, response_class=Response)
     async def delete_session(visit: str):

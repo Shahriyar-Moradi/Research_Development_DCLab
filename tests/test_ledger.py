@@ -58,6 +58,16 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(ident.agreement(), "agree")
         self.assertEqual(override.agreement(), "unavailable")  # a person overrode a model: no rule to compare
 
+    def test_a_v1_record_reads_as_v2_at_operate_and_the_stamp_is_kept(self):
+        import json
+
+        record = identifier_record(consent="train")
+        self.assertEqual(record.consent, "train")
+        doc = json.loads(record.model_dump_json())
+        old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.decision_record.v1"}
+        self.assertEqual((L.DecisionRecord.read(old).schema_version, L.DecisionRecord.read(old).consent), ("dclab_core.decision_record.v2", "operate"))
+        self.assertEqual(L.DecisionRecord.read(doc).consent, "train")
+
     def test_a_table_value_never_enters_a_state(self):
         refused = [{"sample_value": "Jane Roe"},              # not a state field
                    {"dtype": "Jane Roe"},                     # not one of its bands

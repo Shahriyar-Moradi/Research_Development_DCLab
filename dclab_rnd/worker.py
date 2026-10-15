@@ -52,6 +52,9 @@ def watch_step(pool, protection, state: dict, check=None) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from . import consent as consents
+
+    consents.PROJECT_TTL = 0.0  # 23.1: this process is apart from the API, whose invalidation cannot reach it: a project's switches are read each time
     parser = argparse.ArgumentParser(prog="python -m dclab_rnd.worker", description=__doc__.split("\n")[0])
     parser.add_argument("--home", type=Path, default=None, help="the workspace folder (default: DCLAB_AGENT_HOME, as the server)")
     parser.add_argument("--threads", type=int, default=None, help="jobs run at a time (default: DCLAB_WORKER_THREADS or 4)")

@@ -23,6 +23,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from dclab_core import consent as core
 
 FOLDER = "datasets"
 REFUSED = (re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b"), re.compile(r"(?<![\w.])/(?:Users|home|private|var|tmp)/[^\s\"']+"))
@@ -132,7 +133,8 @@ def _sessions(services: Any, exported: list[dict[str, Any]], drafts: dict[str, d
     out = []
     for visit in visits:
         allowed = [e for e in raw.get(visit) or []
-                   if consent._allowed_for(consent._project_of(e.ids.project, e.ids.conversation, draft_map), "improve", switches, projects)]
+                   if consent._allowed_for(consent._project_of(e.ids.project, e.ids.conversation, draft_map), "improve", switches, projects)
+                   and core.exportable(e.consent, "improve")]  # 23.1: an event written at operate shapes no signal
         flags = [f.model_dump() for f in experience.flags(allowed)]
         mine = by_visit.get(visit) or []
         created = next((e for e in mine if e["kind"] == "draft.created"), None)

@@ -22,8 +22,15 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from dclab_core import consent as core
+
 USES = ("improve", "train")
 FILE = "consent.json"
+NOTICE_VERSION = core.NOTICE_VERSION
+PROJECT_TTL = 10.0  # seconds a project's switches are kept in memory by a writer (a change through the API invalidates at once)
+_WORKSPACE: dict[str, tuple[tuple[int, int], dict[str, bool]]] = {}  # home -> ((consent.json's mtime_ns, size), switches)
+_STORES: dict[str, Any] = {}  # home -> the project store a writer with no services opens for the stamp (4)
+_PROJECTS: dict[str, tuple[float, dict[str, bool] | None]] = {}  # project id -> (read at, switches; None: no such project)
 SHAREABLE = ("meta", "count", "person_text", "agent_text")  # what may leave with consent; text redacted on the way out
 
 
@@ -62,6 +69,108 @@ def allowed(workspace: dict[str, bool], project: dict[str, Any] | None, use: str
     if not workspace.get(use):
         return False
     return project is None or project_consent(project).get(use, False)
+
+
+def _workspace_now(home: Path) -> dict[str, bool]:
+    """The workspace's switches, read again only when consent.json changed (its mtime)."""
+    path = Path(home) / FILE
+    try:
+        st = path.stat()
+        stamp = (st.st_mtime_ns, st.st_size)
+    except OSError:
+        stamp = (0, 0)
+    key = str(path)
+    cached = _WORKSPACE.get(key)
+    if cached is None or cached[0] != stamp:
+        cached = (stamp, workspace_consent(home))
+        _WORKSPACE[key] = cached
+    return cached[1]
+
+
+def invalidate(project_id: str | None = None) -> None:
+    """Forget a project's cached switches (its settings changed), or every project's."""
+    if project_id is None:
+        _PROJECTS.clear()
+        _WORKSPACE.clear()
+    else:
+        _PROJECTS.pop(project_id, None)
+
+
+NO_STORE = object()  # no project store is reachable from this writer: the workspace's level stands (the export checks the project again)
+
+
+def _project_now(project_id: str, projects: Any = None, home: Path | None = None) -> Any:
+    """A project's switches, kept ``PROJECT_TTL`` seconds; None for a project the store does not have; ``NO_STORE`` when
+    no store is reachable here (a log written to directly, outside the server and the worker)."""
+    import time
+
+    if projects is None:
+        from . import context
+
+        projects = getattr(context.services(), "projects", None)
+    if projects is None and home is not None:  # a writer outside a request (a script, a test): the stores of that folder
+        key = str(Path(home))
+        if key not in _STORES:
+            try:
+                from .storage import open_stores
+
+                _STORES[key] = open_stores(Path(home))[0]
+            except Exception:  # noqa: BLE001 - no store to open here
+                _STORES[key] = None
+        projects = _STORES[key]
+    if projects is None:
+        return NO_STORE
+    cached = _PROJECTS.get(project_id)
+    if cached is not None and PROJECT_TTL > 0 and time.monotonic() - cached[0] < PROJECT_TTL:
+        return cached[1]
+    switches: dict[str, bool] | None
+    try:
+        switches = project_consent(projects.get(project_id))
+    except Exception:  # noqa: BLE001 - no such project: nothing is allowed for it
+        switches = None
+    _PROJECTS[project_id] = (time.monotonic(), switches)
+    return switches
+
+
+def current_level(*, home: Path | None = None, project: str | None = None, projects: Any = None) -> str:
+    """The level a record written now is stamped with (23.1): the workspace's switches, and the project's when the record
+    belongs to one. A record of a project the store does not know, or written where no workspace folder is known, is
+    ``operate``: it can never leave."""
+    if home is None:
+        from . import context
+
+        home = getattr(getattr(context.services(), "store", None), "home", None)
+    if home is None:
+        return "operate"
+    workspace = _workspace_now(home)
+    if project:
+        switches = _project_now(project, projects, home)
+        if switches is NO_STORE:
+            return "operate"  # a project's record with no way to read its switch never leaves
+        return "operate" if switches is None else core.level_of(workspace, switches)
+    return core.level_of(workspace, None)
+
+
+def stamped_counts(log: Any, limit: int = 10**9) -> dict[str, int]:
+    """How many events of the record carry each level (the consent page's counts)."""
+    counts = {level: 0 for level in core.LEVELS}
+    if log is None:
+        return counts
+    engine = getattr(log, "engine", None)
+    if engine is not None:  # PostgreSQL: one grouped query over the workspace's rows
+        import sqlalchemy as sa
+
+        from .storage import models
+
+        t = models.experience_event
+        q = sa.select(t.c.doc["consent"].astext.label("level"), sa.func.count()).where(t.c.workspace_id == log.workspace).group_by("level")
+        with engine.connect() as c:
+            for level, n in c.execute(q):
+                counts[level or "operate"] = counts.get(level or "operate", 0) + int(n)
+        return counts
+    for event in log.read(limit=limit):  # files: the whole record
+        counts[event.consent] = counts.get(event.consent, 0) + 1
+    return counts
 
 
 class ConsentRefused(Exception):
@@ -130,6 +239,8 @@ def export_events(events: Iterable[Any], use: str, workspace: dict[str, bool], p
     for event in events:
         if not _allowed_for(_project_of(event.ids.project, event.ids.conversation, drafts), use, workspace, projects):
             continue
+        if not core.exportable(event.consent, use):  # 23.1: the level it was written under, whatever the switches say now
+            continue
         kept = contract.redact(event, SHAREABLE)
         payload, removed = {}, {}
         for name, value in kept.payload.items():
@@ -159,6 +270,8 @@ def export_decisions(records: Iterable[Any], labels: Iterable[Any], workspace: d
         by_record.setdefault(label.record, []).append(doc)
     out = []
     for record in records:
+        if not core.exportable(record.consent, "train"):  # 23.1: stamped at write time
+            continue
         if not _allowed_for(_project_of(record.project, record.draft, drafts), "train", workspace, projects):
             continue
         doc = json.loads(record.model_dump_json())

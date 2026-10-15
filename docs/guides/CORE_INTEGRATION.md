@@ -224,6 +224,18 @@ and returns the timeline. What its side of 19.2 adds: the request id stored on `
 `execution_requests` (additive columns), and the auth session id as the visit. Whether any of it is ever exported for
 training is the owner's decision (its ADR 0008); `redact` keeps only what a use allows.
 
+## Consent at write time (23.1)
+
+Every `ExperienceEvent` (v3) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
+`operate` (kept to run the product, for support and audit; never leaves), `improve` or `train`
+(`dclab_core.consent.level_of` on the workspace's and the project's switches). An export keeps a record only when its
+stamp allows the use (`dclab_core.consent.exportable`) and the switches allow it now, so a later opt-in never
+re-labels what was written before it; `consent.changed` events keep the history of the switches with the notice
+version shown. Where it goes there: the adapter's `events(..., consent=)` takes the level the host reads from its
+workspace settings (`CONSENT_MISSING` says it has none on its rows today); its side adds a `consent_level` column to
+the tables it exports from (additive) and stamps it from the same rule when a row is written. A row mapped without a
+level is `operate`.
+
 ## The problem card (20.1)
 
 `dclab_core.card.problem_card(brief, words=..., data=...)` returns a `ProblemCard`: the brief, the family, the label

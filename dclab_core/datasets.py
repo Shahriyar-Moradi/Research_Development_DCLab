@@ -24,9 +24,9 @@ import hashlib
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Any, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from dclab_core.contracts import CONTRACTS, Contract, Versioned, _version
 
@@ -46,7 +46,8 @@ class Source(Contract):
 class DatasetManifest(Versioned):
     """What a dataset holds and where every row came from."""
 
-    schema_version: Literal["dclab_core.dataset_manifest.v1"] = _version("dataset_manifest")
+    schema_version: Literal["dclab_core.dataset_manifest.v2"] = _version("dataset_manifest", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.dataset_manifest.v1"})  # v2 added levels
     builder: Builder
     name: str = Field(min_length=1, max_length=120)
     version: str = Field(min_length=1, max_length=20)
@@ -60,9 +61,24 @@ class DatasetManifest(Versioned):
     sources: list[Source] = Field(default_factory=list, max_length=2_000_000)
     policy: str = Field(max_length=600, description="How rows were grouped and split.")
     limits: list[str] = Field(default_factory=list, max_length=20)
+    levels: dict[str, int] = Field(default_factory=dict, description="v2 (23.1): rows by the consent level their records were written under.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read_v1(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.dataset_manifest.v1":
+            data = {**data, "schema_version": "dclab_core.dataset_manifest.v2"}
+        return data
 
 
 CONTRACTS["dataset_manifest"] = DatasetManifest
+
+
+def lowest(levels: Iterable[Any]) -> str:
+    """The lowest consent level among records (``operate`` when any is unknown): what a row built from them is stamped."""
+    order = {"operate": 0, "improve": 1, "train": 2}
+    found = [order.get(str(x), 0) for x in levels]
+    return "operate" if not found else {v: k for k, v in order.items()}[min(found)]
 
 
 def now() -> str:
@@ -108,7 +124,7 @@ def manifest(builder: str, name: str, rows: list[dict[str, Any]], sources: Itera
             out.append(Source(kind=kind, id=str(ident)[:120]))
     return DatasetManifest(builder=builder, name=name[:120], version=VERSION, built_at=now(), workspace=workspace, use=use, consent=consent[:300],
                            rows=len(rows), splits=dict(Counter(r.get("split", "train") for r in rows)), counts=counts or {}, sources=out,
-                           policy=policy[:600], limits=list(limits)[:20])
+                           policy=policy[:600], limits=list(limits)[:20], levels=dict(Counter(str(r.get("consent") or "unknown") for r in rows)))
 
 
 # ------------------------------------------------------------------------------------------------ (a) decisions
@@ -142,6 +158,7 @@ def decisions(docs: Iterable[dict[str, Any]], point: str, *, workspace: Optional
         effective = ledger.effective_label(record, labels)
         group = _group(doc, drafts)
         rows.append({"record": record.id, "point": point, "subject": doc.get("subject"), "state": record.state, "options": record.options,
+                     "consent": record.consent,
                      "answers": [{"by": a.by, "answerer": a.answerer, "value": a.value, "confidence": a.confidence} for a in record.answers],
                      "value_used": record.value_used, "used": record.used, "labels": apart,
                      "label": {"value": effective.value, "source": effective.source} if effective is not None else None,
@@ -204,7 +221,7 @@ def conversations(events: Iterable[dict[str, Any]], *, workspace: Optional[str] 
             merged.pop()
         project = next(((e.get("ids") or {}).get("project") for e in items if (e.get("ids") or {}).get("project")), None)
         group = group_of(project, conversation, None, drafts, f"conversation:{conversation}")
-        rows.append({"conversation": conversation, "messages": merged, "group": group, "split": split_of(group),
+        rows.append({"conversation": conversation, "messages": merged, "group": group, "split": split_of(group), "consent": lowest(e.get("consent") for e in items),
                      "sources": [("conversation", conversation)] + [("event", e.get("id")) for e in items]})
     return rows, manifest("conversations", "conversations.problem_understanding", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           policy="One example per built draft; grouped with the project it became, split as every set.",
@@ -227,7 +244,7 @@ def preferences(docs: Iterable[dict[str, Any]], *, workspace: Optional[str] = No
             continue
         point = ledger.POINTS.get(doc.get("point"))
         group = _group(doc, drafts)
-        rows.append({"record": doc.get("id"), "point": doc.get("point"), "question": point.about if point is not None else doc.get("point"),
+        rows.append({"record": doc.get("id"), "point": doc.get("point"), "question": point.about if point is not None else doc.get("point"), "consent": doc.get("consent"),
                      "state": doc.get("state"), "options": doc.get("options"), "chosen": person.get("value"),
                      "rejected": proposed.get("value"), "rejected_by": proposed.get("by"), "reason": person.get("reason"),
                      "group": group, "split": split_of(group), "sources": [("decision", doc.get("id"))]})
@@ -261,7 +278,7 @@ def trajectories(events: Iterable[dict[str, Any]], *, workspace: Optional[str] =
             continue
         ids = next((e.get("ids") or {} for e in items if (e.get("ids") or {}).get("project") or (e.get("ids") or {}).get("conversation")), {})
         group = group_of(ids.get("project"), ids.get("conversation"), None, drafts, f"run:{run}")
-        rows.append({"run": run, "agent": next((s.get("agent") for s in steps if s.get("agent")), None), "steps": steps,
+        rows.append({"run": run, "agent": next((s.get("agent") for s in steps if s.get("agent")), None), "steps": steps, "consent": lowest(e.get("consent") for e in items),
                      "group": group, "split": split_of(group), "sources": [("run", run)] + [("event", e.get("id")) for e in items]})
     return rows, manifest("trajectories", "trajectories.agent_runs", rows, sources_of(rows), use="train", consent=consent, workspace=workspace,
                           policy="One example per run with two steps or more; grouped by its project, split as every set.",

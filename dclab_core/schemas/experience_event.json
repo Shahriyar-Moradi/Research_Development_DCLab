@@ -136,7 +136,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v2.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v3.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -904,6 +904,308 @@
                 "answers_question",
                 "surface",
                 "text"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "consent.changed"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "level"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "level"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "level"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "level"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "notice_version"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "notice_version"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "notice_version"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "notice_version"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "on"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "on"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "on"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "on"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "scope"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "use"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "use"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "use"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "use"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "was"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "was"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "was"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "was"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "properties": {
+          "classes": {
+            "properties": {
+              "level": {
+                "const": "meta"
+              },
+              "notice_version": {
+                "const": "meta"
+              },
+              "on": {
+                "const": "meta"
+              },
+              "scope": {
+                "const": "meta"
+              },
+              "use": {
+                "const": "meta"
+              },
+              "was": {
+                "const": "meta"
+              }
+            },
+            "propertyNames": {
+              "enum": [
+                "level",
+                "notice_version",
+                "on",
+                "scope",
+                "use",
+                "was"
+              ]
+            }
+          },
+          "payload": {
+            "propertyNames": {
+              "enum": [
+                "level",
+                "notice_version",
+                "on",
+                "scope",
+                "use",
+                "was"
               ]
             }
           }
@@ -7740,6 +8042,17 @@
       "title": "Classes",
       "type": "object"
     },
+    "consent": {
+      "default": "operate",
+      "description": "v3 (23.1): the level the record was written under; a later change of the switches never re-labels it.",
+      "enum": [
+        "operate",
+        "improve",
+        "train"
+      ],
+      "title": "Consent",
+      "type": "string"
+    },
     "id": {
       "pattern": "^[A-Za-z0-9_.:-]{6,80}$",
       "title": "Id",
@@ -7779,6 +8092,7 @@
         "decision.overridden",
         "decision.refused",
         "feedback.given",
+        "consent.changed",
         "export.made",
         "job.started",
         "job.stopped",
@@ -7804,8 +8118,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v2",
-      "default": "dclab_core.experience_event.v2",
+      "const": "dclab_core.experience_event.v3",
+      "default": "dclab_core.experience_event.v3",
       "title": "Schema Version",
       "type": "string"
     },

@@ -63,6 +63,21 @@ class ContractTest(unittest.TestCase):
                 self.assertEqual(x.ExperienceEvent.read(event.model_dump_json()), event)
                 self.assertEqual(set(event.classes.values()), set(fields.values()))
 
+    def test_a_v2_event_reads_as_v3_at_operate_and_a_stamp_is_kept(self):
+        import json
+
+        e = x.make("chat.person", "person", IDS, {"text": "hi", "surface": "home"}, id="ev000001", at=at(0), consent="train")
+        self.assertEqual(e.consent, "train")
+        doc = json.loads(e.model_dump_json())
+        old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.experience_event.v2"}
+        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v3", "operate"))
+        self.assertEqual(x.ExperienceEvent.read(doc).consent, "train")
+        with self.assertRaises(Exception):
+            x.make("chat.person", "person", IDS, {"text": "hi"}, id="ev000002", at=at(0), consent="whatever")
+        changed = x.make("consent.changed", "person", IDS, {"scope": "workspace", "use": "train", "on": True, "was": False, "level": "train",
+                                                           "notice_version": "2026-10-15"}, id="ev000003", at=at(1))
+        self.assertEqual(set(changed.classes.values()), {"meta"})
+
     def test_what_may_not_be_recorded_is_refused(self):
         good = x.make("chat.person", "person", IDS, {"text": "hello"}, id="ev-good")
         cases = {
@@ -217,6 +232,15 @@ class MainProductTest(unittest.TestCase):
         self.assertEqual([(e.payload["verdict"], e.payload["code"]) for e in events[2:4]], [("denied", "not_allowed"), ("error", "missing")])
         self.assertEqual(events[4].payload["choice"], ["cites an unknown record"])
         self.assertIsNone(person.ids.parent)
+
+    def test_the_host_stamps_the_level_it_allows_and_operate_without_one(self):
+        rows = [self.agent_event("user_message", {"message": "Why?"}, 1)]
+        runs = {self.run["id"]: self.run}
+        self.assertEqual({e.consent for e in mp.events(agent_events=rows, runs=runs)}, {"operate"})
+        self.assertEqual({e.consent for e in mp.events(agent_events=rows, runs=runs, consent="train")}, {"train"})
+        with self.assertRaises(ValueError):
+            mp.events(agent_events=rows, runs=runs, consent="all")
+        self.assertIn("23.1", mp.CONSENT_MISSING)
 
     def test_model_invocations_decisions_and_run_boundaries(self):
         invocation = {c: None for c in self.columns["llm_invocations"]} | {

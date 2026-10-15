@@ -45,7 +45,7 @@ def catalog(home: Path) -> list[dict[str, Any]]:
             items.append({"path": path.parent.relative_to(root).as_posix(), "error": "unreadable manifest"})
             continue
         items.append({"path": path.parent.relative_to(root).as_posix(), "builder": m.builder, "name": m.name, "version": m.version,
-                      "built_at": m.built_at, "use": m.use, "consent": m.consent, "rows": m.rows, "splits": m.splits, "bytes": size,
+                      "built_at": m.built_at, "use": m.use, "consent": m.consent, "levels": m.levels, "rows": m.rows, "splits": m.splits, "bytes": size,
                       "sources": dict(Counter(s.kind for s in m.sources)), "files": sorted(f.name for f in files)})
     return sorted(items, key=lambda i: (i.get("built_at") or "", i["path"]), reverse=True)
 
@@ -95,6 +95,8 @@ def lines(items: list[dict[str, Any]]) -> list[str]:
         sources = ", ".join(f"{n} {k}" for k, n in sorted(i["sources"].items()))
         out.append(f"{i['path']:<48} {i['rows']:>7} rows {i['bytes'] / 1024:>9.1f} KB  v{i['version']}  {i['built_at']}  {sources}")
         out.append(f"{'':<48} consent: {i['consent']}")
+        if i.get("levels"):
+            out.append(f"{'':<48} rows by level: " + ", ".join(f"{n} {k}" for k, n in sorted(i["levels"].items())))
     return out
 
 

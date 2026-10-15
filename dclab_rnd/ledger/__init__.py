@@ -252,11 +252,11 @@ class PgLedger:
 def open_ledger(home: Path, workspace_id: str | None = None) -> Any:
     from ..storage import db
 
-    if workspace_id and db.database_url(required=False):
-        return PgLedger(workspace_id)
     from ..experience import file_workspace_id
 
-    return FileLedger(Path(home) / "ledger", workspace_id or file_workspace_id(home))
+    book: Any = PgLedger(workspace_id) if workspace_id and db.database_url(required=False) else FileLedger(Path(home) / "ledger", workspace_id or file_workspace_id(home))
+    book.home = Path(home)  # 23.1: the folder whose consent.json stamps every record written here
+    return book
 
 
 _INSTALLED: dict[str, Any] = {}
@@ -310,7 +310,8 @@ def decide(point: str, subject: tuple[str, str], *, answers: Iterable[Any], valu
             id="dr" + secrets.token_hex(10), point=point, subject=contract.Subject(kind=subject[0], key=str(subject[1])[:200]),
             state={k: v for k, v in (state or {}).items() if v is not None}, options=[str(o)[:200] for o in options][:64],
             answers=[a for a in answers if a is not None], value_used=value_used, used=used, level=level, review=review, workspace=target.workspace,
-            at=_now(), **{k: v for k, v in _ids(ids).items() if k in ("project", "draft", "run", "conversation", "dataset", "experiment") and v is not None})
+            at=_now(), consent=_consent_now(target, _ids(ids).get("project")),
+            **{k: v for k, v in _ids(ids).items() if k in ("project", "draft", "run", "conversation", "dataset", "experiment") and v is not None})
     except Exception as exc:  # noqa: BLE001 - the contract refused it: the decision stands, its record is reported
         DROPPED["count"] += 1
         print(f"ledger: {point} refused: {str(exc).splitlines()[1] if len(str(exc).splitlines()) > 1 else exc}"[:300], file=sys.stderr, flush=True)
@@ -329,6 +330,18 @@ def decide(point: str, subject: tuple[str, str], *, answers: Iterable[Any], valu
         print(f"ledger: could not record {point}: {type(exc).__name__}", file=sys.stderr, flush=True)
         return None
     return record
+
+
+def _consent_now(ledger: Any, project: Any) -> str:
+    """The level this decision is written under (23.1): the ledger's workspace folder, and the project's switches."""
+    from .. import consent as consents
+
+    root = getattr(ledger, "root", None)
+    home = getattr(ledger, "home", None) or (Path(root).parent if root is not None else None)
+    try:
+        return consents.current_level(home=home, project=str(project) if project else None)
+    except Exception:  # noqa: BLE001 - a stamp that cannot be read is the lowest
+        return "operate"
 
 
 def label(record: Any, value: Any, source: str, by: str, *, evidence: dict[str, Any] | None = None, supersedes: str | None = None,

@@ -313,9 +313,9 @@ def open_log(home: Path, workspace_id: str | None = None) -> ExperienceLog:
     """The log of the workspace in ``home``: PostgreSQL when it is configured, its folder otherwise."""
     from ..storage import db
 
-    if workspace_id and db.database_url(required=False):
-        return PgLog(workspace_id)
-    return FileLog(Path(home) / "experience", workspace_id or file_workspace_id(home))
+    log: Any = PgLog(workspace_id) if workspace_id and db.database_url(required=False) else FileLog(Path(home) / "experience", workspace_id or file_workspace_id(home))
+    log.home = Path(home)  # 23.1: the folder whose consent.json stamps every record written here
+    return log
 
 
 def current_log() -> Optional[ExperienceLog]:
@@ -346,9 +346,10 @@ def record(kind: str, actor: str = "system", payload: dict[str, Any] | None = No
     surface = _started(_IDS.get().get("visit")) if kind != "visit.started" else None
     if surface is not None:
         record("visit.started", "person", {"surface": surface}, log=target)
+    resolved = _ids(ids)
     try:
-        event = contract.make(kind, actor, {"workspace": target.workspace, **_ids(ids)}, payload or {},
-                              id="ev" + secrets.token_hex(10), at=at, seq=next(_SEQ))
+        event = contract.make(kind, actor, {"workspace": target.workspace, **resolved}, payload or {},
+                              id="ev" + secrets.token_hex(10), at=at, seq=next(_SEQ), consent=_consent_now(target, resolved.get("project")))
     except Exception as exc:  # noqa: BLE001 - the contract refused it (a credential, a value under a lower class)
         DROPPED["count"] += 1
         found = [line.strip() for line in str(exc).splitlines()]
@@ -363,6 +364,18 @@ def record(kind: str, actor: str = "system", payload: dict[str, Any] | None = No
         print(f"experience: could not record {kind}: {type(exc).__name__}", file=sys.stderr, flush=True)
         return None
     return event
+
+
+def _consent_now(log: Any, project: str | None) -> str:
+    """The level this event is written under (23.1): from the workspace folder the log belongs to, and the project's."""
+    from .. import consent as consents
+
+    root = getattr(log, "root", None)
+    home = getattr(log, "home", None) or (Path(root).parent if root is not None else None)
+    try:
+        return consents.current_level(home=home, project=project)
+    except Exception:  # noqa: BLE001 - a stamp that cannot be read is the lowest: the event never leaves
+        return "operate"
 
 
 def model_text_allowed() -> bool:

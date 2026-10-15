@@ -224,7 +224,8 @@ class Answer(Contract):
 class DecisionRecord(Versioned):
     """One decision: its point, its subject, the state it was made in, its options, every answer, and what was used."""
 
-    schema_version: Literal["dclab_core.decision_record.v1"] = _version("decision_record")
+    schema_version: Literal["dclab_core.decision_record.v2"] = _version("decision_record", 2)
+    READS: ClassVar[frozenset[str]] = frozenset({"dclab_core.decision_record.v1"})  # v2 added consent; stored records stay readable
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     point: str
     subject: Subject
@@ -244,6 +245,16 @@ class DecisionRecord(Versioned):
     run: Optional[str] = Field(default=None, max_length=80)
     conversation: Optional[str] = Field(default=None, max_length=80)
     at: str
+    consent: Literal["operate", "improve", "train"] = Field(default="operate", description="v2 (23.1): the level the record was "
+                                                           "written under; a later change of the switches never re-labels it.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _read_v1(cls, data: Any) -> Any:
+        """A record as stored; a v1 record is read as v2 at ``operate`` (v2 only added the stamp)."""
+        if isinstance(data, dict) and data.get("schema_version") == "dclab_core.decision_record.v1":
+            data = {**data, "schema_version": "dclab_core.decision_record.v2"}
+        return data
 
     @field_validator("point")
     @classmethod

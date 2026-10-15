@@ -211,6 +211,13 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
 - **Done when:** an event written while a workspace was at `operate` never enters a dataset after the workspace opts
   in; a deletion still removes everything; the catalog shows rows per level.
 - **Decision D1** (the owner): stamp at write time (recommended; it is what a customer contract can promise).
+- **Status: done (2026-10-15).** dclab-core 0.38.0 (`consent.py`, `ExperienceEvent` v3, `DecisionRecord` v2, the kind
+  `consent.changed`, the adapter's `events(..., consent=)`); the studio stamps at its two writers from the workspace's
+  `consent.json` (read again on change) and the project's switches (cached ten seconds, invalidated by the API; a
+  project the store does not know is `operate`; a writer with no store takes the workspace's level, and the export
+  checks the project again); the exports require the stamp and the switch now; the consent page counts the record by
+  level and shows the notice version; a switch change writes `consent.changed` for the workspace and for a project.
+  The stores learn their workspace folder when opened, so the worker and a direct writer stamp as the server does.
 
 ### 23.2 The browser's events
 - **Delivers:** `ui.page_viewed`, `ui.action` (route pattern, element name, duration), `ui.upload_started`,

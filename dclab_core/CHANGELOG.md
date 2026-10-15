@@ -4,6 +4,18 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.38.0 (2026-10-15)
+
+Package 23.1: consent stamped at write time.
+
+- `consent.py`: the ladder `operate < improve < train`, `level_of(workspace, project)`, `exportable(level, use)`,
+  `changes(before, after)` and `NOTICE_VERSION`.
+- `experience.ExperienceEvent` v3 (`consent`, default `operate`; v1 and v2 read as v3) and the kind
+  `consent.changed`; `make(..., consent=)`.
+- `ledger.DecisionRecord` v2 (`consent`; v1 reads as v2).
+- `adapters.main_product_experience.events(..., consent=)` stamps every event with the host's level;
+  `CONSENT_MISSING` says the main product has none on its rows today.
+
 ## 0.37.0 (2026-10-15)
 
 The owner asked Claude to help label decisions.

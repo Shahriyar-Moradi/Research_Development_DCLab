@@ -53,7 +53,7 @@ SECRET = re.compile(
     r"|(?i:\bbearer\s+[A-Za-z0-9._~+/-]{20,})"
     r"|[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@")                # a password in a connection string
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
-READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1"})  # versions an event is read from: each a subset of v2
+READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2"})  # read as v3: each a subset (v3 added consent)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -101,6 +101,7 @@ KINDS: dict[str, dict[str, str]] = {
     "decision.refused": {"point": M, "choice": M, "rule": M, "reason": A},
     # quality signals
     "feedback.given": {"on": M, "rating": M, "reason": P},
+    "consent.changed": {"scope": M, "use": M, "on": M, "was": M, "level": M, "notice_version": M},  # 23.1: a switch moved
     "export.made": {"what": M, "format": M},
     "job.started": {"kind": M, "key": M},
     "job.stopped": {"kind": M, "by": M, "status": M},
@@ -157,7 +158,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v2"] = _version("experience_event", 2)
+    schema_version: Literal["dclab_core.experience_event.v3"] = _version("experience_event", 3)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)
@@ -168,6 +169,8 @@ class ExperienceEvent(Versioned):
     classes: dict[str, ContentClass] = Field(default_factory=dict)
     redacted: list[str] = Field(default_factory=list, description="Fields removed by redact(), with their class.")
     source: Optional[str] = Field(default=None, max_length=120, description="Where the host read it: table:type.")
+    consent: Literal["operate", "improve", "train"] = Field(default="operate", description="v3 (23.1): the level the record was "
+                                                           "written under; a later change of the switches never re-labels it.")
 
     @classmethod
     def read(cls, document):
@@ -245,14 +248,15 @@ def _number(value: Any) -> bool:
 
 
 def make(kind: str, actor: str, ids: Mapping[str, Any] | Ids, payload: Mapping[str, Any] | None = None, *, id: str,
-         at: str | None = None, seq: int = 0, source: str | None = None) -> ExperienceEvent:
-    """An event of ``kind`` with each field's class taken from the vocabulary. Fields left None are dropped."""
+         at: str | None = None, seq: int = 0, source: str | None = None, consent: str = "operate") -> ExperienceEvent:
+    """An event of ``kind`` with each field's class taken from the vocabulary. Fields left None are dropped. ``consent``:
+    the level it is written under (``dclab_core.consent.level_of``), ``operate`` when the host knows none."""
     fields = KINDS.get(kind)
     if fields is None:
         raise ValueError(f"unknown kind {kind!r}")
     body = {k: v for k, v in (payload or {}).items() if v is not None}
     return ExperienceEvent(id=id, at=at or _now(), seq=seq, ids=ids if isinstance(ids, Ids) else Ids(**ids), actor=actor, kind=kind,
-                           payload=body, classes={k: fields.get(k, "meta") for k in body}, source=source)
+                           payload=body, classes={k: fields.get(k, "meta") for k in body}, source=source, consent=consent)
 
 
 def timeline(events: Iterable[ExperienceEvent]) -> list[ExperienceEvent]:
