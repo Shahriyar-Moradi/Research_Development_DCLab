@@ -224,7 +224,7 @@ def units_of(name: str) -> list[str]:
         return [name]
     out = []
     for node in tree.body:
-        if not isinstance(node, ast.ClassDef):
+        if not isinstance(node, ast.ClassDef) or not node.bases:  # a class with no base is a mixin: its tests run in the classes that inherit it
             continue
         methods = [n.name for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
         tests = [m for m in methods if m.startswith("test")]
