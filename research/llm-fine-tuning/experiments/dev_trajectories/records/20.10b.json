@@ -1,0 +1,181 @@
+{
+ "package": "20.10b",
+ "title": "People's own words for every family, long texts as classes and numbers, and the class balance from training rows",
+ "date": "2026-10-15",
+ "request": "Items 12 to 15 of the open list: the journeys' sealed gate failed on people's own words for the less common families; long texts in the engine only as yes or no and every pair compared; the engine read the class balance before its split; the service export's image untested.",
+ "spec": "A second sealed set written by an agent that never read the rules, frozen before any change; the rules fixed on dev only; the embedded machine answering classes and numbers with the holdout read once; near copies found with bounded memory; the default metric chosen from training rows.",
+ "plan": [
+  "Freeze a second sealed set by an independent writer and commit it.",
+  "Use the first sealed set as dev material.",
+  "Widen the word rules, the family answers and the data rules, each tied to its context.",
+  "Let the embedded kind take three tasks; bound and hash the near-copy search.",
+  "Read the class balance after the split.",
+  "Review, fix, test the review's cases, commit, run the second sealed set once."
+ ],
+ "decisions": [
+  {
+   "decision": "The second sealed set was written by an agent allowed to read only the replicas' columns and the format.",
+   "why": "A set written by the one who fixes the rules measures the fixes against themselves."
+  },
+  {
+   "decision": "An answer that only gives the output's shape may be refined by the person's other words; a named family never is.",
+   "why": "A yes or no per note describes the output, not the problem; classification said outright is the person's choice."
+  },
+  {
+   "decision": "A rare event's review budget never reached is assumed at the kind's share and logged; one said but unread is never replaced.",
+   "why": "An assumption must be said, and never put over what the person wrote."
+  },
+  {
+   "decision": "Near copies above twenty thousand items come from hashing, with the probability of finding a pair at the threshold reported beside the count.",
+   "why": "A count that can miss pairs must not read as exhaustive."
+  }
+ ],
+ "change": "dclab_core card, conversation, embeddings, replicas/shapes_and_notes (0.36.0); dclab_rnd draft card, chat and api, kinds base, embedded, forecasting and rare_event, studio solution and engine; tests problem_card, core_forecast, fraud_home, core_embeddings, kind_engine_library, engine_machines, journeys; capability.json.",
+ "findings": [
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The disk filled during a journeys run.",
+   "scenario": "Five dev journeys broke with no space left on the device.",
+   "cause": "Six engines at once beside a nearly full disk.",
+   "fix": "Four workers, scratch copies removed; the owner told the disk is 96 percent full.",
+   "test": "none"
+  },
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "latent",
+   "defect": "New patterns held a doubled backslash.",
+   "scenario": "A pattern meant to read a number of days matched a literal backslash and never fired.",
+   "cause": "Raw and plain strings mixed in the edit.",
+   "fix": "Doubled backslashes repaired; each pattern probed.",
+   "test": "test_less_common_families_said_in_plain_words"
+  },
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A ticket's minutes to resolve could not be read from its words.",
+   "scenario": "Regression on the notes scored below the training mean.",
+   "cause": "The planted phrase that set it was shuffled among two.",
+   "fix": "The minutes follow both planted phrases.",
+   "test": "test_minutes_are_read_from_the_words_beyond_the_training_mean"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A rare event's budget was never asked within five questions.",
+   "scenario": "The holdout reported no recall at a budget and the journey failed.",
+   "cause": "The pack's last question fell past the limit.",
+   "fix": "An assumed, logged budget when none was said.",
+   "test": "test_a_budget_never_said_is_assumed_and_said"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The several-tables rule replaced a family the person stated.",
+   "scenario": "A stated classification with a label file became entity tables.",
+   "cause": "The rule ignored a stated family and counted the label file as a table.",
+   "fix": "Only when nothing was stated; the label file is not counted.",
+   "test": "test_what_must_not_move_a_family"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A stated regression was refined into time to event.",
+   "scenario": "Delivery minutes said as regression became survival.",
+   "cause": "Every shape answer was refined.",
+   "fix": "Only an answer that gave a shape alone, marked when read.",
+   "test": "test_a_shape_only_answer_is_marked_and_a_named_family_is_not"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Survival words fired on plain churn and on censored demand.",
+   "scenario": "A churn problem with a churned column became time to event.",
+   "cause": "Bare censoring words and lifetime value matched alone.",
+   "fix": "Censoring tied to a lifetime phrase; asked against a yes or no column.",
+   "test": "test_what_must_not_move_a_family"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "Measured columns were read as known ahead.",
+   "scenario": "Yesterday's footfall became a future covariate.",
+   "cause": "Knowing what happened was read as knowing it ahead.",
+   "fix": "Only set, fixed or decided some time before.",
+   "test": "test_set_weeks_before_is_known_ahead_and_measured_on_the_day_is_not"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A budget said in words the rules cannot read was replaced by an assumed one.",
+   "scenario": "Our two analysts check some each morning became half a percent.",
+   "cause": "Assumed whenever the share was unread.",
+   "fix": "Assumed only when nothing was said; an unread one is logged for the person.",
+   "test": "test_a_budget_said_in_words_the_rules_cannot_read_is_never_assumed_over"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "latent",
+   "defect": "Hashing lost its memory bound on crowded buckets, and its count read as exhaustive.",
+   "scenario": "Thousands of identical tickets listed every pair in Python.",
+   "cause": "Large buckets were enumerated pair by pair.",
+   "fix": "Crowded buckets are compared exactly in blocks; the method and recall are in the evidence and the claim.",
+   "test": "test_a_crowded_bucket_is_compared_exactly_and_counted_once"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A file of known cases after a no read as none, and streams and uplift words fired out of context.",
+   "scenario": "A house price with room temperatures became streams.",
+   "cause": "Patterns without their context; the first label word won.",
+   "fix": "A file said apart wins unless denied in its clause; streams need a machine, uplift an offer; held-out regression values checked only in the final stage.",
+   "test": "test_what_must_not_move_a_family"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "journeys on dev material",
+   "gate": "the dev journeys stay right and the first sealed set's cards are right",
+   "result": "dev 15 of 15; on the first sealed set, now dev material, the card right on 30 of 30 people, up from 18, and 24 of 30 whole, the six others expecting the refusals the engine no longer makes",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "every dev journey and every card right",
+   "limits": [
+    "Dev material: the fixes were made on these people."
+   ]
+  },
+  {
+   "name": "long texts as classes and numbers",
+   "gate": "each task beats what no text gives",
+   "result": "the topic above the majority class by more than 0.2 accuracy and the minutes above the training mean by more than 0.2 in R squared, on held-out authors",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "both above their baseline",
+   "limits": [
+    "Invented tickets, a baseline encoder."
+   ]
+  }
+ ],
+ "outcome": "The card reads the less common families from plain words without moving a stated family; long texts run as classes and numbers; the class balance never reads the holdout.",
+ "lessons": [
+  "Freeze the sealed set before the first change, and let someone who never read the rules write it.",
+  "A word rule needs its context, or it fires on the next ordinary problem.",
+  "An assumption the person did not make must be logged and must never replace what they said."
+ ],
+ "risks": [
+  "The second sealed set runs once; its result decides the gate.",
+  "The scoring service's image is still unbuilt: Docker needs a download."
+ ],
+ "commits": []
+}

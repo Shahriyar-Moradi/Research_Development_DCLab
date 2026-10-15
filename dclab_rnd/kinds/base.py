@@ -53,6 +53,8 @@ class ProblemKind:
     title: ClassVar[str] = ""
     description: ClassVar[str] = ""
     base_task: ClassVar[str] = "binary"            # Solution.task this kind runs as
+    tasks: ClassVar[tuple[str, ...]] = ()          # the tasks it also takes (empty: the base task only)
+    default_alert_budget: ClassVar[float | None] = None  # a review budget (share of rows) assumed when the person gave none
     task_type: ClassVar[str] = "binary_imbalanced"  # the runner's machine
     specificity: ClassVar[int] = 0                  # detection order: a more specific kind is asked first
     packs: ClassVar[tuple[str, ...]] = ()           # the Domain packs that mean this kind

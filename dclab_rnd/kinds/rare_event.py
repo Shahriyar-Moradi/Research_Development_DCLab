@@ -31,6 +31,7 @@ class RareEvent(Binary):
     evidence_track = "anomaly-and-fraud-detection"
     aliases = ('fraud detection', 'imbalanced classification', 'rare positives', 'anomaly detection')  # 16.14: the names this kind of problem goes by (read into its evidence record)
     pack_defaults = {"metric": "average_precision", "rare_event": True}
+    default_alert_budget = 0.005  # 20.10 v2: when the budget question was never reached, recall is read at 0.5% of rows, said so
 
     def default_metric(self, solution: Any, positive_rate: float | None, pack: dict[str, Any] | None = None) -> str:
         return super().default_metric(solution, positive_rate, {**self.pack_defaults, **(pack or {})})

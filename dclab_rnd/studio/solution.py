@@ -128,8 +128,8 @@ class Solution(BaseModel):
         if not kind.runs_in_engine:
             raise ValueError(f"The {kind.title.lower()} kind runs as a library (dclab_core) for now: the notebook's engine does not run it "
                              "yet, so a project cannot declare it")
-        if kind.base_task != self.task:
-            raise ValueError(f"The {kind.title.lower()} kind runs as a {kind.base_task} task, not {self.task}")
+        if self.task not in (kind.tasks or (kind.base_task,)):
+            raise ValueError(f"The {kind.title.lower()} kind runs as {' or '.join(kind.tasks or (kind.base_task,))}, not {self.task}")
         self.kind_fields = kind.fields(self.kind_fields)
         kind.check_solution(self)  # 16.15: what the kind's machine needs (a forecast needs its time column)
         if self.metric and self.metric not in kind.metric_keys():

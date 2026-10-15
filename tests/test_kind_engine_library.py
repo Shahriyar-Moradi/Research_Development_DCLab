@@ -229,5 +229,62 @@ class SegmentationInTheEngineTest(SharedReaders, unittest.TestCase):
         self.assertNotEqual(self.records["final"]["evidence"]["outcome"], other["final"]["evidence"]["outcome"])
 
 
+def notes_case(target: str, task: str):
+    """The notes replica with its topic (seven classes) or its minutes to resolve (a number) as the outcome."""
+    from dclab_core.replicas import shapes_and_notes
+
+    case = kinds.get("embedded").case(0)
+    notes = shapes_and_notes.notes(0, outcomes=True)
+    table = notes.table.assign(text=notes.items).drop(columns=[c for c in ("urgent", "topic", "minutes_to_resolve") if c != target])
+    return dataclasses.replace(case, table=table, target=target, task=task, solution={**case.solution, "task": task})
+
+
+@unittest.skipIf(MISSING, MISSING)
+class LongTextsAsClassesAndNumbersTest(unittest.TestCase):
+    """16.15 C's open half: the embedded machine answers a class or a number from long texts, sources kept whole, the
+    holdout's labels read once in the final stage, scored against what no text gives."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.topic = notes_case("topic", "multiclass")
+        cls.minutes = notes_case("minutes_to_resolve", "regression")
+        cls.runs = {name: run_case("embedded", case) for name, case in (("topic", cls.topic), ("minutes", cls.minutes))}
+
+    def test_a_topic_is_read_from_the_words_beyond_the_majority_class(self):
+        final = self.runs["topic"][2]["final"]["evidence"]
+        self.assertEqual(final["metric"], "accuracy")
+        self.assertEqual(final["sources_on_both_sides"], 0)
+        majority = final["baselines"]["majority_class"]["accuracy"]
+        self.assertGreater(final["holdout_metrics"]["accuracy"], majority + 0.2)  # the topic is planted in the words
+        self.assertGreater(len(self.runs["topic"][2]["data"]["evidence"]["classes"]), 2)
+
+    def test_minutes_are_read_from_the_words_beyond_the_training_mean(self):
+        final = self.runs["minutes"][2]["final"]["evidence"]
+        self.assertEqual(final["metric"], "r2")
+        self.assertGreater(final["holdout_metrics"]["r2"], final["baselines"]["training_mean"]["r2"] + 0.2)
+
+    def test_the_holdouts_labels_reach_only_the_final(self):
+        for name, case in (("topic", self.topic), ("minutes", self.minutes)):
+            store, pid, records = self.runs[name]
+            final = records["final"]["evidence"]
+            held = final["holdout_row_positions"]
+            table = case.table.copy()
+            if name == "topic":
+                table.loc[held, case.target] = "question"  # a class the training rows have, on every held-out row
+            else:
+                table.loc[held, case.target] = table.loc[held, case.target] * 3 + 5
+            _, _, other = run_case("embedded", dataclasses.replace(case, table=table))
+            self.assertEqual(before_final(records), before_final(other), name)
+            self.assertNotEqual(final["holdout_metrics"], other["final"]["evidence"]["holdout_metrics"], name)
+
+    def test_a_held_out_class_the_training_rows_never_had_is_refused(self):
+        table = self.topic.table.copy()
+        held = self.runs["topic"][2]["final"]["evidence"]["holdout_row_positions"]
+        table.loc[held[:3], "topic"] = "never_seen"
+        with self.assertRaises(Exception) as caught:
+            run_case("embedded", dataclasses.replace(self.topic, table=table))
+        self.assertIn("never had", str(caught.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -21,7 +21,7 @@ from collections.abc import Mapping
 from typing import Any, Callable, Optional
 
 from dclab_core.agents import Role
-from dclab_core.card import FAMILIES, LABEL_WORDS, ProblemCard, problem_card
+from dclab_core.card import FAMILIES, ProblemCard, label_said, problem_card, refine_family
 from dclab_core.contracts import ProblemBrief, TextFact
 
 ORDER = ("data", "labels", "family", "outcome", "prediction_moment")  # the question that unblocks the most comes first
@@ -31,15 +31,15 @@ LIMIT = 5
 FAMILY_ANSWERS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("classification", re.compile(r"\b(a yes or (a )?no|yes or no|yes/no|whether|a class\b|which (class|category|team|type)|classification)\b", re.I)),
     ("forecasting", re.compile(r"\b(forecast\w*|(next|coming) (days?|weeks?|months?)|how many .{0,30}\b(tomorrow|next)\b)", re.I)),
-    ("time_to_event", re.compile(r"\b(how long (until|before)|time (to|until|before) \w+|when (it|they|each) will (fail|leave|cancel|churn)|"
+    ("time_to_event", re.compile(r"\b(how long (until|before)|(the )?chance (a|an|each|they|the) \w+ (is|are)? ?still (with us|here|active|subscribed|running|alive)|expected (lifetime|number of (days|months))|still (with us|here|active|subscribed) (at|after) \d+|time (to|until|before) \w+|when (it|they|each) will (fail|leave|cancel|churn)|"
                                  r"(days|weeks|months|time) (until|before) (\w+ ){0,3}(fails?|leaves?|cancels?|churns?|quits?|ends?))\b", re.I)),
-    ("streams", re.compile(r"\b((an )?alerts? (before|ahead of) (a |the |each )?\w+ (fails?|breaks?|goes down)|from (the |its )?(sensor\w*|readings)|"
+    ("streams", re.compile(r"\b((an )?alerts? (before|ahead of) (a |the |each )?\w+ (fails?|breaks?|goes down)|(an )?alert or no alert|early[- ]warning|(per|for each) (machine|unit|device|sensor|pump|engine) (at|on|every) (each )?(check|reading|interval)|from (the |its )?(sensor\w*|readings)|"
                            r"as (the )?(readings|events) arrive)\b", re.I)),
     ("anomaly", re.compile(r"\b(anomal\w*|outlier\w*|unusual (rows|ones|orders|cases|behaviou?r|transactions)|the unusual ones|odd ones)\b", re.I)),
     ("rare_event", re.compile(r"\b(rare (events?|cases)( we (learn|know))?|learn from the confirmed)\b", re.I)),
-    ("ranking", re.compile(r"\b(rank\w*|recommend\w*|an order of (items|products|results))\b", re.I)),
+    ("ranking", re.compile(r"\b(rank\w*|recommend\w*|an order of (items|products|results)|(an )?ordered list|(a |the )?(top|best) \d* ?(items|products) (for|per) (each )?(user|customer|shopper|person))\b", re.I)),
     ("segmentation", re.compile(r"\b(segment\w*|cluster\w*|groups?\b)", re.I)),
-    ("uplift", re.compile(r"\b(uplift|who (to|should we) (target|contact|treat)|effect of (the )?(offer|discount|campaign|treatment)|"
+    ("uplift", re.compile(r"\b(uplift|who (to|should we) (target|contact|treat)|effect of (the )?(offer|discount|campaign|treatment)|(estimated |expected )?lift in|how much (the )?(offer|discount|campaign|coupon|treatment) (raises|changes|increases|lifts|moves)|"
                           r"(would|will) make (them |each )?(buy|stay|convert|respond|renew))\b", re.I)),
     ("regression", re.compile(r"\b(a number|how (much|many|long)|the (amount|price|minutes|duration|value)|regression)\b", re.I)),
 )
@@ -51,6 +51,7 @@ EXPLICIT_FAMILY = {"anomaly": "anomaly", "outlier": "anomaly", "forecast": "fore
                    "classification": "classification", "regression": "regression", "segmentation": "segmentation",
                    "clustering": "segmentation", "ranking": "ranking", "recommendation": "ranking", "uplift": "uplift",
                    "survival": "time_to_event", "time to event": "time_to_event", "time-to-event": "time_to_event"}
+NAMED_SHAPE = re.compile(r"\b(classification|classify|regression)\b", re.I)  # the family named, not only an output's shape
 NOT_SAID = re.compile(r"^\s*(i don'?t know|not sure|no idea|skip|later)\b", re.I)
 
 
@@ -79,15 +80,17 @@ def read_answer(field: str, text: str, columns: Optional[list[str]] = None) -> d
         out["family"] = EXPLICIT_FAMILY[explicit.group(1).lower().replace("  ", " ")]
     elif field == "family":
         out.update(next(({"family": f} for f, pattern in FAMILY_ANSWERS if pattern.search(text)), {}))
+        if out.get("family") in ("classification", "regression") and not NAMED_SHAPE.search(text):
+            out["family_shape_only"] = "yes"  # 20.10 v2: "a yes or no per note" gives a shape; "classification" names the family
     named = _named(text, columns)
     if field == "labels":
         if named or re.search(r"\bcolumn\b", text, re.I):  # "No file, but the is_fraud column marks them" is a column
             out["labels"] = "column"
         else:
-            said = next((value for value, pattern in LABEL_WORDS if pattern.search(text)), None)
+            said = label_said(text)
             out.update({"labels": said} if said else {"labels": "file"} if re.search(r"\b(file|list)\b", text, re.I) else {})
     elif field in ("family", "outcome"):
-        said = next((value for value, pattern in LABEL_WORDS if pattern.search(text)), None)
+        said = label_said(text)
         if said:
             out["labels"] = said
     if field == "outcome":
@@ -126,7 +129,7 @@ def card_for(problem: str, said: Mapping[str, str], columns: Optional[list[str]]
         update["label_source"] = LabelSourceFact(value=said["labels"], status="stated", quote=said["labels"], source="person")
     brief = ProblemBrief.model_validate({**brief.model_dump(), **{k: v.model_dump() for k, v in update.items()}})
     words = " ".join([problem] + [str(v) for k, v in said.items() if k not in ("labels", "family")])
-    family = said.get("family") if said.get("family") in FAMILIES else None
+    family = refine_family(said.get("family"), words, bool(said.get("family_shape_only"))) if said.get("family") in FAMILIES else None
     return problem_card(brief, words=words, data=data, family=family)
 
 

@@ -211,24 +211,28 @@ def prepare(store: ProjectStore, project: dict[str, Any]) -> Prepared:
         X, y = X.iloc[order].reset_index(drop=True), y.iloc[order].reset_index(drop=True)
     sampling["rows_used"] = int(len(X))
 
-    positive_rate = kind.positive_rate(y)
-    metric = solution.metric or kind.default_metric(solution, positive_rate)  # a pack's defaults live in its kind (15.6, 16.1)
     split = kind.split(solution)
     regression = kind.base_task == "regression"
     spec = ds.DatasetSpec(
-        key=f"project_{project['id']}", name=project["name"], task_type=task_type, primary_metric=metric,
+        key=f"project_{project['id']}", name=project["name"], task_type=task_type, primary_metric=solution.metric or "pending",
         target=solution.target, url=f"upload://{project['data']['filename']}", filename=project["data"]["filename"],
         sha256=project["data"]["sha256"], description=project.get("goal") or project["name"],
         decision_time_contract=solution.prediction_moment, split_strategy=split, source_rows=source_rows,
         feature_count=int(X.shape[1]), blocked_features=blocked, identifier_columns=identifiers,
         text_columns=text_columns, time_column=time_column, group_column=group_column,
-        positive_rate=positive_rate,
+        positive_rate=None,
         settings={"precision_target": 0.9, "fe_tolerance": 0.01 if regression else 0.002, "fe_tolerance_relative": regression,
                   "tuning_margin": 0.01 if regression else 0.001, "tuning_margin_relative": regression,
                   **kind.spec_settings(solution)},
     )
     bundle = kind.bundle(spec, X, y, data_paths=[path], source_rows=source_rows, sampling=sampling,
                          class_labels=class_labels, cv_folds=cv_folds(project))
+    # the class balance that picks a default metric and the rare-event screen is read from the training rows only:
+    # the holdout's labels never shape a choice made before it is opened
+    positive_rate = kind.positive_rate(bundle.y_train)
+    metric = solution.metric or kind.default_metric(solution, positive_rate)  # a pack's defaults live in its kind (15.6, 16.1)
+    spec = replace(spec, primary_metric=metric, positive_rate=positive_rate)
+    bundle.spec = spec
     # Numeric columns that stand for categories get no log or product feature (DCLAB-R11). Decided once,
     # on training rows: the declaration when there is one, otherwise the conservative heuristic.
     features = [c for c, role in roles.items() if role == "feature"]

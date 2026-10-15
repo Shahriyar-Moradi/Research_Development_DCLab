@@ -4,6 +4,25 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.36.0 (2026-10-15)
+
+Package 20.10 v2 and the open half of 16.15 C. No contract changes shape.
+
+- `card`: the less common families read from people's own words: lifetimes with rows still waiting ("expected lifetime",
+  "hasn't cancelled yet"), items a person is likely to buy, an offer that changes a mind, early warnings from logged
+  readings, an outcome as no order in the next days, a model that reads the note itself. Time to event is tried before
+  forecasting. A label situation said ("no history of confirmed fraud", "never confirmed any") is nothing labelled, and
+  outweighs a coverage the words only suggest. `refine_family`: an answer that only gives the output's shape ("a yes or no
+  per note") keeps the family the words name. `problem_card`'s `data` takes `text_only` (the table's only input is a long
+  text: text_or_images); several tables with an outcome said in words is entity_tables.
+- `conversation`: family answers for survival ("the chance they are still with us at 90 days"), alerts per machine,
+  ordered lists of items and an offer's lift.
+- `embeddings.near_duplicates`: blocks hold at most `BLOCK_CELLS` similarities; above `EXACT_UP_TO` items, candidates
+  come from random-hyperplane hashing and are checked exactly (`method`, `candidates_compared`, `recall_at_threshold`
+  from `hashed_recall`). Folds for a multiclass task are stratified by class and grouped by source.
+- `replicas.shapes_and_notes.notes(outcomes=True)`: a ticket's topic (seven classes) and minutes to resolve; the default
+  table is unchanged.
+
 ## 0.35.0 (2026-10-15)
 
 Package 16.15 B: the library kinds run stage by stage in the engine. No contract changes shape, and every library

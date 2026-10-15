@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from pydantic import BaseModel, ConfigDict
 
 from .base import ProblemKind
@@ -27,6 +28,7 @@ class Embedded(ProblemKind):
     title = "Images and long text through encoders"
     description = "Photos or long documents labelled by a team: an encoder turns each into numbers a model can read."
     base_task = "binary"
+    tasks = ("binary", "multiclass", "regression")  # a yes or no, a class or a number, read from the text
     task_type = "embedded"
     specificity = 12  # below the other kinds: photos mentioned beside a forecast or a churn question are not the input
     packs = ("vision",)
@@ -37,7 +39,7 @@ class Embedded(ProblemKind):
     questions = ("Where are the images or documents, and which column holds their label?",
                  "What is one item's source (a scene, a camera, a document's author), so a source stays on one side?",
                  "Which encoder may read them on this machine (a local pretrained model), or should a simple local baseline be used?")
-    metrics = (("roc_auc", "ROC-AUC"), ("accuracy", "Accuracy"))
+    metrics = (("roc_auc", "ROC-AUC"), ("accuracy", "Accuracy"), ("r2", "R²"))
     baselines = ()
     checks = ()
     reliability = ("near copies across the split", "sources per side", "whether the encoder is pretrained")
@@ -70,6 +72,8 @@ class Embedded(ProblemKind):
 
     def check_solution(self, solution: Any) -> None:
         k = solution.kind_fields
+        if solution.task not in ("binary", "multiclass", "regression"):
+            raise ValueError(f"The embedded machine answers a yes or no, a class or a number: not {solution.task!r}")
         if k["item_kind"] != "text" or not k.get("text_column"):
             raise ValueError("In the engine the items are long texts in a column (text_column): images need an encoder with local weights, "
                              "the owner's download, and run as a library")
@@ -182,6 +186,9 @@ class Embedded(ProblemKind):
 from .machine import Machine, claim  # noqa: E402
 
 
+UNSEEN = "\x00unseen"  # a held-out class the training rows never had
+
+
 class EmbeddedMachine(Machine):
     """Long texts in the engine (16.15 C). Each text becomes a vector by a local baseline encoder (word counts hashed;
     no download, not pretrained); the holdout is whole sources, chosen from their names in the data stage; near copies
@@ -221,22 +228,55 @@ class EmbeddedMachine(Machine):
             self._X, self.encoding = embeddings.encode(self.rows[self.text].astype(str).tolist(), self.encoder)
         return self._X
 
+    def seen(self) -> list[str]:
+        """The classes as the training rows have them; never read from a held-out row."""
+        return sorted({str(v) for v in self.rows.loc[~self.test, self.target]})
+
     def classes(self) -> tuple[str, str]:
         """(negative, positive) as the training rows have them: the person's positive label, else the later of the two;
         never read from a held-out row."""
-        seen = sorted({str(v) for v in self.rows.loc[~self.test, self.target]})
+        seen = self.seen()
         if len(seen) != 2:
-            raise ValueError(f"The training rows hold {len(seen)} classes of {self.target}: the embedded machine needs two")
+            raise ValueError(f"The training rows hold {len(seen)} classes of {self.target}: a binary task needs two (multiclass takes more)")
         positive = str(self.solution.positive_label) if self.solution.positive_label is not None else seen[-1]
         if positive not in seen:
             raise ValueError(f"The positive label {positive!r} is not among the training rows' classes")
         return next(v for v in seen if v != positive), positive
 
     def y(self) -> Any:
-        """1 for the positive class; a held-out value outside the training classes is -1 (refused when the final stage reads it)."""
-        negative, positive = self.classes()
+        """Binary: 1 for the positive class. Multiclass: the class names. Regression: the numbers. A held-out class the
+        training rows never had is marked (-1, or ``UNSEEN``) and refused when the final stage reads it."""
+        if self.task == "regression":
+            values = pd.to_numeric(self.rows[self.target], errors="coerce")
+            if values[~self.test].isna().any():  # the training rows' own; a held-out row's is refused where the holdout is read
+                raise ValueError(f"{self.target} holds values that are not numbers: a regression needs a number on every labelled row")
+            return values.to_numpy(dtype=float)
         v = self.rows[self.target].astype(str)
+        if self.task == "multiclass":
+            seen = self.seen()
+            if len(seen) < 2:
+                raise ValueError(f"The training rows hold {len(seen)} class of {self.target}: nothing to tell apart")
+            return np.where(v.isin(seen), v, UNSEEN)
+        negative, positive = self.classes()
         return np.where(v == positive, 1, np.where(v == negative, 0, -1))
+
+    def _unseen(self, y: Any) -> Any:
+        if self.task == "regression":
+            return np.isnan(y)  # a held-out label that is not a number, read here in the final stage
+        return (y == UNSEEN) if self.task == "multiclass" else (y == -1)
+
+    def baseline(self, y: Any) -> dict[str, Any]:
+        """What the holdout scores with no text read, from the training rows alone: the majority class's accuracy, the
+        training mean's R², or chance's ROC-AUC."""
+        from sklearn.metrics import r2_score
+
+        train, test = ~self.test, self.test
+        if self.task == "multiclass":
+            majority = pd.Series(y[train]).value_counts().idxmax()
+            return {"majority_class": {"accuracy": round(float(np.mean(y[test] == majority)), 4), "class": str(majority)}}
+        if self.task == "regression":
+            return {"training_mean": {"r2": round(float(r2_score(y[test], np.full(int(test.sum()), float(np.mean(y[train]))))), 4)}}
+        return {"chance": {"roc_auc": 0.5}}
 
     def training_rows(self) -> Any:
         return self.rows[~self.test]
@@ -252,16 +292,21 @@ class EmbeddedMachine(Machine):
 
     def data(self, eid: str, previous: dict) -> tuple:
         train, held = int((~self.test).sum()), int(self.test.sum())
-        negative, positive = self.classes()
+        positive = self.classes()[1] if self.task == "binary" else None
+        self.y()  # refused here, before any choice, when the training rows cannot be modelled for this task
         dropped = self.dropped
         evidence = {"split": self.lock(), "train_rows": train, "holdout_rows": held, "holdout_split": self.holdout_description(),
                     "cv_protocol": self.cv_description(), "source_rows": int(len(self.frame)), "rows_dropped": dropped,
-                    "positive_class": positive,
+                    "positive_class": positive, "task": self.task,
+                    **({"classes": self.seen()} if self.task == "multiclass" else {}),
                     "usable_feature_count": 1, "text_column": self.text, "source_column": self.source,
                     "notes_for_person": [{"title": "Whole sources held out", "proof": ["DCLAB-R02"],
                                           "text": f"{train} training rows; the holdout is {self.holdout_description()}: a source is never on both sides. "
                                                   f"Left out: {dropped['without_text_or_source']} rows without a text or a {self.source}, "
-                                                  f"{dropped['without_label']} without a label. {positive!r} is the positive class."}]}
+                                                  f"{dropped['without_label']} without a label. "
+                                                  + (f"{positive!r} is the positive class." if positive is not None else
+                                                     f"{len(self.seen())} classes in the training rows." if self.task == "multiclass" else
+                                                     f"{self.target} is predicted as a number.")}]}
         claims = [claim(f"{eid}-C1", "fact", f"{train} training rows; {held} rows of {self.parts['holdout_sources']} whole sources held out; "
                         f"{dropped['without_text_or_source'] + dropped['without_label']} rows left out for a missing text, source or label.",
                         ["evidence.split", "evidence.rows_dropped"])]
@@ -279,14 +324,17 @@ class EmbeddedMachine(Machine):
         forbidden = [x.column for x in self.solution.forbidden]
         evidence = {"kept_out": sorted(set(not_read) | set(forbidden)), "declared_leakage_features": sorted(set(forbidden)),
                     "why": {c: f"the model reads {self.text} only" for c in not_read}, "calibration": calibration, "threshold": threshold,
-                    "near_duplicates_across_holdout": across["pairs_across_sides"],
+                    "near_duplicates_across_holdout": across["pairs_across_sides"], "near_duplicates_method": across["method"],
+                    "near_duplicates_recall": across.get("recall_at_threshold"),  # hashed past EXACT_UP_TO texts: a pair can be missed
                     "near_duplicates_across_holdout_pairs": [[int(self.index[a]), int(self.index[b]), sim] for a, b, sim in across["pairs"]],
                     "notes_for_person": [{"level": "warning" if across["pairs_across_sides"] else "info", "proof": ["DCLAB-R01"],
                                           "title": f"{across['pairs_across_sides']} near copies straddle the holdout line",
                                           "text": "A text pasted again by another source lets a model recognise rather than predict: the holdout "
                                                   "score may be helped by them." if across["pairs_across_sides"] else "No text is a near copy across the line."}]}
+        searched = ("every pair compared" if across["method"] == "exact" else
+                    f"pairs found by hashing, each found with probability {across.get('recall_at_threshold')} at the threshold: a lower count")
         claims = [claim(f"{eid}-C1", "fact", f"The model reads {self.text} only; {across['pairs_across_sides']} near copies (cosine at least "
-                        f"{threshold}) straddle the holdout line.", ["evidence.near_duplicates_across_holdout", "evidence.kept_out"])]
+                        f"{threshold}) straddle the holdout line ({searched}).", ["evidence.near_duplicates_across_holdout", "evidence.kept_out"])]
         return evidence, claims, f"{across['pairs_across_sides']} near copies across the holdout line", None
 
     def features(self, eid: str, previous: dict) -> tuple:
@@ -312,6 +360,7 @@ class EmbeddedMachine(Machine):
         evidence = {"selected_model": best, "ranking": ranking, "selection_rule": picked["chosen_by"], "grouped_folds": picked["grouped_folds"],
                     "random_folds": picked["random_folds"], "near_duplicates_across_folds": picked["near_duplicates_across_folds"],
                     "near_duplicates_across_random_folds": picked["near_duplicates_across_random_folds"], "metric": picked["metric"],
+                    "near_duplicates_method": picked["near_duplicates_method"], "near_duplicates_recall": picked["near_duplicates_recall"],
                     "notes_for_person": [{"title": f"C={best} chosen on folds by {self.source}", "proof": ["DCLAB-R13"],
                                           "text": f"Folds by {self.source}: {picked['grouped_folds']}; random folds: {picked['random_folds']} "
                                                   f"({picked['near_duplicates_across_random_folds']} near copies across random folds, "
@@ -329,9 +378,10 @@ class EmbeddedMachine(Machine):
             raise ValueError("The held-out sources changed since the data stage: rerun it")
         chosen = self.chosen(previous.get("models"))
         y = self.y()
-        unknown = sorted({str(v) for v in self.rows.loc[self.test & (y == -1), self.target]})
+        unknown = sorted({str(v) for v in self.rows.loc[self.test & self._unseen(y), self.target]})
         if unknown:
-            raise ValueError(f"The held-out rows hold labels the training rows never had: {', '.join(unknown[:5])}")
+            raise ValueError(f"The held-out rows hold values that are not numbers: {', '.join(unknown[:5])}" if self.task == "regression" else
+                             f"The held-out rows hold labels the training rows never had: {', '.join(unknown[:5])}")
         scored = embeddings.score(self.X(), y, self.rows[self.source], self.parts, chosen, task=self.task)
         cv = next((r["mean"] for r in ((previous.get("models") or {}).get("evidence") or {}).get("ranking", []) if r["model"] == chosen), None)
         across = ((previous.get("leakage") or {}).get("evidence") or {}).get("near_duplicates_across_holdout") or 0
@@ -342,7 +392,7 @@ class EmbeddedMachine(Machine):
                     "fitted_rows": scored["fitted_rows"], "train_rows": scored["train_rows"], "holdout_rows": scored["holdout_rows"],
                     "sources_on_both_sides": scored["sources_on_both_sides"], "holdout_row_positions": [int(i) for i in self.index[self.test]],
                     "why_no_score": scored["why_no_score"],
-                    "holdout_split": self.holdout_description(), "baselines": {}, "selection_rule": "the regularisation chosen on folds by source, read once here",
+                    "holdout_split": self.holdout_description(), "baselines": self.baseline(y), "selection_rule": "the regularisation chosen on folds by source, read once here",
                     "notes_for_person": [{"title": (f"Holdout {metric} {scored['holdout']} on unseen {self.source}s" if scored["holdout"] is not None
                                                     else f"No holdout {metric}: {scored['why_no_score']}"), "proof": ["DCLAB-R17"],
                                           "text": f"Folds by {self.source} gave {cv}. "
@@ -350,7 +400,7 @@ class EmbeddedMachine(Machine):
         said = (f"On {self.parts['holdout_sources']} held-out {self.source}s the model scores {metric} {scored['holdout']}." if scored["holdout"] is not None
                 else f"On {self.parts['holdout_sources']} held-out {self.source}s no {metric} can be read: {scored['why_no_score']}.")
         claims = [claim(f"{eid}-C1", "fact", said, ["evidence.holdout_metrics"], ["A baseline encoder, not a pretrained one.",
-                                                                                  "Two classes only, and the scale is bounded (every pair of texts is compared for near copies).",
+                                                                                  f"Against no text read: {self.baseline(y)}.",
                                                        *([f"{across} near copies straddle the holdout line."] if across else []),
                                                        "Not approved for production from this evidence alone."])]
         return evidence, claims, f"C={chosen}: holdout {metric} {scored['holdout']}", {

@@ -90,6 +90,30 @@ class FraudHomeTest(unittest.TestCase):
         self.assertIn("recall_at_budget", final["holdout_metrics"])
         self.assertIn("lower bound", final["precision_note"])
 
+    def test_a_budget_never_said_is_assumed_and_said(self):
+        """20.10 v2: when the questions ran out before the budget, recall is still read at a budget: the kind's, logged."""
+        store, agent, draft_id = self.draft_with_both_files()
+        self.answer_all(store, agent, draft_id)
+        draft = store.get(draft_id)
+        draft["understanding"] = {**(draft.get("understanding") or {}), "budget": ""}  # as if the budget was never reached
+        store.save(draft)
+        projects = ProjectStore(Path(tempfile.mkdtemp()))
+        project = build_project(store, projects, draft_id)
+        self.assertEqual(project["suggestion"]["alert_budget"], 0.005)
+        self.assertTrue(any(e.get("kind") == "budget_assumed" for e in projects.activity(project["id"])))
+        self.assertEqual(project["assumed"], {"alert_budget": 0.005})
+
+    def test_a_budget_said_in_words_the_rules_cannot_read_is_never_assumed_over(self):
+        store, agent, draft_id = self.draft_with_both_files()
+        self.answer_all(store, agent, draft_id)
+        draft = store.get(draft_id)
+        draft["understanding"] = {**(draft.get("understanding") or {}), "budget": "our two analysts check some each morning"}
+        store.save(draft)
+        projects = ProjectStore(Path(tempfile.mkdtemp()))
+        project = build_project(store, projects, draft_id)
+        self.assertNotIn("alert_budget", project["suggestion"])
+        self.assertTrue(any(e.get("kind") == "budget_unread" for e in projects.activity(project["id"])))
+
     def test_a_model_may_ask_and_record_the_packs_fields(self):
         from tests.test_draft_flow import ScriptedClient
 

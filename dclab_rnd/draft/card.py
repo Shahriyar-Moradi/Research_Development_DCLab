@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from dclab_core.card import FAMILIES, LABEL_WORDS, ProblemCard, problem_card
+from dclab_core.card import FAMILIES, ProblemCard, label_said, problem_card, refine_family
 from dclab_core.contracts import CoverageFact, LabelSourceFact, TaskFact, TextFact
 from dclab_core.understand import understand
 
@@ -38,6 +38,19 @@ def _task_of(column: dict[str, Any] | None) -> str | None:
     if column.get("kind") == "numeric" and unique > 20:
         return "regression"
     return "multiclass" if 2 < unique <= 20 else None
+
+
+INPUTS_NOT = {"identifier", "entity", "time", "constant"}  # never an input; with them, a text column may be alone
+
+
+def _text_only(data_card: dict[str, Any], target: Any) -> bool:
+    """The first table's only inputs are long texts (beside its identifiers, sources, times and the outcome): what is
+    learned is read from the words, through an encoder (20.10 v2). A table with other inputs beside a text is not."""
+    tables = data_card.get("tables") or []
+    if len(tables) != 1:
+        return False
+    inputs = [c for c in tables[0].get("columns") or [] if c.get("name") != target and c.get("purpose") not in INPUTS_NOT]
+    return bool(inputs) and all(c.get("purpose") == "text" for c in inputs)
 
 
 def card_of(draft: dict[str, Any]) -> ProblemCard:
@@ -73,7 +86,7 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
         update["time_column"] = _stated(str(solution["time_column"]))  # 20.4: the time the split follows, checked against the table
     labels = str(u.get("labels") or "")
     if labels:
-        said = next((value for value, pattern in LABEL_WORDS if pattern.search(labels)), None)  # "no" is read first
+        said = label_said(labels)  # "no" is read first, a file said apart from it wins
         if said == "none":
             update["label_source"] = LabelSourceFact(value="none", status="stated", quote=labels[:4000], source="person")
         elif said == "column":
@@ -88,8 +101,11 @@ def card_of(draft: dict[str, Any]) -> ProblemCard:
     has_labels = plans.label_asset(draft) is not None
     named = bool(target and target in columns)
     data = {"label_file": has_labels, "cases_only": bool(cases) and not has_labels and not named,
-            "tables": sum(1 for a in draft.get("assets") or [] if a.get("status") == "ready"), "columns": bool(columns)}
-    stated = KIND_FAMILY.get(str(solution.get("kind") or "")) or (u.get("family") if u.get("family") in FAMILIES else None)  # 20.2: said in an answer
+            "tables": sum(1 for a in draft.get("assets") or [] if a.get("status") == "ready" and a.get("kind") != "labels"), "columns": bool(columns),
+            "text_only": _text_only(draft.get("data_card") or {}, target)}
+    said = (refine_family(u.get("family"), words, u.get("family_shape_only") == "yes")  # 20.2: said in an answer; 20.10 v2: a shape only
+            if u.get("family") in FAMILIES else None)
+    stated = KIND_FAMILY.get(str(solution.get("kind") or "")) or said
     return problem_card(brief, words=words, data=data, family=stated)
 
 

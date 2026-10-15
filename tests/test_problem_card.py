@@ -242,6 +242,104 @@ class HomeTest(unittest.TestCase):
         self.assertIn("Nothing is labelled", asked.get("options") or [])
 
 
+@unittest.skipIf(MISSING, MISSING)
+class PeoplesOwnWordsTest(unittest.TestCase):
+    """20.10 v2: the families said without their technical names, by the person's words, by the shape of an answer, and
+    by what the data holds; and the words that must not move a family."""
+
+    def test_less_common_families_said_in_plain_words(self):
+        from dclab_core.card import WORDS
+
+        said = {
+            "uplift": "Which members would only renew because of the voucher, rather than the ones who renew regardless?",
+            "time_to_event": "Estimate the likely tenure of each new tenant, many leases have not ended yet",
+            "ranking": "Personalise the homepage carousel: the articles each reader is most likely to read",
+            "streams": "We track vibration on every pump and want an early warning",
+            "entity_tables": "Will each account make no purchases in the next 14 days? We have their transaction history and their support tickets",
+            "text_or_images": "Something that reads the report itself and tells the severity",
+        }
+        for family, text in said.items():
+            self.assertIn(family, [f for f, p in WORDS.items() if p.search(text)], text)
+        for text in ("Forecast weekly sales per store; promotions are planned weeks before",
+                     "Predict churn from the churned column"):
+            self.assertNotIn("time_to_event", [f for f, p in WORDS.items() if p.search(text)], text)
+
+    def test_censored_lifetimes_win_over_a_plan(self):
+        c = card("For the budget plan, the expected lifetime of each subscriber, most have not cancelled yet")
+        self.assertEqual(c.family.value, "time_to_event")
+
+    def test_an_answer_that_only_gives_the_shape_keeps_the_family_the_words_name(self):
+        from dclab_core.card import refine_family
+
+        self.assertEqual(refine_family("classification", "triage new tickets with a model that reads the ticket itself"), "text_or_images")
+        self.assertEqual(refine_family("regression", "how long until they cancel, many still have not cancelled yet"), "time_to_event")
+        self.assertEqual(refine_family("classification", "predict churn from the churned column"), "classification")
+        self.assertEqual(refine_family("anomaly", "reads the note itself"), "anomaly")  # only a shape is refined
+
+    def test_a_negated_history_of_cases_is_nothing_labelled(self):
+        for text in ("We have no record of confirmed fraud so far", "We have never confirmed any case"):
+            self.assertEqual(next(v for v, p in LABEL_WORDS if p.search(text)), "none", text)
+        self.assertEqual(next(v for v, p in LABEL_WORDS if p.search("We have a file of confirmed frauds")), "file")
+        c = card("No history of confirmed fraud yet; a daily shortlist of the most unusual rides")
+        self.assertEqual(c.family.value, "anomaly")
+
+    def test_what_the_data_holds_names_the_family(self):
+        c = card("Which customers will stop ordering?", data={"tables": 3, "columns": True}, target_definition="no order in the following month")
+        self.assertEqual((c.family.value, c.family.source), ("entity_tables", "data"))
+        c = card("Which pumps fail? We read their sensors", data={"tables": 2, "columns": True}, target_definition="a failure within a day")
+        self.assertNotEqual(c.family.value, "entity_tables")
+        c = card("Which tickets are urgent?", data={"columns": True, "text_only": True})
+        self.assertEqual((c.family.value, c.family.source), ("text_or_images", "data"))
+
+    def test_what_must_not_move_a_family(self):
+        """The review's cases (20.10 v2): words in passing never override a family or an outcome column."""
+        from dclab_core.card import WORDS, label_said, refine_family
+
+        def hits(text):
+            return [f for f, p in WORDS.items() if p.search(text)]
+
+        for text in ("Predict which customers will churn next month. Customers who haven't cancelled yet are still active.",
+                     "Forecast demand for each store next week; censored sales when stock ran out",
+                     "Predict the expected lifetime value of each customer", "Predict how long the delivery lasts, in minutes"):
+            self.assertNotIn("time_to_event", hits(text), text)
+        self.assertNotIn("streams", hits("An early-warning score for students at risk of failing"))
+        self.assertNotIn("streams", hits("Predict the house price; we log the temperature of each room"))
+        self.assertIn("streams", hits("We log the vibration of every pump and want an early warning"))
+        self.assertNotIn("uplift", hits("Delivery times, when the zones change their mind about routing"))
+        # a stated regression or classification is kept; only an answer that gave a shape alone is refined
+        self.assertEqual(refine_family("regression", "how long each delivery lasts, in minutes", shape_only=False), "regression")
+        self.assertEqual(refine_family("regression", "Predict the expected lifetime value of each customer"), "regression")
+        self.assertEqual(refine_family("classification", "we track the current balance"), "classification")
+        # a file of known cases said apart from a "no ... of" is a file
+        self.assertEqual(label_said("We have no record of past chargebacks, but a file of known frauds exists"), "file")
+        self.assertEqual(label_said("no history of confirmed fraud yet"), "none")
+        # several tables never override a stated family; a label file is not a related table
+        c = problem_card(understand("Flag risky orders before dispatch"), words="Flag risky orders before dispatch",
+                         data={"tables": 2, "label_file": True, "columns": True}, family="classification")
+        self.assertEqual(c.family.value, "classification")
+        # a lifetime said beside a named yes or no column is asked, never inferred
+        brief = understand("Which customers stay? the expected tenure, many have not cancelled yet", {"t.csv": ["churned", "tenure"]})
+        brief = brief.model_copy(update={"target_column": TextFact(value="churned", status="stated", quote="churned", source="person"),
+                                         "task": brief.task.model_copy(update={"value": "binary", "status": "inferred", "reason": "two values"})})
+        c = problem_card(brief, words="Which customers stay? the expected tenure, many have not cancelled yet")
+        self.assertIsNone(c.family.value)
+        self.assertIn("time_to_event", c.in_play)
+
+    def test_a_shape_only_answer_is_marked_and_a_named_family_is_not(self):
+        from dclab_core.conversation import read_answer
+
+        self.assertEqual(read_answer("family", "a yes or no for each note").get("family_shape_only"), "yes")
+        self.assertIsNone(read_answer("family", "a classification, yes or no").get("family_shape_only"))
+
+    def test_a_text_only_table_is_read_from_its_data_card(self):
+        from dclab_rnd.draft.card import _text_only
+
+        cols = lambda *p: {"tables": [{"name": "t", "columns": [{"name": n, "purpose": q} for n, q in p]}]}
+        self.assertTrue(_text_only(cols(("id", "identifier"), ("author", "entity"), ("body", "text"), ("urgent", "target_candidate")), "urgent"))
+        self.assertFalse(_text_only(cols(("body", "text"), ("price", "feature"), ("urgent", "target_candidate")), "urgent"))
+        self.assertFalse(_text_only(cols(("id", "identifier"), ("urgent", "target_candidate")), "urgent"))
+
+
 if __name__ == "__main__":
     unittest.main()
 

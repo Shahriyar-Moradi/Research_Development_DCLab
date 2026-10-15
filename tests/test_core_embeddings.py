@@ -164,5 +164,47 @@ class KindTest(unittest.TestCase):
                      kind_fields={"source_column": "scene"})
 
 
+class NearCopiesAtScaleTest(unittest.TestCase):
+    """16.15 C's open half: near copies found without comparing every pair once a table is large, memory bounded."""
+
+    def test_hashing_finds_only_real_pairs_and_most_of_them_and_says_so(self):
+        from unittest import mock
+
+        nt = shapes_and_notes.notes(0)
+        X, _ = embeddings.encode(nt.items, embeddings.HashingText())
+        sides = np.arange(len(X))  # every item its own side: every near pair counts
+        exact = embeddings.near_duplicates(X, sides, threshold=0.93, method="exact")
+        hashed = embeddings.near_duplicates(X, sides, threshold=0.93, method="hashed")
+        found, truth = {tuple(p[:2]) for p in hashed["pairs"]}, {tuple(p[:2]) for p in exact["pairs"]}
+        self.assertTrue(found <= truth)  # never a pair below the threshold
+        self.assertGreaterEqual(len(found), 0.8 * len(truth))
+        self.assertEqual((exact["method"], hashed["method"]), ("exact", "hashed"))
+        self.assertGreater(hashed["recall_at_threshold"], 0.9)
+        self.assertLess(hashed["candidates_compared"], len(X) * (len(X) - 1) / 2 / 5)  # far fewer than every pair
+        with mock.patch.object(embeddings, "EXACT_UP_TO", 50):
+            self.assertEqual(embeddings.near_duplicates(X, sides, threshold=0.93)["method"], "hashed")  # auto, past the bound
+
+    def test_a_crowded_bucket_is_compared_exactly_and_counted_once(self):
+        from unittest import mock
+
+        rng = np.random.default_rng(1)
+        X = np.vstack([np.tile(rng.standard_normal(16), (40, 1)), rng.standard_normal((60, 16))])  # 40 identical items: one bucket
+        sides = np.arange(100) % 3
+        exact = embeddings.near_duplicates(X, sides, threshold=0.99, method="exact")
+        with mock.patch.object(embeddings, "BIG_BUCKET", 10):
+            hashed = embeddings.near_duplicates(X, sides, threshold=0.99, method="hashed")
+        self.assertGreater(hashed["compared_exactly"], 0)
+        self.assertEqual(hashed["pairs_across_sides"], exact["pairs_across_sides"])  # every pair once: none lost, none twice
+
+    def test_exact_blocks_hold_a_bounded_number_of_similarities(self):
+        from unittest import mock
+
+        X = np.random.default_rng(0).standard_normal((300, 8))
+        whole = embeddings.near_duplicates(X, np.arange(300) % 2, threshold=0.9, method="exact")
+        with mock.patch.object(embeddings, "BLOCK_CELLS", 900):  # three rows at a time
+            blocked = embeddings.near_duplicates(X, np.arange(300) % 2, threshold=0.9, method="exact")
+        self.assertEqual(whole["pairs_across_sides"], blocked["pairs_across_sides"])
+
+
 if __name__ == "__main__":
     unittest.main()

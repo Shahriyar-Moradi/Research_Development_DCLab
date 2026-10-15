@@ -402,6 +402,7 @@ class HomeAgent:
         read = read_answer(self.CARD_FIELDS.get(field, field), value, columns or None)
         if read.get("family"):
             self.record(draft_id, "family", read["family"])
+            self.record(draft_id, "family_shape_only", read.get("family_shape_only") or "no")  # 20.10 v2: a shape alone may be refined
         named = read.get("target_column")
         if field in ("target", "outcome") and named and value.strip() not in columns and \
                 re.match(rf"\s*(the\s+)?(column\s+)?{re.escape(named)}\b", value, re.I):

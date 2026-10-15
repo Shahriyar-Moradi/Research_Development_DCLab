@@ -151,5 +151,16 @@ class KindTest(unittest.TestCase):
         row = {r["kind"]: r for r in acceptance.matrix([passing])}["forecasting"]
         self.assertEqual(row["status"], "supported")
 
+class KnownAheadInWordsTest(unittest.TestCase):
+    def test_set_weeks_before_is_known_ahead_and_measured_on_the_day_is_not(self):
+        from dclab_rnd.kinds.forecasting import known_from_moment
+
+        said = known_from_moment(["on_promotion", "rain_mm"], "Promotions are set weeks before. The rain is measured on the day")
+        self.assertEqual(list(said), ["on_promotion"])
+        for moment in ("We know what footfall each store had yesterday",
+                       "Each forecast is made two weeks before the day from the temperature and footfall so far"):
+            self.assertEqual(known_from_moment(["footfall", "temperature", "store"], moment), {}, moment)  # measured, never known ahead
+
+
 if __name__ == "__main__":
     unittest.main()

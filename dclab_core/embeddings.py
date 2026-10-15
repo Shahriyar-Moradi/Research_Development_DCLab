@@ -127,13 +127,37 @@ def _unit(X: np.ndarray) -> np.ndarray:
     return X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-12)
 
 
-def near_duplicates(X: np.ndarray, folds: Sequence[Any], *, threshold: float = THRESHOLD, block: int = 2000) -> dict[str, Any]:
+EXACT_UP_TO = 20_000  # items compared pair by pair; above, candidate pairs come from random-hyperplane hashing
+BLOCK_CELLS = 40_000_000  # similarities held at once (160 MB of float32), whatever the number of items
+LSH_BITS, LSH_TABLES = 16, 24  # bits per signature and signatures per item (``hashed_recall``: 0.9999 at cosine 0.98, 0.87 at 0.9)
+
+
+def hashed_recall(threshold: float, bits: int = LSH_BITS, tables: int = LSH_TABLES) -> float:
+    """The probability that a pair exactly at ``threshold`` shares a signature in at least one table (a pair above it
+    is found more often): one bit agrees with probability 1 - angle / pi."""
+    agree = 1.0 - float(np.arccos(np.clip(threshold, -1.0, 1.0))) / np.pi
+    return 1.0 - (1.0 - agree ** bits) ** tables
+
+
+def near_duplicates(X: np.ndarray, folds: Sequence[Any], *, threshold: float = THRESHOLD, block: Optional[int] = None,
+                    method: str = "auto", seed: int = 0) -> dict[str, Any]:
     """Pairs of items on different sides (different fold labels) whose vectors' cosine similarity is at least
-    ``threshold``: counted, and listed (row positions and similarity, at most ``MAX_PAIRS``)."""
+    ``threshold``: counted, and listed (row positions and similarity, at most ``MAX_PAIRS``).
+
+    ``exact`` compares every pair, in blocks that hold at most ``BLOCK_CELLS`` similarities; ``hashed`` (``auto`` above
+    ``EXACT_UP_TO`` items) compares only the pairs that share a random-hyperplane signature in one of ``LSH_TABLES``
+    tables, then their exact cosine: every pair it counts is a real one, and a pair near the threshold can be missed
+    (the result says which method ran)."""
     U = _unit(np.asarray(X, dtype=np.float32))
     f = np.asarray(folds)
+    n = len(U)
+    if method == "auto":
+        method = "exact" if n <= EXACT_UP_TO else "hashed"
+    if method == "hashed":
+        return _hashed_pairs(U, f, threshold, seed)
+    block = block or max(1, min(n, BLOCK_CELLS // max(n, 1)))
     pairs, examples = 0, []
-    for lo in range(0, len(U), block):
+    for lo in range(0, n, block):
         sim = U[lo:lo + block] @ U.T
         a, b = np.nonzero(sim >= threshold)
         a = a + lo
@@ -141,7 +165,49 @@ def near_duplicates(X: np.ndarray, folds: Sequence[Any], *, threshold: float = T
         pairs += int(keep.sum())
         if len(examples) < MAX_PAIRS:
             examples += [(int(i), int(j), _r(sim[i - lo, j], 4)) for i, j in zip(a[keep][:MAX_PAIRS], b[keep][:MAX_PAIRS])]
-    return {"threshold": threshold, "pairs_across_sides": pairs, "pairs": examples[:MAX_PAIRS]}
+    return {"threshold": threshold, "pairs_across_sides": pairs, "pairs": examples[:MAX_PAIRS], "method": "exact"}
+
+
+BIG_BUCKET = 500  # a bucket this large (copies, boilerplate, empty texts) is compared exactly, in blocks, not pair by pair in Python
+
+
+def _hashed_pairs(U: np.ndarray, f: np.ndarray, threshold: float, seed: int) -> dict[str, Any]:
+    rng = np.random.default_rng(seed)
+    weights = 1 << np.arange(LSH_BITS, dtype=np.int64)
+    candidates: set[tuple[int, int]] = set()
+    crowded = np.zeros(len(U), dtype=bool)  # items of a bucket too large to list: all their pairs are compared exactly below
+    for _ in range(LSH_TABLES):
+        planes = rng.standard_normal((U.shape[1], LSH_BITS)).astype(np.float32)
+        codes = ((U @ planes) > 0).astype(np.int64) @ weights
+        order = np.argsort(codes, kind="stable")
+        sorted_codes = codes[order]
+        cuts = np.flatnonzero(np.diff(sorted_codes)) + 1
+        for bucket in np.split(order, cuts):
+            if len(bucket) < 2:
+                continue
+            if len(bucket) > BIG_BUCKET:
+                crowded[bucket] = True
+                continue
+            bucket = np.sort(bucket)
+            sides = f[bucket]
+            for k, i in enumerate(bucket[:-1]):
+                others = bucket[k + 1:][sides[k + 1:] != sides[k]]
+                candidates.update((int(i), int(j)) for j in others if not (crowded[i] and crowded[j]))
+    pairs, examples = 0, []
+    if crowded.any():  # every pair inside the crowded items, exactly, counted and never listed twice
+        inside = np.flatnonzero(crowded)
+        exact = near_duplicates(U[inside], f[inside], threshold=threshold, method="exact")
+        pairs += exact["pairs_across_sides"]
+        examples += [(int(inside[a]), int(inside[b]), sim) for a, b, sim in exact["pairs"]]
+        candidates = {(i, j) for i, j in candidates if not (crowded[i] and crowded[j])}
+    for i, j in sorted(candidates):
+        sim = float(U[i] @ U[j])
+        if sim >= threshold:
+            pairs += 1
+            if len(examples) < MAX_PAIRS:
+                examples.append((i, j, _r(sim, 4)))
+    return {"threshold": threshold, "pairs_across_sides": pairs, "pairs": examples[:MAX_PAIRS], "method": "hashed",
+            "candidates_compared": len(candidates), "compared_exactly": int(crowded.sum()), "recall_at_threshold": _r(hashed_recall(threshold), 4)}
 
 
 def perturb_image(item: Any, rng: np.random.Generator) -> np.ndarray:
@@ -313,7 +379,8 @@ def choose(X: np.ndarray, y: Sequence[Any], sources: Sequence[Any], *, task: str
         positive = len(set(groups[y == 1]))
         if positive < folds or len(set(groups[y == 0])) < folds:
             raise ValueError(f"{positive} sources with a positive row: too few for {folds} folds grouped by source that each hold both classes")
-    splitter = StratifiedGroupKFold(folds, shuffle=True, random_state=seed) if task == "binary" else GroupKFold(folds)
+    # classes are spread over the folds, sources kept whole, for a class task; a number's folds are by source only
+    splitter = StratifiedGroupKFold(folds, shuffle=True, random_state=seed) if task != "regression" else GroupKFold(folds)
     cuts = list(splitter.split(X, y, groups))
     scores = {c: cross_val_score(_model(task, c), X, y, cv=cuts, scoring=scoring) for c in CANDIDATE_C}
     if any(not np.isfinite(v).all() for v in scores.values()):
@@ -328,8 +395,9 @@ def choose(X: np.ndarray, y: Sequence[Any], sources: Sequence[Any], *, task: str
     return {"metric": scoring, "by_c": {str(c): {"mean": _r(scores[c].mean()), "std": _r(scores[c].std())} for c in CANDIDATE_C},
             "chosen": str(best), "chosen_by": f"the best mean {scoring} over folds grouped by source, stratified by class (a tie to the stronger regularisation)",
             "grouped_folds": _r(scores[best].mean()), "random_folds": _r(shuffled.mean()),
-            "near_duplicates_across_folds": near_duplicates(X, fold_of, threshold=threshold)["pairs_across_sides"],
-            "near_duplicates_across_random_folds": near_duplicates(X, random_fold, threshold=threshold)["pairs_across_sides"]}
+            "near_duplicates_across_folds": (by_fold := near_duplicates(X, fold_of, threshold=threshold))["pairs_across_sides"],
+            "near_duplicates_across_random_folds": near_duplicates(X, random_fold, threshold=threshold)["pairs_across_sides"],
+            "near_duplicates_method": by_fold["method"], "near_duplicates_recall": by_fold.get("recall_at_threshold")}
 
 
 def score(X: np.ndarray, y: Sequence[Any], sources: Sequence[Any], parts: dict[str, Any], chosen: str, *, task: str = "binary") -> dict[str, Any]:

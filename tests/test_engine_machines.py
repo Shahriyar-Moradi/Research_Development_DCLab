@@ -188,6 +188,27 @@ class TheHoldoutReachesOnlyTheFinalTest(unittest.TestCase):
 
 
 @unittest.skipIf(MISSING, MISSING)
+class TheClassBalanceIsReadFromTrainingRowsTest(unittest.TestCase):
+    def test_the_holdouts_labels_never_pick_the_metric(self):
+        """With no metric chosen, the default metric and the rare-event screen follow the class balance: it is read
+        from the training rows, so labels on the holdout's rows (the latest by time) change neither."""
+        case = kinds.get("binary").case(0)
+
+        def prepared(table):
+            store, pid = built("binary", dataclasses.replace(case, table=table))
+            return engine.prepare(store, store.get(pid)).bundle
+
+        first = prepared(case.table)
+        latest = case.table["signup_time"].rank(method="first") > len(case.table) - len(first.test_idx)
+        table = case.table.copy()
+        table.loc[latest, "churned"] = "yes"  # every held-out subscriber churned: 18% positive overall would become 34%
+        second = prepared(table)
+        self.assertEqual(first.spec.positive_rate, second.spec.positive_rate)
+        self.assertEqual(first.spec.positive_rate, float(first.y_train.mean()))
+        self.assertEqual(first.spec.primary_metric, second.spec.primary_metric)
+
+
+@unittest.skipIf(MISSING, MISSING)
 class SolutionTest(unittest.TestCase):
     def test_a_machine_kinds_solution_says_what_its_machine_needs(self):
         from dclab_rnd.studio.solution import Solution

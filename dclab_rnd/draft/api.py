@@ -834,6 +834,19 @@ def build_project(drafts: DraftStore, projects, draft_id: str) -> dict[str, Any]
         budget = _budget_share(u.get("budget"), projects, project)
         if budget:
             suggestion["alert_budget"] = budget
+        elif u.get("budget"):  # said, but not in a form read as a share ("our two analysts check some each morning"): never assumed over it
+            projects.log(pid, "budget_unread", {"answer": str(u["budget"])[:200],
+                                                "why": "the review budget said could not be read as a share of rows: set it on the Solution page"})
+        elif not suggestion.get("alert_budget"):
+            from .. import kinds as problem_kinds
+
+            pack_key = (draft.get("pack") or {}).get("key")
+            assumed = next((k.default_alert_budget for k in problem_kinds.all_kinds() if pack_key in k.packs and k.default_alert_budget), None)
+            if assumed:  # 20.10 v2: no budget said (the questions ran out first): an assumed one, said and changeable on the Solution page
+                suggestion["alert_budget"] = assumed
+                project["assumed"] = {**(project.get("assumed") or {}), "alert_budget": assumed}  # kept beside the suggestion: what DCLab assumed, not what was said
+                projects.log(pid, "budget_assumed", {"alert_budget": assumed,
+                                                     "why": "no review budget was said; recall is read at this share of rows until one is set"})
         target = u.get("target")
         if target and target in project["data"]["columns"]:
             suggestion["target"] = target
