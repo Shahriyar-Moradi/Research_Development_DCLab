@@ -253,6 +253,7 @@
     evidenceLibrary: ["GET", "/evidence", [], []],
     evidenceAsk: ["POST", "/evidence/ask", [], []],
     evidenceRecord: ["GET", "/evidence/{record_id}", ["record_id"], []],
+    experienceErrors: ["GET", "/experience/errors", [], ["days"]],
     experienceSearch: ["GET", "/experience/search", [], ["person", "project", "draft", "kind", "text", "code", "since", "until", "limit"]],
     experienceSessions: ["GET", "/experience/sessions", [], ["limit"]],
     deleteSession: ["DELETE", "/experience/sessions/{visit}", ["visit"], []],
@@ -602,6 +603,12 @@
   client.evidenceRecord = (...args) => call('evidenceRecord', args);
   client.path.evidenceRecord = (...args) => build('evidenceRecord', args).path;
   client.href.evidenceRecord = (...args) => '/api' + build('evidenceRecord', args).path;
+  /** GET /api/experience/errors: Experience Errors
+   *  @param {{query?: {days?: *}, headers?: Object}} [opts]
+   *  @returns {Promise<Page>} */
+  client.experienceErrors = (...args) => call('experienceErrors', args);
+  client.path.experienceErrors = (...args) => build('experienceErrors', args).path;
+  client.href.experienceErrors = (...args) => '/api' + build('experienceErrors', args).path;
   /** GET /api/experience/search: Experience Search
    *  @param {{query?: {person?: *, project?: *, draft?: *, kind?: *, text?: *, code?: *, since?: *, until?: *, limit?: *}, headers?: Object}} [opts]
    *  @returns {Promise<Page>} */

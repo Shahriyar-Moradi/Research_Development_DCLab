@@ -2052,6 +2052,11 @@ df["job_rate"] = df.groupby("job")["target"].transform("mean")</pre>
       <div class="stat"><span class="v">—</span><span class="l">flagged</span></div>
       <div class="stat"><span class="v">—</span><span class="l">model spend</span></div>
     </div>
+    <div class="panel" data-f="admin.errors">
+      <div class="panel-head"><div class="panel-title"><h2>Errors, last 30 days</h2><span class="sub">Grouped by fingerprint: the same failure is one row, however many times it happened. Find a request id in the sessions search below.</span></div></div>
+      <div class="table-wrap"><table class="data compact"><thead><tr><th>Group</th><th>Times</th><th>Code</th><th>Where</th><th>Frame</th><th>Last</th><th>Requests</th></tr></thead><tbody id="err-body">
+      </tbody></table></div>
+    </div>
     <div class="panel" data-f="admin.sessions">
       <div class="panel-head"><div class="panel-title"><h2>Sessions</h2><span class="sub" id="sess-sub">Every visit on the record: who, when, the problem, how it ended. Only the owner reads it.</span></div></div>
       <form class="row panel-body" id="sess-find" data-style="flex-wrap:wrap;gap:8px">

@@ -319,8 +319,22 @@ class Services:
             return []
 
 
+def limit_hit(over: Any, *, log: Any = None, user: str | None = None) -> None:
+    """23.4: a limit passed is an error group of its own in the record (``where`` ``limit:<kind>``, status 429), under the
+    request's ids; the middleware passes the workspace's log and the person, since its context is not bound yet."""
+    from dclab_core import errors as fingerprints
+
+    from .. import experience
+
+    kind = str(getattr(over, "kind", None) or "requests")
+    experience.record("error.raised", "system", {"where": f"limit:{kind}", "code": "LimitExceeded", "status": "429",
+                                                 **fingerprints.fingerprint("LimitExceeded", [("dclab_rnd.limits", kind)])},
+                      log=log, **({"user": user} if user else {}))
+
+
 def over_limit(over: Any) -> HTTPException:
-    """A limit passed (package 10.6): 429, with what, whose, and when it resets."""
+    """A limit passed (package 10.6): 429, with what, whose, and when it resets; recorded (23.4)."""
+    limit_hit(over)
     return HTTPException(429, over.body, headers={"Retry-After": str(over.body["retry_after"])})
 
 

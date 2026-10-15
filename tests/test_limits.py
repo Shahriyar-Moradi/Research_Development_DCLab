@@ -84,6 +84,8 @@ class LimitsTests(unittest.TestCase):
         self.assertNotEqual(first.status_code, 429, first.text[:200])
         second = cat.put(f"/api/projects/{pid}/data?filename=two.csv", content=chunk)
         self.assertEqual((second.status_code, second.json()["detail"]["limit"]), (429, "upload_bytes"))
+        hit = [e for e in self.app.state.services.experience.read(kinds=["error.raised"]) if e.payload.get("where") == "limit:upload_bytes"]
+        self.assertEqual((hit[-1].payload["status"], hit[-1].payload["code"], bool(hit[-1].payload.get("fingerprint"))), ("429", "LimitExceeded", True))  # 23.4
         self.assertFalse((self.app.state.services.projects.data_dir(pid) / "two.csv").exists())  # nothing was stored
         draft = dan.post("/api/drafts", json={"problem": "Predict which customers churn next month"}).json()
         self.assertNotEqual(dan.put(f"/api/drafts/{draft['id']}/data?filename=d.csv", content=chunk).status_code, 429)  # dan's own allowance

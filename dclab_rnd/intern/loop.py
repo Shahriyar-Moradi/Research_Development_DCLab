@@ -82,6 +82,7 @@ class Intern:
         session["used"]["minutes_before"] = session["used"]["minutes"]
         self.sessions.save(session)
         started = time.monotonic()
+        grouped = None
         try:
             if session["mode"] == "llm":
                 self._llm_loop(session, started)
@@ -89,9 +90,12 @@ class Intern:
                 with self._plan_run():  # 21.1: a run like the loop's
                     self._standard_plan(session, started)
         except Exception as exc:  # noqa: BLE001 — the session records the failure
+            from dclab_core import errors as fingerprints
+
             session = self.sessions.get(session_id)
             session["status"] = "failed"
             session["error"] = f"{type(exc).__name__}: {str(exc)[:400]}"
+            grouped = fingerprints.from_exception(exc)  # 23.4: where it broke, read here while the traceback is at hand
         session["used"]["minutes"] = round(session["used"].get("minutes_before", 0.0) + (time.monotonic() - started) / 60, 2)
         from .. import experience  # 19.3: the intern's answer, or how the turn ended, in the session's record
 
@@ -99,8 +103,13 @@ class Intern:
             experience.record("chat.agent", "agent", {"text": str(session["final"])[:4000], "kind": "answer", "surface": "intern"},
                               conversation=session["id"], project=session.get("project_id"))
         elif session.get("error"):
-            experience.record("error.raised", "system", {"where": "intern", "code": str(session["error"]).split(":")[0][:80],
-                                                         "message": str(session["error"])[:2000]}, conversation=session["id"], project=session.get("project_id"))
+            from dclab_core import errors as fingerprints
+
+            if grouped is None:  # the loop ended on a rule, not an exception: the rule's name is the code
+                code = "NoToolCall" if session.get("ended") == "tools_as_text" else str(session["error"]).split(":")[0][:80]
+                grouped = {"code": code, **fingerprints.fingerprint(code, [])}
+            experience.record("error.raised", "system", {"where": "intern", "message": str(session["error"])[:2000], **grouped},
+                              conversation=session["id"], project=session.get("project_id"))
         return self.sessions.save(session)
 
     def message(self, session_id: str, text: str, again: bool = False) -> dict[str, Any]:

@@ -176,7 +176,7 @@ DC.view('admin', {
     if (intern.status === 'fulfilled') this.paintModels(el, intern.value, gw.status === 'fulfilled' ? gw.value : null);
     this.paintStats(el, pol.value, lim.status === 'fulfilled' ? lim.value : null, intern.status === 'fulfilled' ? intern.value : null);
     this.S.offset = 0;
-    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadDecisions(el), this.loadDatasets(el)]);
+    await Promise.all([this.loadRoles(el), this.loadAudit(el), this.loadMembers(el), this.loadTokens(el), this.loadLimits(el), this.loadSessions(el), this.loadErrors(el), this.loadDecisions(el), this.loadDatasets(el)]);
   },
 
   // 19.13: the catalog of the datasets, and the sessions each came from
@@ -283,6 +283,19 @@ DC.view('admin', {
     if (v('#sess-since')) q.since = midnight(v('#sess-since'), 0);
     if (v('#sess-until')) q.until = midnight(v('#sess-until'), 1);  // the last day included
     return q;
+  },
+
+  async loadErrors(el) {
+    const { $, esc } = DC;
+    const body = $('#err-body', el);
+    if (!body) return;
+    DC.states.loading(body, { cols: 7 });
+    let r;
+    try { r = await DC.client.experienceErrors({ query: { days: 30 }, quiet: true }); } catch (e) { DC.states.failed(body, e, { cols: 7, retry: () => this.loadErrors(el) }); return; }
+    if (!r.groups.length) { DC.states.empty(body, 'No error in the last 30 days.', { cols: 7 }); return; }
+    body.innerHTML = r.groups.map(g => `<tr><td class="mono small">${esc(g.fingerprint)}</td><td>${esc(String(g.count))}</td><td>${esc(g.codes.join(', '))}</td>`
+      + `<td>${esc(g.where.join(', '))}</td><td class="mono small">${esc(g.frame || '')}</td><td>${esc((g.last || '').slice(0, 16).replace('T', ' '))}</td>`
+      + `<td class="mono small">${g.requests.map(x => esc(x)).join('<br>')}</td></tr>`).join('');
   },
 
   async loadSessions(el) {

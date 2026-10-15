@@ -63,14 +63,14 @@ class ContractTest(unittest.TestCase):
                 self.assertEqual(x.ExperienceEvent.read(event.model_dump_json()), event)
                 self.assertEqual(set(event.classes.values()), set(fields.values()))
 
-    def test_a_v2_event_reads_as_v4_at_operate_and_a_stamp_is_kept(self):
+    def test_a_v2_event_reads_as_v5_at_operate_and_a_stamp_is_kept(self):
         import json
 
         e = x.make("chat.person", "person", IDS, {"text": "hi", "surface": "home"}, id="ev000001", at=at(0), consent="train")
         self.assertEqual(e.consent, "train")
         doc = json.loads(e.model_dump_json())
         old = {k: v for k, v in doc.items() if k != "consent"} | {"schema_version": "dclab_core.experience_event.v2"}
-        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v4", "operate"))
+        self.assertEqual((x.ExperienceEvent.read(old).schema_version, x.ExperienceEvent.read(old).consent), ("dclab_core.experience_event.v5", "operate"))
         self.assertEqual(x.ExperienceEvent.read(doc).consent, "train")
         with self.assertRaises(Exception):
             x.make("chat.person", "person", IDS, {"text": "hi"}, id="ev000002", at=at(0), consent="whatever")
@@ -285,12 +285,14 @@ class MainProductTest(unittest.TestCase):
         self.assertEqual([e.kind for e in events], ["model.request", "decision.overridden", "decision.overridden", "stage.started", "stage.finished",
                                                     "stage.failed", "stage.failed"])  # folds and candidates are steps inside a stage
         self.assertEqual((events[0].payload["cost"], events[0].payload["currency"], events[0].payload["seconds"]), (0.0021, "USD", 1.25))
+        failed = next(e for e in events if e.kind == "stage.failed" and e.payload.get("code"))
+        self.assertEqual((failed.payload["code"], len(failed.payload["fingerprint"]), failed.payload.get("frame")), ("E_METRIC", 12, None))  # 23.4
         self.assertEqual(x.session_card([e.model_copy(update={"ids": e.ids.model_copy(update={"visit": "v"})}) for e in events]).cost, {"USD": 0.0021})
         self.assertEqual(events[1].payload["reason"], "The split must follow the bikers.")
         self.assertNotIn("reason", events[2].payload)  # an untrusted rationale stays out
         self.assertEqual(events[1].actor, "person")
         self.assertEqual(events[4].payload, {"stage": "train", "seconds": 4.2})
-        self.assertEqual(events[5].payload, {"stage": "evaluate", "code": "E_METRIC"})
+        self.assertEqual({k: v for k, v in events[5].payload.items() if k != "fingerprint"}, {"stage": "evaluate", "code": "E_METRIC"})
         self.assertEqual(events[6].payload["stage"], "terminal")
 
     def test_a_column_the_recorded_commit_did_not_have_fails_loudly(self):

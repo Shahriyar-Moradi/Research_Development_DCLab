@@ -97,7 +97,8 @@ def from_draft_event(draft_id: str, kind: str, data: dict[str, Any] | None) -> N
                                                "source": asset.get("kind")}, **ids)
         elif step == "failed":
             record("error.raised", "system", {"where": "data pipeline", "code": str(data.get("code") or "pipeline_failed")[:80],
-                                              "message": str(data.get("text") or data.get("error") or "")[:2000] or None}, **ids)
+                                              "message": str(data.get("text") or data.get("error") or "")[:2000] or None,
+                                              "fingerprint": data.get("fingerprint"), "frame": data.get("frame")}, **ids)
         elif step == "cleaned":
             log = data.get("log") or []
             record("data.cleaned", "system", {"steps": len(log), "rows_before": (log[0] or {}).get("rows_before") if log else None,
@@ -136,7 +137,8 @@ def from_activity(project_id: str, kind: str, payload: Any) -> None:
         record("stage.finished", "system", {"stage": p.get("stage"), "seconds": p.get("elapsed_seconds"), "metric": p.get("metric"),
                                             "value": p.get("value"), "chosen": p.get("chosen")}, **ids)
     elif kind == "stage_failed":
-        record("stage.failed", "system", {"stage": p.get("stage"), "error": str(p.get("error") or "")[:2000] or None}, **ids)
+        record("stage.failed", "system", {"stage": p.get("stage"), "error": str(p.get("error") or "")[:2000] or None, "code": p.get("code"),
+                                          "fingerprint": p.get("fingerprint"), "frame": p.get("frame")}, **ids)
     elif kind == "stage_approved":
         record("stage.approved", "person", {"stage": p.get("stage"), "choice": p.get("choice")}, **ids)
     elif kind == "labels_attached":

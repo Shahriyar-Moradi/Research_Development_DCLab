@@ -226,7 +226,7 @@ training is the owner's decision (its ADR 0008); `redact` keeps only what a use 
 
 ## Consent at write time (23.1)
 
-Every `ExperienceEvent` (v4 since 23.2; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
+Every `ExperienceEvent` (v5 since 23.4; v3 added the stamp) and `DecisionRecord` (v2) carries `consent`: the level the record was written under,
 `operate` (kept to run the product, for support and audit; never leaves), `improve` or `train`
 (`dclab_core.consent.level_of` on the workspace's and the project's switches). An export keeps a record only when its
 stamp allows the use (`dclab_core.consent.exportable`) and the switches allow it now, so a later opt-in never
@@ -257,6 +257,18 @@ route of its own under the signed-in person's session, which runs `ui_payload` a
 trace id; a signed-out page sends nothing. The adapter does not read them (`KINDS_MISSING`): they are rows that
 route writes. Whether business users' pages are captured is decision D4 of the plan (route and action level, never
 contents, is the proposal).
+
+## Errors with fingerprints (23.4)
+
+`dclab_core.errors.from_exception(exc)` gives a caught exception its `code` (the type), its `frame` (the innermost
+frame inside our own code, `module:function`) and a twelve-character `fingerprint` of the two, so the same failure is
+one group wherever its message differs and nothing of a message, a path or a value enters it; a host passes its own
+package prefixes (`own=("app", ...)`), or the fingerprint rests on the type alone. `error.raised` carries
+`fingerprint`, `frame` and `status`, `stage.failed` carries `fingerprint` and `frame` (all meta). Where it goes there:
+the exception handler of the API and the job runner call `from_exception` where they catch, and write the event under
+the request's and the job's ids; a rate-limit refusal is an `error.raised` with `status` 429 and the limit's kind as
+`where`. The grouping (the last days by fingerprint: count, first and last, the frame, up to three request ids) is a
+query of the host's own event table; `dclab_rnd.experience.finder.errors` is the reference.
 
 ## The problem card (20.1)
 

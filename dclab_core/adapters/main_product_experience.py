@@ -19,6 +19,7 @@ from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from dclab_core import errors
 from dclab_core.adapters.main_product import recorded
 from dclab_core.experience import ExperienceEvent, make
 
@@ -169,7 +170,8 @@ def from_agent_event(row: Mapping[str, Any], run: Mapping[str, Any]) -> Optional
         reasons = payload.get("reasons") or ([payload["reason"]] if payload.get("reason") else [])
         body = {"point": run.get("decision_point_key"), "rule": "validator", "choice": [str(r)[:80] for r in reasons][:20] or None}
     elif kind == "error.raised":
-        body = {"where": run.get("agent_key"), "code": payload.get("error_code") or run.get("error_code")}
+        code = payload.get("error_code") or run.get("error_code")
+        body = {"where": run.get("agent_key"), "code": code, **(errors.fingerprint(str(code), []) if code else {})}  # 23.4: by type alone
     return make(kind, actor, ids, body, id=f"mp-ae-{row['id']}", at=_at(row["created_at"]), seq=int(row["seq"]),
                 source=f"agent_events:{row['type']}")
 
@@ -240,6 +242,8 @@ def from_run_event(row: Mapping[str, Any]) -> Optional[ExperienceEvent]:
         body["seconds"] = round(row["duration_ms"] / 1000, 3)
     if kind == "stage.failed":
         body["code"] = data.get("failure_code") or None
+        if body["code"]:
+            body.update(errors.fingerprint(str(body["code"]), []))  # 23.4: the main product's rows group by their code
     return make(kind, "system", ids, body, id=f"mp-run-{row['id']}", at=_at(row["timestamp"]), seq=int(row["sequence"]),
                 source=f"ml_run_events:{name}"[:120])
 

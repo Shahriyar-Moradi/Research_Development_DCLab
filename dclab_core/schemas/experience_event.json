@@ -136,7 +136,7 @@
     },
     "JsonValue": {}
   },
-  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v4.json",
+  "$id": "https://dclab.dev/schemas/dclab_core.experience_event.v5.json",
   "additionalProperties": false,
   "allOf": [
     {
@@ -4822,6 +4822,86 @@
               "properties": {
                 "payload": {
                   "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
                     "message"
                   ]
                 }
@@ -4852,6 +4932,46 @@
                 "payload": {
                   "required": [
                     "message"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "status"
                   ]
                 }
               }
@@ -4904,8 +5024,17 @@
               "code": {
                 "const": "meta"
               },
+              "fingerprint": {
+                "const": "meta"
+              },
+              "frame": {
+                "const": "meta"
+              },
               "message": {
                 "const": "agent_text"
+              },
+              "status": {
+                "const": "meta"
               },
               "where": {
                 "const": "meta"
@@ -4914,7 +5043,10 @@
             "propertyNames": {
               "enum": [
                 "code",
+                "fingerprint",
+                "frame",
                 "message",
+                "status",
                 "where"
               ]
             }
@@ -4923,7 +5055,10 @@
             "propertyNames": {
               "enum": [
                 "code",
+                "fingerprint",
+                "frame",
                 "message",
+                "status",
                 "where"
               ]
             }
@@ -8081,6 +8216,86 @@
               "properties": {
                 "payload": {
                   "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "fingerprint"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "classes": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "payload": {
+                  "required": [
+                    "frame"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "payload": {
+                  "required": [
                     "stage"
                   ]
                 }
@@ -8126,6 +8341,12 @@
               "error": {
                 "const": "agent_text"
               },
+              "fingerprint": {
+                "const": "meta"
+              },
+              "frame": {
+                "const": "meta"
+              },
               "stage": {
                 "const": "meta"
               }
@@ -8134,6 +8355,8 @@
               "enum": [
                 "code",
                 "error",
+                "fingerprint",
+                "frame",
                 "stage"
               ]
             }
@@ -8143,6 +8366,8 @@
               "enum": [
                 "code",
                 "error",
+                "fingerprint",
+                "frame",
                 "stage"
               ]
             }
@@ -10077,8 +10302,8 @@
       "type": "array"
     },
     "schema_version": {
-      "const": "dclab_core.experience_event.v4",
-      "default": "dclab_core.experience_event.v4",
+      "const": "dclab_core.experience_event.v5",
+      "default": "dclab_core.experience_event.v5",
       "title": "Schema Version",
       "type": "string"
     },

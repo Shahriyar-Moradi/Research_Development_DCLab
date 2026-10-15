@@ -259,6 +259,14 @@ same commit, a reviewer pass, and `make check-commit`; a milestone's end gets `c
   request, the job or run; a 429 from `limits.py` is an event; the Sessions page groups the last 30 days by fingerprint;
   `python -m dclab_rnd.experience errors`.
 - **Done when:** an error in a worker job appears grouped by fingerprint with its request id within a minute.
+- **Status: done (2026-10-15).** dclab-core 0.41.0 (`errors.fingerprint`, `errors.from_exception`; `error.raised` with
+  `fingerprint`, `frame`, `status`, `stage.failed` with `fingerprint`, `frame`; the contract at v5). Written where
+  the failure is caught: the API's exception handler (status 500), a limit hit (status 429, `where` `limit:<kind>`),
+  a failed job (`where` `job:<kind>`, under the job's visit and request, before `job.stopped`), a failed stage (the
+  stage record keeps the fingerprint too), a failed draft pipeline and an intern turn. `finder.errors(log, days)`
+  groups them (count, first and last, codes, where, frame, up to three request ids and jobs, visits hit);
+  `GET /api/experience/errors?days=` (timelines, the owner), `python -m dclab_rnd.experience errors [--days --json]`,
+  and an "Errors, last 30 days" table on the Admin page.
 - **Decision D3** (the owner): the telemetry stack (self-hosted Grafana: Loki, Tempo, Prometheus) is a deployment
   choice in `deploy/`; this repository emits what such a stack reads (23.11).
 

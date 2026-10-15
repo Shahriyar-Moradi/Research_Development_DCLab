@@ -227,7 +227,7 @@ class Worker:
         control = Control(self.store, job, self)
         began = time.monotonic()
         self.running[job["id"]] = control
-        status, error = "done", None
+        status, error, failure = "done", None, None
         try:
             h = HANDLERS.get(job["kind"])
             if h is None:
@@ -244,7 +244,7 @@ class Worker:
         except Stopped as stop:
             control.observed = stop.reason
         except Exception as exc:  # noqa: BLE001 — the job's failure, recorded on the job
-            status, error = "failed", f"{type(exc).__name__}: {str(exc)[:400]}"
+            status, error, failure = "failed", f"{type(exc).__name__}: {str(exc)[:400]}", exc
         if control.observed:
             status, error = ("cancelled" if control.observed == "stopped" else "interrupted"), TEXT[control.observed]
         try:
@@ -256,6 +256,11 @@ class Worker:
             with _acting(self.env, job):  # 19.2: how it ended, with its visit and request
                 from .. import experience
 
+                if failure is not None and status == "failed":  # 23.4: the failure itself, grouped by its fingerprint, under the job's ids
+                    from dclab_core import errors as fingerprints
+
+                    experience.record("error.raised", "system", {"where": f"job:{job['kind']}", "message": str(failure)[:2000] or None,
+                                                                 **fingerprints.from_exception(failure)})
                 experience.record("job.stopped", "system", {"kind": job["kind"], "status": status,
                                                             "by": "person" if control.observed == "stopped" else "system"})
             observe.observe_job(job["kind"], status, time.monotonic() - began)  # 12.4: durations and failures, by kind

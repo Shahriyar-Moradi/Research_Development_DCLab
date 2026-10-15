@@ -170,6 +170,16 @@ def register(app, ctx) -> None:
         """One visit's timeline as it happened; prompts and replies only with model_text=true, a tool's values never."""
         return await asyncio.to_thread(one, ctx, _id("visit", visit), model_text)
 
+    @router.get("/api/experience/errors", response_model=Page)
+    async def experience_errors(days: int = 30):
+        """23.4: the last days' errors grouped by fingerprint, the biggest group first, with up to three request ids each."""
+        from ...experience import finder
+
+        if days < 1 or days > 365:
+            raise HTTPException(422, "days is 1 to 365")
+        log = _log(ctx)
+        return {"days": days, "groups": await asyncio.to_thread(finder.errors, log, days) if log is not None else []}
+
     @router.post("/api/experience/ui", response_model=Page)
     async def experience_ui(body: Any = Body(None)):
         """The browser's own events (23.2): {"events": [{"kind": "ui.page_viewed", "view": "home", ...}, ...]}, at most 50 a

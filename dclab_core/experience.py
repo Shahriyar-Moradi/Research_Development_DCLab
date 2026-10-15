@@ -54,7 +54,8 @@ SECRET = re.compile(
     r"|(?i:\bbearer\s+[A-Za-z0-9._~+/-]{20,})"
     r"|[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@")                # a password in a connection string
 SHAREABLE = frozenset({"meta", "count"})  # what any export may keep
-READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3"})  # read as v4: each a subset (v3 added consent; v4 the ui.* and auth.* kinds)
+READ_AS_CURRENT = frozenset({"dclab_core.experience_event.v1", "dclab_core.experience_event.v2", "dclab_core.experience_event.v3",
+                             "dclab_core.experience_event.v4"})  # read as v5: each a subset (v3 added consent; v4 the ui.* and auth.* kinds; v5 the error fingerprint)
 FINAL_STAGES = frozenset({"final", "terminal"})  # the last stage: this studio's, and the main product's
 
 M, C, P, A, X, V = "meta", "count", "person_text", "agent_text", "model_text", "cell_values"
@@ -101,7 +102,7 @@ KINDS: dict[str, dict[str, str]] = {
     # the engine's stages and the workflow graph
     "stage.started": {"stage": M, "machine": M},
     "stage.finished": {"stage": M, "metric": M, "value": C, "seconds": C, "chosen": M},
-    "stage.failed": {"stage": M, "code": M, "error": A},
+    "stage.failed": {"stage": M, "code": M, "error": A, "fingerprint": M, "frame": M},  # 23.4: grouped by fingerprint
     "stage.approved": {"stage": M, "choice": M, "overrode": M, "reason": P},
     "graph.move": {"move": M, "allowed": M, "from": M, "to": M, "failed_checks": M, "rules": M},
     # agents, their tools and the models behind them
@@ -121,7 +122,7 @@ KINDS: dict[str, dict[str, str]] = {
     "export.made": {"what": M, "format": M},
     "job.started": {"kind": M, "key": M},
     "job.stopped": {"kind": M, "by": M, "status": M},
-    "error.raised": {"where": M, "code": M, "message": A},  # a message may quote a value: agent text, never meta
+    "error.raised": {"where": M, "code": M, "message": A, "fingerprint": M, "frame": M, "status": M},  # a message may quote a value: agent text, never meta; 23.4: the fingerprint groups
     # a run's lineage (v2, package 19.5): the flat parts of a dclab_core.lineage.RunRecord; the record stays with the host
     "run.recorded": {"run": M, "run_kind": M, "name": M, "status": M, "fingerprint": M, "inputs": M, "params": M, "outputs": M, "code": M,
                      "upstream": M, "parent": M, "seconds": C, "numbers": C},
@@ -174,7 +175,7 @@ class ExperienceEvent(Versioned):
 
     model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False, json_schema_extra=_vocabulary)
 
-    schema_version: Literal["dclab_core.experience_event.v4"] = _version("experience_event", 4)
+    schema_version: Literal["dclab_core.experience_event.v5"] = _version("experience_event", 5)
     id: str = Field(pattern=r"^[A-Za-z0-9_.:-]{6,80}$")
     at: str = Field(description="ISO 8601 with microseconds, UTC.")
     seq: int = Field(default=0, ge=0)

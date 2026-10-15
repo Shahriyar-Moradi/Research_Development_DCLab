@@ -21,6 +21,37 @@ from . import REFUSED_KINDS as ALWAYS_REFUSED, ExperienceLog, cards, contract, r
 
 REFUSED_KINDS = (*ALWAYS_REFUSED, "graph.move", "tool.call")
 GROUPS: dict[str, tuple[str, ...]] = {"refused": REFUSED_KINDS, "errors": ("error.raised", "stage.failed")}
+
+
+def errors(log: Any, days: int = 30, limit: int = 20_000) -> list[dict[str, Any]]:
+    """23.4: the errors of the last ``days`` grouped by fingerprint (an event without one groups by its kind and code):
+    how many times, first and last, where, the frame, the codes, up to three request ids and jobs, the visits hit;
+    the biggest group first."""
+    from datetime import datetime, timedelta, timezone
+
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+    groups: dict[str, dict[str, Any]] = {}
+    for e in log.read(kinds=GROUPS["errors"], since=since, limit=limit):
+        p = e.payload
+        key = str(p.get("fingerprint") or f"{e.kind}:{p.get('code') or p.get('stage') or '?'}")
+        g = groups.setdefault(key, {"fingerprint": key, "count": 0, "first": e.at, "last": e.at, "kinds": set(), "codes": set(), "where": set(),
+                                    "frame": p.get("frame"), "requests": [], "jobs": [], "visits": set(), "seen": set()})
+        g["seen"].add(e.ids.job or e.id)  # one failure in a job is one occurrence, however many writers caught it
+        g["count"] = len(g["seen"])
+        g["first"], g["last"] = min(g["first"], e.at), max(g["last"], e.at)
+        g["kinds"].add(e.kind)
+        if p.get("code"):
+            g["codes"].add(str(p["code"]))
+        if p.get("where") or p.get("stage"):
+            g["where"].add(str(p.get("where") or p.get("stage")))
+        for name, value in (("requests", e.ids.request), ("jobs", e.ids.job)):
+            if value and value not in g[name] and len(g[name]) < 3:
+                g[name].append(value)
+        if e.ids.visit:
+            g["visits"].add(e.ids.visit)
+    out = [{**{k: v for k, v in g.items() if k != "seen"}, "kinds": sorted(g["kinds"]), "codes": sorted(g["codes"]), "where": sorted(g["where"]),
+            "visits": len(g["visits"])} for g in groups.values()]
+    return sorted(out, key=lambda g: (-g["count"], g["last"]))
 SHOWN = ("meta", "count", "person_text", "agent_text")  # what a page shows; model text on request, cell values never
 SEARCHED = ("meta", "person_text", "agent_text")         # where words are looked for
 CODE_FIELDS = ("code", "rule", "rules", "failed_checks")

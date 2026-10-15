@@ -67,6 +67,7 @@ WRITE_ROUTES = {
     "PATCH /api/projects/{project_id}": (EVENTS, ["decision.accepted"]),  # settings, gates, the opt-in; a name or a goal leaves none
     "DELETE /api/projects/{project_id}": (NONE, "the deletion is audited (its tombstone) and the project's events are removed (19.10)"),
     "DELETE /api/experience/sessions/{visit}": (NONE, "the session's events are removed; the audit keeps its tombstone (19.10)"),
+    "POST /api/experience/ui": (EVENTS, ["ui.page_viewed", "ui.action", "ui.upload_started", "ui.upload_finished", "ui.error_shown"]),  # 23.2: the browser's own events, as the person
     "PUT /api/projects/{project_id}/data": (EVENTS, ["data.uploaded"]),
     "PUT /api/projects/{project_id}/tables/{name}": (EVENTS, ["data.uploaded"]),  # 16.15 C: a related table, its audit row a data import
     "POST /api/projects/{project_id}/pipeline/rerun": (EVENTS, ["job.started", "run.recorded"]),  # 20.8: a step rerun as a job
@@ -257,7 +258,8 @@ class OneSessionTest(unittest.TestCase):
         self.assertIn("draft.refused", [e.kind for e in cases])
         self.assertEqual(self.raised.status_code, 500)
         error = next(e for e in self.events if e.kind == "error.raised")
-        self.assertEqual((error.payload["code"], error.ids.visit), ("RuntimeError", self.visit))
+        self.assertEqual((error.payload["code"], error.ids.visit, error.payload["status"]), ("RuntimeError", self.visit, "500"))
+        self.assertEqual(len(error.payload["fingerprint"]), 12)  # 23.4: grouped by the type and the frame of ours
         self.assertIn(VISIT_COOKIE, self.raised.headers.get("set-cookie", ""))  # the browser keeps its visit through an error
 
     def test_the_project_agent_answer_is_kept_and_the_card_sums_the_visit(self):

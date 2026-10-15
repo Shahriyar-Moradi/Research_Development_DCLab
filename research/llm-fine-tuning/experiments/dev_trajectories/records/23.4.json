@@ -1,0 +1,150 @@
+{
+ "package": "23.4",
+ "title": "Errors with fingerprints: the same failure is one group, written where it is caught, under its request and job",
+ "date": "2026-10-15",
+ "request": "Phase 1's fourth gap: every error in the record with a fingerprint (the exception's type and the top frame inside our code), the request, the job or run it belongs to; a rate-limit refusal as an event; the Sessions page and the command line grouping the last days by fingerprint; adoptable by the main product.",
+ "spec": "dclab_core.errors.fingerprint and from_exception; error.raised with fingerprint, frame and status, stage.failed with fingerprint and frame (the contract at v5); written by the API's exception handler, the limit refusal, the job runner, the stage runner, the draft pipeline and the intern; finder.errors groups; GET /api/experience/errors, the CLI's errors command, an Admin table.",
+ "plan": [
+  "Put the fingerprint in dclab_core: type and the innermost frame of our own code, twelve hex characters, a host adds its own package prefixes.",
+  "Add the fields to the two error kinds and move the contract to v5.",
+  "Write it where each failure is caught, under the ids already bound there (the job's visit and request through _acting).",
+  "Group in the finder; expose on the route, the CLI and the Admin page.",
+  "Test the fingerprint, the grouping, a failed stage through the runner's own branch and a failed job through the worker."
+ ],
+ "decisions": [
+  {
+   "decision": "The fingerprint is the exception's type and the innermost frame inside our own packages, never the message.",
+   "why": "A message quotes values and paths; two projects failing the same way must be one group, and nothing of a table may enter a meta field."
+  },
+  {
+   "decision": "An error raised outside our code groups by its type alone.",
+   "why": "A library's frame changes with its version; the type is what the owner can act on."
+  },
+  {
+   "decision": "The job runner writes error.raised inside _acting, before job.stopped.",
+   "why": "That is where the job's visit, request and id are bound; the done-when asks for the request id beside the group."
+  },
+  {
+   "decision": "A limit refusal is an error.raised with status 429 and the limit's kind as where, written explicitly to the workspace's log.",
+   "why": "It is answered before the visit is bound; the Sessions page should still show a person hitting a limit."
+  },
+  {
+   "decision": "The contract moves to v5 for two meta fields.",
+   "why": "The rule from 23.2's review: a kind's fields are part of the contract's shape; older versions read as the current one."
+  }
+ ],
+ "change": "dclab_core errors.py (new), experience.py (fields, v5), CHANGELOG 0.41.0, schemas; dclab_rnd agentic/server.py (500 and 429), jobs/worker.py, studio/engine.py, experience/hooks.py, draft/pipeline.py, intern/loop.py, experience/finder.py (errors), experience/__main__.py (errors), agentic/pages/sessions.py (GET /api/experience/errors), accounts/guard.py, web admin.html (the table); tests test_errors.py (new), test_experience_finder, test_lineage, test_core_experience, the wheel check; CORE_INTEGRATION.md, the plan.",
+ "findings": [
+  {
+   "id": "S1",
+   "source": "self",
+   "severity": "gap",
+   "defect": "The stage test mocked the stage runner itself and so skipped its own failure branch.",
+   "scenario": "No stage.failed event: the except is inside _run_stage.",
+   "cause": "The mock sat above the branch under test.",
+   "fix": "The test mocks prepare and the data step inside the runner's try.",
+   "test": "test_a_failed_stage_carries_a_fingerprint_and_the_page_groups_it"
+  },
+  {
+   "id": "S2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The engine's public execute is behind the workflow graph: a project without a saved solution is blocked at WF-01 before any stage runs.",
+   "scenario": "GraphBlocked, no failure branch reached.",
+   "cause": "The graph guards every move.",
+   "fix": "The test enters at _execute, past the gate, which is not what it measures.",
+   "test": "same"
+  },
+  {
+   "id": "S3",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The errors route raised NameError: the finder was imported in the module's helpers, not in register.",
+   "scenario": "GET /api/experience/errors answered 500 in the API contract test.",
+   "cause": "A local import pattern in the file.",
+   "fix": "The route imports the finder.",
+   "test": "test_api_contract test_no_get_route_fails_on_real_ids"
+  },
+  {
+   "id": "S4",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The job test expected the test's own frame; the innermost frame of ours is the worker's execute.",
+   "scenario": "A handler outside our packages fails: the group rests on the worker's frame.",
+   "cause": "OWN names our packages only.",
+   "fix": "The assertion names dclab_rnd.jobs.worker:execute.",
+   "test": "test_a_failed_job_writes_the_error_under_its_request_within_the_run"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Only the requests-a-minute 429 of the middleware was an event; the 429s raised through services.over_limit (uploads, jobs at once, model spend) were not.",
+   "scenario": "A person at the daily upload allowance uploads again: 429, nothing in the record, nothing on the Errors table.",
+   "cause": "The event was written in one branch instead of where every limit refusal is made.",
+   "fix": "services.limit_hit writes it; over_limit calls it and the middleware passes the workspace's log and the person.",
+   "test": "test_limits test_upload_bytes (the 429 event where limit:upload_bytes, status 429)"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A stage failing inside a job was counted twice: the engine's stage.failed and the worker's error.raised share the exception.",
+   "scenario": "One failed stage job shows Times 2 on the Admin page; every real count was doubled for the package's own done-when scenario.",
+   "cause": "The group counted events, not failures.",
+   "fix": "finder.errors counts one occurrence per job (or event id without a job).",
+   "test": "test_the_last_days_errors_group_by_fingerprint (the same failure caught twice is one count)"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The intern's fingerprint was built from the error text and a fixed frame, so every failure of one type was one group wherever it broke, and a rule's prose became the code.",
+   "scenario": "A model that answered without a tool: 80 characters of a sentence hashed as the key.",
+   "cause": "The exception was dropped at the except and only its text kept.",
+   "fix": "from_exception at the except; a loop ended by a rule gets the rule's name as the code (NoToolCall).",
+   "test": "test_intern (unchanged behaviour) — the fingerprint's source is the exception"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The main-product adapter emitted error.raised and stage.failed without a fingerprint, so its rows never shared the reference grouping.",
+   "scenario": "The finder's fallback key kept them grouped by code only.",
+   "cause": "The adapter was not in the change.",
+   "fix": "A type-only fingerprint where the main product gives a code, as the contract defines for an error outside our frames.",
+   "test": "test_model_invocations_decisions_and_run_boundaries (E_METRIC with a 12-character fingerprint and no frame)"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The 500 path's new fields, the CLI's errors command and the 429 event had no assertion.",
+   "scenario": "A regression in any of them would pass the suite.",
+   "cause": "Tests written for the main path.",
+   "fix": "Assertions on status and fingerprint at the 500, the CLI run on a file log, the upload 429 event.",
+   "test": "test_experience_log, test_errors GroupingTest, test_limits"
+  },
+  {
+   "id": "T1",
+   "source": "test",
+   "severity": "gap",
+   "defect": "The gate on ac5733c failed: tests/test_experience_log.py lists every write route with what it records and did not know POST /api/experience/ui (23.2).",
+   "scenario": "check-commit FAILED; the log was lost to a tail and the suite was rerun with the log kept.",
+   "cause": "A new write route without its line in the list.",
+   "fix": "The route is listed with its five ui.* kinds (in this commit).",
+   "test": "test_every_write_route_says_what_it_records"
+  }
+ ],
+ "measurements": [],
+ "outcome": "Every error in the record carries a fingerprint and sits under its request and job; the Sessions page, the route and the CLI group the last days by it; a limit hit is a group of its own. Reviewed: 5 findings fixed; every 429 is an event, one failure is one count.",
+ "lessons": [
+  "Write a fingerprint where the exception is caught, never where the message is rendered: the ids are bound there and the message has not yet quoted anything.",
+  "Keep a gate's whole log in the scratchpad: a tail that loses the failing test costs a full rerun."
+ ],
+ "risks": [
+  "The main product computes its fingerprints with its own package prefixes (own=); until it does, its error rows group by type alone.",
+  "The browser page's errors (ui.error_shown) carry a code, not a fingerprint: the server's error is the one grouped."
+ ],
+ "commits": []
+}

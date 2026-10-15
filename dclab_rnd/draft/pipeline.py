@@ -221,8 +221,10 @@ def _run(store: DraftStore, draft_id: str, asset_id: str, agent=None, client=Non
         return final
     except Exception as exc:  # noqa: BLE001 — any failure is reported to the user in plain words
         message = str(exc) if exc.__class__.__name__ in ("StructureError", "ValueError") else f"{type(exc).__name__}: the file could not be processed"
+        from dclab_core import errors as fingerprints
+
         final = set_asset(store, draft_id, asset_id, status="failed", error=message)
-        store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "failed", "text": message})
+        store.emit(draft_id, "pipeline", {"asset": asset_id, "step": "failed", "text": message, **fingerprints.from_exception(exc)})
         if agent is not None:
             agent.data_failed(draft_id, final, message)
         return final

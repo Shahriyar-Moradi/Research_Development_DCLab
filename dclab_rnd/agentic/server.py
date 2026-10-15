@@ -152,6 +152,9 @@ def create_app(home=None) -> FastAPI:
             try:  # requests a minute, per person and per workspace (package 10.6): one person cannot starve the rest
                 await asyncio.to_thread(limits.charge, "requests", 1, who.user_id, workspace.workspace_id)
             except limits.LimitExceeded as over:
+                from .services import limit_hit
+
+                limit_hit(over, log=getattr(workspace, "experience", None), user=who.user_id)  # 23.4: a limit hit is an error group of its own
                 return JSONResponse({"detail": over.body}, status_code=429, headers={"Retry-After": str(over.body["retry_after"])})
         principal_token, services_token = set_current(who), context.set_services(workspace)
         visit, fresh = _visit(request)  # 19.2: one sitting of one person, renewed while they work, carried into its jobs
@@ -162,8 +165,10 @@ def create_app(home=None) -> FastAPI:
                 try:
                     response = await call_next(request)
                 except Exception as exc:  # recorded with its ids and answered here, so the browser keeps its visit
+                    from dclab_core import errors as fingerprints
+
                     experience.record("error.raised", "system", {"where": getattr(request.scope.get("route"), "path", None) or "unmatched",
-                                                                 "code": type(exc).__name__})
+                                                                 "status": "500", **fingerprints.from_exception(exc)})
                     observe.log.error("unhandled error", extra={"fields": {"error": type(exc).__name__}})
                     response = JSONResponse({"detail": "Internal error", "request_id": observe.REQUEST_ID.get()}, status_code=500)
         finally:

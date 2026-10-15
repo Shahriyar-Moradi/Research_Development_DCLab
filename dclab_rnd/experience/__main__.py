@@ -86,6 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     show.add_argument("--draft")
     show.add_argument("--json", action="store_true")
     show.add_argument("--model-text", action="store_true", help="also the prompts and replies the workspace kept")
+    grouped = sub.add_parser("errors", help="23.4: the last days' errors grouped by fingerprint")
+    grouped.add_argument("--days", type=int, default=30)
+    grouped.add_argument("--json", action="store_true")
     find = sub.add_parser("search")
     for name in ("kind", "project", "draft", "person", "text", "code", "since", "until"):
         find.add_argument(f"--{name}")
@@ -136,6 +139,19 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         items = cat.catalog(home)
         print(json.dumps(items, indent=2, ensure_ascii=False) if args.json else "\n".join(cat.lines(items)) or "No datasets yet: make datasets")
+        return 0
+    if args.command == "errors":
+        from .finder import errors as grouped_errors
+
+        groups = grouped_errors(log, args.days)
+        if args.json:
+            print(json.dumps(groups, indent=2, ensure_ascii=False))
+            return 0
+        for g in groups:
+            print(f"{g['fingerprint']:<24} {g['count']:>5}  {', '.join(g['codes']) or '?'}  {g['frame'] or ''}  {', '.join(g['where'])[:60]}  last {g['last'][:16]}"
+                  + (f"  requests {', '.join(g['requests'])}" if g["requests"] else ""))
+        if not groups:
+            print(f"no errors in the last {args.days} days")
         return 0
     if args.command == "sessions":
         from . import flags, visit_events

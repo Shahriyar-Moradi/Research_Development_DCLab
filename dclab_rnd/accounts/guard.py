@@ -46,6 +46,7 @@ SPECIAL = {
     ("GET", "/api/experience/sessions"): "timelines",
     ("GET", "/api/experience/sessions/{visit}"): "timelines",
     ("GET", "/api/experience/search"): "timelines",
+    ("GET", "/api/experience/errors"): "timelines",  # 23.4: errors grouped by fingerprint
     ("POST", "/api/experience/ui"): "read",  # 23.2: the browser's own events, from any signed-in role; never a form's contents
     # the decision ledger and its blind labels (19.8): the owner and reviewers
     ("GET", "/api/ledger/summary"): "review",

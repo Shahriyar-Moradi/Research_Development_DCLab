@@ -1293,10 +1293,14 @@ def _run_stage(store: ProjectStore, project_id: str, stage: str, project: dict[s
         return record
     except Exception as exc:  # noqa: BLE001 — the failure itself is the record
         project = store.get(project_id)
-        project["stages"][stage] = {"status": "failed", "error": f"{type(exc).__name__}: {str(exc)[:600]}", "finished": _now(), "run": run_id}
+        from dclab_core import errors as fingerprints
+
+        grouped = fingerprints.from_exception(exc)  # 23.4: the same failure is one group, however many projects it hit
+        project["stages"][stage] = {"status": "failed", "error": f"{type(exc).__name__}: {str(exc)[:600]}", "finished": _now(), "run": run_id,
+                                    "fingerprint": grouped["fingerprint"], "frame": grouped["frame"]}
         project["running"] = None
         store.save(project)
-        store.log(project_id, "stage_failed", {"stage": stage, "error": project["stages"][stage]["error"]})
+        store.log(project_id, "stage_failed", {"stage": stage, "error": project["stages"][stage]["error"], **grouped})
         try:  # the failed run is on the record too: what it read, and why it stopped
             run = lineage.stage_run(run_id, project, stage, previous=previous, prepared=p, params=params, started=started,
                                     finished=project["stages"][stage]["finished"], seconds=time.perf_counter() - clock, status="failed",

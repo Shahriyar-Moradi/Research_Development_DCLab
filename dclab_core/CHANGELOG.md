@@ -4,6 +4,16 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.41.0 (2026-10-15)
+
+Package 23.4: errors with fingerprints.
+
+- `errors`: `fingerprint(exc_type, frames)` and `from_exception(exc)`, the exception's type and the top frame inside
+  our own code as twelve hex characters, so the same failure is one group wherever its message differs; a host adds
+  its own package prefixes (`own=`).
+- `experience`: `error.raised` carries `fingerprint`, `frame` and `status` (meta), `stage.failed` carries
+  `fingerprint` and `frame`; the contract moves to `dclab_core.experience_event.v5` (v1 to v4 read as v5).
+
 ## 0.40.0 (2026-10-15)
 
 Package 23.3: sign-in and session events.
