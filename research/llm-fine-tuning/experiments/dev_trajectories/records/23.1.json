@@ -141,6 +141,16 @@
    "cause": "A full read.",
    "fix": "One grouped query on PostgreSQL; the whole record on files.",
    "test": "none"
+  },
+  {
+   "id": "T4",
+   "source": "test",
+   "severity": "behaviour",
+   "defect": "The legacy opt-in wrote a second audit row.",
+   "scenario": "The audit's wiring test found two policy rows after one change of share_for_training.",
+   "cause": "The legacy switch was routed through the consent branch, which audits its own row.",
+   "fix": "The legacy switch keeps its one audit row; the record gets the consent.changed event and the writers are invalidated.",
+   "test": "test_switches_routing_and_a_failing_audit"
   }
  ],
  "measurements": [

@@ -62,6 +62,7 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
     if body.get("industry") in studio_data.INDUSTRIES if hasattr(studio_data, "INDUSTRIES") else False:
         p["industry"] = body["industry"]
     opted = None
+    legacy_moved = None  # 23.1: the earlier opt-in moved the train switch (its own audit row; the record and the writers learn it below)
     if isinstance(body.get("settings"), dict):
         settings = body["settings"]
         before = dict(p["settings"])
@@ -93,7 +94,7 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
                 p["settings"]["share_for_training"] = own["train"]
             p["settings"]["consent"] = own
         if consents.project_consent(p)["train"] != was_train and "train" not in consented:
-            consented["train"] = consents.project_consent(p)["train"]  # recorded and invalidated like any consent change
+            legacy_moved = consents.project_consent(p)["train"]
         from ...experience import hooks  # 19.3: how it will run, as the person set it (the opt-in is a policy, recorded as one)
 
         hooks.settings_changed({k: p["settings"].get(k) for k in ("max_rows", "quick", "folds") if before.get(k) != p["settings"].get(k)},
@@ -120,6 +121,15 @@ async def patch_project(project_id: str, payload: ProjectPatch, s: Services = De
 
         consents.invalidate(project_id)  # 23.1: the next record of this project is stamped with the new level
         experience.record("consent.changed", "person", {"scope": "project", "use": use, "on": on, "was": not on,
+                                                        "level": core.level_of(consents.workspace_consent(s.store.home), consents.project_consent(p)),
+                                                        "notice_version": consents.NOTICE_VERSION}, project=project_id)
+    if legacy_moved is not None:
+        from dclab_core import consent as core
+
+        from ... import consent as consents, experience
+
+        consents.invalidate(project_id)
+        experience.record("consent.changed", "person", {"scope": "project", "use": "train", "on": legacy_moved, "was": not legacy_moved,
                                                         "level": core.level_of(consents.workspace_consent(s.store.home), consents.project_consent(p)),
                                                         "notice_version": consents.NOTICE_VERSION}, project=project_id)
     if opted:
