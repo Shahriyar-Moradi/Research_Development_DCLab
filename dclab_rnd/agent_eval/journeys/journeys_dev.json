@@ -261,7 +261,6 @@
   "id": "JD-13",
   "kind": "segmentation",
   "family": "segmentation",
-  "built": false,
   "words": "Group our customers by how they buy, to plan a campaign for each group",
   "answers": {
    "prediction_moment": "Now, with what we know of each customer",
@@ -269,13 +268,19 @@
    "target": "There is no outcome; we want groups",
    "data_plan": "The customers table",
    "family": "Groups of customers"
+  },
+  "solution": {
+   "kind": "segmentation",
+   "kind_fields": {
+    "outcome_column": "renewed",
+    "max_segments": 7
+   }
   }
  },
  {
   "id": "JD-14",
   "kind": "uplift",
   "family": "uplift",
-  "built": false,
   "words": "Who should get the offer: the customers it would make buy, not those who buy anyway",
   "answers": {
    "target": "bought, with got_offer saying who got the offer",
@@ -283,13 +288,19 @@
    "action": "We send the offer to the top of the list",
    "data_plan": "Last campaign's table",
    "family": "Who the offer would make buy"
+  },
+  "solution": {
+   "kind": "uplift",
+   "kind_fields": {
+    "treatment_column": "got_offer",
+    "randomised": true
+   }
   }
  },
  {
   "id": "JD-15",
   "kind": "ranking",
   "family": "ranking",
-  "built": false,
   "words": "Rank the items each customer sees so the ones they will buy come first",
   "answers": {
    "target": "A purchase in the next two weeks",
@@ -297,6 +308,21 @@
    "action": "The top ten items are shown",
    "data_plan": "The interactions table",
    "family": "A ranked list of items per customer"
+  },
+  "solution": {
+   "kind": "ranking",
+   "kind_fields": {
+    "user_column": "user_id",
+    "item_column": "item_id",
+    "time_column": "time",
+    "event_column": "event",
+    "relevant_event": "purchase",
+    "moment": "2025-04-10",
+    "window_days": 14,
+    "k": 10,
+    "created_column": "created_at",
+    "category_column": "category"
+   }
   }
  }
 ]

@@ -199,14 +199,18 @@ class SolutionTest(unittest.TestCase):
             ({**base}, "needs its time column"),  # no time column: a forecast cannot order its days
             ({**base, "time_column": "date", "kind_fields": {"series_column": "units", "horizon": 7}}, "cannot be the target"),
             ({**base, "time_column": "series"}, "cannot be the target or the time column"),
-            (dict(target="purchase", task="binary", prediction_moment="On the day the list is shown", kind="ranking",  # not run yet
-                  kind_fields={"user_column": "u", "item_column": "i", "time_column": "t", "event_column": "e",
-                               "relevant_event": "purchase", "moment": "2025-04-10"}), "does not run it yet"),
         ]
         for fields, reason in refusals:  # each refused for its own reason, not for another field
             with self.assertRaises(ValueError) as refused:
                 Solution(**fields)
             self.assertIn(reason, str(refused.exception))
+        ranking = dict(task="binary", prediction_moment="On the day the list is shown", kind="ranking",
+                       kind_fields={"user_column": "u", "item_column": "i", "time_column": "t", "event_column": "e",
+                                    "relevant_event": "purchase", "moment": "2025-04-10"})
+        Solution(**ranking)  # 16.15 B: the engine runs it
+        with mock.patch.object(kinds.get("ranking"), "runs_in_engine", False), self.assertRaises(ValueError) as refused:
+            Solution(**ranking)  # a kind the engine does not run is refused, whichever it is
+        self.assertIn("does not run it yet", str(refused.exception))
 
 
 if __name__ == "__main__":

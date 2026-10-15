@@ -49,7 +49,7 @@ def _r(x: Any, digits: int = 4) -> Optional[float]:
 def prepare(frame: pd.DataFrame, columns: Optional[Sequence[str]] = None) -> tuple[np.ndarray, dict[str, Any]]:
     """The matrix the methods read, and the record of every choice made to build it."""
     cols = list(columns) if columns is not None else list(frame.columns)
-    record: dict[str, Any] = {"numbers": {}, "categories": {}, "left_out": {}, "spans": {}}
+    record: dict[str, Any] = {"numbers": {}, "categories": {}, "left_out": {}, "spans": {}, "fitted": {}}
     parts = []
     width = 0
     n = len(frame)
@@ -68,6 +68,7 @@ def prepare(frame: pd.DataFrame, columns: Optional[Sequence[str]] = None) -> tup
                 x = np.log1p(x)
                 how.append("log(1 + x), because it is skewed and never negative")
             mu, sd = x.mean(), x.std() or 1.0
+            record["fitted"][c] = {"median": float(s.median()), "log": bool(how and how[-1].startswith("log")), "mean": float(mu), "sd": float(sd)}
             parts.append(((x - mu) / sd).to_numpy()[:, None])
             record["spans"][c] = [width, width + 1]
             width += 1
@@ -79,6 +80,7 @@ def prepare(frame: pd.DataFrame, columns: Optional[Sequence[str]] = None) -> tup
                 continue
             s = s.astype(object).where(s.notna(), "(missing)")  # a missing value is its own level, said so
             levels = s.astype(str).value_counts().index[:20]
+            record["fitted"][c] = {"levels": [str(v) for v in levels]}
             onehot = np.column_stack([(s.astype(str) == v).to_numpy(float) for v in levels])
             parts.append(onehot / np.sqrt(len(levels)))  # each column weighs about one number, whatever its levels
             record["spans"][c] = [width, width + len(levels)]
@@ -89,6 +91,23 @@ def prepare(frame: pd.DataFrame, columns: Optional[Sequence[str]] = None) -> tup
     if not parts:
         raise ValueError("no column to segment on: every column is constant, an identifier or free text")
     return np.hstack(parts), record
+
+
+def transform(frame: pd.DataFrame, record: dict[str, Any]) -> np.ndarray:
+    """Other rows in the matrix ``prepare`` built (16.15 B: held-out rows): its columns in its order, each with the
+    median, log, mean and sd, or the levels, it fitted on its own rows; nothing is learned from these rows."""
+    parts = []
+    for c in sorted(record["spans"], key=lambda name: record["spans"][name][0]):
+        f, s = record["fitted"][c], frame[c]
+        if "levels" in f:
+            s = s.astype(object).where(s.notna(), "(missing)")
+            parts.append(np.column_stack([(s.astype(str) == v).to_numpy(float) for v in f["levels"]]) / np.sqrt(len(f["levels"])))
+        else:
+            x = pd.to_numeric(s, errors="coerce").astype(float).fillna(f["median"])
+            if f["log"]:
+                x = np.log1p(x.clip(lower=0))
+            parts.append(((x - f["mean"]) / f["sd"]).to_numpy()[:, None])
+    return np.hstack(parts)
 
 
 def wilson(hits: int, n: int, z: float = 1.959964) -> Optional[list[float]]:
@@ -155,6 +174,19 @@ def segment(frame: pd.DataFrame, *, columns: Optional[Sequence[str]] = None, ks:
     ks = [k for k in ks if 2 <= k < len(frame)]
     if not ks:
         raise ValueError(f"{len(frame)} rows cannot be split into the numbers of segments asked for")
+    found = search(frame, cols, ks, min_stability=min_stability, resamples=resamples, seed=seed, sample=sample)
+    out = _report(frame, found["final"], found["kept"], ks, min_stability, outcome)
+    out["preprocessing"]["left_out"].update(found["unused"])
+    out["passes"] = {"first": {"columns": cols, "chosen": found["first"]["chosen"]}, "unused_columns": found["unused"]}
+    return out
+
+
+def search(frame: pd.DataFrame, cols: Sequence[str], ks: Sequence[int], *, min_stability: float = 0.75, resamples: int = 20, seed: int = 0,
+           sample: int = 3000) -> dict[str, Any]:
+    """The choice of segments, never reading an outcome: a first pass over ``cols``, the columns no plausible grouping
+    uses left out, and a second pass without them (16.15 B: the engine's models stage). ``final`` is the pass chosen
+    from, ``kept`` its columns."""
+    cols = list(cols)
     first = _search(frame, cols, ks, min_stability, resamples, seed, sample)
     unused = {}
     good = [v for v in first["table"].values() if v["stable"] and v["separated"]]
@@ -171,10 +203,7 @@ def segment(frame: pd.DataFrame, *, columns: Optional[Sequence[str]] = None, ks:
                              "of its spread: no group uses it")
     kept = [c for c in cols if c not in unused]
     final = _search(frame, kept, ks, min_stability, resamples, seed, sample) if unused and len(kept) >= 2 else first
-    out = _report(frame, final, kept if final is not first else cols, ks, min_stability, outcome)
-    out["preprocessing"]["left_out"].update(unused)
-    out["passes"] = {"first": {"columns": cols, "chosen": first["chosen"]}, "unused_columns": unused}
-    return out
+    return {"first": first, "final": final, "kept": kept if final is not first else cols, "unused": unused}
 
 
 def _null_silhouette(method: str, k: int, X: np.ndarray, seed: int, draws: int = 3) -> Optional[float]:
@@ -252,6 +281,17 @@ def _report(frame, found, cols, ks, min_stability, outcome) -> dict[str, Any]:
                            "null_silhouette": chosen["null_silhouette"]},
                 "why": f"the best separated (silhouette {chosen['silhouette']}, against {chosen['null_silhouette']} on data with no groups) of the stable choices", "labels": labels.tolist(),
                 "profiles": profiles(frame, labels, cols)})
+    described = describe_outcome(frame, labels, outcome)
+    if described is not None:
+        out["outcome"] = described
+    return out
+
+
+def describe_outcome(frame: pd.DataFrame, labels: Any, outcome: Optional[str]) -> Optional[dict[str, Any]]:
+    """A later outcome per segment, with its interval: it describes the segments, it never makes them right (None
+    without an outcome)."""
+    labels = np.asarray(labels)
+    out: dict[str, Any] = {}
     if outcome is not None and outcome in frame.columns:
         raw = frame[outcome]
         y, said = pd.to_numeric(raw, errors="coerce"), None
@@ -259,8 +299,7 @@ def _report(frame, found, cols, ks, min_stability, outcome) -> dict[str, Any]:
         if y.notna().sum() == 0 and len(values) == 2:  # a yes/no outcome in words: the later level in order counts as 1, said so
             y, said = (raw.astype(str) == values[1]).astype(float).where(raw.notna()), f"{values[1]!r} counted as 1, {values[0]!r} as 0"
         if y.notna().sum() == 0:
-            out["outcome"] = {"column": outcome, "note": f"not a number and not two levels ({len(values)} levels): it cannot describe the segments"}
-            return out
+            return {"column": outcome, "note": f"not a number and not two levels ({len(values)} levels): it cannot describe the segments"}
         binary = set(y.dropna().unique()) <= {0, 1}
         by = {}
         for g in sorted(set(labels)):
@@ -270,8 +309,7 @@ def _report(frame, found, cols, ks, min_stability, outcome) -> dict[str, Any]:
             else:
                 half = 1.96 * v.std() / np.sqrt(len(v)) if len(v) > 1 else float("nan")
                 by[str(g)] = {"mean": _r(v.mean(), 4), "ci95": [_r(v.mean() - half, 4), _r(v.mean() + half, 4)], "rows": int(len(v))}
-        out["outcome"] = {"column": outcome, "note": "describes the segments; it does not make them right", "by_segment": by,
-                          **({"levels": said} if said else {})}
-    elif outcome is not None:
-        out["outcome"] = {"column": outcome, "note": f"{outcome!r} is not a column of the table: nothing describes the segments"}
-    return out
+        return {"column": outcome, "note": "describes the segments; it does not make them right", "by_segment": by, **({"levels": said} if said else {})}
+    if outcome is not None:
+        return {"column": outcome, "note": f"{outcome!r} is not a column of the table: nothing describes the segments"}
+    return None

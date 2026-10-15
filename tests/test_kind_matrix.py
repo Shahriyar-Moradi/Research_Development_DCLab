@@ -55,7 +55,8 @@ class MatrixTest(unittest.TestCase):
 
     def test_the_committed_file_lists_every_built_in_kind_as_supported(self):
         rows = {r["kind"]: r for r in acceptance.matrix()}
-        for key in ("binary", "multiclass", "regression", "text_tabular", "rare_event", "anomaly", "entity_tables", "streams"):
+        for key in ("binary", "multiclass", "regression", "text_tabular", "rare_event", "anomaly", "entity_tables", "streams",
+                    "ranking", "segmentation", "uplift"):  # 16.15 B: the library kinds run in the engine
             self.assertEqual(rows[key]["status"], "supported", rows[key]["missing"])
 
 
@@ -69,7 +70,10 @@ class PackTest(unittest.TestCase):
         self.assertEqual(cards["tabular"]["maturity"], "Supported")  # binary, multiclass and regression all pass
         self.assertEqual(cards["timeseries"]["maturity"], "Supported")  # 16.15: the engine runs forecasting's machine
         library_only = {"kind": "ranking", "status": "supported", "missing": [], "checks": [{"decision": "d", "ok": True}]}
-        row = {r["kind"]: r for r in acceptance.matrix([library_only])}["ranking"]
+        from unittest import mock
+
+        with mock.patch.object(kinds.get("ranking"), "runs_in_engine", False):  # as if the engine did not run it
+            row = {r["kind"]: r for r in acceptance.matrix([library_only])}["ranking"]
         self.assertIn("engine does not run it yet", " ".join(row["missing"]))  # a kind the engine does not run yet stays partial
         self.assertEqual(cards["scenegraph"]["maturity"], "Not built")  # no kind yet
         self.assertTrue(cards["scenegraph"]["capability"]["missing"])

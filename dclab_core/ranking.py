@@ -259,12 +259,12 @@ def choose(scores: dict[str, Any], k: int) -> Optional[str]:
     return max((m for m in scores if m != "popularity"), key=lambda m: scores[m][f"ndcg@{k}"] or 0, default=None)
 
 
-def evaluate(interactions: pd.DataFrame, items: pd.DataFrame, *, user: str, item: str, time: str, event: str,
-             relevant: Union[str, Sequence[str]], moment: str, window_days: int = 14, k: int = 10, created: Optional[str] = None,
-             category: Optional[str] = None, item_features: Sequence[str] = (), seed: int = 0) -> dict[str, Any]:
-    """The model chosen at the validation origin (one window before ``moment``), then every model scored once on the
-    window after ``moment``. ``item_features``: numeric item columns the ranker may read; run :func:`item_check` first.
-    A column among them that tracks interactions is kept out of the ranker and named."""
+def setup(interactions: pd.DataFrame, items: pd.DataFrame, *, user: str, item: str, time: str, event: str,
+          relevant: Union[str, Sequence[str]], moment: str, window_days: int = 14, created: Optional[str] = None,
+          category: Optional[str] = None, item_features: Sequence[str] = ()) -> dict[str, Any]:
+    """What every step reads: the log with its times, the moment and the validation origin one window before it, and the
+    item columns the ranker may read (a column tracking the items' counts up to two windows before the moment is kept
+    out and named). Nothing after the moment is read here."""
     log = interactions.assign(_t=pd.to_datetime(interactions[time]))
     at = pd.Timestamp(moment)
     validation_at = at - pd.Timedelta(days=window_days)
@@ -280,21 +280,49 @@ def evaluate(interactions: pd.DataFrame, items: pd.DataFrame, *, user: str, item
         else:
             attributes.append(column)
     c = {"user": user, "item": item, "event": event, "relevant": relevant_set, "created": created, "category": category, "attributes": attributes}
-    validation = _origin(log[log["_t"] <= at], items, validation_at, c, window_days, k, seed)  # nothing after the moment, even here
-    chosen_on = _scores(validation, k, seed)
-    best = choose(chosen_on, k)
-    final = _origin(log, items, at, c, window_days, k, seed)  # the moment's window, read once
+    return {"log": log, "items": items, "at": at, "validation_at": validation_at, "c": c, "kept_out": kept_out, "moment": moment,
+            "window_days": window_days}
+
+
+def validate(ctx: dict[str, Any], *, k: int = 10, seed: int = 0) -> dict[str, Any]:
+    """Every model at the validation origin, from the log up to the moment only: the scores and the model chosen."""
+    validation = _origin(ctx["log"][ctx["log"]["_t"] <= ctx["at"]], ctx["items"], ctx["validation_at"], ctx["c"], ctx["window_days"], k, seed)
+    scores = _scores(validation, k, seed)
+    return {"origin": str(ctx["validation_at"]), "scores": scores, "ranker": validation["ranker"], "chosen": choose(scores, k),
+            "chosen_by": f"NDCG@{k} at the validation origin, before the moment's window"}
+
+
+def score(ctx: dict[str, Any], *, k: int = 10, seed: int = 0) -> dict[str, Any]:
+    """Every model scored once on the window after the moment (the holdout), with what it recommended."""
+    at, items, c = ctx["at"], ctx["items"], ctx["c"]
+    final = _origin(ctx["log"], items, at, c, ctx["window_days"], k, seed)  # the moment's window, read once
     scores = _scores(final, k, seed)
     state = final["state"]
-    created_at = pd.to_datetime(items.set_index(item)[created]) if created else None
+    created = c["created"]
+    created_at = pd.to_datetime(items.set_index(c["item"])[created]) if created else None
     lists = {m: g.set_index("user")["items"].to_dict() for m, g in final["frame"].groupby("model")}
     late = {m: int(sum(1 for lst in ls.values() for x in lst if created_at is not None and x in created_at.index and created_at[x] > at))
             for m, ls in lists.items()}
-    return {"moment": moment, "window_days": window_days, "k": k, "relevant": sorted(relevant_set), "users_scored": len(final["truth"]),
-            "items_existing": len(state.items), "read_until": str(state.read_until), "read_after_moment": bool(state.read_until > at),
-            "item_features": attributes, "kept_out_of_ranker": kept_out,
-            "validation": {"origin": str(validation_at), "scores": chosen_on, "ranker": validation["ranker"]},
-            "chosen": best, "chosen_by": f"NDCG@{k} at the validation origin, before the moment's window",
-            "ranker_trained_on": final["ranker"], "scores": scores,
+    return {"users_scored": len(final["truth"]), "items_existing": len(state.items), "read_until": str(state.read_until),
+            "read_after_moment": bool(state.read_until > at), "ranker_trained_on": final["ranker"], "scores": scores,
             "beats_popularity": {m: (s["against_popularity"]["ci90"][0] or 0) > 0 for m, s in scores.items() if m != "popularity"},
             "created_after_recommended": late, "lists": lists}
+
+
+def evaluate(interactions: pd.DataFrame, items: pd.DataFrame, *, user: str, item: str, time: str, event: str,
+             relevant: Union[str, Sequence[str]], moment: str, window_days: int = 14, k: int = 10, created: Optional[str] = None,
+             category: Optional[str] = None, item_features: Sequence[str] = (), seed: int = 0) -> dict[str, Any]:
+    """The model chosen at the validation origin (one window before ``moment``), then every model scored once on the
+    window after ``moment``. ``item_features``: numeric item columns the ranker may read; run :func:`item_check` first.
+    A column among them that tracks interactions is kept out of the ranker and named. ``setup``, ``validate`` and
+    ``score`` are its three steps (16.15 B: the engine runs them stage by stage)."""
+    ctx = setup(interactions, items, user=user, item=item, time=time, event=event, relevant=relevant, moment=moment,
+                window_days=window_days, created=created, category=category, item_features=item_features)
+    chosen = validate(ctx, k=k, seed=seed)
+    held = score(ctx, k=k, seed=seed)
+    return {"moment": moment, "window_days": window_days, "k": k, "relevant": sorted(ctx["c"]["relevant"]), "users_scored": held["users_scored"],
+            "items_existing": held["items_existing"], "read_until": held["read_until"], "read_after_moment": held["read_after_moment"],
+            "item_features": ctx["c"]["attributes"], "kept_out_of_ranker": ctx["kept_out"],
+            "validation": {"origin": chosen["origin"], "scores": chosen["scores"], "ranker": chosen["ranker"]},
+            "chosen": chosen["chosen"], "chosen_by": chosen["chosen_by"], "ranker_trained_on": held["ranker_trained_on"], "scores": held["scores"],
+            "beats_popularity": held["beats_popularity"], "created_after_recommended": held["created_after_recommended"], "lists": held["lists"]}

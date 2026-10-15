@@ -1,6 +1,6 @@
 {
  "generated_by": "make kinds-check",
- "at": "2026-10-14T19:54:18+00:00",
+ "at": "2026-10-15T10:11:02+00:00",
  "results": [
   {
    "kind": "rare_event",
@@ -170,7 +170,7 @@
   },
   {
    "kind": "ranking",
-   "status": "partial",
+   "status": "supported",
    "checks": [
     {
      "decision": "no interaction after the moment is read; the ranker's features end before its training window",
@@ -201,15 +201,43 @@
      "decision": "NDCG and recall at k, coverage and novelty, with and without a history",
      "ok": true,
      "detail": "coverage 0.551, users with a history 322"
+    },
+    {
+     "decision": "every stage ran on the ranking machine",
+     "ok": true,
+     "detail": "{'data': 'ranking', 'leakage': 'ranking', 'features': 'ranking', 'models': 'ranking', 'final': 'ranking'}"
+    },
+    {
+     "decision": "`lifetime_sales` is kept out: counted after the moment, found on a cut that ends at it",
+     "ok": true,
+     "detail": "beyond everything the log knew of an item at the moment, it still follows the counts of event = purchase after the moment (partial correlation 0.74): it was counted later"
+    },
+    {
+     "decision": "nothing after the moment is read before the final stage; the ranker's features end before its window",
+     "ok": true,
+     "detail": "last read 2025-04-09 23:57:05"
+    },
+    {
+     "decision": "no item created after the moment is recommended by the model chosen",
+     "ok": true,
+     "detail": "15 created after; 0 recommended"
+    },
+    {
+     "decision": "the model chosen at the validation origin is the final one, read once, and beats popularity with its interval above zero",
+     "ok": true,
+     "detail": "ranker: gain 0.0474, 90% [0.0304, 0.0637]"
+    },
+    {
+     "decision": "NDCG and recall at k, coverage and novelty, with and without a history",
+     "ok": true,
+     "detail": "coverage 0.551"
     }
    ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
+   "missing": []
   },
   {
    "kind": "segmentation",
-   "status": "partial",
+   "status": "supported",
    "checks": [
     {
      "decision": "the preprocessing is recorded: skewed amounts log-scaled, the identifier left out",
@@ -240,11 +268,39 @@
      "decision": "the record says there is no ground truth, and the outcome only describes the segments",
      "ok": true,
      "detail": "{'0': 0.317, '1': 0.536, '2': 0.821}"
+    },
+    {
+     "decision": "every stage ran on the segmentation machine",
+     "ok": true,
+     "detail": "{'data': 'segmentation', 'leakage': 'segmentation', 'features': 'segmentation', 'models': 'segmentation', 'final': 'segmentation'}"
+    },
+    {
+     "decision": "the outcome is never read before the final stage: it is not among the columns the segments are formed on",
+     "ok": true,
+     "detail": "formed on ['orders_per_month', 'avg_basket', 'discount_share', 'days_since_last_order', 'channel']"
+    },
+    {
+     "decision": "columns no group uses are left out, with the reason",
+     "ok": true,
+     "detail": "{'region': 'none of the 4 plausible groupings of the first pass explains more than 0.2% of its spread: no group uses it', 'signup_week': 'none of the 4 plausible groupings of the first pass explains more than 0.1% of its spread: no group uses it'}"
+    },
+    {
+     "decision": "the planted behaviours are recovered on the training rows, with a stability interval",
+     "ok": true,
+     "detail": "kmeans k=3, stability {'mean': 0.992, 'ci90': [0.985, 0.997]}, agreement 0.998"
+    },
+    {
+     "decision": "the segments hold on the held-out rows: separated beyond data with no groups",
+     "ok": true,
+     "detail": "held-out silhouette 0.49 against 0.269 on data with no groups"
+    },
+    {
+     "decision": "the outcome only describes the segments, and the record says there is no ground truth",
+     "ok": true,
+     "detail": "{'0': 0.821, '1': 0.538, '2': 0.316}"
     }
    ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
+   "missing": []
   },
   {
    "kind": "time_to_event",
@@ -310,7 +366,7 @@
   },
   {
    "kind": "uplift",
-   "status": "partial",
+   "status": "supported",
    "checks": [
     {
      "decision": "the arms are compared on a holdout split by arm, the model chosen on validation rows apart from it",
@@ -341,11 +397,39 @@
      "decision": "uplift by decile and the Qini curve in the record",
      "ok": true,
      "detail": "uplift in the top decile 0.203, the second 0.042"
+    },
+    {
+     "decision": "every stage ran on the uplift machine",
+     "ok": true,
+     "detail": "{'data': 'uplift', 'leakage': 'uplift', 'features': 'uplift', 'models': 'uplift', 'final': 'uplift'}"
+    },
+    {
+     "decision": "the holdout is split by arm and locked in the data stage, the choice made on validation rows apart from it",
+     "ok": true,
+     "detail": "uplift_tree chosen on 3500 validation rows"
+    },
+    {
+     "decision": "the final model is the one chosen on validation, never the response model",
+     "ok": true,
+     "detail": "uplift_tree"
+    },
+    {
+     "decision": "the responsive segment is recovered by the model the engine chose",
+     "ok": true,
+     "detail": "100% of its top tenth are responsive"
+    },
+    {
+     "decision": "uplift beats random targeting on the holdout, with an interval",
+     "ok": true,
+     "detail": "Qini 0.0107, 90% interval [0.006, 0.0163]"
+    },
+    {
+     "decision": "the randomised campaign may speak of effects: the columns do not predict who got the offer",
+     "ok": true,
+     "detail": "effects: the action was assigned at random, and the columns do not predict who got it"
     }
    ],
-   "missing": [
-    "the engine does not run it yet: it runs as a library (dclab_core) only"
-   ]
+   "missing": []
   },
   {
    "kind": "streams",

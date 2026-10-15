@@ -1,0 +1,1201 @@
+{
+  "id": "JRN-003",
+  "campaign_id": "journeys_v1",
+  "kind": "acceptance_journeys",
+  "split": "dev",
+  "arm": "rules",
+  "journeys": "59d8ed59b4882c8e47f13ee1f9bdbcc47409810c2cc2faece502892284337279",
+  "at": "2026-10-15T10:11:43+00:00",
+  "gate": {
+    "version": "journeys_gate_v1",
+    "split": "sealed",
+    "journey": "right on the card, the workflow, the pipeline and the holdout (or, for a family the engine does not run, on the card and a build refused with its reason)",
+    "suite": "at least 85% of the sealed journeys right, the lower end of the 95% Wilson interval at least 0.6, every family with a journey, and no move the graph's validator refused in any journey",
+    "seed": 1
+  },
+  "seed": 0,
+  "spent_eur": 0.0,
+  "rows": [
+    {
+      "id": "JD-01",
+      "kind": "rare_event",
+      "family": "rare_event",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "entity",
+        "labels",
+        "budget"
+      ],
+      "questions": 5,
+      "steps": [
+        "answer",
+        "answer",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "rare_event",
+        "target": "is_case",
+        "kind": "rare_event",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.7527047913446677,
+        "average_precision": 0.5031055900621118,
+        "recall_at_precision_target": 0.5,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5,
+        "accuracy": 0.9984591679506933,
+        "majority_baseline_accuracy": 0.9969183359013868,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666,
+        "brier": 0.0018520551823895878,
+        "log_loss": 0.013982461695014752,
+        "positive_rate": 0.0030816640986132513,
+        "threshold": 0.5,
+        "ap_lift": 163.25776397515526,
+        "alert_budget": 0.038522,
+        "alerts_at_budget": 26,
+        "recall_at_budget": 0.5,
+        "precision_at_budget": 0.038461538461538464,
+        "fit_seconds": 0.3848320829856675,
+        "recall_at_budget_ci": {
+          "point": 0.5,
+          "low": 0.0,
+          "median": 0.5,
+          "high": 1.0,
+          "draws": 37,
+          "method": "cluster bootstrap over 81 groups"
+        }
+      },
+      "right": true,
+      "seconds": 30.7,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "bring_table",
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-02",
+      "kind": "binary",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "churned",
+        "kind": "binary",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.7463216641298832,
+        "average_precision": 0.5398731707182224,
+        "recall_at_precision_target": 0.030864197530864196,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5246913580246914,
+        "accuracy": 0.745,
+        "majority_baseline_accuracy": 0.73,
+        "precision": 0.7142857142857143,
+        "recall": 0.09259259259259259,
+        "f1": 0.16393442622950818,
+        "brier": 0.17465386033842212,
+        "log_loss": 0.52837404016736,
+        "positive_rate": 0.27,
+        "threshold": 0.5,
+        "ap_lift": 1.999530261919342,
+        "fit_seconds": 0.02258462499594316
+      },
+      "right": true,
+      "seconds": 3.8,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-03",
+      "kind": "multiclass",
+      "family": "classification",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "assigned_team",
+        "kind": "multiclass",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "macro_f1": 0.40225276803859833,
+        "balanced_accuracy": 0.40714025051366914,
+        "accuracy": 0.575,
+        "log_loss": 1.901538463853432,
+        "per_class_f1": [
+          0.27522935779816515,
+          0.8055555555555556,
+          0.6415094339622641,
+          0.0,
+          0.0,
+          0.5520833333333334,
+          0.4946236559139785,
+          0.5490196078431373,
+          0.0,
+          0.5960264900662252,
+          0.6729857819905213,
+          0.24
+        ],
+        "worst_3_classes": [
+          {
+            "class_index": 3,
+            "f1": 0.0,
+            "source_label": "integrations"
+          },
+          {
+            "class_index": 4,
+            "f1": 0.0,
+            "source_label": "legal"
+          },
+          {
+            "class_index": 8,
+            "f1": 0.0,
+            "source_label": "security"
+          }
+        ],
+        "fit_seconds": 0.07122362498193979
+      },
+      "right": true,
+      "seconds": 9.9,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-04",
+      "kind": "regression",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "actual_minutes",
+        "kind": "regression",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 8.463764920081084,
+        "rmse": 11.629999286889134,
+        "mape": 0.3006075734343922,
+        "r2": 0.2017599956886309,
+        "bias": -2.9805929920514513,
+        "fit_seconds": 0.040463458019075915
+      },
+      "right": true,
+      "seconds": 4.3,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-05",
+      "kind": "places",
+      "family": "regression",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "regression",
+        "target": "price",
+        "kind": "places",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mae": 94509.84664502164,
+        "rmse": 122410.62319895106,
+        "mape": 0.2983563882339223,
+        "r2": 0.5506631276772045,
+        "bias": 70324.46093073594,
+        "fit_seconds": 0.03905520899570547
+      },
+      "right": true,
+      "seconds": 33.4,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-06",
+      "kind": "text_tabular",
+      "family": [
+        "classification",
+        "text_or_images"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "negative",
+        "kind": "text_tabular",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.8685767879316265,
+        "average_precision": 0.6717222424640459,
+        "recall_at_precision_target": 0.2903225806451613,
+        "precision_target": 0.9,
+        "precision_at_k_positives": 0.5698924731182796,
+        "accuracy": 0.814,
+        "majority_baseline_accuracy": 0.8140000000000001,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "brier": 0.12234500887002517,
+        "log_loss": 0.3936431984392808,
+        "positive_rate": 0.186,
+        "threshold": 0.5,
+        "ap_lift": 3.6114099057206768,
+        "fit_seconds": 0.09587204101262614
+      },
+      "right": true,
+      "seconds": 4.2,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-07",
+      "kind": "anomaly",
+      "family": "anomaly",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "labels",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "anomaly",
+        "target": null,
+        "kind": "anomaly",
+        "kind_stated": false
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "planted_recall_at_budget": 0.8919
+      },
+      "right": true,
+      "seconds": 5.8,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-08",
+      "kind": "forecasting",
+      "family": "forecasting",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "forecasting",
+        "target": "units",
+        "kind": "forecasting",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "mase": 0.6578,
+        "smape": 0.1545,
+        "mae": 12.8831
+      },
+      "right": true,
+      "seconds": 11.8,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-09",
+      "kind": "time_to_event",
+      "family": "time_to_event",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "time_to_event",
+        "target": "days_subscribed",
+        "kind": "time_to_event",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "integrated_brier": 0.0896,
+        "c_index": 0.6362,
+        "auc_90": 0.6432
+      },
+      "right": true,
+      "seconds": 1.3,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-10",
+      "kind": "embedded",
+      "family": [
+        "text_or_images",
+        "classification"
+      ],
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "classification",
+        "target": "urgent",
+        "kind": "embedded",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 1.0
+      },
+      "right": true,
+      "seconds": 1.1,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-11",
+      "kind": "streams",
+      "family": "streams",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "streams",
+        "target": null,
+        "kind": "streams",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "threshold": 0.032413,
+        "incidents": 22,
+        "caught": 22,
+        "incident_recall": 1.0,
+        "lead_time_hours_median": 36.0,
+        "alerts": 147,
+        "alerts_per_unit_day": 0.232,
+        "false_alerts_per_unit_day": 0.013,
+        "unit_days": 634.0
+      },
+      "right": true,
+      "seconds": 9.5,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "analyse",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-12",
+      "kind": "entity_tables",
+      "family": "entity_tables",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "prediction_moment",
+        "target",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "analyse",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "entity_tables",
+        "target": null,
+        "kind": "entity_tables",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "roc_auc": 0.9208,
+        "average_precision": 0.9189
+      },
+      "right": true,
+      "seconds": 5.2,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "analyse",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-13",
+      "kind": "segmentation",
+      "family": "segmentation",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action"
+      ],
+      "questions": 3,
+      "steps": [
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "segmentation",
+        "target": null,
+        "kind": "segmentation",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "silhouette": 0.49,
+        "null_silhouette": 0.269
+      },
+      "right": true,
+      "seconds": 8.4,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "analyse",
+        "answer",
+        "answer",
+        "answer",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-14",
+      "kind": "uplift",
+      "family": "uplift",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "action",
+        "family"
+      ],
+      "questions": 4,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "uplift",
+        "target": "bought",
+        "kind": "uplift",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "qini_coefficient": 0.0107,
+        "auuc": 0.0109
+      },
+      "right": true,
+      "seconds": 10.0,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    },
+    {
+      "id": "JD-15",
+      "kind": "ranking",
+      "family": "ranking",
+      "parts": {
+        "card": true,
+        "workflow": true,
+        "pipeline": true,
+        "holdout": true
+      },
+      "why": [],
+      "handoffs": [
+        {
+          "role": "data_investigator",
+          "allowed": null,
+          "refused_columns": null,
+          "source": "rules"
+        }
+      ],
+      "asked": [
+        "target",
+        "prediction_moment",
+        "family"
+      ],
+      "questions": 3,
+      "steps": [
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "state": "built",
+      "said": "The project is built.",
+      "got": {
+        "family": "ranking",
+        "target": null,
+        "kind": "ranking",
+        "kind_stated": true
+      },
+      "refused_moves": 0,
+      "holdout": {
+        "ndcg_at_k": 0.1053,
+        "recall_at_k": 0.1832,
+        "coverage": 0.551
+      },
+      "right": true,
+      "seconds": 5.3,
+      "flags": [],
+      "models": {},
+      "spent_eur": 0,
+      "coordinator": [
+        "answer",
+        "answer",
+        "answer",
+        "analyse",
+        "build"
+      ],
+      "decisions": [],
+      "by_model": 0,
+      "agreed": 0,
+      "refused_by_validator": 0
+    }
+  ],
+  "families": [
+    {
+      "family": "anomaly",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "classification",
+      "journeys": 3,
+      "right": 3,
+      "interval": [
+        0.438,
+        1.0
+      ]
+    },
+    {
+      "family": "entity_tables",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "forecasting",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "ranking",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "rare_event",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "regression",
+      "journeys": 2,
+      "right": 2,
+      "interval": [
+        0.342,
+        1.0
+      ]
+    },
+    {
+      "family": "segmentation",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "streams",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "text_or_images",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "time_to_event",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    },
+    {
+      "family": "uplift",
+      "journeys": 1,
+      "right": 1,
+      "interval": [
+        0.207,
+        1.0
+      ]
+    }
+  ],
+  "summary": {
+    "journeys": 15,
+    "right": 15,
+    "by_part": {
+      "card": 15,
+      "workflow": 15,
+      "pipeline": 15,
+      "holdout": 15
+    }
+  },
+  "verdict": "pass: 15 of 15 journeys right (95% interval 0.796 to 1.0), 0 moves refused by the validator",
+  "status": "completed",
+  "experiment_id": "JRN-003",
+  "rule": "Scores on 15 written journeys over seeded replicas say how DCLab carries these people from their first sentence to a holdout number; they are not a claim about any other problem or about production readiness."
+}

@@ -159,14 +159,13 @@ class KindTest(unittest.TestCase):
         no_second = {**run, "observational": None, "facts": case.facts}
         self.assertFalse(kind.accept(no_second)[4]["ok"])
 
-    def test_detected_by_its_words_and_refused_by_the_engine(self):
+    def test_detected_by_its_words_and_run_by_the_engine(self):
         from dclab_rnd.studio.solution import Solution
 
         self.assertEqual(self.kinds.detect("Find who responds to the discount offer, not who buys anyway (uplift)")["key"], "uplift")
         self.assertNotEqual(self.kinds.detect("Which customers will buy next month?")["key"], "uplift")
-        with self.assertRaises(ValueError):
-            Solution(target="bought", task="binary", prediction_moment="Before the offer", kind="uplift",
-                     kind_fields={"treatment_column": "got_offer", "randomised": True})
+        Solution(target="bought", task="binary", prediction_moment="Before the offer", kind="uplift",
+                 kind_fields={"treatment_column": "got_offer", "randomised": True})  # 16.15 B: the engine runs it
 
 
 if __name__ == "__main__":

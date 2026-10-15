@@ -52,6 +52,8 @@ NEEDS_OUTCOME = frozenset({"classification", "regression", "rare_event", "foreca
 ASKED_AGAINST_A_COLUMN = frozenset({"ranking", "uplift", "streams", "entity_tables", "text_or_images"})
 # a family whose outcome is computed from related tables, not read from a column of the main one (20.10)
 FROM_TABLES = frozenset({"entity_tables", "streams"})
+# a family whose outcome is an event in the table itself (a purchase in the window after the list), said in words (16.15 B)
+OUTCOME_AS_EVENT = frozenset({"ranking"})
 # a family whose cases are scored at a moment: what is known then decides every column (leakage)
 NEEDS_MOMENT = frozenset({"classification", "regression", "rare_event", "anomaly", "forecasting", "time_to_event", "ranking", "uplift",
                           "entity_tables", "streams", "text_or_images"})
@@ -195,7 +197,7 @@ def problem_card(brief: ProblemBrief, *, words: str = "", data: Optional[Mapping
     fam_now = family.value or (in_play[0] if len(in_play) == 1 else None)
     # with a table, an outcome is one of its columns or a file of cases; for a family whose outcome is computed from the
     # related tables (no order in 30 days, a failure in the incidents), the outcome said in words is one (20.10)
-    defined = brief.target_definition.value if not data.get("columns") or fam_now in FROM_TABLES else None
+    defined = brief.target_definition.value if not data.get("columns") or fam_now in FROM_TABLES | OUTCOME_AS_EVENT else None
     outcome = brief.target_column.value or defined
     if not outcome and labels.value == "file" and labels.source == "data":  # a file of cases joined, never one only spoken of
         outcome = "the cases listed in the file of known cases"

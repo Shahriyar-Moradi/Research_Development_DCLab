@@ -17,7 +17,9 @@ truth:
 
 A family the engine does not run yet is expected to stop at the build with its reason said (``"built": false``), and
 is scored on the card and that refusal. The gate (``GATE``, fixed before any run) is judged on the sealed journeys,
-run once; nothing is tuned on them.
+run once; nothing is tuned on them. Since 16.15 B the engine runs segmentation, uplift and ranking: the six sealed
+journeys of those families still expect the refusal, as they were sealed (JRN-002 stands); a later play of the sealed
+set would score them wrong for that reason alone.
 """
 
 from __future__ import annotations
@@ -348,7 +350,13 @@ def _save(projects: Any, project: dict[str, Any], statements: dict[str, Any]) ->
         proposal = propose(frame, project["data"]["profile"], target, statements.get("task"), project.get("pack"))
     else:
         proposal = {}
-    task = statements.get("task") or proposal.get("task") or "binary"
+    stated_kind = statements.get("kind")
+    if stated_kind:  # a kind the person states runs as its own base task (segmentation: multiclass)
+        from dclab_rnd import kinds
+
+        task = statements.get("task") or kinds.get(stated_kind).base_task
+    else:
+        task = statements.get("task") or proposal.get("task") or "binary"
     moment = suggestion.get("prediction_moment") or ((project.get("draft") or {}).get("understanding") or {}).get("prediction_moment") or ""
     verdict = graph.check(project, "set_solution", "human", target=target)
     graph.log(projects, project["id"], verdict, project, outcome="done: solution saved" if verdict.allowed else None)

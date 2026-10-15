@@ -245,6 +245,7 @@ def _score(s: np.ndarray, t: np.ndarray, y: np.ndarray, w: Optional[np.ndarray],
         sample = [f(s[d], t[d], y[d], None if w is None else w[d]) for d in draws]
         out[name] = _r(f(s, t, y, w))
         out[f"{name}_ci90"] = [_r(np.quantile(sample, 0.05)), _r(np.quantile(sample, 0.95))]
+        out[f"{name}_ci95"] = [_r(np.quantile(sample, 0.025)), _r(np.quantile(sample, 0.975))]  # 16.15 B: the readers' interval, the same draws
     deciles = []
     for part in np.array_split(np.argsort(-s, kind="stable"), 10):
         tp, yp = t[part], y[part]
@@ -261,49 +262,89 @@ def choose(validation: dict[str, Any]) -> Optional[str]:
                default=None)
 
 
+def split(frame: pd.DataFrame, *, treatment: str, holdout: float = 0.3, validation: float = 0.25, seed: int = 0) -> dict[str, Any]:
+    """The rows, by arm only (never the outcome): a holdout stratified by arm, and inside the training rows a validation
+    cut stratified the same way; with the holdout's fingerprint, which a later stage checks before it reads it."""
+    import hashlib
+
+    from sklearn.model_selection import train_test_split
+
+    data = frame.reset_index(drop=True)
+    t = binary(data[treatment], treatment)
+    if len(set(t)) < 2:
+        raise ValueError("every row is in one arm: there is nothing to compare the action with")
+    train, held = train_test_split(np.arange(len(data)), test_size=holdout, stratify=t, random_state=seed)
+    fit_rows, val_rows = train_test_split(train, test_size=validation, stratify=t[train], random_state=seed)
+    return {"train": train, "fit": fit_rows, "validation": val_rows, "holdout": held, "seed": seed,
+            "fingerprint": hashlib.sha256(",".join(map(str, sorted(held.tolist()))).encode()).hexdigest()[:16],
+            "sizes": {"train": int(len(train)), "validation": int(len(val_rows)), "holdout": int(len(held)), "stratified_by": treatment}}
+
+
+def _run(data: pd.DataFrame, t: np.ndarray, y: np.ndarray, fit_idx: np.ndarray, eval_idx: np.ndarray, features: Sequence[str],
+         randomised: bool, seed: int, rng: Any, boot: int, only: Optional[Sequence[str]] = None) -> tuple[dict, dict]:
+    Xf, Xe = _design(data.iloc[fit_idx], [data.iloc[fit_idx], data.iloc[eval_idx]], features)
+    out = {name: make().fit(Xf, t[fit_idx], y[fit_idx]).uplift(Xe) for name, make in MODELS.items() if only is None or name in only}
+    out["random"] = np.random.default_rng(seed + 1).uniform(size=len(eval_idx))
+    w = None
+    if not randomised:  # who was targeted must not pass for who responds: weight each arm by 1 / its propensity
+        e = np.clip(_propensity_model().fit(Xf, t[fit_idx]).predict_proba(Xe)[:, 1], TRIM, 1 - TRIM)
+        w = np.where(t[eval_idx] == 1, 1 / e, 1 / (1 - e))
+    draws = [rng.integers(0, len(eval_idx), len(eval_idx)) for _ in range(boot)]  # the same rows for every model: paired
+    return out, {name: _score(sc, t[eval_idx], y[eval_idx], w, draws) for name, sc in out.items()}
+
+
+def validate(frame: pd.DataFrame, parts: dict[str, Any], *, treatment: str, outcome: str, features: Sequence[str], randomised: bool,
+             boot: int = 200) -> dict[str, Any]:
+    """Every model fitted on the training rows' fit cut and scored on their validation cut (the holdout's outcomes are
+    never read): the validation Qini coefficient by model and the model chosen."""
+    data = frame.reset_index(drop=True)
+    t = binary(data[treatment], treatment)
+    rows = np.concatenate([parts["fit"], parts["validation"]])
+    y = np.zeros(len(data), dtype=int)
+    y[rows] = binary(data[outcome].iloc[rows], outcome)  # the training rows' outcomes only
+    if len(set(y[rows])) < 2:
+        raise ValueError("every training row has the same outcome: there is no response to compare")
+    _, on_validation = _run(data, t, y, parts["fit"], parts["validation"], features, randomised, parts["seed"],
+                            np.random.default_rng(parts["seed"]), boot)
+    scores = {n: v["qini_coefficient"] for n, v in on_validation.items()}
+    return {"validation": scores, "details": on_validation, "best": choose(scores),
+            "chosen_by": "the Qini coefficient on a validation cut of the training rows, before the holdout"}
+
+
+def score(frame: pd.DataFrame, parts: dict[str, Any], *, treatment: str, outcome: str, features: Sequence[str], randomised: bool,
+          best: Optional[str], boot: int = 200) -> dict[str, Any]:
+    """Every model refitted on all training rows and scored once on the holdout, paired draws as ``evaluate`` makes them
+    (the validation's draws are consumed first, so the numbers are the library's own)."""
+    data = frame.reset_index(drop=True)
+    t, y = binary(data[treatment], treatment), binary(data[outcome], outcome)
+    rng = np.random.default_rng(parts["seed"])
+    for _ in range(boot):  # the validation's draws, as evaluate takes them before the holdout's
+        rng.integers(0, len(parts["validation"]), len(parts["validation"]))
+    scores, result = _run(data, t, y, parts["train"], parts["holdout"], features, randomised, parts["seed"], rng, boot)
+    lower = result[best]["qini_coefficient_ci90"][0] if best else None
+    return {"models": result, "best_beats_random": lower is not None and lower > 0,
+            "best_beats_response_model": bool(best) and (result[best]["qini_coefficient"] or 0) > (result["response_model"]["qini_coefficient"] or 0),
+            "holdout_rows": parts["holdout"].tolist(), "holdout_uplift": {n: s.tolist() for n, s in scores.items() if n in MODELS}}
+
+
 def evaluate(frame: pd.DataFrame, *, treatment: str, outcome: str, features: Sequence[str], randomised: bool, holdout: float = 0.3,
              validation: float = 0.25, seed: int = 0, boot: int = 200) -> dict[str, Any]:
     """The model chosen on a validation cut of the training rows, then every model refitted on all training rows and
     scored once on a holdout split stratified by arm: the Qini coefficient and the AUUC with paired 90% intervals, the
     uplift by decile of predicted uplift; with the overlap check and the wording the record may use. When assignment was
-    not random, the arms are compared with inverse-propensity weights fitted on the rows the models are fitted on."""
-    from sklearn.model_selection import train_test_split
-
+    not random, the arms are compared with inverse-propensity weights fitted on the rows the models are fitted on.
+    ``split``, ``validate`` and ``score`` are its three steps (16.15: the engine runs them stage by stage)."""
     data = frame.reset_index(drop=True)
-    t = binary(data[treatment], treatment)
     y = binary(data[outcome], outcome)
-    if len(set(t)) < 2:
-        raise ValueError("every row is in one arm: there is nothing to compare the action with")
+    parts = split(data, treatment=treatment, holdout=holdout, validation=validation, seed=seed)
     if len(set(y)) < 2:
         raise ValueError("every row has the same outcome: there is no response to compare")
     ov = overlap(data, treatment=treatment, features=features, seed=seed)  # columns and arms only, never the outcome
-    train, held = train_test_split(np.arange(len(data)), test_size=holdout, stratify=t, random_state=seed)
-    fit_rows, val_rows = train_test_split(train, test_size=validation, stratify=t[train], random_state=seed)
-    rng = np.random.default_rng(seed)
-
-    def run(fit_idx, eval_idx):
-        Xf, Xe = _design(data.iloc[fit_idx], [data.iloc[fit_idx], data.iloc[eval_idx]], features)
-        out = {name: make().fit(Xf, t[fit_idx], y[fit_idx]).uplift(Xe) for name, make in MODELS.items()}
-        out["random"] = np.random.default_rng(seed + 1).uniform(size=len(eval_idx))
-        w = None
-        if not randomised:  # who was targeted must not pass for who responds: weight each arm by 1 / its propensity
-            e = np.clip(_propensity_model().fit(Xf, t[fit_idx]).predict_proba(Xe)[:, 1], TRIM, 1 - TRIM)
-            w = np.where(t[eval_idx] == 1, 1 / e, 1 / (1 - e))
-        draws = [rng.integers(0, len(eval_idx), len(eval_idx)) for _ in range(boot)]  # the same rows for every model: paired
-        return out, {name: _score(sc, t[eval_idx], y[eval_idx], w, draws) for name, sc in out.items()}
-
-    _, on_validation = run(fit_rows, val_rows)
-    validation_scores = {n: v["qini_coefficient"] for n, v in on_validation.items()}
-    best = choose(validation_scores)
-    scores, result = run(train, held)  # the holdout, read once
-    lower = result[best]["qini_coefficient_ci90"][0] if best else None
+    chosen = validate(data, parts, treatment=treatment, outcome=outcome, features=features, randomised=randomised, boot=boot)
+    held = score(data, parts, treatment=treatment, outcome=outcome, features=features, randomised=randomised, best=chosen["best"], boot=boot)
     return {"randomised": randomised, "overlap": {k: v for k, v in ov.items() if k != "propensity"}, "wording": wording(randomised, ov),
-            "split": {"train": int(len(train)), "validation": int(len(val_rows)), "holdout": int(len(held)), "stratified_by": treatment},
-            "weighted": not randomised, "validation": validation_scores, "validation_rows": val_rows.tolist(), "best": best,
-            "chosen_by": "the Qini coefficient on a validation cut of the training rows, before the holdout", "models": result,
-            "best_beats_random": lower is not None and lower > 0,
-            "best_beats_response_model": bool(best) and (result[best]["qini_coefficient"] or 0) > (result["response_model"]["qini_coefficient"] or 0),
-            "holdout_rows": held.tolist(), "holdout_uplift": {n: s.tolist() for n, s in scores.items() if n in MODELS}}
+            "split": parts["sizes"], "weighted": not randomised, "validation": chosen["validation"], "validation_rows": parts["validation"].tolist(),
+            "best": chosen["best"], "chosen_by": chosen["chosen_by"], **held}
 
 
 _trapz = getattr(np, "trapezoid", None) or np.trapz  # numpy 2 renamed it

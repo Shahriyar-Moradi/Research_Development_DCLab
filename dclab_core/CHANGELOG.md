@@ -4,6 +4,19 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.35.0 (2026-10-15)
+
+Package 16.15 B: the library kinds run stage by stage in the engine. No contract changes shape, and every library
+function's output is unchanged (checked on each replica).
+
+- `uplift.split` (by arm only, with the holdout's fingerprint), `uplift.validate` (the training rows' outcomes only) and
+  `uplift.score` (the holdout read once): `evaluate` is their composition.
+- `ranking.setup`, `ranking.validate` (the log up to the moment) and `ranking.score` (the window after it): `evaluate`
+  is their composition.
+- `segment.search` (the two passes, never an outcome) and `segment.describe_outcome` (a later outcome per segment):
+  `segment` and its report use them.
+- `card.OUTCOME_AS_EVENT`: ranking's outcome, an event in the window after the list, may be said in words.
+
 ## 0.34.0 (2026-10-15)
 
 Package 22.7: adoption by the main product. A new module; no contract changes shape.

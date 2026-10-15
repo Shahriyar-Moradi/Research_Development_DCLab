@@ -50,12 +50,13 @@ class JourneyTest(unittest.TestCase):
         self.assertTrue(any(w.startswith("not built") for w in row["why"]), row["why"])
 
     def test_a_family_the_engine_does_not_run_stops_at_the_build_with_its_reason(self):
-        row = journeys.play(journey("JD-14"))
-        self.assertTrue(row["right"], row["why"])
-        self.assertIn("not run by the engine", row["said"])
-        built = journeys.play({**journey("JD-14"), "built": True})  # expected built, it is not: wrong, and said
-        self.assertFalse(built["right"])
-        silent = journeys.play({**journey("JD-13"), "words": "Help me with our customer table", "answers": {}})  # the review's R2: any other stop is not the refusal
+        with mock.patch.object(kinds.get("uplift"), "runs_in_engine", False):  # as if the engine did not run uplift (16.15 B: it does)
+            row = journeys.play({**journey("JD-14"), "built": False})
+            self.assertTrue(row["right"], row["why"])
+            self.assertIn("not run by the engine", row["said"])
+            built = journeys.play(journey("JD-14"))  # expected built, it is not: wrong, and said
+            self.assertFalse(built["right"])
+        silent = journeys.play({**journey("JD-13"), "words": "Help me with our customer table", "answers": {}, "built": False})  # the review's R2: any other stop is not the refusal
         self.assertFalse(silent["right"], silent)
         self.assertFalse(silent["parts"]["holdout"], silent)  # not for its card alone: the stop was no refusal of the family
 
@@ -223,7 +224,9 @@ class FoundOnDevTest(unittest.TestCase):
 
         store = mock.Mock()
         store.get.return_value = {"problem": "Group our customers by how they buy", "assets": [], "understanding": {}}
-        refused = api.build_blockers(store, "d1")
+        self.assertNotIn("family not built yet", [r.rule for r in api.build_blockers(store, "d1")])  # 16.15 B: the engine runs it
+        with mock.patch.object(kinds.get("segmentation"), "runs_in_engine", False):
+            refused = api.build_blockers(store, "d1")
         self.assertIn("family not built yet", [r.rule for r in refused])
 
     def test_home_asks_a_rare_events_review_budget(self):
