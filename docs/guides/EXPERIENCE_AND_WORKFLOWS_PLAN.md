@@ -374,7 +374,15 @@ code are not one connected object a data scientist can read, run and change.
   in words the rules still do not read ("how much each shop will need the coming week", "how many months we can keep
   them", "would have bought anyway"), an outcome named inside a phrase ("duration days_subscribed"), and two short
   prediction moments ("at renewal", "at listing") that Home accepted and the Solution page refused (a dead end in the
-  product). A third sealed set is written by an independent agent and frozen before these are fixed.
+  product). A third sealed set, written by another agent under the same rules, was frozen (1bcc2f6) before those were
+  fixed on dev (72211f5, 99ac926: a short moment no longer dead-ends, three more phrasings, measured columns never read
+  as known ahead). The third sealed run, once: **25 of 30, interval 0.66 to 0.93: fail** (`JRN-005`; 26 needed). Misses:
+  jargon and plain words the rules do not read ("inactivity prediction over relational data", "how much of each
+  product goes to each shop for the week", "who books because of the voucher", "something feels off with some rides"),
+  and a one-word moment ("Now") for a segmentation that needs no moment at all. Three sealed sets in a row (16, 24, 25
+  of 30) say the same thing: word rules gain on each set's phrasings and meet new ones on the next. The next step is
+  the conversation reader (20.2's model role), now that a model is configured (Claude Sonnet 5.5), measured on the
+  three spent sets as dev material and judged on a fourth set written the same way.
 
 ---
 
