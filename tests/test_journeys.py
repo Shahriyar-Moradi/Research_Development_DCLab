@@ -198,22 +198,19 @@ class FoundOnDevTest(unittest.TestCase):
         self.assertEqual((s.state, s.next, s.blockers[0].code), ("problem", "stop", machine.FAMILY_NOT_RUN))
 
     def test_the_solution_page_saves_a_label_files_target(self):
-        import os
-
         from fastapi.testclient import TestClient
 
         from dclab_rnd.agentic.server import create_app
         from dclab_rnd.kinds import acceptance
 
-        home = Path(tempfile.mkdtemp())
-        with mock.patch.dict(os.environ, {"DCLAB_STUDIO_HOME": str(home / "projects")}):
-            store, pid = acceptance.build(kinds.get("rare_event").case(0), home / "projects")
-            solution = store.get(pid)["solution"]
-            self.assertNotIn(solution["target"], store.get(pid)["data"]["columns"])  # the target is the label file's
-            client = TestClient(create_app(home))
-            h = {"X-DCLab-Token": client.get("/api/config").json()["csrf"]}
-            saved = client.put(f"/api/projects/{pid}/solution", json={**solution, "notes": "checked"}, headers=h)
-            self.assertEqual(saved.status_code, 200, saved.text)  # refused before: the label's target is no column of the table
+        client = TestClient(create_app(Path(tempfile.mkdtemp())))  # the server's own store, on files or PostgreSQL
+        h = {"X-DCLab-Token": client.get("/api/config").json()["csrf"]}
+        store = client.app.state.services.projects
+        _, pid = acceptance.build(kinds.get("rare_event").case(0), None, store=store)
+        solution = store.get(pid)["solution"]
+        self.assertNotIn(solution["target"], store.get(pid)["data"]["columns"])  # the target is the label file's
+        saved = client.put(f"/api/projects/{pid}/solution", json={**solution, "notes": "checked"}, headers=h)
+        self.assertEqual(saved.status_code, 200, saved.text)  # refused before: the label's target is no column of the table
 
     def test_blocks_of_places_run_as_the_places_kind_under_any_pack(self):
         spatial = {"task": "regression", "spatial": {"lat_column": "lat", "lon_column": "lon", "block_km": 5.0}}
