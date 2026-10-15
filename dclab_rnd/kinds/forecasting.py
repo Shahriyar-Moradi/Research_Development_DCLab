@@ -15,7 +15,8 @@ from .base import ProblemKind
 
 AHEAD = re.compile(r"\b(?:ahead|in advance|beforehand|planned|scheduled|booked|announced|"
                    r"(?:sets?|fix(?:es|ed)?|decide[sd]?|agree[sd]?|publish(?:es|ed)?|chos(?:e|en)|plan(?:s|ned)?) (?:\w+ ){0,2}(?:weeks?|days?|months?) (?:before|earlier))\b", re.I)  # 20.10 v2: "set weeks before"
-ON_THE_DAY = re.compile(r"\b(?:on the day|measured|observed|recorded|afterwards|later|not known|unknown)\b", re.I)
+ON_THE_DAY = re.compile(r"\b(?:on the day|measured|observed|recorded|afterwards|later|not known|unknown|so far|until then|seen|yesterday|"
+                        r"from (?:the )?(?:last|past|previous)|last (?:week|month|day))\b", re.I)  # 20.10 v2: what was measured, read at the moment
 
 
 def known_from_moment(columns: list[str], moment: str | None) -> dict[str, str]:

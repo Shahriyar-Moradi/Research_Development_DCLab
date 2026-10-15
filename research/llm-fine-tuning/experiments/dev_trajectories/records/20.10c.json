@@ -86,6 +86,66 @@
    "cause": "Several engines at once on a full disk.",
    "fix": "Fewer workers; the owner told.",
    "test": "none"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "The wizard still refused a short moment.",
+   "scenario": "'At renewal' prefilled on the Solution step was refused by the page's own check.",
+   "cause": "Only the server's minimum was lowered.",
+   "fix": "The page's two checks follow the server's; the page rebuilt.",
+   "test": "test_a_short_moment_said_on_home_is_one_the_solution_page_takes"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "The new verb forms marked measured columns as known ahead.",
+   "scenario": "'The manager decides staffing two weeks before from the footfall so far' kept footfall as a future input.",
+   "cause": "Deciding the forecast was read as knowing its inputs.",
+   "fix": "A clause that reads what was measured so far is not ahead.",
+   "test": "test_set_weeks_before_is_known_ahead_and_measured_on_the_day_is_not"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "How much next month turned a number per row into a forecast.",
+   "scenario": "How much each customer will spend next month, with that column, became forecasting.",
+   "cause": "Forecasting was inferred beside a number column from those words alone.",
+   "fix": "Asked beside a number column unless a forecast is said; the window kept in its clause.",
+   "test": "test_the_second_sealed_sets_words_are_read"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "leakage",
+   "defect": "A column only mentioned after a lead word became the outcome.",
+   "scenario": "'Flag refunded is only set after delivery' made refunded the target.",
+   "cause": "The lead words allowed any column after them.",
+   "fix": "Refused when its clause says it comes later or is not known.",
+   "test": "test_an_outcome_named_inside_a_sentence_is_that_column_and_a_word_is_not"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "Booking anyway read as uplift with no offer.",
+   "scenario": "Some would have booked anyway via the app became uplift.",
+   "cause": "The phrase stood alone.",
+   "fix": "An offer, a campaign or a call within the sentence.",
+   "test": "test_the_second_sealed_sets_words_are_read"
+  },
+  {
+   "id": "M5",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A forecast answered as daily numbers stayed unread.",
+   "scenario": "Seven daily numbers for each store and product left the family open.",
+   "cause": "No answer pattern for numbers per day.",
+   "fix": "Daily numbers and numbers per day read as forecasting.",
+   "test": "test_a_shape_only_answer_is_marked_and_a_named_family_is_not"
   }
  ],
  "measurements": [
@@ -104,7 +164,8 @@
  "outcome": "The second set's misses are fixed on dev but one; the third sealed set judges them.",
  "lessons": [
   "A page that refuses what an earlier page accepted is a dead end: the two must share one rule.",
-  "Freeze the next sealed set before reading the last one's misses as dev material."
+  "Freeze the next sealed set before reading the last one's misses as dev material.",
+  "A rule eased on the server and kept on the page is still a dead end."
  ],
  "risks": [
   "A forecast's known-ahead columns stay unknown when the moment came from the problem sentence."

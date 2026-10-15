@@ -405,7 +405,8 @@ class HomeAgent:
             self.record(draft_id, "family_shape_only", read.get("family_shape_only") or "no")  # 20.10 v2: a shape alone may be refined
         named = read.get("target_column")
         if field in ("target", "outcome") and named and value.strip() not in columns and \
-                re.match(rf"\s*(the\s+)?((column|duration|outcome|target|label|flag|field)\s+){{0,2}}{re.escape(named)}\b", value, re.I):
+                re.match(rf"\s*(the\s+)?((column|duration|outcome|target|label|flag|field)\s+){{0,2}}{re.escape(named)}\b", value, re.I) and \
+                not re.search(r"\b(after|once|only|later|not known|unknown|leak\w*)\b", re.split(r"[,;.]", value[value.find(named):] + ",")[0], re.I):
             # 20.10: "days_subscribed, with cancelled saying whether they left" begins with its outcome; "a failure of the
             # machine" or "we only know it once final_refund_amount is paid" only mention a column
             self.record(draft_id, "target", named)

@@ -340,12 +340,25 @@ class PeoplesOwnWordsTest(unittest.TestCase):
         c = problem_card(brief, words="How many customers will churn next month?")
         self.assertIn("forecasting", c.in_play)  # asked beside the churned column, never inferred
         self.assertIsNone(c.family.value)
+        words = "Predict how much each customer will spend next month"
+        brief = understand(words, {"t.csv": ["spend_next_month", "tenure"]})
+        brief = brief.model_copy(update={"target_column": TextFact(value="spend_next_month", status="stated", quote="x", source="person"),
+                                         "task": brief.task.model_copy(update={"value": "regression", "status": "inferred", "reason": "numbers"})})
+        self.assertNotEqual(problem_card(brief, words=words).family.value, "forecasting")  # a number per row, asked if anything
+        self.assertNotIn("forecasting", [f for f, p in WORDS.items() if p.search("how much each loan will lose; we review the next week")])
+        self.assertNotIn("uplift", [f for f, p in WORDS.items() if p.search("Predict which visitors book. Some would have booked anyway via the app")])
+
+    def test_a_short_moment_said_on_home_is_one_the_solution_page_takes(self):
+        from dclab_rnd.studio.solution import Solution
+
+        self.assertEqual(Solution(target="churned", task="binary", prediction_moment="at renewal").prediction_moment, "at renewal")
 
     def test_a_shape_only_answer_is_marked_and_a_named_family_is_not(self):
         from dclab_core.conversation import read_answer
 
         self.assertEqual(read_answer("family", "a yes or no for each note").get("family_shape_only"), "yes")
         self.assertIsNone(read_answer("family", "a classification, yes or no").get("family_shape_only"))
+        self.assertEqual(read_answer("family", "seven daily numbers for each store and product")["family"], "forecasting")
 
     def test_a_text_only_table_is_read_from_its_data_card(self):
         from dclab_rnd.draft.card import _text_only

@@ -30,7 +30,8 @@ LIMIT = 5
 # "how many": "how many are late, a yes or no for each" is a classification)
 FAMILY_ANSWERS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("classification", re.compile(r"\b(a yes or (a )?no|yes or no|yes/no|whether|a class\b|which (class|category|team|type)|classification)\b", re.I)),
-    ("forecasting", re.compile(r"\b(forecast\w*|(next|coming) (days?|weeks?|months?)|how many .{0,30}\b(tomorrow|next)\b)", re.I)),
+    ("forecasting", re.compile(r"\b(forecast\w*|(next|coming) (days?|weeks?|months?)|how many .{0,30}\b(tomorrow|next)\b|"
+                               r"(daily|weekly|monthly) (numbers?|values?|figures?|amounts?|totals?)|(numbers?|values?|totals?) (for|per) (each|every) (day|week|month))", re.I)),
     ("time_to_event", re.compile(r"\b(how long (until|before)|(the )?chance (a|an|each|they|the) \w+ (is|are)? ?still (with us|here|active|subscribed|running|alive)|expected (lifetime|number of (days|months))|still (with us|here|active|subscribed) (at|after) \d+|time (to|until|before) \w+|when (it|they|each) will (fail|leave|cancel|churn)|"
                                  r"(days|weeks|months|time) (until|before) (\w+ ){0,3}(fails?|leaves?|cancels?|churns?|quits?|ends?))\b", re.I)),
     ("streams", re.compile(r"\b((an )?alerts? (before|ahead of) (a |the |each )?\w+ (fails?|breaks?|goes down)|(an )?alert or no alert|early[- ]warning|(per|for each) (machine|unit|device|sensor|pump|engine) (at|on|every) (each )?(check|reading|interval)|from (the |its )?(sensor\w*|readings)|"

@@ -382,7 +382,7 @@ DC.view('new', {
     }
     $('#wz-propose', el).addEventListener('click', () => propose(true));
     $('#wz-target', el).addEventListener('change', () => propose(false));
-    $('#wz-sheet', el).addEventListener('change', e => { if (e.target.id === 'wz-moment' && e.target.value.trim().length >= 12) propose(true, true); });  // a new moment: review again, keep the choices
+    $('#wz-sheet', el).addEventListener('change', e => { if (e.target.id === 'wz-moment' && e.target.value.trim().length >= 8) propose(true, true); });  // the Solution page's minimum (20.10 v2)  // a new moment: review again, keep the choices
     /* the leakage reviewer (package A3.2): what the moment or the reviewer model says is written after the moment.
        Shown unticked, never applied: the person decides. A flag the reviewer disputes stays ticked. */
     const REVIEW_SOURCE = { moment: 'from the moment', model: 'reviewer model' };
@@ -428,7 +428,7 @@ DC.view('new', {
         text_columns: p.text_columns || [], metric: ($('#wz-metric', el) || {}).value || null, notes: '',
       };
       if (body.task !== 'binary') body.positive_label = null;
-      if (body.prediction_moment.trim().length < 12) { toast('Write the prediction moment first: when is the prediction made, and what is known then?', { ok: false }); ($('#wz-moment', el) || {}).focus?.(); return; }
+      if (body.prediction_moment.trim().length < 8) { toast('Write the prediction moment first: when is the prediction made, and what is known then?', { ok: false }); ($('#wz-moment', el) || {}).focus?.(); return; }
       try { W.draft = await DC.client.draftSolution(W.draft.id, { body }); drawSheet(W.draft.solution); show(4); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       catch (e) { toast(e.message, { ok: false }); }
     });

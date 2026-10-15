@@ -159,9 +159,11 @@ class FoundOnDevTest(unittest.TestCase):
         for said, expected in (("days_subscribed, with cancelled saying whether they left", "days_subscribed"),
                                ("duration days_subscribed, event flag cancelled", "days_subscribed"),  # 20.10 v2: a word before it
                                ("we only know it once cancelled is set", None),
+                               ("Flag refunded is only set after delivery, we want is_late", None),  # mentioned, set later: never the outcome
+                               ("the target days_subscribed is not known at the moment", None),
                                ("A failure of the machine in the next hours", None), ("machine", None)):
             d = store.create("x")["id"]
-            store.update(d, lambda x: x.update(analysis={"profile": {"columns": [{"name": n} for n in ("machine", "days_subscribed", "cancelled")]}}))
+            store.update(d, lambda x: x.update(analysis={"profile": {"columns": [{"name": n} for n in ("machine", "days_subscribed", "cancelled", "refunded", "is_late")]}}))
             agent.read_card_answer(d, "target", said)
             self.assertEqual((store.get(d).get("understanding") or {}).get("target"), expected, said)
 

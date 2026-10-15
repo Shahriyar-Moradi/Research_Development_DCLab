@@ -159,6 +159,9 @@ class KnownAheadInWordsTest(unittest.TestCase):
         self.assertEqual(list(said), ["on_promotion"])
         self.assertEqual(list(known_from_moment(["on_promotion", "rain_mm"], "We know the promotions because marketing sets them weeks before")),
                          ["on_promotion"])  # 20.10 v2: a verb in any form
+        for moment in ("The manager decides staffing two weeks before from the footfall so far",
+                       "We plan orders days before the day from last week's footfall"):
+            self.assertNotIn("footfall", known_from_moment(["footfall", "staffing"], moment), moment)  # measured so far: never ahead
         for moment in ("We know what footfall each store had yesterday",
                        "Each forecast is made two weeks before the day from the temperature and footfall so far"):
             self.assertEqual(known_from_moment(["footfall", "temperature", "store"], moment), {}, moment)  # measured, never known ahead
