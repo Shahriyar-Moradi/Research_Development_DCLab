@@ -233,6 +233,7 @@ class StudioTest(unittest.TestCase):
             out["same_steps"] = True
             self.assertEqual(cli.main(["replay", self.pid, "features"]), 0)
 
+    @unittest.skipIf(os.environ.get("DCLAB_DATABASE_URL"), "the project of this class lives in a file store; with PostgreSQL the app reads its own database, where it is not")
     def test_the_steps_route_answers_for_a_stage_a_decision_and_refuses_what_it_cannot(self):
         from fastapi.testclient import TestClient
 
