@@ -28,7 +28,7 @@ FOUNDATIONS = ("dclab_rnd/storage/", "dclab_rnd/settings.py", "tests/run_paralle
 # modules that write or read a store: a change reaching one of them is checked on PostgreSQL too (``--stores``)
 STORES = ("dclab_rnd.storage", "dclab_rnd.experience", "dclab_rnd.audit", "dclab_rnd.jobs", "dclab_rnd.accounts", "dclab_rnd.draft.store",
           "dclab_rnd.studio.store", "dclab_rnd.intern.sessions", "dclab_rnd.limits", "dclab_rnd.retention", "dclab_rnd.models.pause")
-ALWAYS = ("test_config.py", "test_api_contract.py", "test_devlog.py")  # cheap checks of the repository's own rules
+ALWAYS = ("test_config.py", "test_api_contract.py", "test_devlog.py", "test_harness_gate.py")  # cheap checks of the repository's own rules
 # a test file that checks what differs on PostgreSQL (it names it): the per-package PostgreSQL pass runs these
 PG_MARKERS = ("DCLAB_DATABASE_URL", "pgtest", "PgLog", "PgAudit", "postgres", "PostgreSQL")
 # product code the end-to-end flows exercise: a change here runs them

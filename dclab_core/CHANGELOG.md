@@ -4,6 +4,17 @@ The library's version (`pyproject.toml` and `dclab_core.__version__`, kept equal
 installs changes. Each contract keeps its own version (`dclab_core.problem_brief.v1`, ...): a contract's shape changes
 only with its version, and its frozen schema is in `schemas/baseline/`. A host pins the library version it tested.
 
+## 0.33.0 (2026-10-15)
+
+Package 21.5: what the owner's morning's other half found. No contract changes shape.
+
+- `meet.check`: "anomaly" stated while known cases are here (a joined file of cases, a named outcome column) is a
+  `labels_contradict` question, blocking while the family was stated and until the person says nothing is labelled.
+- `card.LABEL_WORDS`: "the cases we found", "the frauds the team caught" are known cases, tried after the words for a
+  column.
+- `datasets.failures`: a candidate keeps the person's answers by question field, so a reviewed session can be replayed.
+- `coordinator.FAMILY_NOT_RUN` (0.32.0, 20.10): the build's rule for a family no machine runs, said at the problem.
+
 ## 0.32.0 (2026-10-15)
 
 Package 20.10: the acceptance suite of conversations found where the card misread people. No contract changes shape.

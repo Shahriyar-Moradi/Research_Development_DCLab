@@ -1,0 +1,108 @@
+[
+ {
+  "id": "RG-01",
+  "title": "The owner's morning (2026-10-13): two files in two drafts, words that say anomaly for a rare-event problem, a role naming a column the tables do not hold",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "I want build anomaly detection",
+  "answers": {
+   "prediction_moment": "After delivery, in the daily audit of the day's orders",
+   "entity": "The biker",
+   "labels": "A sample of the cases we found",
+   "budget": "About 80 a day",
+   "target": "The confirmed frauds",
+   "family": "Find the fraudulent orders",
+   "action": "The audit team reviews the flagged orders; a missed fraud costs money",
+   "data_plan": "The orders file and the file of cases we found"
+  },
+  "advisor": {
+   "data_investigator": {
+    "after": [
+     {
+      "column": "driver_rating",
+      "why": "rated after the ride"
+     }
+    ],
+    "entities": [
+     {
+      "column": "biker_id",
+      "why": "the bikers repeat"
+     }
+    ]
+   }
+  },
+  "expect": {
+   "questions": [
+    "target",
+    "prediction_moment",
+    "entity",
+    "labels",
+    "budget"
+   ],
+   "steps": [
+    "answer",
+    "answer",
+    "bring_table",
+    "analyse",
+    "answer",
+    "answer",
+    "answer",
+    "build"
+   ],
+   "handoffs": [
+    {
+     "role": "data_investigator",
+     "allowed": false,
+     "refused_columns": [
+      "driver_rating"
+     ]
+    }
+   ],
+   "no_flags": [
+    "identifier_target",
+    "built_with_question_open",
+    "task_contradicts_words",
+    "question_asked_again",
+    "build_refused_again",
+    "error"
+   ],
+   "exact": true
+  }
+ },
+ {
+  "id": "RG-02",
+  "title": "The morning's answer to the outcome question: 'it is anomaly detection' is a family, never an outcome",
+  "kind": "rare_event",
+  "family": "rare_event",
+  "labels": "file",
+  "words": "I want build anomaly detection",
+  "answers": {
+   "prediction_moment": "After delivery, in the daily audit of the day's orders",
+   "entity": "The biker",
+   "labels": "A sample of the cases we found",
+   "budget": "About 80 a day",
+   "target": "it is anomaly detection",
+   "action": "The audit team reviews the flagged orders",
+   "data_plan": "The orders and the cases"
+  },
+  "expect": {
+   "questions": [
+    "target",
+    "labels",
+    "labels_check"
+   ],
+   "steps": [
+    "bring_table",
+    "analyse",
+    "build"
+   ],
+   "no_flags": [
+    "identifier_target",
+    "built_with_question_open",
+    "question_asked_again",
+    "error"
+   ]
+  }
+ }
+]

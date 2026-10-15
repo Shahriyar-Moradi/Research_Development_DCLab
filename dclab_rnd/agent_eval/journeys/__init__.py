@@ -127,13 +127,28 @@ def arms() -> dict[str, dict[str, Any]]:
     return out
 
 
-def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str, Any]] = None, live: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part. ``routing_doc``: the
     decision models routed while it plays (22.9); the rules alone by default."""
     from dclab_rnd.ledger import use
 
-    with use.scope(routing_doc or {"decisions": {}}), use.recording() as seen:
-        row = _play(journey, seed)
+    from dclab_core import signals
+
+    from dclab_rnd import experience
+
+    with tempfile.TemporaryDirectory() as tmp, use.scope(routing_doc or {"decisions": {}}), use.recording() as seen:
+        log, before = experience.FileLog(Path(tmp), "journey"), experience.current_log()  # 21.5: the play's own record, graded
+        experience.install(log)
+        try:
+            row = _play(journey, seed, live)
+        finally:
+            experience.install(before)
+        events = log.read(limit=100_000)
+    row["flags"] = sorted({f.detector for f in signals.detect(events)})
+    asked_models = [e.payload for e in events if e.kind == "model.request" and e.payload.get("model")]  # 21.5: who answered, at what cost
+    row["models"] = {str(p.get("purpose")): str(p.get("model")) for p in asked_models if p.get("purpose")}
+    row["spent_eur"] = round(sum(float(p.get("cost") or 0.0) for p in asked_models), 6)
+    row["coordinator"] = [e.payload.get("tool") for e in events if e.kind == "agent.step" and e.payload.get("agent") == "coordinator"]
     row["decisions"] = [{"point": c.point, "subject": c.subject, "answerer": c.answerer, "level": c.level, "model": c.model_value,
                          "rule": c.rule_value, "used": c.used, "changed": c.changed, "refused": c.refused, "review": c.review}
                         for c in seen if c.level]
@@ -143,7 +158,7 @@ def play(journey: dict[str, Any], seed: int = 0, routing_doc: Optional[dict[str,
     return row
 
 
-def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
+def _play(journey: dict[str, Any], seed: int = 0, live: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """One journey played from its first sentence; its scores and what happened at each part."""
     from dclab_rnd import kinds
     from dclab_rnd.draft import workflow as wf
@@ -157,14 +172,14 @@ def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
     from dclab_rnd.studio import ProjectStore, data as sd, engine, pipeline
 
     started = time.perf_counter()
-    kind = kinds.get(journey["kind"])
-    replica = kind.case(seed)
+    kind = kinds.get(journey["kind"]) if journey.get("kind") else None  # 21.5: a recorded session has no kind's replica
+    replica = kind.case(seed) if kind is not None else _from_card(journey["data_card"], seed)
     row: dict[str, Any] = {"id": journey["id"], "kind": journey["kind"], "family": journey["family"], "parts": {}, "why": []}
     with tempfile.TemporaryDirectory() as tmp:
         home, mine = Path(tmp), Path(tmp) / "person"
         mine.mkdir()
         drafts, projects = DraftStore(home / "drafts"), ProjectStore(home / "projects")
-        agent = HomeAgent(drafts, None)
+        agent = HomeAgent(drafts, (live or {}).get("client"))  # 21.5: the served model in a live run; the rules otherwise
         table, labels = _files(replica, mine)
         first = drafts.create(journey["words"])["id"]
         agent.start(first)
@@ -177,15 +192,24 @@ def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
         else:
             _upload(drafts, agent, first, table, mine / table)
         person = _Person(journey["answers"])
-        with private_scope(True):
-            out = Coordinator(drafts, projects, agent).run(start_at, person.person)
+        advisor = (live or {}).get("advisor")
+        if journey.get("advisor"):  # 21.5: a role's scripted hand-off (the morning's data investigator naming an absent column)
+            from dclab_core.agents import ScriptedAdvisor
+
+            advisor = ScriptedAdvisor(journey["advisor"])
+        import contextlib
+
+        with private_scope(True) if live is None else contextlib.nullcontext():  # 21.5: in a live run the roles ask their models
+            out = Coordinator(drafts, projects, agent, advisor).run(start_at, person.person)
+        row["handoffs"] = [{k: h.get(k) for k in ("role", "allowed", "refused_columns", "source")}
+                           for h in (drafts.get(start_at).get("coordinator") or {}).get("handoffs") or []]
         understood = card_of(drafts.get(start_at))
         card = understood.family.value
-        accepted = journey["family"] if isinstance(journey["family"], list) else [journey["family"]]
+        accepted = journey["family"] if isinstance(journey.get("family"), list) else [journey.get("family")]
         labels_ok = "labels" not in journey or understood.labels.value == journey["labels"]
         row.update(asked=person.asked, questions=len(person.asked), steps=[s["action"] for s in out["steps"]], state=out["state"],
                    said=out.get("says"), got={"family": card})
-        row["parts"]["card"] = card in accepted and labels_ok
+        row["parts"]["card"] = (card in accepted or journey.get("family") is None) and labels_ok  # a session's case may state no family
         if not row["parts"]["card"]:
             row["why"].append(f"card: {card!r}, the person's {accepted}" + ("" if labels_ok else "; the labels differ"))
         built = out.get("project_id")
@@ -234,7 +258,8 @@ def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
         with runner.fast_profile():  # the profile a run used is one of its inputs: read under the same one
             steps = pipeline.of(projects, built)
         stale = [f"{s.id} ({s.why})" for s in steps.steps if s.status == "stale"]
-        own = kind.own_machine() is not None  # a kind with its own machine has no analysis of tabular training rows to cite
+        ran = kind if kind is not None else kinds.resolve(projects.get(built)["solution"], projects.get(built).get("pack"))
+        own = ran.own_machine() is not None  # a kind with its own machine has no analysis of tabular training rows to cite
         missing = [f"{s.id} ({s.status})" for s in steps.steps if s.status not in ("done", "stale")  # every step run and recorded
                    and not (own and s.id == "analysis" and s.status == "not_recorded")]
         row["parts"]["pipeline"] = not stale and not missing
@@ -243,10 +268,13 @@ def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
         project = projects.get(built)
         records = {stage: projects.read_stage(built, stage) for stage in engine.STAGE_KEYS}
         done = Run(replica, project["solution"], records, project.get("labels") or {})
-        checks = kind.accept_engine(done) if kind.own_machine() is not None else kind.accept(done)
-        failed = [c["decision"] for c in checks if not c["ok"]]
         ran_as = kinds.resolve(project["solution"], project.get("pack")).key
-        if ran_as != journey["kind"]:  # the problem ran as the kind of the person's problem (stated or proposed)
+        if kind is None:  # a session's case: its card's traps are the truth (every leak suspect kept out, a holdout read)
+            checks = _card_checks(journey["data_card"], done)
+        else:
+            checks = kind.accept_engine(done) if kind.own_machine() is not None else kind.accept(done)
+        failed = [c["decision"] for c in checks if not c["ok"]]
+        if kind is not None and ran_as != journey["kind"]:  # the problem ran as the kind of the person's problem (stated or proposed)
             failed.append(f"ran as {ran_as}, not {journey['kind']}")
         row["parts"]["holdout"] = bool(checks) and not failed
         row["holdout"] = (done.evidence("final").get("holdout_metrics") or {})
@@ -254,6 +282,33 @@ def _play(journey: dict[str, Any], seed: int = 0) -> dict[str, Any]:
         if failed or not checks:
             row["why"].append(f"holdout: {failed or 'no acceptance decision'}")
     return _end(row, started)
+
+
+def _from_card(card: dict[str, Any], seed: int) -> Any:
+    """A recorded session's table, invented from its data card (19.11): the same columns, roles, bands and traps, no row
+    of the person's."""
+    from types import SimpleNamespace
+
+    from dclab_core.datacard import DataCard, synthesize
+
+    model = DataCard.model_validate(card)
+    frames = synthesize(model, seed=seed)
+    main = next((t.name for t in model.tables if t.role == "main"), model.tables[0].name)
+    labels = next((t.name for t in model.tables if t.role == "labels"), None)  # the file of known cases, in its own draft as it came
+    return SimpleNamespace(table=frames[main], files=None, labels=(frames[labels], None) if labels else None,
+                           tables={k: v for k, v in frames.items() if k not in (main, labels)}, facts={})
+
+
+def _card_checks(card: dict[str, Any], run: Any) -> list[dict[str, Any]]:
+    """The holdout of a session's case: a holdout number recorded, and every column the card marks a leak suspect kept
+    out of the model."""
+    from dclab_rnd.kinds.acceptance import check
+
+    suspects = sorted({c.get("name") for t in card.get("tables") or [] for c in t.get("columns") or [] if c.get("purpose") == "leak_suspect"})
+    roles = run.evidence("data").get("column_roles") or {}
+    kept = [c for c in suspects if c in roles and roles[c] == "feature"]
+    return [check("a holdout number is recorded", bool(run.evidence("final").get("holdout_metrics")), str(run.evidence("final").get("holdout_metrics"))),
+            check("every leak suspect of the card is kept out", not kept, f"modelled: {kept}" if kept else f"kept out: {suspects}")]
 
 
 def refused(projects: Any, project_id: str) -> list[dict[str, Any]]:
@@ -414,8 +469,23 @@ def store_compare(by_arm: dict[str, list[dict[str, Any]]], result: dict[str, Any
            "arms": {arm: [{k: r.get(k) for k in ("id", "kind", "right", "parts", "why", "decisions", "by_model", "agreed", "refused_by_validator",
                                                  "refused_moves", "holdout")} for r in rows] for arm, rows in by_arm.items()},
            "summary": result["arms"], "verdict": result["verdict"], "spent_eur": 0.0, "status": "completed", "experiment_id": ident,
+           "routing": arms(),  # 21.5: which answerer at which level each arm ran, read by the decision switch
            "rule": "Arms on the dev journeys over seeded replicas: what each routed decision model changes in these journeys, not a "
                    "claim about any other problem; routing a model in a workspace still needs its audited switch."}
     path = out / f"{ident}_{split}.json"
     path.write_text(json.dumps(doc, indent=2, default=str) + "\n", encoding="utf-8")
     return path
+
+
+def workflow_measured(answerer: str, point: str, level: int) -> Optional[dict[str, Any]]:
+    """21.5: the latest measurement (22.9) in which ``answerer`` acted at ``point`` at ``level`` on its own, or None."""
+    out = ROOT / "evidence" / "campaigns" / "decision_workflow_v1" / "results"
+    for path in sorted(out.glob("DWF-*.json"), reverse=True) if out.exists() else []:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if doc.get("journeys") != fingerprint(HERE / f"journeys_{doc.get('split', 'dev')}.json"):
+            continue  # measured on journeys that have changed since: not this suite's measurement
+        for arm, routing in (doc.get("routing") or {}).items():
+            entries = (routing or {}).get("decisions") or {}
+            if list(entries) == [point] and entries[point].get("answerer") == answerer and int(entries[point].get("level") or 0) == level:
+                return {"run": doc["id"], "arm": arm, **(doc.get("summary") or {}).get(arm, {})}
+    return None

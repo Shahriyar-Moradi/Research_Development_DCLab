@@ -6,6 +6,7 @@ whose weighted accuracy on new labels falls below its bar is demoted by DCLab an
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +49,9 @@ def rule(value):
 @unittest.skipIf(MISSING, MISSING)
 class DecisionRoutingTest(unittest.TestCase):
     def setUp(self):
+        patcher = mock.patch("dclab_rnd.agent_eval.journeys.workflow_measured", return_value={"run": "DWF-TEST", "ok": True})  # 21.5
+        self.workflow = patcher.start()
+        self.addCleanup(patcher.stop)
         tmp = Path(tempfile.mkdtemp())
         self.store, self.audit = FileRouting(tmp / "model_routing.json"), audit.FileAudit(tmp / "audit.jsonl")
         self.passed = next(n for n, i in routing.passed().items() if i["point"] == POINT)  # the leakage classifier that passed 22.3
@@ -85,6 +89,17 @@ class DecisionRoutingTest(unittest.TestCase):
         with self.assertRaises(routing.DecisionRoutingError):  # measured, and wrong where it differs from the rule
             routing.switch(self.store, self.audit, POINT, self.passed, 2, "reviewer", "it passed", measured=worse)
         routing.switch(self.store, self.audit, POINT, self.passed, 1, "reviewer", "flag only")  # flagging needs only the gate
+        self.assertEqual(routing.entry(self.act(2), POINT)["level"], 2)
+
+    def test_to_act_a_model_must_have_passed_the_journeys_at_that_level_on_its_own(self):
+        self.workflow.return_value = {"run": "DWF-002", "arm": POINT, "ok": False}  # 22.9: acting, it failed a holdout
+        with self.assertRaises(routing.DecisionRoutingError) as caught:
+            self.act(3)
+        self.assertIn("DWF-002", str(caught.exception))
+        self.workflow.return_value = None
+        with self.assertRaises(routing.DecisionRoutingError):
+            self.act(2)
+        self.workflow.return_value = {"run": "DWF-002", "arm": POINT + "@check", "ok": True}
         self.assertEqual(routing.entry(self.act(2), POINT)["level"], 2)
 
     def test_the_rule_answers_when_the_model_abstains_fails_disagrees_at_a_check_or_only_flags(self):

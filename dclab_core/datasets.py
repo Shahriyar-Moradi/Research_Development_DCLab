@@ -290,7 +290,8 @@ def workflows(items: Iterable[dict[str, Any]], *, workspace: Optional[str] = Non
 
 def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dict[str, Any]]] = None, *, workspace: Optional[str] = None,
              consent: str = "improve") -> tuple[list[dict[str, Any]], DatasetManifest]:
-    """Flagged sessions as candidate benchmark cases (``sessions``: visit, flags, problem, family, outcome, data_card).
+    """Flagged sessions as candidate benchmark cases (``sessions``: visit, flags, problem, family, outcome, data_card, and
+    the person's answers by question field).
     A candidate a reviewer accepted (``reviews[id]["verdict"] == "accept"``) is a case; never into a sealed set."""
     reviews = reviews or {}
     rows = []
@@ -303,6 +304,7 @@ def failures(sessions: Iterable[dict[str, Any]], reviews: Optional[dict[str, dic
         rows.append({"id": ident, "visit": s.get("visit"), "detectors": sorted({f["detector"] for f in flags}),
                      "flags": [{"detector": f["detector"], "severity": f.get("severity"), "message": f.get("message")} for f in flags],
                      "problem": s.get("problem"), "family": s.get("family"), "outcome": s.get("outcome"), "data_card": s.get("data_card"),
+                     "answers": dict(s.get("answers") or {}),  # 21.5: the person's answers by question, to replay the session
                      "review": review.get("verdict") or "pending", "reviewed_by": review.get("by"), "split": "candidate",
                      "sources": [("visit", s.get("visit"))] + [("flag", f"{s.get('visit')}:{f['detector']}") for f in flags]
                      + ([("draft", s["draft"])] if s.get("draft") and s.get("data_card") else [])})

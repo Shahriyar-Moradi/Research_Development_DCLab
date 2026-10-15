@@ -10,6 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
+
+def setUpModule():  # 21.5: these tests are about routing, not the harness suite: a suite run that passed is assumed
+    from unittest import mock
+
+    patcher = mock.patch("dclab_rnd.agent_eval.regression.passed_with", return_value={"id": "HRN-TEST"})
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
+
 class PlatformApiTests(unittest.TestCase):
     def setUp(self):
         try:

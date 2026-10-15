@@ -14,7 +14,8 @@ with its evidence (column names and counts, never a value), blocking when buildi
 * ``time_absent``: the moment or the family needs a time (when each prediction is made) and no column holds one, or
   the time column named is not in the table;
 * ``labels_not_joined``: the cases are in a file that is not joined to the table yet;
-* ``labels_contradict``: the words say nothing is labelled, while the table has a column that looks like the outcome.
+* ``labels_contradict``: the words say nothing is labelled, while the table has a column that looks like the outcome; or
+  the person said anomaly detection while known cases are here (a joined file, a named outcome column).
 
 A pair that agrees raises nothing. The rules are code; a host may ask a model to phrase the questions, never to decide them.
 """
@@ -152,6 +153,13 @@ def check(card: Any, data: Any, joined: Optional[bool] = None) -> ProblemDataChe
             out.append(_m("labels_contradict", blocking=False,
                                 question=f"You said nothing is labelled, but {named[0]} looks like an outcome. Is it one?",
                                 evidence={"labels": "none", "column": named[0]}))
+    if family == "anomaly" and ((label_tables and is_joined) or (target and target in columns)):
+        # 21.5: the morning's other half: "it is anomaly detection" said, while the known cases are here
+        found = "a file of known cases joins the table" if label_tables and is_joined else f"{target} looks like the outcome"
+        out.append(_m("labels_contradict", blocking=card.family.status == "stated" and labels != "none",  # "nothing is labelled": confirmed
+                      question=f"You said anomaly detection, which looks for unusual rows when nothing is labelled, but {found}. "
+                               "Learn from the known cases (a rare event), or say nothing is labelled to look for unusual rows anyway?",
+                      evidence={"labels": "file" if label_tables and is_joined else "column", "family": "anomaly"}))
     return ProblemDataCheck(mismatches=out[:20], ready=not any(m.blocking for m in out))
 
 

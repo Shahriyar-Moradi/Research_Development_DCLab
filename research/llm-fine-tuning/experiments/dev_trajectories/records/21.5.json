@@ -1,0 +1,241 @@
+{
+ "package": "21.5",
+ "title": "Harness evaluation from real sessions: the morning a permanent case, every change through the suite",
+ "date": "2026-10-15",
+ "request": "Every role and the coordinator measured on the conversation suite and on replays of recorded sessions; each failure a regression case; a gate fixed before each run; traces graded step by step. Done when the owner's morning is a permanent regression case, and a change to a prompt, a model or a gate runs the suite before it is on.",
+ "spec": "Regression cases with expected traces, accepted sessions replayed on invented tables, the dev journeys, a step grader, stored runs with fingerprints and the models used, and the gates where a change goes live.",
+ "plan": [
+  "Survey the session record, the signals, the morning and the existing gates.",
+  "Make each play record its own session and grade it step by step.",
+  "Write the morning's cases and the replay of accepted sessions.",
+  "Gate prompts and gates by fingerprint, models at the switch, decision models on their measurement.",
+  "Review, plant faults, fix, run and store."
+ ],
+ "decisions": [
+  {
+   "decision": "The morning is graded on its exact trace.",
+   "why": "A permanent case must notice an extra question or a step out of place."
+  },
+  {
+   "decision": "A session case is replayed on a table invented from its data card.",
+   "why": "A session keeps no rows; the card keeps its columns, bands and traps."
+  },
+  {
+   "decision": "Only a live run measures a prompt.",
+   "why": "A run without a model sends none."
+  },
+  {
+   "decision": "A contradiction may pass the question cap, once.",
+   "why": "A blocked build with no question left only stops."
+  }
+ ],
+ "change": "dclab_rnd/agent_eval/regression (new), agent_eval/journeys (session record, advisor, data-card cases, live), datasets.py and dclab_core/datasets.py (answers), models/routing.py, ledger/routing.py, dclab_core/meet.py, card.py (dclab-core 0.33.0), draft/chat.py, scripts/affected_tests.py, Makefile; tests/test_harness_suite.py and test_harness_gate.py (new), test_decision_routing.py, test_model_management.py, test_shadow_mode.py, test_pages_platform.py, test_draft_flow.py, test_journeys.py; the plan, the roadmap, CLAUDE.md.",
+ "findings": [
+  {
+   "id": "M1",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "Anomaly said beside a file of known cases was never asked.",
+   "scenario": "The morning's other half: it is anomaly detection answered as the outcome, a file of found cases joined; the card kept anomaly while the project was built as a rare event.",
+   "cause": "No meet rule compared a stated anomaly with labels that are here.",
+   "fix": "The meet check asks it, blocking while the family was stated; the answer that known cases exist makes it a rare event.",
+   "test": "test_anomaly_said_beside_a_file_of_known_cases_is_asked"
+  },
+  {
+   "id": "M2",
+   "source": "measurement",
+   "severity": "behaviour",
+   "defect": "A contradiction could not be asked once five questions were asked.",
+   "scenario": "The coordinator stopped at the meet check with no question pending.",
+   "cause": "Home's cap applied to every question.",
+   "fix": "A contradiction between the words and the data is asked past the cap, once.",
+   "test": "test_a_contradiction_is_asked_past_the_question_cap"
+  },
+  {
+   "id": "M3",
+   "source": "measurement",
+   "severity": "gap",
+   "defect": "The cases we found was not read as known cases.",
+   "scenario": "The person's labels answer left the labels unknown.",
+   "cause": "The label words had no such phrasing.",
+   "fix": "The phrase reads as a file of cases, tried after a column.",
+   "test": "test_the_cases_we_found_are_known_cases"
+  },
+  {
+   "id": "G1",
+   "source": "test",
+   "severity": "flaky",
+   "defect": "A stream test raced under load.",
+   "scenario": "On PostgreSQL in the milestone gate the chat event came after the analysis event and the test stopped reading.",
+   "cause": "The test assumed one order.",
+   "fix": "It reads until it has seen both.",
+   "test": "test_upload_and_events_stream"
+  },
+  {
+   "id": "G2",
+   "source": "test",
+   "severity": "gap",
+   "defect": "A route test built its project in a file store beside the server's.",
+   "scenario": "On PostgreSQL the server answered project not found.",
+   "cause": "The test made its own store.",
+   "fix": "It builds in the server's store.",
+   "test": "test_the_solution_page_saves_a_label_files_target"
+  },
+  {
+   "id": "R1",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "No model could ever pass the suite.",
+   "scenario": "Every purpose was recorded as no model, so a reviewer could never move a purpose to one.",
+   "cause": "The served models were read through a module that has no such function, and the error was swallowed.",
+   "fix": "A run records the model that answered each purpose its plays asked, from their own session records.",
+   "test": "test_the_models_a_run_used_are_those_its_plays_asked"
+  },
+  {
+   "id": "R2",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "In a live run the roles never asked a model and the spend was not capped.",
+   "scenario": "The coordinator ran in a private scope, and the Home agent's client had no limit.",
+   "cause": "The scope that keeps replicas off models was kept in a live run.",
+   "fix": "A live run drops the scope, splits one cap between the Home agent and the roles, and records the spend.",
+   "test": "test_in_a_live_run_the_roles_ask_their_models"
+  },
+  {
+   "id": "R3",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A prompt change passed by a run that never sends a prompt.",
+   "scenario": "Editing a role prompt and running the suite without models made the gate green.",
+   "cause": "Every fingerprint counted the same.",
+   "fix": "Prompts are measured only by a live run; the ones changed since the latest live run are listed.",
+   "test": "test_a_prompt_changed_since_the_last_live_run_is_listed"
+  },
+  {
+   "id": "R4",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The cases and several gates were not fingerprinted.",
+   "scenario": "Weakening the morning's expectations left the gate green.",
+   "cause": "Only some gates were hashed.",
+   "fix": "The cases, the dev journeys and every suite's gate are fingerprinted.",
+   "test": "test_what_the_suite_ran_on_includes_its_cases_and_every_gate"
+  },
+  {
+   "id": "R5",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A prompt-only change skipped the harness gate in a package gate.",
+   "scenario": "Editing a prompt file selected no test naming it.",
+   "cause": "The affected-tests selection works by name.",
+   "fix": "The harness gate runs in every package gate.",
+   "test": "test_the_harness_gate_runs_in_every_package_gate"
+  },
+  {
+   "id": "R6",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "A model set in the environment was not gated.",
+   "scenario": "Changing a tier's own model served it without a run.",
+   "cause": "Only routed moves are gated.",
+   "fix": "Said in the status: a tier's own model is the owner's configuration.",
+   "test": "test_the_models_a_run_used_are_those_its_plays_asked"
+  },
+  {
+   "id": "R7",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "The step grading accepted wrong traces.",
+   "scenario": "An extra question or a build tried before the analysis passed the morning.",
+   "cause": "Expectations were read as ordered subsequences.",
+   "fix": "An exact expectation per case, used by the morning, and no build before the analysis anywhere.",
+   "test": "test_an_exact_trace_refuses_an_extra_question_or_step_and_a_build_never_precedes_the_analysis"
+  },
+  {
+   "id": "R8",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A confirmed anomaly beside a label file blocked for ever.",
+   "scenario": "After the person said nothing is labelled the mismatch still blocked and was never asked again.",
+   "cause": "The new rule ignored the answer.",
+   "fix": "Once the person says nothing is labelled it no longer blocks.",
+   "test": "test_anomaly_confirmed_beside_a_label_file_no_longer_blocks"
+  },
+  {
+   "id": "R9",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A labels answer naming a column was read as a file.",
+   "scenario": "The label column holds the cases we confirmed read as a file and asked for a missing file.",
+   "cause": "The new phrase was tried before the column words.",
+   "fix": "It is tried after them.",
+   "test": "test_a_labels_answer_naming_a_column_stays_a_column"
+  },
+  {
+   "id": "R10",
+   "source": "reviewer",
+   "severity": "behaviour",
+   "defect": "A replayed session lost its label file.",
+   "scenario": "A session with a labels table was replayed with one table.",
+   "cause": "The synthesized labels table went with the related tables.",
+   "fix": "It is replayed as the person's own label file.",
+   "test": "test_a_sessions_label_file_is_replayed_as_its_own_file"
+  },
+  {
+   "id": "R11",
+   "source": "reviewer",
+   "severity": "privacy",
+   "defect": "A workspace's column names could reach a committed result.",
+   "scenario": "A session case's check details listed its card's columns.",
+   "cause": "Details were stored as played.",
+   "fix": "A session's rows keep only the steps and whether they held.",
+   "test": "test_a_sessions_row_keeps_no_column_name_in_the_committed_result"
+  },
+  {
+   "id": "R12",
+   "source": "reviewer",
+   "severity": "gap",
+   "defect": "Runs sorted as text, and an old measurement counted.",
+   "scenario": "A thousandth run would sort before the nine hundred ninety ninth; a decision measured on other journeys still let a model act.",
+   "cause": "Text sort; no check of the journeys measured.",
+   "fix": "Runs sort by number; a measurement counts only on the journeys of now.",
+   "test": "test_runs_are_read_in_number_order_and_a_measurement_on_other_journeys_is_not_this_one"
+  }
+ ],
+ "measurements": [
+  {
+   "name": "the harness suite",
+   "gate": "harness_gate_v1: every regression case and every accepted session case right on each step check and part, every dev journey right, no failure flag back",
+   "result": "17 of 17 right on every step and part, no model served, spent 0",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "17 of 17",
+   "limits": [
+    "Two written cases and 15 dev journeys; no accepted session yet.",
+    "No live run: the prompts are not measured."
+   ]
+  },
+  {
+   "name": "planted faults",
+   "gate": "each planted fault fails a test",
+   "result": "16 of 16 planted faults caught",
+   "verdict": "pass",
+   "cost_eur": 0.0,
+   "against_gate": "16 of 16",
+   "limits": [
+    "Faults chosen by the author."
+   ]
+  }
+ ],
+ "outcome": "The owner's morning and its other half are permanent cases graded on their exact trace; accepted sessions replay on invented tables; no prompt, gate, model or decision model goes live before the suite passed on it.",
+ "lessons": [
+  "A gate whose evidence can never be produced is a gate only an override passes: test the path that produces it.",
+  "A run that sends no prompt cannot vouch for one.",
+  "An ordered subsequence lets an extra step through: a permanent case needs its exact trace."
+ ],
+ "risks": [
+  "No live run yet.",
+  "A tier's own model set in the environment is outside the gates."
+ ],
+ "commits": []
+}

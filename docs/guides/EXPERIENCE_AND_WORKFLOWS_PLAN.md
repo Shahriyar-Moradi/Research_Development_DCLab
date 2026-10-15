@@ -474,6 +474,24 @@ asked the labels question, and the build happened anyway); one model tier served
   right question asked, the right tool, the right hand-off).
 - **Done when:** the owner's morning is a permanent regression case, and a change to a prompt, a model or a gate runs
   the suite before it is on.
+- **Status: built (2026-10-15).** `dclab_rnd/agent_eval/regression` (`make harness-eval`): the regression cases
+  (`cases.json`: the owner's morning first, its exact trace (the five questions in order, the coordinator's eight
+  steps, the data investigator's hand-off refused on a column the tables do not hold, no failure flag), then the
+  morning's other half, "it is anomaly detection" answered beside a file of found cases), every flagged session a
+  reviewer accepted (replayed with the person's own answers on a table invented from its data card, right when its
+  flags do not come back and its card's leak suspects stay out), and the dev journeys, each played with its own session
+  record and graded step by step (each question once and in order, no build before the analysis, the hand-offs, the
+  flags). `HRN-001`: 17 of 17. A change is on only after the suite: `tests/test_harness_gate.py`, in every package
+  gate, fails when a prompt, a tool schema, the graph's validator, a role prompt, a case or any suite's gate changed
+  since the latest passing run; a reviewer moves a purpose to a model only after a passing live run in which that
+  model answered it (`--live --cap-eur`, `--serve purpose=tier`, the cap split between the Home agent and the roles, the
+  spend recorded); a decision model acts only after its own journeys measurement at that level (22.9). The morning's
+  other half found a gap, fixed: "anomaly" said while known cases are joined is now asked (blocking until the person
+  answers; "nothing is labelled" confirms it), even past the five-question cap, which a contradiction may pass once.
+  Left open: no live run yet (the prompts are measured only by one: `prompts_unmeasured` lists those changed since
+  it); a tier's own model set in the environment is the owner's configuration, outside these gates; no recorded
+  session has been accepted as a case yet (the morning is a written reconstruction: no product session of it was
+  kept).
 
 The main product has the same shape already: `agent_runs` with kinds assistant, lead, specialist and ops; a harness
 recorder; one gateway with `prompt_releases`; governed decision points. The coordinator maps onto its lead kind, the

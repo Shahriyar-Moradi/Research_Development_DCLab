@@ -84,6 +84,7 @@ LABEL_WORDS = (  # what a person says about labels, in the order tried (a "no" f
     ("file", re.compile(r"\b(a (file|list|sample) of (the )?(known|confirmed|found)|known (frauds?|cases)|confirmed (frauds?|cases)|"
                         r"a file lists (the )?(known|confirmed|cases|frauds?)|some are confirmed)", re.I)),
     ("column", re.compile(r"\b(a column (marks|says|holds)|label column|is[_ ]?(fraud|case)\b column|the outcome is (the )?\w+ column)", re.I)),
+    ("file", re.compile(r"\b(the )?(cases|frauds?|ones) (we|they|the team) (found|caught|confirmed|flagged)\b", re.I)),  # 21.5, after a column
 )
 LABELS_QUESTION = ("Are some cases already confirmed — a column that marks them, or a file of known cases — or is nothing "
                    "labelled at all?")

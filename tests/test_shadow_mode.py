@@ -27,6 +27,14 @@ def reply(content=None, calls=()):
                                   "tool_calls": [{"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])}} for c in calls]}}
 
 
+
+def setUpModule():  # 21.5: these tests are about routing, not the harness suite: a suite run that passed is assumed
+    from unittest import mock
+
+    patcher = mock.patch("dclab_rnd.agent_eval.regression.passed_with", return_value={"id": "HRN-TEST"})
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
+
 class Router:
     """One scripted model per tier: the served one plays ``served``, the tuned one plays ``tuned`` (shared lists)."""
 

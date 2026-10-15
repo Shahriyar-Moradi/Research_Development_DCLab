@@ -196,6 +196,14 @@ def change(store: RoutingStore, purpose: str, setting: str, tier: str | None, ro
                                f"conversations than {', '.join(sorted(bars)) or 'its own tier'} ({model}: {scores.get(model, 'not measured')}; "
                                + "; ".join(f"{b}: {scores.get(b, 'not measured')}" for b in sorted(bars)) + "), or the owner overrides with a reason")
         evidence = {"measured": {k: scores[k] for k in sorted({str(model), *bars}) if k in scores}, "override": not better}
+    if setting == "serve" and tier is not None:  # 21.5: no model serves a purpose before the harness suite passed with it here
+        from ..agent_eval.regression import passed_with
+
+        suite = passed_with(purpose, str(model))
+        if suite is None and not (override and role == "owner"):
+            raise RoutingError(f"{model} has not passed the harness suite serving {purpose} on these prompts and gates: run "
+                               "make harness-eval ARGS='--live --cap-eur N' with it, or the owner overrides with a reason")
+        evidence = {**(evidence or {}), "suite": suite["id"] if suite else None, **({"override": True} if suite is None else {})}
     purposes = dict(doc.get("purposes") or {})
     purposes[purpose] = {**current, setting: tier, **({"serve_model": model, "serve_endpoint": endpoint} if setting == "serve" else {})}
     entry = {"at": _now(), "purpose": purpose, "setting": setting, "from": current[setting], "to": tier, "by": role or "human", "reason": reason or None,

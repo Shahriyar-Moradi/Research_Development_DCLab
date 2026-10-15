@@ -1,0 +1,6 @@
+{
+  "campaign_id": "harness_v1",
+  "objective": "Harness evaluation from real sessions (package 21.5): the regression cases (people written from failures, the owner's morning of 2026-10-13 first, each with the trace it must follow: the questions, the coordinator's steps, the hand-offs, the failure flags that must not come back), the flagged sessions a reviewer accepted (replayed with the person's own answers on a table invented from the session's data card), and the dev journeys of the acceptance suite (20.10), played as the product runs and graded step by step. A run stores the fingerprints of what it ran with (the studio's prompts, tool schemas and graph validator, dclab_core's role prompts, the cases and every suite's gate), the model that answered each purpose its plays asked, and what it spent; a model serves a purpose only after a passing live run with it, a decision model acts only after its journeys measurement, and a prompt or gate change waits for a run on it.",
+  "rule": "The suite says these written and recorded cases still go as they should with what a run ran; it is not a claim about any other session or about production readiness. A run without a served model sends no prompt: a prompt is measured only by a live run.",
+  "command": "make harness-eval [ARGS='--home WORKSPACE' | ARGS='--live --cap-eur N [--serve purpose=tier]']"
+}

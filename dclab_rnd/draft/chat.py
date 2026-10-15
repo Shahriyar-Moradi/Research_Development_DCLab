@@ -127,7 +127,8 @@ class HomeAgent:
     def ask(self, draft_id: str, field: str, question: str, options: list[str] | None = None, why: str = "") -> dict[str, Any] | None:
         draft = self.store.get(draft_id)
         asked = [q for q in draft["questions"] if not q.get("superseded")]
-        if len(asked) >= MAX_QUESTIONS or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):
+        over = len(asked) >= MAX_QUESTIONS and field not in self.CONTRADICTIONS.values()  # 21.5: the words and the data disagreeing
+        if over or any(q.get("field") == field and not q.get("answered") for q in draft["questions"]):  # is asked past the cap, once
             return None
         q = {"id": f"q{len(draft['questions']) + 1}", "field": field, "text": question, "options": (options or [])[:4], "why": why, "answered": None}
 
@@ -410,6 +411,9 @@ class HomeAgent:
         if field in ("labels_check", "target_check"):  # the answer to a contradiction settles what it was about
             if read.get("labels"):
                 self.record(draft_id, "labels", self.LABEL_PHRASES[read["labels"]])
+                if read["labels"] in ("file", "column") and (self.store.get(draft_id).get("understanding") or {}).get("family") == "anomaly" \
+                        and not read.get("family"):
+                    self.record(draft_id, "family", "rare_event")  # 21.5: "anomaly", then "these are the cases we found": a rare event
             if read.get("target_column"):
                 self.record(draft_id, "target", read["target_column"])
 

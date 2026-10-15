@@ -145,7 +145,15 @@ def _sessions(services: Any, exported: list[dict[str, Any]], drafts: dict[str, d
             card = card_of(draft).family.value if draft else None
         except Exception:  # noqa: BLE001
             pass
-        out.append({"visit": visit, "flags": flags, "problem": (created or {}).get("payload", {}).get("problem"), "family": card,
+        answers: dict[str, str] = {}  # 21.5: what the person answered to each question (exported, so redacted), to replay the session
+        asked = None
+        for e in sorted(mine, key=lambda e: (e.get("at") or "", e.get("seq") or 0)):
+            if e["kind"] == "chat.agent" and (e.get("payload") or {}).get("question_field"):
+                asked = e["payload"]["question_field"]
+            elif e["kind"] == "chat.person" and asked and (e.get("payload") or {}).get("text"):
+                answers.setdefault(str(asked), str(e["payload"]["text"])[:1000])
+                asked = None
+        out.append({"visit": visit, "flags": flags, "problem": (created or {}).get("payload", {}).get("problem"), "family": card, "answers": answers,
                     "outcome": "built" if any(e["kind"] == "draft.built" for e in mine) else "open", "data_card": anonymous_card(draft.get("data_card")),
                     "draft": conversation if draft else None})
     return out

@@ -30,6 +30,14 @@ ENV = {"OPENAI_API_KEY": KEY, "OPENAI_MODEL": "gpt-6-luna", "DCLAB_TIER_STRONG_M
 
 
 @unittest.skipIf(MISSING, MISSING)
+
+def setUpModule():  # 21.5: these tests are about routing, not the harness suite: a suite run that passed is assumed
+    from unittest import mock
+
+    patcher = mock.patch("dclab_rnd.agent_eval.regression.passed_with", return_value={"id": "HRN-TEST"})
+    patcher.start()
+    unittest.addModuleCleanup(patcher.stop)
+
 class SwitchTest(unittest.TestCase):
     def setUp(self):
         env = mock.patch.dict(os.environ, {**CLEAN, **ENV})
@@ -66,7 +74,7 @@ class SwitchTest(unittest.TestCase):
             routing.switch(self.store, self.audit, "problem_analyst", "serve", "strong", "reviewer", "trust me", override=True)
         doc = routing.switch(self.store, self.audit, "problem_analyst", "serve", "strong", "reviewer", "9 of 9 against 7 of 9",
                              measured={"big-model": 1.0, "gpt-6-luna": 0.78})
-        self.assertEqual(doc["history"][-1]["evidence"], {"measured": {"big-model": 1.0, "gpt-6-luna": 0.78}, "override": False})
+        self.assertEqual(doc["history"][-1]["evidence"], {"measured": {"big-model": 1.0, "gpt-6-luna": 0.78}, "override": False, "suite": "HRN-TEST"})
         doc = routing.switch(self.store, self.audit, "brief_checker", "serve", "strong", "owner", "the owner's call, measured later", override=True)
         self.assertTrue(doc["history"][-1]["evidence"]["override"])
         row = [r for r in self.rows() if r.get("move") == "set_routing"][0]

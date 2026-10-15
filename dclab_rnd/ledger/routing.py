@@ -121,6 +121,13 @@ def switch(store: Any, audit_log: Any, point: str, answerer: Optional[str], leve
         if gates[answerer]["point"] != point:
             raise DecisionRoutingError(f"{answerer} was judged at {gates[answerer]['point']}, not {point}")
         if level >= 2:
+            from ..agent_eval.journeys import workflow_measured
+
+            run = workflow_measured(answerer, point, level)  # 21.5: measured inside the workflow at this level, on its own
+            if run is None or not run.get("ok"):
+                raise DecisionRoutingError(
+                    f"{answerer} has not passed the journeys at level {level} on its own" + (f" ({run['run']}: right less often than the "
+                    "rules on a part)" if run else ": run the comparison (make journeys ARGS=--compare)"))
             why = ready_to_act(answerer, measured)
             if why:
                 raise DecisionRoutingError(why)
